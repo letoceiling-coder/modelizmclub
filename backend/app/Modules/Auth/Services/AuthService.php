@@ -94,6 +94,8 @@ class AuthService
                 $user->assignRole('user');
             }
 
+            $user->load('profile');
+
             return $this->tokenResponse($user);
         });
     }
@@ -119,6 +121,10 @@ class AuthService
             throw ValidationException::withMessages([
                 'email' => ['Аккаунт заблокирован.'],
             ]);
+        }
+
+        if (! $user->profile) {
+            $this->createProfile($user);
         }
 
         $user->forceFill(['last_seen_at' => now()])->save();
