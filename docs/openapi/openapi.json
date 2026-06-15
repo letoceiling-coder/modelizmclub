@@ -1,0 +1,3789 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "ModelizmClub API",
+        "version": "1.0.0",
+        "description": "ModelizmClub REST API v1 \u2014 auth, profiles, catalog, communities, feed, media."
+    },
+    "servers": [
+        {
+            "url": "https://dev.modelizmclub.ru/api"
+        }
+    ],
+    "security": [
+        {
+            "http": []
+        }
+    ],
+    "paths": {
+        "/v1/communities/apply": {
+            "post": {
+                "operationId": "v1.applyCommunity",
+                "tags": [
+                    "ApplyCommunity"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplyCommunityRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CommunityApplicationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/users/me/blocks": {
+            "get": {
+                "operationId": "block.index",
+                "tags": [
+                    "Block"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/UserCompactResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/users/{id}/block": {
+            "post": {
+                "operationId": "block.store",
+                "tags": [
+                    "Block"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BlockUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0437\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/cities": {
+            "get": {
+                "operationId": "v1.cities",
+                "tags": [
+                    "Cities"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CityResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/comments/{uuid}/thread": {
+            "get": {
+                "operationId": "v1.commentThread",
+                "tags": [
+                    "CommentThread"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CommentResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/categories/communities": {
+            "get": {
+                "operationId": "v1.communityCategoryTree",
+                "tags": [
+                    "CommunityCategoryTree"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "array",
+                                                "items": {}
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/communities/{slug}/members": {
+            "get": {
+                "operationId": "v1.communityMembers",
+                "tags": [
+                    "CommunityMembers"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 30
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `CommunityMemberResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CommunityMemberResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/communities/{slug}/posts": {
+            "get": {
+                "operationId": "v1.communityPosts",
+                "tags": [
+                    "CommunityPosts"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PostResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/media/confirm": {
+            "post": {
+                "operationId": "v1.confirmUpload",
+                "tags": [
+                    "ConfirmUpload"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfirmUploadRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "uuid": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "url": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "uuid",
+                                                    "status",
+                                                    "url"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/consent": {
+            "post": {
+                "operationId": "v1.consent",
+                "tags": [
+                    "Consent"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConsentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "document_version": {
+                                                    "type": "string"
+                                                },
+                                                "accepted_at": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "document_version",
+                                                "accepted_at"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/posts/{uuid}": {
+            "delete": {
+                "operationId": "v1.destroyPost",
+                "tags": [
+                    "DestroyPost"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0443\u0434\u0430\u043b\u0435\u043d\u0430."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "get": {
+                "operationId": "v1.showPost",
+                "tags": [
+                    "ShowPost"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.updatePost",
+                "tags": [
+                    "UpdatePost"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePostRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/users/{id}/follow": {
+            "post": {
+                "operationId": "follow.store",
+                "tags": [
+                    "Follow"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u041f\u043e\u0434\u043f\u0438\u0441\u043a\u0430 \u043e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0430."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "follow.destroy",
+                "tags": [
+                    "Follow"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u041f\u043e\u0434\u043f\u0438\u0441\u043a\u0430 \u043e\u0442\u043c\u0435\u043d\u0435\u043d\u0430."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/forgot-password": {
+            "post": {
+                "operationId": "v1.forgotPassword",
+                "tags": [
+                    "ForgotPassword"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ForgotPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "\u0415\u0441\u043b\u0438 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\u0442, \u0441\u0441\u044b\u043b\u043a\u0430 \u0434\u043b\u044f \u0441\u0431\u0440\u043e\u0441\u0430 \u043f\u0430\u0440\u043e\u043b\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0430 \u043d\u0430 email."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/health": {
+            "get": {
+                "operationId": "v1.health",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "const": "ok"
+                                                },
+                                                "service": {
+                                                    "type": "string",
+                                                    "const": "modelizmclub-api"
+                                                },
+                                                "version": {
+                                                    "type": "string",
+                                                    "const": "v1"
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "service",
+                                                "version"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/communities": {
+            "get": {
+                "operationId": "v1.indexCommunity",
+                "tags": [
+                    "IndexCommunity"
+                ],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `CommunityResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CommunityResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/feed": {
+            "get": {
+                "operationId": "v1.indexFeed",
+                "tags": [
+                    "IndexFeed"
+                ],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "default": "all"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PostResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "filter": {}
+                                            },
+                                            "required": [
+                                                "filter"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/me/interests": {
+            "get": {
+                "operationId": "interests.show",
+                "tags": [
+                    "Interests"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PostCategoryResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "interests.sync",
+                "tags": [
+                    "Interests"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SyncInterestsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PostCategoryResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/communities/{slug}/join": {
+            "post": {
+                "operationId": "v1.joinCommunity",
+                "tags": [
+                    "JoinCommunity"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u0412\u044b \u0432\u0441\u0442\u0443\u043f\u0438\u043b\u0438 \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/communities/{slug}/leave": {
+            "delete": {
+                "operationId": "v1.leaveCommunity",
+                "tags": [
+                    "LeaveCommunity"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u0412\u044b \u043f\u043e\u043a\u0438\u043d\u0443\u043b\u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/categories/listings": {
+            "get": {
+                "operationId": "v1.listingCategoryTree",
+                "tags": [
+                    "ListingCategoryTree"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "array",
+                                                "items": {}
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/login": {
+            "post": {
+                "operationId": "v1.login",
+                "tags": [
+                    "Login"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string"
+                                                },
+                                                "token_type": {
+                                                    "type": "string",
+                                                    "const": "Bearer"
+                                                }
+                                            },
+                                            "required": [
+                                                "token",
+                                                "token_type"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/logout": {
+            "post": {
+                "operationId": "v1.logout",
+                "tags": [
+                    "Logout"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "\u0412\u044b \u0432\u044b\u0448\u043b\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043c\u044b."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/me": {
+            "get": {
+                "operationId": "v1.me",
+                "tags": [
+                    "Me"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/oauth/{provider}/redirect": {
+            "get": {
+                "operationId": "oAuth.redirect",
+                "tags": [
+                    "OAuth"
+                ],
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "501": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "OAuth redirect \u0431\u0443\u0434\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u043f\u043e\u0441\u043b\u0435 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f Socialite-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u0430."
+                                        },
+                                        "provider": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "provider"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "OAuth-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440 \u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d. \u0414\u043e\u0431\u0430\u0432\u044c\u0442\u0435 \u043a\u043b\u044e\u0447\u0438 \u0432 .env \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435."
+                                        },
+                                        "provider": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "provider"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u041d\u0435\u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043c\u044b\u0439 OAuth-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/oauth/{provider}/callback": {
+            "get": {
+                "operationId": "oAuth.callback",
+                "tags": [
+                    "OAuth"
+                ],
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "501": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "OAuth callback \u0431\u0443\u0434\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u043f\u043e\u0441\u043b\u0435 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f Socialite-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u0430."
+                                        },
+                                        "provider": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "provider"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "OAuth-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440 \u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u041d\u0435\u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043c\u044b\u0439 OAuth-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/posts/{uuid}/bookmark": {
+            "post": {
+                "operationId": "postBookmark.store",
+                "tags": [
+                    "PostBookmark"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043e \u0432 \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0438."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "postBookmark.destroy",
+                "tags": [
+                    "PostBookmark"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "\u0423\u0434\u0430\u043b\u0435\u043d\u043e \u0438\u0437 \u0437\u0430\u043a\u043b\u0430\u0434\u043e\u043a."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/categories/posts": {
+            "get": {
+                "operationId": "v1.postCategoryTree",
+                "tags": [
+                    "PostCategoryTree"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "array",
+                                                "items": {}
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/posts/{uuid}/comments": {
+            "get": {
+                "operationId": "postComments.index",
+                "tags": [
+                    "PostComments"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `CommentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CommentResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "postComments.store",
+                "tags": [
+                    "PostComments"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "body": {
+                                        "type": "string",
+                                        "maxLength": 5000
+                                    },
+                                    "parent_uuid": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uuid"
+                                    }
+                                },
+                                "required": [
+                                    "body"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`CommentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CommentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/posts/{uuid}/react": {
+            "post": {
+                "operationId": "postReaction.store",
+                "tags": [
+                    "PostReaction"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "postReaction.destroy",
+                "tags": [
+                    "PostReaction"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/users/me/privacy": {
+            "patch": {
+                "operationId": "v1.privacy",
+                "tags": [
+                    "Privacy"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePrivacyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/OwnProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/posts/{uuid}/publish": {
+            "post": {
+                "operationId": "v1.publishPost",
+                "tags": [
+                    "PublishPost"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/register": {
+            "post": {
+                "operationId": "v1.register",
+                "tags": [
+                    "Register"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "\u041a\u043e\u0434 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u043d\u0430 email."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/posts/{uuid}/repost": {
+            "post": {
+                "operationId": "v1.repostPost",
+                "tags": [
+                    "RepostPost"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/reset-password": {
+            "post": {
+                "operationId": "v1.resetPassword",
+                "tags": [
+                    "ResetPassword"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "\u041f\u0430\u0440\u043e\u043b\u044c \u0443\u0441\u043f\u0435\u0448\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0451\u043d."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/users/me/settings": {
+            "get": {
+                "operationId": "settings.show",
+                "tags": [
+                    "Settings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/NotificationPreferenceResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "settings.update",
+                "tags": [
+                    "Settings"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSettingsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/NotificationPreferenceResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/communities/{slug}": {
+            "get": {
+                "operationId": "v1.showCommunity",
+                "tags": [
+                    "ShowCommunity"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CommunityResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{slug}": {
+            "get": {
+                "operationId": "v1.showProfile",
+                "tags": [
+                    "ShowProfile"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PublicProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/posts": {
+            "post": {
+                "operationId": "v1.storePost",
+                "tags": [
+                    "StorePost"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorePostRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`PostResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PostResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/tags": {
+            "get": {
+                "operationId": "v1.tags",
+                "tags": [
+                    "Tags"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TagResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/me": {
+            "patch": {
+                "operationId": "v1.updateProfile",
+                "tags": [
+                    "UpdateProfile"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProfileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/OwnProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/media/upload-session": {
+            "post": {
+                "operationId": "uploadSession.store",
+                "tags": [
+                    "UploadSession"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateUploadSessionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "session_uuid": {
+                                                    "type": "string"
+                                                },
+                                                "expires_at": {
+                                                    "type": "string"
+                                                },
+                                                "uploads": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "media_uuid": {
+                                                                "type": "string"
+                                                            },
+                                                            "upload_url": {
+                                                                "type": "string"
+                                                            },
+                                                            "path": {
+                                                                "type": "string"
+                                                            },
+                                                            "headers": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "Content-Type": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "Content-Type"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "media_uuid",
+                                                            "upload_url",
+                                                            "path",
+                                                            "headers"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "session_uuid",
+                                                "expires_at",
+                                                "uploads"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/verify-email": {
+            "post": {
+                "operationId": "v1.verifyEmail",
+                "tags": [
+                    "VerifyEmail"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VerifyEmailRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string"
+                                                },
+                                                "token_type": {
+                                                    "type": "string",
+                                                    "const": "Bearer"
+                                                }
+                                            },
+                                            "required": [
+                                                "token",
+                                                "token_type"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "http": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "Sanctum"
+            }
+        },
+        "schemas": {
+            "ApplyCommunityRequest": {
+                "type": "object",
+                "properties": {
+                    "proposed_name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 5000
+                    },
+                    "category_id": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "proposed_name",
+                    "category_id"
+                ],
+                "title": "ApplyCommunityRequest"
+            },
+            "BlockUserRequest": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    }
+                },
+                "title": "BlockUserRequest"
+            },
+            "CityResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "slug": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "region",
+                    "slug"
+                ],
+                "title": "CityResource"
+            },
+            "CommentResource": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "depth": {
+                        "type": "integer"
+                    },
+                    "author": {
+                        "$ref": "#/components/schemas/UserCompactResource"
+                    },
+                    "parent_uuid": {
+                        "type": "string"
+                    },
+                    "stats": {
+                        "type": "object",
+                        "properties": {
+                            "reactions": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "reactions"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uuid",
+                    "body",
+                    "depth",
+                    "stats",
+                    "created_at"
+                ],
+                "title": "CommentResource"
+            },
+            "CommunityApplicationResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "proposed_name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "category_id": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "proposed_name",
+                    "description",
+                    "category_id",
+                    "status",
+                    "created_at"
+                ],
+                "title": "CommunityApplicationResource"
+            },
+            "CommunityMemberResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "avatar": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "uuid",
+                            "url"
+                        ]
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "joined_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "display_name",
+                    "slug",
+                    "role",
+                    "joined_at"
+                ],
+                "title": "CommunityMemberResource"
+            },
+            "CommunityResource": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_official": {
+                        "type": "boolean"
+                    },
+                    "members_count": {
+                        "type": "integer"
+                    },
+                    "posts_count": {
+                        "type": "integer"
+                    },
+                    "category": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "avatar": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "uuid"
+                        ]
+                    },
+                    "cover": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "uuid"
+                        ]
+                    },
+                    "subcategories": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "slug": {
+                                    "type": "string"
+                                },
+                                "sort_order": {
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "slug",
+                                "sort_order"
+                            ]
+                        }
+                    },
+                    "is_member": {
+                        "type": "boolean"
+                    },
+                    "approved_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uuid",
+                    "name",
+                    "slug",
+                    "description",
+                    "is_official",
+                    "members_count",
+                    "posts_count",
+                    "approved_at"
+                ],
+                "title": "CommunityResource"
+            },
+            "ConfirmUploadRequest": {
+                "type": "object",
+                "properties": {
+                    "session_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "media_uuids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "session_uuid",
+                    "media_uuids"
+                ],
+                "title": "ConfirmUploadRequest"
+            },
+            "ConsentRequest": {
+                "type": "object",
+                "properties": {
+                    "document_version": {
+                        "type": "string",
+                        "maxLength": 32
+                    }
+                },
+                "required": [
+                    "document_version"
+                ],
+                "title": "ConsentRequest"
+            },
+            "CreateUploadSessionRequest": {
+                "type": "object",
+                "properties": {
+                    "purpose": {
+                        "type": "string",
+                        "enum": [
+                            "avatar",
+                            "post",
+                            "post_video",
+                            "listing",
+                            "chat"
+                        ]
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "maxLength": 255
+                                },
+                                "size": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "mime": {
+                                    "type": "string",
+                                    "maxLength": 127
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "size",
+                                "mime"
+                            ]
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "purpose",
+                    "files"
+                ],
+                "title": "CreateUploadSessionRequest"
+            },
+            "ForgotPasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "email"
+                ],
+                "title": "ForgotPasswordRequest"
+            },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "title": "LoginRequest"
+            },
+            "NotificationPreferenceResource": {
+                "type": "object",
+                "properties": {
+                    "channel": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "channel",
+                    "type",
+                    "enabled"
+                ],
+                "title": "NotificationPreferenceResource"
+            },
+            "OwnProfileResource": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "bio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "avatar": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "uuid",
+                            "url"
+                        ]
+                    },
+                    "stats": {
+                        "type": "object",
+                        "properties": {
+                            "publications_count": {
+                                "type": "integer"
+                            },
+                            "followers_count": {
+                                "type": "integer"
+                            },
+                            "following_count": {
+                                "type": "integer"
+                            },
+                            "rating_score": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "publications_count",
+                            "followers_count",
+                            "following_count",
+                            "rating_score"
+                        ]
+                    },
+                    "member_since": {
+                        "type": "string"
+                    },
+                    "is_following": {
+                        "type": "boolean"
+                    },
+                    "permissions": {
+                        "type": "object",
+                        "properties": {
+                            "can_view_email": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "can_view_email"
+                        ]
+                    },
+                    "city_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "avatar_media_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "privacy_settings": {
+                        "type": "array",
+                        "items": {}
+                    }
+                },
+                "required": [
+                    "display_name",
+                    "slug",
+                    "bio",
+                    "stats",
+                    "member_since",
+                    "permissions",
+                    "city_id",
+                    "avatar_media_id",
+                    "privacy_settings"
+                ],
+                "title": "OwnProfileResource"
+            },
+            "PostCategoryResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "icon"
+                ],
+                "title": "PostCategoryResource"
+            },
+            "PostMediaResource": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string"
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "duration_seconds": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "media": {
+                        "type": "object",
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "mime_type": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": "string"
+                            },
+                            "width": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "height": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "uuid",
+                            "mime_type",
+                            "url",
+                            "width",
+                            "height"
+                        ]
+                    }
+                },
+                "required": [
+                    "type",
+                    "sort_order",
+                    "duration_seconds"
+                ],
+                "title": "PostMediaResource"
+            },
+            "PostResource": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "author": {
+                        "$ref": "#/components/schemas/UserCompactResource"
+                    },
+                    "category": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "community": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "slug": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "slug",
+                            "name"
+                        ]
+                    },
+                    "media": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PostMediaResource"
+                        }
+                    },
+                    "hashtags": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "repost_of": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "author": {
+                                "$ref": "#/components/schemas/UserCompactResource"
+                            }
+                        },
+                        "required": [
+                            "uuid",
+                            "title",
+                            "author"
+                        ]
+                    },
+                    "stats": {
+                        "type": "object",
+                        "properties": {
+                            "views": {
+                                "type": "integer"
+                            },
+                            "reactions": {
+                                "type": "integer"
+                            },
+                            "comments": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "views",
+                            "reactions",
+                            "comments"
+                        ]
+                    },
+                    "viewer": {
+                        "type": "object",
+                        "properties": {
+                            "reacted": {
+                                "type": "boolean"
+                            },
+                            "bookmarked": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "reacted",
+                            "bookmarked"
+                        ]
+                    },
+                    "permissions": {
+                        "type": "object",
+                        "properties": {
+                            "can_edit": {
+                                "type": "boolean"
+                            },
+                            "can_publish": {
+                                "type": "boolean"
+                            },
+                            "can_delete": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "can_edit",
+                            "can_publish",
+                            "can_delete"
+                        ]
+                    },
+                    "published_at": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uuid",
+                    "title",
+                    "body",
+                    "status",
+                    "stats",
+                    "viewer",
+                    "permissions",
+                    "published_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "PostResource"
+            },
+            "PublicProfileResource": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "bio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "avatar": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "uuid",
+                            "url"
+                        ]
+                    },
+                    "stats": {
+                        "type": "object",
+                        "properties": {
+                            "publications_count": {
+                                "type": "integer"
+                            },
+                            "followers_count": {
+                                "type": "integer"
+                            },
+                            "following_count": {
+                                "type": "integer"
+                            },
+                            "rating_score": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "publications_count",
+                            "followers_count",
+                            "following_count",
+                            "rating_score"
+                        ]
+                    },
+                    "member_since": {
+                        "type": "string"
+                    },
+                    "is_following": {
+                        "type": "boolean"
+                    },
+                    "permissions": {
+                        "type": "object",
+                        "properties": {
+                            "can_view_email": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "can_view_email"
+                        ]
+                    }
+                },
+                "required": [
+                    "display_name",
+                    "slug",
+                    "bio",
+                    "stats",
+                    "member_since",
+                    "permissions"
+                ],
+                "title": "PublicProfileResource"
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "registration_track": {
+                        "$ref": "#/components/schemas/RegistrationTrack"
+                    },
+                    "display_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "password_confirmation": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "email",
+                    "password",
+                    "registration_track",
+                    "password_confirmation"
+                ],
+                "title": "RegisterRequest"
+            },
+            "RegistrationTrack": {
+                "type": "string",
+                "enum": [
+                    "community",
+                    "listing"
+                ],
+                "title": "RegistrationTrack"
+            },
+            "ResetPasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "password_confirmation": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "token",
+                    "email",
+                    "password",
+                    "password_confirmation"
+                ],
+                "title": "ResetPasswordRequest"
+            },
+            "StorePostRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "body": {
+                        "type": "string",
+                        "maxLength": 10000
+                    },
+                    "category_id": {
+                        "type": "integer"
+                    },
+                    "community_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "subcategory_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "media_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 10
+                    },
+                    "hashtags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 64
+                        },
+                        "maxItems": 30
+                    }
+                },
+                "required": [
+                    "title",
+                    "body",
+                    "category_id"
+                ],
+                "title": "StorePostRequest"
+            },
+            "SyncInterestsRequest": {
+                "type": "object",
+                "properties": {
+                    "category_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "maxItems": 50
+                    }
+                },
+                "required": [
+                    "category_ids"
+                ],
+                "title": "SyncInterestsRequest"
+            },
+            "TagResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "usage_count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "usage_count"
+                ],
+                "title": "TagResource"
+            },
+            "UpdatePostRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "body": {
+                        "type": "string",
+                        "maxLength": 10000
+                    },
+                    "category_id": {
+                        "type": "integer"
+                    },
+                    "community_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "subcategory_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "media_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 10
+                    },
+                    "hashtags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 64
+                        },
+                        "maxItems": 30
+                    }
+                },
+                "title": "UpdatePostRequest"
+            },
+            "UpdatePrivacyRequest": {
+                "type": "object",
+                "properties": {
+                    "profile_visibility": {
+                        "type": "string",
+                        "enum": [
+                            "public",
+                            "registered",
+                            "followers"
+                        ]
+                    },
+                    "show_email": {
+                        "type": "boolean"
+                    },
+                    "show_activity": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdatePrivacyRequest"
+            },
+            "UpdateProfileRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 64
+                    },
+                    "slug": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                        "minLength": 2,
+                        "maxLength": 64
+                    },
+                    "bio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    },
+                    "city_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "avatar_media_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "title": "UpdateProfileRequest"
+            },
+            "UpdateSettingsRequest": {
+                "type": "object",
+                "properties": {
+                    "preferences": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "channel": {
+                                    "type": "string",
+                                    "maxLength": 32
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "maxLength": 64
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "channel",
+                                "type",
+                                "enabled"
+                            ]
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "preferences"
+                ],
+                "title": "UpdateSettingsRequest"
+            },
+            "UserCompactResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "avatar": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "uuid": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "uuid",
+                            "url"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "display_name",
+                    "slug"
+                ],
+                "title": "UserCompactResource"
+            },
+            "UserResource": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "role": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/components/schemas/UserRole"
+                            }
+                        ]
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/components/schemas/UserStatus"
+                            }
+                        ]
+                    },
+                    "registration_track": {
+                        "type": "string"
+                    },
+                    "locale": {
+                        "type": "string"
+                    },
+                    "email_verified_at": {
+                        "type": "string"
+                    },
+                    "last_seen_at": {
+                        "type": "string"
+                    },
+                    "profile": {
+                        "type": "object",
+                        "properties": {
+                            "display_name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            },
+                            "bio": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "display_name",
+                            "slug",
+                            "bio"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uuid",
+                    "email",
+                    "name",
+                    "role",
+                    "status",
+                    "registration_track",
+                    "locale",
+                    "email_verified_at",
+                    "last_seen_at",
+                    "created_at"
+                ],
+                "title": "UserResource"
+            },
+            "UserRole": {
+                "type": "string",
+                "enum": [
+                    "user",
+                    "subscriber",
+                    "moderator",
+                    "admin"
+                ],
+                "title": "UserRole"
+            },
+            "UserStatus": {
+                "type": "string",
+                "enum": [
+                    "active",
+                    "blocked",
+                    "deleted",
+                    "pending_verification"
+                ],
+                "title": "UserStatus"
+            },
+            "VerifyEmailRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "code": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 6
+                    }
+                },
+                "required": [
+                    "email",
+                    "code"
+                ],
+                "title": "VerifyEmailRequest"
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
