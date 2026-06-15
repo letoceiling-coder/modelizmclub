@@ -41,8 +41,8 @@ class PostResource extends JsonResource
                 'comments' => $this->comments_count,
             ],
             'viewer' => [
-                'reacted' => (bool) ($this->viewer_reacted ?? false),
-                'bookmarked' => (bool) ($this->viewer_bookmarked ?? false),
+                'reacted' => $this->viewer_reacted,
+                'bookmarked' => $this->viewer_bookmarked,
             ],
             'permissions' => [
                 'can_edit' => $user ? $user->can('update', $this->resource) : false,

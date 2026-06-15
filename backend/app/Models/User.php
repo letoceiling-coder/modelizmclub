@@ -67,7 +67,7 @@ class User extends Authenticatable
 
     public function interests(): BelongsToMany
     {
-        return $this->belongsToMany(PostCategory::class, 'user_interests');
+        return $this->belongsToMany(PostCategory::class, 'user_interests', 'user_id', 'category_id');
     }
 
     public function following(): BelongsToMany

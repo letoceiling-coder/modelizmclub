@@ -138,4 +138,9 @@ class Post extends Model
             ContentStatus::Revision,
         ], true);
     }
+
+    /** Runtime-only flags for API responses (not persisted). */
+    public bool $viewer_reacted = false;
+
+    public bool $viewer_bookmarked = false;
 }

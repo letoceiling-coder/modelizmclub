@@ -154,12 +154,16 @@ class MediaUploadService
     {
         $storage = Storage::disk($disk);
 
-        if (method_exists($storage, 'temporaryUploadUrl')) {
-            ['url' => $url] = $storage->temporaryUploadUrl($path, now()->addHour(), [
-                'ContentType' => $mime,
-            ]);
+        try {
+            if (method_exists($storage, 'temporaryUploadUrl')) {
+                ['url' => $url] = $storage->temporaryUploadUrl($path, now()->addHour(), [
+                    'ContentType' => $mime,
+                ]);
 
-            return $url;
+                return $url;
+            }
+        } catch (\RuntimeException) {
+            // Local / fake disks used in tests do not support presigned uploads.
         }
 
         return $storage->url($path);

@@ -190,24 +190,20 @@ class PostService
     public function attachViewerFlags(Post $post, ?User $viewer): void
     {
         if (! $viewer) {
-            $post->setAttribute('viewer_reacted', false);
-            $post->setAttribute('viewer_bookmarked', false);
+            $post->viewer_reacted = false;
+            $post->viewer_bookmarked = false;
 
             return;
         }
 
-        $post->setAttribute(
-            'viewer_reacted',
-            $post->reactions()->where('user_id', $viewer->id)->exists(),
-        );
+        $post->viewer_reacted = $post->reactions()
+            ->where('user_id', $viewer->id)
+            ->exists();
 
-        $post->setAttribute(
-            'viewer_bookmarked',
-            DB::table('post_bookmarks')
-                ->where('post_id', $post->id)
-                ->where('user_id', $viewer->id)
-                ->exists(),
-        );
+        $post->viewer_bookmarked = DB::table('post_bookmarks')
+            ->where('post_id', $post->id)
+            ->where('user_id', $viewer->id)
+            ->exists();
     }
 
     /** @param list<string> $hashtags */
