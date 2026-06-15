@@ -6,6 +6,11 @@ APP_DIR="/var/www/modelizmclub"
 cd "${APP_DIR}"
 git pull origin master
 
+if [[ "${DEPLOY_REEXECED:-}" != 1 ]]; then
+  export DEPLOY_REEXECED=1
+  exec bash "$0" "$@"
+fi
+
 cd backend
 composer install --no-dev --optimize-autoloader --no-interaction
 php artisan migrate --force
