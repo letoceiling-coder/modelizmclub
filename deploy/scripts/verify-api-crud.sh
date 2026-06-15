@@ -24,12 +24,13 @@ CODE=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/json' "${
 check "GET /health" "${CODE}" "200"
 
 echo "==> Auth login"
+printf '%s\n' "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" > /tmp/smoke-login.json
 LOGIN=$(curl -sS -H 'Accept: application/json' -H 'Content-Type: application/json' \
-  -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" \
+  -d @/tmp/smoke-login.json \
   "${BASE}/api/v1/auth/login")
 TOKEN=$(echo "${LOGIN}" | php -r '$j=json_decode(file_get_contents("php://stdin"),true); echo $j["meta"]["token"]??"";')
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/json' -H 'Content-Type: application/json' \
-  -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" \
+  -d @/tmp/smoke-login.json \
   "${BASE}/api/v1/auth/login")
 check "POST /auth/login" "${CODE}" "200"
 

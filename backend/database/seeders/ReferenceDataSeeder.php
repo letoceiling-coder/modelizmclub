@@ -4,6 +4,9 @@ namespace Database\Seeders;
 
 use App\Enums\CommunityMemberRole;
 use App\Enums\CommunityStatus;
+use App\Enums\RegistrationTrack;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Models\City;
 use App\Models\Community;
 use App\Models\CommunityCategory;
@@ -11,8 +14,11 @@ use App\Models\ListingCategory;
 use App\Models\PostCategory;
 use App\Models\Tag;
 use App\Models\User;
+use App\Models\UserProfile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ReferenceDataSeeder extends Seeder
 {
@@ -23,7 +29,36 @@ class ReferenceDataSeeder extends Seeder
         $this->seedListingCategories();
         $this->seedCities();
         $this->seedTags();
+        $this->seedDemoUser();
         $this->seedDemoCommunities();
+    }
+
+    private function seedDemoUser(): void
+    {
+        $user = User::query()->firstOrNew(['email' => 'demo@modelizmclub.ru']);
+
+        if (! $user->exists) {
+            $user->uuid = (string) Str::uuid();
+        }
+
+        $user->fill([
+            'name' => 'Demo User',
+            'password' => Hash::make('password123'),
+            'role' => UserRole::User,
+            'status' => UserStatus::Active,
+            'registration_track' => RegistrationTrack::Community,
+            'locale' => 'ru',
+            'email_verified_at' => now(),
+        ])->save();
+
+        UserProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'display_name' => 'Demo User',
+                'slug' => 'demo-user',
+                'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
+            ],
+        );
     }
 
     private function seedPostCategories(): void

@@ -6,8 +6,9 @@ EMAIL="${SMOKE_EMAIL:-demo@modelizmclub.ru}"
 PASSWORD="${SMOKE_PASSWORD:-password123}"
 
 echo "==> login"
+printf '%s\n' "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" > /tmp/smoke-login.json
 TOKEN=$(curl -sS -H 'Accept: application/json' -H 'Content-Type: application/json' \
-  -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" \
+  -d @/tmp/smoke-login.json \
   "${BASE}/api/v1/auth/login" | php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["meta"]["token"]??"";')
 
 if [[ -z "${TOKEN}" ]]; then
