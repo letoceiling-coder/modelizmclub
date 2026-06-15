@@ -12,8 +12,8 @@ LOGIN=$(curl -sS -X POST https://dev.modelizmclub.ru/api/v1/auth/login \
   -d @/tmp/login.json)
 echo "$LOGIN"
 
-TOKEN=$(echo "$LOGIN" | php -r '$j=json_decode(stream_get_contents(STDIN), true); echo $j["token"] ?? "";')
-SLUG=$(echo "$LOGIN" | php -r '$j=json_decode(stream_get_contents(STDIN), true); echo $j["user"]["profile"]["slug"] ?? "";')
+TOKEN=$(echo "$LOGIN" | php -r '$j=json_decode(stream_get_contents(STDIN), true); echo $j["meta"]["token"] ?? $j["token"] ?? "";')
+SLUG=$(echo "$LOGIN" | php -r '$j=json_decode(stream_get_contents(STDIN), true); echo $j["data"]["profile"]["slug"] ?? $j["user"]["profile"]["slug"] ?? "";')
 
 if [[ -z "$TOKEN" || -z "$SLUG" ]]; then
   echo "login failed or profile missing"
