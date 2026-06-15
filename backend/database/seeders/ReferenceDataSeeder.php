@@ -17,7 +17,6 @@ use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class ReferenceDataSeeder extends Seeder
@@ -43,7 +42,7 @@ class ReferenceDataSeeder extends Seeder
 
         $user->fill([
             'name' => 'Demo User',
-            'password' => Hash::make('password123'),
+            'password' => 'password123',
             'role' => UserRole::User,
             'status' => UserStatus::Active,
             'registration_track' => RegistrationTrack::Community,
