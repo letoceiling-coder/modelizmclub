@@ -146,6 +146,7 @@ class AuthService
             'user_id' => $user->id,
             'display_name' => $user->name ?: $base,
             'slug' => $slug,
+            'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
         ]);
     }
 

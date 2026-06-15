@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserProfile extends Model
 {
+    public const DEFAULT_PRIVACY = [
+        'profile_visibility' => 'public',
+        'show_email' => false,
+        'show_activity' => true,
+    ];
+
     protected $primaryKey = 'user_id';
 
     public $incrementing = false;

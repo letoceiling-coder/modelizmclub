@@ -7,4 +7,5 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class);
 
     require base_path('app/Modules/Auth/routes/api.php');
+    require base_path('app/Modules/User/routes/api.php');
 });
