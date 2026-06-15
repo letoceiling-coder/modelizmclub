@@ -12,7 +12,7 @@ class ShowPostController extends Controller
 {
     public function __invoke(string $uuid, Request $request, PostService $posts): JsonResponse
     {
-        $post = $posts->findByUuid($uuid, $request->user());
+        $post = $posts->findByUuid($uuid, $request->user('sanctum'));
 
         return (new PostResource($post))->response();
     }

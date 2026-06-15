@@ -140,10 +140,13 @@ return [
      */
     'flatten_deep_query_parameters' => true,
 
-    'middleware' => [
+    /*
+     * Allow API docs UI on non-production environments (see viewApiDocs gate).
+     */
+    'middleware' => array_values(array_filter([
         'web',
-        RestrictedDocsAccess::class,
-    ],
+        env('APP_ENV') === 'production' ? RestrictedDocsAccess::class : null,
+    ])),
 
     'extensions' => [],
 
