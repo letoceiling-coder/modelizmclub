@@ -47,13 +47,16 @@ cd "${APP_DIR}/backend"
 
 if [ ! -f .env ]; then
   cp .env.example .env
-  php artisan key:generate --force
-  sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|" .env
-  sed -i "s|^APP_URL=.*|APP_URL=https://${DOMAIN}|" .env
-  sed -i "s|^APP_ENV=.*|APP_ENV=development|" .env
 fi
 
 composer install --no-dev --optimize-autoloader --no-interaction
+
+if ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
+  php artisan key:generate --force
+fi
+sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|" .env
+sed -i "s|^APP_URL=.*|APP_URL=https://${DOMAIN}|" .env
+sed -i "s|^APP_ENV=.*|APP_ENV=development|" .env
 php artisan migrate --force
 php artisan db:seed --force
 
