@@ -34,13 +34,17 @@ class ReferenceDataSeeder extends Seeder
 
     private function seedDemoUser(): void
     {
-        $user = User::query()->firstOrNew(['email' => 'demo@modelizmclub.ru']);
+        $user = User::withTrashed()->firstOrNew(['email' => 'demo@modelizmclub.ru']);
+
+        if ($user->trashed()) {
+            $user->restore();
+        }
 
         if (! $user->exists) {
             $user->uuid = (string) Str::uuid();
         }
 
-        $user->fill([
+        $user->forceFill([
             'name' => 'Demo User',
             'password' => 'password123',
             'role' => UserRole::User,

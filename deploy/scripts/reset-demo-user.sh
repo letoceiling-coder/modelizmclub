@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Reset demo@modelizmclub.ru password for smoke tests (plain text; User model hashed cast applies).
+# Ensure demo@modelizmclub.ru exists with a known password for smoke tests.
 set -euo pipefail
 cd /var/www/modelizmclub/backend
+php artisan db:seed --class=ReferenceDataSeeder --force --no-interaction
 php artisan tinker --execute="
-\$user = App\\Models\\User::withTrashed()->where('email', 'demo@modelizmclub.ru')->first();
-if (! \$user) { echo 'demo-missing'; exit(1); }
-if (\$user->trashed()) { \$user->restore(); }
+\$user = App\\Models\\User::where('email', 'demo@modelizmclub.ru')->firstOrFail();
 \$user->forceFill([
     'password' => 'password123',
     'status' => App\\Enums\\UserStatus::Active,
