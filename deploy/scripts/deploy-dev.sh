@@ -9,6 +9,7 @@ git pull origin master
 cd backend
 composer install --no-dev --optimize-autoloader --no-interaction
 php artisan migrate --force
+php artisan db:seed --class=ReferenceDataSeeder --force
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache 2>/dev/null || true

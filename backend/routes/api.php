@@ -8,4 +8,6 @@ Route::prefix('v1')->group(function (): void {
 
     require base_path('app/Modules/Auth/routes/api.php');
     require base_path('app/Modules/User/routes/api.php');
+    require base_path('app/Modules/Catalog/routes/api.php');
+    require base_path('app/Modules/Community/routes/api.php');
 });
