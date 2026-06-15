@@ -2,10 +2,15 @@
 
 namespace App\Providers;
 
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,5 +30,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
         RateLimiter::for('auth-verify', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip().'|'.$request->input('email')));
+
+        Scramble::configure()
+            ->routes(fn (Route $route) => Str::startsWith($route->uri, 'api/'))
+            ->withDocumentTransformers(function (OpenApi $openApi): void {
+                $openApi->secure(
+                    SecurityScheme::http('bearer', 'Sanctum'),
+                );
+            });
     }
 }

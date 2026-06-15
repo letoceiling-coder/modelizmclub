@@ -1,0 +1,180 @@
+<?php
+
+namespace Modules\Media\Services;
+
+use App\Enums\MediaStatus;
+use App\Models\Media;
+use App\Models\UploadSession;
+use App\Models\User;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+class MediaUploadService
+{
+    /** @var array<string, array{max_files: int, max_size: int, mimes: list<string>}> */
+    private const LIMITS = [
+        'avatar' => ['max_files' => 1, 'max_size' => 5_242_880, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
+        'post' => ['max_files' => 10, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
+        'post_video' => ['max_files' => 3, 'max_size' => 104_857_600, 'mimes' => ['video/mp4', 'video/webm']],
+        'listing' => ['max_files' => 20, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
+        'chat' => ['max_files' => 10, 'max_size' => 26_214_400, 'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']],
+    ];
+
+    /**
+     * @param  array{purpose: string, files: list<array{name: string, size: int, mime: string}>}  $payload
+     * @return array{session_uuid: string, expires_at: string, uploads: list<array{media_uuid: string, upload_url: string, path: string, headers: array<string, string>}>}
+     */
+    public function createSession(User $user, array $payload): array
+    {
+        $purpose = $payload['purpose'];
+        $files = $payload['files'];
+
+        if (! isset(self::LIMITS[$purpose])) {
+            throw ValidationException::withMessages([
+                'purpose' => ['Неизвестное назначение загрузки.'],
+            ]);
+        }
+
+        $limits = self::LIMITS[$purpose];
+
+        if (count($files) > $limits['max_files']) {
+            throw ValidationException::withMessages([
+                'files' => ["Не более {$limits['max_files']} файлов."],
+            ]);
+        }
+
+        $session = UploadSession::create([
+            'user_id' => $user->id,
+            'purpose' => $purpose,
+            'max_files' => $limits['max_files'],
+            'max_size_bytes' => $limits['max_size'],
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $uploads = [];
+
+        foreach ($files as $file) {
+            if ($file['size'] > $limits['max_size']) {
+                throw ValidationException::withMessages([
+                    'files' => ['Файл превышает допустимый размер.'],
+                ]);
+            }
+
+            if (! in_array($file['mime'], $limits['mimes'], true)) {
+                throw ValidationException::withMessages([
+                    'files' => ['Недопустимый тип файла.'],
+                ]);
+            }
+
+            $path = sprintf(
+                'tmp/%s/%s/%s',
+                $purpose,
+                $session->uuid,
+                Str::uuid()->toString().'-'.Str::slug(pathinfo($file['name'], PATHINFO_FILENAME)).'.'.($this->extensionForMime($file['mime']) ?? 'bin'),
+            );
+
+            $media = Media::create([
+                'disk' => config('filesystems.default', 's3'),
+                'path' => $path,
+                'filename' => $file['name'],
+                'mime_type' => $file['mime'],
+                'size_bytes' => $file['size'],
+                'uploaded_by' => $user->id,
+                'status' => MediaStatus::Pending,
+                'metadata' => ['upload_session_uuid' => $session->uuid],
+            ]);
+
+            $uploads[] = [
+                'media_uuid' => $media->uuid,
+                'upload_url' => $this->presignedPutUrl($media->disk, $path, $file['mime']),
+                'path' => $path,
+                'headers' => ['Content-Type' => $file['mime']],
+            ];
+        }
+
+        return [
+            'session_uuid' => $session->uuid,
+            'expires_at' => $session->expires_at->toIso8601String(),
+            'uploads' => $uploads,
+        ];
+    }
+
+    /** @param  list<string>  $mediaUuids */
+    public function confirm(User $user, string $sessionUuid, array $mediaUuids): array
+    {
+        $session = UploadSession::query()
+            ->where('uuid', $sessionUuid)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $session || $session->expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'session_uuid' => ['Сессия загрузки не найдена или истекла.'],
+            ]);
+        }
+
+        $confirmed = [];
+
+        foreach ($mediaUuids as $uuid) {
+            $media = Media::query()
+                ->where('uuid', $uuid)
+                ->where('uploaded_by', $user->id)
+                ->first();
+
+            if (! $media || ($media->metadata['upload_session_uuid'] ?? null) !== $session->uuid) {
+                throw ValidationException::withMessages([
+                    'media_uuids' => ["Медиафайл {$uuid} не принадлежит сессии."],
+                ]);
+            }
+
+            if (! Storage::disk($media->disk)->exists($media->path)) {
+                throw ValidationException::withMessages([
+                    'media_uuids' => ["Файл {$uuid} не найден в хранилище."],
+                ]);
+            }
+
+            $permanentPath = str_replace('tmp/', 'media/', $media->path);
+
+            if ($permanentPath !== $media->path) {
+                Storage::disk($media->disk)->move($media->path, $permanentPath);
+                $media->path = $permanentPath;
+            }
+
+            $media->status = MediaStatus::Ready;
+            $media->save();
+
+            $confirmed[] = $media;
+        }
+
+        return $confirmed;
+    }
+
+    private function presignedPutUrl(string $disk, string $path, string $mime): string
+    {
+        $storage = Storage::disk($disk);
+
+        if (method_exists($storage, 'temporaryUploadUrl')) {
+            ['url' => $url] = $storage->temporaryUploadUrl($path, now()->addHour(), [
+                'ContentType' => $mime,
+            ]);
+
+            return $url;
+        }
+
+        return $storage->url($path);
+    }
+
+    private function extensionForMime(string $mime): ?string
+    {
+        return match ($mime) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'application/pdf' => 'pdf',
+            default => null,
+        };
+    }
+}

@@ -12,9 +12,16 @@ if [[ "${DEPLOY_REEXECED:-}" != 1 ]]; then
 fi
 
 cd backend
-composer install --no-dev --optimize-autoloader --no-interaction
+composer install --optimize-autoloader --no-interaction
 php artisan migrate --force
 php artisan db:seed --class=ReferenceDataSeeder --force
+
+if grep -q '^FEED_AUTO_PUBLISH=' .env 2>/dev/null; then
+  sed -i 's/^FEED_AUTO_PUBLISH=.*/FEED_AUTO_PUBLISH=true/' .env
+else
+  echo 'FEED_AUTO_PUBLISH=true' >> .env
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache 2>/dev/null || true

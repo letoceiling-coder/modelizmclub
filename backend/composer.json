@@ -14,6 +14,7 @@
         "spatie/laravel-permission": "^6.10"
     },
     "require-dev": {
+        "dedoc/scramble": "^0.13.28",
         "fakerphp/faker": "^1.23",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
@@ -47,9 +48,13 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "post-create-project-cmd": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan migrate --ansi"
+        ],
+        "openapi:export": [
+            "@php artisan scramble:export --no-interaction"
         ]
     },
     "extra": {
