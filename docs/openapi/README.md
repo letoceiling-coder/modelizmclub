@@ -15,8 +15,12 @@ bash deploy/scripts/export-openapi.sh
 Or on the server after deploy:
 
 ```bash
-cd backend && composer openapi:export
+cd backend && php artisan scramble:export --no-interaction
 ```
+
+## Test accounts (dev)
+
+See [API.md](../API.md#тестовые-аккаунты-dev). Use `POST /v1/auth/login` in Swagger, then **Authorize** with the returned Bearer token.
 
 ## Live Swagger UI
 

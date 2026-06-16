@@ -50,7 +50,21 @@ return [
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => 'ModelizmClub REST API v1 — auth, profiles, catalog, communities, feed, media.',
+        'description' => <<<'MD'
+ModelizmClub REST API v1 — auth, profiles, catalog, communities, feed, media, moderation и admin-панель.
+
+## Тестовые аккаунты (dev)
+
+| Email | Пароль | Роль | Для Swagger Try It |
+|-------|--------|------|------------------|
+| `demo@modelizmclub.ru` | `password123` | user | Лента, посты, профиль |
+| `moderator@modelizmclub.ru` | `password123` | moderator | Очередь модерации, reports |
+| `admin@modelizmclub.ru` | `password123` | admin | Dashboard, CRUD users/categories/plans |
+
+1. `POST /v1/auth/login` с email/password → скопируйте `meta.token`
+2. В Swagger нажмите **Authorize** → `Bearer {token}`
+3. Для регистрации используйте примеры в **Register** (не demo-email)
+MD,
     ],
 
     'ui' => [
@@ -172,6 +186,5 @@ return [
      *     ],
      * ],
      */
-    // 'security_strategy' => \Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy::class,
-    'security_strategy' => null,
+    'security_strategy' => \Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy::class,
 ];

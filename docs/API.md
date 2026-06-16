@@ -155,6 +155,56 @@ Content-Type: application/json
 
 ---
 
+## Admin & Moderation (`/admin`)
+
+> Требуется Bearer-токен. Moderation — роль `moderator` или `admin`; остальное — только `admin`.
+
+### Moderation (moderator+)
+
+| Метод | Путь | CRUD | Описание |
+|-------|------|------|----------|
+| GET | `/admin/moderation/queue` | R | Очередь (`?status=pending&queue=posts`) |
+| POST | `/admin/moderation/{type}/{id}/approve` | U | Одобрить (`type`: `posts`, `communities`) |
+| POST | `/admin/moderation/{type}/{id}/reject` | U | Отклонить (`reason` в body) |
+| POST | `/admin/moderation/{type}/{id}/revision` | U | На доработку (`comment` в body) |
+| GET | `/admin/reports` | R | Жалобы пользователей |
+
+### Admin (admin only)
+
+| Метод | Путь | CRUD | Описание |
+|-------|------|------|----------|
+| GET | `/admin/dashboard` | R | Сводка (users, moderation, reports…) |
+| GET/POST | `/admin/users` | R/C | Список / создать пользователя |
+| GET/PATCH/DELETE | `/admin/users/{uuid}` | R/U/D | Карточка пользователя |
+| GET/POST | `/admin/categories/post` | R/C | Категории постов |
+| GET/PATCH/DELETE | `/admin/categories/post/{id}` | R/U/D | |
+| GET/POST | `/admin/categories/community` | R/C | Категории сообществ |
+| GET/PATCH/DELETE | `/admin/categories/listing` | R/C/U/D | Категории объявлений |
+| GET/POST | `/admin/communities` | R/C | Сообщества |
+| GET/PATCH/DELETE | `/admin/communities/{slug}` | R/U/D | |
+| GET/POST | `/admin/plans` | R/C | Тарифы подписки |
+| GET/PATCH/DELETE | `/admin/plans/{slug}` | R/U/D | |
+| GET/POST | `/admin/promocodes` | R/C | Промокоды |
+| GET/PATCH/DELETE | `/admin/promocodes/{code}` | R/U/D | |
+| GET/POST | `/admin/banners` | R/C | Рекламные баннеры |
+| GET/PATCH/DELETE | `/admin/banners/{id}` | R/U/D | |
+| GET | `/admin/audit-logs` | R | Журнал действий |
+| GET/PATCH | `/admin/settings` | R/U | Системные настройки |
+
+---
+
+## Тестовые аккаунты (dev)
+
+| Email | Пароль | Роль | Назначение |
+|-------|--------|------|------------|
+| `demo@modelizmclub.ru` | `password123` | user | Посты, профиль, сообщества |
+| `moderator@modelizmclub.ru` | `password123` | moderator | Модерация, reports |
+| `admin@modelizmclub.ru` | `password123` | admin | Admin CRUD, dashboard |
+
+В Swagger: **Authorize** → `Bearer {token}` после `POST /auth/login`.
+
+---
+
 ## Переменные окружения (API)
 
 | Переменная | Описание |
@@ -172,7 +222,7 @@ bash deploy/scripts/smoke-auth.sh
 bash deploy/scripts/smoke-users.sh
 bash deploy/scripts/smoke-catalog.sh
 bash deploy/scripts/smoke-feed.sh
-bash deploy/scripts/verify-api-crud.sh   # полный CRUD-проход
+bash deploy/scripts/verify-api-crud.sh   # полный CRUD-проход (user + admin)
 ```
 
 ---
@@ -186,7 +236,8 @@ bash deploy/scripts/verify-api-crud.sh   # полный CRUD-проход
 | Communities | ✅ |
 | Feed (Posts, Comments) | ✅ |
 | Media upload | ✅ |
-| Listings, Chat, Billing | 🔜 stubs / Sprint 5+ |
-| Moderation admin API | 🔜 Sprint 4 |
+| Admin + Moderation API | ✅ |
+| Listings, Chat, Billing | 🔜 Sprint 5+ |
+| Public landing API | 🔜 Sprint 4+ |
 
 Подробный план схемы БД: [PLAN-DB-API.md](./PLAN-DB-API.md).

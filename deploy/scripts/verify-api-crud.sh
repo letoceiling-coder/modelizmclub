@@ -99,6 +99,66 @@ echo "==> OpenAPI docs"
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${BASE}/docs/api")
 check "GET /docs/api (Swagger UI)" "${CODE}" "200"
 
+echo "==> Admin API (admin@modelizmclub.ru)"
+printf '%s\n' '{"email":"admin@modelizmclub.ru","password":"password123"}' > /tmp/smoke-admin-login.json
+ADMIN_LOGIN=$(curl -sS -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d @/tmp/smoke-admin-login.json \
+  "${BASE}/api/v1/auth/login")
+ADMIN_TOKEN=$(echo "${ADMIN_LOGIN}" | php -r '$j=json_decode(file_get_contents("php://stdin"),true); echo $j["meta"]["token"]??"";')
+CODE=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d @/tmp/smoke-admin-login.json \
+  "${BASE}/api/v1/auth/login")
+check "POST /auth/login (admin)" "${CODE}" "200"
+
+if [[ -n "${ADMIN_TOKEN}" ]]; then
+  ADMIN_AUTH=(-H "Authorization: Bearer ${ADMIN_TOKEN}" -H 'Accept: application/json')
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${ADMIN_AUTH[@]}" "${BASE}/api/v1/admin/dashboard")
+  check "GET /admin/dashboard" "${CODE}" "200"
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${ADMIN_AUTH[@]}" "${BASE}/api/v1/admin/users?per_page=1")
+  check "GET /admin/users (R)" "${CODE}" "200"
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${ADMIN_AUTH[@]}" "${BASE}/api/v1/admin/categories/post?per_page=1")
+  check "GET /admin/categories/post (R)" "${CODE}" "200"
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${ADMIN_AUTH[@]}" "${BASE}/api/v1/admin/plans")
+  check "GET /admin/plans (R)" "${CODE}" "200"
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${ADMIN_AUTH[@]}" "${BASE}/api/v1/admin/settings")
+  check "GET /admin/settings (R)" "${CODE}" "200"
+else
+  echo "  FAIL admin token missing" >&2
+  FAIL=1
+fi
+
+echo "==> Moderation API (moderator@modelizmclub.ru)"
+printf '%s\n' '{"email":"moderator@modelizmclub.ru","password":"password123"}' > /tmp/smoke-mod-login.json
+MOD_LOGIN=$(curl -sS -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d @/tmp/smoke-mod-login.json \
+  "${BASE}/api/v1/auth/login")
+MOD_TOKEN=$(echo "${MOD_LOGIN}" | php -r '$j=json_decode(file_get_contents("php://stdin"),true); echo $j["meta"]["token"]??"";')
+CODE=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d @/tmp/smoke-mod-login.json \
+  "${BASE}/api/v1/auth/login")
+check "POST /auth/login (moderator)" "${CODE}" "200"
+
+if [[ -n "${MOD_TOKEN}" ]]; then
+  MOD_AUTH=(-H "Authorization: Bearer ${MOD_TOKEN}" -H 'Accept: application/json')
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${MOD_AUTH[@]}" "${BASE}/api/v1/admin/moderation/queue")
+  check "GET /admin/moderation/queue" "${CODE}" "200"
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${MOD_AUTH[@]}" "${BASE}/api/v1/admin/reports")
+  check "GET /admin/reports" "${CODE}" "200"
+
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${MOD_AUTH[@]}" "${BASE}/api/v1/admin/dashboard")
+  check "GET /admin/dashboard (moderator forbidden)" "${CODE}" "403"
+else
+  echo "  FAIL moderator token missing" >&2
+  FAIL=1
+fi
+
 if [[ "${FAIL}" -ne 0 ]]; then
   echo "Some checks failed" >&2
   exit 1

@@ -62,6 +62,52 @@ class ReferenceDataSeeder extends Seeder
                 'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
             ],
         );
+
+        $this->seedStaffUser(
+            email: 'admin@modelizmclub.ru',
+            name: 'Admin User',
+            slug: 'admin-user',
+            role: UserRole::Admin,
+        );
+
+        $this->seedStaffUser(
+            email: 'moderator@modelizmclub.ru',
+            name: 'Moderator User',
+            slug: 'moderator-user',
+            role: UserRole::Moderator,
+        );
+    }
+
+    private function seedStaffUser(string $email, string $name, string $slug, UserRole $role): void
+    {
+        $user = User::withTrashed()->firstOrNew(['email' => $email]);
+
+        if ($user->trashed()) {
+            $user->restore();
+        }
+
+        if (! $user->exists) {
+            $user->uuid = (string) Str::uuid();
+        }
+
+        $user->forceFill([
+            'name' => $name,
+            'password' => 'password123',
+            'role' => $role,
+            'status' => UserStatus::Active,
+            'registration_track' => RegistrationTrack::Community,
+            'locale' => 'ru',
+            'email_verified_at' => now(),
+        ])->save();
+
+        UserProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'display_name' => $name,
+                'slug' => $slug,
+                'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
+            ],
+        );
     }
 
     private function seedPostCategories(): void
