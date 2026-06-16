@@ -3,7 +3,7 @@
     "info": {
         "title": "ModelizmClub API",
         "version": "1.0.0",
-        "description": "ModelizmClub REST API v1 \u2014 auth, profiles, catalog, communities, feed, media, moderation \u0438 admin-\u043f\u0430\u043d\u0435\u043b\u044c.\n\n## \u0422\u0435\u0441\u0442\u043e\u0432\u044b\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u044b (dev)\n\n| Email | \u041f\u0430\u0440\u043e\u043b\u044c | \u0420\u043e\u043b\u044c | \u0414\u043b\u044f Swagger Try It |\n|-------|--------|------|------------------|\n| `demo@modelizmclub.ru` | `password123` | user | \u041b\u0435\u043d\u0442\u0430, \u043f\u043e\u0441\u0442\u044b, \u043f\u0440\u043e\u0444\u0438\u043b\u044c |\n| `moderator@modelizmclub.ru` | `password123` | moderator | \u041e\u0447\u0435\u0440\u0435\u0434\u044c \u043c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u0438, reports |\n| `admin@modelizmclub.ru` | `password123` | admin | Dashboard, CRUD users/categories/plans |\n\n1. `POST /v1/auth/login` \u0441 email/password \u2192 \u0441\u043a\u043e\u043f\u0438\u0440\u0443\u0439\u0442\u0435 `meta.token`\n2. \u0412 Swagger \u043d\u0430\u0436\u043c\u0438\u0442\u0435 **Authorize** \u2192 `Bearer {token}`\n3. \u0414\u043b\u044f \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u043f\u0440\u0438\u043c\u0435\u0440\u044b \u0432 **Register** (\u043d\u0435 demo-email)"
+        "description": "ModelizmClub REST API v1 \u2014 auth, profiles, catalog, communities, feed, media, moderation \u0438 admin-\u043f\u0430\u043d\u0435\u043b\u044c.\n\n## \u0411\u0430\u0437\u0430 \u0434\u043b\u044f Swagger Try It (dev)\n\n**Try It \u043d\u0430 dev.modelizmclub.ru \u043f\u0438\u0448\u0435\u0442 \u0432 dev PostgreSQL** (\u043d\u0435 \u0432 PHPUnit sqlite). \u041f\u043e\u0441\u043b\u0435 \u044d\u043a\u0441\u043f\u0435\u0440\u0438\u043c\u0435\u043d\u0442\u043e\u0432 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u0444\u0438\u043a\u0441\u0442\u0443\u0440\u044b:\n\n```bash\nphp artisan db:seed --class=ReferenceDataSeeder --force\n```\n\n## \u0422\u0435\u0441\u0442\u043e\u0432\u044b\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u044b (dev)\n\n| Email | \u041f\u0430\u0440\u043e\u043b\u044c | \u0420\u043e\u043b\u044c | UUID (admin/users) |\n|-------|--------|------|---------------------|\n| `demo@modelizmclub.ru` | `password123` | user | `00000000-0000-4000-8000-000000000001` |\n| `moderator@modelizmclub.ru` | `password123` | moderator | `00000000-0000-4000-8000-000000000002` |\n| `admin@modelizmclub.ru` | `password123` | admin | `00000000-0000-4000-8000-000000000003` |\n\n1. `POST /v1/auth/login` \u2192 \u0441\u043a\u043e\u043f\u0438\u0440\u0443\u0439\u0442\u0435 `meta.token`\n2. **Authorize** \u2192 `Bearer {token}`\n\n## \u0424\u0438\u043a\u0441\u0442\u0443\u0440\u044b \u0434\u043b\u044f CRUD (\u043f\u043e\u0441\u043b\u0435 seed)\n\n| \u0421\u0443\u0449\u043d\u043e\u0441\u0442\u044c | \u041a\u043b\u044e\u0447 \u0434\u043b\u044f path/body | \u041f\u0440\u0438\u043c\u0435\u0440 |\n|----------|-------------------|--------|\n| \u041f\u043e\u0441\u0442 \u043d\u0430 \u043c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u0438 | UUID | `00000000-0000-4000-8000-000000000010` |\n| \u0422\u0430\u0440\u0438\u0444 | slug | `basic`, `pro` |\n| \u041f\u0440\u043e\u043c\u043e\u043a\u043e\u0434 | code | `WELCOME10` |\n| \u0421\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e | slug | `modelizmclub` |\n| \u0411\u0430\u043d\u043d\u0435\u0440 | id | `1` (\u043f\u0435\u0440\u0432\u044b\u0439 \u043f\u043e\u0441\u043b\u0435 seed) |\n| \u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f \u043f\u043e\u0441\u0442\u043e\u0432 | id | \u0438\u0437 `GET /admin/categories/post` (slug `aviation`) |\n\n\u0414\u043b\u044f \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 **\u043d\u043e\u0432\u044b\u0439 email**, \u043d\u0435 demo-\u0430\u043a\u043a\u0430\u0443\u043d\u0442\u044b."
     },
     "servers": [
         {
@@ -597,11 +597,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "UUID \u043e\u0431\u044a\u0435\u043a\u0442\u0430",
+                        "description": "UUID \u043e\u0431\u044a\u0435\u043a\u0442\u0430 \u043d\u0430 \u043c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u0438 (seed)",
                         "schema": {
                             "type": "string"
                         },
-                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                        "example": "00000000-0000-4000-8000-000000000010"
                     }
                 ],
                 "requestBody": {
@@ -665,7 +665,6 @@
                         "name": "type",
                         "in": "path",
                         "required": true,
-                        "description": "\u0422\u0438\u043f \u043e\u0431\u044a\u0435\u043a\u0442\u0430: posts, communities",
                         "schema": {
                             "type": "string"
                         },
@@ -675,10 +674,10 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "UUID \u043e\u0431\u044a\u0435\u043a\u0442\u0430",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "00000000-0000-4000-8000-000000000010"
                     }
                 ],
                 "requestBody": {
@@ -760,7 +759,6 @@
                         "name": "type",
                         "in": "path",
                         "required": true,
-                        "description": "\u0422\u0438\u043f \u043e\u0431\u044a\u0435\u043a\u0442\u0430: posts",
                         "schema": {
                             "type": "string"
                         },
@@ -770,10 +768,10 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "UUID \u043e\u0431\u044a\u0435\u043a\u0442\u0430",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "00000000-0000-4000-8000-000000000010"
                     }
                 ],
                 "requestBody": {
@@ -1321,9 +1319,11 @@
                         "name": "uuid",
                         "in": "path",
                         "required": true,
+                        "description": "UUID \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f (demo \u043f\u043e\u0441\u043b\u0435 seed)",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "00000000-0000-4000-8000-000000000001"
                     }
                 ],
                 "responses": {
@@ -1363,16 +1363,39 @@
                         "name": "uuid",
                         "in": "path",
                         "required": true,
+                        "description": "UUID \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "00000000-0000-4000-8000-000000000001"
                     }
                 ],
                 "requestBody": {
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpdateAdminUserRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpdateAdminUserRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "example": "Demo User Updated",
+                                                "maxLength": 120
+                                            },
+                                            "status": {
+                                                "example": "active",
+                                                "$ref": "#/components/schemas/UserStatus"
+                                            }
+                                        }
+                                    }
+                                ]
                             }
                         }
                     }
@@ -1417,9 +1440,11 @@
                         "name": "uuid",
                         "in": "path",
                         "required": true,
+                        "description": "UUID \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f (\u043d\u0435 \u0443\u0434\u0430\u043b\u044f\u0439\u0442\u0435 demo/admin \u2014 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u0442\u0435\u0441\u0442\u0430 \u0441\u043e\u0437\u0434\u0430\u0439\u0442\u0435 staff@example.com)",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "00000000-0000-4000-8000-000000000001"
                     }
                 ],
                 "responses": {
@@ -1612,15 +1637,60 @@
             },
             "post": {
                 "operationId": "communities.store",
+                "summary": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e",
                 "tags": [
                     "Admin \u2014 Communities"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertCommunityRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertCommunityRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "category_id": {
+                                                "type": "integer",
+                                                "description": "ID \u0438\u0437 GET /admin/categories/community",
+                                                "example": 1
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Swagger Test Club",
+                                                "maxLength": 120
+                                            },
+                                            "slug": {
+                                                "type": "string",
+                                                "example": "swagger-test-club",
+                                                "maxLength": 120
+                                            },
+                                            "description": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "example": "\u0421\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e \u0434\u043b\u044f DELETE-\u0442\u0435\u0441\u0442\u0430",
+                                                "maxLength": 5000
+                                            },
+                                            "status": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "example": "active",
+                                                "maxLength": 32
+                                            }
+                                        },
+                                        "required": [
+                                            "category_id",
+                                            "name",
+                                            "slug"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -1666,7 +1736,8 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "modelizmclub"
                     }
                 ],
                 "responses": {
@@ -1708,15 +1779,32 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "modelizmclub"
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertCommunityRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertCommunityRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "description": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "example": "\u041e\u0431\u043d\u043e\u0432\u043b\u0451\u043d\u043d\u043e\u0435 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435",
+                                                "maxLength": 5000
+                                            }
+                                        }
+                                    }
+                                ]
                             }
                         }
                     }
@@ -1761,9 +1849,11 @@
                         "name": "slug",
                         "in": "path",
                         "required": true,
+                        "description": "Slug \u0434\u043b\u044f DELETE (\u0441\u043e\u0437\u0434\u0430\u0439\u0442\u0435 swagger-test-club)",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "swagger-test-club"
                     }
                 ],
                 "responses": {
@@ -1948,15 +2038,59 @@
             },
             "post": {
                 "operationId": "plans.store",
+                "summary": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0442\u0430\u0440\u0438\u0444",
                 "tags": [
                     "Admin \u2014 Billing"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertPlanRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertPlanRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "slug": {
+                                                "type": "string",
+                                                "example": "premium",
+                                                "maxLength": 64
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "example": "Premium",
+                                                "maxLength": 120
+                                            },
+                                            "price_cents": {
+                                                "type": "integer",
+                                                "example": 99900,
+                                                "minimum": 0
+                                            },
+                                            "period_days": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "example": 30,
+                                                "minimum": 1
+                                            },
+                                            "is_active": {
+                                                "type": [
+                                                    "boolean",
+                                                    "null"
+                                                ],
+                                                "example": true
+                                            }
+                                        },
+                                        "required": [
+                                            "slug",
+                                            "name",
+                                            "price_cents"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -2000,9 +2134,11 @@
                         "name": "slug",
                         "in": "path",
                         "required": true,
+                        "description": "Slug \u0442\u0430\u0440\u0438\u0444\u0430 \u043f\u043e\u0441\u043b\u0435 seed",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "basic"
                     }
                 ],
                 "responses": {
@@ -2051,15 +2187,38 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "basic"
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertPlanRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertPlanRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "example": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 (\u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d)",
+                                                "maxLength": 120
+                                            },
+                                            "price_cents": {
+                                                "type": "integer",
+                                                "example": 0,
+                                                "minimum": 0
+                                            }
+                                        },
+                                        "required": [
+                                            "name",
+                                            "price_cents"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -2111,9 +2270,11 @@
                         "name": "slug",
                         "in": "path",
                         "required": true,
+                        "description": "Slug \u0442\u0435\u0441\u0442\u043e\u0432\u043e\u0433\u043e \u0442\u0430\u0440\u0438\u0444\u0430 premium \u043f\u043e\u0441\u043b\u0435 CREATE",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "premium"
                     }
                 ],
                 "responses": {
@@ -2298,15 +2459,59 @@
             },
             "post": {
                 "operationId": "promocodes.store",
+                "summary": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u0440\u043e\u043c\u043e\u043a\u043e\u0434",
                 "tags": [
                     "Admin \u2014 Billing"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertPromocodeRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertPromocodeRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "code": {
+                                                "type": "string",
+                                                "example": "SPRING25",
+                                                "maxLength": 64
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "example": "percent",
+                                                "maxLength": 32
+                                            },
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 25,
+                                                "minimum": 0
+                                            },
+                                            "max_usages": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "example": 50,
+                                                "minimum": 1
+                                            },
+                                            "is_active": {
+                                                "type": [
+                                                    "boolean",
+                                                    "null"
+                                                ],
+                                                "example": true
+                                            }
+                                        },
+                                        "required": [
+                                            "code",
+                                            "type",
+                                            "value"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -2352,7 +2557,8 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "WELCOME10"
                     }
                 ],
                 "responses": {
@@ -2401,15 +2607,32 @@
                         "required": true,
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "WELCOME10"
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertPromocodeRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertPromocodeRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "value": {
+                                                "type": "integer",
+                                                "example": 15,
+                                                "minimum": 0
+                                            }
+                                        },
+                                        "required": [
+                                            "value"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -2461,9 +2684,11 @@
                         "name": "code",
                         "in": "path",
                         "required": true,
+                        "description": "\u041a\u043e\u0434 \u0434\u043b\u044f DELETE-\u0442\u0435\u0441\u0442\u0430 (\u0441\u043e\u0437\u0434\u0430\u0439\u0442\u0435 SPRING25)",
                         "schema": {
                             "type": "string"
-                        }
+                        },
+                        "example": "SPRING25"
                     }
                 ],
                 "responses": {
@@ -2648,15 +2873,62 @@
             },
             "post": {
                 "operationId": "banners.store",
+                "summary": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0431\u0430\u043d\u043d\u0435\u0440",
                 "tags": [
                     "Admin \u2014 Advertising"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertBannerRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertBannerRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "placement": {
+                                                "type": "string",
+                                                "example": "feed_top",
+                                                "maxLength": 32
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "example": "\u041d\u043e\u0432\u044b\u0439 \u0431\u0430\u043d\u043d\u0435\u0440 Swagger",
+                                                "maxLength": 200
+                                            },
+                                            "link_url": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "format": "uri",
+                                                "example": "https://dev.modelizmclub.ru",
+                                                "maxLength": 500
+                                            },
+                                            "text": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "example": "\u0422\u0435\u043a\u0441\u0442 \u0431\u0430\u043d\u043d\u0435\u0440\u0430",
+                                                "maxLength": 2000
+                                            },
+                                            "is_active": {
+                                                "type": [
+                                                    "boolean",
+                                                    "null"
+                                                ],
+                                                "example": true
+                                            }
+                                        },
+                                        "required": [
+                                            "placement",
+                                            "title"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -2700,9 +2972,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u0431\u0430\u043d\u043d\u0435\u0440\u0430 \u043f\u043e\u0441\u043b\u0435 seed",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
@@ -2744,15 +3018,32 @@
                         "required": true,
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpsertBannerRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpsertBannerRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {
+                                                "type": "string",
+                                                "example": "Swagger demo banner (updated)",
+                                                "maxLength": 200
+                                            }
+                                        },
+                                        "required": [
+                                            "title"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -2797,9 +3088,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u0441\u043e\u0437\u0434\u0430\u043d\u043d\u043e\u0433\u043e \u0431\u0430\u043d\u043d\u0435\u0440\u0430 \u0434\u043b\u044f DELETE",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 2
                     }
                 ],
                 "responses": {
@@ -3018,15 +3311,36 @@
             },
             "patch": {
                 "operationId": "adminSettings.update",
+                "summary": "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438",
                 "tags": [
                     "Admin \u2014 System"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpdateSettingsRequest"
+                                "allOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UpdateSettingsRequest"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "settings": {
+                                                "type": "array",
+                                                "description": "\u041c\u0430\u0441\u0441\u0438\u0432 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043a",
+                                                "example": "[{\"key\":\"site_name\",\"value\":{\"ru\":\"ModelizmClub Dev\"},\"group\":\"general\"}]",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "minItems": 1
+                                            }
+                                        },
+                                        "required": [
+                                            "settings"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -3192,9 +3506,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 (slug aviation \u043f\u043e\u0441\u043b\u0435 seed)",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
@@ -3231,9 +3547,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "requestBody": {
@@ -3286,9 +3604,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 (\u0441\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u043a\u043e\u043f\u0438\u044e \u0434\u043b\u044f DELETE-\u0442\u0435\u0441\u0442\u0430)",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 999
                     }
                 ],
                 "responses": {
@@ -3455,9 +3775,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 (slug aviation \u043f\u043e\u0441\u043b\u0435 seed)",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
@@ -3494,9 +3816,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "requestBody": {
@@ -3549,9 +3873,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 (\u0441\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u043a\u043e\u043f\u0438\u044e \u0434\u043b\u044f DELETE-\u0442\u0435\u0441\u0442\u0430)",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 999
                     }
                 ],
                 "responses": {
@@ -3718,9 +4044,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 (slug aviation \u043f\u043e\u0441\u043b\u0435 seed)",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "responses": {
@@ -3757,9 +4085,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 1
                     }
                 ],
                 "requestBody": {
@@ -3812,9 +4142,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true,
+                        "description": "ID \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 (\u0441\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u043a\u043e\u043f\u0438\u044e \u0434\u043b\u044f DELETE-\u0442\u0435\u0441\u0442\u0430)",
                         "schema": {
                             "type": "integer"
-                        }
+                        },
+                        "example": 999
                     }
                 ],
                 "responses": {
