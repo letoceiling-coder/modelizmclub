@@ -8,7 +8,6 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Admin\Http\Requests\UpsertCategoryRequest;
 use Modules\Admin\Services\AuditService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -19,7 +18,7 @@ abstract class AdminCategoryController extends Controller
 
     abstract protected function auditPrefix(): string;
 
-    public function index(): AnonymousResourceCollection
+    public function index(): JsonResponse
     {
         /** @var class-string<Model> $class */
         $class = $this->modelClass();
@@ -29,7 +28,7 @@ abstract class AdminCategoryController extends Controller
             ->orderBy('name')
             ->paginate((int) request()->integer('per_page', 50));
 
-        return AnonymousResourceCollection::make($items, fn ($item) => $item);
+        return response()->json(['data' => $items]);
     }
 
     #[Endpoint(title: 'Создать категорию')]
