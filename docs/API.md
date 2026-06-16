@@ -195,13 +195,40 @@ Content-Type: application/json
 
 ## Тестовые аккаунты (dev)
 
-| Email | Пароль | Роль | Назначение |
-|-------|--------|------|------------|
-| `demo@modelizmclub.ru` | `password123` | user | Посты, профиль, сообщества |
-| `moderator@modelizmclub.ru` | `password123` | moderator | Модерация, reports |
-| `admin@modelizmclub.ru` | `password123` | admin | Admin CRUD, dashboard |
+| Email | Пароль | Роль | UUID |
+|-------|--------|------|------|
+| `demo@modelizmclub.ru` | `password123` | user | `00000000-0000-4000-8000-000000000001` |
+| `moderator@modelizmclub.ru` | `password123` | moderator | `00000000-0000-4000-8000-000000000002` |
+| `admin@modelizmclub.ru` | `password123` | admin | `00000000-0000-4000-8000-000000000003` |
 
 В Swagger: **Authorize** → `Bearer {token}` после `POST /auth/login`.
+
+---
+
+## Swagger Try It и dev БД
+
+**Try It на https://dev.modelizmclub.ru/docs/api пишет в dev PostgreSQL** — это не отдельная test-БД PHPUnit (там sqlite `:memory:` только для `php artisan test`).
+
+После CRUD-экспериментов в Swagger восстановите эталонные данные:
+
+```bash
+# на VPS
+cd /var/www/modelizmclub/backend
+php artisan db:seed --force
+bash ../deploy/scripts/reset-demo-user.sh
+```
+
+### Фикстуры после seed (`ReferenceDataSeeder`)
+
+| Сущность | Ключ | Значение для Try It |
+|--------|------|-------------------|
+| Пост на модерации | UUID | `00000000-0000-4000-8000-000000000010` |
+| Тариф basic / pro | slug | `basic`, `pro` |
+| Промокод | code | `WELCOME10` |
+| Сообщество | slug | `modelizmclub`, `scale-135-russia` |
+| Баннер | id | `1` (первый после seed) |
+| Категория постов | slug | `aviation` (id — из GET) |
+| Настройки | key | `site_name`, `moderation_auto_publish` |
 
 ---
 

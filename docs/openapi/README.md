@@ -20,7 +20,11 @@ cd backend && php artisan scramble:export --no-interaction
 
 ## Test accounts (dev)
 
-See [API.md](../API.md#тестовые-аккаунты-dev). Use `POST /v1/auth/login` in Swagger, then **Authorize** with the returned Bearer token.
+See [API.md](../API.md#swagger-try-it-и-dev-бд). Swagger Try It uses **dev PostgreSQL** (not PHPUnit sqlite). Re-seed after CRUD tests:
+
+```bash
+php artisan db:seed --force
+```
 
 ## Live Swagger UI
 

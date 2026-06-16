@@ -4,7 +4,11 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Community;
+use App\Support\SwaggerFixtures;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Str;
@@ -26,6 +30,12 @@ class AdminCommunityController extends Controller
         return CommunityResource::collection($items);
     }
 
+    #[Endpoint(title: 'Создать сообщество')]
+    #[BodyParameter('category_id', description: 'ID из GET /admin/categories/community', example: 1)]
+    #[BodyParameter('name', example: 'Swagger Test Club')]
+    #[BodyParameter('slug', example: 'swagger-test-club')]
+    #[BodyParameter('description', example: 'Сообщество для DELETE-теста')]
+    #[BodyParameter('status', example: 'active')]
     public function store(UpsertCommunityRequest $request, AuditService $audit): JsonResponse
     {
         $community = Community::query()->create([
@@ -41,6 +51,7 @@ class AdminCommunityController extends Controller
             ->setStatusCode(201);
     }
 
+    #[PathParameter('slug', example: SwaggerFixtures::COMMUNITY_SLUG)]
     public function show(string $slug): CommunityResource
     {
         $community = Community::query()->with('category')->where('slug', $slug)->first();
@@ -52,6 +63,8 @@ class AdminCommunityController extends Controller
         return new CommunityResource($community);
     }
 
+    #[PathParameter('slug', example: SwaggerFixtures::COMMUNITY_SLUG)]
+    #[BodyParameter('description', example: 'Обновлённое описание')]
     public function update(UpsertCommunityRequest $request, string $slug, AuditService $audit): CommunityResource
     {
         $community = Community::query()->where('slug', $slug)->first();
@@ -67,6 +80,7 @@ class AdminCommunityController extends Controller
         return new CommunityResource($community->fresh('category'));
     }
 
+    #[PathParameter('slug', description: 'Slug для DELETE (создайте swagger-test-club)', example: 'swagger-test-club')]
     public function destroy(string $slug, AuditService $audit): JsonResponse
     {
         $community = Community::query()->where('slug', $slug)->first();

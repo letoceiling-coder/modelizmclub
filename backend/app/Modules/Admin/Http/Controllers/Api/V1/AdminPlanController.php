@@ -4,7 +4,11 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPlan;
+use App\Support\SwaggerFixtures;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\UpsertPlanRequest;
 use Modules\Admin\Services\AuditService;
@@ -20,6 +24,12 @@ class AdminPlanController extends Controller
         return response()->json(['data' => $plans]);
     }
 
+    #[Endpoint(title: 'Создать тариф')]
+    #[BodyParameter('slug', example: 'premium')]
+    #[BodyParameter('name', example: 'Premium')]
+    #[BodyParameter('price_cents', example: 99900)]
+    #[BodyParameter('period_days', example: 30)]
+    #[BodyParameter('is_active', example: true)]
     public function store(UpsertPlanRequest $request, AuditService $audit): JsonResponse
     {
         $plan = SubscriptionPlan::query()->create($request->validated());
@@ -28,6 +38,7 @@ class AdminPlanController extends Controller
         return response()->json(['data' => $plan], 201);
     }
 
+    #[PathParameter('slug', description: 'Slug тарифа после seed', example: SwaggerFixtures::PLAN_BASIC_SLUG)]
     public function show(string $slug): JsonResponse
     {
         $plan = SubscriptionPlan::query()->where('slug', $slug)->first();
@@ -39,6 +50,9 @@ class AdminPlanController extends Controller
         return response()->json(['data' => $plan]);
     }
 
+    #[PathParameter('slug', example: SwaggerFixtures::PLAN_BASIC_SLUG)]
+    #[BodyParameter('name', example: 'Базовый (обновлён)')]
+    #[BodyParameter('price_cents', example: 0)]
     public function update(UpsertPlanRequest $request, string $slug, AuditService $audit): JsonResponse
     {
         $plan = SubscriptionPlan::query()->where('slug', $slug)->first();
@@ -54,6 +68,7 @@ class AdminPlanController extends Controller
         return response()->json(['data' => $plan->fresh()]);
     }
 
+    #[PathParameter('slug', description: 'Slug тестового тарифа premium после CREATE', example: 'premium')]
     public function destroy(string $slug, AuditService $audit): JsonResponse
     {
         $plan = SubscriptionPlan::query()->where('slug', $slug)->first();

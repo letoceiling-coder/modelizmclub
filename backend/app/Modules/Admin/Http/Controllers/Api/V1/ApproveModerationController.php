@@ -3,6 +3,7 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
@@ -13,7 +14,7 @@ use Modules\Admin\Services\ModerationService;
 class ApproveModerationController extends Controller
 {
     #[PathParameter('type', description: 'Тип объекта: posts, communities', example: 'posts')]
-    #[PathParameter('id', description: 'UUID объекта', example: '550e8400-e29b-41d4-a716-446655440000')]
+    #[PathParameter('id', description: 'UUID объекта на модерации (seed)', example: SwaggerFixtures::MODERATION_POST_UUID)]
     public function __invoke(
         ModerationDecisionRequest $request,
         string $type,

@@ -53,17 +53,37 @@ return [
         'description' => <<<'MD'
 ModelizmClub REST API v1 — auth, profiles, catalog, communities, feed, media, moderation и admin-панель.
 
+## База для Swagger Try It (dev)
+
+**Try It на dev.modelizmclub.ru пишет в dev PostgreSQL** (не в PHPUnit sqlite). После экспериментов восстановите фикстуры:
+
+```bash
+php artisan db:seed --class=ReferenceDataSeeder --force
+```
+
 ## Тестовые аккаунты (dev)
 
-| Email | Пароль | Роль | Для Swagger Try It |
-|-------|--------|------|------------------|
-| `demo@modelizmclub.ru` | `password123` | user | Лента, посты, профиль |
-| `moderator@modelizmclub.ru` | `password123` | moderator | Очередь модерации, reports |
-| `admin@modelizmclub.ru` | `password123` | admin | Dashboard, CRUD users/categories/plans |
+| Email | Пароль | Роль | UUID (admin/users) |
+|-------|--------|------|---------------------|
+| `demo@modelizmclub.ru` | `password123` | user | `00000000-0000-4000-8000-000000000001` |
+| `moderator@modelizmclub.ru` | `password123` | moderator | `00000000-0000-4000-8000-000000000002` |
+| `admin@modelizmclub.ru` | `password123` | admin | `00000000-0000-4000-8000-000000000003` |
 
-1. `POST /v1/auth/login` с email/password → скопируйте `meta.token`
-2. В Swagger нажмите **Authorize** → `Bearer {token}`
-3. Для регистрации используйте примеры в **Register** (не demo-email)
+1. `POST /v1/auth/login` → скопируйте `meta.token`
+2. **Authorize** → `Bearer {token}`
+
+## Фикстуры для CRUD (после seed)
+
+| Сущность | Ключ для path/body | Пример |
+|----------|-------------------|--------|
+| Пост на модерации | UUID | `00000000-0000-4000-8000-000000000010` |
+| Тариф | slug | `basic`, `pro` |
+| Промокод | code | `WELCOME10` |
+| Сообщество | slug | `modelizmclub` |
+| Баннер | id | `1` (первый после seed) |
+| Категория постов | id | из `GET /admin/categories/post` (slug `aviation`) |
+
+Для регистрации используйте **новый email**, не demo-аккаунты.
 MD,
     ],
 

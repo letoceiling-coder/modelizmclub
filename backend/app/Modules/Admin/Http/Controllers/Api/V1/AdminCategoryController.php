@@ -3,9 +3,11 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\UpsertCategoryRequest;
@@ -47,6 +49,7 @@ abstract class AdminCategoryController extends Controller
         return response()->json(['data' => $category], 201);
     }
 
+    #[PathParameter('id', description: 'ID категории (slug aviation после seed)', example: 1)]
     public function show(int $id): JsonResponse
     {
         $category = $this->findCategory($id);
@@ -54,6 +57,7 @@ abstract class AdminCategoryController extends Controller
         return response()->json(['data' => $category]);
     }
 
+    #[PathParameter('id', description: 'ID категории', example: 1)]
     public function update(UpsertCategoryRequest $request, int $id, AuditService $audit): JsonResponse
     {
         $category = $this->findCategory($id);
@@ -64,6 +68,7 @@ abstract class AdminCategoryController extends Controller
         return response()->json(['data' => $category->fresh()]);
     }
 
+    #[PathParameter('id', description: 'ID категории (создайте копию для DELETE-теста)', example: 999)]
     public function destroy(int $id, AuditService $audit): JsonResponse
     {
         $category = $this->findCategory($id);

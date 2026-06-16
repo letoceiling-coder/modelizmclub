@@ -4,12 +4,14 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Str;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Modules\Admin\Http\Requests\StoreAdminUserRequest;
 use Modules\Admin\Http\Requests\UpdateAdminUserRequest;
 use Modules\Admin\Services\AuditService;
@@ -55,6 +57,7 @@ class AdminUserController extends Controller
             ->setStatusCode(201);
     }
 
+    #[PathParameter('uuid', description: 'UUID пользователя (demo после seed)', example: SwaggerFixtures::DEMO_USER_UUID)]
     public function show(string $uuid): UserResource
     {
         $user = User::query()->with('profile')->where('uuid', $uuid)->first();
@@ -66,6 +69,9 @@ class AdminUserController extends Controller
         return new UserResource($user);
     }
 
+    #[PathParameter('uuid', description: 'UUID пользователя', example: SwaggerFixtures::DEMO_USER_UUID)]
+    #[BodyParameter('name', required: false, example: 'Demo User Updated')]
+    #[BodyParameter('status', required: false, example: 'active')]
     public function update(UpdateAdminUserRequest $request, string $uuid, AuditService $audit): UserResource
     {
         $user = User::query()->where('uuid', $uuid)->first();
@@ -83,6 +89,7 @@ class AdminUserController extends Controller
         return new UserResource($user->fresh('profile'));
     }
 
+    #[PathParameter('uuid', description: 'UUID пользователя (не удаляйте demo/admin — только для теста создайте staff@example.com)', example: SwaggerFixtures::DEMO_USER_UUID)]
     public function destroy(string $uuid, AuditService $audit): JsonResponse
     {
         $user = User::query()->where('uuid', $uuid)->first();

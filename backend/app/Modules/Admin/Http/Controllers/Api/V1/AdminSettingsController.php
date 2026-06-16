@@ -4,6 +4,8 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\UpdateSettingsRequest;
@@ -19,6 +21,8 @@ class AdminSettingsController extends Controller
         return response()->json(['data' => $settings]);
     }
 
+    #[Endpoint(title: 'Обновить настройки')]
+    #[BodyParameter('settings', description: 'Массив настроек', example: '[{"key":"site_name","value":{"ru":"ModelizmClub Dev"},"group":"general"}]')]
     public function update(UpdateSettingsRequest $request, AuditService $audit): JsonResponse
     {
         $updated = [];

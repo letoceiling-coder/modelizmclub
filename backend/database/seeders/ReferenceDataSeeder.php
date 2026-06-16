@@ -4,17 +4,25 @@ namespace Database\Seeders;
 
 use App\Enums\CommunityMemberRole;
 use App\Enums\CommunityStatus;
+use App\Enums\ContentStatus;
 use App\Enums\RegistrationTrack;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Banner;
 use App\Models\City;
 use App\Models\Community;
 use App\Models\CommunityCategory;
 use App\Models\ListingCategory;
+use App\Models\ModerationQueue;
+use App\Models\Post;
 use App\Models\PostCategory;
+use App\Models\Promocode;
+use App\Models\SubscriptionPlan;
+use App\Models\SystemSetting;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Support\SwaggerFixtures;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -30,6 +38,7 @@ class ReferenceDataSeeder extends Seeder
         $this->seedTags();
         $this->seedDemoUser();
         $this->seedDemoCommunities();
+        $this->seedSwaggerFixtures();
     }
 
     private function seedDemoUser(): void
@@ -41,7 +50,7 @@ class ReferenceDataSeeder extends Seeder
         }
 
         if (! $user->exists) {
-            $user->uuid = (string) Str::uuid();
+            $user->uuid = SwaggerFixtures::DEMO_USER_UUID;
         }
 
         $user->forceFill([
@@ -52,6 +61,7 @@ class ReferenceDataSeeder extends Seeder
             'registration_track' => RegistrationTrack::Community,
             'locale' => 'ru',
             'email_verified_at' => now(),
+            'uuid' => SwaggerFixtures::DEMO_USER_UUID,
         ])->save();
 
         UserProfile::query()->updateOrCreate(
@@ -87,8 +97,18 @@ class ReferenceDataSeeder extends Seeder
         }
 
         if (! $user->exists) {
-            $user->uuid = (string) Str::uuid();
+            $user->uuid = match ($role) {
+                UserRole::Admin => SwaggerFixtures::ADMIN_USER_UUID,
+                UserRole::Moderator => SwaggerFixtures::MODERATOR_USER_UUID,
+                default => (string) Str::uuid(),
+            };
         }
+
+        $fixtureUuid = match ($role) {
+            UserRole::Admin => SwaggerFixtures::ADMIN_USER_UUID,
+            UserRole::Moderator => SwaggerFixtures::MODERATOR_USER_UUID,
+            default => $user->uuid,
+        };
 
         $user->forceFill([
             'name' => $name,
@@ -98,6 +118,7 @@ class ReferenceDataSeeder extends Seeder
             'registration_track' => RegistrationTrack::Community,
             'locale' => 'ru',
             'email_verified_at' => now(),
+            'uuid' => $fixtureUuid,
         ])->save();
 
         UserProfile::query()->updateOrCreate(
@@ -268,6 +289,104 @@ class ReferenceDataSeeder extends Seeder
                 'status' => CommunityStatus::Active,
                 'is_official' => false,
                 'approved_at' => now(),
+            ],
+        );
+    }
+
+    private function seedSwaggerFixtures(): void
+    {
+        SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => SwaggerFixtures::PLAN_BASIC_SLUG],
+            [
+                'name' => 'Базовый',
+                'description' => 'Бесплатный тариф для Swagger-тестов.',
+                'price_cents' => 0,
+                'period_days' => 30,
+                'features' => ['posts' => 10],
+                'is_active' => true,
+                'sort_order' => 10,
+            ],
+        );
+
+        SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => SwaggerFixtures::PLAN_PRO_SLUG],
+            [
+                'name' => 'Pro',
+                'description' => 'Платный тариф для Swagger-тестов.',
+                'price_cents' => 49900,
+                'period_days' => 30,
+                'features' => ['posts' => 'unlimited', 'priority_boost' => true],
+                'priority_boost' => true,
+                'badge_label' => 'PRO',
+                'is_active' => true,
+                'sort_order' => 20,
+            ],
+        );
+
+        Promocode::query()->updateOrCreate(
+            ['code' => SwaggerFixtures::PROMO_CODE],
+            [
+                'type' => 'percent',
+                'value' => 10,
+                'max_usages' => 100,
+                'max_usages_per_user' => 1,
+                'is_active' => true,
+            ],
+        );
+
+        Banner::query()->updateOrCreate(
+            [
+                'placement' => SwaggerFixtures::BANNER_PLACEMENT,
+                'title' => 'Swagger demo banner',
+            ],
+            [
+                'link_url' => 'https://dev.modelizmclub.ru',
+                'text' => 'Тестовый баннер для Try It в Swagger.',
+                'is_active' => true,
+            ],
+        );
+
+        SystemSetting::query()->updateOrCreate(
+            ['key' => 'site_name'],
+            ['value' => ['ru' => 'ModelizmClub Dev'], 'group' => 'general'],
+        );
+
+        SystemSetting::query()->updateOrCreate(
+            ['key' => 'moderation_auto_publish'],
+            ['value' => ['enabled' => true], 'group' => 'moderation'],
+        );
+
+        $this->seedSwaggerModerationPost();
+    }
+
+    private function seedSwaggerModerationPost(): void
+    {
+        $author = User::query()->where('email', 'demo@modelizmclub.ru')->first();
+        $category = PostCategory::query()->where('slug', 'aviation')->first();
+
+        if (! $author || ! $category) {
+            return;
+        }
+
+        $post = Post::query()->firstOrNew(['uuid' => SwaggerFixtures::MODERATION_POST_UUID]);
+        $post->fill([
+            'user_id' => $author->id,
+            'category_id' => $category->id,
+            'title' => 'Swagger: пост на модерации',
+            'body' => 'Тестовый пост для approve/reject/revision в Swagger.',
+            'status' => ContentStatus::PendingModeration,
+        ]);
+        $post->save();
+
+        ModerationQueue::query()->updateOrCreate(
+            [
+                'moderatable_type' => Post::class,
+                'moderatable_id' => $post->id,
+            ],
+            [
+                'queue' => 'posts',
+                'status' => 'pending',
+                'priority' => 0,
             ],
         );
     }

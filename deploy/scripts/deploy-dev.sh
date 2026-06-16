@@ -14,7 +14,7 @@ fi
 cd backend
 composer install --optimize-autoloader --no-interaction
 php artisan migrate --force
-php artisan db:seed --class=ReferenceDataSeeder --force
+php artisan db:seed --force
 bash ../deploy/scripts/reset-demo-user.sh
 
 if grep -q '^FEED_AUTO_PUBLISH=' .env 2>/dev/null; then
