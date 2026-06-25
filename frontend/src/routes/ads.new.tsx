@@ -340,7 +340,7 @@ function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[numbe
     : status === "Куплю"
     ? { bg: "var(--info-soft)", fg: "var(--info)" }
     : { bg: "var(--warning-soft)", fg: "var(--warning)" };
-  const image = form.photos[0] ?? "https://picsum.photos/seed/preview/800/600";
+  const image = form.photos[0] ?? "/demo/posts/post-1.jpg";
 
   return (
     <section className="space-y-[20px]">

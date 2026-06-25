@@ -203,8 +203,11 @@ export interface Dialog {
 const avatar = (seed: string) =>
   `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
 
+const DEMO_POST_COUNT = 6;
+
+/** Local demo photos — picsum.photos returns 403 from RU networks. */
 const photo = (id: number) =>
-  `https://picsum.photos/seed/modelizm${id}/800/600`;
+  `/demo/posts/post-${((id - 1) % DEMO_POST_COUNT) + 1}.jpg`;
 
 export const users: User[] = [
   { id: "u1", name: "Александр RC", city: "Краснодар", interests: "RC авто, ДВС 1:8, багги, гонки", avatar: avatar("Александр RC"), subscription: "Год", bio: "Гоняю RC авто с 2015 года. Строю багги на базе HB Racing. Организую заезды в Краснодаре.", status: "В проекте с 2024", coverImage: photo(101), joinedDate: "2024-03-15T10:00:00Z", friendIds: ["u2","u3","u5","u6","u7"], online: true, isAdmin: true, firstHundred: true },
@@ -295,7 +298,7 @@ export const posts: Post[] = [
   { id: "p22", authorId: "u1", date: "месяц назад", category: "Автомодели", title: "Сезон открыт: первые гонки 2026", text: "Стартанули в Краснодаре. 18 пилотов, 3 класса. Фотоотчёт и краткий анализ круга лидеров.", images: [photo(32), photo(33)], tags: ["гонки", "сезон2026"], views: 3200, likes: 104, comments: 1, saves: 47, reposts: 18, isFollowing: true, commentList: [cmt("c1", "u4", "3 нед назад", "Огонь сезон стартанул!", 5)] },
 ];
 
-const gal = (seeds: number[]) => seeds.map((s) => `https://picsum.photos/seed/mz-ad${s}/1200/900`);
+const gal = (seeds: number[]) => seeds.map((s) => photo(s));
 
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
