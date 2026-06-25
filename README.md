@@ -6,7 +6,7 @@
 
 ```
 backend/     Laravel 11 API (PostgreSQL)
-frontend/    Next.js (этап после API)
+frontend/    TanStack Start UI (modelism-hub-connect)
 docs/        Планы и ADR
 deploy/      Конфиги деплоя на VPS
 ```
@@ -22,8 +22,8 @@ deploy/      Конфиги деплоя на VPS
 
 | Окружение | URL | Назначение |
 |-----------|-----|------------|
-| dev | https://dev.modelizmclub.ru | разработка, демо клиенту |
-| production | modelizmclub.ru | после Этапа 3 |
+| dev | https://dev.modelizmclub.ru | Laravel API, Swagger |
+| production | https://modelizmclub.ru | frontend (подключение к API — в процессе) |
 
 Файлы — **Selectel S3**. БД и Redis — на VPS.
 
@@ -31,6 +31,7 @@ deploy/      Конфиги деплоя на VPS
 
 - SSH: ключ (без пароля)
 - API health: `https://dev.modelizmclub.ru/api/v1/health`
+- Frontend: `https://modelizmclub.ru`
 - Инструкция по настройке сервера: [deploy/README.md](deploy/README.md)
 
 ## Документация

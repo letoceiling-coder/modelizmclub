@@ -12,6 +12,8 @@
 /backend/public/hot
 /backend/public/storage
 /frontend/node_modules
+/frontend/dist
+/frontend/.output
 /frontend/.next
 /frontend/.env
 /frontend/.env.local
