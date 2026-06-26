@@ -16,13 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserRole::class,
         ]);
+
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
-            if ($request->is('api/*') || $request->is('broadcasting/*') || $request->expectsJson()) {
-                return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
-            }
-
-            return null;
+            return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
         });
     })->create();
