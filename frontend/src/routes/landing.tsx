@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { firstHundredStats } from "@/lib/mock";
+import { showcaseImages } from "@/lib/showcase-images";
 
 export const Route = createFileRoute("/landing")({
   head: () => ({
@@ -171,6 +172,7 @@ function LandingPage() {
       <Hero />
       <FirstHundred />
       <TwoTracks />
+      <ShowcaseSection />
       <CategoriesPreview />
       <CommunityProof />
       <Footer />
@@ -332,52 +334,102 @@ function Hero() {
 }
 
 function HeroVisual() {
+  const heroPick = showcaseImages.slice(0, 4);
   return (
     <div
       className="relative w-full"
       style={{
-        maxWidth: 460,
+        maxWidth: 480,
         aspectRatio: "5 / 4",
         background: T.surface,
         border: `1px solid ${T.line}`,
         borderRadius: 24,
         boxShadow: T.shadowMd,
-        padding: 28,
+        padding: 16,
+        overflow: "hidden",
       }}
     >
       <div
-        className="absolute"
+        className="absolute z-10"
         style={{
-          top: 16,
-          left: 16,
+          top: 16, left: 16,
           padding: "4px 10px",
-          background: T.ink,
-          color: "#fff",
-          borderRadius: T.rPill,
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: 1.5,
+          background: T.ink, color: "#fff",
+          borderRadius: T.rPill, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
         }}
       >
         SCALE 1:10
       </div>
-      <svg viewBox="0 0 400 320" className="h-full w-full" fill="none" stroke={T.line} strokeWidth="1.5">
-        <circle cx="200" cy="160" r="130" strokeDasharray="3 6" />
-        <circle cx="200" cy="160" r="90" />
-        <line x1="40" y1="160" x2="360" y2="160" />
-        <line x1="200" y1="20" x2="200" y2="300" />
-        <g stroke={T.orange} strokeWidth="2.2">
-          <path d="M90 200 L130 160 L200 145 L270 150 L320 165 L320 210 L300 220 L100 220 Z" fill="rgba(242,108,5,0.08)" />
-          <path d="M150 160 L165 145 L235 145 L255 160" />
-          <circle cx="135" cy="220" r="22" fill={T.surface} />
-          <circle cx="285" cy="220" r="22" fill={T.surface} />
-          <circle cx="135" cy="220" r="10" fill={T.ink} stroke={T.ink} />
-          <circle cx="285" cy="220" r="10" fill={T.ink} stroke={T.ink} />
-        </g>
-      </svg>
+      <div className="grid h-full w-full grid-cols-2 gap-2">
+        {heroPick.map((s) => (
+          <div
+            key={s.url}
+            className="relative overflow-hidden"
+            style={{
+              borderRadius: 16,
+              background: "linear-gradient(135deg, #2a2a2e 0%, #1a1a1e 100%)",
+              border: `1px solid ${T.line}`,
+            }}
+          >
+            <img
+              src={s.url}
+              alt={s.title}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-contain p-2"
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
+
+function ShowcaseSection() {
+  return (
+    <section style={{ padding: "64px 20px", background: T.surfaceAlt }}>
+      <div className="mx-auto" style={{ maxWidth: 1200 }}>
+        <div style={{ marginBottom: 28 }}>
+          <SectionLabel>Каталог моделей</SectionLabel>
+          <SectionTitle>Реальные модели сообщества</SectionTitle>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
+          {showcaseImages.map((s) => (
+            <div
+              key={s.url}
+              className="group relative overflow-hidden"
+              style={{
+                aspectRatio: "1 / 1",
+                background: "linear-gradient(135deg, #2a2a2e 0%, #1a1a1e 100%)",
+                border: `1px solid ${T.line}`,
+                borderRadius: 18,
+                transition: "transform 250ms var(--ease-out-expo), box-shadow 250ms var(--ease-out-expo)",
+              }}
+            >
+              <img
+                src={s.url}
+                alt={s.title}
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+              />
+              <div
+                className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5"
+                style={{
+                  background: "color-mix(in oklab, #0d0d0d 70%, transparent)",
+                  backdropFilter: "blur(8px)",
+                  color: "#fff",
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 600 }}>{s.title}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: T.orange, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.tag}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 
 function FirstHundred() {
   const taken = Math.max(0, Math.min(firstHundredStats.total, firstHundredStats.taken));

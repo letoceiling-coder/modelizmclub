@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -11,7 +11,10 @@ import {
 
 export function InviteBlock() {
   const [copied, setCopied] = useState(false);
-  const link = getReferralLink();
+  // Initial render (SSR + first client paint) uses the stable canonical link
+  // so hydration matches. The actual origin-derived link replaces it on mount.
+  const [link, setLink] = useState<string>(() => getReferralLink());
+  useEffect(() => setLink(getReferralLink()), []);
   const invited = getInvitedFriends();
   const bonus = getReferralBonus();
   const remaining = Math.max(0, REFERRAL_MAX_BONUS - bonus);

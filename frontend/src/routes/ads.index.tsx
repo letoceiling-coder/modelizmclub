@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw } from "lucide-react";
+import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { type Ad } from "@/lib/mock";
 import { useStore, actions, selectors, type AdStatusKey } from "@/lib/store";
@@ -51,6 +51,7 @@ function MyAdsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [query, setQuery] = useState("");
 
   const decorated = useMemo(
     () => allMyAds.map((ad) => ({ ad, status: (adStatusMap[ad.id] ?? "active") as AdStatusKey })),
@@ -83,6 +84,7 @@ function MyAdsPage() {
       "30d": 30 * 24 * 3600 * 1000,
       "90d": 90 * 24 * 3600 * 1000,
     };
+    const q = query.trim().toLowerCase();
     const filtered = decorated.filter(({ ad, status }) => {
       if (statusToTab(status) !== tab) return false;
       if (filters.category !== "all" && ad.category !== filters.category) return false;
@@ -91,6 +93,7 @@ function MyAdsPage() {
         const createdAt = ad.createdAt ? Date.parse(ad.createdAt) : NaN;
         if (!isFinite(createdAt) || now - createdAt > rangeMs[filters.dateRange]) return false;
       }
+      if (q && !ad.title.toLowerCase().includes(q)) return false;
       return true;
     });
 
@@ -103,7 +106,7 @@ function MyAdsPage() {
       }
     });
     return sorted.map((x) => ({ ad: x.ad, status: statusToMyAdStatus(x.status) }));
-  }, [decorated, tab, filters]);
+  }, [decorated, tab, filters, query]);
 
   // Aggregate stats from active ads
   const stats = useMemo(() => {
@@ -133,13 +136,13 @@ function MyAdsPage() {
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-[20px]">
         {/* Header */}
-        <header className="flex flex-wrap items-end justify-between gap-[16px]">
-          <div>
-            <h1 className="font-display text-[28px] font-bold leading-[1.1] sm:text-[32px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+        <header className="flex flex-wrap items-end justify-between gap-[12px]">
+          <div className="min-w-0">
+            <h1 className="font-display text-[20px] font-bold leading-[1.15] sm:text-[28px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
               Мои объявления
             </h1>
-            <p className="mt-[6px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
-              Управляйте своими публикациями, статистикой и архивом
+            <p className="mt-[4px] text-[12.5px] sm:text-[14px]" style={{ color: "var(--foreground-70)" }}>
+              Управляйте публикациями, статистикой и архивом
             </p>
           </div>
 
@@ -158,12 +161,12 @@ function MyAdsPage() {
           </button>
         </header>
 
-        {/* Stats */}
-        <section className="grid grid-cols-2 gap-[12px] md:grid-cols-4">
-          <StatCard icon={<TrendingUp size={18} />} label="Активных" value={stats.count.toString()} accent />
-          <StatCard icon={<Eye size={18} />} label="Просмотров" value={stats.views.toLocaleString("ru")} />
-          <StatCard icon={<Heart size={18} />} label="Лайков" value={stats.likes.toLocaleString("ru")} />
-          <StatCard icon={<MessageCircle size={18} />} label="Сумма" value={`${stats.earnings.toLocaleString("ru")} ₽`} />
+        {/* Stats — compact (Avito-style) */}
+        <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
+          <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
+          <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />
+          <StatCard icon={<MessageCircle size={14} />} label="Сумма"   value={`${stats.earnings.toLocaleString("ru")} ₽`} />
         </section>
 
         {/* Tabs */}
@@ -209,36 +212,72 @@ function MyAdsPage() {
           })}
         </nav>
 
-        {/* Filter toolbar */}
-        <div className="flex flex-wrap items-center gap-[8px]">
+        {/* Search + Filter (Avito-style) */}
+        <div className="flex items-center gap-[8px]">
+          <div className="relative flex-1">
+            <Search size={15} className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" style={{ color: "var(--foreground-50)" }} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по объявлениям"
+              className="w-full text-[13.5px] outline-none transition-colors"
+              style={{
+                height: 40,
+                padding: "0 36px 0 36px",
+                background: "var(--background-surface)",
+                color: "var(--foreground)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-button)",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-[8px] top-1/2 grid h-[24px] w-[24px] -translate-y-1/2 place-items-center"
+                style={{ color: "var(--foreground-50)", borderRadius: 999 }}
+                aria-label="Очистить"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
-            className="inline-flex items-center gap-[8px] px-[14px] text-[13px] font-semibold"
+            aria-label="Фильтры"
+            className="relative grid shrink-0 place-items-center transition-colors"
             style={{
-              height: 36,
+              height: 40, width: 40,
               background: showFilters || filtersDirty ? "var(--accent-soft)" : "var(--background-surface)",
               color: showFilters || filtersDirty ? "var(--accent)" : "var(--foreground)",
               border: `1px solid ${showFilters || filtersDirty ? "var(--accent)" : "var(--border)"}`,
               borderRadius: "var(--r-button)",
             }}
           >
-            <Filter size={14} /> Фильтры{filtersDirty ? " · активны" : ""}
+            <Filter size={16} />
+            {filtersDirty && (
+              <span className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full" style={{ background: "var(--accent)" }} />
+            )}
           </button>
           {filtersDirty && (
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex items-center gap-[6px] px-[12px] text-[13px] font-medium"
+              aria-label="Сбросить фильтры"
+              className="hidden shrink-0 items-center gap-[6px] px-[12px] text-[13px] font-medium sm:inline-flex"
               style={{
-                height: 36, color: "var(--foreground-70)",
+                height: 40, color: "var(--foreground-70)",
                 border: "1px solid var(--border)", borderRadius: "var(--r-button)", background: "transparent",
               }}
             >
-              <RotateCcw size={13} /> Сбросить фильтры
+              <RotateCcw size={13} /> Сбросить
             </button>
           )}
         </div>
+
 
         <AnimatePresence initial={false}>
           {showFilters && (
@@ -406,20 +445,21 @@ function FilterField({ label, children }: { label: string; children: React.React
 function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
   return (
     <div
-      className="flex flex-col gap-[6px] p-[14px]"
+      className="flex shrink-0 flex-col gap-[4px] px-[12px] py-[10px] sm:px-[14px] sm:py-[12px]"
       style={{
+        minWidth: 132,
         background: accent ? "var(--accent-soft)" : "var(--background-surface)",
         border: `1px solid ${accent ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
       }}
     >
-      <div className="flex items-center gap-[6px] text-[12px] font-medium" style={{ color: accent ? "var(--accent)" : "var(--foreground-50)" }}>
+      <div className="flex items-center gap-[5px] text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: accent ? "var(--accent)" : "var(--foreground-50)", fontFamily: "var(--font-mono)" }}>
         {icon}
-        <span style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
+        <span>{label}</span>
       </div>
       <div
-        className="font-display text-[22px] font-bold leading-none"
-        style={{ color: accent ? "var(--accent)" : "var(--foreground)" }}
+        className="font-display text-[16px] font-bold leading-none sm:text-[18px]"
+        style={{ color: accent ? "var(--accent)" : "var(--foreground)", letterSpacing: "-0.01em" }}
       >
         {value}
       </div>

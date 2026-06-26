@@ -128,7 +128,7 @@ function AdminPage() {
         </aside>
 
         {/* Main */}
-        <main className="min-w-0 flex-1" style={{ padding: "24px" }}>
+        <main className="min-w-0 flex-1 p-3 sm:p-5 md:p-6">
           {/* Mobile selector */}
           <div className="md:hidden" style={{ marginBottom: "16px" }}>
             <select

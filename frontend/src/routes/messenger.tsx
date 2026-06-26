@@ -13,6 +13,7 @@ import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
+import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
 import { CallsList } from "@/components/calls/CallsList";
 import { getAllChannels, useSubscriptions, formatCount } from "@/lib/channels";
@@ -154,7 +155,7 @@ function MessageBubble({
             className="mt-[4px] flex items-center justify-end gap-[4px] font-mono text-[10px]"
             style={{ color: isMe ? "rgba(255,255,255,0.6)" : "var(--foreground-30)" }}
           >
-            <span>{formatRelativeTime(msg.time)}</span>
+            <TimeAgo iso={msg.time} />
             {isMe && <StatusIcon status={msg.status} />}
           </div>
         </div>
@@ -440,7 +441,7 @@ function MessengerPage() {
                               {getMeta(d.id).blocked && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                             </span>
-                            <span className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }}>{formatRelativeTime(d.time)}</span>
+                            <TimeAgo iso={d.time} className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }} />
                           </div>
                           <div className="truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage}</div>
                         </div>

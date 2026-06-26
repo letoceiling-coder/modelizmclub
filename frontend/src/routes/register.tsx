@@ -70,8 +70,8 @@ function RegisterPage() {
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
             Я принимаю{" "}
-            <a href="#" style={{ color: "var(--accent)" }}>правила сообщества</a> и{" "}
-            <a href="#" style={{ color: "var(--accent)" }}>политику</a> обработки данных
+            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>правила сообщества</Link> и{" "}
+            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>политику</Link> обработки данных
           </span>
         </label>
         <button type="submit" style={{ ...primaryBtn, marginTop: 16 }}>

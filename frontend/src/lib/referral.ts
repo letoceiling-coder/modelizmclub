@@ -24,10 +24,13 @@ export function getReferralCode(userId: string = me.id): string {
   return `MDLZM-${userId.toUpperCase().slice(0, 6)}`;
 }
 
+// Canonical public origin. Used on the server and during initial client
+// render so SSR hydration matches; swap to window.location.origin only after
+// mount (see InviteBlock).
+export const PUBLIC_ORIGIN = "https://modelizm.club";
+
 export function getReferralLink(userId: string = me.id): string {
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://modelism.club";
-  return `${origin}/register?ref=${getReferralCode(userId)}`;
+  return `${PUBLIC_ORIGIN}/register?ref=${getReferralCode(userId)}`;
 }
 
 export function getReferralBonus(): number {

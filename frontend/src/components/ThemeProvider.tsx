@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { bootstrapTheme } from "@/lib/theme-manager";
 
 type Theme = "dark" | "light";
 
@@ -14,9 +15,9 @@ function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   const stored = window.localStorage.getItem("theme");
   if (stored === "dark" || stored === "light") return stored;
-  if (window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
   return "dark";
 }
+
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
@@ -35,6 +36,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [theme]);
+
+  // Apply saved accent (admin Design System) on mount.
+  useEffect(() => { bootstrapTheme(); }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");

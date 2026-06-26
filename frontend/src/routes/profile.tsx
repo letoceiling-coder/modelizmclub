@@ -86,42 +86,50 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
         {/* Cover */}
         <div className="relative">
           {user.coverImage ? (
-            <img src={user.coverImage} alt="" className="w-full object-cover" style={{ height: "clamp(140px, 26vw, 220px)" }} />
+            <img src={user.coverImage} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} />
           ) : (
-            <div className="w-full" style={{ height: "clamp(140px, 26vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+            <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
           )}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60px]" style={{ background: "linear-gradient(to bottom, transparent, var(--background))" }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]" style={{ background: "linear-gradient(to bottom, transparent, color-mix(in oklab, var(--background) 85%, transparent))" }} />
         </div>
 
         {/* Identity */}
-        <div className="flex flex-col gap-[14px] px-[16px] pb-[16px] md:flex-row md:items-end md:gap-[24px] md:px-[32px]">
-          <img
-            src={user.avatar}
-            alt=""
-            className="h-[80px] w-[80px] shrink-0 rounded-full object-cover md:h-[96px] md:w-[96px]"
-            style={{ marginTop: -40, border: "4px solid var(--background)", boxShadow: "var(--shadow-card)" }}
-          />
+        <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:gap-[24px] md:px-[32px]">
+          <div
+            className="relative shrink-0"
+            style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
+          >
+            <img
+              src={user.avatar}
+              alt=""
+              className="h-[88px] w-[88px] rounded-full object-cover md:h-[112px] md:w-[112px]"
+              style={{
+                border: "4px solid var(--background)",
+                boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
+                background: "var(--background)",
+              }}
+            />
+          </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-[8px]">
-              <h1 className="truncate font-display text-[20px] font-bold md:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>{user.name}</h1>
+            <div className="flex flex-wrap items-center gap-[6px]">
+              <h1 className="min-w-0 truncate font-display text-[18px] font-bold md:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>{user.name}</h1>
               {user.subscription && (
                 <span
-                  className="inline-flex items-center gap-[4px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 11, padding: "2px 8px", borderRadius: 999 }}
+                  className="inline-flex items-center gap-[3px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 10, padding: "2px 7px", borderRadius: 999 }}
                 >
-                  <BadgeCheck size={11} /> Pro
+                  <BadgeCheck size={10} /> Pro
                 </span>
               )}
               {user.firstHundred && (
                 <span
-                  className="inline-flex items-center gap-[4px] font-semibold"
+                  className="inline-flex items-center gap-[3px] font-semibold"
                   style={{
                     background: "linear-gradient(135deg, #FBBF24, #B45309)",
                     color: "#1F1300",
-                    fontSize: 11,
-                    padding: "2px 10px",
+                    fontSize: 10,
+                    padding: "2px 8px",
                     borderRadius: 999,
-                    boxShadow: "0 4px 12px -4px rgba(245, 158, 11, 0.6)",
                   }}
                   title="Один из первых 100 участников клуба"
                 >
@@ -129,10 +137,10 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                 </span>
               )}
             </div>
-            <div className="mt-[2px] flex items-center gap-[6px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
               <MapPin size={12} /> {user.city}
             </div>
-            {user.status && <div className="mt-[2px] text-[13px] italic" style={{ color: "var(--foreground-50)" }}>{user.status}</div>}
+            {user.status && <div className="mt-[2px] text-[12.5px] italic" style={{ color: "var(--foreground-50)" }}>{user.status}</div>}
           </div>
 
           <div className="flex w-full gap-[8px] md:w-auto">
