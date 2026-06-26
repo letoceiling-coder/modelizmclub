@@ -39,6 +39,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       typeof data === "object" && data && "message" in data
         ? String((data as { message: string }).message)
         : `HTTP ${res.status}`;
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("modelizm:unauthorized"));
+    }
     throw new ApiError(message, res.status, data);
   }
 

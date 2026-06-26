@@ -1,6 +1,6 @@
 import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -16,6 +16,8 @@ import type { CreatePostPayload } from "@/components/CreatePostForm";
 import { posts as mockPosts, me, categories, banners } from "@/lib/mock";
 import type { Post } from "@/lib/mock";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
+import { fetchFeed } from "@/lib/api/feed";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -34,13 +36,19 @@ const PAGE_SIZE = 6;
 
 function FeedPage() {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [apiSource, setApiSource] = useState(false);
   const [filter, setFilter] = useState<FeedFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [apiPage, setApiPage] = useState(1);
+  const [apiHasMore, setApiHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (composer === "open") {
@@ -48,6 +56,49 @@ function FeedPage() {
       navigate({ to: "/feed", search: {}, replace: true });
     }
   }, [composer, navigate]);
+
+  const loadFeed = useCallback(
+    async (page = 1, append = false) => {
+      try {
+        const apiFilter =
+          filter === "following" && isAuthenticated ? ("following" as const) : ("all" as const);
+        const { posts: items, hasMore } = await fetchFeed({
+          filter: apiFilter,
+          page,
+          per_page: 20,
+        });
+        if (items.length > 0) {
+          setApiSource(true);
+          setApiHasMore(hasMore);
+          setApiPage(page);
+          setPosts((prev) => (append ? [...prev, ...items] : items));
+          return;
+        }
+        if (page === 1) {
+          setApiSource(false);
+          setPosts(mockPosts);
+        }
+      } catch {
+        if (page === 1) {
+          setApiSource(false);
+          setPosts(mockPosts);
+        }
+      }
+    },
+    [filter, isAuthenticated],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setInitialLoading(true);
+      await loadFeed(1, false);
+      if (!cancelled) setInitialLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadFeed]);
 
   const toggleSave = (id: string) =>
     setSavedIds((prev) => {
@@ -57,26 +108,27 @@ function FeedPage() {
       return next;
     });
 
-  const [initialLoading, setInitialLoading] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setInitialLoading(false), 700);
-    return () => clearTimeout(t);
-  }, []);
+  const feedCategories = useMemo(() => {
+    if (!apiSource) return categories;
+    const names = [...new Set(posts.map((p) => p.category).filter(Boolean))];
+    return names.map((name, i) => ({ id: `api-c${i}`, name, description: "", icon: "Compass", members: 0, subcategories: [] }));
+  }, [apiSource, posts]);
 
   const filtered = useMemo(() => {
-    if (filter === "following") return posts.filter((p) => p.isFollowing);
+    if (filter === "following" && !apiSource) return posts.filter((p) => p.isFollowing);
     if (filter === "categories" && activeCategory) return posts.filter((p) => p.category === activeCategory);
-    if (filter === "saved") return posts.filter((p) => savedIds.has(p.id));
+    if (filter === "saved") {
+      return posts.filter((p) => savedIds.has(p.id) || p.isSaved);
+    }
     return posts;
-  }, [posts, filter, activeCategory, savedIds]);
+  }, [posts, filter, activeCategory, savedIds, apiSource]);
 
   const [visible, setVisible] = useState(PAGE_SIZE);
-  const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setVisible(PAGE_SIZE);
-  }, [filter, activeCategory]);
+  }, [filter, activeCategory, posts]);
 
   useEffect(() => {
     if (initialLoading) return;
@@ -85,7 +137,15 @@ function FeedPage() {
     const io = new IntersectionObserver(
       (entries) => {
         const e = entries[0];
-        if (e.isIntersecting && visible < filtered.length && !loadingMore) {
+        if (!e.isIntersecting || loadingMore) return;
+
+        if (apiSource && visible >= filtered.length && apiHasMore) {
+          setLoadingMore(true);
+          void loadFeed(apiPage + 1, true).finally(() => setLoadingMore(false));
+          return;
+        }
+
+        if (visible < filtered.length) {
           setLoadingMore(true);
           setTimeout(() => {
             setVisible((v) => Math.min(v + PAGE_SIZE, filtered.length));
@@ -97,14 +157,14 @@ function FeedPage() {
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [filtered.length, visible, loadingMore, initialLoading]);
+  }, [filtered.length, visible, loadingMore, initialLoading, apiSource, apiHasMore, apiPage, loadFeed]);
 
   const addPost = (p: CreatePostPayload) => {
     setPosts([
       {
         id: `np${Date.now()}`,
         authorId: me.id,
-        date: "только что",
+        date: tStatic("common.justNow"),
         category: p.category,
         title: p.title,
         text: p.text,
@@ -125,6 +185,7 @@ function FeedPage() {
   };
 
   const slice = filtered.slice(0, visible);
+  const canLoadMore = apiSource ? visible < filtered.length || apiHasMore : visible < filtered.length;
 
   return (
     <AppLayout>
@@ -139,7 +200,7 @@ function FeedPage() {
 
         {filter === "categories" && (
           <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0">
-            {categories.map((c) => {
+            {feedCategories.map((c) => {
               const active = activeCategory === c.name;
               return (
                 <button
@@ -208,7 +269,6 @@ function FeedPage() {
                   onToggleSave={toggleSave}
                 />,
               ];
-              // Каждые 4 поста — нативный рекламный пост
               if ((idx + 1) % 4 === 0 && banners.length > 0) {
                 const banner = banners[Math.floor(idx / 4) % banners.length];
                 nodes.push(<SponsoredPostCard key={`ad-${idx}-${banner.id}`} banner={banner} />);
@@ -217,7 +277,7 @@ function FeedPage() {
             })
           )}
 
-          {!initialLoading && visible < filtered.length && (
+          {!initialLoading && canLoadMore && (
             <div ref={sentinelRef} className="flex items-center justify-center py-[24px]">
               <motion.div
                 animate={{ rotate: 360 }}
@@ -229,7 +289,7 @@ function FeedPage() {
             </div>
           )}
 
-          {!initialLoading && slice.length > 0 && visible >= filtered.length && (
+          {!initialLoading && slice.length > 0 && !canLoadMore && (
             <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("feed.endReached")}</p>
           )}
         </div>

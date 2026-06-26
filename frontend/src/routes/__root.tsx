@@ -11,6 +11,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider, AuthSessionGuard } from "@/components/auth/AuthProvider";
 import { I18nProvider, useTranslation, tStatic } from "@/lib/i18n";
 import { CallScreen } from "@/components/calls/CallScreen";
 
@@ -101,9 +102,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <ThemeProvider>
-          <Outlet />
-          <CallScreen />
-          <Toaster position="top-center" richColors />
+          <AuthProvider>
+            <AuthSessionGuard />
+            <Outlet />
+            <CallScreen />
+            <Toaster position="top-center" richColors />
+          </AuthProvider>
         </ThemeProvider>
       </I18nProvider>
     </QueryClientProvider>

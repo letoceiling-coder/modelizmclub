@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { getInviterByCode } from "@/lib/referral";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -19,15 +21,32 @@ function RegisterPage() {
   const nav = useNavigate();
   const { ref } = useSearch({ from: "/register" });
   const inviter = getInviterByCode(ref);
+  const { register } = useAuth();
   const [agree, setAgree] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agree) return toast.error(t("auth.agreeError"));
-    toast.success(
-      inviter ? t("auth.accountCreatedInvited", { name: inviter.name }) : t("auth.accountCreated"),
-    );
-    nav({ to: "/onboarding" });
+    setLoading(true);
+    try {
+      await register({
+        email: email.trim(),
+        password,
+        password_confirmation: password,
+        display_name: displayName.trim() || undefined,
+      });
+      toast.success(t("auth.registerCodeSent"));
+      nav({ to: "/verify-email", search: { email: email.trim() } });
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : t("auth.registerFailed");
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,9 +82,30 @@ function RegisterPage() {
         </div>
       )}
       <form onSubmit={submit} className="space-y-[12px]">
-        <input required placeholder={t("auth.namePlaceholder")} style={inputStyle} />
-        <input required type="email" placeholder="Email" style={inputStyle} />
-        <input required type="password" placeholder={t("auth.passwordMinPlaceholder")} minLength={8} style={inputStyle} />
+        <input
+          required
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder={t("auth.namePlaceholder")}
+          style={inputStyle}
+        />
+        <input
+          required
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          style={inputStyle}
+        />
+        <input
+          required
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={t("auth.passwordMinPlaceholder")}
+          minLength={8}
+          style={inputStyle}
+        />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
@@ -73,7 +113,9 @@ function RegisterPage() {
             <Link to="/legal/rules" style={{ color: "var(--accent)" }}>{t("auth.rulesLink")}</Link> {t("auth.and")}{" "}
             <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>{t("auth.privacyLink")}</Link>{t("auth.privacySuffix")}</span>
         </label>
-        <button type="submit" style={{ ...primaryBtn, marginTop: 16 }}>{t("auth.submitRegister")}</button>
+        <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 16, opacity: loading ? 0.7 : 1 }}>
+          {loading ? t("auth.submittingRegister") : t("auth.submitRegister")}
+        </button>
       </form>
       <div className="mt-[24px] flex items-center gap-[12px]" style={{ color: "var(--foreground-50)", fontSize: "var(--fs-xs)" }}>
         <span style={{ flex: 1, height: 1, background: "var(--border)" }} />

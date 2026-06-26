@@ -230,6 +230,31 @@ export const friendRequests: FriendRequest[] = [
 
 export const me: User = users[0];
 
+const apiUserRegistry = new Map<string, User>();
+
+export function registerApiUser(input: {
+  slug: string;
+  displayName: string;
+  avatarUrl?: string | null;
+}): User {
+  const id = input.slug || `api-${Date.now()}`;
+  const existing = apiUserRegistry.get(id);
+  if (existing) {
+    existing.name = input.displayName || existing.name;
+    if (input.avatarUrl) existing.avatar = input.avatarUrl;
+    return existing;
+  }
+  const user: User = {
+    id,
+    name: input.displayName || id,
+    city: "",
+    interests: "",
+    avatar: input.avatarUrl || avatar(input.displayName || id),
+  };
+  apiUserRegistry.set(id, user);
+  return user;
+}
+
 export const categories: Category[] = [
   {
     id: "c1", name: "Автомодели", description: "RC авто всех масштабов", icon: "Car", members: 2840,
@@ -482,7 +507,7 @@ export const chatMessages: Message[] = [
   { id: "cm5", authorId: "u3", time: _ago(30), text: "Видео обкатки скинете?", status: "read" },
 ];
 
-export const userById = (id: ID) => users.find((u) => u.id === id) ?? users[0];
+export const userById = (id: ID) => apiUserRegistry.get(id) ?? users.find((u) => u.id === id) ?? users[0];
 export const categoryById = (id: ID) => categories.find((c) => c.id === id);
 export const communityById = (id: ID) => communities.find((c) => c.id === id);
 
