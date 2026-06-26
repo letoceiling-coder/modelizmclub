@@ -722,6 +722,7 @@
   },
   "communities": {
     "metaTitle": "Communities — MoDelizM Forum",
+    "listMetaTitle": "Communities — MoDelizM Forum",
     "title": "Communities",
     "subtitle": "Clubs, schools and modeling shops",
     "tabMy": "Mine",
@@ -743,7 +744,7 @@
     "contactPhone": "Телефон",
     "adminLabel": "Admin: {{name}}",
     "metaFallback": "Community",
-    "metaTitle": "{{name}} — MoDelizM Forum",
+    "detailMetaTitle": "{{name}} — MoDelizM Forum",
     "shareTitle": "Share community",
     "shareToFriend": "Send to a friend on the platform",
     "shareOpenMessenger": "Opening messenger",

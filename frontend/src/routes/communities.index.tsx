@@ -9,9 +9,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useStore, selectors } from "@/lib/store";
 import type { Community } from "@/lib/mock";
 import { useDebounce } from "@/hooks/useDebounce";
+import { fetchCommunities } from "@/lib/api/communities";
 
 export const Route = createFileRoute("/communities/")({
-  head: () => ({ meta: [{ title: tStatic("communities.metaTitle") }] }),
+  head: () => ({ meta: [{ title: tStatic("communities.listMetaTitle") }] }),
   component: CommunitiesPage,
 });
 
@@ -20,6 +21,7 @@ const ICON_MAP: Record<string, typeof Car> = {
 };
 
 function CommunityCard({ c }: { c: Community }) {
+  const { t } = useTranslation();
   const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
   return (
     <article
@@ -118,8 +120,36 @@ function EmptySearch() {
 function CommunitiesPage() {
   const { t } = useTranslation();
   const currentUserId = useStore((s) => s.currentUserId);
-  const myCommunities = useStore(selectors.userCommunities(currentUserId));
-  const recommended = useStore(selectors.recommendedCommunities(currentUserId));
+  const mockMy = useStore(selectors.userCommunities(currentUserId));
+  const mockRecommended = useStore(selectors.recommendedCommunities(currentUserId));
+
+  const [apiList, setApiList] = useState<Community[] | null>(null);
+  const [apiSource, setApiSource] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const items = await fetchCommunities({ per_page: 50 });
+        if (!cancelled && items.length > 0) {
+          setApiList(items);
+          setApiSource(true);
+        }
+      } catch {
+        if (!cancelled) setApiSource(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const myCommunities = useMemo(
+    () => (apiSource && apiList ? apiList.filter((c) => c.joined) : mockMy),
+    [apiSource, apiList, mockMy],
+  );
+  const recommended = useMemo(
+    () => (apiSource && apiList ? apiList.filter((c) => !c.joined) : mockRecommended),
+    [apiSource, apiList, mockRecommended],
+  );
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);

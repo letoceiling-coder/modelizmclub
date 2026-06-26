@@ -722,6 +722,7 @@
   },
   "communities": {
     "metaTitle": "社区 — MoDelizM 论坛",
+    "listMetaTitle": "社区 — MoDelizM 论坛",
     "title": "社区",
     "subtitle": "俱乐部、学校和模型商店",
     "tabMy": "我的",
@@ -743,7 +744,7 @@
     "contactPhone": "Телефон",
     "adminLabel": "Администратор: {{name}}",
     "metaFallback": "社区",
-    "metaTitle": "{{name}} — MoDelizM 论坛",
+    "detailMetaTitle": "{{name}} — MoDelizM 论坛",
     "shareTitle": "分享社区",
     "shareToFriend": "发送给平台好友",
     "shareOpenMessenger": "正在打开消息",

@@ -26,14 +26,16 @@ export function Sidebar() {
     <div className="hidden w-[15rem] shrink-0 lg:block">
       <aside className="layout-sidebar-left">
         <div className="space-y-1">
-        <div className="flex items-center justify-between px-3 py-3">
-          <Link to={ROUTES.feed}><Logo /></Link>
-          <div className="flex items-center gap-1">
-            <LanguageSwitcher showFooter={false} />
-            <ThemeToggle />
+        <div className="border-b border-border/60 px-3 pb-3 pt-3">
+          <Link to={ROUTES.feed} className="block min-w-0">
+            <Logo size={30} />
+          </Link>
+          <div className="mt-2.5 flex items-center justify-end gap-1">
+            <LanguageSwitcher compact showFooter={false} />
+            <ThemeToggle size={36} />
           </div>
         </div>
-        <nav className="space-y-0.5">
+        <nav className="space-y-0.5 px-1.5 pt-1">
           {itemKeys.map(({ to, labelKey, icon: Icon, section }) => {
             const active = activeSection === section;
             return (
@@ -74,7 +76,7 @@ export function Sidebar() {
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
           </a>
         </nav>
-        <div className="mt-4 rounded-xl border bg-card p-3">
+        <div className="mx-1.5 mt-4 rounded-xl border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("common.subscription")}</div>
           <div className="mt-1 text-sm font-medium">{t("common.subscriptionActive")}</div>
           <Link to={ROUTES.subscription} className="mt-2 inline-block text-xs text-primary hover:underline">

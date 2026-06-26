@@ -47,22 +47,33 @@ export function LanguageSwitcher({ compact = false, showFooter = true }: Props) 
         onClick={() => setOpen((v) => !v)}
         className={
           compact
-            ? "grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[color:var(--background-surface-hover)]"
+            ? "inline-flex h-9 min-w-[36px] items-center justify-center gap-1 rounded-lg border px-2 transition-colors hover:bg-[color:var(--background-surface-hover)]"
             : "grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted"
         }
-        style={{ color: "var(--foreground-70)" }}
+        style={{
+          color: "var(--foreground-70)",
+          borderColor: compact ? "var(--border)" : undefined,
+          background: compact ? "var(--background-surface)" : undefined,
+        }}
         aria-label={t("common.language")}
         title={`${t("common.language")}: ${current.native}`}
       >
-        <span className="relative inline-flex">
-          <Languages size={compact ? 18 : 16} />
-          <span
-            className="absolute -bottom-[6px] -right-[8px] grid h-[14px] min-w-[18px] place-items-center rounded-[4px] px-[3px] text-[9px] font-bold uppercase"
-            style={{ background: "var(--accent)", color: "#fff" }}
-          >
-            {lang}
+        {compact ? (
+          <>
+            <span className="text-sm leading-none" aria-hidden>{current.flag}</span>
+            <span className="text-[10px] font-bold uppercase leading-none">{lang}</span>
+          </>
+        ) : (
+          <span className="relative inline-flex">
+            <Languages size={16} />
+            <span
+              className="absolute -bottom-[6px] -right-[8px] grid h-[14px] min-w-[18px] place-items-center rounded-[4px] px-[3px] text-[9px] font-bold uppercase"
+              style={{ background: "var(--accent)", color: "#fff" }}
+            >
+              {lang}
+            </span>
           </span>
-        </span>
+        )}
       </button>
       {open && (
         <div

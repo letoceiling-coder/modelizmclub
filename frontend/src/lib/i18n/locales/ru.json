@@ -724,6 +724,7 @@
   },
   "communities": {
     "metaTitle": "Сообщества — МоДелизМ Форум",
+    "listMetaTitle": "Сообщества — МоДелизМ Форум",
     "title": "Сообщества",
     "subtitle": "Клубы, кружки, школы и магазины моделизма",
     "tabMy": "Мои",
@@ -745,7 +746,7 @@
     "contactPhone": "Телефон",
     "adminLabel": "Администратор: {{name}}",
     "metaFallback": "Сообщество",
-    "metaTitle": "{{name}} — МоДелизМ Форум",
+    "detailMetaTitle": "{{name}} — МоДелизМ Форум",
     "shareTitle": "Поделиться сообществом",
     "shareToFriend": "Отправить другу на платформе",
     "shareOpenMessenger": "Открываем мессенджер",

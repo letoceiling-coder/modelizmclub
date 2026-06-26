@@ -15,7 +15,7 @@ import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
 export const Route = createFileRoute("/communities/$id")({
   head: ({ params }) => {
     const name = communityById(params.id)?.name ?? tStatic("communities.metaFallback");
-    return { meta: [{ title: tStatic("communities.metaTitle", { name }) }] };
+    return { meta: [{ title: tStatic("communities.detailMetaTitle", { name }) }] };
   },
   component: CommunityDetailPage,
 });
