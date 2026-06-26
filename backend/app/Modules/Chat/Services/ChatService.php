@@ -85,7 +85,11 @@ class ChatService
 
             $message->load(['author.profile', 'replyTo.author.profile', 'conversation']);
 
-            broadcast(new MessageSent($message))->toOthers();
+            try {
+                broadcast(new MessageSent($message))->toOthers();
+            } catch (\Throwable) {
+                // Reverb may be unavailable during tests or maintenance
+            }
 
             return $message;
         });
