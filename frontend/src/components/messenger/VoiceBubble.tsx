@@ -2,7 +2,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, ChevronDown, FileText } from "lucide-react";
-import type { VoiceMessage } from "@/lib/mock";
+import type { VoiceMessage } from "@/lib/types";
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);

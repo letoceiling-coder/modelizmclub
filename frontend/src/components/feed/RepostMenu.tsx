@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, selectors, openOrCreateDialogWith, actions } from "@/lib/store";
-import { userById, me } from "@/lib/mock";
+import { fetchConversations, sendMessage } from "@/lib/api/chat";
+import type { Conversation } from "@/lib/types";
+import { avatarUrl } from "@/lib/utils/time";
 
 interface Props {
   postId: string;
@@ -21,9 +22,20 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const ref = useRef<HTMLDivElement>(null);
-  const dialogs = useStore(selectors.dialogsList);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!open || view !== "chats") return;
+    let cancelled = false;
+    void fetchConversations().then((items) => {
+      if (!cancelled) setConversations(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, view]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,17 +100,15 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
     close();
   };
 
-  const sendToChat = (dialogId: string, partnerName: string) => {
-    actions.addMessage(dialogId, {
-      id: `nm${Date.now()}`,
-      authorId: me.id,
-      time: new Date().toISOString(),
-      text: t("post.repostShareText", { url: url() }),
-      status: "sent",
-    });
-    toast.success(t("post.repostSent", { name: partnerName }));
-    close();
-    navigate({ to: "/messenger", search: { chat: dialogId } });
+  const sendToChat = async (conversationId: string, partnerName: string) => {
+    try {
+      await sendMessage(conversationId, t("post.repostShareText", { url: url() }));
+      toast.success(t("post.repostSent", { name: partnerName }));
+      close();
+      navigate({ to: "/messenger", search: { chat: conversationId } });
+    } catch {
+      toast.error(t("common.error"));
+    }
   };
 
   return (
@@ -155,20 +165,22 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
                 >
                   <ArrowLeft className="h-[14px] w-[14px]" />{t("post.repostWhere")}</button>
                 <div className="max-h-[280px] overflow-y-auto">
-                  {dialogs.length === 0 ? (
+                  {conversations.length === 0 ? (
                     <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("messenger.noDialogs")}</div>
                   ) : (
-                    dialogs.map((d) => {
-                      const u = userById(d.userId);
+                    conversations.map((d) => {
+                      const partner = d.participants[0];
+                      const name = partner?.name ?? d.title;
+                      const avatar = partner?.avatar ?? avatarUrl(name);
                       return (
                         <button
                           key={d.id}
                           type="button"
-                          onClick={() => sendToChat(d.id, u.name)}
+                          onClick={() => sendToChat(d.id, name)}
                           className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                         >
-                          <img src={u.avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
-                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>{u.name}</span>
+                          <img src={avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
+                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>{name}</span>
                         </button>
                       );
                     })

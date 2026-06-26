@@ -2,8 +2,9 @@ import { useTranslation } from "@/lib/i18n";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send } from "lucide-react";
-import type { Comment } from "@/lib/mock";
-import { userById, me } from "@/lib/mock";
+import type { Comment } from "@/lib/types";
+import { avatarUrl } from "@/lib/utils/time";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface Props {
   comments: Comment[];
@@ -20,7 +21,7 @@ function CommentItem({
   onReply: (parentId: string, text: string) => void;
 }) {
   const { t } = useTranslation();
-  const author = userById(comment.authorId);
+  const author = comment.author;
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(comment.likes ?? 0);
   const [replying, setReplying] = useState(false);
@@ -38,7 +39,7 @@ function CommentItem({
       className="flex gap-[12px]"
       style={{ marginLeft: depth > 0 ? 40 : 0 }}
     >
-      <img src={author.avatar} alt={author.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
+      <img src={author.avatar ?? avatarUrl(author.name)} alt={author.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
       <div className="min-w-0 flex-1">
         <div
           className="rounded-[12px] px-[12px] py-[8px]"
@@ -125,7 +126,9 @@ function CommentItem({
 
 export function CommentSection({ comments, onAdd }: Props) {
   const { t } = useTranslation();
+  const { displayName } = useAuth();
   const [draft, setDraft] = useState("");
+  const meAvatar = avatarUrl(displayName ?? "Me");
 
   const handleReply = (parentId: string, text: string) => onAdd(text, parentId);
 
@@ -141,7 +144,7 @@ export function CommentSection({ comments, onAdd }: Props) {
       style={{ borderColor: "var(--border)", background: "var(--background-overlay)" }}
     >
       <div className="flex items-center gap-[12px]">
-        <img src={me.avatar} alt={me.name} className="h-[32px] w-[32px] rounded-full" />
+        <img src={meAvatar} alt="" className="h-[32px] w-[32px] rounded-full" />
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

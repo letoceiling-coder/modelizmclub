@@ -1,8 +1,11 @@
 import { useTranslation } from "@/lib/i18n";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
-import { categories, me } from "@/lib/mock";
+import type { Category } from "@/lib/types";
+import { fetchPostCategories } from "@/lib/api/catalog";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { avatarUrl } from "@/lib/utils/time";
 
 const MAX_PHOTOS = 5;
 
@@ -22,15 +25,27 @@ export function CreatePostForm({
   compact?: boolean;
 }) {
   const { t } = useTranslation();
+  const { displayName } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
-  const [catId, setCatId] = useState(categories[0].id);
-  const [subId, setSubId] = useState<string>(categories[0].subcategories[0]?.id ?? "");
+  const [catId, setCatId] = useState("");
+  const [subId, setSubId] = useState<string>("");
   const [photos, setPhotos] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const cat = useMemo(() => categories.find((c) => c.id === catId)!, [catId]);
-  const sub = cat.subcategories.find((s) => s.id === subId);
+  useEffect(() => {
+    void fetchPostCategories().then((items) => {
+      setCategories(items);
+      if (items[0]) {
+        setCatId(items[0].id);
+        setSubId(items[0].subcategories?.[0]?.id ?? "");
+      }
+    });
+  }, []);
+
+  const cat = useMemo(() => categories.find((c) => c.id === catId) ?? categories[0], [categories, catId]);
+  const sub = cat?.subcategories?.find((s) => s.id === subId);
 
   const addPhotos = (files: FileList | null) => {
     if (!files) return;
@@ -44,7 +59,7 @@ export function CreatePostForm({
   const submit = () => {
     if (!title.trim()) return toast.error(t("components.createFormTitleRequired"));
     if (!text.trim()) return toast.error(t("components.createFormTextRequired"));
-    onCreate?.({ title, text, category: cat.name, subcategory: sub?.name, photos });
+    onCreate?.({ title, text, category: cat?.name ?? "", subcategory: sub?.name, photos });
     toast.success(t("components.createFormSentModeration"));
     setTitle("");
     setText("");
@@ -54,7 +69,7 @@ export function CreatePostForm({
   return (
     <div className={`border bg-card ${compact ? "rounded-none border-0" : "rounded-xl"} p-4`}>
       <div className="flex items-center gap-3">
-        <img src={me.avatar} alt="" className="h-10 w-10 rounded-full" />
+        <img src={avatarUrl(displayName ?? "User")} alt="" className="h-10 w-10 rounded-full" />
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -76,8 +91,8 @@ export function CreatePostForm({
           value={catId}
           onChange={(e) => {
             setCatId(e.target.value);
-            const c = categories.find((cc) => cc.id === e.target.value)!;
-            setSubId(c.subcategories[0]?.id ?? "");
+            const c = categories.find((cc) => cc.id === e.target.value);
+            setSubId(c?.subcategories?.[0]?.id ?? "");
           }}
           className="rounded-lg border bg-background px-3 py-2 text-xs"
         >
@@ -86,10 +101,10 @@ export function CreatePostForm({
         <select
           value={subId}
           onChange={(e) => setSubId(e.target.value)}
-          disabled={cat.subcategories.length === 0}
+          disabled={!cat || (cat.subcategories?.length ?? 0) === 0}
           className="rounded-lg border bg-background px-3 py-2 text-xs disabled:opacity-50"
         >
-          {cat.subcategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          {(cat?.subcategories ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
 

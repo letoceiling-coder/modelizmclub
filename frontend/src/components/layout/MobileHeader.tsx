@@ -4,6 +4,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useTranslation } from "@/lib/i18n";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export function MobileHeader() {
   const { t } = useTranslation();
@@ -17,7 +18,7 @@ export function MobileHeader() {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <Link to="/feed" className="min-w-0 inline-flex items-center" aria-label={t("nav.landing")}>
+      <Link to="/feed" search={ROUTE_SEARCH.feed} className="min-w-0 inline-flex items-center" aria-label={t("nav.landing")}>
         <Logo />
       </Link>
       <div className="flex shrink-0 items-center gap-[2px]">

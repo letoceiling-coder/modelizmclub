@@ -10,6 +10,7 @@ import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PaymentModal } from "@/components/PaymentModal";
 import { syncPayment } from "@/lib/api/payments";
 import { getAuthToken } from "@/lib/api/auth";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export const Route = createFileRoute("/subscription")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -79,7 +80,7 @@ function SubscriptionPage() {
       } catch {
         toast.error(t("common.error"));
       } finally {
-        navigate({ to: "/subscription", search: {}, replace: true });
+        navigate({ to: "/subscription", search: ROUTE_SEARCH.subscription, replace: true });
       }
     })();
   }, [payment, uuid, navigate, t]);

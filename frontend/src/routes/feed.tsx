@@ -13,11 +13,13 @@ import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyFeedState } from "@/components/feed/EmptyFeedState";
 import type { CreatePostPayload } from "@/components/CreatePostForm";
-import { posts as mockPosts, me, categories, banners } from "@/lib/mock";
-import type { Post } from "@/lib/mock";
+import type { Post, Banner, Category } from "@/lib/types";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import { fetchFeed } from "@/lib/api/feed";
+import { fetchBanners } from "@/lib/api/public";
+import { fetchPostCategories } from "@/lib/api/catalog";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { avatarUrl } from "@/lib/utils/time";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -36,11 +38,12 @@ const PAGE_SIZE = 6;
 
 function FeedPage() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, displayName, slug } = useAuth();
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [apiSource, setApiSource] = useState(false);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [feedCategories, setFeedCategories] = useState<Category[]>([]);
   const [filter, setFilter] = useState<FeedFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -53,37 +56,35 @@ function FeedPage() {
   useEffect(() => {
     if (composer === "open") {
       setComposerOpen(true);
-      navigate({ to: "/feed", search: {}, replace: true });
+      navigate({ to: "/feed", search: { composer: undefined }, replace: true });
     }
   }, [composer, navigate]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void fetchBanners("feed").then((items) => {
+      if (!cancelled) setBanners(items);
+    });
+    void fetchPostCategories().then((items) => {
+      if (!cancelled) setFeedCategories(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const loadFeed = useCallback(
     async (page = 1, append = false) => {
-      try {
-        const apiFilter =
-          filter === "following" && isAuthenticated ? ("following" as const) : ("all" as const);
-        const { posts: items, hasMore } = await fetchFeed({
-          filter: apiFilter,
-          page,
-          per_page: 20,
-        });
-        if (items.length > 0) {
-          setApiSource(true);
-          setApiHasMore(hasMore);
-          setApiPage(page);
-          setPosts((prev) => (append ? [...prev, ...items] : items));
-          return;
-        }
-        if (page === 1) {
-          setApiSource(false);
-          setPosts(mockPosts);
-        }
-      } catch {
-        if (page === 1) {
-          setApiSource(false);
-          setPosts(mockPosts);
-        }
-      }
+      const apiFilter =
+        filter === "following" && isAuthenticated ? ("following" as const) : ("all" as const);
+      const { posts: items, hasMore } = await fetchFeed({
+        filter: apiFilter,
+        page,
+        per_page: 20,
+      });
+      setApiHasMore(hasMore);
+      setApiPage(page);
+      setPosts((prev) => (append ? [...prev, ...items] : items));
     },
     [filter, isAuthenticated],
   );
@@ -108,20 +109,20 @@ function FeedPage() {
       return next;
     });
 
-  const feedCategories = useMemo(() => {
-    if (!apiSource) return categories;
+  const categoryChips = useMemo(() => {
+    if (feedCategories.length > 0) return feedCategories;
     const names = [...new Set(posts.map((p) => p.category).filter(Boolean))];
-    return names.map((name, i) => ({ id: `api-c${i}`, name, description: "", icon: "Compass", members: 0, subcategories: [] }));
-  }, [apiSource, posts]);
+    return names.map((name, i) => ({ id: `api-c${i}`, name, subcategories: [] }));
+  }, [feedCategories, posts]);
 
   const filtered = useMemo(() => {
-    if (filter === "following" && !apiSource) return posts.filter((p) => p.isFollowing);
+    if (filter === "following") return posts.filter((p) => p.isFollowing);
     if (filter === "categories" && activeCategory) return posts.filter((p) => p.category === activeCategory);
     if (filter === "saved") {
       return posts.filter((p) => savedIds.has(p.id) || p.isSaved);
     }
     return posts;
-  }, [posts, filter, activeCategory, savedIds, apiSource]);
+  }, [posts, filter, activeCategory, savedIds]);
 
   const [visible, setVisible] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -139,7 +140,7 @@ function FeedPage() {
         const e = entries[0];
         if (!e.isIntersecting || loadingMore) return;
 
-        if (apiSource && visible >= filtered.length && apiHasMore) {
+        if (visible >= filtered.length && apiHasMore) {
           setLoadingMore(true);
           void loadFeed(apiPage + 1, true).finally(() => setLoadingMore(false));
           return;
@@ -157,13 +158,14 @@ function FeedPage() {
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [filtered.length, visible, loadingMore, initialLoading, apiSource, apiHasMore, apiPage, loadFeed]);
+  }, [filtered.length, visible, loadingMore, initialLoading, apiHasMore, apiPage, loadFeed]);
 
   const addPost = (p: CreatePostPayload) => {
+    const name = displayName ?? "User";
     setPosts([
       {
         id: `np${Date.now()}`,
-        authorId: me.id,
+        author: { slug: slug ?? "me", name, avatar: avatarUrl(name) },
         date: tStatic("common.justNow"),
         category: p.category,
         title: p.title,
@@ -185,7 +187,7 @@ function FeedPage() {
   };
 
   const slice = filtered.slice(0, visible);
-  const canLoadMore = apiSource ? visible < filtered.length || apiHasMore : visible < filtered.length;
+  const canLoadMore = visible < filtered.length || apiHasMore;
 
   return (
     <AppLayout>
@@ -200,7 +202,7 @@ function FeedPage() {
 
         {filter === "categories" && (
           <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0">
-            {feedCategories.map((c) => {
+            {categoryChips.map((c) => {
               const active = activeCategory === c.name;
               return (
                 <button

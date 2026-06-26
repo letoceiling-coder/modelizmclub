@@ -3,7 +3,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Banner } from "@/lib/mock";
+import type { Banner } from "@/lib/types";
 
 interface Props {
   banner: Banner;
@@ -20,6 +20,10 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
   if (hidden) return null;
 
   const handleCta = () => {
+    if (banner.linkUrl) {
+      window.open(banner.linkUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     toast(t("post.detailsSoon", { title: banner.title }));
   };
 
@@ -70,7 +74,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
             >{t("post.sponsoredAd")}</span>
           </div>
           <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            {t("post.sponsoredPromo", { until: banner.until })}
+            {t("post.sponsoredAd")}
           </div>
         </div>
         <button
@@ -99,7 +103,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{
           borderRadius: 12,
           aspectRatio: "16 / 7",
-          background: `linear-gradient(135deg, ${gradientStops(banner.color)})`,
+          background: "linear-gradient(135deg, var(--accent), var(--accent-muted))",
           border: "1px solid var(--border)",
         }}
       >
@@ -148,7 +152,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
         >
-          {banner.cta}
+          {banner.linkUrl ? t("components.readMore") : t("post.detailsSoonShort", { title: banner.title })}
           <ExternalLink size={14} />
         </button>
       </div>
@@ -156,12 +160,3 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
   );
 }
 
-/**
- * Map the existing tailwind gradient hint ("from-red-600 to-red-800") to
- * concrete colors so we don't rely on Tailwind JIT for arbitrary classes.
- */
-function gradientStops(token: string): string {
-  if (token.includes("slate")) return "#334155, #0f172a";
-  if (token.includes("red-700") && token.includes("slate")) return "#991b1b, #0f172a";
-  return "#dc2626, #7f1d1d";
-}

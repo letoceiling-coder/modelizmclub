@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, MicOff, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
-import { userById } from "@/lib/mock";
+import { avatarUrl } from "@/lib/utils/time";
 
 const STATUS_KEYS: Record<CallStatus, string> = {
   ringing: "calls.statusRinging",
@@ -34,8 +34,8 @@ export function CallScreen() {
   useEffect(() => {
     const unsub = onCallEvent({
       onEnded: (rec) => {
-        const peer = userById(rec.peerId);
-        if (rec.result === "missed") toast.error(t("calls.noAnswer", { name: peer.name }));
+        const peerName = rec.peerId;
+        if (rec.result === "missed") toast.error(t("calls.noAnswer", { name: peerName }));
         else if (rec.result === "answered") toast.success(t("calls.callEndedWith", { duration: formatCallDuration(rec.durationSec) }));
         else toast(t("calls.callEndedShort"));
       },
@@ -76,7 +76,8 @@ function CallBody({ elapsed }: { elapsed: number }) {
   const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   if (!active) return null;
-  const peer = userById(active.peerId);
+  const peerName = active.peerId;
+  const peerAvatar = avatarUrl(peerName);
   const statusText =
     active.status === "connected"
       ? formatCallDuration(elapsed)
@@ -105,14 +106,14 @@ function CallBody({ elapsed }: { elapsed: number }) {
           }}
         />
         <img
-          src={peer.avatar}
+          src={peerAvatar}
           alt=""
           className="relative h-[160px] w-[160px] rounded-full object-cover"
           style={{ boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
         />
       </motion.div>
 
-      <h2 className="mt-6 font-display text-[26px] font-bold leading-tight">{peer.name}</h2>
+      <h2 className="mt-6 font-display text-[26px] font-bold leading-tight">{peerName}</h2>
       <div
         className="mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-medium"
         style={{

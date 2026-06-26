@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: tStatic("onboarding.metaTitle") }] }),
@@ -34,7 +35,7 @@ function OnboardingPage() {
   const finish = () => {
     if (selected.length < 1) return toast.error(t("onboarding.errorMin"));
     toast.success(t("onboarding.success"));
-    nav({ to: "/feed" });
+    nav({ to: "/feed", search: ROUTE_SEARCH.feed });
   };
 
   return (
@@ -46,7 +47,7 @@ function OnboardingPage() {
         <Logo />
         <div className="flex items-center gap-[12px]">
           <button
-            onClick={() => nav({ to: "/feed" })}
+            onClick={() => nav({ to: "/feed", search: ROUTE_SEARCH.feed })}
             style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", background: "transparent", border: "none", cursor: "pointer" }}
           >{t("onboarding.skip")}</button>
           <ThemeToggle />

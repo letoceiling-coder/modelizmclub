@@ -9,6 +9,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import cover from "@/assets/cover-modelizm.jpg";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 const VIDEO_URL = "";
 
@@ -205,7 +206,7 @@ function ZeroBlock() {
 
               <motion.div variants={fadeUp} className="mt-[40px] flex flex-col sm:flex-row items-stretch sm:items-center gap-[12px] w-full sm:w-auto">
                 <button
-                  onClick={() => navigate({ to: "/register" })}
+                  onClick={() => navigate({ to: "/register", search: ROUTE_SEARCH.register })}
                   className="flex items-center justify-center gap-[10px] active:scale-[0.97] transition-all"
                   style={{
                     padding: "0 32px",
@@ -648,7 +649,7 @@ function PricingSection() {
                     color: "var(--text-primary)",
                   }}
                 >
-                  {"priceKey" in p ? t(p.priceKey) : p.price}
+                  {"priceKey" in p && p.priceKey ? t(p.priceKey) : "price" in p ? p.price : ""}
                 </span>
                 <span style={{ fontSize: 13, color: "var(--foreground-50, rgba(240,240,240,0.55))" }}>
                   {t(p.periodKey)}
@@ -665,6 +666,7 @@ function PricingSection() {
               <div className="flex-1" />
               <Link
                 to="/subscription"
+                search={ROUTE_SEARCH.subscription}
                 className="mt-[24px] inline-flex items-center justify-center gap-[8px] transition-colors"
                 style={{
                   height: 44,
@@ -810,7 +812,7 @@ function FooterSection() {
             <Link to="/legal/rules" style={footerLink}>{t("index.footerRules")}</Link>
             <Link to="/help" style={footerLink}>{t("index.footerSupport")}</Link>
             <Link to="/help" style={footerLink}>{t("index.footerContacts")}</Link>
-            <Link to="/subscription" style={footerLink}>{t("nav.subscription")}</Link>
+            <Link to="/subscription" search={ROUTE_SEARCH.subscription} style={footerLink}>{t("nav.subscription")}</Link>
           </nav>
         </div>
 

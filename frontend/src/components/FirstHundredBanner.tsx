@@ -1,13 +1,27 @@
 import { useTranslation } from "@/lib/i18n";
 import { Crown, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { firstHundredStats } from "@/lib/mock";
+import { useEffect, useState } from "react";
+import { fetchPublicStats } from "@/lib/api/public";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export function FirstHundredBanner() {
   const { t } = useTranslation();
-  const taken = Math.max(0, Math.min(firstHundredStats.total, firstHundredStats.taken));
-  const total = firstHundredStats.total;
-  const pct = Math.round((taken / total) * 100);
+  const [stats, setStats] = useState({ taken: 0, total: 100 });
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPublicStats().then((s) => {
+      if (!cancelled) setStats(s.firstHundred);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const taken = Math.max(0, Math.min(stats.total, stats.taken));
+  const total = stats.total || 100;
+  const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
   const left = total - taken;
 
   return (
@@ -115,6 +129,7 @@ export function FirstHundredBanner() {
           <div className="flex flex-wrap" style={{ gap: "10px" }}>
             <Link
               to="/register"
+              search={ROUTE_SEARCH.register}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

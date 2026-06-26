@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { getInviterByCode } from "@/lib/referral";
+import { avatarUrl } from "@/lib/utils/time";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ApiError } from "@/lib/api/client";
 
@@ -70,7 +71,7 @@ function RegisterPage() {
             padding: "10px 12px",
           }}
         >
-          <img src={inviter.avatar} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
+          <img src={inviter.avatar ?? avatarUrl(inviter.name)} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-[6px]" style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
               <UserPlus size={12} /> {t("auth.invited", { name: inviter.name })}

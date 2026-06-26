@@ -5,7 +5,7 @@ import {
   Eye, Heart, MapPin, Pencil, Archive, Trash2, Upload, ImageOff, MoreHorizontal,
 } from "lucide-react";
 import { useState } from "react";
-import type { Ad } from "@/lib/mock";
+import type { Ad } from "@/lib/types";
 
 export type MyAdStatus = "active" | "archived" | "moderation" | "rejected" | "draft" | "unpublished" | "deleted";
 

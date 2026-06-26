@@ -3,16 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check } from "lucide-react";
 import { toast } from "sonner";
-import { actions } from "@/lib/store";
 
 interface Props {
   postId: string;
   saved: boolean;
   title: string;
   text: string;
+  onToggleSave?: () => void;
 }
 
-export function PostActionMenu({ postId, saved, title, text }: Props) {
+export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -40,7 +40,7 @@ export function PostActionMenu({ postId, saved, title, text }: Props) {
   };
 
   const handleSave = () => {
-    actions.savePost(postId, !saved);
+    onToggleSave?.();
     toast.success(saved ? t("post.unsaved") : t("post.saved"));
     setOpen(false);
   };

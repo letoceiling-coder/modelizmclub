@@ -1,6 +1,6 @@
 import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
-import type { Ad } from "@/lib/mock";
+import type { Ad } from "@/lib/types";
 import { MapPin } from "lucide-react";
 
 export function SimilarAds({ items }: { items: Ad[] }) {

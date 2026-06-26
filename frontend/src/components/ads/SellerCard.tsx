@@ -1,10 +1,14 @@
 import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import { Star, ShieldCheck, MessageSquare, Calendar } from "lucide-react";
-import type { AdSeller } from "@/lib/mock";
+import type { AdSeller } from "@/lib/types";
+import { avatarUrl } from "@/lib/utils/time";
 
 export function SellerCard({ seller }: { seller: AdSeller }) {
   const { t } = useTranslation();
+  const rating = seller.rating ?? 0;
+  const deals = seller.deals ?? 0;
+  const since = seller.since ?? "—";
 
   return (
     <div
@@ -18,7 +22,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
     >
       <div className="flex items-center gap-[14px]">
         <img
-          src={seller.avatar}
+          src={seller.avatar ?? avatarUrl(seller.name)}
           alt={seller.name}
           width={56}
           height={56}
@@ -33,12 +37,12 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
           <div className="mt-[3px] flex items-center gap-[10px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
             <span className="inline-flex items-center gap-[3px]">
               <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
-              <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
+              <span style={{ color: "var(--foreground)" }}>{rating.toFixed(1)}</span>
             </span>
-            <span>· {t("common.deals", { n: seller.deals })}</span>
+            <span>· {t("common.deals", { n: deals })}</span>
           </div>
           <div className="mt-[2px] inline-flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            <Calendar size={10} /> {t("common.onSiteSince", { date: seller.since })}
+            <Calendar size={10} /> {t("common.onSiteSince", { date: since })}
           </div>
         </div>
       </div>
@@ -46,6 +50,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
       <div className="flex flex-col gap-[8px]">
         <Link
           to="/messenger"
+          search={{ chat: undefined }}
           className="inline-flex items-center justify-center gap-[8px] py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
           style={{
             background: "var(--accent)",

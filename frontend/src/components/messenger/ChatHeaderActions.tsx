@@ -6,18 +6,26 @@ import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRes
 import { toast } from "sonner";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { calls, useCalls } from "@/lib/calls";
-import { actions, useStore, selectors } from "@/lib/store";
+
+export type DialogMeta = {
+  archived: boolean;
+  muted: boolean;
+  blocked: boolean;
+  mutedUntil?: string;
+};
 
 interface Props {
   partnerId: string;
   partnerName: string;
   dialogId?: string;
+  meta?: DialogMeta;
+  onMetaChange?: (patch: Partial<DialogMeta>) => void;
   onSearch?: () => void;
 }
 
-export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }: Props) {
+export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMetaChange, onSearch }: Props) {
   const { t } = useTranslation();
-  const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
+  const dialogMeta = meta ?? { archived: false, muted: false, blocked: false };
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeCall = useCalls((s) => s.active);
@@ -60,11 +68,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
   const toggleMute = () => {
     close();
     if (!dialogId) return;
-    if (meta.muted) {
-      actions.setDialogMeta(dialogId, { muted: false, mutedUntil: undefined });
+    if (dialogMeta.muted) {
+      onMetaChange?.({ muted: false, mutedUntil: undefined });
       toast.success(t("messenger.notificationsEnabled"), { description: t("messenger.notificationsEnabledDesc", { name: partnerName }) });
     } else {
-      actions.setDialogMeta(dialogId, { muted: true });
+      onMetaChange?.({ muted: true });
       toast.success(t("messenger.notificationsDisabled"), { description: t("messenger.notificationsDisabledDesc", { name: partnerName }) });
     }
   };
@@ -72,11 +80,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
   const toggleArchive = () => {
     close();
     if (!dialogId) return;
-    if (meta.archived) {
-      actions.setDialogMeta(dialogId, { archived: false });
+    if (dialogMeta.archived) {
+      onMetaChange?.({ archived: false });
       toast.success(t("messenger.chatRestored"), { description: t("messenger.chatRestoredDesc") });
     } else {
-      actions.setDialogMeta(dialogId, { archived: true });
+      onMetaChange?.({ archived: true });
       toast.success(t("messenger.chatArchived"), { description: t("messenger.chatArchivedDesc") });
     }
   };
@@ -84,11 +92,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
   const toggleBlock = () => {
     close();
     if (!dialogId) return;
-    if (meta.blocked) {
-      actions.setDialogMeta(dialogId, { blocked: false });
+    if (dialogMeta.blocked) {
+      onMetaChange?.({ blocked: false });
       toast.success(t("messenger.userUnblocked", { name: partnerName }), { description: t("messenger.userUnblockedDesc") });
     } else {
-      actions.setDialogMeta(dialogId, { blocked: true });
+      onMetaChange?.({ blocked: true });
       toast.success(t("messenger.userBlockedToast", { name: partnerName }), { description: t("messenger.userBlockedToastDesc") });
     }
   };
@@ -102,7 +110,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
             toast(t("calls.callInProgress"));
             return;
           }
-          if (meta.blocked) {
+          if (dialogMeta.blocked) {
             toast.error(t("messenger.userBlocked"), { description: t("messenger.callBlockedDesc") });
             return;
           }
@@ -146,21 +154,21 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
               <Item icon={Info} label={t("messenger.chatInfo")} onClick={goProfile} />
               {onSearch && <Item icon={Search} label={t("messenger.chatSearch")} onClick={() => { close(); onSearch(); }} />}
               <Item
-                icon={meta.muted ? Bell : BellOff}
-                label={meta.muted ? t("messenger.enableNotifications") : t("messenger.disableNotifications")}
+                icon={dialogMeta.muted ? Bell : BellOff}
+                label={dialogMeta.muted ? t("messenger.enableNotifications") : t("messenger.disableNotifications")}
                 onClick={toggleMute}
               />
               <Item
-                icon={meta.archived ? ArchiveRestore : Archive}
-                label={meta.archived ? t("messenger.restoreFromArchive") : t("messenger.archiveChatAction")}
+                icon={dialogMeta.archived ? ArchiveRestore : Archive}
+                label={dialogMeta.archived ? t("messenger.restoreFromArchive") : t("messenger.archiveChatAction")}
                 onClick={toggleArchive}
               />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
-                icon={meta.blocked ? ShieldOff : Ban}
-                label={meta.blocked ? t("messenger.unblock") : t("messenger.block")}
+                icon={dialogMeta.blocked ? ShieldOff : Ban}
+                label={dialogMeta.blocked ? t("messenger.unblock") : t("messenger.block")}
                 onClick={toggleBlock}
-                danger={!meta.blocked}
+                danger={!dialogMeta.blocked}
               />
             </motion.div>
           )}

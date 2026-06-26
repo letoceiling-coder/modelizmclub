@@ -2,8 +2,9 @@ import { useTranslation, tStatic } from "@/lib/i18n";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2 } from "lucide-react";
-import type { Post, Comment } from "@/lib/mock";
-import { userById, me } from "@/lib/mock";
+import type { Post, Comment, PostAuthor } from "@/lib/types";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { avatarUrl } from "@/lib/utils/time";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { RepostMenu } from "@/components/feed/RepostMenu";
@@ -18,8 +19,9 @@ interface Props {
 
 export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const { t } = useTranslation();
-  const author = userById(post.authorId);
-  const reposter = post.repostedBy ? userById(post.repostedBy) : null;
+  const { slug, displayName } = useAuth();
+  const author = post.author;
+  const reposter = post.repostedBy ?? null;
 
   const [liked, setLiked] = useState(!!post.isLiked);
   const [savedInner, setSavedInner] = useState(!!post.isSaved);
@@ -52,10 +54,16 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
     setReposts((n) => n + (reposted ? -1 : 1));
   };
 
+  const currentAuthor = (): PostAuthor => ({
+    slug: slug ?? "me",
+    name: displayName ?? tStatic("common.you"),
+    avatar: avatarUrl(displayName ?? "Me"),
+  });
+
   const addComment = (text: string, parentId?: string) => {
     const newC: Comment = {
       id: `nc${Date.now()}`,
-      authorId: me.id,
+      author: currentAuthor(),
       time: tStatic("common.justNow"),
       text,
       likes: 0,
@@ -96,7 +104,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
       )}
 
       <header className="flex items-center gap-[12px] px-[16px] pt-[16px]">
-        <img src={author.avatar} alt={author.name} className="h-[40px] w-[40px] rounded-full" />
+        <img src={author.avatar ?? avatarUrl(author.name)} alt={author.name} className="h-[40px] w-[40px] rounded-full" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[8px]">
             <span className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
@@ -110,7 +118,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             {post.date} · {post.category}
           </div>
         </div>
-        <PostActionMenu postId={post.id} saved={saved} title={post.title} text={post.text} />
+        <PostActionMenu postId={post.id} saved={saved} title={post.title} text={post.text} onToggleSave={toggleSave} />
 
       </header>
 

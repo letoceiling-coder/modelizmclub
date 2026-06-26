@@ -1,12 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 import { useTranslation } from "@/lib/i18n";
 
 const ITEM_KEYS = [
-  { to: "/feed", labelKey: "nav.feed", icon: Newspaper, section: "feed" },
+  { to: "/feed", search: ROUTE_SEARCH.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
   { to: "/communities", labelKey: "nav.communities", icon: Users2, section: "communities" },
-  { to: "/messenger", labelKey: "nav.messages", icon: MessageSquare, section: "messenger" },
+  { to: "/messenger", search: ROUTE_SEARCH.messenger, labelKey: "nav.messages", icon: MessageSquare, section: "messenger" },
   { to: "/ads", labelKey: "nav.ads", icon: Megaphone, section: "ads" },
   { to: "/profile", labelKey: "nav.profile", icon: User, section: "profile" },
 ] as const;
@@ -50,6 +51,7 @@ function NavTab({
     <li>
       <Link
         to={item.to}
+        {...("search" in item && item.search ? { search: item.search } : {})}
         className="flex h-full flex-col items-center justify-center gap-[3px] transition-colors duration-150"
         style={{
           color: active ? "var(--accent)" : "var(--foreground-50)",

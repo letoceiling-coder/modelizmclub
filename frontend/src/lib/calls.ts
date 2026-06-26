@@ -2,7 +2,6 @@
 // Module-scope store mirrors src/lib/store.ts pattern.
 
 import { useSyncExternalStore } from "react";
-import { me } from "./mock";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
 export type CallDirection = "outgoing" | "incoming";
@@ -140,6 +139,3 @@ export function formatCallDuration(sec: number): string {
   const s = sec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
-
-// Keep `me` referenced so this file can be extended later for incoming calls.
-export const _me = me;

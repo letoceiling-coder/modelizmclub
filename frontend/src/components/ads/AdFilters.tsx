@@ -1,7 +1,9 @@
 import { useTranslation } from "@/lib/i18n";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
-import { categories, type AdCondition } from "@/lib/mock";
+import type { AdCondition, Category } from "@/lib/types";
+import { fetchListingCategories } from "@/lib/api/catalog";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
@@ -40,6 +42,8 @@ interface Props {
 
 function Body({ value, onChange, onReset }: Props) {
   const { t } = useTranslation();
+  const [categories, setCategories] = useState<Category[]>([]);
+  useEffect(() => { void fetchListingCategories().then(setCategories); }, []);
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
   const toggle = <K extends "conditions" | "deliveries">(k: K, item: string) => {
@@ -59,7 +63,7 @@ function Body({ value, onChange, onReset }: Props) {
           <Select
             value={value.subcategory}
             onChange={(v) => set("subcategory", v)}
-            options={["Все", ...cat.subcategories.map((s) => s.name)]}
+            options={["Все", ...(cat.subcategories ?? []).map((s) => s.name)]}
           />
         )}
       </Group>

@@ -1,9 +1,10 @@
 import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { categories, type AdCondition } from "@/lib/mock";
+import type { AdCondition, Category } from "@/lib/types";
+import { fetchListingCategories } from "@/lib/api/catalog";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { SuccessModal } from "@/components/ads/wizard/SuccessModal";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
@@ -45,28 +46,42 @@ interface Form {
   deliveries: string[];
 }
 
-const initial: Form = {
+const emptyInitial = (): Form => ({
   photos: [],
   status: "Продаю",
   title: "",
   description: "",
   price: "",
-  categoryId: categories[0].id,
-  subcategoryId: categories[0].subcategories[0].id,
+  categoryId: "",
+  subcategoryId: "",
   condition: "Б/у — отлично",
   city: "",
   contact: "",
   deliveries: ["СДЭК"],
-};
+});
 
 function NewAdPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [categories, setCategories] = useState<Category[]>([]);
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<Form>(initial);
+  const [form, setForm] = useState<Form>(emptyInitial);
   const [success, setSuccess] = useState(false);
 
-  const cat = useMemo(() => categories.find((c) => c.id === form.categoryId)!, [form.categoryId]);
+  useEffect(() => {
+    void fetchListingCategories().then((items) => {
+      setCategories(items);
+      if (items[0]) {
+        setForm((f) => ({
+          ...f,
+          categoryId: items[0].id,
+          subcategoryId: items[0].subcategories?.[0]?.id ?? "",
+        }));
+      }
+    });
+  }, []);
+
+  const cat = useMemo(() => categories.find((c) => c.id === form.categoryId), [categories, form.categoryId]);
 
   const valid = useMemo(() => {
     if (step === 1) return form.photos.length > 0;
@@ -105,8 +120,8 @@ function NewAdPage() {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && <StepData form={form} set={set} cat={cat} />}
-            {step === 3 && <StepPreview form={form} cat={cat} statusLabel={statusLabel} />}
+            {step === 2 && cat && <StepData form={form} set={set} cat={cat} categories={categories} />}
+            {step === 3 && cat && <StepPreview form={form} cat={cat} statusLabel={statusLabel} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -268,7 +283,7 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 }
 
 /* ────────── STEP 2: Data ────────── */
-function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: (typeof categories)[number] }) {
+function StepData({ form, set, cat, categories }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: Category; categories: Category[] }) {
   const { t } = useTranslation();
   return (
     <section className="space-y-[24px]">
@@ -307,13 +322,13 @@ function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(
               onChange={(v) => {
                 const c = categories.find((x) => x.id === v)!;
                 set("categoryId", v);
-                set("subcategoryId", c.subcategories[0].id);
+                set("subcategoryId", c.subcategories?.[0]?.id ?? "");
               }}
               options={categories.map((c) => ({ label: c.name, value: c.id }))} />
           </Field>
           <Field label={t("ads.fieldSubcategory")}>
             <NativeSelect value={form.subcategoryId} onChange={(v) => set("subcategoryId", v)}
-              options={cat.subcategories.map((s) => ({ label: s.name, value: s.id }))} />
+              options={cat.subcategories?.map((s) => ({ label: s.name, value: s.id })) ?? []} />
           </Field>
         </div>
       </Block>
@@ -344,9 +359,9 @@ function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(
 }
 
 /* ────────── STEP 3: Preview ────────── */
-function StepPreview({ form, cat, statusLabel }: { form: Form; cat: (typeof categories)[number]; statusLabel: (s: Status) => string }) {
+function StepPreview({ form, cat, statusLabel }: { form: Form; cat: Category; statusLabel: (s: Status) => string }) {
   const { t } = useTranslation();
-  const sub = cat.subcategories.find((s) => s.id === form.subcategoryId);
+  const sub = cat.subcategories?.find((s) => s.id === form.subcategoryId);
   const status = form.status;
   const statusStyle = status === "Продаю"
     ? { bg: "var(--accent-soft)", fg: "var(--accent)" }

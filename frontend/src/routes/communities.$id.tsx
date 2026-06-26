@@ -1,22 +1,23 @@
 import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging, Users,
   Share2, Globe, Phone, MessageCircle, FilePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { communities, communityById, userById } from "@/lib/mock";
-import type { CommunityContacts } from "@/lib/mock";
+import type { Community, CommunityContacts } from "@/lib/types";
+import { fetchCommunity, fetchCommunityPosts, joinCommunity, leaveCommunity } from "@/lib/api/communities";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
+import { PostCard } from "@/components/PostCard";
+import type { Post } from "@/lib/types";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/communities/$id")({
-  head: ({ params }) => {
-    const name = communityById(params.id)?.name ?? tStatic("communities.metaFallback");
-    return { meta: [{ title: tStatic("communities.detailMetaTitle", { name }) }] };
-  },
+  head: () => ({ meta: [{ title: tStatic("communities.metaFallback") }] }),
   component: CommunityDetailPage,
 });
 
@@ -24,55 +25,23 @@ const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send: SendIcon, Code2, Wrench, Cpu, BatteryCharging,
 };
 
-function tgLink(value: string): string {
-  if (value.startsWith("http")) return value;
-  const handle = value.startsWith("@") ? value.slice(1) : value;
-  return `https://t.me/${handle}`;
-}
-function tgLabel(value: string): string {
-  if (value.startsWith("http")) {
-    try { return "@" + new URL(value).pathname.replace(/^\//, ""); } catch { return value; }
-  }
-  return value.startsWith("@") ? value : `@${value}`;
-}
-function siteLabel(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
-}
-
 function ContactsBlock({ contacts }: { contacts?: CommunityContacts }) {
   const { t } = useTranslation();
   if (!contacts) return null;
   const rows: { icon: typeof Globe; label: string; value: string; href: string; external?: boolean }[] = [];
-  if (contacts.website) rows.push({ icon: Globe, label: t("communities.contactWebsite"), value: siteLabel(contacts.website), href: contacts.website, external: true });
+  if (contacts.website) rows.push({ icon: Globe, label: t("communities.contactWebsite"), value: contacts.website, href: contacts.website, external: true });
   if (contacts.phone) rows.push({ icon: Phone, label: t("communities.contactPhone"), value: contacts.phone, href: `tel:${contacts.phone.replace(/\s/g, "")}` });
-  if (contacts.telegram) rows.push({ icon: MessageCircle, label: "Telegram", value: tgLabel(contacts.telegram), href: tgLink(contacts.telegram), external: true });
+  if (contacts.telegram) rows.push({ icon: MessageCircle, label: "Telegram", value: contacts.telegram, href: contacts.telegram.startsWith("http") ? contacts.telegram : `https://t.me/${contacts.telegram.replace("@", "")}`, external: true });
   if (rows.length === 0) return null;
-
   return (
-    <section className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
-      <h3 className="px-[16px] pt-[16px] font-display text-[14px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)", fontSize: 12 }}>
-        {t("communities.contactsTitle")}
-      </h3>
-      <div className="mt-[8px] flex flex-col">
-        {rows.map((r, i) => (
-          <a
-            key={r.label}
-            href={r.href}
-            target={r.external ? "_blank" : undefined}
-            rel={r.external ? "noopener noreferrer" : undefined}
-            className="flex items-center gap-[12px] px-[16px] py-[12px] transition-colors hover:bg-[var(--background-surface)]"
-            style={{ borderTop: i === 0 ? "1px solid var(--border)" : "1px solid var(--border)" }}
-          >
-            <span className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-              <r.icon size={16} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{r.label}</div>
-              <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{r.value}</div>
-            </div>
-          </a>
-        ))}
-      </div>
+    <section className="overflow-hidden rounded-[14px] border" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+      <h3 className="px-[16px] pt-[16px] text-[12px] font-semibold uppercase" style={{ color: "var(--foreground-50)" }}>{t("communities.contactsTitle")}</h3>
+      {rows.map((r) => (
+        <a key={r.label} href={r.href} target={r.external ? "_blank" : undefined} rel={r.external ? "noopener noreferrer" : undefined} className="flex items-center gap-[12px] px-[16px] py-[12px] border-t" style={{ borderColor: "var(--border)" }}>
+          <r.icon size={16} style={{ color: "var(--accent)" }} />
+          <span className="text-[14px]">{r.value}</span>
+        </a>
+      ))}
     </section>
   );
 }
@@ -80,121 +49,95 @@ function ContactsBlock({ contacts }: { contacts?: CommunityContacts }) {
 function CommunityDetailPage() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
-  const community = communities.find((c) => c.id === id);
+  const { isAuthenticated } = useAuth();
+  const [community, setCommunity] = useState<Community | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const c = await fetchCommunity(id);
+      if (cancelled) return;
+      setCommunity(c);
+      if (c) {
+        const p = await fetchCommunityPosts(id);
+        if (!cancelled) setPosts(p);
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return <AppLayout rightColumn={false}><div className="py-20 text-center">{t("common.loading")}</div></AppLayout>;
+  }
 
   if (!community) {
     return (
       <AppLayout rightColumn={false}>
-        <div className="flex flex-col items-center justify-center py-[120px] text-center">
-          <div className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>{t("communities.notFound")}</div>
-          <Link to="/communities" className="mt-[16px] inline-flex font-semibold items-center" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>{t("communities.allCommunities")}</Link>
+        <div className="flex flex-col items-center py-[120px]">
+          <div className="font-display text-[22px] font-bold">{t("communities.notFound")}</div>
+          <Link to="/communities" className="mt-[16px] font-semibold" style={{ color: "var(--accent)" }}>{t("communities.allCommunities")}</Link>
         </div>
       </AppLayout>
     );
   }
 
   const Icon = ICON_MAP[community.avatarIcon ?? "Users"] ?? Users;
-  const admin = community.adminId ? userById(community.adminId) : null;
   const url = typeof window !== "undefined" ? window.location.href : "";
+
+  const toggleJoin = async () => {
+    if (!isAuthenticated) { toast.error(t("auth.loginRequired")); return; }
+    try {
+      if (community.joined) {
+        await leaveCommunity(community.id);
+        setCommunity({ ...community, joined: false, members: Math.max(0, community.members - 1) });
+      } else {
+        await joinCommunity(community.id);
+        setCommunity({ ...community, joined: true, members: community.members + 1 });
+      }
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
 
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[16px]">
-        {/* Banner + Avatar */}
-        <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16 }}>
-          <div className="relative">
-            {community.coverImage ? (
-              <img src={community.coverImage} alt="" className="w-full object-cover" style={{ height: "min(220px, 38vw)" }} />
-            ) : (
-              <div className="w-full" style={{ height: 200, background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
-            )}
-          </div>
-
-          <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
-            {/* avatar overlapping */}
+        <div className="overflow-hidden rounded-2xl border" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+          <div className="h-[200px]" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+          <div className="relative px-[16px] pb-[16px]">
             <div className="-mt-[36px] flex items-end gap-[12px]">
-              <div
-                className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden sm:h-[88px] sm:w-[88px]"
-                style={{ background: "var(--background)", border: "4px solid var(--background)", borderRadius: 18 }}
-              >
-                {community.avatarImage ? (
-                  <img src={community.avatarImage} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
-                    <Icon size={34} style={{ color: "var(--accent)" }} />
-                  </div>
-                )}
+              <div className="grid h-[72px] w-[72px] place-items-center rounded-[18px] border-4" style={{ background: "var(--background)", borderColor: "var(--background)" }}>
+                <Icon size={34} style={{ color: "var(--accent)" }} />
               </div>
-              <div className="min-w-0 flex-1 pb-[6px]">
-                <span className="inline-block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
-                  {community.category}
-                </span>
-                <h1 className="font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
-                  {community.name}
-                </h1>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-display text-[22px] font-bold">{community.name}</h1>
+                <div className="mt-1 text-[13px]" style={{ color: "var(--foreground-50)" }}><Users size={14} className="inline" /> {community.members.toLocaleString("ru")}</div>
               </div>
             </div>
-
-            <div className="mt-[12px] flex items-center gap-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-              <Users size={14} />
-              <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{community.members.toLocaleString("ru")}</span>{t("common.participants")}</span>
-            </div>
-
-            <p className="mt-[12px] text-[14px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
-              {community.description}
-            </p>
-
-            {/* CTA */}
-            <div className="mt-[16px] flex flex-col gap-[8px] sm:flex-row">
-              {community.allowSubmitPost && (
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setSubmitOpen(true)}
-                  className="inline-flex items-center justify-center gap-[8px] font-semibold"
-                  style={{
-                    height: 44, padding: "0 20px", borderRadius: 12, fontSize: 14,
-                    background: "var(--accent)", color: "white",
-                  }}
-                >
-                  <FilePlus size={16} />{t("communities.suggestPost")}</motion.button>
-              )}
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setShareOpen(true)}
-                className="inline-flex items-center justify-center gap-[8px] font-semibold"
-                style={{
-                  height: 44, padding: "0 20px", borderRadius: 12, fontSize: 14,
-                  background: "transparent", color: "var(--foreground)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                <Share2 size={16} />{t("post.menuShare")}</motion.button>
+            <p className="mt-[12px] text-[14px]" style={{ color: "var(--foreground-70)" }}>{community.description}</p>
+            <div className="mt-[16px] flex gap-[8px]">
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => void toggleJoin()} className="inline-flex h-11 items-center px-5 font-semibold rounded-xl" style={{ background: community.joined ? "transparent" : "var(--accent)", color: community.joined ? "var(--foreground)" : "white", border: community.joined ? "1px solid var(--border)" : "none" }}>
+                {community.joined ? t("communities.leave") : t("communities.join")}
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShareOpen(true)} className="inline-flex h-11 items-center gap-2 px-5 font-semibold rounded-xl border" style={{ borderColor: "var(--border)" }}>
+                <Share2 size={16} />{t("post.menuShare")}
+              </motion.button>
             </div>
           </div>
         </div>
-
-        {/* Full description */}
-        {community.fullDescription && (
-          <section className="px-[16px] py-[20px] sm:px-[24px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
-            <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("communities.about")}</h2>
-            <p className="mt-[8px] text-[14px] leading-[1.65] whitespace-pre-line" style={{ color: "var(--foreground-70)" }}>
-              {community.fullDescription}
-            </p>
-            {admin && (
-              <Link to="/user/$id" params={{ id: admin.id }} className="mt-[16px] inline-flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-                <img src={admin.avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
-                <span>{t("communities.adminLabel", { name: admin.name })}</span>
-              </Link>
-            )}
+        <ContactsBlock contacts={community.contacts} />
+        {posts.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="font-semibold">{t("communities.posts")}</h2>
+            {posts.map((p) => <PostCard key={p.id} post={p} />)}
           </section>
         )}
-
-        {/* Contacts */}
-        <ContactsBlock contacts={community.contacts} />
       </div>
-
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} />
       <SubmitPostSheet open={submitOpen} onOpenChange={setSubmitOpen} communityName={community.name} />
     </AppLayout>

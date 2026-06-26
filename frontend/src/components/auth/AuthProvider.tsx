@@ -18,7 +18,6 @@ import {
   verifyEmailWithApi,
   type AuthUser,
 } from "@/lib/api/auth-api";
-import { registerApiUser } from "@/lib/mock";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -40,13 +39,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function syncUserToMock(user: AuthUser): void {
-  registerApiUser({
-    slug: authUserSlug(user),
-    displayName: authUserDisplayName(user),
-  });
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const me = await fetchCurrentUser();
-    if (me) syncUserToMock(me);
     setUser(me);
   }, []);
 
@@ -70,10 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         const me = await fetchCurrentUser();
-        if (!cancelled) {
-          if (me) syncUserToMock(me);
-          setUser(me);
-        }
+        if (!cancelled) setUser(me);
       } catch {
         if (!cancelled) setUser(null);
       } finally {
@@ -87,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const loggedIn = await loginWithApi(email, password);
-    syncUserToMock(loggedIn);
     setUser(loggedIn);
     return loggedIn;
   }, []);
@@ -106,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyEmail = useCallback(async (email: string, code: string) => {
     const verified = await verifyEmailWithApi(email, code);
-    syncUserToMock(verified);
     setUser(verified);
     return verified;
   }, []);

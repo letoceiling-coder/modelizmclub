@@ -6,11 +6,12 @@ import {
   Search, MapPin, UserPlus, MessageSquare, Check, X, Clock,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { users, me, userById, formatRelativeTime } from "@/lib/mock";
-import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
+import { formatRelativeTime, avatarUrl } from "@/lib/utils/time";
 import { toast } from "sonner";
 import { useFriendsApi } from "@/lib/api/useFriends";
 import type { FriendRequestItem } from "@/lib/api/friends";
+import { createConversation } from "@/lib/api/chat";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: tStatic("friends.metaTitle") }] }),
@@ -35,30 +36,20 @@ function formatRequestDate(iso: string | null | undefined): string {
 
 function FriendsPage() {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
-  const mockFriendIds = useStore(selectors.friendsOf(me.id));
-  const mockRequests = useStore(selectors.pendingRequests(me.id));
   const api = useFriendsApi();
-  const [mockLoading, setMockLoading] = useState(true);
   const navigateMessenger = useNavigate();
 
-  const loading = api.enabled ? api.loading : mockLoading;
-  const friendIds = api.enabled ? api.friendIds : new Set(mockFriendIds.map(Number));
-  const requests: { id: string | number; fromId: string; date: string; api?: FriendRequestItem }[] = api.enabled
-    ? api.requests.map((r) => ({
-        id: r.id,
-        fromId: String(r.from.id),
-        date: r.created_at ?? "",
-        api: r,
-      }))
-    : mockRequests.map((r) => ({ id: r.id, fromId: r.fromId, date: r.date }));
-
-  useEffect(() => {
-    if (api.enabled) return;
-    const timer = setTimeout(() => setMockLoading(false), 450);
-    return () => clearTimeout(timer);
-  }, [api.enabled]);
+  const loading = api.loading;
+  const friendIds = api.friendIds;
+  const requests: { id: number; fromId: string; date: string; api: FriendRequestItem }[] = api.requests.map((r) => ({
+    id: r.id,
+    fromId: String(r.from.id),
+    date: r.created_at ?? "",
+    api: r,
+  }));
 
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
@@ -68,50 +59,58 @@ function FriendsPage() {
     if (el) setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
   }, [tab, loading]);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      if (u.id === me.id) return false;
-      if (tab === "online" && !u.online) return false;
-      const ql = q.toLowerCase();
+  const filteredFriends = useMemo(() => {
+    const ql = q.toLowerCase();
+    return api.friends.filter((u) => {
+      if (tab === "online") return false;
       if (!ql) return true;
-      return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
+      const name = u.display_name ?? "";
+      return name.toLowerCase().includes(ql) || (u.slug ?? "").toLowerCase().includes(ql);
     });
-  }, [q, tab]);
+  }, [api.friends, q, tab]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: t("friends.tabAll"), count: users.length - 1 },
-    { key: "online", label: t("friends.tabOnline"), count: users.filter((u) => u.id !== me.id && u.online).length },
+    { key: "all", label: t("friends.tabAll"), count: api.friends.length },
+    { key: "online", label: t("friends.tabOnline"), count: 0 },
     { key: "requests", label: t("friends.tabRequests"), count: requests.length },
   ];
 
-  const accept = async (id: string | number) => {
-    if (api.enabled) {
-      try {
-        await api.accept(Number(id));
-        toast.success(t("friends.requestAccepted"));
-      } catch {
-        toast.error(t("common.error"));
-      }
-      return;
+  const accept = async (id: number) => {
+    try {
+      await api.accept(id);
+      toast.success(t("friends.requestAccepted"));
+    } catch {
+      toast.error(t("common.error"));
     }
-    actions.acceptFriendRequest(String(id));
-    toast.success(t("friends.requestAccepted"));
   };
-  const decline = async (id: string | number) => {
-    if (api.enabled) {
-      try {
-        await api.decline(Number(id));
-        toast.success(t("friends.requestDeclined"));
-      } catch {
-        toast.error(t("common.error"));
-      }
-      return;
+  const decline = async (id: number) => {
+    try {
+      await api.decline(id);
+      toast.success(t("friends.requestDeclined"));
+    } catch {
+      toast.error(t("common.error"));
     }
-    actions.declineFriendRequest(String(id));
-    toast.success(t("friends.requestDeclined"));
   };
-  const added = friendIds;
 
+  const openChat = async (userId: number) => {
+    try {
+      const conv = await createConversation(userId);
+      navigateMessenger({ to: "/messenger", search: { chat: conv.id } });
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="py-[80px] text-center">
+          <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("friends.loginRequired")}</p>
+          <Link to="/login" className="mt-[16px] inline-flex font-semibold" style={{ color: "var(--accent)" }}>{t("auth.login")}</Link>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout rightColumn={false}>
@@ -121,16 +120,15 @@ function FriendsPage() {
           <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("friends.subtitle")}</p>
         </header>
 
-        {/* Tabs */}
         <div className="overflow-x-auto" style={{ borderBottom: "1px solid var(--border)" }}>
           <div className="relative flex">
-            {tabs.map((t) => {
-              const active = tab === t.key;
+            {tabs.map((tabItem) => {
+              const active = tab === tabItem.key;
               return (
                 <button
-                  key={t.key}
-                  ref={(el) => { refs.current[t.key] = el; }}
-                  onClick={() => setTab(t.key)}
+                  key={tabItem.key}
+                  ref={(el) => { refs.current[tabItem.key] = el; }}
+                  onClick={() => setTab(tabItem.key)}
                   className="inline-flex shrink-0 items-center gap-[8px] font-display transition-colors duration-200"
                   style={{
                     height: 48, padding: "0 20px", fontSize: 14,
@@ -138,8 +136,8 @@ function FriendsPage() {
                     color: active ? "var(--accent)" : "var(--foreground-50)",
                   }}
                 >
-                  {t.label}
-                  <span className="font-mono text-[11px]" style={{ color: "var(--foreground-50)" }}>{t.count}</span>
+                  {tabItem.label}
+                  <span className="font-mono text-[11px]" style={{ color: "var(--foreground-50)" }}>{tabItem.count}</span>
                 </button>
               );
             })}
@@ -165,8 +163,6 @@ function FriendsPage() {
                 background: "var(--background-surface)", borderRadius: 10,
                 border: "1.5px solid transparent", color: "var(--foreground)",
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
             />
           </div>
         )}
@@ -181,13 +177,9 @@ function FriendsPage() {
           >
             {loading ? (
               <div className="grid gap-[12px] sm:grid-cols-2">
-                {Array.from({ length: 8 }).map((_, i) => (
+                {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="flex items-start gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
                     <motion.div {...pulse} className="h-[48px] w-[48px] rounded-full" style={{ background: "var(--background-surface)" }} />
-                    <div className="flex-1 space-y-[8px]">
-                      <motion.div {...pulse} className="h-[12px] rounded-[6px]" style={{ background: "var(--background-surface)", width: `${40 + (i * 13) % 40}%` }} />
-                      <motion.div {...pulse} className="h-[10px] rounded-[6px]" style={{ background: "var(--background-surface)", width: `${30 + (i * 11) % 30}%` }} />
-                    </div>
                   </div>
                 ))}
               </div>
@@ -197,11 +189,10 @@ function FriendsPage() {
               ) : (
                 <div className="grid gap-[12px] sm:grid-cols-2">
                   {requests.map((r) => {
-                    const apiFrom = r.api?.from;
-                    const mockUser = userById(r.fromId);
-                    const userId = apiFrom ? String(apiFrom.id) : mockUser.id;
-                    const userName = apiFrom?.display_name ?? mockUser.name;
-                    const userAvatar = apiFrom?.avatar?.url ?? mockUser.avatar;
+                    const apiFrom = r.api.from;
+                    const userId = String(apiFrom.id);
+                    const userName = apiFrom.display_name ?? "User";
+                    const userAvatar = apiFrom.avatar?.url ?? avatarUrl(userName);
                     return (
                       <article key={r.id} className="flex items-start gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
                         <Link to="/user/$id" params={{ id: userId }} className="shrink-0">
@@ -211,7 +202,7 @@ function FriendsPage() {
                           <Link to="/user/$id" params={{ id: userId }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{userName}</Link>
                           <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("friends.wantsToAdd")}</div>
                           <div className="mt-[2px] inline-flex items-center gap-[4px] font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
-                            <Clock size={11} /> {apiFrom ? formatRequestDate(r.date) : formatRelativeTime(r.date)}
+                            <Clock size={11} /> {formatRequestDate(r.date)}
                           </div>
                           <div className="mt-[10px] flex gap-[8px]">
                             <button onClick={() => accept(r.id)} className="inline-flex items-center gap-[4px] font-semibold" style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "var(--accent)", color: "white", fontSize: 12 }}>
@@ -225,70 +216,52 @@ function FriendsPage() {
                   })}
                 </div>
               )
+            ) : tab === "online" ? (
+              <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("friends.emptyOnline")}</div>
+            ) : filteredFriends.length === 0 ? (
+              <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("friends.emptyAll")}</div>
             ) : (
               <div className="grid gap-[12px] sm:grid-cols-2">
-                {filteredUsers.map((u) => {
-                  const isAdded = added.has(Number(u.id));
-                  const interests = u.interests.split(",").slice(0, 3).join(", ");
+                {filteredFriends.map((u) => {
+                  const isAdded = friendIds.has(u.id);
+                  const name = u.display_name ?? "User";
+                  const avatar = u.avatar?.url ?? avatarUrl(name);
                   return (
                     <article key={u.id} className="flex gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
-                      <Link to="/user/$id" params={{ id: u.id }} className="relative shrink-0">
-                        <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
-                        {u.online && <span className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full" style={{ background: "var(--success)", border: "2px solid var(--background)" }} />}
+                      <Link to="/user/$id" params={{ id: String(u.id) }} className="shrink-0">
+                        <img src={avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
                       </Link>
                       <div className="min-w-0 flex-1">
-                        <Link to="/user/$id" params={{ id: u.id }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{u.name}</Link>
-                        <div className="mt-[2px] inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                          <MapPin size={11} /> {u.city}
-                        </div>
-                        <div className="mt-[2px] line-clamp-1 text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
+                        <Link to="/user/$id" params={{ id: String(u.id) }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{name}</Link>
                         <div className="mt-[10px] flex flex-wrap gap-[8px]">
                           <button
                             onClick={async () => {
-                              if (api.enabled) {
-                                try {
-                                  if (isAdded) {
-                                    await api.remove(Number(u.id));
-                                    toast.success(t("friends.removedFromFriends"));
-                                  } else {
-                                    await api.sendRequest(Number(u.id));
-                                    toast.success(t("friends.pending"));
-                                  }
-                                } catch {
-                                  toast.error(t("common.error"));
+                              try {
+                                if (isAdded) {
+                                  await api.remove(u.id);
+                                  toast.success(t("friends.removedFromFriends"));
                                 }
-                                return;
-                              }
-                              if (isAdded) {
-                                actions.removeFriend(me.id, u.id);
-                                toast.success(t("friends.removedFromFriends"));
-                              } else {
-                                actions.sendFriendRequest(me.id, u.id);
-                                toast.success(t("friends.pending"));
+                              } catch {
+                                toast.error(t("common.error"));
                               }
                             }}
-
                             className="inline-flex items-center gap-[4px] font-semibold"
                             style={{
                               height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
-                              background: isAdded ? "transparent" : "var(--accent)",
-                              color: isAdded ? "var(--foreground-70)" : "white",
-                              border: isAdded ? "1px solid var(--border)" : "none",
+                              background: "transparent",
+                              color: "var(--foreground-70)",
+                              border: "1px solid var(--border)",
                             }}
                           >
-                            {isAdded ? <><Check size={12} />{t("friends.inFriends")}</> : <><UserPlus size={12} />{t("friends.addFriend")}</>}
+                            <Check size={12} />{t("friends.inFriends")}
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              const dialogId = openOrCreateDialogWith(u.id);
-                              navigateMessenger({ to: "/messenger", search: { chat: dialogId } });
-                            }}
+                            onClick={() => openChat(u.id)}
                             className="inline-flex items-center gap-[4px] font-medium"
                             style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "transparent", color: "var(--foreground-70)", fontSize: 12, border: "1px solid var(--border)" }}
                           >
                             <MessageSquare size={12} />{t("friends.message")}</button>
-
                         </div>
                       </div>
                     </article>

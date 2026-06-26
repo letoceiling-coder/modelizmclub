@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ApiError } from "@/lib/api/client";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: tStatic("auth.loginMetaTitle") }] }),
@@ -25,7 +26,7 @@ function LoginPage() {
     try {
       await login(email.trim(), password);
       toast.success(t("auth.loginSuccess"));
-      nav({ to: "/feed" });
+      nav({ to: "/feed", search: ROUTE_SEARCH.feed });
     } catch (err) {
       const msg =
         err instanceof ApiError && err.status === 422
@@ -46,7 +47,7 @@ function LoginPage() {
       footer={
         <>
           {t("auth.noAccount")}{" "}
-          <Link to="/register" style={{ color: "var(--accent)", fontWeight: 600 }}>{t("auth.registerLink")}</Link>
+          <Link to="/register" search={ROUTE_SEARCH.register} style={{ color: "var(--accent)", fontWeight: 600 }}>{t("auth.registerLink")}</Link>
         </>
       }
     >
@@ -78,6 +79,7 @@ function LoginPage() {
       </form>
       <Link
         to="/feed"
+        search={ROUTE_SEARCH.feed}
         className="mt-[16px] block text-center"
         style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-50)" }}
       >{t("auth.demoLink")}</Link>

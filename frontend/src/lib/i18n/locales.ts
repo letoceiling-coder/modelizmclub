@@ -4,7 +4,9 @@ import zhJson from "./locales/zh.json";
 
 export type AppLang = "ru" | "en" | "zh";
 
-export type TranslationDict = Record<string, string | TranslationDict>;
+export interface TranslationDict {
+  [key: string]: string | TranslationDict;
+}
 
 export const STORAGE_KEY = "app-lang";
 

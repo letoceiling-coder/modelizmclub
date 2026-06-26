@@ -2,11 +2,11 @@ import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import * as Icons from "lucide-react";
 import { ChevronRight } from "lucide-react";
-import type { Category } from "@/lib/mock";
+import type { Category } from "@/lib/types";
 
 export function CategoryCard({ c }: { c: Category }) {
   const { t } = useTranslation();
-  const Icon = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[c.icon] ?? Icons.Box;
+  const Icon = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[c.icon ?? "Box"] ?? Icons.Box;
   return (
     <Link
       to="/categories/$id"
@@ -20,7 +20,7 @@ export function CategoryCard({ c }: { c: Category }) {
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold">{c.name}</h3>
-          <p className="text-xs text-muted-foreground">{t("components.categoryCardMembersRooms", { members: c.members.toLocaleString("ru"), rooms: c.subcategories.length })}</p>
+          <p className="text-xs text-muted-foreground">{t("components.categoryCardMembersRooms", { members: (c.members ?? 0).toLocaleString("ru"), rooms: c.subcategories?.length ?? 0 })}</p>
         </div>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>

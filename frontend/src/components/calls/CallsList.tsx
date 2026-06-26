@@ -2,8 +2,9 @@ import { useTranslation, tStatic } from "@/lib/i18n";
 import { PhoneIncoming, PhoneOutgoing, PhoneMissed, Phone, MessageSquare } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCalls, calls, formatCallDuration, type CallRecord } from "@/lib/calls";
-import { userById } from "@/lib/mock";
-import { openOrCreateDialogWith } from "@/lib/store";
+import { avatarUrl } from "@/lib/utils/time";
+import { createConversation } from "@/lib/api/chat";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 function formatWhen(ts: number): string {
   const d = new Date(ts);
@@ -55,7 +56,8 @@ export function CallsList({ onOpenChat }: Props) {
   return (
     <ul>
       {sorted.map((rec) => {
-        const peer = userById(rec.peerId);
+        const peerName = rec.peerId;
+        const peerAvatar = avatarUrl(peerName);
         const isMissed = rec.result === "missed";
         return (
           <li
@@ -63,13 +65,13 @@ export function CallsList({ onOpenChat }: Props) {
             className="flex items-center gap-[12px] px-[16px] py-[12px]"
             style={{ borderBottom: "1px solid var(--border)" }}
           >
-            <img src={peer.avatar} alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
+            <img src={peerAvatar} alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
             <div className="min-w-0 flex-1">
               <div
                 className="truncate font-display text-[14px] font-semibold"
                 style={{ color: isMissed ? "var(--error)" : "var(--foreground)" }}
               >
-                {peer.name}
+                {peerName}
               </div>
               <div className="mt-[2px] flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
                 <CallIcon rec={rec} />
@@ -95,10 +97,14 @@ export function CallsList({ onOpenChat }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const did = openOrCreateDialogWith(rec.peerId);
-                  onOpenChat(did);
-                  navigate({ to: "/messenger", search: { chat: did } });
+                onClick={async () => {
+                  try {
+                    const conv = await createConversation(Number(rec.peerId));
+                    onOpenChat(conv.id);
+                    navigate({ to: "/messenger", search: { chat: conv.id } });
+                  } catch {
+                    navigate({ to: "/messenger", search: ROUTE_SEARCH.messenger });
+                  }
                 }}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}

@@ -12,13 +12,16 @@ import {
   BoxSelect,
   Store,
 } from "lucide-react";
-import type { Ad } from "@/lib/mock";
+import type { Ad } from "@/lib/types";
 
-const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
+const STATUS_STYLE: Record<string, { bg: string; fg: string; border: string }> = {
   "Продаю":  { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
   "Куплю":   { bg: "var(--info-soft)",    fg: "var(--info)",    border: "var(--info)"    },
   "Обменяю": { bg: "var(--warning-soft)", fg: "var(--warning)", border: "var(--warning)" },
+  published: { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
+  active:    { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
 };
+const DEFAULT_STATUS = { bg: "var(--accent-soft)", fg: "var(--accent)", border: "var(--accent)" };
 
 function relativeTime(input?: string): string {
   if (!input) return tStatic("common.recently");
@@ -51,7 +54,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
   const moderationState = state !== "default" ? state : ad.moderation && ad.moderation !== "published" ? ad.moderation : "default";
   const [liked, setLiked] = useState<boolean>(false);
   const [likeBump, setLikeBump] = useState(0);
-  const status = STATUS_STYLE[ad.status];
+  const status = STATUS_STYLE[ad.status] ?? DEFAULT_STATUS;
   const hero = ad.gallery?.[0] ?? ad.image;
   const moderated = moderationState === "moderation";
   const rejected = moderationState === "rejected";

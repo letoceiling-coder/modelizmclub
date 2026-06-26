@@ -1,19 +1,11 @@
 import { useTranslation, tStatic } from "@/lib/i18n";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Bell, BadgeCheck, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
-  UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { me, posts, ads, communities, userById } from "@/lib/mock";
-import type { User } from "@/lib/mock";
-import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
-import { PostCard } from "@/components/PostCard";
-import { AdCard } from "@/components/AdCard";
-import { toast } from "sonner";
-import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { avatarUrl } from "@/lib/utils/time";
+import { fetchUserProfile } from "@/lib/api/catalog";
+import type { User } from "@/lib/types";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: tStatic("profile.metaTitle") }] }),
@@ -22,522 +14,61 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { t } = useTranslation();
-  const currentUser = useStore(selectors.currentUser);
-  return <ProfileView user={currentUser} isOwn />;
-}
+  const { user, displayName, slug, isAuthenticated } = useAuth();
+  const [profile, setProfile] = useState<User | null>(null);
 
-type TabKey = "posts" | "ads" | "communities" | "invited" | "about";
+  useEffect(() => {
+    if (!slug) return;
+    void fetchUserProfile(slug).then((data) => {
+      setProfile({
+        slug: slug ?? "",
+        displayName: (data.display_name as string) ?? displayName ?? "",
+        avatar: (data.avatar as { url?: string })?.url ?? avatarUrl(displayName ?? "User"),
+        bio: (data.bio as string) ?? "",
+        city: (data.city as string) ?? "",
+        interests: (data.interests as string) ?? "",
+      });
+    }).catch(() => {
+      setProfile({
+        slug: slug ?? "",
+        displayName: displayName ?? "User",
+        avatar: avatarUrl(displayName ?? "User"),
+      });
+    });
+  }, [slug, displayName]);
 
-const TABS_BASE: { key: TabKey; labelKey: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
-  { key: "posts", labelKey: "profile.tabPosts", Icon: FileText },
-  { key: "ads", labelKey: "profile.tabAds", Icon: Tag },
-  { key: "communities", labelKey: "profile.tabCommunities", Icon: Users },
-  { key: "invited", labelKey: "profile.tabInvited", Icon: UserPlus, ownOnly: true },
-  { key: "about", labelKey: "profile.tabAbout", Icon: UserIcon },
-];
+  if (!isAuthenticated) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="py-20 text-center">{t("auth.loginRequired")}</div>
+      </AppLayout>
+    );
+  }
 
-
-const ICON_MAP: Record<string, typeof Car> = {
-  Car, Plane, Ship, Send: SendIcon, Code2, Wrench, Cpu, BatteryCharging,
-};
-
-type AdStatus = "active" | "moderation" | "rejected" | "archived";
-const AD_STATUS_FILTERS: { key: AdStatus | "all"; labelKey: string }[] = [
-  { key: "all", labelKey: "profile.adFilterAll" },
-  { key: "active", labelKey: "profile.adFilterActive" },
-  { key: "moderation", labelKey: "profile.adFilterModeration" },
-  { key: "rejected", labelKey: "profile.adFilterRejected" },
-  { key: "archived", labelKey: "profile.adFilterArchived" },
-];
-const AD_STATUS_STYLE: Record<AdStatus, { labelKey: string; bg: string; color: string }> = {
-  active: { labelKey: "profile.adStatusActive", bg: "var(--success-soft)", color: "var(--success)" },
-  moderation: { labelKey: "profile.adStatusModeration", bg: "var(--warning-soft)", color: "var(--warning)" },
-  rejected: { labelKey: "profile.adStatusRejected", bg: "var(--error-soft)", color: "var(--error)" },
-  archived: { labelKey: "profile.adStatusArchived", bg: "var(--background-surface)", color: "var(--foreground-50)" },
-};
-
-export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
-  const { t } = useTranslation();
-  const [tab, setTab] = useState<TabKey>("posts");
-  const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
-  const [editOpen, setEditOpen] = useState(false);
-  const navigateToMessenger = useNavigate();
-  const friendIds = useStore(selectors.friendsOf(me.id));
-
-  const [isFriend, setIsFriend] = useState(!isOwn && friendIds.includes(user.id));
-  const [subscribed, setSubscribed] = useState(false);
-  const [draft, setDraft] = useState<User>(user);
-
-  const userPosts = useMemo(() => posts.filter((p) => p.authorId === user.id), [user.id]);
-  const userAds = useMemo(() => ads.filter((a) => a.authorId === user.id), [user.id]);
-  const userAdsWithStatus = useMemo(() => {
-    const statuses: AdStatus[] = ["active", "active", "moderation", "active", "rejected", "archived", "active"];
-    return userAds.map((a, i) => ({ ad: a, status: statuses[i % statuses.length] }));
-  }, [userAds]);
-  const filteredUserAds = useMemo(
-    () => (adFilter === "all" ? userAdsWithStatus : userAdsWithStatus.filter((x) => x.status === adFilter)),
-    [userAdsWithStatus, adFilter],
-  );
-  const userCommunities = useStore(selectors.userCommunities(user.id));
-  const friendsCountDerived = isOwn ? friendIds.length : (user.friendIds?.length ?? 0);
-  const interestList = (user.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
-
+  const p = profile ?? { slug: slug ?? "", displayName: displayName ?? "User", avatar: avatarUrl(displayName ?? "User") };
 
   return (
     <AppLayout rightColumn={false}>
-      <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
-        {/* Cover */}
-        <div className="relative">
-          {user.coverImage ? (
-            <img src={user.coverImage} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} />
-          ) : (
-            <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
-          )}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]" style={{ background: "linear-gradient(to bottom, transparent, color-mix(in oklab, var(--background) 85%, transparent))" }} />
-        </div>
-
-        {/* Identity */}
-        <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:gap-[24px] md:px-[32px]">
-          <div
-            className="relative shrink-0"
-            style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
-          >
-            <img
-              src={user.avatar}
-              alt=""
-              className="h-[88px] w-[88px] rounded-full object-cover md:h-[112px] md:w-[112px]"
-              style={{
-                border: "4px solid var(--background)",
-                boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
-                background: "var(--background)",
-              }}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-[6px]">
-              <h1 className="min-w-0 truncate font-display text-[18px] font-bold md:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>{user.name}</h1>
-              {user.subscription && (
-                <span
-                  className="inline-flex items-center gap-[3px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 10, padding: "2px 7px", borderRadius: 999 }}
-                >
-                  <BadgeCheck size={10} /> Pro
-                </span>
-              )}
-              {user.firstHundred && (
-                <span
-                  className="inline-flex items-center gap-[3px] font-semibold"
-                  style={{
-                    background: "linear-gradient(135deg, #FBBF24, #B45309)",
-                    color: "#1F1300",
-                    fontSize: 10,
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                  }}
-                  title={t("profile.firstHundredTitle")}
-                >{t("profile.firstHundred")}</span>
-              )}
-            </div>
-            <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-              <MapPin size={12} /> {user.city}
-            </div>
-            {user.status && <div className="mt-[2px] text-[12.5px] italic" style={{ color: "var(--foreground-50)" }}>{user.status}</div>}
-          </div>
-
-          <div className="flex w-full gap-[8px] md:w-auto">
-            {isOwn ? (
-              <button
-                onClick={() => setEditOpen(true)}
-                className="inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 md:flex-none"
-                style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
-              >
-                <Pencil size={14} />{t("profile.edit")}</button>
-            ) : (
-              <>
-                {isFriend ? (
-                  <span
-                    className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium md:flex-none"
-                    style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 14 }}
-                  >
-                    <BadgeCheck size={14} style={{ color: "var(--success)" }} />{t("friends.inFriends")}</span>
-                ) : (
-                  <button
-                    onClick={() => { setIsFriend(true); toast.success(t("friends.pending")); }}
-                    className="inline-flex flex-1 items-center justify-center gap-[6px] font-semibold transition-colors duration-150 md:flex-none"
-                    style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}
-                  >
-                    <UserPlus size={14} />{t("profile.addFriend")}</button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const dialogId = openOrCreateDialogWith(user.id);
-                    navigateToMessenger({ to: "/messenger", search: { chat: dialogId } });
-                  }}
-                  className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium transition-colors duration-150 md:flex-none"
-                  style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
-                >
-                  <MessageSquare size={14} />{t("friends.message")}</button>
-
-                <button
-                  onClick={() => { setSubscribed((s) => !s); toast.success(subscribed ? t("profile.unsubscribed") : t("profile.subscribed")); }}
-                  className="grid h-[40px] w-[40px] shrink-0 place-items-center transition-colors duration-150"
-                  style={{ borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
-                  aria-label={t("profile.subscribe")}
-                >
-                  <Bell size={14} />
-                </button>
-              </>
-            )}
+      <div className="overflow-hidden rounded-2xl border p-6" style={{ borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-4">
+          <img src={p.avatar ?? avatarUrl(p.displayName)} alt="" className="h-20 w-20 rounded-full" />
+          <div>
+            <h1 className="font-display text-[24px] font-bold">{p.displayName}</h1>
+            {p.city && <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{p.city}</p>}
           </div>
         </div>
-
-
-        {/* Counters */}
-        <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <Counter label={t("profile.counterPosts")} value={userPosts.length} divider />
-          <Counter label={t("profile.counterAds")} value={userAds.length} divider />
-          <Counter label={t("profile.counterFriends")} value={friendsCountDerived} divider />
-          <Counter label={t("profile.counterCommunities")} value={userCommunities.length} />
-        </div>
-
-        {/* Tabs */}
-        <Tabs tab={tab} setTab={setTab} isOwn={isOwn} />
-
-        {/* Tab content */}
-        <div className="px-[16px] py-[24px] md:px-[32px]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tab}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {tab === "posts" && (
-                userPosts.length === 0 ? <EmptyTab text={t("profile.emptyPosts")} /> : (
-                  <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
-                )
-              )}
-              {tab === "ads" && (
-                userAds.length === 0 ? (
-                  <EmptyTab text={t("profile.emptyAds")}>
-                    {isOwn && (
-                      <Link to="/ads/new" className="mt-[16px] inline-flex items-center gap-[6px] font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>
-                        <Plus size={14} />{t("profile.createAd")}</Link>
-                    )}
-                  </EmptyTab>
-                ) : (
-                  <div className="space-y-[16px]">
-                    {isOwn && (
-                      <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {AD_STATUS_FILTERS.map((f) => {
-                          const count = f.key === "all" ? userAdsWithStatus.length : userAdsWithStatus.filter((x) => x.status === f.key).length;
-                          const active = adFilter === f.key;
-                          return (
-                            <button
-                              key={f.key}
-                              onClick={() => setAdFilter(f.key)}
-                              className="shrink-0 inline-flex items-center gap-[6px] text-[13px] transition-colors"
-                              style={{
-                                height: 32,
-                                padding: "0 14px",
-                                borderRadius: 999,
-                                background: active ? "var(--accent)" : "var(--background-surface)",
-                                color: active ? "#fff" : "var(--foreground-70)",
-                                fontWeight: active ? 600 : 500,
-                                border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
-                              }}
-                            >
-                              {t(f.labelKey)}
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  padding: "1px 7px",
-                                  borderRadius: 999,
-                                  background: active ? "rgba(255,255,255,0.22)" : "var(--background)",
-                                  color: active ? "#fff" : "var(--foreground-50)",
-                                }}
-                              >
-                                {count}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {filteredUserAds.length === 0 ? (
-                      <EmptyTab text={t("profile.emptyAdsFiltered")} />
-                    ) : (
-                      <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredUserAds.map(({ ad, status }) => {
-                          const badge = AD_STATUS_STYLE[status];
-                          const cardState: "default" | "moderation" | "rejected" =
-                            status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
-                          return (
-                            <div key={ad.id} className="relative" style={{ opacity: status === "archived" ? 0.65 : 1 }}>
-                              <AdCard ad={ad} state={cardState} />
-                              <span
-                                className="absolute right-[12px] top-[12px] z-[2] inline-flex items-center text-[11px] font-semibold"
-                                style={{
-                                  background: badge.bg,
-                                  color: badge.color,
-                                  padding: "4px 10px",
-                                  borderRadius: 999,
-                                  backdropFilter: "blur(6px)",
-                                }}
-                              >
-                                {t(badge.labelKey)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              )}
-              {tab === "communities" && (
-                userCommunities.length === 0 ? <EmptyTab text={t("profile.emptyCommunities")} /> : (
-                  <div className="grid gap-[12px] md:grid-cols-2">
-                    {userCommunities.map((c) => {
-                      const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
-                      return (
-                        <Link
-                          key={c.id}
-                          to="/communities/$id"
-                          params={{ id: c.id }}
-                          className="flex items-center gap-[12px] p-[14px] transition-colors duration-150"
-                          style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--background)" }}
-                        >
-                          <div className="grid h-[48px] w-[48px] place-items-center" style={{ background: "var(--accent-soft)", borderRadius: 10 }}>
-                            <Icon size={24} style={{ color: "var(--accent)" }} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</div>
-                            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("profile.membersCount", { n: c.members.toLocaleString("ru") })}</div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )
-              )}
-              {tab === "invited" && isOwn && <InvitedFriendsSection />}
-              {tab === "about" && (
-                <div className="max-w-[600px]">
-                  {user.bio ? (
-                    <p className="text-[15px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>{user.bio}</p>
-                  ) : (
-                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("profile.emptyAbout")}</p>
-                  )}
-                  {interestList.length > 0 && (
-                    <div className="mt-[20px] flex flex-wrap gap-[8px]">
-                      {interestList.map((p) => (
-                        <span
-                          key={p}
-                          className="font-medium"
-                          style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 14px", borderRadius: 999 }}
-                        >
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+        {p.bio && <p className="mt-4 text-[14px]" style={{ color: "var(--foreground-70)" }}>{p.bio}</p>}
+        <div className="mt-8 grid gap-4">
+          <section>
+            <h2 className="font-semibold">{t("profile.tabPosts")}</h2>
+            <p className="mt-2 text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("feed.emptyDefaultDesc")}</p>
+          </section>
+          <section>
+            <h2 className="font-semibold">{t("profile.tabAds")}</h2>
+            <p className="mt-2 text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("ads.emptyActiveDesc")}</p>
+          </section>
         </div>
       </div>
-
-      <AnimatePresence>
-        {editOpen && (
-          <EditSheet
-            draft={draft}
-            setDraft={setDraft}
-            onClose={() => setEditOpen(false)}
-            onSave={() => {
-              if (isOwn) actions.updateProfile(user.id, draft);
-              setEditOpen(false);
-              toast.success(t("profile.updated"));
-            }}
-
-          />
-        )}
-      </AnimatePresence>
     </AppLayout>
-  );
-}
-
-function Counter({ label, value, divider }: { label: string; value: number; divider?: boolean }) {
-  return (
-    <div className="px-[16px] py-[20px] text-center md:px-[24px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
-      <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>{value}</div>
-      <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
-    </div>
-  );
-}
-
-function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
-  const { t } = useTranslation();
-  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [indicator, setIndicator] = useState({ x: 0, w: 0 });
-  const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
-
-  useEffect(() => {
-    const el = refs.current[tab];
-    if (el) setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
-  }, [tab]);
-
-  return (
-    <div
-      className="sticky top-0 z-10 overflow-x-auto"
-      style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
-    >
-      <div className="relative flex">
-        {tabs.map(({ key, labelKey, Icon }) => {
-          const active = tab === key;
-          return (
-            <button
-              key={key}
-              ref={(el) => { refs.current[key] = el; }}
-              onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[8px] font-display transition-colors duration-200"
-              style={{
-                height: 48, padding: "0 20px", fontSize: 14,
-                fontWeight: active ? 600 : 500,
-                color: active ? "var(--accent)" : "var(--foreground-50)",
-              }}
-            >
-              <Icon size={16} /> {t(labelKey)}
-            </button>
-          );
-        })}
-        <motion.div
-          className="absolute bottom-0 h-[3px]"
-          style={{ background: "var(--accent)", borderRadius: "3px 3px 0 0" }}
-          animate={{ x: indicator.x, width: indicator.w }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function EmptyTab({ text, children }: { text: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-[60px] text-center">
-      <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{text}</div>
-      {children}
-    </div>
-  );
-}
-
-function EditSheet({ draft, setDraft, onClose, onSave }: {
-  draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: () => void;
-}) {
-  const { t } = useTranslation();
-  const [newInterest, setNewInterest] = useState("");
-  const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
-
-  const addInterest = () => {
-    if (!newInterest.trim()) return;
-    setDraft({ ...draft, interests: [...interestList, newInterest.trim()].join(", ") });
-    setNewInterest("");
-  };
-  const removeInterest = (i: string) => {
-    setDraft({ ...draft, interests: interestList.filter((x) => x !== i).join(", ") });
-  };
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50"
-        style={{ background: "rgba(0,0,0,0.4)" }}
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 300, damping: 35 }}
-        className="fixed bottom-0 left-0 right-0 z-50 overflow-y-auto"
-        style={{ background: "var(--background)", borderRadius: "20px 20px 0 0", maxHeight: "85vh", padding: 24 }}
-      >
-        <div className="mx-auto h-[4px] w-[36px] rounded-[2px]" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
-        <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{t("profile.editTitle")}</h3>
-
-        <div className="mt-[20px] space-y-[20px]">
-          <Field label={t("profile.fieldName")}>
-            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inputStyle} className="w-full outline-none" />
-          </Field>
-          <Field label={t("profile.fieldCity")}>
-            <input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder={t("profile.cityPlaceholder")} style={inputStyle} className="w-full outline-none" />
-          </Field>
-          <Field label={t("profile.fieldBio")}>
-            <textarea
-              value={draft.bio ?? ""}
-              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-              placeholder={t("profile.bioPlaceholder")}
-              rows={4}
-              style={{ ...inputStyle, height: "auto", minHeight: 100, padding: 14, resize: "vertical" }}
-              className="w-full outline-none"
-            />
-          </Field>
-          <Field label={t("profile.fieldInterests")}>
-            <div className="flex flex-wrap gap-[8px]">
-              {interestList.map((i) => (
-                <span key={i} className="inline-flex items-center gap-[6px]" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 12px", borderRadius: 999 }}>
-                  {i}
-                  <button onClick={() => removeInterest(i)} aria-label={t("common.remove")}><X size={12} /></button>
-                </span>
-              ))}
-            </div>
-            <div className="mt-[10px] flex gap-[8px]">
-              <input
-                value={newInterest}
-                onChange={(e) => setNewInterest(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
-                placeholder={t("profile.interestAdd")}
-                style={inputStyle}
-                className="flex-1 outline-none"
-              />
-              <button onClick={addInterest} className="grid place-items-center font-bold" style={{ width: 48, height: 48, background: "var(--accent)", color: "white", borderRadius: 10 }}>
-                <Plus size={18} />
-              </button>
-            </div>
-          </Field>
-        </div>
-
-        <div className="mt-[24px] flex gap-[12px]">
-          <button
-            onClick={onClose}
-            className="flex-1 font-medium transition-colors duration-150"
-            style={{ height: 48, border: "1px solid var(--border)", borderRadius: 12, background: "transparent", color: "var(--foreground-70)" }}
-          >{t("common.cancel")}</button>
-          <button
-            onClick={onSave}
-            className="flex-1 font-semibold transition-colors duration-150"
-            style={{ height: 48, background: "var(--accent)", color: "white", borderRadius: 12 }}
-          >{t("post.save")}</button>
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-const inputStyle: React.CSSProperties = {
-  height: 48, border: "1px solid var(--border)", borderRadius: 10,
-  padding: "0 14px", fontSize: 16, background: "var(--background-surface)", color: "var(--foreground)",
-};
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-[8px] block font-mono text-[12px] uppercase tracking-[0.05em]" style={{ color: "var(--foreground-50)" }}>{label}</label>
-      {children}
-    </div>
   );
 }

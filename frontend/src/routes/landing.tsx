@@ -6,8 +6,10 @@ import {
   ArrowRight, Crown, Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { firstHundredStats } from "@/lib/mock";
 import { showcaseImages } from "@/lib/showcase-images";
+import { useEffect, useState } from "react";
+import { fetchPublicStats } from "@/lib/api/public";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export const Route = createFileRoute("/landing")({
   head: () => ({
@@ -115,6 +117,7 @@ function Btn({ to, children, variant = "orange", size = "md", arrow }: BtnProps)
   return (
     <Link
       to={to}
+      {...(to === "/register" ? { search: ROUTE_SEARCH.register } : to === "/feed" ? { search: ROUTE_SEARCH.feed } : {})}
       className="inline-flex items-center justify-center gap-[8px] font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0"
       style={{
         height: h,
@@ -427,8 +430,16 @@ function ShowcaseSection() {
 
 function FirstHundred() {
   const { t } = useTranslation();
-  const taken = Math.max(0, Math.min(firstHundredStats.total, firstHundredStats.taken));
-  const total = firstHundredStats.total;
+  const [stats, setStats] = useState({ taken: 0, total: 100 });
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPublicStats().then((s) => {
+      if (!cancelled) setStats(s.firstHundred);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const taken = Math.max(0, Math.min(stats.total, stats.taken));
+  const total = stats.total || 100;
   const pct = Math.round((taken / total) * 100);
   const left = total - taken;
   return (

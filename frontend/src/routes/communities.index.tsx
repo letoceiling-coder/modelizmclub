@@ -6,8 +6,7 @@ import {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useStore, selectors } from "@/lib/store";
-import type { Community } from "@/lib/mock";
+import type { Community } from "@/lib/types";
 import { useDebounce } from "@/hooks/useDebounce";
 import { fetchCommunities } from "@/lib/api/communities";
 
@@ -28,14 +27,12 @@ function CommunityCard({ c }: { c: Community }) {
       className="overflow-hidden flex flex-col"
       style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16 }}
     >
-      {/* banner */}
       <Link to="/communities/$id" params={{ id: c.id }} className="relative block">
         {c.coverImage ? (
           <img src={c.coverImage} alt="" className="h-[120px] w-full object-cover" />
         ) : (
           <div className="h-[120px] w-full" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
         )}
-        {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
           style={{ background: "var(--background)", border: "3px solid var(--background)", borderRadius: 14 }}
@@ -119,45 +116,34 @@ function EmptySearch() {
 
 function CommunitiesPage() {
   const { t } = useTranslation();
-  const currentUserId = useStore((s) => s.currentUserId);
-  const mockMy = useStore(selectors.userCommunities(currentUserId));
-  const mockRecommended = useStore(selectors.recommendedCommunities(currentUserId));
-
-  const [apiList, setApiList] = useState<Community[] | null>(null);
-  const [apiSource, setApiSource] = useState(false);
+  const [apiList, setApiList] = useState<Community[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const items = await fetchCommunities({ per_page: 50 });
-        if (!cancelled && items.length > 0) {
-          setApiList(items);
-          setApiSource(true);
-        }
-      } catch {
-        if (!cancelled) setApiSource(false);
+      setLoading(true);
+      const items = await fetchCommunities({ per_page: 50 });
+      if (!cancelled) {
+        setApiList(items);
+        setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const myCommunities = useMemo(
-    () => (apiSource && apiList ? apiList.filter((c) => c.joined) : mockMy),
-    [apiSource, apiList, mockMy],
-  );
-  const recommended = useMemo(
-    () => (apiSource && apiList ? apiList.filter((c) => !c.joined) : mockRecommended),
-    [apiSource, apiList, mockRecommended],
-  );
+  const myCommunities = useMemo(() => apiList.filter((c) => c.joined), [apiList]);
+  const recommended = useMemo(() => apiList.filter((c) => !c.joined), [apiList]);
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
   const [section, setSection] = useState<"my" | "recommended">("my");
 
   useEffect(() => {
-    if (myCommunities.length === 0) setSection("recommended");
-  }, [myCommunities.length]);
+    if (!loading && myCommunities.length === 0) setSection("recommended");
+  }, [loading, myCommunities.length]);
 
   const apply = (list: Community[]) => {
     const q = debounced.trim().toLowerCase();
@@ -179,7 +165,6 @@ function CommunitiesPage() {
           <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("communities.subtitle")}</p>
         </header>
 
-        {/* Tabs */}
         <nav role="tablist" className="relative flex items-center gap-[4px] overflow-x-auto" style={{ borderBottom: "1px solid var(--border)" }}>
           {([
             { key: "my" as const, labelKey: "communities.tabMy", count: myCommunities.length },
@@ -219,7 +204,6 @@ function CommunitiesPage() {
           })}
         </nav>
 
-        {/* Search */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
           <input
@@ -237,7 +221,9 @@ function CommunitiesPage() {
           />
         </div>
 
-        {section === "my" && myCommunities.length === 0 && !hasQuery ? (
+        {loading ? (
+          <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("common.loading")}</div>
+        ) : section === "my" && myCommunities.length === 0 && !hasQuery ? (
           <EmptyMy onSwitch={() => setSection("recommended")} />
         ) : visible.length === 0 ? (
           <EmptySearch />

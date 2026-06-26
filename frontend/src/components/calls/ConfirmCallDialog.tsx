@@ -1,7 +1,7 @@
 import { useTranslation } from "@/lib/i18n";
 import { AnimatePresence, motion } from "framer-motion";
 import { Phone, X } from "lucide-react";
-import { userById } from "@/lib/mock";
+import { avatarUrl } from "@/lib/utils/time";
 
 interface Props {
   open: boolean;
@@ -12,7 +12,8 @@ interface Props {
 
 export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) {
   const { t } = useTranslation();
-  const peer = userById(peerId);
+  const peerName = peerId;
+  const peerAvatar = avatarUrl(peerName);
   return (
     <AnimatePresence>
       {open && (
@@ -62,14 +63,14 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                   style={{ background: "color-mix(in oklab, var(--accent) 30%, transparent)", filter: "blur(20px)" }}
                 />
                 <img
-                  src={peer.avatar}
+                  src={peerAvatar}
                   alt=""
                   className="relative h-[88px] w-[88px] rounded-full object-cover"
                   style={{ border: "3px solid var(--background-elevated)" }}
                 />
               </div>
               <h3 className="mt-4 font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>
-                {t("calls.confirmTitle", { name: peer.name })}
+                {t("calls.confirmTitle", { name: peerName })}
               </h3>
               <p className="mt-2 text-[14px]" style={{ color: "var(--foreground-70)" }}>{t("calls.confirmDesc")}</p>
               <div className="mt-6 flex w-full flex-col-reverse gap-2 sm:flex-row">

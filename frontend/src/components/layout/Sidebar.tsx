@@ -4,17 +4,18 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { ROUTES, getActiveSection } from "@/lib/routes";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 import { useTranslation } from "@/lib/i18n";
 
 const itemKeys = [
-  { to: ROUTES.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
+  { to: ROUTES.feed, search: ROUTE_SEARCH.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
   { to: ROUTES.communities, labelKey: "nav.communities", icon: Users2, section: "communities" },
   { to: ROUTES.channels, labelKey: "nav.channels", icon: Radio, section: "channels" },
-  { to: ROUTES.messenger, labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
+  { to: ROUTES.messenger, search: ROUTE_SEARCH.messenger, labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.ads, labelKey: "nav.ads", icon: Megaphone, section: "ads" },
   { to: ROUTES.friends, labelKey: "nav.friends", icon: UserPlus, section: "friends" },
   { to: ROUTES.profile, labelKey: "nav.profile", icon: User, section: "profile" },
-  { to: ROUTES.subscription, labelKey: "nav.subscription", icon: Crown, section: "subscription" },
+  { to: ROUTES.subscription, search: ROUTE_SEARCH.subscription, labelKey: "nav.subscription", icon: Crown, section: "subscription" },
   { to: ROUTES.help, labelKey: "nav.help", icon: HelpCircle, section: "help" },
 ] as const;
 
@@ -27,7 +28,7 @@ export function Sidebar() {
       <aside className="layout-sidebar-left">
         <div className="space-y-1">
         <div className="border-b border-border/60 px-3 pb-3 pt-3">
-          <Link to={ROUTES.feed} className="block min-w-0">
+          <Link to={ROUTES.feed} search={ROUTE_SEARCH.feed} className="block min-w-0">
             <Logo size={30} />
           </Link>
           <div className="mt-2.5 flex items-center justify-end gap-1">
@@ -36,12 +37,15 @@ export function Sidebar() {
           </div>
         </div>
         <nav className="space-y-0.5 px-1.5 pt-1">
-          {itemKeys.map(({ to, labelKey, icon: Icon, section }) => {
+          {itemKeys.map((item) => {
+            const { to, labelKey, icon: Icon, section } = item;
+            const search = "search" in item ? item.search : undefined;
             const active = activeSection === section;
             return (
               <Link
                 key={to}
                 to={to}
+                {...(search ? { search } : {})}
                 className={`relative flex items-center gap-3 rounded-lg pl-3 pr-3 py-2 text-sm transition-colors ${
                   active
                     ? "bg-accent/10 text-primary font-medium"
@@ -79,7 +83,7 @@ export function Sidebar() {
         <div className="mx-1.5 mt-4 rounded-xl border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("common.subscription")}</div>
           <div className="mt-1 text-sm font-medium">{t("common.subscriptionActive")}</div>
-          <Link to={ROUTES.subscription} className="mt-2 inline-block text-xs text-primary hover:underline">
+          <Link to={ROUTES.subscription} search={ROUTE_SEARCH.subscription} className="mt-2 inline-block text-xs text-primary hover:underline">
             {t("common.manage")}
           </Link>
         </div>

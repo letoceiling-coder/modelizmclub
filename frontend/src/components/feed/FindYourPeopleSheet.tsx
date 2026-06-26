@@ -1,5 +1,5 @@
 import { useTranslation } from "@/lib/i18n";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, MessageCircle, Users } from "lucide-react";
 import * as Icons from "lucide-react";
@@ -12,12 +12,12 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { categories } from "@/lib/mock";
-import type { Category } from "@/lib/mock";
+import type { Category } from "@/lib/types";
+import { fetchPostCategories } from "@/lib/api/catalog";
 
 function onlineFor(c: Category): number {
   const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  const base = Math.max(3, Math.round(c.members * 0.012));
+  const base = Math.max(3, Math.round((c.members ?? 0) * 0.012));
   return base + (seed % 17);
 }
 
@@ -34,8 +34,13 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
  */
 export function FindYourPeopleSheet() {
   const { t } = useTranslation();
+  const [categories, setCategories] = useState<Category[]>([]);
   const [open, setOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetchPostCategories().then(setCategories);
+  }, []);
 
   return (
     <div className="xl:hidden">
@@ -94,7 +99,7 @@ export function FindYourPeopleSheet() {
                           className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px]"
                           style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                         >
-                          <CategoryIcon name={c.icon} className="h-[16px] w-[16px]" />
+                          <CategoryIcon name={c.icon ?? "Hash"} className="h-[16px] w-[16px]" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span
@@ -116,7 +121,7 @@ export function FindYourPeopleSheet() {
                         </span>
                       </Link>
                     </SheetClose>
-                    {c.subcategories.length > 0 && (
+                    {(c.subcategories?.length ?? 0) > 0 && (
                       <button
                         type="button"
                         onClick={() => setOpenId(expanded ? null : c.id)}
@@ -132,12 +137,12 @@ export function FindYourPeopleSheet() {
                     )}
                   </div>
 
-                  {expanded && c.subcategories.length > 0 && (
+                  {expanded && (c.subcategories?.length ?? 0) > 0 && (
                     <ul
                       className="mb-[6px] ml-[46px] mt-[2px] space-y-[1px] border-l pl-[12px]"
                       style={{ borderColor: "var(--border)" }}
                     >
-                      {c.subcategories.map((s) => (
+                      {c.subcategories?.map((s) => (
                         <li key={s.id}>
                           <SheetClose asChild>
                             <Link
