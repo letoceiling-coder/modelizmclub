@@ -65,3 +65,13 @@ export async function syncMyInterests(categoryIds: number[]) {
   const token = getAuthToken();
   return apiRequest("/users/me/interests", { method: "PUT", token, json: { category_ids: categoryIds } });
 }
+
+export async function fetchMyInterests(): Promise<Category[]> {
+  const token = getAuthToken();
+  try {
+    const res = await apiRequest<{ data: ApiCategoryNode[] }>("/users/me/interests", { token });
+    return flattenCategories(res.data ?? []);
+  } catch {
+    return [];
+  }
+}
