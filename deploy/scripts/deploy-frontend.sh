@@ -16,6 +16,19 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 
 export NODE_ENV=production
+
+# Reverb / Echo — read public key from backend .env at build time
+BACKEND_ENV="${FRONTEND_DIR}/../backend/.env"
+if [[ -f "${BACKEND_ENV}" ]]; then
+  REVERB_KEY="$(grep '^REVERB_APP_KEY=' "${BACKEND_ENV}" | cut -d= -f2- | tr -d '\"' | tr -d "'")"
+  if [[ -n "${REVERB_KEY}" ]]; then
+    export VITE_REVERB_APP_KEY="${REVERB_KEY}"
+  fi
+fi
+export VITE_REVERB_HOST="${VITE_REVERB_HOST:-ws.modelizmclub.ru}"
+export VITE_REVERB_PORT="${VITE_REVERB_PORT:-443}"
+export VITE_REVERB_SCHEME="${VITE_REVERB_SCHEME:-https}"
+
 bun install --frozen-lockfile 2>/dev/null || bun install
 bun run build
 

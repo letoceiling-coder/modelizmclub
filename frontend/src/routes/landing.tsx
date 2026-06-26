@@ -6,9 +6,9 @@ import {
   ArrowRight, Crown, Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { showcaseImages } from "@/lib/showcase-images";
 import { useEffect, useState } from "react";
 import { fetchPublicStats } from "@/lib/api/public";
+import { fetchFeed } from "@/lib/api/feed";
 import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export const Route = createFileRoute("/landing")({
@@ -161,7 +161,29 @@ function Eyebrow({ children, tone = "ink" }: { children: React.ReactNode; tone?:
   );
 }
 
+type ShowcaseItem = { url: string; title: string; tag?: string };
+
+function postsToShowcase(posts: Awaited<ReturnType<typeof fetchFeed>>["posts"]): ShowcaseItem[] {
+  const items: ShowcaseItem[] = [];
+  for (const p of posts) {
+    const urls = p.images?.length ? p.images : p.image ? [p.image] : [];
+    for (const url of urls) {
+      items.push({ url, title: p.title, tag: p.category || undefined });
+      if (items.length >= 10) return items;
+    }
+  }
+  return items;
+}
+
 function LandingPage() {
+  const [showcase, setShowcase] = useState<ShowcaseItem[]>([]);
+
+  useEffect(() => {
+    fetchFeed({ per_page: 30 })
+      .then(({ posts }) => setShowcase(postsToShowcase(posts)))
+      .catch(() => setShowcase([]));
+  }, []);
+
   return (
     <div
       style={{
@@ -173,10 +195,10 @@ function LandingPage() {
       }}
     >
       <TopNav />
-      <Hero />
+      <Hero showcase={showcase} />
       <FirstHundred />
       <TwoTracks />
-      <ShowcaseSection />
+      <ShowcaseSection showcase={showcase} />
       <CategoriesPreview />
       <CommunityProof />
       <Footer />
@@ -219,7 +241,7 @@ function TopNav() {
   );
 }
 
-function Hero() {
+function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
   const { t } = useTranslation();
   return (
     <section className="relative overflow-hidden" style={{ background: T.surface }}>
@@ -322,15 +344,16 @@ function Hero() {
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           className="flex flex-1 items-center justify-center md:max-w-[42%]"
         >
-          <HeroVisual />
+          <HeroVisual showcase={showcase} />
         </motion.div>
       </div>
     </section>
   );
 }
 
-function HeroVisual() {
-  const heroPick = showcaseImages.slice(0, 4);
+function HeroVisual({ showcase }: { showcase: ShowcaseItem[] }) {
+  const heroPick = showcase.slice(0, 4);
+  if (heroPick.length === 0) return null;
   return (
     <div
       className="relative w-full"
@@ -380,8 +403,9 @@ function HeroVisual() {
   );
 }
 
-function ShowcaseSection() {
+function ShowcaseSection({ showcase }: { showcase: ShowcaseItem[] }) {
   const { t } = useTranslation();
+  if (showcase.length === 0) return null;
   return (
     <section style={{ padding: "64px 20px", background: T.surfaceAlt }}>
       <div className="mx-auto" style={{ maxWidth: 1200 }}>
@@ -390,7 +414,7 @@ function ShowcaseSection() {
           <SectionTitle>{t("landing.catalogTitle")}</SectionTitle>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
-          {showcaseImages.map((s) => (
+          {showcase.map((s) => (
             <div
               key={s.url}
               className="group relative overflow-hidden"
