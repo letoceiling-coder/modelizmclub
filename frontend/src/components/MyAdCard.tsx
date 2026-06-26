@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
@@ -8,14 +9,24 @@ import type { Ad } from "@/lib/mock";
 
 export type MyAdStatus = "active" | "archived" | "moderation" | "rejected" | "draft" | "unpublished" | "deleted";
 
-const STATUS_BADGE: Record<MyAdStatus, { dot: string; fg: string; label: string }> = {
-  active:      { dot: "var(--success)",       fg: "var(--success)",       label: "Активно" },
-  archived:    { dot: "var(--foreground-30)", fg: "var(--foreground-50)", label: "В архиве" },
-  moderation:  { dot: "var(--warning)",       fg: "var(--warning)",       label: "На модерации" },
-  rejected:    { dot: "var(--error)",         fg: "var(--error)",         label: "С ошибками" },
-  draft:       { dot: "var(--foreground-50)", fg: "var(--foreground-70)", label: "Черновик" },
-  unpublished: { dot: "var(--foreground-50)", fg: "var(--foreground-70)", label: "Не опубликовано" },
-  deleted:     { dot: "var(--error)",         fg: "var(--error)",         label: "Удалено" },
+const STATUS_STYLE: Record<MyAdStatus, { dot: string; fg: string }> = {
+  active:      { dot: "var(--success)",       fg: "var(--success)" },
+  archived:    { dot: "var(--foreground-30)", fg: "var(--foreground-50)" },
+  moderation:  { dot: "var(--warning)",       fg: "var(--warning)" },
+  rejected:    { dot: "var(--error)",         fg: "var(--error)" },
+  draft:       { dot: "var(--foreground-50)", fg: "var(--foreground-70)" },
+  unpublished: { dot: "var(--foreground-50)", fg: "var(--foreground-70)" },
+  deleted:     { dot: "var(--error)",         fg: "var(--error)" },
+};
+
+const STATUS_KEYS: Record<MyAdStatus, string> = {
+  active: "ads.myAdActive",
+  archived: "ads.myAdArchived",
+  moderation: "ads.myAdModeration",
+  rejected: "ads.myAdRejected",
+  draft: "ads.myAdDraft",
+  unpublished: "ads.myAdUnpublished",
+  deleted: "ads.myAdDeleted",
 };
 
 interface Props {
@@ -29,7 +40,8 @@ interface Props {
 }
 
 export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish, onDelete }: Props) {
-  const badge = STATUS_BADGE[status];
+  const { t } = useTranslation();
+  const badge = STATUS_STYLE[status];
   const hero = ad.gallery?.[0] ?? ad.image;
   const [menuOpen, setMenuOpen] = useState(false);
   const archived = status !== "active" && status !== "moderation";
@@ -83,7 +95,7 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
               checked={!!selected}
               onChange={(e) => onSelect(ad.id, e.target.checked)}
               className="sr-only"
-              aria-label="Выбрать объявление"
+              aria-label={t("ads.selectAd")}
             />
             {selected && <span style={{ color: "#fff", fontSize: 13, lineHeight: 1, fontWeight: 700 }}>✓</span>}
           </label>
@@ -126,7 +138,7 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
           style={{ color: badge.fg }}
         >
           <span className="h-[6px] w-[6px] rounded-full" style={{ background: badge.dot }} />
-          {badge.label}
+          {t(STATUS_KEYS[status])}
         </span>
 
         <div className="relative">
@@ -134,7 +146,7 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             onBlur={() => setTimeout(() => setMenuOpen(false), 120)}
-            aria-label="Действия"
+            aria-label={t("ads.adActions")}
             className="grid h-[32px] w-[32px] place-items-center rounded-full transition-colors"
             style={{ color: "var(--foreground-50)" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
@@ -153,13 +165,13 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
                 boxShadow: "var(--shadow-float)",
               }}
             >
-              <MenuItem to="/ads/$id" params={{ id: ad.id }} icon={<Pencil size={14} />} label="Редактировать" />
+              <MenuItem to="/ads/$id" params={{ id: ad.id }} icon={<Pencil size={14} />} label={t("ads.editAd")} />
               {archived ? (
-                <MenuItem onClick={() => onPublish?.(ad.id)} icon={<Upload size={14} />} label="Опубликовать" color="var(--success)" />
+                <MenuItem onClick={() => onPublish?.(ad.id)} icon={<Upload size={14} />} label={t("ads.publishAd")} color="var(--success)" />
               ) : (
-                <MenuItem onClick={() => onArchive?.(ad.id)} icon={<Archive size={14} />} label="В архив" color="var(--warning)" />
+                <MenuItem onClick={() => onArchive?.(ad.id)} icon={<Archive size={14} />} label={t("ads.toArchive")} color="var(--warning)" />
               )}
-              <MenuItem onClick={() => onDelete?.(ad.id)} icon={<Trash2 size={14} />} label="Удалить" color="var(--error)" />
+              <MenuItem onClick={() => onDelete?.(ad.id)} icon={<Trash2 size={14} />} label={t("ads.deleteAd")} color="var(--error)" />
             </div>
           )}
         </div>

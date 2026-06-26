@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function SuccessModal({ open, onClose }: Props) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {open && (
@@ -39,11 +41,9 @@ export function SuccessModal({ open, onClose }: Props) {
             >
               <CheckCircle2 size={32} strokeWidth={2.5} />
             </motion.div>
-            <h3 className="mt-[18px] font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Объявление отправлено!
-            </h3>
+            <h3 className="mt-[18px] font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("ads.successTitle")}</h3>
             <p className="mx-auto mt-[8px] max-w-[300px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
-              Оплата принята (тестовый режим). Объявление пройдёт модерацию и появится в ленте в течение часа.
+              {t("ads.successDesc")}
             </p>
             <button
               type="button"
@@ -51,7 +51,7 @@ export function SuccessModal({ open, onClose }: Props) {
               className="mt-[20px] w-full py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
               style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)" }}
             >
-              К списку объявлений
+              {t("ads.backToListShort")}
             </button>
           </motion.div>
         </motion.div>

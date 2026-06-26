@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Trash2 } from "lucide-react";
@@ -6,6 +7,7 @@ const MAX_SECONDS = 180;
 const CANCEL_THRESHOLD = 80; // px
 
 export function VoiceRecorder({ onSend }: { onSend: (durationSec: number) => void }) {
+  const { t } = useTranslation();
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [dx, setDx] = useState(0); // negative when swiping left
@@ -117,8 +119,8 @@ export function VoiceRecorder({ onSend }: { onSend: (durationSec: number) => voi
               }}
             >
               <Trash2 size={14} />
-              <span className="hidden sm:inline">Свайп влево для отмены</span>
-              <span className="sm:hidden">← отмена</span>
+              <span className="hidden sm:inline">{t("messenger.swipeCancel")}</span>
+              <span className="sm:hidden">{t("messenger.swipeCancelShort")}</span>
             </motion.div>
           </motion.div>
         )}
@@ -143,8 +145,8 @@ export function VoiceRecorder({ onSend }: { onSend: (durationSec: number) => voi
           transition: "background 0.15s, box-shadow 0.15s",
           touchAction: "none",
         }}
-        aria-label="Удерживайте для записи голосового"
-        title="Удерживайте для записи"
+        aria-label={t("messenger.holdToRecord")}
+        title={t("messenger.holdToRecordTitle")}
       >
         <Mic size={18} />
       </motion.button>

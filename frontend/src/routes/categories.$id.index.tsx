@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, MessageCircle, Search, Tag, Users } from "lucide-react";
 import * as Icons from "lucide-react";
@@ -10,7 +11,7 @@ import type { Category } from "@/lib/mock";
 export const Route = createFileRoute("/categories/$id/")({
   head: ({ params }) => {
     const c = categoryById(params.id);
-    const title = c ? `${c.name} — комнаты` : "Категория";
+    const title = c ? tStatic("categories.metaRooms", { name: c.name }) : tStatic("categories.metaCategoryFallback");
     return { meta: [{ title: `${title} — МоДелизМ Форум` }] };
   },
   component: CategoryRoomsPage,
@@ -43,6 +44,7 @@ const ROOM_PREVIEWS = [
 ];
 
 function CategoryRoomsPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const c = categoryById(id);
   const [query, setQuery] = useState("");
@@ -57,9 +59,7 @@ function CategoryRoomsPage() {
   if (!c) {
     return (
       <AppLayout rightColumn={false}>
-        <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          Категория не найдена.
-        </p>
+        <p className="text-sm" style={{ color: "var(--foreground-50)" }}>{t("categories.notFound")}</p>
       </AppLayout>
     );
   }
@@ -71,7 +71,7 @@ function CategoryRoomsPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[14px]">
-        <Breadcrumbs items={[{ label: "Категории", to: "/categories" }, { label: c.name }]} />
+        <Breadcrumbs items={[{ label: t("categories.breadcrumb"), to: "/categories" }, { label: c.name }]} />
         {/* Header */}
         <header
           className="rounded-[14px] border p-[16px]"
@@ -80,7 +80,7 @@ function CategoryRoomsPage() {
           <div className="flex items-center gap-[10px]">
             <Link
               to="/feed"
-              aria-label="Назад"
+              aria-label={t("common.back")}
               className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
             >
               <ArrowLeft className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
@@ -99,7 +99,7 @@ function CategoryRoomsPage() {
                 {c.name}
               </h1>
               <p className="truncate text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-                {c.description} · {c.members.toLocaleString("ru")} участников
+                {c.description} · {t("profile.membersCount", { n: c.members.toLocaleString("ru") })}
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ function CategoryRoomsPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Найти комнату…"
+              placeholder={t("categories.searchRoom")}
               className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--foreground-50)]"
               style={{ color: "var(--foreground)" }}
             />
@@ -129,7 +129,7 @@ function CategoryRoomsPage() {
                 onClick={() => setQuery("")}
                 className="grid h-[22px] w-[22px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-elevated)", color: "var(--foreground-50)" }}
-                aria-label="Очистить"
+                aria-label={t("categories.clear")}
               >
                 ×
               </button>
@@ -147,7 +147,7 @@ function CategoryRoomsPage() {
             style={{ borderColor: "var(--border)" }}
           >
             <h2 className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-              Комнаты по подкатегориям
+              {t("categories.roomsTitle")}
             </h2>
             <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
               {filteredSubs.length}
@@ -209,7 +209,7 @@ function CategoryRoomsPage() {
                           <Tag className="h-[11px] w-[11px]" /> {adsCount}
                         </span>
                         <span className="inline-flex items-center gap-[3px]">
-                          <MessageCircle className="h-[11px] w-[11px]" /> чат
+                          <MessageCircle className="h-[11px] w-[11px]" /> {t("categories.chatBadge")}
                         </span>
                       </div>
                     </div>
@@ -223,15 +223,14 @@ function CategoryRoomsPage() {
             })}
             {filteredSubs.length === 0 && (
               <li className="px-[16px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                Ничего не найдено по запросу «{query}»
+                {t("categories.emptySearch", { query })}
               </li>
             )}
           </ul>
         </section>
 
         <p className="px-[4px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-          У каждой подкатегории — отдельный чат, объявления и участники. Выберите интересующее
-          направление, чтобы не смешиваться с другими темами.
+          {t("categories.roomsHint")}
         </p>
 
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,10 +9,11 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { users, me, userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
 import { toast } from "sonner";
-import { useTranslation } from "@/lib/i18n";
+import { useFriendsApi } from "@/lib/api/useFriends";
+import type { FriendRequestItem } from "@/lib/api/friends";
 
 export const Route = createFileRoute("/friends")({
-  head: () => ({ meta: [{ title: "Friends — MoDelizM Forum" }] }),
+  head: () => ({ meta: [{ title: tStatic("friends.metaTitle") }] }),
   component: FriendsPage,
 });
 
@@ -22,20 +24,41 @@ const pulse = {
   transition: { duration: 1.2, repeat: Infinity, ease: "easeInOut" as const },
 };
 
+function formatRequestDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  try {
+    return formatRelativeTime(new Date(iso).toISOString());
+  } catch {
+    return "";
+  }
+}
+
 function FriendsPage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
-  const friendIds = useStore(selectors.friendsOf(me.id));
-  const requests = useStore(selectors.pendingRequests(me.id));
-  const [loading, setLoading] = useState(true);
+  const mockFriendIds = useStore(selectors.friendsOf(me.id));
+  const mockRequests = useStore(selectors.pendingRequests(me.id));
+  const api = useFriendsApi();
+  const [mockLoading, setMockLoading] = useState(true);
   const navigateMessenger = useNavigate();
 
+  const loading = api.enabled ? api.loading : mockLoading;
+  const friendIds = api.enabled ? api.friendIds : new Set(mockFriendIds.map(Number));
+  const requests: { id: string | number; fromId: string; date: string; api?: FriendRequestItem }[] = api.enabled
+    ? api.requests.map((r) => ({
+        id: r.id,
+        fromId: String(r.from.id),
+        date: r.created_at ?? "",
+        api: r,
+      }))
+    : mockRequests.map((r) => ({ id: r.id, fromId: r.fromId, date: r.date }));
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 450);
-    return () => clearTimeout(t);
-  }, []);
+    if (api.enabled) return;
+    const timer = setTimeout(() => setMockLoading(false), 450);
+    return () => clearTimeout(timer);
+  }, [api.enabled]);
 
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
@@ -61,15 +84,33 @@ function FriendsPage() {
     { key: "requests", label: t("friends.tabRequests"), count: requests.length },
   ];
 
-  const accept = (id: string) => {
-    actions.acceptFriendRequest(id);
+  const accept = async (id: string | number) => {
+    if (api.enabled) {
+      try {
+        await api.accept(Number(id));
+        toast.success(t("friends.requestAccepted"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+      return;
+    }
+    actions.acceptFriendRequest(String(id));
     toast.success(t("friends.requestAccepted"));
   };
-  const decline = (id: string) => {
-    actions.declineFriendRequest(id);
+  const decline = async (id: string | number) => {
+    if (api.enabled) {
+      try {
+        await api.decline(Number(id));
+        toast.success(t("friends.requestDeclined"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+      return;
+    }
+    actions.declineFriendRequest(String(id));
     toast.success(t("friends.requestDeclined"));
   };
-  const added = new Set(friendIds);
+  const added = friendIds;
 
 
   return (
@@ -152,29 +193,31 @@ function FriendsPage() {
               </div>
             ) : tab === "requests" ? (
               requests.length === 0 ? (
-                <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>Нет входящих заявок</div>
+                <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("friends.emptyRequestsIncoming")}</div>
               ) : (
                 <div className="grid gap-[12px] sm:grid-cols-2">
                   {requests.map((r) => {
-                    const u = userById(r.fromId);
+                    const apiFrom = r.api?.from;
+                    const mockUser = userById(r.fromId);
+                    const userId = apiFrom ? String(apiFrom.id) : mockUser.id;
+                    const userName = apiFrom?.display_name ?? mockUser.name;
+                    const userAvatar = apiFrom?.avatar?.url ?? mockUser.avatar;
                     return (
                       <article key={r.id} className="flex items-start gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
-                        <Link to="/user/$id" params={{ id: u.id }} className="shrink-0">
-                          <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
+                        <Link to="/user/$id" params={{ id: userId }} className="shrink-0">
+                          <img src={userAvatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
                         </Link>
                         <div className="min-w-0 flex-1">
-                          <Link to="/user/$id" params={{ id: u.id }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{u.name}</Link>
-                          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Хочет добавить вас в друзья</div>
+                          <Link to="/user/$id" params={{ id: userId }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{userName}</Link>
+                          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("friends.wantsToAdd")}</div>
                           <div className="mt-[2px] inline-flex items-center gap-[4px] font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
-                            <Clock size={11} /> {formatRelativeTime(r.date)}
+                            <Clock size={11} /> {apiFrom ? formatRequestDate(r.date) : formatRelativeTime(r.date)}
                           </div>
                           <div className="mt-[10px] flex gap-[8px]">
                             <button onClick={() => accept(r.id)} className="inline-flex items-center gap-[4px] font-semibold" style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "var(--accent)", color: "white", fontSize: 12 }}>
-                              <Check size={12} /> Принять
-                            </button>
+                              <Check size={12} />{t("friends.accept")}</button>
                             <button onClick={() => decline(r.id)} className="inline-flex items-center gap-[4px] font-medium" style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "transparent", color: "var(--foreground-70)", fontSize: 12, border: "1px solid var(--border)" }}>
-                              <X size={12} /> Отклонить
-                            </button>
+                              <X size={12} />{t("friends.decline")}</button>
                           </div>
                         </div>
                       </article>
@@ -185,7 +228,7 @@ function FriendsPage() {
             ) : (
               <div className="grid gap-[12px] sm:grid-cols-2">
                 {filteredUsers.map((u) => {
-                  const isAdded = added.has(u.id);
+                  const isAdded = added.has(Number(u.id));
                   const interests = u.interests.split(",").slice(0, 3).join(", ");
                   return (
                     <article key={u.id} className="flex gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
@@ -201,13 +244,27 @@ function FriendsPage() {
                         <div className="mt-[2px] line-clamp-1 text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
                         <div className="mt-[10px] flex flex-wrap gap-[8px]">
                           <button
-                            onClick={() => {
+                            onClick={async () => {
+                              if (api.enabled) {
+                                try {
+                                  if (isAdded) {
+                                    await api.remove(Number(u.id));
+                                    toast.success(t("friends.removedFromFriends"));
+                                  } else {
+                                    await api.sendRequest(Number(u.id));
+                                    toast.success(t("friends.pending"));
+                                  }
+                                } catch {
+                                  toast.error(t("common.error"));
+                                }
+                                return;
+                              }
                               if (isAdded) {
                                 actions.removeFriend(me.id, u.id);
-                                toast.success("Удалён из друзей");
+                                toast.success(t("friends.removedFromFriends"));
                               } else {
                                 actions.sendFriendRequest(me.id, u.id);
-                                toast.success("Заявка отправлена");
+                                toast.success(t("friends.pending"));
                               }
                             }}
 
@@ -219,7 +276,7 @@ function FriendsPage() {
                               border: isAdded ? "1px solid var(--border)" : "none",
                             }}
                           >
-                            {isAdded ? <><Check size={12} />В друзьях</> : <><UserPlus size={12} />Добавить</>}
+                            {isAdded ? <><Check size={12} />{t("friends.inFriends")}</> : <><UserPlus size={12} />{t("friends.addFriend")}</>}
                           </button>
                           <button
                             type="button"
@@ -230,8 +287,7 @@ function FriendsPage() {
                             className="inline-flex items-center gap-[4px] font-medium"
                             style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "transparent", color: "var(--foreground-70)", fontSize: 12, border: "1px solid var(--border)" }}
                           >
-                            <MessageSquare size={12} /> Написать
-                          </button>
+                            <MessageSquare size={12} />{t("friends.message")}</button>
 
                         </div>
                       </div>

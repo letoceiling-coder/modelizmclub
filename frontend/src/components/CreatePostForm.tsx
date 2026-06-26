@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useMemo, useRef, useState } from "react";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ export function CreatePostForm({
   onCreate?: (p: CreatePostPayload) => void;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [catId, setCatId] = useState(categories[0].id);
@@ -40,10 +42,10 @@ export function CreatePostForm({
   const removePhoto = (i: number) => setPhotos((p) => p.filter((_, idx) => idx !== i));
 
   const submit = () => {
-    if (!title.trim()) return toast.error("Введите заголовок");
-    if (!text.trim()) return toast.error("Введите текст публикации");
+    if (!title.trim()) return toast.error(t("components.createFormTitleRequired"));
+    if (!text.trim()) return toast.error(t("components.createFormTextRequired"));
     onCreate?.({ title, text, category: cat.name, subcategory: sub?.name, photos });
-    toast.success("Публикация отправлена на модерацию");
+    toast.success(t("components.createFormSentModeration"));
     setTitle("");
     setText("");
     setPhotos([]);
@@ -56,7 +58,7 @@ export function CreatePostForm({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Заголовок публикации"
+          placeholder={t("components.createFormTitlePlaceholder")}
           className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm font-medium outline-none focus:border-primary"
         />
       </div>
@@ -64,7 +66,7 @@ export function CreatePostForm({
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Что нового в проекте? Поделитесь опытом, фото и деталями сборки…"
+        placeholder={t("components.createFormTextPlaceholder")}
         rows={3}
         className="mt-3 w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
       />
@@ -121,14 +123,13 @@ export function CreatePostForm({
           disabled={photos.length >= MAX_PHOTOS}
           className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
         >
-          <ImagePlus className="h-3.5 w-3.5" /> Фото {photos.length}/{MAX_PHOTOS}
+          <ImagePlus className="h-3.5 w-3.5" /> {t("components.createFormPhotoCount", { current: photos.length, max: MAX_PHOTOS })}
         </button>
         <button
           onClick={submit}
           className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
         >
-          <Send className="h-3.5 w-3.5" /> Опубликовать
-        </button>
+          <Send className="h-3.5 w-3.5" />{t("components.createFormPublish")}</button>
       </div>
     </div>
   );

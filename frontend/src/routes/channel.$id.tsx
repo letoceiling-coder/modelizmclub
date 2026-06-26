@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban } from "lucide-react";
@@ -20,22 +21,23 @@ export const Route = createFileRoute("/channel/$id")({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `${loaderData.channel.name} — канал · МоДелизМ Форум` },
+          { title: tStatic("channels.metaTitleChannel", { name: loaderData.channel.name }) },
           { name: "description", content: loaderData.channel.description },
         ]
-      : [{ title: "Канал" }],
+      : [{ title: tStatic("channels.metaTitleFallback") }],
   }),
-  notFoundComponent: () => (
+  notFoundComponent: function ChannelNotFound() {
+    const { t } = useTranslation();
+    return (
     <AppLayout rightColumn={false}>
       <div className="grid place-items-center gap-3 py-20 text-center">
         <Radio size={28} style={{ color: "var(--foreground-50)" }} />
-        <div className="text-[16px] font-semibold">Канал не найден</div>
-        <Link to="/channels" className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>
-          Все каналы
-        </Link>
+        <div className="text-[16px] font-semibold">{t("channels.notFound")}</div>
+        <Link to="/channels" className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>{t("channels.allChannels")}</Link>
       </div>
     </AppLayout>
-  ),
+    );
+  },
   component: ChannelPage,
 });
 
@@ -43,6 +45,7 @@ type PostFilter = "all" | "mine";
 type ChannelTab = "posts" | "about";
 
 function ChannelPage() {
+  const { t } = useTranslation();
   const { channel } = Route.useLoaderData();
   const subs = useSubscriptions();
   const subscribed = subs.has(channel.id);
@@ -57,7 +60,7 @@ function ChannelPage() {
 
   const onToggle = () => {
     toggleSubscribe(channel.id);
-    toast.success(subscribed ? `Отписка от «${channel.name}»` : `Подписка на «${channel.name}»`);
+    toast.success(subscribed ? t("channels.unsubscribed", { name: channel.name }) : t("channels.subscribedToast", { name: channel.name }));
   };
 
   return (
@@ -69,8 +72,7 @@ function ChannelPage() {
           className="inline-flex items-center gap-1.5 text-[13px] font-medium"
           style={{ color: "var(--foreground-70)" }}
         >
-          <ArrowLeft size={14} /> Все каналы
-        </Link>
+          <ArrowLeft size={14} />{t("channels.allChannels")}</Link>
 
         {/* header card */}
         <section
@@ -112,10 +114,9 @@ function ChannelPage() {
 
               <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px]" style={{ color: "var(--foreground-50)" }}>
                 <span className="inline-flex items-center gap-1.5">
-                  <Users size={13} /> <b style={{ color: "var(--foreground)" }}>{formatCount(channel.subscribers)}</b> подписчиков
-                </span>
+                  <Users size={13} /> <b style={{ color: "var(--foreground)" }}>{formatCount(channel.subscribers)}</b>{t("common.subscribers")}</span>
                 <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck size={13} /> Премодерация постов
+                  <ShieldCheck size={13} /> {t("channels.premoderation")}
                 </span>
               </div>
 
@@ -132,7 +133,7 @@ function ChannelPage() {
                       flex: 1,
                     }}
                   >
-                    {subscribed ? (<><Check size={16} /> Вы подписаны</>) : "Подписаться"}
+                    {subscribed ? (<><Check size={16} />{t("channels.subscribed")}</>) : t("channels.subscribe")}
                   </button>
                 )}
                 {channel.isOwner && (
@@ -140,7 +141,7 @@ function ChannelPage() {
                     className="inline-flex h-11 items-center justify-center gap-2 px-5 text-[13px] font-semibold"
                     style={{ borderRadius: 12, background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
                   >
-                    Вы — владелец канала
+                    {t("channels.ownerBadge")}
                   </div>
                 )}
               </div>
@@ -151,9 +152,7 @@ function ChannelPage() {
                 style={{ background: "var(--background-surface)", borderRadius: 10, color: "var(--foreground-70)" }}
               >
                 <Radio size={14} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }} />
-                <span>
-                  Это публичный канал: посты публикует только владелец. Подписчики читают и не могут писать в ленту канала.
-                </span>
+                <span>{t("channels.publicNote")}</span>
               </div>
             </div>
           </div>
@@ -166,8 +165,8 @@ function ChannelPage() {
         >
           <div className="flex w-full items-center gap-1" style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}>
             {([
-              ["posts", `Посты${visiblePublic.length ? ` · ${visiblePublic.length}` : ""}`],
-              ["about", "О канале"],
+              ["posts", t("channels.tabPostsCount", { suffix: visiblePublic.length ? ` · ${visiblePublic.length}` : "" })],
+              ["about", t("channels.tabAbout")],
             ] as const).map(([k, l]) => {
               const active = tab === k;
               return (
@@ -201,10 +200,10 @@ function ChannelPage() {
               >
                 <div className="min-w-0">
                   <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
-                    Вид владельца
+                    {t("channels.ownerView")}
                   </div>
                   <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                    Видны посты на модерации и отклонённые
+                    {t("channels.ownerViewHint")}
                   </div>
                 </div>
                 <Segmented
@@ -219,7 +218,7 @@ function ChannelPage() {
 
             {list.length === 0 ? (
               <div className="grid place-items-center gap-2 py-12 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
-                <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>В этом канале пока нет постов</div>
+                <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("channels.emptyPosts")}</div>
               </div>
             ) : (
               <ul className="space-y-3">
@@ -243,7 +242,8 @@ function ChannelPage() {
 }
 
 function Segmented({ value, onChange }: { value: PostFilter; onChange: (v: PostFilter) => void }) {
-  const opts: [PostFilter, string][] = [["all", "Только опубл."], ["mine", "Все"]];
+  const { t } = useTranslation();
+  const opts: [PostFilter, string][] = [["all", t("channels.filterPublished")], ["mine", t("channels.filterAll")]];
   return (
     <div className="flex shrink-0" style={{ background: "var(--background)", borderRadius: 9, padding: 3 }}>
       {opts.map(([k, l]) => {
@@ -269,13 +269,14 @@ function Segmented({ value, onChange }: { value: PostFilter; onChange: (v: PostF
   );
 }
 
-const STATUS: Record<PostStatus, { label: string; bg: string; color: string; Icon: typeof Clock }> = {
-  published: { label: "Опубликовано", bg: "rgba(16,185,129,0.12)", color: "rgb(16,185,129)", Icon: ShieldCheck },
-  moderation: { label: "На проверке", bg: "rgba(245,158,11,0.14)", color: "rgb(217,119,6)", Icon: Clock },
-  rejected: { label: "Отклонено", bg: "rgba(239,68,68,0.12)", color: "rgb(239,68,68)", Icon: AlertTriangle },
+const STATUS: Record<PostStatus, { labelKey: string; bg: string; color: string; Icon: typeof Clock }> = {
+  published: { labelKey: "channels.statusPublished", bg: "rgba(16,185,129,0.12)", color: "rgb(16,185,129)", Icon: ShieldCheck },
+  moderation: { labelKey: "channels.statusReview", bg: "rgba(245,158,11,0.14)", color: "rgb(217,119,6)", Icon: Clock },
+  rejected: { labelKey: "channels.statusRejected", bg: "rgba(239,68,68,0.12)", color: "rgb(239,68,68)", Icon: AlertTriangle },
 };
 
 function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
+  const { t } = useTranslation();
   const s = STATUS[post.status];
   return (
     <li
@@ -310,7 +311,7 @@ function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
               className="inline-flex items-center gap-1 text-[11px] font-semibold"
               style={{ background: s.bg, color: s.color, padding: "4px 8px", borderRadius: 6 }}
             >
-              <s.Icon size={11} /> {s.label}
+              <s.Icon size={11} /> {t(s.labelKey)}
             </span>
           )}
         </div>
@@ -342,6 +343,7 @@ function KindIcon({ kind }: { kind: PostKind }) {
 }
 
 function Composer({ channelId, ownerName }: { channelId: string; ownerName: string }) {
+  const { t } = useTranslation();
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
   const [justSent, setJustSent] = useState<null | { id: string }>(null);
@@ -353,7 +355,7 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
     const post = createChannelPost({ channelId, authorName: ownerName, text: text.trim(), kind });
     setText("");
     setJustSent({ id: post.id });
-    toast.success("Пост отправлен на проверку модератору");
+    toast.success(t("channels.postSentModeration"));
     window.setTimeout(() => setJustSent(null), 6000);
   };
 
@@ -364,13 +366,13 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Новый пост
+          {t("channels.newPost")}
         </h3>
         <span
           className="inline-flex items-center gap-1 text-[11px] font-semibold"
           style={{ background: "rgba(245,158,11,0.14)", color: "rgb(217,119,6)", padding: "4px 8px", borderRadius: 6 }}
         >
-          <ShieldCheck size={11} /> Уйдёт на модерацию
+          <ShieldCheck size={11} /> {t("channels.goesToModeration")}
         </span>
       </div>
 
@@ -404,7 +406,7 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, MAX))}
         rows={4}
-        placeholder={`Текст ${POST_KIND_LABEL[kind].toLowerCase()}а для подписчиков…`}
+        placeholder={t("channels.postPlaceholder", { kind: POST_KIND_LABEL[kind].toLowerCase() })}
         className="mt-3 w-full resize-y text-[14px] outline-none"
         style={{
           minHeight: 96,
@@ -434,7 +436,7 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
             cursor: canSend ? "pointer" : "not-allowed",
           }}
         >
-          <Send size={14} /> Отправить на проверку
+          <Send size={14} /> {t("channels.sendForReview")}
         </button>
       </div>
 
@@ -445,9 +447,9 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
         >
           <Clock size={14} className="mt-0.5 shrink-0" />
           <div>
-            <div className="font-semibold">Пост на проверке</div>
+            <div className="font-semibold">{t("channels.postUnderReview")}</div>
             <div style={{ color: "rgb(180,83,9)" }}>
-              Модератор проверит публикацию обычно в течение нескольких часов. До этого пост виден только вам в «Виде владельца».
+              {t("channels.postUnderReviewDesc")}
             </div>
           </div>
         </div>
@@ -457,12 +459,13 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
 }
 
 function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCount: number }) {
+  const { t } = useTranslation();
   const created = new Date(channel.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
   const ownerInitial = channel.ownerName.slice(0, 1).toUpperCase();
-  const rules: { Icon: typeof FileCheck2; title: string; text: string }[] = [
-    { Icon: FileCheck2, title: "Премодерация", text: "Каждый пост проходит проверку модератором перед публикацией." },
-    { Icon: MessageSquareOff, title: "Без чата", text: "Подписчики не могут писать в ленту — это односторонний канал." },
-    { Icon: Ban, title: "Без спама и рекламы вне правил", text: "Сторонние ссылки и реклама без согласования отклоняются." },
+  const rules: { Icon: typeof FileCheck2; titleKey: string; textKey: string }[] = [
+    { Icon: FileCheck2, titleKey: "channels.aboutPremod", textKey: "channels.aboutPremodText" },
+    { Icon: MessageSquareOff, titleKey: "channels.aboutNoChat", textKey: "channels.aboutNoChatText" },
+    { Icon: Ban, titleKey: "channels.aboutNoSpam", textKey: "channels.aboutNoSpamText" },
   ];
 
   return (
@@ -473,18 +476,18 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
         style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
       >
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Описание
+          {t("channels.aboutDescription")}
         </h3>
         <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
           {channel.description}
-          {"\n\n"}Здесь публикуются {kindLabel(channel.kind).toLowerCase()} материалы: новости, обзоры, анонсы и спецпредложения для подписчиков. Подпишитесь, чтобы получать новые посты в ленте.
+          {"\n\n"}{t("channels.aboutDescSuffix", { kind: kindLabel(channel.kind).toLowerCase() })}
         </p>
 
         {/* stats grid */}
         <div className="mt-4 grid grid-cols-3 gap-2">
-          <Stat icon={Users} label="Подписчики" value={formatCount(channel.subscribers)} />
-          <Stat icon={FileCheck2} label="Постов" value={String(publishedCount)} />
-          <Stat icon={Calendar} label="С нами с" value={created.replace(/\s\d{4}.*/, "")} />
+          <Stat icon={Users} label={t("channels.statSubscribers")} value={formatCount(channel.subscribers)} />
+          <Stat icon={FileCheck2} label={t("channels.statPosts")} value={String(publishedCount)} />
+          <Stat icon={Calendar} label={t("channels.statSince")} value={created.replace(/\s\d{4}.*/, "")} />
         </div>
       </section>
 
@@ -494,7 +497,7 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
         style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
       >
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Владелец
+          {t("channels.ownerSection")}
         </h3>
         <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
           <div
@@ -511,18 +514,18 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
               {channel.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
             </div>
             <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              {kindLabel(channel.kind)} · ведёт канал «{channel.name}»
+              {t("channels.ownerRole", { kind: kindLabel(channel.kind), name: channel.name })}
             </div>
           </div>
           <span
             className="shrink-0 text-[11px] font-medium"
             style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "4px 8px", borderRadius: 6 }}
           >
-            Автор
+            {t("channels.authorRole")}
           </span>
         </div>
         <div className="mt-3 text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Канал создан {created}.
+          {t("channels.createdAt", { date: created })}
         </div>
       </section>
 
@@ -532,11 +535,11 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
         style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
       >
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Правила публикаций
+          {t("channels.pubRules")}
         </h3>
         <ul className="mt-3 space-y-2.5">
-          {rules.map(({ Icon, title, text }) => (
-            <li key={title} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
+          {rules.map(({ Icon, titleKey, textKey }) => (
+            <li key={titleKey} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
               <div
                 className="grid h-8 w-8 shrink-0 place-items-center"
                 style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: 8 }}
@@ -544,8 +547,8 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
                 <Icon size={14} />
               </div>
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{title}</div>
-                <div className="text-[12px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>{text}</div>
+                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t(titleKey)}</div>
+                <div className="text-[12px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(textKey)}</div>
               </div>
             </li>
           ))}

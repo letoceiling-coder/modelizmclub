@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Newspaper, Sparkles } from "lucide-react";
@@ -13,13 +14,14 @@ function sortBanners(list: Banner[]): Banner[] {
   });
 }
 
-const KIND_LABEL: Record<NonNullable<Banner["kind"]>, { label: string; Icon: typeof CalendarDays }> = {
-  event: { label: "Событие", Icon: CalendarDays },
-  news: { label: "Новость", Icon: Newspaper },
-  promo: { label: "Акция", Icon: Sparkles },
+const KIND_KEYS: Record<NonNullable<Banner["kind"]>, { key: string; Icon: typeof CalendarDays }> = {
+  event: { key: "components.eventKind", Icon: CalendarDays },
+  news: { key: "components.newsKind", Icon: Newspaper },
+  promo: { key: "components.promoKind", Icon: Sparkles },
 };
 
 export function EventsHero() {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -42,7 +44,7 @@ export function EventsHero() {
   if (list.length === 0) return null;
 
   const current = list[index];
-  const kind = KIND_LABEL[current.kind ?? "news"];
+  const kind = KIND_KEYS[current.kind ?? "news"];
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
@@ -55,7 +57,7 @@ export function EventsHero() {
 
   return (
     <section
-      aria-label="События и новости форума"
+      aria-label={t("components.eventsHeroAria")}
       className="relative overflow-hidden rounded-[16px] border"
       style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
       onMouseEnter={() => setPaused(true)}
@@ -89,7 +91,7 @@ export function EventsHero() {
                 style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
               >
                 <kind.Icon className="h-[12px] w-[12px]" />
-                {kind.label}
+                {t(kind.key)}
                 <span className="opacity-70">· {current.until}</span>
               </span>
               <h2
@@ -112,7 +114,7 @@ export function EventsHero() {
 
         <button
           onClick={() => dismiss(current.id)}
-          aria-label="Скрыть баннер"
+          aria-label={t("components.hideBanner")}
           className="absolute right-[10px] top-[10px] grid h-[28px] w-[28px] place-items-center rounded-full text-white"
           style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
         >
@@ -123,7 +125,7 @@ export function EventsHero() {
           <>
             <button
               onClick={prev}
-              aria-label="Предыдущий"
+              aria-label={t("components.carouselPrevious")}
               className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
             >
@@ -131,7 +133,7 @@ export function EventsHero() {
             </button>
             <button
               onClick={next}
-              aria-label="Следующий"
+              aria-label={t("components.carouselNext")}
               className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
             >
@@ -148,7 +150,7 @@ export function EventsHero() {
             return (
               <button
                 key={b.id}
-                aria-label={`Перейти к баннеру ${i + 1}`}
+                aria-label={t("components.goToBanner", { n: i + 1 })}
                 onClick={() => setIndex(i)}
                 className="rounded-full transition-all"
                 style={{

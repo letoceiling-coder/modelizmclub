@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { categories, communities, ads } from "@/lib/mock";
@@ -5,7 +6,7 @@ import { getAllChannels, type Channel } from "@/lib/channels";
 import { ExternalLink, CheckCircle2, Map as MapIcon } from "lucide-react";
 
 export const Route = createFileRoute("/diag")({
-  head: () => ({ meta: [{ title: "Диагностика роутов — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("diag.metaTitle") }] }),
   component: DiagPage,
 });
 
@@ -15,30 +16,31 @@ interface Group {
 }
 
 function DiagPage() {
+  const { t } = useTranslation();
   const channels: Channel[] = getAllChannels();
 
   const groups: Group[] = [
     {
-      title: "Основные разделы",
+      title: t("diag.groupMain"),
       links: [
-        { label: "/ — Главная", to: "/" },
+        { label: t("diag.linkHome"), to: "/" },
         { label: "/landing", to: "/landing" },
-        { label: "/feed — Лента", to: "/feed" },
-        { label: "/communities — Сообщества", to: "/communities" },
-        { label: "/channels — Каналы", to: "/channels" },
-        { label: "/messenger — Мессенджер", to: "/messenger" },
-        { label: "/ads — Объявления", to: "/ads" },
-        { label: "/ads/new — Создать объявление", to: "/ads/new" },
-        { label: "/friends — Друзья", to: "/friends" },
-        { label: "/profile — Профиль", to: "/profile" },
-        { label: "/subscription — Подписка", to: "/subscription" },
-        { label: "/help — Помощь", to: "/help" },
-        { label: "/admin — Админка", to: "/admin" },
-        { label: "/categories — Все категории", to: "/categories" },
+        { label: t("diag.linkFeed"), to: "/feed" },
+        { label: t("diag.linkCommunities"), to: "/communities" },
+        { label: t("diag.linkChannels"), to: "/channels" },
+        { label: t("diag.linkMessenger"), to: "/messenger" },
+        { label: t("diag.linkAds"), to: "/ads" },
+        { label: t("diag.linkAdsNew"), to: "/ads/new" },
+        { label: t("diag.linkFriends"), to: "/friends" },
+        { label: t("diag.linkProfile"), to: "/profile" },
+        { label: t("diag.linkSubscription"), to: "/subscription" },
+        { label: t("diag.linkHelp"), to: "/help" },
+        { label: t("diag.linkAdmin"), to: "/admin" },
+        { label: t("diag.linkCategories"), to: "/categories" },
       ],
     },
     {
-      title: "Аутентификация и онбординг",
+      title: t("diag.groupAuth"),
       links: [
         { label: "/login", to: "/login" },
         { label: "/register", to: "/register" },
@@ -47,7 +49,7 @@ function DiagPage() {
       ],
     },
     {
-      title: `Категории и комнаты (${categories.length} категорий)`,
+      title: t("diag.groupCategories", { n: categories.length }),
       links: categories.flatMap((c) => [
         { label: `📂 ${c.name}`, to: "/categories/$id", params: { id: c.id } },
         ...c.subcategories.map((s) => ({
@@ -58,7 +60,7 @@ function DiagPage() {
       ]),
     },
     {
-      title: `Каналы (${channels.length})`,
+      title: t("diag.groupChannels", { n: channels.length }),
       links: channels.map((ch) => ({
         label: `📡 ${ch.name}`,
         to: "/channel/$id",
@@ -66,7 +68,7 @@ function DiagPage() {
       })),
     },
     {
-      title: `Сообщества (${communities.length})`,
+      title: t("diag.groupCommunities", { n: communities.length }),
       links: communities.slice(0, 12).map((g) => ({
         label: `👥 ${g.name}`,
         to: "/communities/$id",
@@ -74,7 +76,7 @@ function DiagPage() {
       })),
     },
     {
-      title: `Объявления (первые 8 из ${ads.length})`,
+      title: t("diag.groupAds", { n: ads.length }),
       links: ads.slice(0, 8).map((a) => ({
         label: `🏷 ${a.title}`,
         to: "/ads/$id",
@@ -82,7 +84,7 @@ function DiagPage() {
       })),
     },
     {
-      title: "Несуществующие роуты (должны вести на 404)",
+      title: t("diag.group404"),
       links: [
         { label: "/not-a-real-page", to: "/not-a-real-page" },
         { label: "/categories/nope", to: "/categories/nope" },
@@ -99,14 +101,12 @@ function DiagPage() {
             <MapIcon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-xl font-bold">Карта роутов</h1>
-            <p className="text-sm text-muted-foreground">
-              Интерактивная диагностика: кликайте по ссылкам, чтобы быстро проверить переходы по всем разделам прототипа.
-            </p>
+            <h1 className="font-display text-xl font-bold">{t("diag.title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("diag.subtitle")}</p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
                 <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                {groups.reduce((s, g) => s + g.links.length, 0)} ссылок
+                {t("diag.linksCount", { n: groups.reduce((s, g) => s + g.links.length, 0) })}
               </span>
             </div>
           </div>

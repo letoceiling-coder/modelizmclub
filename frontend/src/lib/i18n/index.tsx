@@ -26,6 +26,32 @@ function readInitialLang(): AppLang {
   return "ru";
 }
 
+function resolveLang(lang?: AppLang): AppLang {
+  if (lang === "en" || lang === "zh" || lang === "ru") return lang;
+  if (typeof window !== "undefined") return readInitialLang();
+  return "ru";
+}
+
+export function translate(
+  key: string,
+  vars?: Record<string, string | number>,
+  lang?: AppLang,
+): string {
+  const resolved = resolveLang(lang);
+  let text = dictionaries[resolved][key] ?? dictionaries.ru[key] ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      text = text.replace(`{{${k}}}`, String(v));
+    }
+  }
+  return text;
+}
+
+/** Static translation without React context (SSR head, utilities). */
+export function tStatic(key: string, vars?: Record<string, string | number>, lang?: AppLang): string {
+  return translate(key, vars, lang);
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<AppLang>(readInitialLang);
 
@@ -44,15 +70,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string, vars?: Record<string, string | number>) => {
-      let text = dictionaries[lang][key] ?? dictionaries.ru[key] ?? key;
-      if (vars) {
-        for (const [k, v] of Object.entries(vars)) {
-          text = text.replace(`{{${k}}}`, String(v));
-        }
-      }
-      return text;
-    },
+    (key: string, vars?: Record<string, string | number>) => translate(key, vars, lang),
     [lang],
   );
 
@@ -69,6 +87,14 @@ export function useI18n() {
 
 export function useTranslation() {
   return useI18n();
+}
+
+/** Sets document.title from a translation key. */
+export function usePageTitle(key: string, vars?: Record<string, string | number>) {
+  const { t } = useI18n();
+  useEffect(() => {
+    document.title = t(key, vars);
+  }, [t, key, vars]);
 }
 
 export { LANG_META, type AppLang };

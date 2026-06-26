@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Search } from "lucide-react";
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function CreateChatDialog({ open, onClose, onPick }: Props) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
   const [highlight, setHighlight] = useState(0);
@@ -77,12 +79,12 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
             }}
           >
             <div className="flex items-center gap-[8px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
-              <h3 className="flex-1 font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Новый чат</h3>
+              <h3 className="flex-1 font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{t("messenger.newChat")}</h3>
               <button
                 onClick={onClose}
                 className="grid h-[32px] w-[32px] place-items-center rounded-full"
                 style={{ color: "var(--foreground-50)" }}
-                aria-label="Закрыть"
+                aria-label={t("common.close")}
               >
                 <X size={16} />
               </button>
@@ -106,7 +108,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                     pickAt(highlight);
                   }
                 }}
-                placeholder="Поиск по имени"
+                placeholder={t("messenger.searchByName")}
                 className="w-full text-[14px] outline-none"
                 style={{
                   height: 40, paddingLeft: 36, paddingRight: 12,
@@ -120,9 +122,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
 
             <ul className="max-h-[320px] overflow-y-auto pb-[8px]" role="listbox">
               {candidates.length === 0 ? (
-                <li className="px-[20px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                  Никого не найдено
-                </li>
+                <li className="px-[20px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("friends.empty")}</li>
               ) : (
                 candidates.map((u, i) => {
                   const active = i === highlight;
@@ -138,7 +138,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{u.name}</div>
                           <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                            {u.online ? "В сети" : "Был(а) недавно"}
+                            {u.online ? t("messenger.online") : t("messenger.recently")}
                           </div>
                         </div>
                       </button>

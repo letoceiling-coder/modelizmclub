@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Home } from "lucide-react";
 import type { ReactNode } from "react";
@@ -9,9 +10,10 @@ export interface Crumb {
 }
 
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
+  const { t } = useTranslation();
   return (
     <nav
-      aria-label="Хлебные крошки"
+      aria-label={t("components.breadcrumbsAria")}
       className="flex items-center gap-1 overflow-x-auto whitespace-nowrap text-[12.5px]"
       style={{ color: "var(--foreground-50)" }}
     >
@@ -20,7 +22,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
         className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]"
       >
         <Home className="h-3.5 w-3.5" />
-        <span className="sr-only">Главная</span>
+        <span className="sr-only">{t("nav.landing")}</span>
       </Link>
       {items.map((item, i) => {
         const last = i === items.length - 1;

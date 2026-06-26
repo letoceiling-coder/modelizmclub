@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,7 +11,7 @@ import type { Community } from "@/lib/mock";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export const Route = createFileRoute("/communities/")({
-  head: () => ({ meta: [{ title: "Сообщества — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("communities.metaTitle") }] }),
   component: CommunitiesPage,
 });
 
@@ -69,8 +70,7 @@ function CommunityCard({ c }: { c: Community }) {
               height: 34, padding: "0 14px", borderRadius: 10,
               background: "var(--accent)", color: "white", fontSize: 13,
             }}
-          >
-            Перейти <ArrowRight size={14} />
+          >{t("communities.go")}<ArrowRight size={14} />
           </Link>
         </div>
       </div>
@@ -79,41 +79,44 @@ function CommunityCard({ c }: { c: Community }) {
 }
 
 function EmptyMy({ onSwitch }: { onSwitch: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="grid place-items-center gap-[10px] py-[60px] text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
       <div className="grid h-[56px] w-[56px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
         <Users size={24} />
       </div>
-      <div className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Вы пока не состоите ни в одном сообществе</div>
+      <div className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("communities.emptyMyTitle")}</div>
       <p className="max-w-[320px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Посмотрите рекомендованные клубы, школы и магазины моделизма
+        {t("communities.emptyMyDesc")}
       </p>
       <button
         onClick={onSwitch}
         className="mt-[4px] inline-flex h-[36px] items-center px-[16px] text-[13px] font-semibold"
         style={{ background: "var(--accent)", color: "white", borderRadius: 10 }}
       >
-        Смотреть рекомендованные
+        {t("communities.emptyMyCta")}
       </button>
     </div>
   );
 }
 
 function EmptySearch() {
+  const { t } = useTranslation();
   return (
     <div className="grid place-items-center gap-[8px] py-[60px] text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
       <div className="grid h-[56px] w-[56px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
         <Search size={22} />
       </div>
-      <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Ничего не найдено</div>
+      <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{t("communities.emptySearchTitle")}</div>
       <p className="max-w-[320px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Попробуйте изменить запрос или поискать в другом разделе
+        {t("communities.emptySearchDesc")}
       </p>
     </div>
   );
 }
 
 function CommunitiesPage() {
+  const { t } = useTranslation();
   const currentUserId = useStore((s) => s.currentUserId);
   const myCommunities = useStore(selectors.userCommunities(currentUserId));
   const recommended = useStore(selectors.recommendedCommunities(currentUserId));
@@ -142,27 +145,27 @@ function CommunitiesPage() {
     <AppLayout rightColumn={false}>
       <div className="space-y-[20px]">
         <header>
-          <h1 className="font-display text-[24px] font-bold sm:text-[28px]" style={{ color: "var(--foreground)" }}>Сообщества</h1>
-          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Клубы, кружки, школы и магазины моделизма</p>
+          <h1 className="font-display text-[24px] font-bold sm:text-[28px]" style={{ color: "var(--foreground)" }}>{t("nav.communities")}</h1>
+          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("communities.subtitle")}</p>
         </header>
 
         {/* Tabs */}
         <nav role="tablist" className="relative flex items-center gap-[4px] overflow-x-auto" style={{ borderBottom: "1px solid var(--border)" }}>
           {([
-            { key: "my" as const, label: "Мои", count: myCommunities.length },
-            { key: "recommended" as const, label: "Рекомендованные", count: recommended.length },
-          ]).map((t) => {
-            const active = section === t.key;
+            { key: "my" as const, labelKey: "communities.tabMy", count: myCommunities.length },
+            { key: "recommended" as const, labelKey: "communities.tabRecommended", count: recommended.length },
+          ]).map((tabItem) => {
+            const active = section === tabItem.key;
             return (
               <button
-                key={t.key}
+                key={tabItem.key}
                 role="tab"
                 aria-selected={active}
-                onClick={() => setSection(t.key)}
+                onClick={() => setSection(tabItem.key)}
                 className="relative inline-flex shrink-0 items-center gap-[8px] px-[16px] py-[12px] text-[14px] font-semibold transition-colors"
                 style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
               >
-                {t.label}
+                {t(tabItem.labelKey)}
                 <span
                   className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
                   style={{
@@ -171,7 +174,7 @@ function CommunitiesPage() {
                     borderRadius: 999,
                   }}
                 >
-                  {t.count}
+                  {tabItem.count}
                 </span>
                 {active && (
                   <motion.span
@@ -192,7 +195,7 @@ function CommunitiesPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по названию, категории или описанию"
+            placeholder={t("communities.searchPlaceholder")}
             className="w-full text-[14px] outline-none"
             style={{
               height: 44, paddingLeft: 38, paddingRight: 14,

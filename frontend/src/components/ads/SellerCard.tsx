@@ -1,8 +1,11 @@
+import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import { Star, ShieldCheck, MessageSquare, Calendar } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
 
 export function SellerCard({ seller }: { seller: AdSeller }) {
+  const { t } = useTranslation();
+
   return (
     <div
       className="flex flex-col gap-[16px] p-[20px]"
@@ -32,10 +35,10 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
               <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
               <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
             </span>
-            <span>· {seller.deals} сделок</span>
+            <span>· {t("common.deals", { n: seller.deals })}</span>
           </div>
           <div className="mt-[2px] inline-flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            <Calendar size={10} /> На сайте с {seller.since}
+            <Calendar size={10} /> {t("common.onSiteSince", { date: seller.since })}
           </div>
         </div>
       </div>
@@ -51,7 +54,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
             boxShadow: "var(--shadow-button)",
           }}
         >
-          <MessageSquare size={16} /> Написать продавцу
+          <MessageSquare size={16} /> {t("ads.messageSeller")}
         </Link>
         <Link
           to="/profile"
@@ -63,7 +66,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
             borderRadius: "var(--r-button)",
           }}
         >
-          Профиль продавца
+          {t("ads.sellerProfile")}
         </Link>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +9,7 @@ import { useStore, actions, selectors, type AdStatusKey } from "@/lib/store";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 
 export const Route = createFileRoute("/ads/")({
-  head: () => ({ meta: [{ title: "Мои объявления — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("ads.myMetaTitle") }] }),
   component: MyAdsPage,
 });
 
@@ -16,14 +17,14 @@ const CURRENT_USER_ID = "u1";
 
 type TabKey = "active" | "moderation" | "rejected" | "unpublished" | "archived" | "deleted" | "draft";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "active",       label: "Активные" },
-  { key: "moderation",   label: "На модерации" },
-  { key: "rejected",     label: "С ошибками" },
-  { key: "unpublished",  label: "Неопубликованные" },
-  { key: "archived",     label: "Архив" },
-  { key: "deleted",      label: "Удалённые" },
-  { key: "draft",        label: "Черновики" },
+const TABS: { key: TabKey; labelKey: string }[] = [
+  { key: "active",       labelKey: "ads.tabActive" },
+  { key: "moderation",   labelKey: "ads.tabModeration" },
+  { key: "rejected",     labelKey: "ads.tabRejected" },
+  { key: "unpublished",  labelKey: "ads.tabUnpublished" },
+  { key: "archived",     labelKey: "ads.tabArchived" },
+  { key: "deleted",      labelKey: "ads.tabDeleted" },
+  { key: "draft",        labelKey: "ads.tabDraft" },
 ];
 
 function statusToTab(s: AdStatusKey): TabKey {
@@ -44,6 +45,7 @@ interface Filters {
 const DEFAULT_FILTERS: Filters = { category: "all", dateRange: "all", minViews: 0, sort: "new" };
 
 function MyAdsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>("active");
   const allMyAds = useStore(selectors.myAds(CURRENT_USER_ID));
@@ -138,11 +140,9 @@ function MyAdsPage() {
         {/* Header */}
         <header className="flex flex-wrap items-end justify-between gap-[12px]">
           <div className="min-w-0">
-            <h1 className="font-display text-[20px] font-bold leading-[1.15] sm:text-[28px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Мои объявления
-            </h1>
+            <h1 className="font-display text-[20px] font-bold leading-[1.15] sm:text-[28px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("ads.myTitle")}</h1>
             <p className="mt-[4px] text-[12.5px] sm:text-[14px]" style={{ color: "var(--foreground-70)" }}>
-              Управляйте публикациями, статистикой и архивом
+              {t("ads.mySubtitle")}
             </p>
           </div>
 
@@ -157,16 +157,16 @@ function MyAdsPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
           >
-            <Plus size={16} /> Разместить объявление
+            <Plus size={16} /> {t("ads.createAd")}
           </button>
         </header>
 
         {/* Stats — compact (Avito-style) */}
         <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
-          <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
-          <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />
-          <StatCard icon={<MessageCircle size={14} />} label="Сумма"   value={`${stats.earnings.toLocaleString("ru")} ₽`} />
+          <StatCard icon={<TrendingUp size={14} />} label={t("ads.statActive")}   value={stats.count.toString()} accent />
+          <StatCard icon={<Eye size={14} />}        label={t("ads.statViews")} value={stats.views.toLocaleString("ru")} />
+          <StatCard icon={<Heart size={14} />}      label={t("ads.statLikes")}     value={stats.likes.toLocaleString("ru")} />
+          <StatCard icon={<MessageCircle size={14} />} label={t("ads.statSum")}   value={`${stats.earnings.toLocaleString("ru")} ₽`} />
         </section>
 
         {/* Tabs */}
@@ -175,20 +175,20 @@ function MyAdsPage() {
           style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
           role="tablist"
         >
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            const count = counts[t.key];
+          {TABS.map((tabItem) => {
+            const active = tab === tabItem.key;
+            const count = counts[tabItem.key];
             return (
               <button
-                key={t.key}
+                key={tabItem.key}
                 role="tab"
                 aria-selected={active}
-                ref={(el) => { tabRefs.current[t.key] = el; }}
-                onClick={() => setTab(t.key)}
+                ref={(el) => { tabRefs.current[tabItem.key] = el; }}
+                onClick={() => setTab(tabItem.key)}
                 className="relative inline-flex items-center gap-[8px] whitespace-nowrap px-[16px] py-[10px] text-[14px] font-semibold transition-colors"
                 style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
               >
-                {t.label}
+                {t(tabItem.labelKey)}
                 <span
                   className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
                   style={{
@@ -219,7 +219,7 @@ function MyAdsPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск по объявлениям"
+              placeholder={t("ads.searchPlaceholder")}
               className="w-full text-[13.5px] outline-none transition-colors"
               style={{
                 height: 40,
@@ -238,7 +238,7 @@ function MyAdsPage() {
                 onClick={() => setQuery("")}
                 className="absolute right-[8px] top-1/2 grid h-[24px] w-[24px] -translate-y-1/2 place-items-center"
                 style={{ color: "var(--foreground-50)", borderRadius: 999 }}
-                aria-label="Очистить"
+                aria-label={t("categories.clear")}
               >
                 <X size={14} />
               </button>
@@ -247,7 +247,7 @@ function MyAdsPage() {
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
-            aria-label="Фильтры"
+            aria-label={t("ads.filtersTitle")}
             className="relative grid shrink-0 place-items-center transition-colors"
             style={{
               height: 40, width: 40,
@@ -266,14 +266,14 @@ function MyAdsPage() {
             <button
               type="button"
               onClick={resetFilters}
-              aria-label="Сбросить фильтры"
+              aria-label={t("ads.resetFiltersAria")}
               className="hidden shrink-0 items-center gap-[6px] px-[12px] text-[13px] font-medium sm:inline-flex"
               style={{
                 height: 40, color: "var(--foreground-70)",
                 border: "1px solid var(--border)", borderRadius: "var(--r-button)", background: "transparent",
               }}
             >
-              <RotateCcw size={13} /> Сбросить
+              <RotateCcw size={13} /> {t("ads.resetFilters")}
             </button>
           )}
         </div>
@@ -293,31 +293,31 @@ function MyAdsPage() {
                 className="grid gap-[12px] p-[14px] sm:grid-cols-2 md:grid-cols-4"
                 style={{ background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}
               >
-                <FilterField label="Категория">
+                <FilterField label={t("ads.filterCategory")}>
                   <select
                     value={filters.category}
                     onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
                     className="w-full text-[13px]"
                     style={selectStyle}
                   >
-                    <option value="all">Все категории</option>
+                    <option value="all">{t("ads.allCategories")}</option>
                     {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </FilterField>
-                <FilterField label="Период">
+                <FilterField label={t("ads.filterPeriod")}>
                   <select
                     value={filters.dateRange}
                     onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))}
                     className="w-full text-[13px]"
                     style={selectStyle}
                   >
-                    <option value="all">За всё время</option>
-                    <option value="7d">7 дней</option>
-                    <option value="30d">30 дней</option>
-                    <option value="90d">90 дней</option>
+                    <option value="all">{t("ads.periodAll")}</option>
+                    <option value="7d">{t("ads.period7d")}</option>
+                    <option value="30d">{t("ads.period30d")}</option>
+                    <option value="90d">{t("ads.period90d")}</option>
                   </select>
                 </FilterField>
-                <FilterField label="Просмотров не менее">
+                <FilterField label={t("ads.filterViewsMin")}>
                   <input
                     type="number"
                     min={0}
@@ -328,17 +328,17 @@ function MyAdsPage() {
                     style={selectStyle}
                   />
                 </FilterField>
-                <FilterField label="Сортировка">
+                <FilterField label={t("ads.filterSort")}>
                   <select
                     value={filters.sort}
                     onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortKey }))}
                     className="w-full text-[13px]"
                     style={selectStyle}
                   >
-                    <option value="new">Сначала новые</option>
-                    <option value="old">Сначала старые</option>
-                    <option value="views">По просмотрам</option>
-                    <option value="price">По цене</option>
+                    <option value="new">{t("ads.sortNew")}</option>
+                    <option value="old">{t("ads.sortOld")}</option>
+                    <option value="views">{t("ads.sortViews")}</option>
+                    <option value="price">{t("ads.sortPrice")}</option>
                   </select>
                 </FilterField>
               </div>
@@ -354,22 +354,22 @@ function MyAdsPage() {
               className="flex flex-wrap items-center justify-between gap-[12px] px-[16px] py-[12px]"
               style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", borderRadius: "var(--r-card-sm)" }}
             >
-              <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>Выбрано: {selected.size}</span>
+              <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>{t("ads.selectedCount", { n: selected.size })}</span>
               <div className="flex items-center gap-[8px]">
                 <button type="button" onClick={archiveSelected}
                   className="inline-flex items-center px-[14px] text-[13px] font-semibold"
                   style={{ background: "var(--background)", border: "1px solid var(--border-strong)", color: "var(--foreground)", borderRadius: "var(--r-button)", height: 34 }}>
-                  Архивировать
+                  {t("ads.archiveSelected")}
                 </button>
                 <button type="button" onClick={deleteSelected}
                   className="inline-flex items-center px-[14px] text-[13px] font-semibold"
                   style={{ background: "var(--error)", color: "#fff", borderRadius: "var(--r-button)", height: 34 }}>
-                  Удалить
+                  {t("ads.deleteSelected")}
                 </button>
                 <button type="button" onClick={clearSelection}
                   className="grid h-[34px] w-[34px] place-items-center"
                   style={{ background: "transparent", color: "var(--foreground-50)", borderRadius: "var(--r-pill)" }}
-                  aria-label="Отменить выбор">
+                  aria-label={t("ads.cancelSelection")}>
                   <X size={16} />
                 </button>
               </div>
@@ -409,7 +409,7 @@ function MyAdsPage() {
       <button
         type="button"
         onClick={handleCreate}
-        aria-label="Разместить объявление"
+        aria-label={t("ads.createAd")}
         className="fixed right-[20px] bottom-[20px] z-30 grid h-[56px] w-[56px] place-items-center md:hidden"
         style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-glow-accent), var(--shadow-float)" }}
       >
@@ -468,14 +468,15 @@ function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label
 }
 
 function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: () => void; dirty: boolean; onReset: () => void }) {
-  const config: Record<TabKey, { title: string; desc: string }> = {
-    active:       { title: "Нет активных объявлений",      desc: "Создайте первое — это бесплатно и занимает 2 минуты." },
-    moderation:   { title: "Нет объявлений на модерации",  desc: "Здесь появятся объявления, которые проверяет модератор." },
-    rejected:     { title: "Нет объявлений с ошибками",    desc: "Объявления, отклонённые модерацией, будут здесь." },
-    unpublished:  { title: "Нет неопубликованных",         desc: "Объявления, готовые к публикации, появятся здесь." },
-    archived:     { title: "Архив пуст",                   desc: "Архивированные объявления можно вернуть в любой момент." },
-    deleted:      { title: "Удалённых объявлений нет",     desc: "Удалённые объявления хранятся 30 дней." },
-    draft:        { title: "Нет черновиков",               desc: "Незаконченные объявления автоматически сохраняются как черновики." },
+  const { t } = useTranslation();
+  const config: Record<TabKey, { titleKey: string; descKey: string }> = {
+    active:       { titleKey: "ads.emptyActiveTitle",      descKey: "ads.emptyActiveDesc" },
+    moderation:   { titleKey: "ads.emptyModerationTitle",  descKey: "ads.emptyModerationDesc" },
+    rejected:     { titleKey: "ads.emptyRejectedTitle",    descKey: "ads.emptyRejectedDesc" },
+    unpublished:  { titleKey: "ads.emptyUnpublishedTitle", descKey: "ads.emptyUnpublishedDesc" },
+    archived:     { titleKey: "ads.emptyArchivedTitle",    descKey: "ads.emptyArchivedDesc" },
+    deleted:      { titleKey: "ads.emptyDeletedTitle",     descKey: "ads.emptyDeletedDesc" },
+    draft:        { titleKey: "ads.emptyDraftTitle",       descKey: "ads.emptyDraftDesc" },
   };
   const c = config[tab];
   return (
@@ -490,8 +491,8 @@ function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: ()
         <Inbox size={26} />
       </div>
       <div>
-        <h3 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>{c.title}</h3>
-        <p className="mt-[6px] text-[14px]" style={{ color: "var(--foreground-70)" }}>{c.desc}</p>
+        <h3 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>{t(c.titleKey)}</h3>
+        <p className="mt-[6px] text-[14px]" style={{ color: "var(--foreground-70)" }}>{t(c.descKey)}</p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-[8px]">
         {dirty && (
@@ -501,7 +502,7 @@ function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: ()
             className="inline-flex items-center gap-[6px] px-[14px] text-[13px] font-semibold"
             style={{ background: "transparent", border: "1px solid var(--border-strong)", color: "var(--foreground-70)", borderRadius: "var(--r-button)", height: 38 }}
           >
-            <RotateCcw size={13} /> Сбросить фильтры
+            <RotateCcw size={13} /> {t("ads.resetFiltersBtn")}
           </button>
         )}
         {tab === "active" && (
@@ -511,7 +512,7 @@ function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: ()
             className="inline-flex items-center gap-[8px] px-[20px] text-[14px] font-semibold"
             style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)", height: 42 }}
           >
-            <Plus size={16} /> Разместить объявление
+            <Plus size={16} /> {t("ads.createAd")}
           </button>
         )}
       </div>

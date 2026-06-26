@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import {
 } from "@/lib/referral";
 
 export function InviteBlock() {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   // Initial render (SSR + first client paint) uses the stable canonical link
   // so hydration matches. The actual origin-derived link replaces it on mount.
@@ -23,10 +25,10 @@ export function InviteBlock() {
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
-      toast.success("Ссылка скопирована");
+      toast.success(t("post.linkCopied"));
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error("Не удалось скопировать");
+      toast.error(t("common.copyFailed"));
     }
   };
 
@@ -34,8 +36,8 @@ export function InviteBlock() {
     if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (d: ShareData) => Promise<void> }).share) {
       try {
         await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({
-          title: "МоДелизМ Клуб",
-          text: "Присоединяйся к клубу моделистов",
+          title: t("referral.shareTitle"),
+          text: t("referral.shareText"),
           url: link,
         });
       } catch {
@@ -71,11 +73,9 @@ export function InviteBlock() {
               fontSize: 18,
               color: "var(--foreground)",
             }}
-          >
-            Пригласи друга
-          </h3>
+          >{t("referral.inviteTitle")}</h3>
           <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-            +{REFERRAL_BONUS_PER_INVITE} бесплатное объявление за каждого друга, который зарегистрируется. Максимум — {REFERRAL_MAX_BONUS} объявлений.
+            {t("referral.bonusDesc", { perInvite: REFERRAL_BONUS_PER_INVITE, max: REFERRAL_MAX_BONUS })}
           </p>
         </div>
       </div>
@@ -109,22 +109,22 @@ export function InviteBlock() {
           }}
         >
           {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? "Скопировано" : "Скопировать"}
+          {copied ? t("referral.copied") : t("referral.copy")}
         </button>
       </div>
 
       <div className="mt-[14px] flex flex-wrap items-center justify-between gap-[10px]">
         <div className="flex items-center gap-[12px] text-[13px]">
           <span style={{ color: "var(--foreground-50)" }}>
-            Приглашено: <b style={{ color: "var(--foreground)" }}>{invited.length}</b>
+            {t("referral.invitedCount")} <b style={{ color: "var(--foreground)" }}>{invited.length}</b>
           </span>
           <span style={{ color: "var(--foreground-50)" }}>
-            Бонус: <b style={{ color: "var(--accent)" }}>+{bonus}</b> объявлений
+            {t("referral.bonusCount")} <b style={{ color: "var(--accent)" }}>+{bonus}</b> {t("referral.bonusAds")}
           </span>
           {remaining > 0 ? (
-            <span style={{ color: "var(--foreground-50)" }}>Осталось: {remaining}</span>
+            <span style={{ color: "var(--foreground-50)" }}>{t("referral.remainingBonus", { n: remaining })}</span>
           ) : (
-            <span style={{ color: "var(--success)", fontWeight: 600 }}>Лимит достигнут</span>
+            <span style={{ color: "var(--success)", fontWeight: 600 }}>{t("referral.limitReached")}</span>
           )}
         </div>
         <button
@@ -141,8 +141,7 @@ export function InviteBlock() {
             borderRadius: "var(--r-button)",
           }}
         >
-          <Share2 size={14} /> Поделиться
-        </button>
+          <Share2 size={14} />{t("post.menuShare")}</button>
       </div>
     </section>
   );

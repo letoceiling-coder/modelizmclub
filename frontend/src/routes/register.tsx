@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,11 +10,12 @@ export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>) => ({
     ref: typeof s.ref === "string" ? s.ref : undefined,
   }),
-  head: () => ({ meta: [{ title: "Регистрация — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("auth.registerMetaTitle") }] }),
   component: RegisterPage,
 });
 
 function RegisterPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const { ref } = useSearch({ from: "/register" });
   const inviter = getInviterByCode(ref);
@@ -21,23 +23,21 @@ function RegisterPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agree) return toast.error("Подтвердите согласие с правилами");
+    if (!agree) return toast.error(t("auth.agreeError"));
     toast.success(
-      inviter ? `Аккаунт создан. Приглашён ${inviter.name}` : "Аккаунт создан (демо)",
+      inviter ? t("auth.accountCreatedInvited", { name: inviter.name }) : t("auth.accountCreated"),
     );
     nav({ to: "/onboarding" });
   };
 
   return (
     <AuthShell
-      title="Создать аккаунт"
-      subtitle="Несколько секунд — и вы внутри сообщества"
+      title={t("auth.submitRegister")}
+      subtitle={t("auth.registerSubtitle")}
       footer={
         <>
-          Уже есть аккаунт?{" "}
-          <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Войти
-          </Link>
+          {t("auth.hasAccount")}{" "}
+          <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>{t("index.heroLogin")}</Link>
         </>
       }
     >
@@ -54,33 +54,30 @@ function RegisterPage() {
           <img src={inviter.avatar} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-[6px]" style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
-              <UserPlus size={12} /> Приглашён {inviter.name}
+              <UserPlus size={12} /> {t("auth.invited", { name: inviter.name })}
             </div>
             <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>
-              Вы и {inviter.name.split(" ")[0]} получите по бонусному объявлению
+              {t("auth.bonusNote", { name: inviter.name.split(" ")[0] })}
             </div>
           </div>
         </div>
       )}
       <form onSubmit={submit} className="space-y-[12px]">
-        <input required placeholder="Имя и фамилия" style={inputStyle} />
+        <input required placeholder={t("auth.namePlaceholder")} style={inputStyle} />
         <input required type="email" placeholder="Email" style={inputStyle} />
-        <input required type="password" placeholder="Пароль (от 8 символов)" minLength={8} style={inputStyle} />
+        <input required type="password" placeholder={t("auth.passwordMinPlaceholder")} minLength={8} style={inputStyle} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
-            Я принимаю{" "}
-            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>правила сообщества</Link> и{" "}
-            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>политику</Link> обработки данных
-          </span>
+            {t("auth.agreePrefix")}{" "}
+            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>{t("auth.rulesLink")}</Link> {t("auth.and")}{" "}
+            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>{t("auth.privacyLink")}</Link>{t("auth.privacySuffix")}</span>
         </label>
-        <button type="submit" style={{ ...primaryBtn, marginTop: 16 }}>
-          Создать аккаунт
-        </button>
+        <button type="submit" style={{ ...primaryBtn, marginTop: 16 }}>{t("auth.submitRegister")}</button>
       </form>
       <div className="mt-[24px] flex items-center gap-[12px]" style={{ color: "var(--foreground-50)", fontSize: "var(--fs-xs)" }}>
         <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        ИЛИ
+        {t("common.or")}
         <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
       </div>
       <div className="mt-[16px] grid grid-cols-2 gap-[8px]">

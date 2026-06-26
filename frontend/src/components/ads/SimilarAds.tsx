@@ -1,14 +1,14 @@
+import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import type { Ad } from "@/lib/mock";
 import { MapPin } from "lucide-react";
 
 export function SimilarAds({ items }: { items: Ad[] }) {
+  const { t } = useTranslation();
   if (items.length === 0) return null;
   return (
     <section className="space-y-[16px]">
-      <h2 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-        Похожие объявления
-      </h2>
+      <h2 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("ads.similarTitle")}</h2>
       <div
         className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0"
         style={{ scrollbarWidth: "thin" }}

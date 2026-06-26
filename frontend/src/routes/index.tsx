@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,14 +15,15 @@ const VIDEO_URL = "";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "МоДелизМ Форум — сообщество моделистов" },
-      { name: "description", content: "Социальная платформа для RC-моделистов: лента, чаты по категориям, объявления и сообщества." },
+      { title: tStatic("root.metaTitle") },
+      { name: "description", content: tStatic("index.metaDescription") },
     ],
   }),
   component: WelcomePage,
 });
 
 function WelcomePage() {
+  const { t } = useTranslation();
   return (
     <div className="relative w-full" style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
       <ZeroBlock />
@@ -38,6 +40,7 @@ function WelcomePage() {
 /* ===================== ZeroBlock (DO NOT REDESIGN) ===================== */
 
 function ZeroBlock() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
@@ -85,7 +88,7 @@ function ZeroBlock() {
       <div className="absolute inset-0 z-0">
         {videoError ? (
           <>
-            <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
+            <img src={cover} alt={t("index.coverAlt")} className="h-full w-full object-cover" />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(26,26,30,0.55) 0%, rgba(26,26,30,0.75) 60%, var(--bg-primary) 100%)" }} />
           </>
         ) : (
@@ -123,7 +126,7 @@ function ZeroBlock() {
         <div className="absolute bottom-[24px] right-[24px] z-20 hidden sm:flex gap-[8px]">
           <button
             onClick={togglePlay}
-            aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
+            aria-label={isPlaying ? t("index.pause") : t("index.play")}
             className="grid place-items-center"
             style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", backdropFilter: "blur(8px)" }}
           >
@@ -131,7 +134,7 @@ function ZeroBlock() {
           </button>
           <button
             onClick={toggleMute}
-            aria-label={isMuted ? "Включить звук" : "Выключить звук"}
+            aria-label={isMuted ? t("index.unmute") : t("index.mute")}
             className="grid place-items-center"
             style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", backdropFilter: "blur(8px)" }}
           >
@@ -166,9 +169,7 @@ function ZeroBlock() {
                   fontWeight: 600,
                 }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: 999, background: "#ef5350" }} />
-                Сообщество моделистов
-              </motion.div>
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: "#ef5350" }} />{t("index.heroBadge")}</motion.div>
 
               <motion.h1
                 variants={fadeUp}
@@ -185,7 +186,7 @@ function ZeroBlock() {
               >
                 МоДелизМ
                 <br />
-                <span style={{ color: "#e53935" }}>Форум</span>
+                <span style={{ color: "#e53935" }}>{t("common.forum")}</span>
               </motion.h1>
 
               <motion.p
@@ -199,7 +200,7 @@ function ZeroBlock() {
                   textShadow: "0 2px 12px rgba(0,0,0,0.4)",
                 }}
               >
-                Всё для моделиста в одном месте. Лента, чаты, объявления, сообщество.
+                {t("index.heroSubtitle")}
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-[40px] flex flex-col sm:flex-row items-stretch sm:items-center gap-[12px] w-full sm:w-auto">
@@ -221,9 +222,7 @@ function ZeroBlock() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
-                  <UserPlus size={18} />
-                  Создать аккаунт
-                  <ArrowRight size={18} />
+                  <UserPlus size={18} />{t("auth.submitRegister")}<ArrowRight size={18} />
                 </button>
 
                 <button
@@ -244,23 +243,21 @@ function ZeroBlock() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
-                  <LogIn size={18} />
-                  Войти
-                </button>
+                  <LogIn size={18} />{t("index.heroLogin")}</button>
               </motion.div>
 
               <motion.div variants={fadeUp} className="mt-[48px] flex items-center justify-center gap-[24px] sm:gap-[48px] flex-wrap">
                 {[
-                  { value: "5 000+", label: "моделистов" },
-                  { value: "12", label: "категорий" },
-                  { value: "24/7", label: "доступ" },
+                  { value: "5 000+", labelKey: "index.statModelers" as const },
+                  { value: "12", labelKey: "index.statCategories" as const },
+                  { value: "24/7", labelKey: "index.statAccess" as const },
                 ].map((s) => (
-                  <div key={s.label} className="flex flex-col items-center">
+                  <div key={s.labelKey} className="flex flex-col items-center">
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 32px)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.02em" }}>
                       {s.value}
                     </div>
                     <div style={{ fontSize: 12, color: "rgba(240,240,240,0.7)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4, fontFamily: "var(--font-mono)" }}>
-                      {s.label}
+                      {t(s.labelKey)}
                     </div>
                   </div>
                 ))}
@@ -278,9 +275,7 @@ function ZeroBlock() {
           className="absolute bottom-[24px] left-1/2 z-10 hidden sm:flex -translate-x-1/2 flex-col items-center gap-[6px]"
           style={{ color: "rgba(240,240,240,0.6)" }}
         >
-          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontFamily: "var(--font-mono)" }}>
-            Узнать больше
-          </span>
+          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontFamily: "var(--font-mono)" }}>{t("index.heroLearnMore")}</span>
           <motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -369,30 +364,15 @@ function BridgeDivider() {
 
 /* ===================== Block 1. Возможности ===================== */
 
-const FEATURES = [
-  {
-    icon: Newspaper,
-    title: "Лента публикаций",
-    text: "Смотрите проекты, новости, фото и видео других моделистов.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Чаты по интересам",
-    text: "Общение внутри тематических направлений и подкатегорий.",
-  },
-  {
-    icon: Megaphone,
-    title: "Доска объявлений",
-    text: "Покупка, продажа и обмен деталей, техники и самоделок.",
-  },
-  {
-    icon: Users2,
-    title: "Сообщества",
-    text: "Объединения по направлениям: RC, авиа, суда, электроника.",
-  },
-];
+const FEATURE_DEFS = [
+  { icon: Newspaper, titleKey: "index.featureFeedTitle", textKey: "index.featureFeedText" },
+  { icon: MessageSquare, titleKey: "index.featureChatTitle", textKey: "index.featureChatText" },
+  { icon: Megaphone, titleKey: "index.featureAdsTitle", textKey: "index.featureAdsText" },
+  { icon: Users2, titleKey: "index.featureCommTitle", textKey: "index.featureCommText" },
+] as const;
 
 function FeaturesSection() {
+  const { t } = useTranslation();
   return (
     <section
       id="features"
@@ -401,9 +381,9 @@ function FeaturesSection() {
     >
       <div className="mx-auto max-w-[1180px]">
         <SectionHeader
-          eyebrow="Возможности"
-          title="Что есть в МоДелизМ Форум"
-          description="Четыре инструмента, которые закрывают повседневные задачи моделиста."
+          eyebrow={t("index.featuresEyebrow")}
+          title={t("index.featuresTitle")}
+          description={t("index.featuresDesc")}
         />
 
         <motion.div
@@ -413,9 +393,9 @@ function FeaturesSection() {
           viewport={{ once: true, margin: "-60px" }}
           className="mt-[48px] grid gap-[16px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
         >
-          {FEATURES.map(({ icon: Icon, title, text }) => (
+          {FEATURE_DEFS.map(({ icon: Icon, titleKey, textKey }) => (
             <motion.div
-              key={title}
+              key={titleKey}
               variants={fadeInUp}
               whileHover={{ y: -4 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
@@ -450,13 +430,13 @@ function FeaturesSection() {
                   color: "var(--text-primary)",
                 }}
               >
-                {title}
+                {t(titleKey)}
               </h3>
               <p
                 className="mt-[8px]"
                 style={{ fontSize: 14, lineHeight: 1.55, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}
               >
-                {text}
+                {t(textKey)}
               </p>
             </motion.div>
           ))}
@@ -468,13 +448,14 @@ function FeaturesSection() {
 
 /* ===================== Block 2. Как это работает ===================== */
 
-const STEPS = [
-  { n: "01", icon: UserPlus, title: "Регистрация", text: "Аккаунт за минуту — email или соцсети." },
-  { n: "02", icon: Compass, title: "Выбор интересов", text: "Отметьте категории, которые вам близки." },
-  { n: "03", icon: MessageSquare, title: "Общение и обмен", text: "Публикуйте, обсуждайте, покупайте, продавайте." },
-];
+const STEP_DEFS = [
+  { n: "01", icon: UserPlus, titleKey: "nav.register", textKey: "index.howRegisterText" },
+  { n: "02", icon: Compass, titleKey: "index.howInterests", textKey: "index.howInterestsText" },
+  { n: "03", icon: MessageSquare, titleKey: "index.howTalk", textKey: "index.howTalkText" },
+] as const;
 
 function HowItWorksSection() {
+  const { t } = useTranslation();
   return (
     <section
       id="how"
@@ -483,9 +464,9 @@ function HowItWorksSection() {
     >
       <div className="mx-auto max-w-[1180px]">
         <SectionHeader
-          eyebrow="Как это работает"
-          title="Три шага до сообщества"
-          description="Быстрый старт — никаких лишних форм и долгой настройки."
+          eyebrow={t("index.howEyebrow")}
+          title={t("index.howTitle")}
+          description={t("index.howDesc")}
         />
 
         <motion.ol
@@ -495,7 +476,7 @@ function HowItWorksSection() {
           viewport={{ once: true, margin: "-60px" }}
           className="mt-[48px] grid gap-[16px] sm:gap-[20px] grid-cols-1 md:grid-cols-3 relative"
         >
-          {STEPS.map(({ n, icon: Icon, title, text }, i) => (
+          {STEP_DEFS.map(({ n, icon: Icon, titleKey, textKey }, i) => (
             <motion.li
               key={n}
               variants={fadeInUp}
@@ -516,7 +497,7 @@ function HowItWorksSection() {
                     fontWeight: 700,
                   }}
                 >
-                  Шаг {n}
+                  {t("index.howStep", { n })}
                 </span>
                 <div
                   className="grid place-items-center"
@@ -540,15 +521,15 @@ function HowItWorksSection() {
                   color: "var(--text-primary)",
                 }}
               >
-                {title}
+                {t(titleKey)}
               </h3>
               <p
                 className="mt-[8px]"
                 style={{ fontSize: 14, lineHeight: 1.55, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}
               >
-                {text}
+                {t(textKey)}
               </p>
-              {i < STEPS.length - 1 && (
+              {i < STEP_DEFS.length - 1 && (
                 <div
                   aria-hidden
                   className="hidden md:block absolute top-1/2 -right-[10px] -translate-y-1/2"
@@ -568,34 +549,32 @@ function HowItWorksSection() {
 
 /* ===================== Block 3. Тарифы ===================== */
 
-const PLANS = [
+const PLAN_DEFS = [
   {
-    name: "Старт",
+    nameKey: "index.planStart" as const,
     price: "0 ₽",
-    period: "пробный период",
-    features: ["Лента и чаты", "Подписка на 7 дней", "До 3 объявлений"],
-    cta: "Подробнее",
+    periodKey: "index.periodTrial" as const,
+    featureKeys: ["index.planStartF1", "index.planStartF2", "index.planStartF3"] as const,
     accent: false,
   },
   {
-    name: "Месяц",
-    price: "от 99 ₽",
-    period: "в месяц",
-    features: ["Все возможности", "Без ограничений на публикации", "Размещение объявлений"],
-    cta: "Подробнее",
+    nameKey: "index.planMonth" as const,
+    priceKey: "index.priceFrom99" as const,
+    periodKey: "index.periodMonth" as const,
+    featureKeys: ["index.planMonthF1", "index.planMonthF2", "index.planMonthF3"] as const,
     accent: true,
   },
   {
-    name: "Год",
-    price: "от 990 ₽",
-    period: "в год · выгодно",
-    features: ["Экономия до 30%", "Все возможности годом", "Приоритетная поддержка"],
-    cta: "Подробнее",
+    nameKey: "index.planYear" as const,
+    priceKey: "index.priceFrom990" as const,
+    periodKey: "index.periodYear" as const,
+    featureKeys: ["index.planYearF1", "index.planYearF2", "index.planYearF3"] as const,
     accent: false,
   },
 ];
 
 function PricingSection() {
+  const { t } = useTranslation();
   return (
     <section
       id="pricing"
@@ -604,9 +583,9 @@ function PricingSection() {
     >
       <div className="mx-auto max-w-[1100px]">
         <SectionHeader
-          eyebrow="Тарифы"
-          title="Простая подписка"
-          description="Базовые возможности доступны бесплатно. Подписка снимает ограничения."
+          eyebrow={t("index.pricingEyebrow")}
+          title={t("index.pricingTitle")}
+          description={t("index.pricingDesc")}
         />
 
         <motion.div
@@ -616,9 +595,9 @@ function PricingSection() {
           viewport={{ once: true, margin: "-60px" }}
           className="mt-[48px] grid gap-[16px] grid-cols-1 md:grid-cols-3"
         >
-          {PLANS.map((p) => (
+          {PLAN_DEFS.map((p) => (
             <motion.div
-              key={p.name}
+              key={p.nameKey}
               variants={fadeInUp}
               whileHover={{ y: -4 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
@@ -648,7 +627,7 @@ function PricingSection() {
                     fontWeight: 700, textTransform: "uppercase",
                   }}
                 >
-                  Рекомендуем
+                  {t("index.pricingRecommended")}
                 </span>
               )}
               <div
@@ -658,7 +637,7 @@ function PricingSection() {
                   color: "var(--text-primary)",
                 }}
               >
-                {p.name}
+                {t(p.nameKey)}
               </div>
               <div className="mt-[12px] flex items-baseline gap-[8px]">
                 <span
@@ -669,17 +648,17 @@ function PricingSection() {
                     color: "var(--text-primary)",
                   }}
                 >
-                  {p.price}
+                  {"priceKey" in p ? t(p.priceKey) : p.price}
                 </span>
                 <span style={{ fontSize: 13, color: "var(--foreground-50, rgba(240,240,240,0.55))" }}>
-                  {p.period}
+                  {t(p.periodKey)}
                 </span>
               </div>
               <ul className="mt-[20px] space-y-[10px]">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-[10px]" style={{ fontSize: 14, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}>
+                {p.featureKeys.map((fk) => (
+                  <li key={fk} className="flex items-start gap-[10px]" style={{ fontSize: 14, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}>
                     <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
-                    <span>{f}</span>
+                    <span>{t(fk)}</span>
                   </li>
                 ))}
               </ul>
@@ -696,7 +675,7 @@ function PricingSection() {
                   fontSize: 14, fontWeight: 600,
                 }}
               >
-                {p.cta}
+                {t("index.pricingDetails")}
                 <ArrowRight size={16} />
               </Link>
             </motion.div>
@@ -709,16 +688,17 @@ function PricingSection() {
 
 /* ===================== Block 4. FAQ ===================== */
 
-const FAQ = [
-  { q: "Как зарегистрироваться?", a: "Нажмите «Создать аккаунт», введите email и пароль — этого достаточно. Можно использовать VK или Яндекс." },
-  { q: "Сколько стоит участие?", a: "Базовое использование бесплатно. Подписка от 99 ₽ в месяц снимает ограничения и открывает расширенные возможности." },
-  { q: "Как разместить объявление?", a: "После входа перейдите в раздел «Объявления» и нажмите «Создать». Заполните форму — модерация занимает до суток." },
-  { q: "Нужна ли модерация?", a: "Да. Все объявления и часть публикаций проходят проверку, чтобы лента оставалась чистой и по теме." },
-  { q: "Можно ли общаться по категориям?", a: "Да. Есть тематические чаты и сообщества: RC-авто, авиа, суда, электроника, самокаты и другие направления." },
-  { q: "Можно ли пользоваться с телефона?", a: "Да. Интерфейс адаптирован под мобильные устройства — отдельное приложение не требуется." },
-];
+const FAQ_DEFS = [
+  { qKey: "index.faqQ1", aKey: "index.faqA1" },
+  { qKey: "index.faqQ2", aKey: "index.faqA2" },
+  { qKey: "index.faqQ3", aKey: "index.faqA3" },
+  { qKey: "index.faqQ4", aKey: "index.faqA4" },
+  { qKey: "index.faqQ5", aKey: "index.faqA5" },
+  { qKey: "index.faqQ6", aKey: "index.faqA6" },
+] as const;
 
 function FaqSection() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section
@@ -728,8 +708,8 @@ function FaqSection() {
     >
       <div className="mx-auto max-w-[820px]">
         <SectionHeader
-          eyebrow="Вопросы"
-          title="Часто спрашивают"
+          eyebrow={t("index.faqEyebrow")}
+          title={t("index.faqTitle")}
         />
 
         <motion.div
@@ -739,11 +719,11 @@ function FaqSection() {
           viewport={{ once: true, margin: "-60px" }}
           className="mt-[40px] space-y-[10px]"
         >
-          {FAQ.map((item, i) => {
+          {FAQ_DEFS.map((item, i) => {
             const isOpen = open === i;
             return (
               <motion.div
-                key={item.q}
+                key={item.qKey}
                 variants={fadeInUp}
                 style={{
                   background: "var(--bg-secondary, #1e1e22)",
@@ -759,7 +739,7 @@ function FaqSection() {
                   style={{ color: "var(--text-primary)" }}
                 >
                   <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.005em" }}>
-                    {item.q}
+                    {t(item.qKey)}
                   </span>
                   <span
                     className="grid shrink-0 place-items-center transition-transform"
@@ -788,7 +768,7 @@ function FaqSection() {
                         className="px-[20px] pb-[20px]"
                         style={{ fontSize: 14, lineHeight: 1.6, color: "var(--foreground-70, rgba(240,240,240,0.72))" }}
                       >
-                        {item.a}
+                        {t(item.aKey)}
                       </div>
                     </motion.div>
                   )}
@@ -805,6 +785,7 @@ function FaqSection() {
 /* ===================== Block 5. Футер ===================== */
 
 function FooterSection() {
+  const { t } = useTranslation();
   return (
     <footer
       className="px-[20px] pt-[56px] pb-[40px]"
@@ -821,15 +802,15 @@ function FooterSection() {
               className="mt-[12px] max-w-[420px]"
               style={{ fontSize: 13, lineHeight: 1.6, color: "var(--foreground-70, rgba(240,240,240,0.65))" }}
             >
-              Сообщество моделистов: лента, чаты по интересам, объявления и тематические сообщества.
+              {t("index.footerDesc")}
             </p>
           </div>
 
           <nav className="flex flex-wrap gap-x-[24px] gap-y-[10px] sm:justify-end">
-            <Link to="/help" style={footerLink}>Правила</Link>
-            <Link to="/help" style={footerLink}>Поддержка</Link>
-            <Link to="/help" style={footerLink}>Контакты</Link>
-            <Link to="/subscription" style={footerLink}>Подписка</Link>
+            <Link to="/legal/rules" style={footerLink}>{t("index.footerRules")}</Link>
+            <Link to="/help" style={footerLink}>{t("index.footerSupport")}</Link>
+            <Link to="/help" style={footerLink}>{t("index.footerContacts")}</Link>
+            <Link to="/subscription" style={footerLink}>{t("nav.subscription")}</Link>
           </nav>
         </div>
 
@@ -838,7 +819,7 @@ function FooterSection() {
           style={{ borderTop: "1px solid var(--border, rgba(255,255,255,0.06))" }}
         >
           <span style={{ fontSize: 12, color: "var(--foreground-50, rgba(240,240,240,0.5))" }}>
-            © {new Date().getFullYear()} МоДелизМ Форум. Сделано для моделистов.
+            {t("index.footerCopyright", { year: new Date().getFullYear() })}
           </span>
           <span
             style={{
@@ -848,9 +829,7 @@ function FooterSection() {
               textTransform: "uppercase",
               color: "var(--foreground-50, rgba(240,240,240,0.45))",
             }}
-          >
-            Моделизм — это жизнь
-          </span>
+          >{t("index.footerMotto")}</span>
         </div>
       </div>
     </footer>

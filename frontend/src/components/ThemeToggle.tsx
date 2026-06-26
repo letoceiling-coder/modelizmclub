@@ -1,16 +1,18 @@
+import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
 export function ThemeToggle({ size = 40 }: { size?: number }) {
+  const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
 
   return (
     <button
       onClick={toggleTheme}
-      aria-label="Переключить тему"
-      title="Переключить тему"
+      aria-label={t("common.themeToggle")}
+      title={t("common.themeToggle")}
       style={{
         width: size,
         height: size,

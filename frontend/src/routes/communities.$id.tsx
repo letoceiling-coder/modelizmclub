@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -12,7 +13,10 @@ import { ShareSheet } from "@/components/communities/ShareSheet";
 import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
 
 export const Route = createFileRoute("/communities/$id")({
-  head: ({ params }) => ({ meta: [{ title: `${communityById(params.id)?.name ?? "Сообщество"} — МоДелизМ Форум` }] }),
+  head: ({ params }) => {
+    const name = communityById(params.id)?.name ?? tStatic("communities.metaFallback");
+    return { meta: [{ title: tStatic("communities.metaTitle", { name }) }] };
+  },
   component: CommunityDetailPage,
 });
 
@@ -36,17 +40,18 @@ function siteLabel(url: string): string {
 }
 
 function ContactsBlock({ contacts }: { contacts?: CommunityContacts }) {
+  const { t } = useTranslation();
   if (!contacts) return null;
   const rows: { icon: typeof Globe; label: string; value: string; href: string; external?: boolean }[] = [];
-  if (contacts.website) rows.push({ icon: Globe, label: "Сайт", value: siteLabel(contacts.website), href: contacts.website, external: true });
-  if (contacts.phone) rows.push({ icon: Phone, label: "Телефон", value: contacts.phone, href: `tel:${contacts.phone.replace(/\s/g, "")}` });
+  if (contacts.website) rows.push({ icon: Globe, label: t("communities.contactWebsite"), value: siteLabel(contacts.website), href: contacts.website, external: true });
+  if (contacts.phone) rows.push({ icon: Phone, label: t("communities.contactPhone"), value: contacts.phone, href: `tel:${contacts.phone.replace(/\s/g, "")}` });
   if (contacts.telegram) rows.push({ icon: MessageCircle, label: "Telegram", value: tgLabel(contacts.telegram), href: tgLink(contacts.telegram), external: true });
   if (rows.length === 0) return null;
 
   return (
     <section className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
       <h3 className="px-[16px] pt-[16px] font-display text-[14px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)", fontSize: 12 }}>
-        Контакты
+        {t("communities.contactsTitle")}
       </h3>
       <div className="mt-[8px] flex flex-col">
         {rows.map((r, i) => (
@@ -73,6 +78,7 @@ function ContactsBlock({ contacts }: { contacts?: CommunityContacts }) {
 }
 
 function CommunityDetailPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const community = communities.find((c) => c.id === id);
   const [shareOpen, setShareOpen] = useState(false);
@@ -82,10 +88,8 @@ function CommunityDetailPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="flex flex-col items-center justify-center py-[120px] text-center">
-          <div className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>Сообщество не найдено</div>
-          <Link to="/communities" className="mt-[16px] inline-flex font-semibold items-center" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>
-            Все сообщества
-          </Link>
+          <div className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>{t("communities.notFound")}</div>
+          <Link to="/communities" className="mt-[16px] inline-flex font-semibold items-center" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>{t("communities.allCommunities")}</Link>
         </div>
       </AppLayout>
     );
@@ -135,7 +139,7 @@ function CommunityDetailPage() {
 
             <div className="mt-[12px] flex items-center gap-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
               <Users size={14} />
-              <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{community.members.toLocaleString("ru")}</span> участников</span>
+              <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{community.members.toLocaleString("ru")}</span>{t("common.participants")}</span>
             </div>
 
             <p className="mt-[12px] text-[14px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
@@ -154,8 +158,7 @@ function CommunityDetailPage() {
                     background: "var(--accent)", color: "white",
                   }}
                 >
-                  <FilePlus size={16} /> Предложить пост
-                </motion.button>
+                  <FilePlus size={16} />{t("communities.suggestPost")}</motion.button>
               )}
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -167,8 +170,7 @@ function CommunityDetailPage() {
                   border: "1px solid var(--border)",
                 }}
               >
-                <Share2 size={16} /> Поделиться
-              </motion.button>
+                <Share2 size={16} />{t("post.menuShare")}</motion.button>
             </div>
           </div>
         </div>
@@ -176,14 +178,14 @@ function CommunityDetailPage() {
         {/* Full description */}
         {community.fullDescription && (
           <section className="px-[16px] py-[20px] sm:px-[24px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
-            <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>О сообществе</h2>
+            <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("communities.about")}</h2>
             <p className="mt-[8px] text-[14px] leading-[1.65] whitespace-pre-line" style={{ color: "var(--foreground-70)" }}>
               {community.fullDescription}
             </p>
             {admin && (
               <Link to="/user/$id" params={{ id: admin.id }} className="mt-[16px] inline-flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
                 <img src={admin.avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
-                <span>Администратор: <span className="font-semibold" style={{ color: "var(--foreground)" }}>{admin.name}</span></span>
+                <span>{t("communities.adminLabel", { name: admin.name })}</span>
               </Link>
             )}
           </section>

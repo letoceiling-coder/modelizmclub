@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import { Users, Gift } from "lucide-react";
 import { userById } from "@/lib/mock";
@@ -8,6 +9,7 @@ import {
 } from "@/lib/referral";
 
 export function InvitedFriendsSection() {
+  const { t } = useTranslation();
   const invited = getInvitedFriends();
   const bonus = getReferralBonus();
 
@@ -21,9 +23,7 @@ export function InvitedFriendsSection() {
             fontSize: 16,
             color: "var(--foreground)",
           }}
-        >
-          Приглашённые друзья
-        </h3>
+        >{t("referral.invitedSection")}</h3>
         <span
           className="inline-flex items-center gap-[6px] font-semibold"
           style={{
@@ -49,7 +49,7 @@ export function InvitedFriendsSection() {
           }}
         >
           <Users size={28} style={{ color: "var(--foreground-30)" }} />
-          <p className="mt-[10px] text-[13px]">Вы пока никого не пригласили</p>
+          <p className="mt-[10px] text-[13px]">{t("referral.noInvites")}</p>
           <Link
             to="/subscription"
             className="mt-[14px] inline-flex items-center gap-[6px] font-semibold"
@@ -61,9 +61,7 @@ export function InvitedFriendsSection() {
               color: "white",
               fontSize: 13,
             }}
-          >
-            Получить ссылку
-          </Link>
+          >{t("referral.getLink")}</Link>
         </div>
       ) : (
         <ul className="mt-[12px] space-y-[8px]">
@@ -94,7 +92,7 @@ export function InvitedFriendsSection() {
                       {u.name}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--foreground-50)" }}>
-                      Присоединился {inv.joinedAt}
+                      {t("referral.joinedAt", { date: inv.joinedAt })}
                     </div>
                   </div>
                   <span

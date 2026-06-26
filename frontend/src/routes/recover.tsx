@@ -1,32 +1,32 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 
 export const Route = createFileRoute("/recover")({
-  head: () => ({ meta: [{ title: "Восстановление пароля — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("auth.recoverMetaTitle") }] }),
   component: RecoverPage,
 });
 
 function RecoverPage() {
+  const { t } = useTranslation();
   const [sent, setSent] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setSent(true);
-    toast.success("Письмо отправлено (демо)");
+    toast.success(t("auth.emailSent"));
   };
 
   return (
     <AuthShell
-      title="Восстановление пароля"
-      subtitle="Мы пришлём ссылку для сброса на ваш email"
+      title={t("auth.recoverTitle")}
+      subtitle={t("auth.recoverSubtitle")}
       footer={
         <>
-          Вспомнили пароль?{" "}
-          <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Вернуться ко входу
-          </Link>
+          {t("auth.remembered")}{" "}
+          <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>{t("auth.backToLogin")}</Link>
         </>
       }
     >
@@ -40,15 +40,11 @@ function RecoverPage() {
             borderRadius: "var(--r-card-sm)",
             fontSize: "var(--fs-sm)",
           }}
-        >
-          Если такой email зарегистрирован — письмо со ссылкой уже у вас в почте. Проверьте папку «Спам».
-        </div>
+        >{t("auth.emailSentNote")}</div>
       ) : (
         <form onSubmit={submit} className="space-y-[12px]">
-          <input required type="email" placeholder="Ваш email" style={inputStyle} />
-          <button type="submit" style={{ ...primaryBtn, marginTop: 8 }}>
-            Отправить ссылку
-          </button>
+          <input required type="email" placeholder={t("auth.emailPlaceholder")} style={inputStyle} />
+          <button type="submit" style={{ ...primaryBtn, marginTop: 8 }}>{t("auth.sendLink")}</button>
         </form>
       )}
     </AuthShell>

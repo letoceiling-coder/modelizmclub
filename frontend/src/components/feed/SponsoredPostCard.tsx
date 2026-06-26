@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
@@ -14,11 +15,12 @@ interface Props {
  * «Реклама» tag and a single CTA. No carousel, no banner strip.
  */
 export function SponsoredPostCard({ banner, onDismiss }: Props) {
+  const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
   const handleCta = () => {
-    toast(`«${banner.title}» — подробности будут доступны позже`);
+    toast(t("post.detailsSoon", { title: banner.title }));
   };
 
   const handleDismiss = () => {
@@ -65,18 +67,16 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
                 borderRadius: "var(--r-pill)",
                 letterSpacing: "0.08em",
               }}
-            >
-              Реклама
-            </span>
+            >{t("post.sponsoredAd")}</span>
           </div>
           <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Промо · {banner.until}
+            {t("post.sponsoredPromo", { until: banner.until })}
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          aria-label="Скрыть"
+          aria-label={t("post.menuHide")}
           className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full transition-colors"
           style={{ color: "var(--foreground-50)" }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface-hover)")}
@@ -132,7 +132,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Рекламодатель · MODELIZM
+          {t("post.sponsoredAdvertiser")}
         </span>
         <button
           type="button"

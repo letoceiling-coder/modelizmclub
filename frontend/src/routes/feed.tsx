@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -19,8 +20,8 @@ import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 export const Route = createFileRoute("/feed")({
   head: () => ({
     meta: [
-      { title: "Лента — МоДелизМ Форум" },
-      { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
+      { title: tStatic("feed.title") },
+      { name: "description", content: tStatic("feed.metaDescription") },
     ],
   }),
   validateSearch: (search: Record<string, unknown>) => ({
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/feed")({
 const PAGE_SIZE = 6;
 
 function FeedPage() {
+  const { t } = useTranslation();
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>(mockPosts);
@@ -165,31 +167,31 @@ function FeedPage() {
             filter === "following" ? (
               <EmptyFeedState
                 icon={UserPlus}
-                title="Здесь пока пусто"
-                description="Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте."
-                ctaLabel="Найти авторов"
+                title={t("feed.emptyFollowingTitle")}
+                description={t("feed.emptyFollowingDesc")}
+                ctaLabel={t("feed.emptyFollowingCta")}
                 onCta={() => setFilter("all")}
               />
             ) : filter === "categories" && !activeCategory ? (
               <EmptyFeedState
                 icon={Compass}
-                title="Выберите категорию"
-                description="Отфильтруйте ленту по интересующему вас направлению моделизма."
+                title={t("feed.emptyCategoryTitle")}
+                description={t("feed.emptyCategoryDesc")}
               />
             ) : filter === "saved" ? (
               <EmptyFeedState
                 icon={Bookmark}
-                title="Нет сохранённых публикаций"
-                description="Нажмите на иконку закладки у понравившейся публикации."
-                ctaLabel="Вернуться в ленту"
+                title={t("feed.emptySavedTitle")}
+                description={t("feed.emptySavedDesc")}
+                ctaLabel={t("feed.emptySavedCta")}
                 onCta={() => setFilter("all")}
               />
             ) : (
               <EmptyFeedState
                 icon={Newspaper}
-                title="Публикаций не найдено"
-                description="В этой категории пока никто ничего не опубликовал."
-                ctaLabel="Показать все"
+                title={t("feed.emptyDefaultTitle")}
+                description={t("feed.emptyDefaultDesc")}
+                ctaLabel={t("feed.emptyDefaultCta")}
                 onCta={() => {
                   setFilter("all");
                   setActiveCategory(null);
@@ -223,16 +225,12 @@ function FeedPage() {
               >
                 <Loader2 className="h-[20px] w-[20px]" style={{ color: "var(--accent)" }} />
               </motion.div>
-              <span className="ml-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                Загружаем ещё…
-              </span>
+              <span className="ml-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("feed.loadMore")}</span>
             </div>
           )}
 
           {!initialLoading && slice.length > 0 && visible >= filtered.length && (
-            <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Вы посмотрели всю ленту
-            </p>
+            <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("feed.endReached")}</p>
           )}
         </div>
       </div>

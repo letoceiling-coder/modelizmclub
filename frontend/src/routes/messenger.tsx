@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -21,7 +22,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/messenger")({
-  head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("messenger.metaTitle") }] }),
   validateSearch: (search: Record<string, unknown>) => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
   }),
@@ -35,6 +36,7 @@ const pulse = {
 };
 
 function DialogListSkeleton() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col">
       {Array.from({ length: 5 }).map((_, i) => (
@@ -87,6 +89,7 @@ function MessageBubble({
 }: {
   msg: Message; prev?: Message; allMessages: Message[]; onReply: (m: Message) => void;
 }) {
+  const { t } = useTranslation();
   const isMe = msg.authorId === me.id;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
@@ -112,7 +115,7 @@ function MessageBubble({
             onClick={() => onReply(msg)}
             className="absolute -right-[36px] top-1/2 -translate-y-1/2 grid h-[28px] w-[28px] place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
-            aria-label="Ответить"
+            aria-label={t("categories.reply")}
           >
             <CornerUpLeft size={14} />
           </button>
@@ -133,7 +136,7 @@ function MessageBubble({
                 color: isMe ? "rgba(255,255,255,0.85)" : "var(--foreground-50)",
               }}
             >
-              <div className="font-semibold">{reply.authorId === me.id ? "Вы" : replyAuthor?.name}</div>
+              <div className="font-semibold">{reply.authorId === me.id ? t("common.you") : replyAuthor?.name}</div>
               <div className="truncate">{reply.text}</div>
             </div>
           )}
@@ -165,6 +168,7 @@ function MessageBubble({
 }
 
 function MessengerPage() {
+  const { t } = useTranslation();
   const dlgs = useStore(selectors.dialogsList);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const { chat } = Route.useSearch();
@@ -236,7 +240,7 @@ function MessengerPage() {
     setMobileView("chat");
     setShowArchived(false);
     actions.markRead(id);
-    toast.success("Чат открыт", { description: "Можете начать переписку прямо сейчас" });
+    toast.success(t("messenger.chatOpened"), { description: t("messenger.chatOpenedDesc") });
   };
 
 
@@ -255,7 +259,7 @@ function MessengerPage() {
   const send = () => {
     if (!text.trim() || !active) return;
     if (getMeta(active.id).blocked) {
-      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      toast.error(t("messenger.userBlocked"), { description: t("messenger.userBlockedDesc") });
       return;
     }
     const m: Message = {
@@ -274,7 +278,7 @@ function MessengerPage() {
   const sendVoice = (durationSec: number) => {
     if (!active) return;
     if (getMeta(active.id).blocked) {
-      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      toast.error(t("messenger.userBlocked"), { description: t("messenger.userBlockedDesc") });
       return;
     }
     const seed = Date.now();
@@ -294,7 +298,7 @@ function MessengerPage() {
     };
     actions.addMessage(active.id, m);
     setReplyTo(null);
-    toast.success("Голосовое отправлено");
+    toast.success(t("messenger.voiceSent"));
   };
 
 
@@ -322,7 +326,7 @@ function MessengerPage() {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Поиск диалога"
+                  placeholder={t("messenger.searchDialog")}
                   className="w-full text-[14px] outline-none"
                   style={{
                     height: 40,
@@ -340,8 +344,8 @@ function MessengerPage() {
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}
-                aria-label="Новый чат"
-                title="Новый чат"
+                aria-label={t("messenger.newChat")}
+                title={t("messenger.newChat")}
                 className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[10px]"
                 style={{ background: "var(--accent)", color: "white" }}
               >
@@ -350,25 +354,25 @@ function MessengerPage() {
             </div>
             <div className="flex items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {([
-                { key: "chats-active" as const, label: "Активные" },
-                { key: "channels" as const, label: "Каналы" },
-                { key: "chats-archive" as const, label: `Архив${archivedCount ? ` · ${archivedCount}` : ""}` },
-                { key: "calls" as const, label: "Звонки" },
-              ]).map((t) => {
+                { key: "chats-active" as const, label: t("messenger.tabActive") },
+                { key: "channels" as const, label: t("messenger.tabChannels") },
+                { key: "chats-archive" as const, label: `${t("messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}` },
+                { key: "calls" as const, label: t("messenger.tabCalls") },
+              ]).map((tabItem) => {
                 const isActive =
-                  (t.key === "calls" && listTab === "calls") ||
-                  (t.key === "channels" && listTab === "channels") ||
-                  (t.key === "chats-active" && listTab === "chats" && !showArchived) ||
-                  (t.key === "chats-archive" && listTab === "chats" && showArchived);
+                  (tabItem.key === "calls" && listTab === "calls") ||
+                  (tabItem.key === "channels" && listTab === "channels") ||
+                  (tabItem.key === "chats-active" && listTab === "chats" && !showArchived) ||
+                  (tabItem.key === "chats-archive" && listTab === "chats" && showArchived);
                 return (
                   <button
-                    key={t.key}
+                    key={tabItem.key}
                     onClick={() => {
-                      if (t.key === "calls") setListTab("calls");
-                      else if (t.key === "channels") setListTab("channels");
+                      if (tabItem.key === "calls") setListTab("calls");
+                      else if (tabItem.key === "channels") setListTab("channels");
                       else {
                         setListTab("chats");
-                        setShowArchived(t.key === "chats-archive");
+                        setShowArchived(tabItem.key === "chats-archive");
                       }
                     }}
                     className="inline-flex shrink-0 items-center text-[12px] font-semibold transition-colors"
@@ -379,7 +383,7 @@ function MessengerPage() {
                       border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
                     }}
                   >
-                    {t.label}
+                    {tabItem.label}
                   </button>
                 );
               })}
@@ -475,7 +479,7 @@ function MessengerPage() {
                   onClick={() => setMobileView("list")}
                   className="grid h-[40px] w-[40px] place-items-center rounded-full md:hidden"
                   style={{ color: "var(--foreground-70)" }}
-                  aria-label="Назад"
+                  aria-label={t("common.back")}
                 >
                   <ArrowLeft size={20} />
                 </button>
@@ -487,10 +491,10 @@ function MessengerPage() {
                       {partner!.online ? (
                         <>
                           <span className="h-[8px] w-[8px] rounded-full" style={{ background: "var(--success)" }} />
-                          <span style={{ color: "var(--success)" }}>В сети</span>
+                          <span style={{ color: "var(--success)" }}>{t("messenger.online")}</span>
                         </>
                       ) : (
-                        <span style={{ color: "var(--foreground-50)" }}>Был(а) недавно</span>
+                        <span style={{ color: "var(--foreground-50)" }}>{t("messenger.recently")}</span>
                       )}
                     </div>
                   </div>
@@ -535,11 +539,11 @@ function MessengerPage() {
                         <CornerUpLeft size={14} style={{ color: "var(--accent)" }} />
                         <div className="min-w-0 flex-1 text-[12px]">
                           <div className="font-semibold" style={{ color: "var(--foreground-70)" }}>
-                            Ответ: {replyTo.authorId === me.id ? "Вы" : userById(replyTo.authorId).name}
+                            {t("messenger.replyTo", { name: replyTo.authorId === me.id ? t("common.you") : userById(replyTo.authorId).name })}
                           </div>
                           <div className="truncate" style={{ color: "var(--foreground-50)" }}>{replyTo.text}</div>
                         </div>
-                        <button onClick={() => setReplyTo(null)} className="grid h-[20px] w-[20px] place-items-center rounded-full" style={{ color: "var(--foreground-50)" }} aria-label="Отменить ответ">
+                        <button onClick={() => setReplyTo(null)} className="grid h-[20px] w-[20px] place-items-center rounded-full" style={{ color: "var(--foreground-50)" }} aria-label={t("messenger.cancelReply")}>
                           <X size={14} />
                         </button>
                       </div>
@@ -559,7 +563,7 @@ function MessengerPage() {
                     <button
                       className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
                       style={{ color: "var(--foreground-50)" }}
-                      aria-label="Прикрепить"
+                      aria-label={t("messenger.attach")}
                     >
                       <Paperclip size={18} />
                     </button>
@@ -572,7 +576,7 @@ function MessengerPage() {
                           send();
                         }
                       }}
-                      placeholder="Сообщение..."
+                      placeholder={t("messenger.messagePlaceholder")}
                       rows={1}
                       className="flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
@@ -593,7 +597,7 @@ function MessengerPage() {
                         color: "white",
                         boxShadow: "0 4px 12px -2px color-mix(in oklab, var(--accent) 50%, transparent)",
                       }}
-                      aria-label="Отправить"
+                      aria-label={t("messenger.send")}
                     >
                       <Send size={18} />
                     </motion.button>
@@ -621,8 +625,8 @@ function EmptyChat() {
       >
         <MessageSquare size={36} />
       </div>
-      <div className="mt-[16px] text-[16px]" style={{ color: "var(--foreground-50)" }}>Выберите диалог</div>
-      <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-30)" }}>или начните новый разговор</div>
+      <div className="mt-[16px] text-[16px]" style={{ color: "var(--foreground-50)" }}>{t("messenger.pickDialog")}</div>
+      <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-30)" }}>{t("messenger.orNew")}</div>
     </div>
   );
 }
@@ -636,22 +640,21 @@ function EmptyDialogs() {
       >
         <Users size={44} />
       </div>
-      <div className="mt-[16px] font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>Нет диалогов</div>
-      <div className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Начните общение в категориях или найдите друзей</div>
+      <div className="mt-[16px] font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>{t("messenger.noDialogs")}</div>
+      <div className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("messenger.noDialogsDesc")}</div>
       <Link
         to="/friends"
         className="mt-[20px] inline-flex items-center justify-center font-semibold transition-colors duration-150"
         style={{
           height: 44, padding: "0 28px", borderRadius: 999, background: "var(--accent)", color: "white", fontSize: 14,
         }}
-      >
-        Найти друзей
-      </Link>
+      >{t("messenger.findFriends")}</Link>
     </div>
   );
 }
 
 function ChannelsList({ query }: { query: string }) {
+  const { t } = useTranslation();
   const subs = useSubscriptions();
   const all = getAllChannels();
   const q = query.trim().toLowerCase();
@@ -671,7 +674,7 @@ function ChannelsList({ query }: { query: string }) {
         <div className="grid h-[80px] w-[80px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}>
           <Radio size={32} />
         </div>
-        <div className="mt-[12px] font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Каналы не найдены</div>
+        <div className="mt-[12px] font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{t("messenger.channelsNotFound")}</div>
       </div>
     );
   }
@@ -712,7 +715,7 @@ function ChannelsList({ query }: { query: string }) {
                   className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
                   style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: 999 }}
                 >
-                  <Check size={11} /> Подписан
+                  <Check size={11} /> {t("messenger.subscribedBadge")}
                 </span>
               )}
             </Link>

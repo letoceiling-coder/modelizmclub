@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -16,8 +17,8 @@ export const Route = createFileRoute("/ads/$id")({
     const ad = adById(params.id);
     return {
       meta: [
-        { title: ad ? `${ad.title} — МоДелизМ Форум` : "Объявление — МоДелизМ Форум" },
-        { name: "description", content: ad?.description?.slice(0, 160) ?? "Объявление на МоДелизМ Форум" },
+        { title: ad ? tStatic("ads.detailMetaTitle", { title: ad.title }) : tStatic("ads.detailMetaFallback") },
+        { name: "description", content: ad?.description?.slice(0, 160) ?? tStatic("ads.detailMetaDescription") },
       ],
     };
   },
@@ -29,8 +30,14 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
   "Куплю":   { bg: "var(--info-soft)",    fg: "var(--info)"    },
   "Обменяю": { bg: "var(--warning-soft)", fg: "var(--warning)" },
 };
+const STATUS_I18N: Record<string, string> = {
+  "Продаю": "ads.statusSell",
+  "Куплю": "ads.statusBuy",
+  "Обменяю": "ads.statusSwap",
+};
 
 function AdDetailPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const ad = adById(id);
   const navigate = useNavigate();
@@ -41,10 +48,10 @@ function AdDetailPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="grid place-items-center py-[80px] text-center">
-          <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>Объявление не найдено</h1>
+          <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>{t("ads.detailNotFound")}</h1>
           <button onClick={() => navigate({ to: "/ads" })} className="mt-[16px] px-[20px] py-[10px]"
             style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)" }}>
-            К списку
+            {t("ads.backToListShort")}
           </button>
         </div>
       </AppLayout>
@@ -59,7 +66,7 @@ function AdDetailPage() {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try { await (navigator as Navigator).share({ title: ad.title, url: window.location.href }); return; } catch {}
     }
-    toast.success("Ссылка скопирована");
+    toast.success(t("post.linkCopied"));
   };
 
   return (
@@ -68,8 +75,7 @@ function AdDetailPage() {
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
           <Link to="/ads" className="inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]">
-            <ChevronLeft size={14} /> Объявления
-          </Link>
+            <ChevronLeft size={14} />{t("nav.ads")}</Link>
           <span>/</span>
           <span style={{ color: "var(--foreground-70)" }}>{ad.category}</span>
           <span>/</span>
@@ -97,7 +103,7 @@ function AdDetailPage() {
                 className="inline-flex w-fit items-center gap-[6px] px-[10px] py-[5px] text-[11px] font-semibold uppercase tracking-wider"
                 style={{ background: status.bg, color: status.fg, borderRadius: "var(--r-pill)" }}
               >
-                <Tag size={11} /> {ad.status}
+                <Tag size={11} /> {STATUS_I18N[ad.status] ? t(STATUS_I18N[ad.status]) : ad.status}
               </span>
 
               <h1 className="font-display text-[24px] font-bold leading-[1.2]"
@@ -114,7 +120,7 @@ function AdDetailPage() {
                 <span className="inline-flex items-center gap-[6px]"><MapPin size={14} />{ad.city}</span>
                 <span className="inline-flex items-center gap-[6px]"><Eye size={14} />{ad.views ?? 0}</span>
                 <span className="inline-flex items-center gap-[6px]"><Heart size={14} />{ad.likes ?? 0}</span>
-                <span className="inline-flex items-center gap-[6px]"><Clock size={14} />{ad.createdAt ?? "недавно"}</span>
+                <span className="inline-flex items-center gap-[6px]"><Clock size={14} />{ad.createdAt ?? t("ads.recently")}</span>
               </div>
 
               <div className="flex flex-col gap-[8px]">
@@ -124,12 +130,12 @@ function AdDetailPage() {
                   className="inline-flex items-center justify-center gap-[8px] py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
                   style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)" }}
                 >
-                  <Phone size={16} /> {showContact ? ad.contact : "Показать контакт"}
+                  <Phone size={16} /> {showContact ? ad.contact : t("ads.showContact")}
                 </button>
                 <div className="grid grid-cols-2 gap-[8px]">
                   <button
                     type="button"
-                    onClick={() => { setSaved((v) => !v); toast.success(saved ? "Убрано из избранного" : "В избранное"); }}
+                    onClick={() => { setSaved((v) => !v); toast.success(saved ? t("ads.unsaved") : t("ads.saved")); }}
                     className="inline-flex items-center justify-center gap-[6px] py-[10px] text-[13px] font-medium transition-colors"
                     style={{
                       background: saved ? "var(--accent-soft)" : "transparent",
@@ -138,7 +144,7 @@ function AdDetailPage() {
                       borderRadius: "var(--r-button)",
                     }}
                   >
-                    <Bookmark size={14} fill={saved ? "currentColor" : "none"} /> В избранное
+                    <Bookmark size={14} fill={saved ? "currentColor" : "none"} /> {t("ads.saved")}
                   </button>
                   <button
                     type="button"
@@ -151,8 +157,7 @@ function AdDetailPage() {
                       borderRadius: "var(--r-button)",
                     }}
                   >
-                    <Share2 size={14} /> Поделиться
-                  </button>
+                    <Share2 size={14} />{t("post.menuShare")}</button>
                 </div>
               </div>
 
@@ -161,7 +166,7 @@ function AdDetailPage() {
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}
               >
                 <ShieldCheck size={14} style={{ color: "var(--success)" }} />
-                Безопасная сделка: оплата при получении или через эскроу.
+                {t("ads.safeDeal")}
               </div>
             </div>
           </div>
@@ -178,16 +183,16 @@ function AdDetailPage() {
           }}
         >
           <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            Описание
+            {t("ads.sectionDescription")}
           </h2>
           <p className="mt-[12px] whitespace-pre-line text-[14px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
-            {ad.description ?? "Описание отсутствует."}
+            {ad.description ?? t("ads.noDescription")}
           </p>
 
           <div className="mt-[20px] grid gap-[12px] sm:grid-cols-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 20 }}>
-            <Spec label="Категория" value={`${ad.category} · ${ad.subcategory}`} />
-            <Spec label="Состояние" value={ad.condition ?? "—"} />
-            <Spec label="Город" value={ad.city} />
+            <Spec label={t("ads.specCategory")} value={`${ad.category} · ${ad.subcategory}`} />
+            <Spec label={t("ads.specCondition")} value={ad.condition ?? "—"} />
+            <Spec label={t("ads.specCity")} value={ad.city} />
           </div>
         </section>
 
@@ -202,7 +207,7 @@ function AdDetailPage() {
           }}
         >
           <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            Доставка
+            {t("ads.sectionDelivery")}
           </h2>
           <div className="mt-[12px] flex flex-wrap gap-[8px]">
             {ad.delivery.map((d) => (
@@ -226,7 +231,7 @@ function AdDetailPage() {
         {ad.seller && (
           <section className="space-y-[12px]">
             <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Продавец
+              {t("ads.sectionSeller")}
             </h2>
             <SellerCard seller={ad.seller} />
           </section>

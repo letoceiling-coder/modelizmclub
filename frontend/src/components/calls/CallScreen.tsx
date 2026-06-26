@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, MicOff, Video } from "lucide-react";
@@ -5,14 +6,15 @@ import { toast } from "sonner";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
 import { userById } from "@/lib/mock";
 
-const STATUS_LABEL: Record<CallStatus, string> = {
-  ringing: "Вызов...",
-  connecting: "Соединение...",
-  connected: "В разговоре",
-  ended: "Звонок завершён",
+const STATUS_KEYS: Record<CallStatus, string> = {
+  ringing: "calls.statusRinging",
+  connecting: "calls.statusConnecting",
+  connected: "calls.statusConnected",
+  ended: "calls.statusEnded",
 };
 
 export function CallScreen() {
+  const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   const [elapsed, setElapsed] = useState(0);
 
@@ -33,13 +35,13 @@ export function CallScreen() {
     const unsub = onCallEvent({
       onEnded: (rec) => {
         const peer = userById(rec.peerId);
-        if (rec.result === "missed") toast.error(`Нет ответа — ${peer.name}`);
-        else if (rec.result === "answered") toast.success(`Звонок завершён · ${formatCallDuration(rec.durationSec)}`);
-        else toast(`Звонок завершён`);
+        if (rec.result === "missed") toast.error(t("calls.noAnswer", { name: peer.name }));
+        else if (rec.result === "answered") toast.success(t("calls.callEndedWith", { duration: formatCallDuration(rec.durationSec) }));
+        else toast(t("calls.callEndedShort"));
       },
     });
     return unsub;
-  }, []);
+  }, [t]);
 
   return (
     <AnimatePresence>
@@ -60,7 +62,7 @@ export function CallScreen() {
           }}
           role="dialog"
           aria-modal="true"
-          aria-label="Экран звонка"
+          aria-label={t("calls.callScreenAria")}
         >
           <CallBody elapsed={elapsed} />
           <CallControls />
@@ -71,18 +73,19 @@ export function CallScreen() {
 }
 
 function CallBody({ elapsed }: { elapsed: number }) {
+  const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   if (!active) return null;
   const peer = userById(active.peerId);
   const statusText =
     active.status === "connected"
       ? formatCallDuration(elapsed)
-      : STATUS_LABEL[active.status];
+      : t(STATUS_KEYS[active.status]);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
       <div className="text-[12px] uppercase tracking-[0.18em]" style={{ color: "var(--foreground-50)" }}>
-        {active.direction === "outgoing" ? "Исходящий" : "Входящий"}
+        {active.direction === "outgoing" ? t("calls.outgoing") : t("calls.incoming")}
       </div>
 
       <motion.div
@@ -128,16 +131,17 @@ function CallBody({ elapsed }: { elapsed: number }) {
 }
 
 function CallControls() {
+  const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   const ended = active?.status === "ended";
   return (
     <div className="flex w-full max-w-md items-center justify-center gap-6 px-6 pb-2">
-      <SecondaryBtn label="Микрофон" icon={MicOff} disabled />
+      <SecondaryBtn label={t("calls.microphone")} icon={MicOff} disabled />
       <button
         type="button"
         onClick={() => calls.end()}
         disabled={ended}
-        aria-label="Завершить звонок"
+        aria-label={t("calls.hangup")}
         className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95"
         style={{
           background: "var(--error, #ef4444)",
@@ -148,7 +152,7 @@ function CallControls() {
       >
         <PhoneOff size={28} />
       </button>
-      <SecondaryBtn label="Видео" icon={Video} disabled />
+      <SecondaryBtn label={t("calls.videoBtn")} icon={Video} disabled />
     </div>
   );
 }

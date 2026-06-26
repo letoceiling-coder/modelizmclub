@@ -20,9 +20,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(\Modules\Billing\Services\PaymentRecorder::class);
+        $this->app->singleton(\Modules\Billing\Services\PaymentFulfillmentService::class);
+        $this->app->singleton(\Modules\Billing\Clients\VtbAcquiringClient::class);
+        $this->app->singleton(\Modules\Billing\Clients\YooKassaClient::class);
+        $this->app->singleton(\Modules\Billing\Services\VtbPaymentGateway::class);
+        $this->app->singleton(\Modules\Billing\Services\YooKassaPaymentGateway::class);
+        $this->app->singleton(\Modules\Billing\Services\StubPaymentGateway::class);
+        $this->app->singleton(\Modules\Billing\Services\PaymentGatewayManager::class);
+
         $this->app->bind(
             \Modules\Billing\Contracts\PaymentGateway::class,
-            \Modules\Billing\Services\StubPaymentGateway::class,
+            \Modules\Billing\Services\PaymentGatewayManager::class,
         );
     }
 

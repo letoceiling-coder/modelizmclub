@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,23 +16,24 @@ import { toast } from "sonner";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("profile.metaTitle") }] }),
   component: ProfilePage,
 });
 
 function ProfilePage() {
+  const { t } = useTranslation();
   const currentUser = useStore(selectors.currentUser);
   return <ProfileView user={currentUser} isOwn />;
 }
 
 type TabKey = "posts" | "ads" | "communities" | "invited" | "about";
 
-const TABS_BASE: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
-  { key: "posts", label: "Публикации", Icon: FileText },
-  { key: "ads", label: "Объявления", Icon: Tag },
-  { key: "communities", label: "Сообщества", Icon: Users },
-  { key: "invited", label: "Приглашённые", Icon: UserPlus, ownOnly: true },
-  { key: "about", label: "О себе", Icon: UserIcon },
+const TABS_BASE: { key: TabKey; labelKey: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
+  { key: "posts", labelKey: "profile.tabPosts", Icon: FileText },
+  { key: "ads", labelKey: "profile.tabAds", Icon: Tag },
+  { key: "communities", labelKey: "profile.tabCommunities", Icon: Users },
+  { key: "invited", labelKey: "profile.tabInvited", Icon: UserPlus, ownOnly: true },
+  { key: "about", labelKey: "profile.tabAbout", Icon: UserIcon },
 ];
 
 
@@ -40,21 +42,22 @@ const ICON_MAP: Record<string, typeof Car> = {
 };
 
 type AdStatus = "active" | "moderation" | "rejected" | "archived";
-const AD_STATUS_FILTERS: { key: AdStatus | "all"; label: string }[] = [
-  { key: "all", label: "Все" },
-  { key: "active", label: "Активные" },
-  { key: "moderation", label: "На модерации" },
-  { key: "rejected", label: "Отклонённые" },
-  { key: "archived", label: "Архив" },
+const AD_STATUS_FILTERS: { key: AdStatus | "all"; labelKey: string }[] = [
+  { key: "all", labelKey: "profile.adFilterAll" },
+  { key: "active", labelKey: "profile.adFilterActive" },
+  { key: "moderation", labelKey: "profile.adFilterModeration" },
+  { key: "rejected", labelKey: "profile.adFilterRejected" },
+  { key: "archived", labelKey: "profile.adFilterArchived" },
 ];
-const AD_STATUS_STYLE: Record<AdStatus, { label: string; bg: string; color: string }> = {
-  active: { label: "Активно", bg: "var(--success-soft)", color: "var(--success)" },
-  moderation: { label: "На модерации", bg: "var(--warning-soft)", color: "var(--warning)" },
-  rejected: { label: "Отклонено", bg: "var(--error-soft)", color: "var(--error)" },
-  archived: { label: "В архиве", bg: "var(--background-surface)", color: "var(--foreground-50)" },
+const AD_STATUS_STYLE: Record<AdStatus, { labelKey: string; bg: string; color: string }> = {
+  active: { labelKey: "profile.adStatusActive", bg: "var(--success-soft)", color: "var(--success)" },
+  moderation: { labelKey: "profile.adStatusModeration", bg: "var(--warning-soft)", color: "var(--warning)" },
+  rejected: { labelKey: "profile.adStatusRejected", bg: "var(--error-soft)", color: "var(--error)" },
+  archived: { labelKey: "profile.adStatusArchived", bg: "var(--background-surface)", color: "var(--foreground-50)" },
 };
 
 export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -131,10 +134,8 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                     padding: "2px 8px",
                     borderRadius: 999,
                   }}
-                  title="Один из первых 100 участников клуба"
-                >
-                  ★ Первые 100
-                </span>
+                  title={t("profile.firstHundredTitle")}
+                >{t("profile.firstHundred")}</span>
               )}
             </div>
             <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
@@ -150,8 +151,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                 className="inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 md:flex-none"
                 style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
               >
-                <Pencil size={14} /> Редактировать
-              </button>
+                <Pencil size={14} />{t("profile.edit")}</button>
             ) : (
               <>
                 {isFriend ? (
@@ -159,16 +159,14 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                     className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium md:flex-none"
                     style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 14 }}
                   >
-                    <BadgeCheck size={14} style={{ color: "var(--success)" }} /> В друзьях
-                  </span>
+                    <BadgeCheck size={14} style={{ color: "var(--success)" }} />{t("friends.inFriends")}</span>
                 ) : (
                   <button
-                    onClick={() => { setIsFriend(true); toast.success("Заявка отправлена"); }}
+                    onClick={() => { setIsFriend(true); toast.success(t("friends.pending")); }}
                     className="inline-flex flex-1 items-center justify-center gap-[6px] font-semibold transition-colors duration-150 md:flex-none"
                     style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}
                   >
-                    <UserPlus size={14} /> В друзья
-                  </button>
+                    <UserPlus size={14} />{t("profile.addFriend")}</button>
                 )}
                 <button
                   type="button"
@@ -179,14 +177,13 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                   className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium transition-colors duration-150 md:flex-none"
                   style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
                 >
-                  <MessageSquare size={14} /> Написать
-                </button>
+                  <MessageSquare size={14} />{t("friends.message")}</button>
 
                 <button
-                  onClick={() => { setSubscribed((s) => !s); toast.success(subscribed ? "Вы отписались" : "Вы подписались"); }}
+                  onClick={() => { setSubscribed((s) => !s); toast.success(subscribed ? t("profile.unsubscribed") : t("profile.subscribed")); }}
                   className="grid h-[40px] w-[40px] shrink-0 place-items-center transition-colors duration-150"
                   style={{ borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
-                  aria-label="Подписаться"
+                  aria-label={t("profile.subscribe")}
                 >
                   <Bell size={14} />
                 </button>
@@ -198,10 +195,10 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
 
         {/* Counters */}
         <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <Counter label="Публикаций" value={userPosts.length} divider />
-          <Counter label="Объявлений" value={userAds.length} divider />
-          <Counter label="Друзей" value={friendsCountDerived} divider />
-          <Counter label="Сообществ" value={userCommunities.length} />
+          <Counter label={t("profile.counterPosts")} value={userPosts.length} divider />
+          <Counter label={t("profile.counterAds")} value={userAds.length} divider />
+          <Counter label={t("profile.counterFriends")} value={friendsCountDerived} divider />
+          <Counter label={t("profile.counterCommunities")} value={userCommunities.length} />
         </div>
 
         {/* Tabs */}
@@ -218,17 +215,16 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               {tab === "posts" && (
-                userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
+                userPosts.length === 0 ? <EmptyTab text={t("profile.emptyPosts")} /> : (
                   <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
                 )
               )}
               {tab === "ads" && (
                 userAds.length === 0 ? (
-                  <EmptyTab text="Нет объявлений">
+                  <EmptyTab text={t("profile.emptyAds")}>
                     {isOwn && (
                       <Link to="/ads/new" className="mt-[16px] inline-flex items-center gap-[6px] font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>
-                        <Plus size={14} /> Создать объявление
-                      </Link>
+                        <Plus size={14} />{t("profile.createAd")}</Link>
                     )}
                   </EmptyTab>
                 ) : (
@@ -253,7 +249,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                                 border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
                               }}
                             >
-                              {f.label}
+                              {t(f.labelKey)}
                               <span
                                 style={{
                                   fontSize: 11,
@@ -272,7 +268,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                       </div>
                     )}
                     {filteredUserAds.length === 0 ? (
-                      <EmptyTab text="Нет объявлений с этим статусом" />
+                      <EmptyTab text={t("profile.emptyAdsFiltered")} />
                     ) : (
                       <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-3">
                         {filteredUserAds.map(({ ad, status }) => {
@@ -292,7 +288,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                                   backdropFilter: "blur(6px)",
                                 }}
                               >
-                                {badge.label}
+                                {t(badge.labelKey)}
                               </span>
                             </div>
                           );
@@ -303,7 +299,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                 )
               )}
               {tab === "communities" && (
-                userCommunities.length === 0 ? <EmptyTab text="Не состоит в сообществах" /> : (
+                userCommunities.length === 0 ? <EmptyTab text={t("profile.emptyCommunities")} /> : (
                   <div className="grid gap-[12px] md:grid-cols-2">
                     {userCommunities.map((c) => {
                       const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
@@ -320,7 +316,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                           </div>
                           <div className="min-w-0">
                             <div className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</div>
-                            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{c.members.toLocaleString("ru")} участников</div>
+                            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("profile.membersCount", { n: c.members.toLocaleString("ru") })}</div>
                           </div>
                         </Link>
                       );
@@ -334,7 +330,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                   {user.bio ? (
                     <p className="text-[15px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>{user.bio}</p>
                   ) : (
-                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>Пользователь ещё не заполнил раздел «О себе»</p>
+                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("profile.emptyAbout")}</p>
                   )}
                   {interestList.length > 0 && (
                     <div className="mt-[20px] flex flex-wrap gap-[8px]">
@@ -365,7 +361,7 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
             onSave={() => {
               if (isOwn) actions.updateProfile(user.id, draft);
               setEditOpen(false);
-              toast.success("Профиль обновлён");
+              toast.success(t("profile.updated"));
             }}
 
           />
@@ -385,6 +381,7 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
 }
 
 function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
+  const { t } = useTranslation();
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
   const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
@@ -400,7 +397,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
       <div className="relative flex">
-        {tabs.map(({ key, label, Icon }) => {
+        {tabs.map(({ key, labelKey, Icon }) => {
           const active = tab === key;
           return (
             <button
@@ -414,7 +411,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
                 color: active ? "var(--accent)" : "var(--foreground-50)",
               }}
             >
-              <Icon size={16} /> {label}
+              <Icon size={16} /> {t(labelKey)}
             </button>
           );
         })}
@@ -441,6 +438,7 @@ function EmptyTab({ text, children }: { text: string; children?: React.ReactNode
 function EditSheet({ draft, setDraft, onClose, onSave }: {
   draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: () => void;
 }) {
+  const { t } = useTranslation();
   const [newInterest, setNewInterest] = useState("");
   const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -469,31 +467,31 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
         style={{ background: "var(--background)", borderRadius: "20px 20px 0 0", maxHeight: "85vh", padding: 24 }}
       >
         <div className="mx-auto h-[4px] w-[36px] rounded-[2px]" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
-        <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>Редактирование профиля</h3>
+        <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{t("profile.editTitle")}</h3>
 
         <div className="mt-[20px] space-y-[20px]">
-          <Field label="Имя">
+          <Field label={t("profile.fieldName")}>
             <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inputStyle} className="w-full outline-none" />
           </Field>
-          <Field label="Город">
-            <input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="Город" style={inputStyle} className="w-full outline-none" />
+          <Field label={t("profile.fieldCity")}>
+            <input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder={t("profile.cityPlaceholder")} style={inputStyle} className="w-full outline-none" />
           </Field>
-          <Field label="О себе">
+          <Field label={t("profile.fieldBio")}>
             <textarea
               value={draft.bio ?? ""}
               onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-              placeholder="Расскажите о себе"
+              placeholder={t("profile.bioPlaceholder")}
               rows={4}
               style={{ ...inputStyle, height: "auto", minHeight: 100, padding: 14, resize: "vertical" }}
               className="w-full outline-none"
             />
           </Field>
-          <Field label="Интересы">
+          <Field label={t("profile.fieldInterests")}>
             <div className="flex flex-wrap gap-[8px]">
               {interestList.map((i) => (
                 <span key={i} className="inline-flex items-center gap-[6px]" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 12px", borderRadius: 999 }}>
                   {i}
-                  <button onClick={() => removeInterest(i)} aria-label="Убрать"><X size={12} /></button>
+                  <button onClick={() => removeInterest(i)} aria-label={t("common.remove")}><X size={12} /></button>
                 </span>
               ))}
             </div>
@@ -502,7 +500,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
                 value={newInterest}
                 onChange={(e) => setNewInterest(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
-                placeholder="Добавить интерес"
+                placeholder={t("profile.interestAdd")}
                 style={inputStyle}
                 className="flex-1 outline-none"
               />
@@ -518,16 +516,12 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
             onClick={onClose}
             className="flex-1 font-medium transition-colors duration-150"
             style={{ height: 48, border: "1px solid var(--border)", borderRadius: 12, background: "transparent", color: "var(--foreground-70)" }}
-          >
-            Отмена
-          </button>
+          >{t("common.cancel")}</button>
           <button
             onClick={onSave}
             className="flex-1 font-semibold transition-colors duration-150"
             style={{ height: 48, background: "var(--accent)", color: "white", borderRadius: 12 }}
-          >
-            Сохранить
-          </button>
+          >{t("post.save")}</button>
         </div>
       </motion.div>
     </>

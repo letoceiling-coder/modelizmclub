@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2 } from "lucide-react";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
+  const { t } = useTranslation();
   const author = userById(post.authorId);
   const reposter = post.repostedBy ? userById(post.repostedBy) : null;
 
@@ -54,7 +56,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
     const newC: Comment = {
       id: `nc${Date.now()}`,
       authorId: me.id,
-      time: "только что",
+      time: tStatic("common.justNow"),
       text,
       likes: 0,
       replies: [],
@@ -89,9 +91,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           }}
         >
           <Repeat2 className="h-[14px] w-[14px]" style={{ color: "var(--accent)" }} />
-          <span>
-            <span style={{ color: "var(--foreground)", fontWeight: 600 }}>{reposter.name}</span> сделал репост
-          </span>
+          <span>{t("post.repostedBy", { name: reposter.name })}</span>
         </div>
       )}
 
@@ -103,7 +103,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
               {author.name}
             </span>
             {post.status === "moderation" && (
-              <StatusBadge variant="moderation">На модерации</StatusBadge>
+              <StatusBadge variant="moderation">{t("post.onModeration")}</StatusBadge>
             )}
           </div>
           <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
@@ -150,7 +150,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
         </p>
         {isLong && (
           <span className="mt-[6px] inline-block text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
-            {expanded ? "Свернуть" : "Читать полностью"}
+            {expanded ? t("post.collapse") : t("post.readMore")}
           </span>
         )}
       </button>
@@ -174,7 +174,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           onClick={toggleLike}
           className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
-          aria-label="Нравится"
+          aria-label={t("post.like")}
         >
           <motion.span
             key={liked ? "on" : "off"}
@@ -201,7 +201,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           onClick={() => setCommentsOpen((v) => !v)}
           className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: commentsOpen ? "var(--accent)" : "var(--foreground-70)" }}
-          aria-label="Комментарии"
+          aria-label={t("post.comments")}
         >
           <MessageCircle className="h-[16px] w-[16px]" />
           <span>{commentsCount}</span>
@@ -213,7 +213,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           onClick={toggleSave}
           className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: saved ? "var(--accent)" : "var(--foreground-70)" }}
-          aria-label="Сохранить"
+          aria-label={t("post.save")}
         >
           <motion.span whileTap={{ scale: 1.3 }} transition={{ type: "spring", stiffness: 500, damping: 14 }}>
             <Bookmark className="h-[16px] w-[16px]" fill={saved ? "currentColor" : "none"} />

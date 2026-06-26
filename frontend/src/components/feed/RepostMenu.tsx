@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
@@ -16,6 +17,7 @@ interface Props {
 type View = "main" | "chats";
 
 export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
@@ -59,23 +61,23 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
     try {
       await navigator.clipboard.writeText(url());
       setCopied(true);
-      toast.success("Ссылка скопирована");
+      toast.success(t("post.linkCopied"));
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      toast.error("Не удалось скопировать ссылку");
+      toast.error(t("common.copyLinkFailed"));
     }
   };
 
   const repostToFeed = () => {
     onRepost();
-    toast.success(reposted ? "Репост отменён" : "Репост добавлен в вашу ленту");
+    toast.success(reposted ? t("post.repostRemoved") : t("post.repostAdded"));
     close();
   };
 
   const shareExternal = async () => {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
-        await navigator.share({ title: "Публикация", url: url() });
+        await navigator.share({ title: tStatic("components.chooserPost"), url: url() });
         close();
         return;
       } catch {
@@ -91,10 +93,10 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
       id: `nm${Date.now()}`,
       authorId: me.id,
       time: new Date().toISOString(),
-      text: `🔗 Поделился публикацией: ${url()}`,
+      text: t("post.repostShareText", { url: url() }),
       status: "sent",
     });
-    toast.success(`Отправлено ${partnerName}`);
+    toast.success(t("post.repostSent", { name: partnerName }));
     close();
     navigate({ to: "/messenger", search: { chat: dialogId } });
   };
@@ -108,7 +110,7 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",
         }}
-        aria-label="Репост"
+        aria-label={t("post.repostTitle")}
         aria-expanded={open}
       >
         <Repeat2 className="h-[16px] w-[16px]" />
@@ -131,16 +133,16 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
           >
             {view === "main" && (
               <>
-                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? "Отменить репост" : "Репост в ленту"} accent />
-                <Item onClick={() => setView("chats")} icon={MessageSquare} label="Отправить в сообщения" />
+                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("post.repostCancel") : t("post.repostToFeed")} accent />
+                <Item onClick={() => setView("chats")} icon={MessageSquare} label={t("post.repostToMessages")} />
                 <Item
                   onClick={copyLink}
                   icon={copied ? Check : Link2}
-                  label={copied ? "Скопировано" : "Скопировать ссылку"}
+                  label={copied ? t("post.menuCopied") : t("post.menuCopyLink")}
                   accent={copied}
                 />
                 <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item onClick={shareExternal} icon={Share2} label="Внешние сети" />
+                <Item onClick={shareExternal} icon={Share2} label={t("post.repostExternal")} />
               </>
             )}
             {view === "chats" && (
@@ -151,13 +153,10 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
                   className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
                   style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
                 >
-                  <ArrowLeft className="h-[14px] w-[14px]" /> Куда отправить
-                </button>
+                  <ArrowLeft className="h-[14px] w-[14px]" />{t("post.repostWhere")}</button>
                 <div className="max-h-[280px] overflow-y-auto">
                   {dialogs.length === 0 ? (
-                    <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                      Нет диалогов
-                    </div>
+                    <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("messenger.noDialogs")}</div>
                   ) : (
                     dialogs.map((d) => {
                       const u = userById(d.userId);

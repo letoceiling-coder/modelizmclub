@@ -1,14 +1,16 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Вход — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("auth.loginMetaTitle") }] }),
   component: LoginPage,
 });
 
 function LoginPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -16,47 +18,39 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      toast.success("Вход выполнен (демо)");
+      toast.success(t("auth.loginSuccess"));
       nav({ to: "/feed" });
     }, 400);
   };
 
   return (
     <AuthShell
-      title="Вход"
-      subtitle="С возвращением в МоДелизМ Форум"
+      title={t("nav.login")}
+      subtitle={t("auth.loginSubtitle")}
       footer={
         <>
-          Ещё нет аккаунта?{" "}
-          <Link to="/register" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Зарегистрироваться
-          </Link>
+          {t("auth.noAccount")}{" "}
+          <Link to="/register" style={{ color: "var(--accent)", fontWeight: 600 }}>{t("auth.registerLink")}</Link>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-[12px]">
-        <input required type="email" placeholder="Email или телефон" style={inputStyle} />
-        <input required type="password" placeholder="Пароль" style={inputStyle} />
+        <input required type="email" placeholder={t("auth.emailOrPhone")} style={inputStyle} />
+        <input required type="password" placeholder={t("auth.password")} style={inputStyle} />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} />
-            Запомнить меня
-          </label>
-          <Link to="/recover" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Забыли пароль?
-          </Link>
+            <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} />{t("auth.rememberMe")}</label>
+          <Link to="/recover" style={{ color: "var(--accent)", fontWeight: 600 }}>{t("auth.forgotPassword")}</Link>
         </div>
         <button type="submit" disabled={loading} style={{ ...primaryBtn, opacity: loading ? 0.7 : 1, marginTop: 8 }}>
-          {loading ? "Входим…" : "Войти"}
+          {loading ? t("auth.submittingLogin") : t("auth.submitLogin")}
         </button>
       </form>
       <Link
         to="/feed"
         className="mt-[16px] block text-center"
         style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-50)" }}
-      >
-        Посмотреть прототип без входа →
-      </Link>
+      >{t("auth.demoLink")}</Link>
     </AuthShell>
   );
 }

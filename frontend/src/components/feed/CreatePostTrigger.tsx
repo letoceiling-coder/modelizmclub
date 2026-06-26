@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { ImagePlus, Smile, MapPin } from "lucide-react";
 import { me } from "@/lib/mock";
 
@@ -6,6 +7,8 @@ interface Props {
 }
 
 export function CreatePostTrigger({ onOpen }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div
       className="rounded-[14px] border p-[14px]"
@@ -22,16 +25,16 @@ export function CreatePostTrigger({ onOpen }: Props) {
             color: "var(--foreground-50)",
           }}
         >
-          Что нового, {me.name.split(" ")[0]}?
+          {t("feed.whatsNewUser", { name: me.name.split(" ")[0] })}
         </button>
       </div>
       <div
         className="mt-[10px] flex items-center gap-[4px] border-t pt-[10px]"
         style={{ borderColor: "var(--border)" }}
       >
-        <ActionBtn icon={<ImagePlus className="h-[16px] w-[16px]" />} label="Фото" onClick={onOpen} />
-        <ActionBtn icon={<Smile className="h-[16px] w-[16px]" />} label="Эмоции" onClick={onOpen} />
-        <ActionBtn icon={<MapPin className="h-[16px] w-[16px]" />} label="Место" onClick={onOpen} />
+        <ActionBtn icon={<ImagePlus className="h-[16px] w-[16px]" />} label={t("feed.photo")} onClick={onOpen} />
+        <ActionBtn icon={<Smile className="h-[16px] w-[16px]" />} label={t("feed.emoji")} onClick={onOpen} />
+        <ActionBtn icon={<MapPin className="h-[16px] w-[16px]" />} label={t("feed.place")} onClick={onOpen} />
       </div>
     </div>
   );

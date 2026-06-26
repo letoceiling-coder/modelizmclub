@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { PhoneIncoming, PhoneOutgoing, PhoneMissed, Phone, MessageSquare } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCalls, calls, formatCallDuration, type CallRecord } from "@/lib/calls";
@@ -12,8 +13,8 @@ function formatWhen(ts: number): string {
   yest.setDate(now.getDate() - 1);
   const isYest = d.toDateString() === yest.toDateString();
   const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-  if (same) return `Сегодня · ${time}`;
-  if (isYest) return `Вчера · ${time}`;
+  if (same) return tStatic("calls.list.today", { time });
+  if (isYest) return tStatic("calls.list.yesterday", { time });
   return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + " · " + time;
 }
 
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function CallsList({ onOpenChat }: Props) {
+  const { t } = useTranslation();
   const history = useCalls((s) => s.history);
   const navigate = useNavigate();
 
@@ -40,11 +42,9 @@ export function CallsList({ onOpenChat }: Props) {
         >
           <Phone size={36} />
         </div>
-        <div className="mt-4 font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Пока нет звонков
-        </div>
+        <div className="mt-4 font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("calls.listEmpty")}</div>
         <div className="mt-1 text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          Совершите вызов из любого диалога
+          {t("calls.listHint")}
         </div>
       </div>
     );
@@ -74,8 +74,8 @@ export function CallsList({ onOpenChat }: Props) {
               <div className="mt-[2px] flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
                 <CallIcon rec={rec} />
                 <span>
-                  {rec.direction === "incoming" ? "Входящий" : "Исходящий"}
-                  {rec.result === "missed" ? " · пропущен" : rec.durationSec > 0 ? ` · ${formatCallDuration(rec.durationSec)}` : ""}
+                  {rec.direction === "incoming" ? t("calls.incoming") : t("calls.outgoing")}
+                  {rec.result === "missed" ? t("calls.missedSuffix") : rec.durationSec > 0 ? ` · ${formatCallDuration(rec.durationSec)}` : ""}
                 </span>
               </div>
               <div className="mt-[2px] font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
@@ -88,8 +88,8 @@ export function CallsList({ onOpenChat }: Props) {
                 onClick={() => calls.start(rec.peerId)}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                aria-label="Перезвонить"
-                title="Перезвонить"
+                aria-label={t("calls.redial")}
+                title={t("calls.redial")}
               >
                 <Phone size={16} />
               </button>
@@ -102,8 +102,8 @@ export function CallsList({ onOpenChat }: Props) {
                 }}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
-                aria-label="Открыть чат"
-                title="Открыть чат"
+                aria-label={t("calls.openChat")}
+                title={t("calls.openChat")}
               >
                 <MessageSquare size={16} />
               </button>

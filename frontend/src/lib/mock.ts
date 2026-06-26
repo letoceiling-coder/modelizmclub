@@ -1,4 +1,6 @@
 // Mock data for МоДелизМ Форум prototype
+import { tStatic } from "./i18n";
+
 export type ID = string;
 
 export interface User {
@@ -485,19 +487,19 @@ export const categoryById = (id: ID) => categories.find((c) => c.id === id);
 export const communityById = (id: ID) => communities.find((c) => c.id === id);
 
 export function formatRelativeTime(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return iso;
-  const diffMs = Date.now() - t;
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return iso;
+  const diffMs = Date.now() - ts;
   const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "только что";
-  if (min < 60) return `${min} мин назад`;
+  if (min < 1) return tStatic("common.justNow");
+  if (min < 60) return tStatic("common.minutesAgo", { n: min });
   const h = Math.floor(min / 60);
-  if (h < 24) return `${h} ч назад`;
-  const d = new Date(t);
+  if (h < 24) return tStatic("common.hoursAgo", { n: h });
+  const d = new Date(ts);
   const days = Math.floor(h / 24);
   const pad = (n: number) => String(n).padStart(2, "0");
-  if (days < 2) return `Вчера ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  if (days < 7) return `${days} дн назад`;
+  if (days < 2) return tStatic("common.yesterdayAt", { time: `${pad(d.getHours())}:${pad(d.getMinutes())}` });
+  if (days < 7) return tStatic("common.daysAgo", { n: days });
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 

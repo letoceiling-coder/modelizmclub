@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
@@ -20,14 +21,14 @@ const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: strin
 };
 
 function relativeTime(input?: string): string {
-  if (!input) return "недавно";
+  if (!input) return tStatic("common.recently");
   const d = new Date(input);
   if (isNaN(d.getTime())) return input;
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 3600) return "только что";
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
-  if (diff < 172800) return "Вчера";
-  if (diff < 604800) return `${Math.floor(diff / 86400)} дн назад`;
+  if (diff < 3600) return tStatic("common.justNow");
+  if (diff < 86400) return tStatic("common.hoursAgo", { n: Math.floor(diff / 3600) });
+  if (diff < 172800) return tStatic("common.yesterday");
+  if (diff < 604800) return tStatic("common.daysAgo", { n: Math.floor(diff / 86400) });
   return d.toLocaleDateString("ru-RU");
 }
 
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export function AdCard({ ad, state = "default", compact = false }: Props) {
+  const { t } = useTranslation();
   const moderationState = state !== "default" ? state : ad.moderation && ad.moderation !== "published" ? ad.moderation : "default";
   const [liked, setLiked] = useState<boolean>(false);
   const [likeBump, setLikeBump] = useState(0);
@@ -126,7 +128,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
             <motion.button
               type="button"
               onClick={handleLike}
-              aria-label={liked ? "Убрать из избранного" : "В избранное"}
+              aria-label={liked ? t("ads.removeFromFavorites") : t("ads.addToFavorites")}
               key={likeBump}
               initial={likeBump ? { scale: 0.8 } : false}
               animate={likeBump ? { scale: [0.8, 1.1, 1] } : { scale: 1 }}
@@ -148,16 +150,14 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               className="absolute bottom-0 left-0 w-full py-[4px] text-center text-[12px] font-semibold text-white"
               style={{ background: "var(--warning)" }}
             >
-              На проверке
+              {t("ads.onReview")}
             </div>
           )}
           {rejected && (
             <div
               className="absolute bottom-0 left-0 w-full py-[4px] text-center text-[12px] font-semibold text-white"
               style={{ background: "var(--error)" }}
-            >
-              Отклонено
-            </div>
+            >{t("profile.adStatusRejected")}</div>
           )}
         </div>
 

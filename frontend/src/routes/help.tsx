@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,11 +8,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { faqCategories, faqItems, type FAQItem } from "@/lib/mock";
 
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Помощь — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("help.metaTitle") }] }),
   component: HelpPage,
 });
 
 function HelpPage() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<FAQItem["category"] | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -43,9 +45,7 @@ function HelpPage() {
             background: "var(--accent-soft)",
             borderRadius: "var(--r-tag)",
           }}
-        >
-          ПОМОЩЬ
-        </span>
+        >{t("help.badge")}</span>
         <h1
           style={{
             fontFamily: "var(--font-display)",
@@ -56,12 +56,8 @@ function HelpPage() {
             color: "var(--foreground)",
             marginTop: "16px",
           }}
-        >
-          База знаний
-        </h1>
-        <p style={{ fontSize: "var(--fs-body-lg)", lineHeight: 1.6, color: "var(--foreground-70)", marginTop: "12px", maxWidth: "600px" }}>
-          Ответы на частые вопросы о платформе МоДелизМ Форум
-        </p>
+        >{t("help.pageTitle")}</h1>
+        <p style={{ fontSize: "var(--fs-body-lg)", lineHeight: 1.6, color: "var(--foreground-70)", marginTop: "12px", maxWidth: "600px" }}>{t("help.subtitle")}</p>
 
         {/* Search */}
         <div style={{ marginTop: "32px", position: "relative" }}>
@@ -69,7 +65,7 @@ function HelpPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по базе знаний..."
+            placeholder={t("help.searchPlaceholder")}
             className="w-full outline-none"
             style={{
               height: "56px",
@@ -202,22 +198,18 @@ function HelpPage() {
                 color: "var(--foreground-50)",
                 fontSize: "14px",
               }}
-            >
-              Ничего не найдено. Попробуйте изменить запрос.
-            </div>
+            >{t("help.empty")}</div>
           )}
         </div>
 
         {/* Contact */}
         <div style={{ marginTop: "48px", paddingTop: "32px", borderTop: "1px solid var(--border)" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h3)", color: "var(--foreground)" }}>
-            Не нашли ответ? Напишите нам
-          </h3>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h3)", color: "var(--foreground)" }}>{t("help.contactTitle")}</h3>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (!topic || !email || !msg) return toast.error("Заполните все поля");
-              toast.success("Сообщение отправлено! Ответим в течение 24 часов.");
+              if (!topic || !email || !msg) return toast.error(t("help.contactFillAll"));
+              toast.success(t("help.contactSuccess"));
               setTopic(""); setEmail(""); setMsg("");
             }}
             style={{ maxWidth: "560px", marginTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}
@@ -236,19 +228,19 @@ function HelpPage() {
                 color: "var(--foreground)",
               }}
             >
-              <option value="">Выберите тему</option>
-              <option>Проблема с оплатой</option>
-              <option>Вопрос по объявлению</option>
-              <option>Проблема с аккаунтом</option>
-              <option>Жалоба на пользователя</option>
-              <option>Предложение</option>
-              <option>Другое</option>
+              <option value="">{t("help.contactTopicPlaceholder")}</option>
+              <option>{t("help.contactTopicPayment")}</option>
+              <option>{t("help.contactTopicAd")}</option>
+              <option>{t("help.contactTopicAccount")}</option>
+              <option>{t("help.contactTopicReport")}</option>
+              <option>{t("help.contactTopicSuggestion")}</option>
+              <option>{t("help.contactTopicOther")}</option>
             </select>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Ваш email"
+              placeholder={t("auth.emailPlaceholder")}
               className="outline-none"
               style={{
                 height: "48px",
@@ -263,7 +255,7 @@ function HelpPage() {
             <textarea
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              placeholder="Опишите проблему подробно..."
+              placeholder={t("help.contactMessagePlaceholder")}
               className="outline-none"
               style={{
                 height: "140px",
@@ -293,9 +285,7 @@ function HelpPage() {
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
-            >
-              Отправить
-            </button>
+            >{t("messenger.send")}</button>
           </form>
         </div>
 
@@ -324,8 +314,8 @@ function HelpPage() {
             <Send size={24} style={{ color: "var(--accent)" }} />
           </div>
           <div style={{ flex: 1, minWidth: "180px" }}>
-            <div style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>Чат-поддержка в Telegram</div>
-            <div style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Ответ в течение 15 минут в рабочее время</div>
+            <div style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{t("help.telegramTitle")}</div>
+            <div style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("help.telegramDesc")}</div>
           </div>
           <a
             href="https://t.me/modelizm_forum_support"
@@ -347,9 +337,7 @@ function HelpPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#006699")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#0088CC")}
           >
-            <Send size={14} />
-            Написать в Telegram
-          </a>
+            <Send size={14} />{t("help.telegramCta")}</a>
         </div>
       </div>
     </AppLayout>

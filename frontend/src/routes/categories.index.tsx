@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CategoryCard } from "@/components/CategoryCard";
@@ -5,23 +6,22 @@ import { categories } from "@/lib/mock";
 import { showcaseImages } from "@/lib/showcase-images";
 
 export const Route = createFileRoute("/categories/")({
-  head: () => ({ meta: [{ title: "Категории — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("categories.metaTitle") }] }),
   component: CategoriesPage,
 });
 
 function CategoriesPage() {
+  const { t } = useTranslation();
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-5">
         <header>
-          <h1 className="font-display text-2xl font-bold">Категории</h1>
+          <h1 className="font-display text-2xl font-bold">{t("nav.categories")}</h1>
           <p
             className="mt-[2px] font-display text-[15px] font-semibold"
             style={{ color: "var(--accent)" }}
-          >
-            Найди своих
-          </p>
-          <p className="mt-[4px] text-sm text-muted-foreground">Выберите интересующее вас направление</p>
+          >{t("rightPanel.title")}</p>
+          <p className="mt-[4px] text-sm text-muted-foreground">{t("categories.subtitle")}</p>
         </header>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -31,9 +31,9 @@ function CategoriesPage() {
         {/* 3D showcase strip */}
         <section className="space-y-3 pt-2">
           <div className="flex items-end justify-between">
-            <h2 className="font-display text-lg font-bold">Популярные модели</h2>
+            <h2 className="font-display text-lg font-bold">{t("categories.popularModels")}</h2>
             <span className="text-xs" style={{ color: "var(--foreground-50)" }}>
-              {showcaseImages.length} моделей
+              {t("categories.modelsCount", { n: showcaseImages.length })}
             </span>
           </div>
           <div className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2 pb-2">

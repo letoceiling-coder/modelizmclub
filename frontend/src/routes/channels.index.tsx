@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search, Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles } from "lucide-react";
@@ -12,8 +13,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/channels/")({
   head: () => ({
     meta: [
-      { title: "Каналы — МоДелизМ Форум" },
-      { name: "description", content: "Подпишитесь на каналы брендов, магазинов, авторов и экспертов: новости, обзоры и спецпредложения." },
+      { title: tStatic("channels.metaTitle") },
+      { name: "description", content: tStatic("channels.metaDescription") },
     ],
   }),
   component: ChannelsPage,
@@ -30,6 +31,7 @@ const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
 };
 
 function ChannelsPage() {
+  const { t } = useTranslation();
   const subs = useSubscriptions();
   const [tab, setTab] = useState<Tab>("popular");
   const [q, setQ] = useState("");
@@ -51,12 +53,8 @@ function ChannelsPage() {
       <div className="space-y-5">
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="min-w-0">
-            <h1 className="font-display text-[26px] sm:text-[28px] font-bold truncate" style={{ color: "var(--foreground)" }}>
-              Каналы
-            </h1>
-            <p className="mt-1 text-[13px] sm:text-[14px]" style={{ color: "var(--foreground-50)" }}>
-              Новости, обзоры и анонсы — только от владельцев каналов
-            </p>
+            <h1 className="font-display text-[26px] sm:text-[28px] font-bold truncate" style={{ color: "var(--foreground)" }}>{t("nav.channels")}</h1>
+            <p className="mt-1 text-[13px] sm:text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("channels.subtitle")}</p>
           </div>
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "var(--accent-soft)" }}>
             <Radio size={20} style={{ color: "var(--accent)" }} />
@@ -69,7 +67,7 @@ function ChannelsPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Поиск канала"
+            placeholder={t("channels.searchPlaceholder")}
             className="w-full text-[14px] outline-none"
             style={{
               height: 44, paddingLeft: 38, paddingRight: 12,
@@ -87,9 +85,9 @@ function ChannelsPage() {
           style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}
         >
           {([
-            ["popular", "Популярные"],
-            ["new", "Новые"],
-            ["subs", `Подписки${subs.size ? ` · ${subs.size}` : ""}`],
+            ["popular", t("channels.tabPopular")],
+            ["new", t("channels.tabNew")],
+            ["subs", t("channels.tabSubsCount", { suffix: subs.size ? ` · ${subs.size}` : "" })],
           ] as const).map(([key, label]) => {
             const active = tab === key;
             return (
@@ -120,7 +118,7 @@ function ChannelsPage() {
               <Radio size={22} />
             </div>
             <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-              {tab === "subs" ? "Вы пока ни на что не подписаны" : "Ничего не найдено"}
+              {tab === "subs" ? t("channels.emptySubs") : t("channels.emptySearch")}
             </div>
             {tab === "subs" && (
               <button
@@ -128,7 +126,7 @@ function ChannelsPage() {
                 className="mt-1 inline-flex h-9 items-center px-4 text-[13px] font-semibold"
                 style={{ background: "var(--accent)", color: "white", borderRadius: 10 }}
               >
-                К популярным каналам
+                {t("channels.toPopular")}
               </button>
             )}
           </div>
@@ -141,7 +139,7 @@ function ChannelsPage() {
         )}
 
         <p className="pt-2 text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Канал — это односторонняя витрина контента: публикует только владелец, подписчики читают. Это не сообщество и не чат.
+          {t("channels.explainer")}
         </p>
       </div>
     </AppLayout>
@@ -149,12 +147,13 @@ function ChannelsPage() {
 }
 
 function ChannelCard({ channel: c, subscribed }: { channel: Channel; subscribed: boolean }) {
+  const { t } = useTranslation();
   const KindIcon = KIND_ICON[c.kind];
   const onToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     toggleSubscribe(c.id);
-    toast.success(subscribed ? `Отписка от «${c.name}»` : `Подписка на «${c.name}»`);
+    toast.success(subscribed ? t("channels.unsubscribed", { name: c.name }) : t("channels.subscribedToast", { name: c.name }));
   };
   return (
     <li>
@@ -207,7 +206,7 @@ function ChannelCard({ channel: c, subscribed }: { channel: Channel; subscribed:
             border: subscribed ? "1px solid var(--border)" : "none",
           }}
         >
-          {subscribed ? (<><Check size={14} /> Вы подписаны</>) : "Подписаться"}
+          {subscribed ? (<><Check size={14} />{t("channels.subscribed")}</>) : t("channels.subscribe")}
         </button>
       </Link>
     </li>

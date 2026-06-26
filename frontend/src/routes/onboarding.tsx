@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -7,7 +8,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Выберите интересы — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("onboarding.metaTitle") }] }),
   component: OnboardingPage,
 });
 
@@ -23,6 +24,7 @@ const INTERESTS = [
 ];
 
 function OnboardingPage() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const nav = useNavigate();
 
@@ -30,8 +32,8 @@ function OnboardingPage() {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const finish = () => {
-    if (selected.length < 1) return toast.error("Выберите хотя бы одну категорию");
-    toast.success("Готово! Лента подобрана под ваши интересы");
+    if (selected.length < 1) return toast.error(t("onboarding.errorMin"));
+    toast.success(t("onboarding.success"));
     nav({ to: "/feed" });
   };
 
@@ -46,9 +48,7 @@ function OnboardingPage() {
           <button
             onClick={() => nav({ to: "/feed" })}
             style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", background: "transparent", border: "none", cursor: "pointer" }}
-          >
-            Пропустить
-          </button>
+          >{t("onboarding.skip")}</button>
           <ThemeToggle />
         </div>
       </header>
@@ -62,15 +62,9 @@ function OnboardingPage() {
             letterSpacing: "0.12em",
             textTransform: "uppercase",
           }}
-        >
-          Шаг 1 из 1
-        </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", marginTop: 12 }}>
-          Что вам интересно?
-        </h1>
-        <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>
-          Выберите направления — лента, чаты и объявления будут подбираться под них. Можно поменять позже в профиле.
-        </p>
+        >{t("onboarding.step")}</div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", marginTop: 12 }}>{t("onboarding.title")}</h1>
+        <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>{t("onboarding.subtitle")}</p>
 
         <div className="mt-[32px] grid gap-[12px] sm:grid-cols-2 lg:grid-cols-3">
           {INTERESTS.map((i) => {
@@ -120,8 +114,7 @@ function OnboardingPage() {
           }}
         >
           <div style={{ fontSize: "var(--fs-sm)", color: "var(--foreground-70)" }}>
-            Выбрано:{" "}
-            <span style={{ color: "var(--accent)", fontWeight: 700 }}>{selected.length}</span> из {INTERESTS.length}
+            {t("common.selected", { n: selected.length, total: INTERESTS.length })}
           </div>
           <button
             onClick={finish}
@@ -136,9 +129,7 @@ function OnboardingPage() {
               cursor: "pointer",
               boxShadow: "var(--shadow-button)",
             }}
-          >
-            Продолжить →
-          </button>
+          >{t("onboarding.continue")}</button>
         </div>
       </main>
     </div>

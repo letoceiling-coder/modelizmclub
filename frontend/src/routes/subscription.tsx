@@ -1,13 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation, tStatic } from "@/lib/i18n";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
 import { Check, Gift, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
+import { PaymentModal } from "@/components/PaymentModal";
+import { syncPayment } from "@/lib/api/payments";
+import { getAuthToken } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/subscription")({
-  head: () => ({ meta: [{ title: "Подписка — МоДелизМ Форум" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    payment: typeof s.payment === "string" ? s.payment : undefined,
+    uuid: typeof s.uuid === "string" ? s.uuid : undefined,
+    provider: typeof s.provider === "string" ? s.provider : undefined,
+  }),
+  head: () => ({ meta: [{ title: tStatic("subscription.metaTitle") }] }),
   component: SubscriptionPage,
 });
 
@@ -22,38 +32,58 @@ const stagger: Variants = {
 
 interface Plan {
   id: string;
-  name: string;
+  nameKey: string;
   price: number;
-  period: string;
-  savings?: string;
+  periodKey: string;
+  savingsKey?: string;
   best?: boolean;
 }
 
 const PLANS: Plan[] = [
-  { id: "month", name: "Месяц", price: 99, period: "месяц" },
-  { id: "half", name: "Полгода", price: 499, period: "6 месяцев", savings: "Выгода 95 ₽", best: true },
-  { id: "year", name: "Год", price: 799, period: "12 месяцев", savings: "Выгода 389 ₽" },
+  { id: "month", nameKey: "subscription.planMonth", price: 99, periodKey: "subscription.periodMonth" },
+  { id: "half", nameKey: "subscription.planHalf", price: 499, periodKey: "subscription.periodHalf", savingsKey: "subscription.savingsHalf", best: true },
+  { id: "year", nameKey: "subscription.planYear", price: 799, periodKey: "subscription.periodYear", savingsKey: "subscription.savingsYear" },
 ];
 
-const FEATURES = [
-  "Доступ ко всем каналам и сообществам",
-  "Размещение объявлений без ограничений",
-  "Сообщения и звонки внутри платформы",
-  "Публикации постов в ленте",
-  "Голосовые сообщения с транскрибацией",
-  "Поддержка приоритетом",
-];
+const FEATURE_KEYS = [
+  "subscription.featureChannels",
+  "subscription.featureAds",
+  "subscription.featureMessages",
+  "subscription.featurePosts",
+  "subscription.featureVoice",
+  "subscription.featureSupport",
+] as const;
 
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
 
-function payClick(planName: string) {
-  toast("Оплата будет доступна после подключения эквайринга", {
-    description: `Тариф: ${planName}`,
-  });
-}
+type PayTarget = { planSlug: string; title: string; amount: number } | null;
 
 function SubscriptionPage() {
+  const { t } = useTranslation();
+  const { payment, uuid } = Route.useSearch();
+  const navigate = useNavigate();
+  const [payTarget, setPayTarget] = useState<PayTarget>(null);
+
+  useEffect(() => {
+    if (payment !== "success" || !uuid || !getAuthToken()) return;
+
+    (async () => {
+      try {
+        const result = await syncPayment(uuid);
+        if (result.status === "paid") {
+          toast.success(t("payment.success"));
+        } else {
+          toast.message(t("payment.pendingTitle"), { description: t("payment.pendingDesc") });
+        }
+      } catch {
+        toast.error(t("common.error"));
+      } finally {
+        navigate({ to: "/subscription", search: {}, replace: true });
+      }
+    })();
+  }, [payment, uuid, navigate, t]);
+
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
@@ -70,9 +100,7 @@ function SubscriptionPage() {
               background: "var(--accent-soft)",
               borderRadius: "var(--r-tag)",
             }}
-          >
-            ТАРИФЫ
-          </span>
+          >{t("subscription.badge")}</span>
           <h1
             style={{
               fontFamily: "var(--font-display)",
@@ -83,9 +111,7 @@ function SubscriptionPage() {
               color: "var(--foreground)",
               marginTop: 16,
             }}
-          >
-            Подписка МоДелизМ
-          </h1>
+          >{t("subscription.pageTitle")}</h1>
           <p
             style={{
               fontSize: "var(--fs-body-lg)",
@@ -94,9 +120,7 @@ function SubscriptionPage() {
               maxWidth: 600,
               marginTop: 12,
             }}
-          >
-            Один набор возможностей — выбирайте срок. Все тарифы дают одинаковый доступ к платформе.
-          </p>
+          >{t("subscription.subtitle")}</p>
         </motion.div>
 
         {/* Free counter */}
@@ -111,7 +135,7 @@ function SubscriptionPage() {
           <Gift size={22} style={{ color: "var(--accent)", flexShrink: 0 }} />
           <div className="flex-1">
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
-              Бесплатные размещения: {FREE_LEFT} из {FREE_LIMIT}
+              {t("subscription.freePlacements", { left: FREE_LEFT, limit: FREE_LIMIT })}
             </div>
             <div className="mt-[8px]" style={{ height: 6, background: "var(--background-surface)", borderRadius: 3, overflow: "hidden" }}>
               <div
@@ -135,7 +159,7 @@ function SubscriptionPage() {
           className="mt-[24px] grid grid-cols-1 gap-[16px] md:grid-cols-3"
         >
           {PLANS.map((p) => (
-            <PlanCard key={p.id} plan={p} />
+            <PlanCard key={p.id} plan={p} onPay={setPayTarget} />
           ))}
         </motion.div>
 
@@ -159,10 +183,10 @@ function SubscriptionPage() {
               </div>
               <div>
                 <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>
-                  Разовое размещение
+                  {t("subscription.oneTimeTitle")}
                 </h4>
                 <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4, maxWidth: 460 }}>
-                  Одно объявление за 99 ₽ — без подписки и обязательств. Для тех, кому нужен разовый показ, а не постоянный доступ.
+                  {t("subscription.oneTimeDesc")}
                 </p>
               </div>
             </div>
@@ -172,8 +196,8 @@ function SubscriptionPage() {
               </div>
               <button
                 onClick={() =>
-                  toast("Оплата будет доступна после подключения эквайринга", {
-                    description: "Разовое размещение — 99 ₽",
+                  toast(t("subscription.paymentSoon"), {
+                    description: t("subscription.paymentOnceDesc"),
                   })
                 }
                 className="transition-colors"
@@ -189,7 +213,7 @@ function SubscriptionPage() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
               >
-                Разместить
+                {t("subscription.oneTimeCta")}
               </button>
             </div>
           </div>
@@ -205,10 +229,10 @@ function SubscriptionPage() {
               color: "var(--foreground)",
             }}
           >
-            Что входит
+            {t("subscription.includedTitle")}
           </h2>
           <p style={{ marginTop: 6, fontSize: 13, color: "var(--foreground-50)" }}>
-            Набор возможностей одинаковый для всех тарифов — отличается только срок.
+            {t("subscription.includedDesc")}
           </p>
 
           <div
@@ -231,14 +255,14 @@ function SubscriptionPage() {
                 fontFamily: "var(--font-mono)",
               }}
             >
-              <div>Возможность</div>
-              <div className="text-center">Мес</div>
-              <div className="text-center">6 мес</div>
-              <div className="text-center">Год</div>
+              <div>{t("subscription.compareFeature")}</div>
+              <div className="text-center">{t("subscription.compareMonth")}</div>
+              <div className="text-center">{t("subscription.compareHalf")}</div>
+              <div className="text-center">{t("subscription.compareYear")}</div>
             </div>
-            {FEATURES.map((f, i) => (
+            {FEATURE_KEYS.map((key, i) => (
               <div
-                key={f}
+                key={key}
                 className="grid items-center"
                 style={{
                   gridTemplateColumns: "minmax(0,1fr) 56px 56px 56px",
@@ -248,7 +272,7 @@ function SubscriptionPage() {
                   color: "var(--foreground)",
                 }}
               >
-                <div>{f}</div>
+                <div>{t(key)}</div>
                 {[0, 1, 2].map((c) => (
                   <div key={c} className="flex justify-center">
                     <Check size={16} style={{ color: "var(--success)" }} />
@@ -262,12 +286,23 @@ function SubscriptionPage() {
         <InviteBlock />
       </div>
 
+      {payTarget && (
+        <PaymentModal
+          open
+          onOpenChange={(open) => { if (!open) setPayTarget(null); }}
+          title={payTarget.title}
+          amount={payTarget.amount}
+          planSlug={payTarget.planSlug}
+        />
+      )}
     </AppLayout>
   );
 }
 
-function PlanCard({ plan }: { plan: Plan }) {
+function PlanCard({ plan, onPay }: { plan: Plan; onPay: (target: NonNullable<PayTarget>) => void }) {
+  const { t } = useTranslation();
   const best = !!plan.best;
+  const planName = t(plan.nameKey);
   return (
     <motion.article
       variants={fadeInUp}
@@ -296,7 +331,7 @@ function PlanCard({ plan }: { plan: Plan }) {
             borderRadius: "var(--r-tag)",
           }}
         >
-          Лучший выбор
+          {t("subscription.bestChoice")}
         </span>
       )}
       <h3
@@ -307,7 +342,7 @@ function PlanCard({ plan }: { plan: Plan }) {
           color: best ? "var(--accent)" : "var(--foreground)",
         }}
       >
-        {plan.name}
+        {planName}
       </h3>
       <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 6 }}>
         <span
@@ -320,9 +355,9 @@ function PlanCard({ plan }: { plan: Plan }) {
         >
           {plan.price} ₽
         </span>
-        <span style={{ fontSize: 13, color: "var(--foreground-50)" }}>/ {plan.period}</span>
+        <span style={{ fontSize: 13, color: "var(--foreground-50)" }}>/ {t(plan.periodKey)}</span>
       </div>
-      {plan.savings && (
+      {plan.savingsKey && (
         <span
           className="mt-[6px] inline-block"
           style={{
@@ -335,7 +370,7 @@ function PlanCard({ plan }: { plan: Plan }) {
             borderRadius: "var(--r-tag)",
           }}
         >
-          {plan.savings}
+          {t(plan.savingsKey)}
         </span>
       )}
 
@@ -343,7 +378,7 @@ function PlanCard({ plan }: { plan: Plan }) {
 
       <motion.button
         whileTap={{ scale: 0.97 }}
-        onClick={() => payClick(plan.name)}
+        onClick={() => onPay({ planSlug: plan.id, title: planName, amount: plan.price })}
         className="mt-[20px] w-full transition-colors"
         style={{
           height: 48,
@@ -356,9 +391,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
-      >
-        Оплатить
-      </motion.button>
+      >{t("subscription.pay")}</motion.button>
     </motion.article>
   );
 }

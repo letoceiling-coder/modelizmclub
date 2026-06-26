@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,7 +19,7 @@ import {
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("admin.metaTitle") }] }),
   component: AdminPage,
 });
 
@@ -26,21 +27,22 @@ type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation"
   | "monetization" | "categories" | "notifications" | "analytics" | "design" | "settings";
 
-const navItems: { id: Section; label: string; icon: typeof Users }[] = [
-  { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
-  { id: "users", label: "Пользователи", icon: Users },
-  { id: "content", label: "Контент", icon: Newspaper },
-  { id: "ads", label: "Объявления", icon: Megaphone },
-  { id: "moderation", label: "Модерация", icon: ShieldCheck },
-  { id: "monetization", label: "Монетизация", icon: DollarSign },
-  { id: "categories", label: "Категории", icon: FolderTree },
-  { id: "notifications", label: "Уведомления", icon: Bell },
-  { id: "analytics", label: "Аналитика", icon: BarChart3 },
-  { id: "design", label: "Design System", icon: Palette },
-  { id: "settings", label: "Настройки", icon: Settings },
+const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
+  { id: "dashboard", labelKey: "admin.dashboard", icon: LayoutDashboard },
+  { id: "users", labelKey: "admin.users", icon: Users },
+  { id: "content", labelKey: "admin.content", icon: Newspaper },
+  { id: "ads", labelKey: "admin.ads", icon: Megaphone },
+  { id: "moderation", labelKey: "admin.moderation", icon: ShieldCheck },
+  { id: "monetization", labelKey: "admin.monetization", icon: DollarSign },
+  { id: "categories", labelKey: "admin.categories", icon: FolderTree },
+  { id: "notifications", labelKey: "admin.notifications", icon: Bell },
+  { id: "analytics", labelKey: "admin.analytics", icon: BarChart3 },
+  { id: "design", labelKey: "admin.design", icon: Palette },
+  { id: "settings", labelKey: "admin.settings", icon: Settings },
 ];
 
 function AdminPage() {
+  const { t } = useTranslation();
   const [section, setSection] = useState<Section>("dashboard");
 
   return (
@@ -57,7 +59,7 @@ function AdminPage() {
       >
         <div className="flex items-center gap-[12px]">
           <Logo size={28} showText={false} />
-          <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--foreground)" }}>Админ-панель</span>
+          <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--foreground)" }}>{t("nav.admin")}</span>
         </div>
         <div className="flex items-center gap-[8px]">
           <ThemeToggle />
@@ -73,8 +75,7 @@ function AdminPage() {
               color: "var(--foreground-70)",
             }}
           >
-            <Home size={14} />К сайту
-          </Link>
+            <Home size={14} />{t("admin.backToSite")}</Link>
         </div>
       </header>
 
@@ -120,7 +121,7 @@ function AdminPage() {
                   }}
                 >
                   <n.icon size={16} />
-                  {n.label}
+                  {t(n.labelKey)}
                 </button>
               );
             })}
@@ -145,7 +146,7 @@ function AdminPage() {
                 color: "var(--foreground)",
               }}
             >
-              {navItems.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+              {navItems.map((n) => <option key={n.id} value={n.id}>{t(n.labelKey)}</option>)}
             </select>
           </div>
 
@@ -224,6 +225,7 @@ import {
 } from "@/lib/theme-manager";
 
 function DesignSystemSection() {
+  const { t } = useTranslation();
   const initial = loadTheme();
   const [mode, setMode] = useState<Mode>(initial?.mode ?? (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
   const [accent, setAccent] = useState<string>(initial?.accent ?? "#F26C05");
@@ -251,13 +253,13 @@ function DesignSystemSection() {
           Design System
         </h1>
         <p style={{ fontSize: 13, color: "var(--foreground-70)" }}>
-          Визуальный конструктор темы. Меняет CSS-переменные глобально, сохраняет в localStorage. Не влияет на логику и данные.
+          {t("admin.designDesc")}
         </p>
       </div>
 
       {/* Controls */}
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr", }}>
-        <Panel title="Режим темы">
+        <Panel title={t("admin.themeMode")}>
           <div style={{ display: "flex", gap: 8 }}>
             <ModeBtn active={mode === "light"} onClick={() => pickMode("light")} icon={<Sun size={16} />} label="Light" />
             <ModeBtn active={mode === "dark"} onClick={() => pickMode("dark")} icon={<Moon size={16} />} label="Dark" />
@@ -268,22 +270,22 @@ function DesignSystemSection() {
                 border: "1px solid var(--border)", background: "var(--background-surface)", color: "var(--foreground-70)",
               }}
             >
-              Сбросить
+              {t("admin.reset")}
             </button>
           </div>
         </Panel>
 
-        <Panel title="Базовые акценты (UI Kit)">
+        <Panel title={t("admin.baseAccents")}>
           <SwatchRow swatches={BASE_ACCENTS} active={accent} onPick={pickAccent} />
         </Panel>
 
-        <Panel title="Вариации (5 светлее / 5 темнее)">
+        <Panel title={t("admin.variations")}>
           <SwatchRow swatches={variations} active={accent} onPick={pickAccent} />
         </Panel>
       </div>
 
       {/* Preview */}
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>Превью компонентов</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>{t("admin.previewComponents")}</h2>
       <PreviewArea />
     </div>
   );
@@ -350,14 +352,21 @@ function SwatchRow({ swatches, active, onPick }: { swatches: AccentSwatch[]; act
 }
 
 function PreviewArea() {
+  const { t } = useTranslation();
+  const navPreview = [
+    { labelKey: "components.breadcrumbsHome", active: true },
+    { labelKey: "nav.feed", active: false },
+    { labelKey: "nav.channels", active: false },
+    { labelKey: "nav.messages", active: false },
+  ] as const;
   return (
     <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
       {/* Buttons */}
-      <Panel title="Кнопки">
+      <Panel title={t("admin.buttons")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Основная</button>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>Мягкая</button>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 600, border: "1px solid var(--border)" }}>Контур</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>{t("admin.btnPrimary")}</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>{t("admin.btnSoft")}</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 600, border: "1px solid var(--border)" }}>{t("admin.btnOutline")}</button>
           <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 13, fontWeight: 600 }} disabled>Disabled</button>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -368,77 +377,72 @@ function PreviewArea() {
       </Panel>
 
       {/* Badges */}
-      <Panel title="Бейджи">
+      <Panel title={t("admin.badges")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           <Badge bg="var(--accent)" fg="#fff">PRO</Badge>
-          <Badge bg="var(--accent-soft)" fg="var(--accent)">Новое</Badge>
-          <Badge bg="var(--success-soft)" fg="var(--success)">Активно</Badge>
-          <Badge bg="var(--warning-soft)" fg="var(--warning)">На проверке</Badge>
-          <Badge bg="var(--error-soft)" fg="var(--error)">Отклонено</Badge>
-          <Badge bg="var(--info-soft)" fg="var(--info)">Инфо</Badge>
+          <Badge bg="var(--accent-soft)" fg="var(--accent)">{t("admin.badgeNew")}</Badge>
+          <Badge bg="var(--success-soft)" fg="var(--success)">{t("profile.adStatusActive")}</Badge>
+          <Badge bg="var(--warning-soft)" fg="var(--warning)">{t("admin.badgeReview")}</Badge>
+          <Badge bg="var(--error-soft)" fg="var(--error)">{t("profile.adStatusRejected")}</Badge>
+          <Badge bg="var(--info-soft)" fg="var(--info)">{t("admin.badgeInfo")}</Badge>
         </div>
       </Panel>
 
       {/* Alerts */}
-      <Panel title="Уведомления">
+      <Panel title={t("admin.notifications")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Alert icon={<CheckCircle2 size={16} />} bg="var(--success-soft)" fg="var(--success)" text="Изменения сохранены" />
-          <Alert icon={<Info size={16} />} bg="var(--info-soft)" fg="var(--info)" text="Подсказка для пользователя" />
-          <Alert icon={<AlertCircle size={16} />} bg="var(--error-soft)" fg="var(--error)" text="Произошла ошибка" />
+          <Alert icon={<CheckCircle2 size={16} />} bg="var(--success-soft)" fg="var(--success)" text={t("admin.alertSaved")} />
+          <Alert icon={<Info size={16} />} bg="var(--info-soft)" fg="var(--info)" text={t("admin.alertHint")} />
+          <Alert icon={<AlertCircle size={16} />} bg="var(--error-soft)" fg="var(--error)" text={t("admin.alertError")} />
         </div>
       </Panel>
 
       {/* Card */}
-      <Panel title="Карточка">
+      <Panel title={t("admin.panelCard")}>
         <div style={{ padding: 14, borderRadius: 12, background: "var(--background-surface)", border: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Заголовок карточки</div>
-          <div style={{ fontSize: 12, color: "var(--foreground-70)", marginBottom: 10 }}>Краткое описание содержимого с акцентом на детали.</div>
-          <a style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)" }}>Подробнее →</a>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>{t("admin.cardTitle")}</div>
+          <div style={{ fontSize: 12, color: "var(--foreground-70)", marginBottom: 10 }}>{t("admin.cardDesc")}</div>
+          <a style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)" }}>{t("admin.cardMore")}</a>
         </div>
       </Panel>
 
       {/* Inputs */}
-      <Panel title="Поля ввода">
+      <Panel title={t("admin.inputs")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input placeholder="Email" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <input placeholder="Активное (focus)" autoFocus style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1.5px solid var(--accent)", color: "var(--foreground)", fontSize: 13, outline: "none" }} />
-          <textarea placeholder="Сообщение" rows={3} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13, resize: "none" }} />
+          <input placeholder={t("admin.inputActive")} autoFocus style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1.5px solid var(--accent)", color: "var(--foreground)", fontSize: 13, outline: "none" }} />
+          <textarea placeholder={t("admin.inputMessage")} rows={3} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13, resize: "none" }} />
         </div>
       </Panel>
 
       {/* Upload */}
-      <Panel title="Загрузка файла">
+      <Panel title={t("admin.fileUpload")}>
         <div style={{ padding: 20, borderRadius: 12, border: "2px dashed var(--border-accent)", background: "var(--accent-soft)", textAlign: "center" }}>
           <Upload size={20} style={{ color: "var(--accent)", margin: "0 auto 6px" }} />
-          <div style={{ fontSize: 12, color: "var(--foreground-70)" }}>Перетащите файл или <span style={{ color: "var(--accent)", fontWeight: 600 }}>выберите</span></div>
+          <div style={{ fontSize: 12, color: "var(--foreground-70)" }}>{t("admin.fileDrop")} <span style={{ color: "var(--accent)", fontWeight: 600 }}>{t("admin.filePick")}</span></div>
         </div>
       </Panel>
 
       {/* Login form */}
-      <Panel title="Форма входа">
+      <Panel title={t("admin.loginForm")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input placeholder="Логин" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <input placeholder="Пароль" type="password" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Войти</button>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground-70)", fontSize: 13, fontWeight: 500, border: "1px solid var(--border)" }}>Создать аккаунт</button>
+          <input placeholder={t("admin.loginPlaceholder")} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <input placeholder={t("auth.password")} type="password" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>{t("index.heroLogin")}</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground-70)", fontSize: 13, fontWeight: 500, border: "1px solid var(--border)" }}>{t("auth.submitRegister")}</button>
         </div>
       </Panel>
 
       {/* Nav */}
-      <Panel title="Навигация">
+      <Panel title={t("admin.navigation")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {[
-            { label: "Главная", active: true },
-            { label: "Лента", active: false },
-            { label: "Каналы", active: false },
-            { label: "Сообщения", active: false },
-          ].map((it) => (
-            <div key={it.label} style={{
+          {navPreview.map((it) => (
+            <div key={it.labelKey} style={{
               padding: "8px 12px", borderRadius: 8, fontSize: 13,
               fontWeight: it.active ? 600 : 500,
               color: it.active ? "var(--accent)" : "var(--foreground-70)",
               background: it.active ? "var(--accent-soft)" : "transparent",
-            }}>{it.label}</div>
+            }}>{t(it.labelKey)}</div>
           ))}
         </div>
       </Panel>
@@ -459,20 +463,21 @@ function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: 
 
 /* ============ DASHBOARD ============ */
 function Dashboard() {
+  const { t } = useTranslation();
   const stats = [
-    { v: adminStats.totalUsers.toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "+8%", up: true },
-    { v: `${adminStats.monthlyRevenue.toLocaleString("ru")} ₽`, l: "Доход за месяц", icon: DollarSign, ch: "+15%", up: true },
-    { v: adminStats.activeAds.toLocaleString("ru"), l: "Активных объявлений", icon: Megaphone, ch: "+5%", up: true },
-    { v: adminStats.totalPosts.toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "+22%", up: true },
-    { v: String(adminStats.inModeration), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true },
-    { v: String(adminStats.newToday), l: "Новых за сегодня", icon: UserPlus, ch: "+3%", up: true },
+    { v: adminStats.totalUsers.toLocaleString("ru"), l: t("admin.statTotalUsers"), icon: Users, ch: "+8%", up: true },
+    { v: `${adminStats.monthlyRevenue.toLocaleString("ru")} ₽`, l: t("admin.statMonthlyRevenue"), icon: DollarSign, ch: "+15%", up: true },
+    { v: adminStats.activeAds.toLocaleString("ru"), l: t("admin.statActiveAds"), icon: Megaphone, ch: "+5%", up: true },
+    { v: adminStats.totalPosts.toLocaleString("ru"), l: t("admin.statPosts"), icon: Newspaper, ch: "+22%", up: true },
+    { v: String(adminStats.inModeration), l: t("admin.statInModeration"), icon: ShieldCheck, ch: "", up: true, warn: true },
+    { v: String(adminStats.newToday), l: t("admin.statNewToday"), icon: UserPlus, ch: "+3%", up: true },
   ];
   const bars = [40, 65, 55, 80, 70, 90, 60];
-  const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const days = [t("admin.dayMon"), t("admin.dayTue"), t("admin.dayWed"), t("admin.dayThu"), t("admin.dayFri"), t("admin.daySat"), t("admin.daySun")];
 
   return (
     <div>
-      <H>Дашборд</H>
+      <H>{t("admin.dashboard")}</H>
       <motion.div
         initial="hidden" animate="visible"
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
@@ -506,7 +511,7 @@ function Dashboard() {
       {/* Chart */}
       <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
-          Регистрации за 30 дней
+          {t("admin.registrations30")}
         </h4>
         <div style={{ height: "200px", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "16px", marginTop: "16px" }}>
           {bars.map((h, i) => (
@@ -533,7 +538,7 @@ function Dashboard() {
       {/* Recent actions */}
       <div style={{ ...card, marginTop: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", padding: "16px 16px 8px" }}>
-          Последние действия
+          {t("admin.recentActions")}
         </h4>
         <div style={{ overflowX: "auto" }}>
           <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
@@ -556,6 +561,7 @@ function Dashboard() {
 
 /* ============ USERS ============ */
 function UsersSection() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"all" | AdminUser["role"]>("all");
   const [users, setUsers] = useState(adminUsers);
@@ -574,7 +580,7 @@ function UsersSection() {
       prev.map((u) => {
         if (u.id !== id) return u;
         const ns = u.status === "active" ? "blocked" : "active";
-        toast.success(ns === "blocked" ? "Пользователь заблокирован" : "Пользователь разблокирован");
+        toast.success(ns === "blocked" ? t("admin.userBlocked") : t("admin.userUnblocked"));
         return { ...u, status: ns };
       })
     );
@@ -582,9 +588,9 @@ function UsersSection() {
 
   const roleBadge = (r: AdminUser["role"]) => {
     const map = {
-      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: "Админ" },
-      moderator: { bg: "var(--info-soft)", c: "var(--info)", l: "Модератор" },
-      user: { bg: "var(--background-surface)", c: "var(--foreground-50)", l: "Польз." },
+      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: t("admin.roleAdmin") },
+      moderator: { bg: "var(--info-soft)", c: "var(--info)", l: t("admin.roleModerator") },
+      user: { bg: "var(--background-surface)", c: "var(--foreground-50)", l: t("admin.roleUser") },
     };
     const s = map[r];
     return (
@@ -596,12 +602,12 @@ function UsersSection() {
 
   return (
     <div>
-      <H>Пользователи</H>
+      <H>{t("admin.users")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по имени или email..."
+          placeholder={t("admin.searchUsers")}
           className="outline-none"
           style={{ ...inputStyle, width: "320px", maxWidth: "100%" }}
         />
@@ -611,10 +617,10 @@ function UsersSection() {
           className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
-          <option value="all">Все роли</option>
-          <option value="user">Пользователь</option>
-          <option value="moderator">Модератор</option>
-          <option value="admin">Администратор</option>
+          <option value="all">{t("admin.allRoles")}</option>
+          <option value="user">{t("admin.roleUserOpt")}</option>
+          <option value="moderator">{t("admin.roleModerator")}</option>
+          <option value="admin">{t("admin.roleAdminOpt")}</option>
         </select>
       </div>
 
@@ -623,7 +629,7 @@ function UsersSection() {
           <table className="w-full" style={{ fontSize: "13px", minWidth: "780px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Имя", "Email", "Город", "Подписка", "Роль", "Статус", "Действия"].map((h) => (
+                {[t("admin.colName"), t("admin.colEmail"), t("admin.colCity"), t("admin.colSubscription"), t("admin.colRole"), t("admin.colStatus"), t("admin.colActions")].map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>
                     {h}
                   </th>
@@ -645,12 +651,12 @@ function UsersSection() {
                   <td style={{ padding: "10px 16px" }}>{roleBadge(u.role)}</td>
                   <td style={{ padding: "10px 16px" }}>
                     <StatusBadge variant={u.status === "active" ? "published" : "rejected"}>
-                      {u.status === "active" ? "Активен" : "Заблокирован"}
+                      {u.status === "active" ? t("admin.statusActive") : t("admin.statusBlocked")}
                     </StatusBadge>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex gap-[6px]">
-                      <IconBtn onClick={() => toast.info(`Просмотр: ${u.name}`)}><Eye size={14} /></IconBtn>
+                      <IconBtn onClick={() => toast.info(t("admin.viewUser", { name: u.name }))}><Eye size={14} /></IconBtn>
                       <IconBtn danger onClick={() => toggle(u.id)}><Ban size={14} /></IconBtn>
                     </div>
                   </td>
@@ -687,6 +693,7 @@ function IconBtn({ children, onClick, danger, success }: { children: React.React
 
 /* ============ CONTENT ============ */
 function ContentSection() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "published" | "moderation" | "rejected">("all");
   const items = posts.slice(0, 8).map((p, i) => ({
@@ -702,14 +709,14 @@ function ContentSection() {
 
   return (
     <div>
-      <H>Публикации</H>
+      <H>{t("profile.tabPosts")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("admin.searchTitle")} className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
         <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
-          <option value="all">Все статусы</option>
-          <option value="published">Опубликовано</option>
-          <option value="moderation">На модерации</option>
-          <option value="rejected">Отклонено</option>
+          <option value="all">{t("admin.allStatuses")}</option>
+          <option value="published">{t("admin.statusPublished")}</option>
+          <option value="moderation">{t("post.onModeration")}</option>
+          <option value="rejected">{t("profile.adStatusRejected")}</option>
         </select>
       </div>
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
@@ -717,7 +724,7 @@ function ContentSection() {
           <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Заголовок", "Автор", "Категория", "Статус", "Действия"].map((h) => (
+                {[t("admin.colTitle"), t("admin.colAuthor"), t("admin.colCategory"), t("admin.colStatus"), t("admin.colActions")].map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
               </tr>
@@ -730,14 +737,14 @@ function ContentSection() {
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{p.category}</td>
                   <td style={{ padding: "10px 16px" }}>
                     <StatusBadge variant={p.st}>
-                      {p.st === "published" ? "Опубликовано" : p.st === "moderation" ? "На модерации" : "Отклонено"}
+                      {p.st === "published" ? t("admin.statusPublished") : p.st === "moderation" ? t("admin.statusModeration") : t("admin.statusRejected")}
                     </StatusBadge>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex gap-[6px]">
-                      <IconBtn onClick={() => toast.info("Открыть пост")}><Eye size={14} /></IconBtn>
-                      <IconBtn success onClick={() => toast.success("Одобрено")}><Check size={14} /></IconBtn>
-                      <IconBtn danger onClick={() => toast.error("Отклонено")}><X size={14} /></IconBtn>
+                      <IconBtn onClick={() => toast.info(t("admin.openPost"))}><Eye size={14} /></IconBtn>
+                      <IconBtn success onClick={() => toast.success(t("admin.approved"))}><Check size={14} /></IconBtn>
+                      <IconBtn danger onClick={() => toast.error(t("profile.adStatusRejected"))}><X size={14} /></IconBtn>
                     </div>
                   </td>
                 </tr>
@@ -752,6 +759,7 @@ function ContentSection() {
 
 /* ============ ADS ============ */
 function AdsSection() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const items = ads.slice(0, 8).map((a, i) => ({
     ...a,
@@ -761,14 +769,14 @@ function AdsSection() {
 
   return (
     <div>
-      <H>Объявления</H>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+      <H>{t("nav.ads")}</H>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("admin.searchTitle")} className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Заголовок", "Продавец", "Цена", "Категория", "Статус", "Действия"].map((h) => (
+                {[t("admin.colTitle"), t("admin.colSeller"), t("admin.colPrice"), t("admin.colCategory"), t("admin.colStatus"), t("admin.colActions")].map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
               </tr>
@@ -782,14 +790,14 @@ function AdsSection() {
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.category}</td>
                   <td style={{ padding: "10px 16px" }}>
                     <StatusBadge variant={a.st}>
-                      {a.st === "published" ? "Опубликовано" : a.st === "moderation" ? "На модерации" : "Отклонено"}
+                      {a.st === "published" ? t("admin.statusPublished") : a.st === "moderation" ? t("admin.statusModeration") : t("admin.statusRejected")}
                     </StatusBadge>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex gap-[6px]">
-                      <IconBtn onClick={() => toast.info("Открыть объявление")}><Eye size={14} /></IconBtn>
-                      <IconBtn success onClick={() => toast.success("Одобрено")}><Check size={14} /></IconBtn>
-                      <IconBtn danger onClick={() => toast.error("Отклонено")}><X size={14} /></IconBtn>
+                      <IconBtn onClick={() => toast.info(t("admin.openAd"))}><Eye size={14} /></IconBtn>
+                      <IconBtn success onClick={() => toast.success(t("admin.approved"))}><Check size={14} /></IconBtn>
+                      <IconBtn danger onClick={() => toast.error(t("profile.adStatusRejected"))}><X size={14} /></IconBtn>
                     </div>
                   </td>
                 </tr>
@@ -804,6 +812,7 @@ function AdsSection() {
 
 /* ============ MODERATION ============ */
 function ModerationSection() {
+  const { t } = useTranslation();
   const [postQueue, setPostQueue] = useState(posts.slice(0, 2).map((p) => ({ id: p.id, title: p.title, author: p.authorId, category: p.category })));
   const [adQueue, setAdQueue] = useState(ads.slice(0, 1).map((a) => ({ id: a.id, title: a.title, author: a.authorId, category: a.category })));
   const [channelQueue, setChannelQueue] = useState([
@@ -813,24 +822,24 @@ function ModerationSection() {
 
   const removePost = (id: string, ok: boolean) => {
     setPostQueue((q) => q.filter((x) => x.id !== id));
-    ok ? toast.success("Пост одобрен") : toast.error("Пост отклонён");
+    ok ? toast.success(t("admin.postApproved")) : toast.error(t("admin.postRejected"));
   };
   const removeAd = (id: string, ok: boolean) => {
     setAdQueue((q) => q.filter((x) => x.id !== id));
-    ok ? toast.success("Объявление одобрено") : toast.error("Объявление отклонено");
+    ok ? toast.success(t("admin.adApproved")) : toast.error(t("admin.adRejected"));
   };
   const removeChannel = (id: string, ok: boolean) => {
     setChannelQueue((q) => q.filter((x) => x.id !== id));
-    ok ? toast.success("Пост канала одобрен") : toast.error("Пост канала отклонён");
+    ok ? toast.success(t("admin.channelPostApproved")) : toast.error(t("admin.channelPostRejected"));
   };
 
   return (
     <div>
-      <H>Модерация</H>
+      <H>{t("admin.moderation")}</H>
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px" }}>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Публикации на модерации ({postQueue.length})
+            {t("admin.postsModeration", { n: postQueue.length })}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
@@ -845,12 +854,12 @@ function ModerationSection() {
                 />
               ))}
             </AnimatePresence>
-            {postQueue.length === 0 && <EmptyQueue label="Нет постов на модерации" />}
+            {postQueue.length === 0 && <EmptyQueue label={t("admin.emptyPostsModeration")} />}
           </div>
         </div>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Объявления на модерации ({adQueue.length})
+            {t("admin.adsModeration", { n: adQueue.length })}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
@@ -865,12 +874,12 @@ function ModerationSection() {
                 />
               ))}
             </AnimatePresence>
-            {adQueue.length === 0 && <EmptyQueue label="Нет объявлений на модерации" />}
+            {adQueue.length === 0 && <EmptyQueue label={t("admin.emptyAdsModeration")} />}
           </div>
         </div>
         <div className="lg:col-span-2">
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Каналы на модерации ({channelQueue.length})
+            {t("admin.channelsModeration", { n: channelQueue.length })}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
@@ -885,7 +894,7 @@ function ModerationSection() {
                 />
               ))}
             </AnimatePresence>
-            {channelQueue.length === 0 && <EmptyQueue label="Нет постов каналов на модерации" />}
+            {channelQueue.length === 0 && <EmptyQueue label={t("admin.emptyChannelsModeration")} />}
           </div>
         </div>
       </div>
@@ -903,6 +912,7 @@ function EmptyQueue({ label }: { label: string }) {
 }
 
 function ModerationCard({ title, author, category, onApprove, onReject }: { title: string; author: string; category: string; onApprove: () => void; onReject: () => void }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -919,9 +929,9 @@ function ModerationCard({ title, author, category, onApprove, onReject }: { titl
         </span>
       </div>
       <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
-        <button onClick={onApprove} style={{ height: "36px", padding: "0 16px", background: "var(--success)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>Одобрить</button>
-        <button onClick={onReject} style={{ height: "36px", padding: "0 16px", background: "var(--error)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>Отклонить</button>
-        <button style={{ height: "36px", padding: "0 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--foreground-70)", fontWeight: 500, fontSize: "12px", borderRadius: "var(--r-button)" }} onClick={() => toast.info("Открыть детали")}>Открыть</button>
+        <button onClick={onApprove} style={{ height: "36px", padding: "0 16px", background: "var(--success)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>{t("admin.approve")}</button>
+        <button onClick={onReject} style={{ height: "36px", padding: "0 16px", background: "var(--error)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>{t("admin.reject")}</button>
+        <button style={{ height: "36px", padding: "0 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--foreground-70)", fontWeight: 500, fontSize: "12px", borderRadius: "var(--r-button)" }} onClick={() => toast.info(t("admin.openDetails"))}>{t("components.categoryCardOpen")}</button>
       </div>
     </motion.div>
   );
@@ -929,6 +939,7 @@ function ModerationCard({ title, author, category, onApprove, onReject }: { titl
 
 /* ============ MONETIZATION ============ */
 function MonetizationSection() {
+  const { t } = useTranslation();
   const [editedTariffs, setEditedTariffs] = useState(tariffs);
   const [promos, setPromos] = useState(initialPromos);
   const [bannerList, setBannerList] = useState<Banner[]>(initialBanners);
@@ -938,7 +949,7 @@ function MonetizationSection() {
   };
   const removeBanner = (id: string) => {
     setBannerList((prev) => prev.filter((b) => b.id !== id));
-    toast.success("Баннер удалён");
+    toast.success(t("admin.bannerDeleted"));
   };
   const sortedBanners = [...bannerList].sort((a, b) => {
     if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
@@ -948,11 +959,11 @@ function MonetizationSection() {
 
   return (
     <div>
-      <H>Монетизация</H>
+      <H>{t("admin.monetization")}</H>
 
       {/* Tariffs */}
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
-        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Управление тарифами</h4>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("admin.manageTariffs")}</h4>
         <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "12px", marginTop: "12px" }}>
           {editedTariffs.map((t, i) => (
             <div key={t.id} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px" }}>
@@ -978,7 +989,7 @@ function MonetizationSection() {
             </div>
           ))}
         </div>
-        <button onClick={() => toast.success("Тарифы сохранены")} style={{ ...primaryBtn, marginTop: "12px" }}>Сохранить тарифы</button>
+        <button onClick={() => toast.success(t("admin.tariffsSaved"))} style={{ ...primaryBtn, marginTop: "12px" }}>{t("admin.saveTariffs")}</button>
       </div>
 
       {/* Promocodes */}
@@ -988,8 +999,8 @@ function MonetizationSection() {
       {/* Banners */}
       <div style={{ ...card, padding: "20px" }}>
         <div className="flex items-center justify-between flex-wrap gap-[8px]">
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Рекламные баннеры</h4>
-          <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>Приоритет, закрепление и расписание показа</span>
+          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("admin.adBanners")}</h4>
+          <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>{t("admin.bannersHint")}</span>
         </div>
         <div
           style={{
@@ -1006,7 +1017,7 @@ function MonetizationSection() {
           }}
         >
           <Upload size={26} style={{ color: "var(--foreground-30)" }} />
-          <span style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузить новый баннер</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("admin.uploadBanner")}</span>
         </div>
 
         <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -1033,7 +1044,7 @@ function MonetizationSection() {
                 style={{ gap: "10px", marginTop: "12px", alignItems: "end" }}
               >
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Приоритет</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("admin.priority")}</span>
                   <input
                     type="number"
                     min={0}
@@ -1045,7 +1056,7 @@ function MonetizationSection() {
                   />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Показывать с</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("admin.showFrom")}</span>
                   <input
                     type="date"
                     value={b.scheduleFrom ?? ""}
@@ -1055,7 +1066,7 @@ function MonetizationSection() {
                   />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Показывать по</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{t("admin.showUntil")}</span>
                   <input
                     type="date"
                     value={b.scheduleTo ?? ""}
@@ -1071,22 +1082,22 @@ function MonetizationSection() {
                     onChange={(e) => updateBanner(b.id, { pinned: e.target.checked })}
                     style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
                   />
-                  <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Закрепить</span>
+                  <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("admin.pin")}</span>
                 </label>
               </div>
             </div>
           ))}
           {sortedBanners.length === 0 && (
             <div style={{ padding: "24px 12px", textAlign: "center", fontSize: "13px", color: "var(--foreground-50)" }}>
-              Нет активных баннеров
+              {t("admin.noActiveBanners")}
             </div>
           )}
         </div>
         <button
-          onClick={() => toast.success("Настройки баннеров сохранены")}
+          onClick={() => toast.success(t("admin.bannersSaved"))}
           style={{ ...primaryBtn, marginTop: "14px" }}
         >
-          Сохранить баннеры
+          {t("admin.saveBanners")}
         </button>
       </div>
     </div>
@@ -1095,23 +1106,21 @@ function MonetizationSection() {
 
 /* ============ CATEGORIES ============ */
 function CategoriesSection() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState<Record<string, boolean>>({ c1: true });
   return (
     <div>
       <H
         action={
           <div className="flex gap-[8px]">
-            <button style={{ ...primaryBtn }} onClick={() => toast.success("Категория добавлена")}>
-              <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />Добавить
-            </button>
-            <button style={{ ...primaryBtn, background: "transparent", color: "var(--foreground)", border: "1px solid var(--border)" }} onClick={() => toast.success("Порядок сохранён")}>
-              Сохранить порядок
+            <button style={{ ...primaryBtn }} onClick={() => toast.success(t("admin.categoryAdded"))}>
+              <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />{t("admin.addCategory")}</button>
+            <button style={{ ...primaryBtn, background: "transparent", color: "var(--foreground)", border: "1px solid var(--border)" }} onClick={() => toast.success(t("admin.orderSaved"))}>
+              {t("admin.saveOrder")}
             </button>
           </div>
         }
-      >
-        Категории
-      </H>
+      >{t("nav.categories")}</H>
       <div style={{ ...card, padding: "16px" }}>
         {categories.map((c) => (
           <div key={c.id} style={{ marginBottom: "4px" }}>
@@ -1119,12 +1128,12 @@ function CategoriesSection() {
               <button onClick={() => setOpen((p) => ({ ...p, [c.id]: !p[c.id] }))} className="flex items-center gap-[8px] flex-1">
                 <motion.span animate={{ rotate: open[c.id] ? 90 : 0 }} style={{ display: "inline-block", color: "var(--foreground-50)", fontSize: "10px" }}>▶</motion.span>
                 <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{c.name}</span>
-                <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>({c.members.toLocaleString("ru")} уч.)</span>
+                <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>{t("admin.membersShort", { n: c.members.toLocaleString("ru") })}</span>
               </button>
               <div className="flex gap-[4px]">
-                <IconBtn onClick={() => toast.info("Добавить подкатегорию")}><Plus size={14} /></IconBtn>
-                <IconBtn onClick={() => toast.info("Редактировать")}><Pencil size={14} /></IconBtn>
-                <IconBtn danger onClick={() => toast.success("Удалено")}><Trash2 size={14} /></IconBtn>
+                <IconBtn onClick={() => toast.info(t("admin.addSubcategory"))}><Plus size={14} /></IconBtn>
+                <IconBtn onClick={() => toast.info(t("profile.edit"))}><Pencil size={14} /></IconBtn>
+                <IconBtn danger onClick={() => toast.success(t("admin.deleted"))}><Trash2 size={14} /></IconBtn>
               </div>
             </div>
             <AnimatePresence>
@@ -1140,8 +1149,8 @@ function CategoriesSection() {
                     <div key={s.id} className="flex items-center justify-between" style={{ padding: "6px 0" }}>
                       <span style={{ fontSize: "14px", color: "var(--foreground-70)" }}>{s.name}</span>
                       <div className="flex gap-[4px]">
-                        <IconBtn onClick={() => toast.info("Редактировать")}><Pencil size={14} /></IconBtn>
-                        <IconBtn danger onClick={() => toast.success("Удалено")}><Trash2 size={14} /></IconBtn>
+                        <IconBtn onClick={() => toast.info(t("profile.edit"))}><Pencil size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => toast.success(t("admin.deleted"))}><Trash2 size={14} /></IconBtn>
                       </div>
                     </div>
                   ))}
@@ -1157,6 +1166,7 @@ function CategoriesSection() {
 
 /* ============ NOTIFICATIONS ============ */
 function NotificationsSection() {
+  const { t } = useTranslation();
   const emailTpl = [
     ["Приветствие", "Добро пожаловать в МоДелизМ Форум!", "01.06.2026"],
     ["Подтверждение почты", "Подтвердите ваш email", "15.05.2026"],
@@ -1176,7 +1186,7 @@ function NotificationsSection() {
         <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
           <thead>
             <tr style={{ background: "var(--background-surface)" }}>
-              {["Название", "Тема", "Изменено", "Действия"].map((h) => (
+              {[t("admin.promoName"), t("admin.colSubject"), t("admin.colChanged"), t("admin.colActions")].map((h) => (
                 <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
               ))}
             </tr>
@@ -1189,8 +1199,8 @@ function NotificationsSection() {
                 <td style={{ padding: "10px 16px", color: "var(--foreground-30)", fontSize: "12px" }}>{r[2]}</td>
                 <td style={{ padding: "10px 16px" }}>
                   <div className="flex gap-[6px]">
-                    <IconBtn onClick={() => toast.info("Редактировать")}><Pencil size={14} /></IconBtn>
-                    <IconBtn onClick={() => toast.success("Тестовое уведомление отправлено")}><Send size={14} /></IconBtn>
+                    <IconBtn onClick={() => toast.info(t("profile.edit"))}><Pencil size={14} /></IconBtn>
+                    <IconBtn onClick={() => toast.success(t("admin.testNotificationSent"))}><Send size={14} /></IconBtn>
                   </div>
                 </td>
               </tr>
@@ -1203,14 +1213,14 @@ function NotificationsSection() {
 
   return (
     <div>
-      <H>Уведомления</H>
-      {renderTable("Email-шаблоны", emailTpl)}
-      {renderTable("Push-шаблоны", pushTpl)}
+      <H>{t("admin.notifications")}</H>
+      {renderTable(t("admin.emailTemplates"), emailTpl)}
+      {renderTable(t("admin.pushTemplates"), pushTpl)}
       <button
-        onClick={() => toast.success("Уведомление отправлено всем пользователям")}
+        onClick={() => toast.success(t("admin.notifyAllSent"))}
         style={{ ...primaryBtn, height: "44px", padding: "0 24px", fontSize: "14px", marginTop: "16px" }}
       >
-        Отправить уведомление всем
+        {t("admin.sendNotifyAll")}
       </button>
     </div>
   );
@@ -1218,17 +1228,18 @@ function NotificationsSection() {
 
 /* ============ ANALYTICS ============ */
 function AnalyticsSection() {
+  const { t } = useTranslation();
   const charts = [
     "DAU / MAU (Daily/Monthly Active Users)",
-    "Доход по месяцам",
-    "Объявления: создано / продано",
-    "Топ категорий по активности",
-    "Конверсия в подписку",
-    "География пользователей",
+    t("admin.chartRevenue"),
+    t("admin.chartAds"),
+    t("admin.chartTopCategories"),
+    t("admin.chartConversion"),
+    t("admin.chartGeo"),
   ];
   return (
     <div>
-      <H>Аналитика</H>
+      <H>{t("admin.analytics")}</H>
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
         {charts.map((c, i) => (
           <motion.div
@@ -1242,7 +1253,7 @@ function AnalyticsSection() {
             <div style={{ height: "180px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
               <BarChart3 size={32} style={{ color: "var(--foreground-15)" }} />
               <div style={{ fontSize: "13px", color: "var(--foreground-30)", textAlign: "center", maxWidth: "240px" }}>
-                График будет доступен после подключения аналитики
+                {t("admin.chartSoon")}
               </div>
             </div>
           </motion.div>
@@ -1254,6 +1265,7 @@ function AnalyticsSection() {
 
 /* ============ SETTINGS ============ */
 function SettingsSection() {
+  const { t } = useTranslation();
   const [toggles, setToggles] = useState({ modPosts: true, modAds: true, regOpen: true, emailReq: true });
 
   const field = (label: string, defaultValue: string, type = "text") => (
@@ -1310,34 +1322,32 @@ function SettingsSection() {
 
   return (
     <div>
-      <H>Настройки</H>
+      <H>{t("admin.settings")}</H>
       <div style={{ ...card, padding: "24px", maxWidth: "600px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "16px" }}>
-          Настройки платформы
+          {t("admin.platformSettings")}
         </h4>
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {field("Название проекта", "МоДелизМ Форум")}
-          {field("Домен", "modelizm-forum.ru")}
-          {field("Email поддержки", "support@modelizm-forum.ru")}
-          {field("Платёжный ключ ЮKassa (Shop ID)", "••••••••", "password")}
-          {field("Платёжный ключ Т-Банк (Terminal Key)", "••••••••", "password")}
-          {field("SMTP сервер", "smtp.mail.ru")}
-          {field("SMTP порт", "587", "number")}
-          {field("SMTP логин", "noreply@modelizm-forum.ru")}
-          {field("SMTP пароль", "••••••••", "password")}
+          {field(t("admin.fieldProjectName"), "МоДелизМ Форум")}
+          {field(t("admin.fieldDomain"), "modelizm-forum.ru")}
+          {field(t("admin.fieldSupportEmail"), "support@modelizm-forum.ru")}
+          {field(t("admin.fieldYookassa"), "••••••••", "password")}
+          {field(t("admin.fieldTbank"), "••••••••", "password")}
+          {field(t("admin.fieldSmtpServer"), "smtp.mail.ru")}
+          {field(t("admin.fieldSmtpPort"), "587", "number")}
+          {field(t("admin.fieldSmtpLogin"), "noreply@modelizm-forum.ru")}
+          {field(t("admin.fieldSmtpPassword"), "••••••••", "password")}
         </div>
         <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "4px" }}>
-          <Toggle label="Модерация постов вручную" k="modPosts" />
-          <Toggle label="Модерация объявлений вручную" k="modAds" />
-          <Toggle label="Регистрация открыта" k="regOpen" />
-          <Toggle label="Email-подтверждение обязательно" k="emailReq" />
+          <Toggle label={t("admin.toggleModPosts")} k="modPosts" />
+          <Toggle label={t("admin.toggleModAds")} k="modAds" />
+          <Toggle label={t("admin.toggleRegOpen")} k="regOpen" />
+          <Toggle label={t("admin.toggleEmailReq")} k="emailReq" />
         </div>
         <button
-          onClick={() => toast.success("Настройки сохранены")}
+          onClick={() => toast.success(t("admin.settingsSaved"))}
           style={{ ...primaryBtn, height: "44px", padding: "0 32px", fontSize: "14px", marginTop: "20px" }}
-        >
-          Сохранить
-        </button>
+        >{t("post.save")}</button>
       </div>
     </div>
   );
@@ -1345,6 +1355,7 @@ function SettingsSection() {
 
 /* ============ PROMO CODES BLOCK ============ */
 function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos: React.Dispatch<React.SetStateAction<PromoCode[]>> }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
@@ -1363,10 +1374,10 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
   });
 
   const create = () => {
-    if (!form.code.trim()) return toast.error("Введите название");
-    if (!form.expiresAt) return toast.error("Укажите срок действия");
-    if (form.discount < 1 || form.discount > 100) return toast.error("Скидка от 1 до 100%");
-    if (form.limit < 1) return toast.error("Лимит должен быть больше 0");
+    if (!form.code.trim()) return toast.error(t("admin.promoNameRequired"));
+    if (!form.expiresAt) return toast.error(t("admin.promoDateRequired"));
+    if (form.discount < 1 || form.discount > 100) return toast.error(t("admin.promoDiscountRange"));
+    if (form.limit < 1) return toast.error(t("admin.promoLimitMin"));
     const status: "active" | "expired" = form.expiresAt >= today ? "active" : "expired";
     setPromos((p) => [
       ...p,
@@ -1374,15 +1385,15 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
     ]);
     setForm({ code: "", discount: 10, expiresAt: "", limit: 100 });
     setOpen(false);
-    toast.success("Промокод создан");
+    toast.success(t("admin.promoCreated"));
   };
 
   return (
     <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
       <div className="flex items-center justify-between flex-wrap gap-[12px]">
-        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Промокоды</h4>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("admin.promoCodes")}</h4>
         <button onClick={() => setOpen((v) => !v)} style={primaryBtn}>
-          <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />Создать промокод
+          <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />{t("admin.createPromo")}
         </button>
       </div>
 
@@ -1397,25 +1408,25 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
             <div style={{ marginTop: "12px", padding: "16px", background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "10px" }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Название</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("admin.promoName")}</span>
                   <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="SUMMER2026" className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Скидка, %</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("admin.promoDiscount")}</span>
                   <input type="number" min={1} max={100} value={form.discount} onChange={(e) => setForm({ ...form, discount: +e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Срок действия</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("admin.promoExpiry")}</span>
                   <input type="date" required value={form.expiresAt} min={today} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Лимит использований</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("admin.promoLimit")}</span>
                   <input type="number" min={1} value={form.limit} onChange={(e) => setForm({ ...form, limit: +e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
               </div>
               <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
-                <button onClick={create} style={primaryBtn}>Создать</button>
-                <button onClick={() => setOpen(false)} style={{ ...primaryBtn, background: "transparent", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>Отмена</button>
+                <button onClick={create} style={primaryBtn}>{t("admin.create")}</button>
+                <button onClick={() => setOpen(false)} style={{ ...primaryBtn, background: "transparent", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>{t("common.cancel")}</button>
               </div>
             </div>
           </motion.div>
@@ -1426,7 +1437,7 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
       <div className="flex flex-wrap items-center" style={{ gap: "8px", marginTop: "12px" }}>
         <div style={{ position: "relative", flex: 1, minWidth: "180px" }}>
           <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--foreground-50)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по коду…" className="w-full outline-none" style={{ ...inputStyle, paddingLeft: "34px" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("admin.searchByCode")} className="w-full outline-none" style={{ ...inputStyle, paddingLeft: "34px" }} />
         </div>
         <div className="flex" style={{ gap: "4px", background: "var(--background-surface)", padding: "3px", borderRadius: "var(--r-pill)" }}>
           {(["all", "active", "expired"] as const).map((f) => (
@@ -1442,7 +1453,7 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
                 color: filter === f ? "var(--accent)" : "var(--foreground-70)",
               }}
             >
-              {f === "all" ? "Все" : f === "active" ? "Активные" : "Истекшие"}
+              {f === "all" ? t("common.all") : f === "active" ? t("admin.filterActive") : t("admin.filterExpired")}
             </button>
           ))}
         </div>
@@ -1453,7 +1464,7 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
         <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
           <thead>
             <tr style={{ background: "var(--background-surface)" }}>
-              {["Код", "Скидка", "Использовано", "Срок", "Статус", ""].map((h) => (
+              {[t("admin.colCode"), t("admin.colDiscount"), t("admin.colUsed"), t("admin.colExpiry"), t("admin.colStatus"), ""].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase" }}>{h}</th>
               ))}
             </tr>
@@ -1474,16 +1485,16 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
                     background: p.status === "active" ? "var(--success-soft, rgba(34,197,94,0.12))" : "var(--background-surface)",
                     color: p.status === "active" ? "var(--success, #16a34a)" : "var(--foreground-50)",
                   }}>
-                    {p.status === "active" ? "Активен" : "Истёк"}
+                    {p.status === "active" ? t("admin.statusActive") : t("admin.promoExpired")}
                   </span>
                 </td>
                 <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                  <IconBtn danger onClick={() => { setPromos((q) => q.filter((x) => x.id !== p.id)); toast.success("Промокод удалён"); }}><Trash2 size={14} /></IconBtn>
+                  <IconBtn danger onClick={() => { setPromos((q) => q.filter((x) => x.id !== p.id)); toast.success(t("admin.promoDeleted")); }}><Trash2 size={14} /></IconBtn>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--foreground-50)" }}>Ничего не найдено</td></tr>
+              <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--foreground-50)" }}>{t("admin.nothingFound")}</td></tr>
             )}
           </tbody>
         </table>

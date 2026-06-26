@@ -1,3 +1,4 @@
+import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +14,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/ads/new")({
-  head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: tStatic("ads.newMetaTitle") }] }),
   component: NewAdPage,
 });
 
@@ -21,7 +22,14 @@ type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
 const DELIVERIES = ["СДЭК", "Почта России", "Яндекс Доставка", "Ozon", "Wildberries"];
 const MAX_PHOTOS = 10;
-const STEPS = ["Фото", "Данные", "Превью"];
+
+const STATUS_I18N = { "Продаю": "ads.statusSell", "Куплю": "ads.statusBuy", "Обменяю": "ads.statusSwap" } as const;
+const CONDITION_I18N: Record<AdCondition, string> = {
+  "Новое": "ads.conditionNew",
+  "Б/у — отлично": "ads.conditionExcellent",
+  "Б/у — хорошо": "ads.conditionGood",
+  "Под восстановление": "ads.conditionRestore",
+};
 
 interface Form {
   photos: string[];
@@ -52,6 +60,7 @@ const initial: Form = {
 };
 
 function NewAdPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
@@ -66,24 +75,26 @@ function NewAdPage() {
   }, [step, form]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const stepLabels = [t("ads.stepPhotos"), t("ads.stepData"), t("ads.stepPreview")];
+  const statusLabel = (s: Status) => t(STATUS_I18N[s]);
 
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[120px]">
         <header className="space-y-[6px]">
           <Link to="/ads" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            <ChevronLeft size={14} /> Назад к объявлениям
+            <ChevronLeft size={14} /> {t("ads.backToList")}
           </Link>
           <h1 className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
             style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            Новое объявление
+            {t("ads.newTitle")}
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
-            Размещение — 20 ₽. После оплаты объявление пройдёт модерацию.
+            {t("ads.newSubtitle")}
           </p>
         </header>
 
-        <StepIndicator current={step} labels={STEPS} />
+        <StepIndicator current={step} labels={stepLabels} />
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -95,7 +106,7 @@ function NewAdPage() {
           >
             {step === 1 && <StepPhotos form={form} set={set} />}
             {step === 2 && <StepData form={form} set={set} cat={cat} />}
-            {step === 3 && <StepPreview form={form} cat={cat} />}
+            {step === 3 && <StepPreview form={form} cat={cat} statusLabel={statusLabel} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -122,8 +133,7 @@ function NewAdPage() {
               height: 44,
             }}
           >
-            <ChevronLeft size={16} /> Назад
-          </button>
+            <ChevronLeft size={16} />{t("common.back")}</button>
           {step < 3 ? (
             <button
               type="button"
@@ -138,7 +148,7 @@ function NewAdPage() {
                 height: 44,
               }}
             >
-              Далее <ChevronRight size={16} />
+              {t("ads.next")} <ChevronRight size={16} />
             </button>
           ) : (
             <button
@@ -153,7 +163,7 @@ function NewAdPage() {
                 height: 44,
               }}
             >
-              <CreditCard size={16} /> Оплатить 20 ₽ и опубликовать
+              <CreditCard size={16} /> {t("ads.payAndPublish")}
             </button>
           )}
         </div>
@@ -166,6 +176,7 @@ function NewAdPage() {
 
 /* ────────── STEP 1: Photos ────────── */
 function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
+  const { t } = useTranslation();
   const addPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const urls = files.slice(0, MAX_PHOTOS - form.photos.length).map((f) => URL.createObjectURL(f));
@@ -183,10 +194,10 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
     <section className="space-y-[20px]">
       <div>
         <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-          Фотографии
+          {t("ads.photosTitle")}
         </h2>
         <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          До {MAX_PHOTOS} фото. Первое — главное в карточке.
+          {t("ads.photosHint", { n: MAX_PHOTOS })}
         </p>
       </div>
 
@@ -203,9 +214,9 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
           <ImagePlus size={24} />
         </div>
         <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Перетащите фото или нажмите, чтобы выбрать
+          {t("ads.photosDrop")}
         </div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>JPG, PNG до 10 МБ</div>
+        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("ads.photosFormat")}</div>
         <input type="file" accept="image/*" multiple onChange={addPhoto} className="hidden" />
       </label>
 
@@ -231,18 +242,18 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
                   className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
                   style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
                 >
-                  <Star size={9} fill="currentColor" /> Главное
+                  <Star size={9} fill="currentColor" /> {t("ads.photoMain")}
                 </span>
               )}
               <div className="absolute right-[6px] top-[6px] flex gap-[4px] opacity-0 transition-opacity group-hover:opacity-100">
                 {i !== 0 && (
-                  <button type="button" onClick={() => makeMain(i)} title="Сделать главным"
+                  <button type="button" onClick={() => makeMain(i)} title={t("ads.photoMakeMain")}
                     className="grid h-[28px] w-[28px] place-items-center"
                     style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}>
                     <Star size={12} />
                   </button>
                 )}
-                <button type="button" onClick={() => remove(i)} title="Удалить"
+                <button type="button" onClick={() => remove(i)} title={t("ads.photoRemove")}
                   className="grid h-[28px] w-[28px] place-items-center"
                   style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}>
                   <X size={12} />
@@ -258,39 +269,40 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 
 /* ────────── STEP 2: Data ────────── */
 function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: (typeof categories)[number] }) {
+  const { t } = useTranslation();
   return (
     <section className="space-y-[24px]">
-      <Block title="Тип объявления">
+      <Block title={t("ads.blockType")}>
         <div className="grid gap-[10px] sm:grid-cols-3">
           <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
-            icon={Tag} title="Продаю" description="Хочу продать вещь" accentVar="var(--accent)" />
+            icon={Tag} title={t("ads.statusSell")} description={t("ads.statusSellDesc")} accentVar="var(--accent)" />
           <RadioCard selected={form.status === "Куплю"} onClick={() => set("status", "Куплю")}
-            icon={ShoppingCart} title="Куплю" description="Ищу для покупки" accentVar="var(--info)" />
+            icon={ShoppingCart} title={t("ads.statusBuy")} description={t("ads.statusBuyDesc")} accentVar="var(--info)" />
           <RadioCard selected={form.status === "Обменяю"} onClick={() => set("status", "Обменяю")}
-            icon={ArrowLeftRight} title="Обменяю" description="Готов на обмен" accentVar="var(--warning)" />
+            icon={ArrowLeftRight} title={t("ads.statusSwap")} description={t("ads.statusSwapDesc")} accentVar="var(--warning)" />
         </div>
       </Block>
 
-      <Block title="Описание">
-        <Field label="Название" required>
-          <Input value={form.title} onChange={(v) => set("title", v)} placeholder="Двигатель Picco .21 для багги 1:8" />
+      <Block title={t("ads.blockDescription")}>
+        <Field label={t("ads.fieldTitle")} required>
+          <Input value={form.title} onChange={(v) => set("title", v)} placeholder={t("ads.titlePlaceholder")} />
         </Field>
-        <Field label="Подробное описание">
+        <Field label={t("ads.fieldDescription")}>
           <Textarea value={form.description} onChange={(v) => set("description", v)}
-            placeholder="Состояние, история использования, комплектация…" rows={5} />
+            placeholder={t("ads.descPlaceholder")} rows={5} />
         </Field>
       </Block>
 
-      <Block title="Параметры">
+      <Block title={t("ads.blockParams")}>
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Цена, ₽" required>
+          <Field label={t("ads.fieldPrice")} required>
             <Input value={form.price} onChange={(v) => set("price", v.replace(/\D/g, ""))} placeholder="0" inputMode="numeric" />
           </Field>
-          <Field label="Состояние">
+          <Field label={t("ads.fieldCondition")}>
             <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)}
-              options={CONDITIONS} />
+              options={CONDITIONS.map((c) => ({ value: c, label: t(CONDITION_I18N[c]) }))} />
           </Field>
-          <Field label="Категория">
+          <Field label={t("ads.fieldCategory")}>
             <NativeSelect value={form.categoryId}
               onChange={(v) => {
                 const c = categories.find((x) => x.id === v)!;
@@ -299,23 +311,23 @@ function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(
               }}
               options={categories.map((c) => ({ label: c.name, value: c.id }))} />
           </Field>
-          <Field label="Подкатегория">
+          <Field label={t("ads.fieldSubcategory")}>
             <NativeSelect value={form.subcategoryId} onChange={(v) => set("subcategoryId", v)}
               options={cat.subcategories.map((s) => ({ label: s.name, value: s.id }))} />
           </Field>
         </div>
       </Block>
 
-      <Block title="Контакты и доставка">
+      <Block title={t("ads.blockContacts")}>
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Город" required>
-            <Input value={form.city} onChange={(v) => set("city", v)} placeholder="Краснодар" leftIcon={<MapPin size={14} />} />
+          <Field label={t("ads.fieldCity")} required>
+            <Input value={form.city} onChange={(v) => set("city", v)} placeholder={t("ads.cityPlaceholder")} leftIcon={<MapPin size={14} />} />
           </Field>
-          <Field label="Контакт" required>
-            <Input value={form.contact} onChange={(v) => set("contact", v)} placeholder="+7 999 000-00-00 или @telegram" />
+          <Field label={t("ads.fieldContact")} required>
+            <Input value={form.contact} onChange={(v) => set("contact", v)} placeholder={t("ads.contactPlaceholder")} />
           </Field>
         </div>
-        <Field label="Способы доставки">
+        <Field label={t("ads.fieldDelivery")}>
           <div className="flex flex-wrap gap-[6px]">
             {DELIVERIES.map((d) => (
               <Checkbox key={d}
@@ -332,7 +344,8 @@ function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(
 }
 
 /* ────────── STEP 3: Preview ────────── */
-function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[number] }) {
+function StepPreview({ form, cat, statusLabel }: { form: Form; cat: (typeof categories)[number]; statusLabel: (s: Status) => string }) {
+  const { t } = useTranslation();
   const sub = cat.subcategories.find((s) => s.id === form.subcategoryId);
   const status = form.status;
   const statusStyle = status === "Продаю"
@@ -346,10 +359,10 @@ function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[numbe
     <section className="space-y-[20px]">
       <div>
         <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-          Превью
+          {t("ads.previewTitle")}
         </h2>
         <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          Так ваше объявление увидят покупатели.
+          {t("ads.previewHint")}
         </p>
       </div>
 
@@ -367,11 +380,11 @@ function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[numbe
             <img src={image} alt="" className="h-full w-full object-cover" />
             <span className="absolute left-[10px] top-[10px] px-[10px] py-[4px] text-[11px] font-semibold uppercase"
               style={{ background: statusStyle.bg, color: statusStyle.fg, borderRadius: "var(--r-pill)" }}>
-              {status}
+              {statusLabel(status)}
             </span>
           </div>
           <div className="space-y-[8px] p-[14px]">
-            <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{form.title || "Название объявления"}</div>
+            <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{form.title || t("ads.titleFallback")}</div>
             <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>
               {Number(form.price || 0).toLocaleString("ru")} ₽
             </div>
@@ -390,21 +403,21 @@ function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[numbe
             boxShadow: "var(--shadow-card)",
           }}
         >
-          <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{form.title || "Название объявления"}</h3>
+          <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{form.title || t("ads.titleFallback")}</h3>
           <p className="text-[13px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
-            {form.description || "Описание не заполнено."}
+            {form.description || t("ads.descFallback")}
           </p>
           <div className="grid gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
             <div className="inline-flex items-center gap-[6px]"><MapPin size={14} /> {form.city || "—"}</div>
             <div className="inline-flex items-center gap-[6px]"><Truck size={14} /> {form.deliveries.join(", ") || "—"}</div>
-            <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {form.condition}</div>
+            <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {t(CONDITION_I18N[form.condition])}</div>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-[12px] p-[14px] text-[12px]"
         style={{ background: "var(--info-soft)", color: "var(--info)", borderRadius: "var(--r-card-sm)" }}>
-        <CreditCard size={16} /> После оплаты 20 ₽ объявление отправится на модерацию (обычно до 60 минут).
+        <CreditCard size={16} /> {t("ads.payNote")}
       </div>
     </section>
   );

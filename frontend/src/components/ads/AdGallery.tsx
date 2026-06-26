@@ -1,9 +1,11 @@
+import { useTranslation } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
+  const { t } = useTranslation();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [thumbRef, thumbApi] = useEmblaCarousel({ containScroll: "keepSnaps", dragFree: true });
   const [selected, setSelected] = useState(0);
@@ -41,7 +43,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
               <div key={i} className="relative h-full min-w-0 flex-[0_0_100%]">
                 <img
                   src={src}
-                  alt={`${alt} — фото ${i + 1}`}
+                  alt={t("ads.photoAlt", { title: alt, n: i + 1 })}
                   width={1200}
                   height={900}
                   className="h-full w-full object-cover"
@@ -55,7 +57,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
         <button
           type="button"
           onClick={() => emblaApi?.scrollPrev()}
-          aria-label="Назад"
+          aria-label={t("common.back")}
           className="absolute left-[12px] top-1/2 grid h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105"
           style={{ background: "var(--background-elevated)", color: "var(--foreground)", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-float)" }}
         >
@@ -64,7 +66,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
         <button
           type="button"
           onClick={() => emblaApi?.scrollNext()}
-          aria-label="Вперёд"
+          aria-label={t("common.forward")}
           className="absolute right-[12px] top-1/2 grid h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105"
           style={{ background: "var(--background-elevated)", color: "var(--foreground)", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-float)" }}
         >

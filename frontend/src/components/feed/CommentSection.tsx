@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send } from "lucide-react";
@@ -18,6 +19,7 @@ function CommentItem({
   depth?: number;
   onReply: (parentId: string, text: string) => void;
 }) {
+  const { t } = useTranslation();
   const author = userById(comment.authorId);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(comment.likes ?? 0);
@@ -70,8 +72,7 @@ function CommentItem({
           </button>
           {depth < 1 && (
             <button onClick={() => setReplying((v) => !v)} className="flex items-center gap-[4px] hover:opacity-80">
-              <Reply className="h-[12px] w-[12px]" /> Ответить
-            </button>
+              <Reply className="h-[12px] w-[12px]" />{t("categories.reply")}</button>
           )}
         </div>
 
@@ -89,7 +90,7 @@ function CommentItem({
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submit()}
-                  placeholder={`Ответить ${author.name}…`}
+                  placeholder={t("post.commentReplyTo", { name: author.name })}
                   className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[13px] outline-none"
                   style={{
                     background: "var(--background)",
@@ -123,6 +124,7 @@ function CommentItem({
 }
 
 export function CommentSection({ comments, onAdd }: Props) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState("");
 
   const handleReply = (parentId: string, text: string) => onAdd(text, parentId);
@@ -144,7 +146,7 @@ export function CommentSection({ comments, onAdd }: Props) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Написать комментарий…"
+          placeholder={t("post.commentPlaceholder")}
           className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[14px] outline-none"
           style={{
             background: "var(--background-elevated)",
@@ -156,7 +158,7 @@ export function CommentSection({ comments, onAdd }: Props) {
           onClick={submit}
           className="grid h-[36px] w-[36px] place-items-center rounded-[10px] transition-opacity hover:opacity-90"
           style={{ background: "var(--accent)", color: "#fff", boxShadow: "var(--shadow-button)" }}
-          aria-label="Отправить"
+          aria-label={t("messenger.send")}
         >
           <Send className="h-[14px] w-[14px]" />
         </button>

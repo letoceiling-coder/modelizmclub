@@ -29,7 +29,7 @@ class CreatePaymentController extends Controller
         $result = $gateway->createCheckout(
             $request->user(),
             $plan->price_cents,
-            'RUB',
+            config('billing.currency', 'RUB'),
             "Подписка «{$plan->name}»",
             [
                 'plan_id' => $plan->id,
@@ -38,9 +38,17 @@ class CreatePaymentController extends Controller
             ],
         );
 
+        $providerLabel = match ($result['provider']) {
+            'vtb' => 'ВТБ Эквайринг',
+            'yookassa' => 'ЮKassa',
+            default => 'тестовый режим',
+        };
+
         return response()->json([
             'data' => $result,
-            'message' => 'Платёж создан. Подключение провайдера будет активировано позже.',
+            'message' => $result['checkout_url']
+                ? "Платёж создан. Перенаправление на оплату ({$providerLabel})."
+                : 'Платёж создан. Подтвердите оплату в тестовом режиме.',
         ], 201);
     }
 }

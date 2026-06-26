@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -303,7 +304,7 @@ function SubcategoryRoomPage() {
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <button
             type="button"
-            aria-label="Закрыть"
+            aria-label={t("common.close")}
             onClick={() => setSubSheetOpen(false)}
             className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
           />
@@ -323,7 +324,7 @@ function SubcategoryRoomPage() {
               <button
                 type="button"
                 onClick={() => setSubSheetOpen(false)}
-                aria-label="Закрыть"
+                aria-label={t("common.close")}
                 className="grid h-[32px] w-[32px] place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
               >
                 <X className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
@@ -709,7 +710,7 @@ function ChatTab({ category, subId, subName }: { category: Category; subId: stri
                   <button
                     type="button"
                     onClick={() => setReplyTo(m)}
-                    aria-label="Ответить"
+                    aria-label={t("categories.reply")}
                     className={`absolute -top-[8px] ${mine ? "left-[6px]" : "right-[6px]"} hidden h-[22px] w-[22px] place-items-center rounded-full border bg-[var(--background-elevated)] group-hover:grid`}
                     style={{ borderColor: "var(--border)" }}
                   >
@@ -722,9 +723,7 @@ function ChatTab({ category, subId, subName }: { category: Category; subId: stri
                     search={{ chat: u.id }}
                     className="mt-[2px] text-[10.5px] hover:underline"
                     style={{ color: "var(--accent)" }}
-                  >
-                    Написать в личку
-                  </Link>
+                  >{t("categories.dm")}</Link>
                 )}
               </div>
             </div>
@@ -850,7 +849,7 @@ function ChatTab({ category, subId, subName }: { category: Category; subId: stri
           disabled={!text.trim() && pendingAttachments.length === 0}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
           style={{ background: "var(--accent)", color: "#fff" }}
-          aria-label="Отправить"
+          aria-label={t("messenger.send")}
         >
           <Send className="h-[16px] w-[16px]" />
         </button>
@@ -944,9 +943,7 @@ function MembersTab({ members }: { members: Array<User & { role?: string; isOnli
               search={{ chat: u.id }}
               className="shrink-0 rounded-[8px] px-[10px] py-[6px] text-[12px] font-medium transition-colors"
               style={{ background: "var(--accent)", color: "#fff" }}
-            >
-              Написать
-            </Link>
+            >{t("friends.message")}</Link>
           </li>
         ))}
       </ul>

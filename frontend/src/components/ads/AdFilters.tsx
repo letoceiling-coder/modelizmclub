@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
 import { categories, type AdCondition } from "@/lib/mock";
@@ -38,6 +39,7 @@ interface Props {
 }
 
 function Body({ value, onChange, onReset }: Props) {
+  const { t } = useTranslation();
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
   const toggle = <K extends "conditions" | "deliveries">(k: K, item: string) => {
@@ -47,7 +49,7 @@ function Body({ value, onChange, onReset }: Props) {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <Group title="Категория">
+      <Group title={t("ads.filterCategory")}>
         <Select
           value={value.category}
           onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
@@ -62,7 +64,7 @@ function Body({ value, onChange, onReset }: Props) {
         )}
       </Group>
 
-      <Group title="Статус">
+      <Group title={t("ads.filterStatus")}>
         <div className="grid grid-cols-3 gap-[6px]">
           {(["Все", ...STATUSES] as const).map((s) => (
             <button
@@ -84,11 +86,11 @@ function Body({ value, onChange, onReset }: Props) {
         </div>
       </Group>
 
-      <Group title="Цена, ₽">
+      <Group title={t("ads.filterPrice")}>
         <div className="flex items-center gap-[8px]">
-          <NumInput value={value.priceMin} onChange={(v) => set("priceMin", v)} placeholder="от" />
+          <NumInput value={value.priceMin} onChange={(v) => set("priceMin", v)} placeholder={t("ads.priceFrom")} />
           <span style={{ color: "var(--foreground-50)" }}>—</span>
-          <NumInput value={value.priceMax} onChange={(v) => set("priceMax", v)} placeholder="до" />
+          <NumInput value={value.priceMax} onChange={(v) => set("priceMax", v)} placeholder={t("ads.priceTo")} />
         </div>
         <input
           type="range" min={0} max={100000} step={500}
@@ -99,11 +101,11 @@ function Body({ value, onChange, onReset }: Props) {
         />
       </Group>
 
-      <Group title="Город">
+      <Group title={t("profile.fieldCity")}>
         <input
           value={value.city}
           onChange={(e) => set("city", e.target.value)}
-          placeholder="Любой"
+          placeholder={t("ads.anyCity")}
           className="w-full text-[13px] outline-none"
           style={{
             background: "var(--background-elevated)",
@@ -116,7 +118,7 @@ function Body({ value, onChange, onReset }: Props) {
         />
       </Group>
 
-      <Group title="Состояние">
+      <Group title={t("ads.specCondition")}>
         <div className="flex flex-wrap gap-[6px]">
           {CONDITIONS.map((c) => (
             <Checkbox key={c} checked={value.conditions.includes(c)} onChange={() => toggle("conditions", c)} label={c} />
@@ -124,7 +126,7 @@ function Body({ value, onChange, onReset }: Props) {
         </div>
       </Group>
 
-      <Group title="Доставка">
+      <Group title={t("ads.sectionDelivery")}>
         <div className="flex flex-wrap gap-[6px]">
           {DELIVERIES.map((d) => (
             <Checkbox key={d} checked={value.deliveries.includes(d)} onChange={() => toggle("deliveries", d)} label={d} />
@@ -132,7 +134,7 @@ function Body({ value, onChange, onReset }: Props) {
         </div>
       </Group>
 
-      <Checkbox checked={value.withPhotoOnly} onChange={(v) => set("withPhotoOnly", v)} label="Только с фото" />
+      <Checkbox checked={value.withPhotoOnly} onChange={(v) => set("withPhotoOnly", v)} label={t("ads.withPhotoOnly")} />
 
       <button
         type="button"
@@ -146,7 +148,7 @@ function Body({ value, onChange, onReset }: Props) {
           height: 40,
         }}
       >
-        <RotateCcw size={14} /> Сбросить фильтры
+        <RotateCcw size={14} /> {t("ads.resetFiltersBtn")}
       </button>
     </div>
   );
@@ -201,6 +203,7 @@ function NumInput({ value, onChange, placeholder }: { value: number; onChange: (
 }
 
 export function AdFiltersDesktop(props: Props) {
+  const { t } = useTranslation();
   return (
     <aside
       className="sticky top-[16px] hidden h-fit w-[280px] shrink-0 overflow-hidden lg:block"
@@ -214,7 +217,7 @@ export function AdFiltersDesktop(props: Props) {
       }}
     >
       <div className="p-[20px]">
-        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
+        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{t("ads.filtersTitle")}</h3>
         <Body {...props} />
       </div>
     </aside>
@@ -222,6 +225,7 @@ export function AdFiltersDesktop(props: Props) {
 }
 
 export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {open && (
@@ -249,8 +253,8 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
               <div className="mx-auto h-[4px] w-[40px]" style={{ background: "var(--foreground-15)", borderRadius: "var(--r-pill)" }} />
             </div>
             <div className="flex items-center justify-between px-[20px] pb-[12px]">
-              <h3 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
-              <button type="button" onClick={onClose} aria-label="Закрыть" className="grid h-[36px] w-[36px] place-items-center" style={{ color: "var(--foreground-70)" }}>
+              <h3 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{t("ads.filtersTitle")}</h3>
+              <button type="button" onClick={onClose} aria-label={t("common.close")} className="grid h-[36px] w-[36px] place-items-center" style={{ color: "var(--foreground-70)" }}>
                 <X size={18} />
               </button>
             </div>

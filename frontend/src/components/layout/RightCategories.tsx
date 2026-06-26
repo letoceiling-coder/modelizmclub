@@ -78,7 +78,7 @@ export function RightCategories() {
                   {c.subcategories.length > 0 && (
                     <button
                       onClick={() => setOpenId(open ? null : c.id)}
-                      aria-label={open ? "Свернуть подкатегории" : "Развернуть подкатегории"}
+                      aria-label={open ? t("rightPanel.collapseSubs") : t("rightPanel.expandSubs")}
                       aria-expanded={open}
                       className="grid w-[28px] place-items-center rounded-r-[10px] transition-colors hover:bg-[var(--background-surface)]"
                     >
