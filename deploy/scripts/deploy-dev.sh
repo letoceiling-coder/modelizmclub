@@ -13,6 +13,7 @@ fi
 
 cd backend
 composer install --optimize-autoloader --no-interaction
+php artisan config:clear
 php artisan migrate --force
 php artisan db:seed --force
 bash ../deploy/scripts/reset-demo-user.sh
