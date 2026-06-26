@@ -27,8 +27,8 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   return (
-    <aside className="hidden lg:block w-60 shrink-0">
-      <div className="sticky top-4 space-y-1">
+    <aside className="sticky top-4 z-20 hidden min-w-0 self-start lg:block">
+      <div className="max-h-[calc(100dvh-2rem)] space-y-1 overflow-y-auto overscroll-contain">
         <div className="flex items-center justify-between px-3 py-3">
           <Link to={ROUTES.feed}><Logo /></Link>
           <ThemeToggle />

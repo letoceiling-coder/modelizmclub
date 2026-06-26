@@ -23,9 +23,9 @@ export function RightCategories() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <aside className="hidden xl:block w-72 shrink-0">
+    <aside className="sticky top-4 z-20 hidden min-w-0 self-start xl:block">
       <div
-        className="sticky top-4 rounded-[14px] border"
+        className="max-h-[calc(100dvh-2rem)] overflow-hidden rounded-[14px] border"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
@@ -41,7 +41,7 @@ export function RightCategories() {
           </p>
         </div>
 
-        <ul className="max-h-[calc(100vh-180px)] overflow-y-auto p-[6px]">
+        <ul className="max-h-[calc(100dvh-12rem)] overflow-y-auto p-[6px]">
           {categories.map((c) => {
             const open = openId === c.id;
             const online = onlineFor(c);
