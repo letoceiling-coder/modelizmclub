@@ -99,6 +99,12 @@ class User extends Authenticatable
         return $this->hasMany(NotificationPreference::class);
     }
 
+    public function friends(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'user_friendships', 'user_id', 'friend_id')
+            ->withPivot('created_at');
+    }
+
     public function isModerator(): bool
     {
         return in_array($this->role, [UserRole::Moderator, UserRole::Admin], true);

@@ -71,11 +71,10 @@ export function EventsHero() {
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="absolute inset-0"
           >
+            <div className={`absolute inset-0 bg-gradient-to-br ${current.color}`} />
             {current.image ? (
-              <img src={current.image} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className={`h-full w-full bg-gradient-to-br ${current.color}`} />
-            )}
+              <img src={current.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : null}
             <div
               className="absolute inset-0"
               style={{

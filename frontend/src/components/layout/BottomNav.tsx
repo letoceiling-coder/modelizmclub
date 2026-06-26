@@ -1,23 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
+import { useTranslation } from "@/lib/i18n";
 
-type Item = {
-  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
-  label: string;
-  icon: typeof Newspaper;
-  section: string;
-};
-
-const ITEMS: Item[] = [
-  { to: "/feed", label: "Лента", icon: Newspaper, section: "feed" },
-  { to: "/communities", label: "Сообщества", icon: Users2, section: "communities" },
-  { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
-  { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
-  { to: "/profile", label: "Профиль", icon: User, section: "profile" },
-];
+const ITEM_KEYS = [
+  { to: "/feed", labelKey: "nav.feed", icon: Newspaper, section: "feed" },
+  { to: "/communities", labelKey: "nav.communities", icon: Users2, section: "communities" },
+  { to: "/messenger", labelKey: "nav.messages", icon: MessageSquare, section: "messenger" },
+  { to: "/ads", labelKey: "nav.ads", icon: Megaphone, section: "ads" },
+  { to: "/profile", labelKey: "nav.profile", icon: User, section: "profile" },
+] as const;
 
 export function BottomNav() {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
 
@@ -33,15 +28,23 @@ export function BottomNav() {
       }}
     >
       <ul className="grid grid-cols-5 items-center" style={{ height: 60 }}>
-        {ITEMS.map((it) => (
-          <NavTab key={it.to} item={it} active={activeSection === it.section} />
+        {ITEM_KEYS.map((it) => (
+          <NavTab key={it.to} item={it} label={t(it.labelKey)} active={activeSection === it.section} />
         ))}
       </ul>
     </nav>
   );
 }
 
-function NavTab({ item, active }: { item: Item; active: boolean }) {
+function NavTab({
+  item,
+  label,
+  active,
+}: {
+  item: (typeof ITEM_KEYS)[number];
+  label: string;
+  active: boolean;
+}) {
   const Icon = item.icon;
   return (
     <li>
@@ -55,7 +58,7 @@ function NavTab({ item, active }: { item: Item; active: boolean }) {
       >
         <Icon size={22} strokeWidth={active ? 2.4 : 2} />
         <span className="font-medium" style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}>
-          {item.label}
+          {label}
         </span>
       </Link>
     </li>

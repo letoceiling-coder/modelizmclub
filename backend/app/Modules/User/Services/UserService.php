@@ -203,6 +203,12 @@ class UserService
             ->exists();
     }
 
+    public function assertCanInteract(User $actor, User $target): void
+    {
+        $this->assertNotSelf($actor, $target, 'interact');
+        $this->assertNoBlock($actor, $target);
+    }
+
     private function canViewProfile(UserProfile $profile, ?User $viewer): bool
     {
         $privacy = array_merge(UserProfile::DEFAULT_PRIVACY, $profile->privacy_settings ?? []);

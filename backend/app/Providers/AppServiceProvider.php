@@ -20,7 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \Modules\Billing\Contracts\PaymentGateway::class,
+            \Modules\Billing\Services\StubPaymentGateway::class,
+        );
     }
 
     /**

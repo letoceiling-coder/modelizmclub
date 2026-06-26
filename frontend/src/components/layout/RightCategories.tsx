@@ -4,6 +4,7 @@ import { ChevronDown, MessageCircle } from "lucide-react";
 import * as Icons from "lucide-react";
 import { categories } from "@/lib/mock";
 import type { Category } from "@/lib/mock";
+import { useTranslation } from "@/lib/i18n";
 
 // Детерминированный «онлайн» по id категории — без бэка, но стабильно от рендера к рендеру.
 function onlineFor(c: Category): number {
@@ -21,6 +22,7 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 
 export function RightCategories() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   return (
     <div className="hidden w-[18rem] shrink-0 xl:block">
@@ -35,10 +37,10 @@ export function RightCategories() {
             style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
           >
             <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
-            Найди своих
+            {t("rightPanel.title")}
           </h3>
           <p className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Зайди в чат своего направления
+            {t("rightPanel.subtitle")}
           </p>
         </div>
 
@@ -69,7 +71,7 @@ export function RightCategories() {
                       </span>
                       <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
                         <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                        {online} онлайн
+                        {online} {t("common.online")}
                       </span>
                     </span>
                   </Link>

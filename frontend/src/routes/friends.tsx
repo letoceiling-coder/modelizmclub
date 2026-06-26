@@ -8,9 +8,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { users, me, userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 
 export const Route = createFileRoute("/friends")({
-  head: () => ({ meta: [{ title: "Друзья — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Friends — MoDelizM Forum" }] }),
   component: FriendsPage,
 });
 
@@ -22,6 +23,7 @@ const pulse = {
 };
 
 function FriendsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const friendIds = useStore(selectors.friendsOf(me.id));
@@ -54,18 +56,18 @@ function FriendsPage() {
   }, [q, tab]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: "Все", count: users.length - 1 },
-    { key: "online", label: "Онлайн", count: users.filter((u) => u.id !== me.id && u.online).length },
-    { key: "requests", label: "Заявки", count: requests.length },
+    { key: "all", label: t("friends.tabAll"), count: users.length - 1 },
+    { key: "online", label: t("friends.tabOnline"), count: users.filter((u) => u.id !== me.id && u.online).length },
+    { key: "requests", label: t("friends.tabRequests"), count: requests.length },
   ];
 
   const accept = (id: string) => {
     actions.acceptFriendRequest(id);
-    toast.success("Заявка принята");
+    toast.success(t("friends.requestAccepted"));
   };
   const decline = (id: string) => {
     actions.declineFriendRequest(id);
-    toast.success("Заявка отклонена");
+    toast.success(t("friends.requestDeclined"));
   };
   const added = new Set(friendIds);
 
@@ -74,8 +76,8 @@ function FriendsPage() {
     <AppLayout rightColumn={false}>
       <div className="space-y-[16px]">
         <header>
-          <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
-          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
+          <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>{t("friends.title")}</h1>
+          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("friends.subtitle")}</p>
         </header>
 
         {/* Tabs */}
@@ -115,7 +117,7 @@ function FriendsPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Поиск по имени, интересам"
+              placeholder={t("friends.searchPlaceholder")}
               className="w-full text-[14px] outline-none"
               style={{
                 height: 40, paddingLeft: 36, paddingRight: 12,

@@ -2,28 +2,24 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { ROUTES, getActiveSection } from "@/lib/routes";
+import { useTranslation } from "@/lib/i18n";
 
-interface Item {
-  to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/profile" | "/subscription" | "/help";
-  label: string;
-  icon: typeof Newspaper;
-  section: string;
-}
-
-const items: Item[] = [
-  { to: ROUTES.feed,         label: "Лента",        icon: Newspaper,    section: "feed" },
-  { to: ROUTES.communities,  label: "Сообщества",   icon: Users2,       section: "communities" },
-  { to: ROUTES.channels,     label: "Каналы",       icon: Radio,        section: "channels" },
-  { to: ROUTES.messenger,    label: "Мессенджер",   icon: MessageSquare, section: "messenger" },
-  { to: ROUTES.ads,          label: "Объявления",   icon: Megaphone,    section: "ads" },
-  { to: ROUTES.friends,      label: "Друзья",       icon: UserPlus,     section: "friends" },
-  { to: ROUTES.profile,      label: "Профиль",      icon: User,         section: "profile" },
-  { to: ROUTES.subscription, label: "Подписка",     icon: Crown,        section: "subscription" },
-  { to: ROUTES.help,         label: "Помощь",       icon: HelpCircle,   section: "help" },
-];
+const itemKeys = [
+  { to: ROUTES.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
+  { to: ROUTES.communities, labelKey: "nav.communities", icon: Users2, section: "communities" },
+  { to: ROUTES.channels, labelKey: "nav.channels", icon: Radio, section: "channels" },
+  { to: ROUTES.messenger, labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
+  { to: ROUTES.ads, labelKey: "nav.ads", icon: Megaphone, section: "ads" },
+  { to: ROUTES.friends, labelKey: "nav.friends", icon: UserPlus, section: "friends" },
+  { to: ROUTES.profile, labelKey: "nav.profile", icon: User, section: "profile" },
+  { to: ROUTES.subscription, labelKey: "nav.subscription", icon: Crown, section: "subscription" },
+  { to: ROUTES.help, labelKey: "nav.help", icon: HelpCircle, section: "help" },
+] as const;
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   return (
@@ -32,10 +28,13 @@ export function Sidebar() {
         <div className="space-y-1">
         <div className="flex items-center justify-between px-3 py-3">
           <Link to={ROUTES.feed}><Logo /></Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <LanguageSwitcher showFooter={false} />
+            <ThemeToggle />
+          </div>
         </div>
         <nav className="space-y-0.5">
-          {items.map(({ to, label, icon: Icon, section }) => {
+          {itemKeys.map(({ to, labelKey, icon: Icon, section }) => {
             const active = activeSection === section;
             return (
               <Link
@@ -58,7 +57,7 @@ export function Sidebar() {
                 }
               >
                 <Icon className="h-4 w-4" />
-                {label}
+                {t(labelKey)}
               </Link>
             );
           })}
@@ -70,16 +69,16 @@ export function Sidebar() {
           >
             <span className="flex items-center gap-3">
               <ShoppingBag className="h-4 w-4" />
-              Маркет
+              {t("common.market")}
             </span>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
           </a>
         </nav>
         <div className="mt-4 rounded-xl border bg-card p-3">
-          <div className="text-xs text-muted-foreground">Подписка</div>
-          <div className="mt-1 text-sm font-medium">Год · активна</div>
+          <div className="text-xs text-muted-foreground">{t("common.subscription")}</div>
+          <div className="mt-1 text-sm font-medium">{t("common.subscriptionActive")}</div>
           <Link to={ROUTES.subscription} className="mt-2 inline-block text-xs text-primary hover:underline">
-            Управлять
+            {t("common.manage")}
           </Link>
         </div>
         </div>

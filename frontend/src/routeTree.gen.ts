@@ -23,6 +23,7 @@ import { Route as FeedRouteImport } from './routes/feed'
 import { Route as DiagRouteImport } from './routes/diag'
 import { Route as CommunitiesRouteImport } from './routes/communities'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,6 +32,8 @@ import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
+import { Route as LegalRulesRouteImport } from './routes/legal.rules'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
@@ -109,6 +112,11 @@ const CategoriesRoute = CategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdsRoute = AdsRouteImport.update({
   id: '/ads',
   path: '/ads',
@@ -147,6 +155,16 @@ const AdsIndexRoute = AdsIndexRouteImport.update({
 const UserIdRoute = UserIdRouteImport.update({
   id: '/user/$id',
   path: '/user/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRulesRoute = LegalRulesRouteImport.update({
+  id: '/legal/rules',
+  path: '/legal/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunitiesIdRoute = CommunitiesIdRouteImport.update({
@@ -189,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/ads': typeof AdsRouteWithChildren
+  '/auth': typeof AuthRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/diag': typeof DiagRoute
@@ -208,6 +227,8 @@ export interface FileRoutesByFullPath {
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/rules': typeof LegalRulesRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
@@ -219,6 +240,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/diag': typeof DiagRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
@@ -235,6 +257,8 @@ export interface FileRoutesByTo {
   '/ads/new': typeof AdsNewRoute
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/rules': typeof LegalRulesRoute
   '/user/$id': typeof UserIdRoute
   '/ads': typeof AdsIndexRoute
   '/categories': typeof CategoriesIndexRoute
@@ -248,6 +272,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/ads': typeof AdsRouteWithChildren
+  '/auth': typeof AuthRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/diag': typeof DiagRoute
@@ -267,6 +292,8 @@ export interface FileRoutesById {
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/rules': typeof LegalRulesRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
@@ -281,6 +308,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/ads'
+    | '/auth'
     | '/categories'
     | '/communities'
     | '/diag'
@@ -300,6 +328,8 @@ export interface FileRouteTypes {
     | '/categories/$id'
     | '/channel/$id'
     | '/communities/$id'
+    | '/legal/privacy'
+    | '/legal/rules'
     | '/user/$id'
     | '/ads/'
     | '/categories/'
@@ -311,6 +341,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/auth'
     | '/diag'
     | '/feed'
     | '/friends'
@@ -327,6 +358,8 @@ export interface FileRouteTypes {
     | '/ads/new'
     | '/channel/$id'
     | '/communities/$id'
+    | '/legal/privacy'
+    | '/legal/rules'
     | '/user/$id'
     | '/ads'
     | '/categories'
@@ -339,6 +372,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/ads'
+    | '/auth'
     | '/categories'
     | '/communities'
     | '/diag'
@@ -358,6 +392,8 @@ export interface FileRouteTypes {
     | '/categories/$id'
     | '/channel/$id'
     | '/communities/$id'
+    | '/legal/privacy'
+    | '/legal/rules'
     | '/user/$id'
     | '/ads/'
     | '/categories/'
@@ -371,6 +407,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdsRoute: typeof AdsRouteWithChildren
+  AuthRoute: typeof AuthRoute
   CategoriesRoute: typeof CategoriesRouteWithChildren
   CommunitiesRoute: typeof CommunitiesRouteWithChildren
   DiagRoute: typeof DiagRoute
@@ -386,6 +423,8 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   SubscriptionRoute: typeof SubscriptionRoute
   ChannelIdRoute: typeof ChannelIdRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalRulesRoute: typeof LegalRulesRoute
   UserIdRoute: typeof UserIdRoute
   ChannelsIndexRoute: typeof ChannelsIndexRoute
 }
@@ -490,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ads': {
       id: '/ads'
       path: '/ads'
@@ -544,6 +590,20 @@ declare module '@tanstack/react-router' {
       path: '/user/$id'
       fullPath: '/user/$id'
       preLoaderRoute: typeof UserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/rules': {
+      id: '/legal/rules'
+      path: '/legal/rules'
+      fullPath: '/legal/rules'
+      preLoaderRoute: typeof LegalRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/communities/$id': {
@@ -658,6 +718,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdsRoute: AdsRouteWithChildren,
+  AuthRoute: AuthRoute,
   CategoriesRoute: CategoriesRouteWithChildren,
   CommunitiesRoute: CommunitiesRouteWithChildren,
   DiagRoute: DiagRoute,
@@ -673,9 +734,21 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   SubscriptionRoute: SubscriptionRoute,
   ChannelIdRoute: ChannelIdRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalRulesRoute: LegalRulesRoute,
   UserIdRoute: UserIdRoute,
   ChannelsIndexRoute: ChannelsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
