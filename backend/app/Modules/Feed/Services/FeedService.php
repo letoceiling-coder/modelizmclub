@@ -41,6 +41,10 @@ class FeedService
             $query->where('community_id', (int) $filters['community_id']);
         }
 
+        if (! empty($filters['author_id'])) {
+            $query->where('user_id', (int) $filters['author_id']);
+        }
+
         $paginator = $query->paginate($perPage);
 
         $paginator->getCollection()->each(

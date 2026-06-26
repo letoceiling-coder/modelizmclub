@@ -61,6 +61,28 @@ class UserService
             $data['slug'] = $slug;
         }
 
+        if (array_key_exists('avatar_media_uuid', $data)) {
+            $uuid = $data['avatar_media_uuid'];
+            unset($data['avatar_media_uuid']);
+
+            if ($uuid === null || $uuid === '') {
+                $data['avatar_media_id'] = null;
+            } else {
+                $media = \App\Models\Media::query()
+                    ->where('uuid', $uuid)
+                    ->where('uploaded_by', $user->id)
+                    ->first();
+
+                if (! $media) {
+                    throw ValidationException::withMessages([
+                        'avatar_media_uuid' => ['Изображение недоступно.'],
+                    ]);
+                }
+
+                $data['avatar_media_id'] = $media->id;
+            }
+        }
+
         $profile->fill($data)->save();
 
         return $profile->fresh(['city', 'avatar']);

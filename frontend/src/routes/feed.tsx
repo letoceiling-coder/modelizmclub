@@ -19,7 +19,6 @@ import { fetchFeed } from "@/lib/api/feed";
 import { fetchBanners } from "@/lib/api/public";
 import { fetchPostCategories } from "@/lib/api/catalog";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { avatarUrl } from "@/lib/utils/time";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -38,7 +37,7 @@ const PAGE_SIZE = 6;
 
 function FeedPage() {
   const { t } = useTranslation();
-  const { isAuthenticated, displayName, slug } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -161,29 +160,9 @@ function FeedPage() {
   }, [filtered.length, visible, loadingMore, initialLoading, apiHasMore, apiPage, loadFeed]);
 
   const addPost = (p: CreatePostPayload) => {
-    const name = displayName ?? "User";
-    setPosts([
-      {
-        id: `np${Date.now()}`,
-        author: { slug: slug ?? "me", name, avatar: avatarUrl(name) },
-        date: tStatic("common.justNow"),
-        category: p.category,
-        title: p.title,
-        text: p.text,
-        image: p.photos[0],
-        images: p.photos,
-        tags: p.subcategory ? [p.subcategory] : [],
-        views: 0,
-        likes: 0,
-        comments: 0,
-        saves: 0,
-        reposts: 0,
-        status: "moderation",
-        isFollowing: true,
-        commentList: [],
-      },
-      ...posts,
-    ]);
+    if (p.post.status === "published") {
+      setPosts((prev) => [p.post, ...prev]);
+    }
   };
 
   const slice = filtered.slice(0, visible);

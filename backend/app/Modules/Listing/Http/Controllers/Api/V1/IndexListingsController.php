@@ -14,6 +14,7 @@ class IndexListingsController extends Controller
     {
         $paginator = $listings->list([
             'category_id' => $request->integer('category_id') ?: null,
+            'subcategory_id' => $request->integer('subcategory_id') ?: null,
             'city_id' => $request->integer('city_id') ?: null,
             'q' => $request->string('q')->toString() ?: null,
         ], $request->integer('per_page', 20));

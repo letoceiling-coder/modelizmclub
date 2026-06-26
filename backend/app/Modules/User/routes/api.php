@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\User\Http\Controllers\Api\V1\BlockController;
 use Modules\User\Http\Controllers\Api\V1\FollowController;
 use Modules\User\Http\Controllers\Api\V1\FriendController;
+use Modules\User\Http\Controllers\Api\V1\IndexUsersController;
 use Modules\User\Http\Controllers\Api\V1\InterestsController;
 use Modules\User\Http\Controllers\Api\V1\PrivacyController;
 use Modules\User\Http\Controllers\Api\V1\SettingsController;
@@ -12,6 +13,7 @@ use Modules\User\Http\Controllers\Api\V1\UpdateProfileController;
 
 Route::prefix('users')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('search', IndexUsersController::class);
         Route::patch('me', UpdateProfileController::class);
         Route::get('me/settings', [SettingsController::class, 'show']);
         Route::patch('me/settings', [SettingsController::class, 'update']);

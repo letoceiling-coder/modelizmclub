@@ -1,11 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { ROUTE_SEARCH } from "@/lib/route-search";
 import { useTranslation } from "@/lib/i18n";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const itemKeys = [
   { to: ROUTES.feed, search: ROUTE_SEARCH.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
@@ -21,6 +22,8 @@ const itemKeys = [
 
 export function Sidebar() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isStaff = user?.role === "admin" || user?.role === "moderator";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   return (
@@ -67,6 +70,20 @@ export function Sidebar() {
               </Link>
             );
           })}
+          {isStaff && (
+            <Link
+              to={ROUTES.admin}
+              className="relative flex items-center gap-3 rounded-lg pl-3 pr-3 py-2 text-sm transition-colors text-foreground hover:bg-muted"
+              style={
+                activeSection === "admin"
+                  ? { borderLeft: "3px solid var(--accent)", paddingLeft: 9, background: "var(--accent-soft)", color: "var(--accent)" }
+                  : undefined
+              }
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {t("nav.admin")}
+            </Link>
+          )}
           <a
             href="https://modelizm23.ru"
             target="_blank"

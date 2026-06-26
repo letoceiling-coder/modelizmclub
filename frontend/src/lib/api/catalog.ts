@@ -45,12 +45,23 @@ export async function fetchUserProfile(slug: string) {
   return res.data;
 }
 
-export async function updateMyProfile(data: { display_name?: string; bio?: string }) {
+export async function updateMyProfile(data: {
+  display_name?: string;
+  bio?: string;
+  slug?: string;
+  city_id?: number | null;
+  avatar_media_uuid?: string | null;
+}) {
   const token = getAuthToken();
-  return apiRequest("/users/me", { method: "PATCH", token, json: data });
+  const res = await apiRequest<{ data: Record<string, unknown> }>("/users/me", {
+    method: "PATCH",
+    token,
+    json: data,
+  });
+  return res.data;
 }
 
-export async function syncMyInterests(interestIds: number[]) {
+export async function syncMyInterests(categoryIds: number[]) {
   const token = getAuthToken();
-  return apiRequest("/users/me/interests", { method: "PUT", token, json: { interest_ids: interestIds } });
+  return apiRequest("/users/me/interests", { method: "PUT", token, json: { category_ids: categoryIds } });
 }

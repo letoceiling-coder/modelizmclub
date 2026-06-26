@@ -1,41 +1,49 @@
 import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ROUTE_SEARCH } from "@/lib/route-search";
+import { fetchPostCategories, syncMyInterests } from "@/lib/api/catalog";
+import { hasAuthForApi } from "@/lib/api/auth-api";
+import type { Category } from "@/lib/types";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: tStatic("onboarding.metaTitle") }] }),
   component: OnboardingPage,
 });
 
-const INTERESTS = [
-  { id: "rc-cars", title: "RC автомодели", desc: "ДВС, электро, дрифт, ралли, краулеры" },
-  { id: "rc-air", title: "Авиамодели", desc: "Планеры, пилотажки, копии" },
-  { id: "fpv", title: "Квадрокоптеры / FPV", desc: "Гонки, фристайл, синема" },
-  { id: "rc-boats", title: "Корабли и суда", desc: "Яхты, катера, копии" },
-  { id: "electronics", title: "Электроника", desc: "Регуляторы, моторы, прошивки" },
-  { id: "static", title: "Стендовый моделизм", desc: "Сборка, окраска, диорамы" },
-  { id: "trade", title: "Купля/продажа", desc: "Запчасти и готовые модели" },
-  { id: "events", title: "События и заезды", desc: "Локальные клубы и чемпионаты" },
-];
-
 function OnboardingPage() {
   const { t } = useTranslation();
+  const [interests, setInterests] = useState<Category[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
   const nav = useNavigate();
+
+  useEffect(() => {
+    void fetchPostCategories().then(setInterests).catch(() => setInterests([]));
+  }, []);
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const finish = () => {
+  const finish = async () => {
     if (selected.length < 1) return toast.error(t("onboarding.errorMin"));
-    toast.success(t("onboarding.success"));
-    nav({ to: "/feed", search: ROUTE_SEARCH.feed });
+    setSaving(true);
+    try {
+      if (hasAuthForApi()) {
+        await syncMyInterests(selected.map((id) => Number(id)).filter((n) => !Number.isNaN(n)));
+      }
+      toast.success(t("onboarding.success"));
+      nav({ to: "/feed", search: ROUTE_SEARCH.feed });
+    } catch {
+      toast.error(t("onboarding.saveError"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -68,7 +76,7 @@ function OnboardingPage() {
         <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>{t("onboarding.subtitle")}</p>
 
         <div className="mt-[32px] grid gap-[12px] sm:grid-cols-2 lg:grid-cols-3">
-          {INTERESTS.map((i) => {
+          {interests.map((i) => {
             const active = selected.includes(i.id);
             return (
               <motion.button
@@ -96,9 +104,13 @@ function OnboardingPage() {
                   </div>
                 )}
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h4)" }}>
-                  {i.title}
+                  {i.name}
                 </div>
-                <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>{i.desc}</div>
+                {i.subcategories && i.subcategories.length > 0 && (
+                  <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>
+                    {i.subcategories.slice(0, 4).map((s) => s.name).join(", ")}
+                  </div>
+                )}
               </motion.button>
             );
           })}
@@ -115,10 +127,11 @@ function OnboardingPage() {
           }}
         >
           <div style={{ fontSize: "var(--fs-sm)", color: "var(--foreground-70)" }}>
-            {t("common.selected", { n: selected.length, total: INTERESTS.length })}
+            {t("common.selected", { n: selected.length, total: interests.length })}
           </div>
           <button
-            onClick={finish}
+            onClick={() => void finish()}
+            disabled={saving}
             style={{
               background: "var(--accent)",
               color: "#fff",

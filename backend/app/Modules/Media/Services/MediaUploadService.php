@@ -6,6 +6,7 @@ use App\Enums\MediaStatus;
 use App\Models\Media;
 use App\Models\UploadSession;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -98,6 +99,85 @@ class MediaUploadService
             'expires_at' => $session->expires_at->toIso8601String(),
             'uploads' => $uploads,
         ];
+    }
+
+    /**
+     * Direct server-side upload: receives the file, stores it on the configured
+     * disk (public), extracts image dimensions, and returns a ready Media row.
+     */
+    public function storeUploadedFile(User $user, UploadedFile $file, string $purpose): Media
+    {
+        if (! isset(self::LIMITS[$purpose])) {
+            throw ValidationException::withMessages([
+                'purpose' => ['Неизвестное назначение загрузки.'],
+            ]);
+        }
+
+        $limits = self::LIMITS[$purpose];
+        $mime = $file->getMimeType() ?? $file->getClientMimeType();
+        $size = $file->getSize() ?? 0;
+
+        if ($size > $limits['max_size']) {
+            throw ValidationException::withMessages([
+                'file' => ['Файл превышает допустимый размер.'],
+            ]);
+        }
+
+        if (! in_array($mime, $limits['mimes'], true)) {
+            throw ValidationException::withMessages([
+                'file' => ['Недопустимый тип файла.'],
+            ]);
+        }
+
+        [$width, $height] = $this->imageDimensions($file, $mime);
+
+        $disk = config('filesystems.default', 's3');
+        $extension = $this->extensionForMime($mime) ?? ($file->getClientOriginalExtension() ?: 'bin');
+        $path = sprintf(
+            'media/%s/%s/%s.%s',
+            $purpose,
+            now()->format('Y/m'),
+            Str::uuid()->toString(),
+            $extension,
+        );
+
+        $stream = fopen($file->getRealPath(), 'rb');
+        Storage::disk($disk)->put($path, $stream, ['visibility' => 'public']);
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+
+        return Media::create([
+            'disk' => $disk,
+            'path' => $path,
+            'filename' => $file->getClientOriginalName(),
+            'mime_type' => $mime,
+            'size_bytes' => $size,
+            'width' => $width,
+            'height' => $height,
+            'uploaded_by' => $user->id,
+            'status' => MediaStatus::Ready,
+            'metadata' => ['upload' => 'direct'],
+        ]);
+    }
+
+    /** @return array{0: ?int, 1: ?int} */
+    private function imageDimensions(UploadedFile $file, ?string $mime): array
+    {
+        if (! is_string($mime) || ! str_starts_with($mime, 'image/')) {
+            return [null, null];
+        }
+
+        try {
+            $info = getimagesize($file->getRealPath());
+            if (is_array($info)) {
+                return [$info[0] ?? null, $info[1] ?? null];
+            }
+        } catch (\Throwable) {
+            // Ignore — dimensions are best-effort metadata.
+        }
+
+        return [null, null];
     }
 
     /** @param  list<string>  $mediaUuids */

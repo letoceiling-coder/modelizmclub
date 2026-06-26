@@ -15,6 +15,7 @@ class IndexFeedController extends Controller
         $paginator = $feed->list([
             'filter' => $request->string('filter', 'all')->toString(),
             'category_id' => $request->integer('category_id') ?: null,
+            'author_id' => $request->integer('author_id') ?: null,
         ], $request->user(), $request->integer('per_page', 20));
 
         return PostResource::collection($paginator)

@@ -6,6 +6,7 @@ use App\Enums\ListingStatus;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Listing extends Model
@@ -61,5 +62,10 @@ class Listing extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function mediaItems(): HasMany
+    {
+        return $this->hasMany(ListingMedia::class)->orderBy('sort_order');
     }
 }

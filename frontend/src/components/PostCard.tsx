@@ -5,6 +5,8 @@ import { Heart, MessageCircle, Bookmark, Eye, Repeat2 } from "lucide-react";
 import type { Post, Comment, PostAuthor } from "@/lib/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { avatarUrl } from "@/lib/utils/time";
+import { reactToPost, bookmarkPost, repostPost } from "@/lib/api/feed";
+import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { RepostMenu } from "@/components/feed/RepostMenu";
@@ -19,7 +21,7 @@ interface Props {
 
 export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const { t } = useTranslation();
-  const { slug, displayName } = useAuth();
+  const { slug, displayName, isAuthenticated } = useAuth();
   const author = post.author;
   const reposter = post.repostedBy ?? null;
 
@@ -41,17 +43,36 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
 
   const toggleLike = () => {
-    setLiked((v) => !v);
-    setLikes((n) => n + (liked ? -1 : 1));
+    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
+    const next = !liked;
+    setLiked(next);
+    setLikes((n) => n + (next ? 1 : -1));
+    void reactToPost(post.id, next).catch(() => {
+      setLiked(!next);
+      setLikes((n) => n + (next ? -1 : 1));
+    });
   };
   const toggleSave = () => {
+    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
+    const next = !saved;
     if (onToggleSave) onToggleSave(post.id);
-    else setSavedInner((v) => !v);
-    setSaves((n) => n + (saved ? -1 : 1));
+    else setSavedInner(next);
+    setSaves((n) => n + (next ? 1 : -1));
+    void bookmarkPost(post.id, next).catch(() => {
+      if (onToggleSave) onToggleSave(post.id);
+      else setSavedInner(!next);
+      setSaves((n) => n + (next ? -1 : 1));
+    });
   };
   const toggleRepost = () => {
-    setReposted((v) => !v);
-    setReposts((n) => n + (reposted ? -1 : 1));
+    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
+    if (reposted) return;
+    setReposted(true);
+    setReposts((n) => n + 1);
+    void repostPost(post.id).then(() => toast.success(t("post.reposted"))).catch(() => {
+      setReposted(false);
+      setReposts((n) => n - 1);
+    });
   };
 
   const currentAuthor = (): PostAuthor => ({

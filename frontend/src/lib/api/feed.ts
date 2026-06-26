@@ -87,12 +87,14 @@ export function mapApiPost(item: ApiPost): Post {
 export async function fetchFeed(params?: {
   filter?: "all" | "following" | "category";
   category_id?: number;
+  author_id?: number;
   page?: number;
   per_page?: number;
 }): Promise<{ posts: Post[]; hasMore: boolean; error?: boolean }> {
   const search = new URLSearchParams();
   if (params?.filter && params.filter !== "all") search.set("filter", params.filter);
   if (params?.category_id) search.set("category_id", String(params.category_id));
+  if (params?.author_id) search.set("author_id", String(params.author_id));
   if (params?.page) search.set("page", String(params.page));
   search.set("per_page", String(params?.per_page ?? 20));
 
@@ -108,4 +110,55 @@ export async function fetchFeed(params?: {
   } catch {
     return { posts: [], hasMore: false, error: true };
   }
+}
+
+export async function createPost(input: {
+  title: string;
+  body: string;
+  category_id: number;
+  hashtags?: string[];
+  media_ids?: string[];
+  publish?: boolean;
+}): Promise<Post> {
+  const token = getAuthToken();
+  const res = await apiRequest<{ data: ApiPost }>("/posts", {
+    method: "POST",
+    token,
+    json: {
+      title: input.title,
+      body: input.body,
+      category_id: input.category_id,
+      hashtags: input.hashtags ?? [],
+      media_ids: input.media_ids ?? [],
+    },
+  });
+
+  const created = res.data;
+  if (input.publish !== false) {
+    try {
+      const pub = await apiRequest<{ data: ApiPost }>(`/posts/${created.uuid}/publish`, {
+        method: "POST",
+        token,
+      });
+      return mapApiPost(pub.data);
+    } catch {
+      return mapApiPost(created);
+    }
+  }
+  return mapApiPost(created);
+}
+
+export async function reactToPost(uuid: string, reacted: boolean): Promise<void> {
+  const token = getAuthToken();
+  await apiRequest(`/posts/${uuid}/react`, { method: reacted ? "POST" : "DELETE", token });
+}
+
+export async function bookmarkPost(uuid: string, bookmarked: boolean): Promise<void> {
+  const token = getAuthToken();
+  await apiRequest(`/posts/${uuid}/bookmark`, { method: bookmarked ? "POST" : "DELETE", token });
+}
+
+export async function repostPost(uuid: string, comment?: string): Promise<void> {
+  const token = getAuthToken();
+  await apiRequest(`/posts/${uuid}/repost`, { method: "POST", token, json: { comment: comment ?? null } });
 }

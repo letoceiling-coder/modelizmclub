@@ -24,7 +24,7 @@ import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
 import { CallsList } from "@/components/calls/CallsList";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
-import { VOICE_TRANSCRIPTS, makeMockWaveform } from "@/lib/utils/voice";
+import { makeMockWaveform } from "@/lib/utils/voice";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: tStatic("messenger.metaTitle") }] }),
@@ -114,15 +114,18 @@ function MessengerPage() {
     setDialogMeta((prev) => ({ ...prev, [id]: { ...getMeta(id), ...patch } }));
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) { setLoading(false); return; }
     let cancelled = false;
-    void fetchConversations().then((items) => {
-      if (!cancelled) {
-        setConversations(items);
-        if (!activeId && items[0]) setActiveId(items[0].id);
-        setLoading(false);
-      }
-    });
+    setLoading(true);
+    void fetchConversations()
+      .then((items) => {
+        if (!cancelled) {
+          setConversations(items);
+          if (!activeId && items[0]) setActiveId(items[0].id);
+        }
+      })
+      .catch(() => { if (!cancelled) setConversations([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [isAuthenticated]);
 
@@ -218,7 +221,6 @@ function MessengerPage() {
   const sendVoice = async (durationSec: number) => {
     if (!active) return;
     const seed = Date.now();
-    const transcript = VOICE_TRANSCRIPTS[seed % VOICE_TRANSCRIPTS.length];
     const local: ChatMessage = {
       id: `local-${seed}`,
       author: { slug: slug ?? "me", name: displayName ?? "Me", avatar: avatarUrl(displayName ?? "Me") },
@@ -226,7 +228,7 @@ function MessengerPage() {
       text: "",
       type: "voice",
       status: "sent",
-      voice: { duration: durationSec, waveform: makeMockWaveform(seed), transcript },
+      voice: { duration: durationSec, waveform: makeMockWaveform(seed), transcript: "" },
     };
     setMessages((prev) => [...prev, local]);
     setReplyTo(null);

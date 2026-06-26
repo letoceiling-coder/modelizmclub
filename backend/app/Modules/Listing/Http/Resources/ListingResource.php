@@ -38,6 +38,15 @@ class ListingResource extends JsonResource
                 'id' => $this->city->id,
                 'name' => $this->city->name,
             ] : null),
+            'media' => $this->whenLoaded('mediaItems', fn () => $this->mediaItems
+                ->map(fn ($item) => [
+                    'uuid' => $item->media?->uuid,
+                    'url' => $item->media?->url,
+                    'width' => $item->media?->width,
+                    'height' => $item->media?->height,
+                ])
+                ->filter(fn ($m) => $m['url'] !== null)
+                ->values()),
             'published_at' => $this->published_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
         ];

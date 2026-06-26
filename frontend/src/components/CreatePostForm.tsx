@@ -2,19 +2,24 @@ import { useTranslation } from "@/lib/i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Category } from "@/lib/types";
+import type { Category, Post } from "@/lib/types";
 import { fetchPostCategories } from "@/lib/api/catalog";
+import { createPost } from "@/lib/api/feed";
+import { uploadMedia } from "@/lib/api/media";
+import { hasAuthForApi } from "@/lib/api/auth-api";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { avatarUrl } from "@/lib/utils/time";
 
 const MAX_PHOTOS = 5;
 
+interface Photo {
+  url: string;
+  uuid?: string;
+  uploading?: boolean;
+}
+
 export interface CreatePostPayload {
-  title: string;
-  text: string;
-  category: string;
-  subcategory?: string;
-  photos: string[];
+  post: Post;
 }
 
 export function CreatePostForm({
@@ -31,7 +36,8 @@ export function CreatePostForm({
   const [text, setText] = useState("");
   const [catId, setCatId] = useState("");
   const [subId, setSubId] = useState<string>("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,29 +47,56 @@ export function CreatePostForm({
         setCatId(items[0].id);
         setSubId(items[0].subcategories?.[0]?.id ?? "");
       }
-    });
+    }).catch(() => setCategories([]));
   }, []);
 
   const cat = useMemo(() => categories.find((c) => c.id === catId) ?? categories[0], [categories, catId]);
   const sub = cat?.subcategories?.find((s) => s.id === subId);
+  const uploading = photos.some((p) => p.uploading);
 
-  const addPhotos = (files: FileList | null) => {
+  const addPhotos = async (files: FileList | null) => {
     if (!files) return;
-    const slots = MAX_PHOTOS - photos.length;
-    const next = Array.from(files).slice(0, slots).map((f) => URL.createObjectURL(f));
-    setPhotos((p) => [...p, ...next]);
+    const list = Array.from(files).slice(0, MAX_PHOTOS - photos.length);
+    for (const file of list) {
+      const url = URL.createObjectURL(file);
+      setPhotos((prev) => [...prev, { url, uploading: true }]);
+      try {
+        const media = await uploadMedia(file, "post");
+        setPhotos((prev) => prev.map((p) => (p.url === url ? { url: media.url ?? url, uuid: media.uuid } : p)));
+      } catch {
+        toast.error(t("ads.photoUploadError"));
+        setPhotos((prev) => prev.filter((p) => p.url !== url));
+      }
+    }
   };
 
   const removePhoto = (i: number) => setPhotos((p) => p.filter((_, idx) => idx !== i));
 
-  const submit = () => {
+  const submit = async () => {
+    if (!hasAuthForApi()) return toast.error(t("auth.loginRequired"));
     if (!title.trim()) return toast.error(t("components.createFormTitleRequired"));
     if (!text.trim()) return toast.error(t("components.createFormTextRequired"));
-    onCreate?.({ title, text, category: cat?.name ?? "", subcategory: sub?.name, photos });
-    toast.success(t("components.createFormSentModeration"));
-    setTitle("");
-    setText("");
-    setPhotos([]);
+    if (!catId) return toast.error(t("ads.categoryRequired"));
+    setSubmitting(true);
+    try {
+      const post = await createPost({
+        title: title.trim(),
+        body: text.trim(),
+        category_id: Number(catId),
+        hashtags: sub?.name ? [sub.name] : [],
+        media_ids: photos.map((p) => p.uuid).filter((u): u is string => Boolean(u)),
+        publish: true,
+      });
+      onCreate?.({ post });
+      toast.success(post.status === "published" ? t("components.createFormPublished") : t("components.createFormSentModeration"));
+      setTitle("");
+      setText("");
+      setPhotos([]);
+    } catch {
+      toast.error(t("ads.publishError"));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -110,9 +143,9 @@ export function CreatePostForm({
 
       {photos.length > 0 && (
         <div className="mt-3 grid grid-cols-5 gap-2">
-          {photos.map((src, i) => (
-            <div key={i} className="relative aspect-square overflow-hidden rounded-lg border">
-              <img src={src} alt="" className="h-full w-full object-cover" />
+          {photos.map((photo, i) => (
+            <div key={photo.url} className="relative aspect-square overflow-hidden rounded-lg border">
+              <img src={photo.url} alt="" className="h-full w-full object-cover" style={{ opacity: photo.uploading ? 0.5 : 1 }} />
               <button
                 onClick={() => removePhoto(i)}
                 className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
@@ -131,7 +164,7 @@ export function CreatePostForm({
           accept="image/*"
           multiple
           hidden
-          onChange={(e) => addPhotos(e.target.files)}
+          onChange={(e) => void addPhotos(e.target.files)}
         />
         <button
           onClick={() => fileRef.current?.click()}
@@ -141,10 +174,11 @@ export function CreatePostForm({
           <ImagePlus className="h-3.5 w-3.5" /> {t("components.createFormPhotoCount", { current: photos.length, max: MAX_PHOTOS })}
         </button>
         <button
-          onClick={submit}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+          onClick={() => void submit()}
+          disabled={submitting || uploading}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          <Send className="h-3.5 w-3.5" />{t("components.createFormPublish")}</button>
+          <Send className="h-3.5 w-3.5" />{submitting ? t("ads.publishing") : t("components.createFormPublish")}</button>
       </div>
     </div>
   );

@@ -22,14 +22,18 @@ function CategoryDetailPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const cats = await fetchListingCategories();
-      if (cancelled) return;
-      setCategories(cats);
-      const cat = cats.find((c) => c.id === id || c.slug === id);
-      const listings = await fetchListings(cat ? { category_id: Number(cat.id) } : undefined);
-      if (!cancelled) {
-        setAds(listings);
-        setLoading(false);
+      setLoading(true);
+      try {
+        const cats = await fetchListingCategories();
+        if (cancelled) return;
+        setCategories(cats);
+        const cat = cats.find((c) => c.id === id || c.slug === id);
+        const listings = await fetchListings(cat ? { category_id: Number(cat.id) } : undefined);
+        if (!cancelled) setAds(listings);
+      } catch {
+        if (!cancelled) setAds([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };

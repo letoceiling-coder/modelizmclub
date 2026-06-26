@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
+import { forgotPasswordWithApi } from "@/lib/api/auth-api";
 
 export const Route = createFileRoute("/recover")({
   head: () => ({ meta: [{ title: tStatic("auth.recoverMetaTitle") }] }),
@@ -12,11 +13,23 @@ export const Route = createFileRoute("/recover")({
 function RecoverPage() {
   const { t } = useTranslation();
   const [sent, setSent] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
-    toast.success(t("auth.emailSent"));
+    setLoading(true);
+    try {
+      await forgotPasswordWithApi(email.trim());
+      setSent(true);
+      toast.success(t("auth.emailSent"));
+    } catch {
+      // Avoid leaking which emails exist: still show success state.
+      setSent(true);
+      toast.success(t("auth.emailSent"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,9 +55,9 @@ function RecoverPage() {
           }}
         >{t("auth.emailSentNote")}</div>
       ) : (
-        <form onSubmit={submit} className="space-y-[12px]">
-          <input required type="email" placeholder={t("auth.emailPlaceholder")} style={inputStyle} />
-          <button type="submit" style={{ ...primaryBtn, marginTop: 8 }}>{t("auth.sendLink")}</button>
+        <form onSubmit={(e) => void submit(e)} className="space-y-[12px]">
+          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("auth.emailPlaceholder")} style={inputStyle} />
+          <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.6 : 1 }}>{t("auth.sendLink")}</button>
         </form>
       )}
     </AuthShell>

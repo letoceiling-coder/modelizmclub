@@ -20,12 +20,15 @@ class StoreListingController extends Controller
             'price_cents' => ['nullable', 'integer', 'min:0'],
             'city_id' => ['nullable', 'integer'],
             'delivery_methods' => ['nullable', 'array'],
+            'media_ids' => ['nullable', 'array'],
+            'media_ids.*' => ['string'],
+            'publish' => ['nullable', 'boolean'],
         ]);
 
         $listing = $listings->create($request->user(), $data);
 
         return response()->json([
-            'data' => new ListingResource($listing->load(['category', 'subcategory', 'city'])),
+            'data' => new ListingResource($listing),
         ], 201);
     }
 }

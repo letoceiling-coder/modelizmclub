@@ -78,6 +78,10 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
   }
 }
 
+export async function forgotPasswordWithApi(email: string): Promise<void> {
+  await apiRequest("/auth/forgot-password", { method: "POST", json: { email } });
+}
+
 export async function logoutFromApi(): Promise<void> {
   const token = getAuthToken();
   if (token) {

@@ -15,9 +15,10 @@ type ApiListing = {
   published_at?: string | null;
   created_at: string;
   author?: { slug?: string | null; display_name?: string | null; avatar?: { url?: string | null } | null };
-  category?: { name: string; slug: string } | null;
-  subcategory?: { name: string } | null;
-  city?: { name: string } | null;
+  category?: { id?: number; name: string; slug: string } | null;
+  subcategory?: { id?: number; name: string } | null;
+  city?: { id?: number; name: string } | null;
+  media?: Array<{ uuid?: string; url?: string | null }>;
 };
 
 function mapAuthor(a?: ApiListing["author"]): PostAuthor {
@@ -30,6 +31,10 @@ function mapAuthor(a?: ApiListing["author"]): PostAuthor {
 }
 
 export function mapApiListing(item: ApiListing): Listing {
+  const gallery = (item.media ?? [])
+    .map((m) => m.url)
+    .filter((url): url is string => Boolean(url));
+
   return {
     id: item.uuid,
     title: item.title,
@@ -42,6 +47,9 @@ export function mapApiListing(item: ApiListing): Listing {
     status: item.status,
     author: mapAuthor(item.author),
     views: item.views_count,
+    image: gallery[0],
+    gallery: gallery.length > 0 ? gallery : undefined,
+    moderation: item.status === "published" ? "published" : item.status === "rejected" ? "rejected" : "moderation",
     createdAt: item.published_at ?? item.created_at,
   };
 }
@@ -86,11 +94,51 @@ export async function createListing(input: {
   price_cents?: number;
   city_id?: number;
   delivery_methods?: string[];
+  media_ids?: string[];
+  publish?: boolean;
 }): Promise<Listing> {
   const res = await apiRequest<{ data: ApiListing }>("/listings", {
     method: "POST",
     token: getAuthToken(),
     json: input,
+  });
+  return mapApiListing(res.data);
+}
+
+export async function updateListing(uuid: string, input: Partial<{
+  title: string;
+  description: string;
+  category_id: number;
+  subcategory_id: number;
+  price_cents: number;
+  city_id: number;
+  delivery_methods: string[];
+  media_ids: string[];
+}>): Promise<Listing> {
+  const res = await apiRequest<{ data: ApiListing }>(`/listings/${uuid}`, {
+    method: "PATCH",
+    token: getAuthToken(),
+    json: input,
+  });
+  return mapApiListing(res.data);
+}
+
+export async function deleteListing(uuid: string): Promise<void> {
+  await apiRequest(`/listings/${uuid}`, { method: "DELETE", token: getAuthToken() });
+}
+
+export async function publishListing(uuid: string): Promise<Listing> {
+  const res = await apiRequest<{ data: ApiListing }>(`/listings/${uuid}/publish`, {
+    method: "POST",
+    token: getAuthToken(),
+  });
+  return mapApiListing(res.data);
+}
+
+export async function archiveListing(uuid: string): Promise<Listing> {
+  const res = await apiRequest<{ data: ApiListing }>(`/listings/${uuid}/archive`, {
+    method: "POST",
+    token: getAuthToken(),
   });
   return mapApiListing(res.data);
 }

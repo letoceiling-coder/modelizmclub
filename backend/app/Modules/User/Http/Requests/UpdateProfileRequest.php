@@ -20,6 +20,7 @@ class UpdateProfileRequest extends FormRequest
             'bio' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'city_id' => ['sometimes', 'nullable', 'integer', Rule::exists('cities', 'id')],
             'avatar_media_id' => ['sometimes', 'nullable', 'integer', Rule::exists('media', 'id')],
+            'avatar_media_uuid' => ['sometimes', 'nullable', 'string', Rule::exists('media', 'uuid')],
         ];
     }
 }

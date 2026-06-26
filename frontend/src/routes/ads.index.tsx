@@ -3,9 +3,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
+import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/types";
-import { fetchMyListings } from "@/lib/api/listings";
+import { fetchMyListings, publishListing, archiveListing, deleteListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -49,14 +50,44 @@ function MyAdsPage() {
 
   useEffect(() => {
     if (!isAuthenticated) { setLoading(false); return; }
-    void fetchMyListings().then((items) => {
-      setListings(items);
-      const map: Record<string, AdStatusKey> = {};
-      for (const a of items) map[a.id] = mapListingStatus(a.status);
-      setLocalStatus(map);
-      setLoading(false);
-    });
+    void fetchMyListings()
+      .then((items) => {
+        setListings(items);
+        const map: Record<string, AdStatusKey> = {};
+        for (const a of items) map[a.id] = mapListingStatus(a.status);
+        setLocalStatus(map);
+      })
+      .catch(() => setListings([]))
+      .finally(() => setLoading(false));
   }, [isAuthenticated]);
+
+  const handlePublish = async (id: string) => {
+    try {
+      await publishListing(id);
+      setLocalStatus((s) => ({ ...s, [id]: "active" }));
+      toast.success(t("ads.publishedToast"));
+    } catch {
+      toast.error(t("ads.actionError"));
+    }
+  };
+  const handleArchive = async (id: string) => {
+    try {
+      await archiveListing(id);
+      setLocalStatus((s) => ({ ...s, [id]: "unpublished" }));
+      toast.success(t("ads.archivedToast"));
+    } catch {
+      toast.error(t("ads.actionError"));
+    }
+  };
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteListing(id);
+      setListings((prev) => prev.filter((a) => a.id !== id));
+      toast.success(t("ads.deletedToast"));
+    } catch {
+      toast.error(t("ads.actionError"));
+    }
+  };
 
   const decorated = useMemo(
     () => listings.map((ad) => ({ ad, status: localStatus[ad.id] ?? mapListingStatus(ad.status) })),
@@ -126,9 +157,9 @@ function MyAdsPage() {
                 key={ad.id}
                 ad={ad}
                 status={status}
-                onArchive={(id) => setLocalStatus((s) => ({ ...s, [id]: "archived" }))}
-                onPublish={(id) => setLocalStatus((s) => ({ ...s, [id]: "active" }))}
-                onDelete={(id) => setLocalStatus((s) => ({ ...s, [id]: "deleted" }))}
+                onArchive={(id) => void handleArchive(id)}
+                onPublish={(id) => void handlePublish(id)}
+                onDelete={(id) => void handleDelete(id)}
               />
             ))}
           </div>

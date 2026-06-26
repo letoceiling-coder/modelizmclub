@@ -19,6 +19,7 @@ class PublicProfileResource extends JsonResource
         $isOwner = $viewer && $viewer->id === $this->user_id;
 
         return [
+            'id' => $this->user_id,
             'display_name' => $this->display_name,
             'slug' => $this->slug,
             'bio' => $this->bio,

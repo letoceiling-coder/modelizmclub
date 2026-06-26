@@ -6,9 +6,8 @@ import { Check, Gift, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PaymentModal } from "@/components/PaymentModal";
-import { syncPayment } from "@/lib/api/payments";
+import { syncPayment, fetchPlans } from "@/lib/api/payments";
 import { getAuthToken } from "@/lib/api/auth";
 import { ROUTE_SEARCH } from "@/lib/route-search";
 
@@ -33,18 +32,17 @@ const stagger: Variants = {
 
 interface Plan {
   id: string;
-  nameKey: string;
+  name: string;
   price: number;
-  periodKey: string;
-  savingsKey?: string;
+  period: string;
   best?: boolean;
 }
 
-const PLANS: Plan[] = [
-  { id: "month", nameKey: "subscription.planMonth", price: 99, periodKey: "subscription.periodMonth" },
-  { id: "half", nameKey: "subscription.planHalf", price: 499, periodKey: "subscription.periodHalf", savingsKey: "subscription.savingsHalf", best: true },
-  { id: "year", nameKey: "subscription.planYear", price: 799, periodKey: "subscription.periodYear", savingsKey: "subscription.savingsYear" },
-];
+function periodLabel(days: number): string {
+  if (days >= 360) return tStatic("subscription.periodYear");
+  if (days >= 150) return tStatic("subscription.periodHalf");
+  return tStatic("subscription.periodMonth");
+}
 
 const FEATURE_KEYS = [
   "subscription.featureChannels",
@@ -65,6 +63,22 @@ function SubscriptionPage() {
   const { payment, uuid } = Route.useSearch();
   const navigate = useNavigate();
   const [payTarget, setPayTarget] = useState<PayTarget>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+
+  useEffect(() => {
+    void fetchPlans()
+      .then((items) => {
+        const mapped = items.map((p, i) => ({
+          id: p.slug,
+          name: p.name,
+          price: Math.round(p.priceCents / 100),
+          period: periodLabel(p.periodDays),
+          best: items.length >= 3 ? i === 1 : i === 0,
+        }));
+        setPlans(mapped);
+      })
+      .catch(() => setPlans([]));
+  }, []);
 
   useEffect(() => {
     if (payment !== "success" || !uuid || !getAuthToken()) return;
@@ -159,7 +173,7 @@ function SubscriptionPage() {
           variants={stagger}
           className="mt-[24px] grid grid-cols-1 gap-[16px] md:grid-cols-3"
         >
-          {PLANS.map((p) => (
+          {plans.map((p) => (
             <PlanCard key={p.id} plan={p} onPay={setPayTarget} />
           ))}
         </motion.div>
@@ -283,8 +297,6 @@ function SubscriptionPage() {
             ))}
           </div>
         </section>
-
-        <InviteBlock />
       </div>
 
       {payTarget && (
@@ -303,7 +315,7 @@ function SubscriptionPage() {
 function PlanCard({ plan, onPay }: { plan: Plan; onPay: (target: NonNullable<PayTarget>) => void }) {
   const { t } = useTranslation();
   const best = !!plan.best;
-  const planName = t(plan.nameKey);
+  const planName = plan.name;
   return (
     <motion.article
       variants={fadeInUp}
@@ -356,24 +368,8 @@ function PlanCard({ plan, onPay }: { plan: Plan; onPay: (target: NonNullable<Pay
         >
           {plan.price} ₽
         </span>
-        <span style={{ fontSize: 13, color: "var(--foreground-50)" }}>/ {t(plan.periodKey)}</span>
+        <span style={{ fontSize: 13, color: "var(--foreground-50)" }}>/ {plan.period}</span>
       </div>
-      {plan.savingsKey && (
-        <span
-          className="mt-[6px] inline-block"
-          style={{
-            width: "fit-content",
-            background: "var(--success-soft)",
-            color: "var(--success)",
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "2px 8px",
-            borderRadius: "var(--r-tag)",
-          }}
-        >
-          {t(plan.savingsKey)}
-        </span>
-      )}
 
       <div style={{ flex: 1 }} />
 

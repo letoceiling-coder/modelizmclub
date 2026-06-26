@@ -38,6 +38,16 @@ export async function fetchFriends(): Promise<FriendUser[]> {
   return res.data ?? [];
 }
 
+export async function searchUsers(q: string): Promise<FriendUser[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error("No auth token");
+  const qs = new URLSearchParams();
+  if (q) qs.set("q", q);
+  qs.set("per_page", "30");
+  const res = await apiRequest<PaginatedFriends>(`/users/search?${qs.toString()}`, { token });
+  return res.data ?? [];
+}
+
 export async function fetchIncomingFriendRequests(): Promise<FriendRequestItem[]> {
   const token = getAuthToken();
   if (!token) throw new Error("No auth token");
