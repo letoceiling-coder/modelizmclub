@@ -6,7 +6,7 @@ APP_DIR="${APP_DIR:-/var/www/modelizmclub}"
 FRONTEND_DIR="${APP_DIR}/frontend"
 
 cd "${APP_DIR}"
-git pull origin master
+git -c safe.directory="${APP_DIR}" pull origin master
 
 cd "${FRONTEND_DIR}"
 
