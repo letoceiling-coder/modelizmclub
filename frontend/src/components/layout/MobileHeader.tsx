@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, Radio } from "lucide-react";
+import { Search, Radio } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
