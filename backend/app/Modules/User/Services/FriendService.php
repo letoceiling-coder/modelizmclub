@@ -86,14 +86,15 @@ class FriendService
             $this->attachFriendship($from, $actor);
 
             FriendRequest::query()
-                ->where(function ($q) use ($from, $actor): void {
-                    $q->where('from_user_id', $from->id)->where('to_user_id', $actor->id);
-                })
-                ->orWhere(function ($q) use ($from, $actor): void {
-                    $q->where('from_user_id', $actor->id)->where('to_user_id', $from->id);
-                })
                 ->where('status', FriendRequestStatus::Pending)
                 ->where('id', '!=', $request->id)
+                ->where(function ($q) use ($from, $actor): void {
+                    $q->where(function ($inner) use ($from, $actor): void {
+                        $inner->where('from_user_id', $from->id)->where('to_user_id', $actor->id);
+                    })->orWhere(function ($inner) use ($from, $actor): void {
+                        $inner->where('from_user_id', $actor->id)->where('to_user_id', $from->id);
+                    });
+                })
                 ->update([
                     'status' => FriendRequestStatus::Cancelled,
                     'responded_at' => now(),
