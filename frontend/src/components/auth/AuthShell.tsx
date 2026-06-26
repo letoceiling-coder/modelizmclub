@@ -52,7 +52,7 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
                 maxWidth: 460,
               }}
             >
-              Сообщество моделистов России
+              Сообщество моделистов
             </h2>
             <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
               Сборки, обсуждения, объявления и тематические чаты — для тех, для кого моделизм это жизнь.

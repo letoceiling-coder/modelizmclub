@@ -18,6 +18,7 @@ import * as Icons from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { categoryById, ads, users, me, userById } from "@/lib/mock";
 import type { Category, Message, User } from "@/lib/mock";
 
@@ -273,6 +274,9 @@ function SubcategoryRoomPage() {
               </p>
             </div>
           </button>
+          <div className="ml-auto shrink-0">
+            <LanguageSwitcher />
+          </div>
         </header>
 
         {/* Tabs */}

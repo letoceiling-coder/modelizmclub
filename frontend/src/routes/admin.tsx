@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
@@ -18,13 +18,13 @@ import {
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Админ-панель — МоДЕЛИЗМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ Форум" }] }),
   component: AdminPage,
 });
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation"
-  | "monetization" | "categories" | "notifications" | "analytics" | "settings";
+  | "monetization" | "categories" | "notifications" | "analytics" | "design" | "settings";
 
 const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -36,6 +36,7 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "categories", label: "Категории", icon: FolderTree },
   { id: "notifications", label: "Уведомления", icon: Bell },
   { id: "analytics", label: "Аналитика", icon: BarChart3 },
+  { id: "design", label: "Design System", icon: Palette },
   { id: "settings", label: "Настройки", icon: Settings },
 ];
 
@@ -210,7 +211,250 @@ function SectionView({ section }: { section: Section }) {
   if (section === "categories") return <CategoriesSection />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
+  if (section === "design") return <DesignSystemSection />;
   return <SettingsSection />;
+}
+
+// =============================================================
+// Design System — admin-only theme switcher (visual sandbox)
+// =============================================================
+import {
+  BASE_ACCENTS, generateVariations, applyTheme, loadTheme,
+  type Mode, type AccentSwatch,
+} from "@/lib/theme-manager";
+
+function DesignSystemSection() {
+  const initial = loadTheme();
+  const [mode, setMode] = useState<Mode>(initial?.mode ?? (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
+  const [accent, setAccent] = useState<string>(initial?.accent ?? "#F26C05");
+
+  const variations = useMemo(() => generateVariations(accent), [accent]);
+
+  function pickAccent(hex: string) {
+    setAccent(hex);
+    applyTheme({ mode, accent: hex });
+  }
+  function pickMode(m: Mode) {
+    setMode(m);
+    applyTheme({ mode: m, accent });
+  }
+  function reset() {
+    setMode("dark");
+    setAccent("#F26C05");
+    applyTheme({ mode: "dark", accent: "#F26C05" });
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>
+          Design System
+        </h1>
+        <p style={{ fontSize: 13, color: "var(--foreground-70)" }}>
+          Визуальный конструктор темы. Меняет CSS-переменные глобально, сохраняет в localStorage. Не влияет на логику и данные.
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr", }}>
+        <Panel title="Режим темы">
+          <div style={{ display: "flex", gap: 8 }}>
+            <ModeBtn active={mode === "light"} onClick={() => pickMode("light")} icon={<Sun size={16} />} label="Light" />
+            <ModeBtn active={mode === "dark"} onClick={() => pickMode("dark")} icon={<Moon size={16} />} label="Dark" />
+            <button
+              onClick={reset}
+              style={{
+                marginLeft: "auto", padding: "8px 14px", borderRadius: 10, fontSize: 13,
+                border: "1px solid var(--border)", background: "var(--background-surface)", color: "var(--foreground-70)",
+              }}
+            >
+              Сбросить
+            </button>
+          </div>
+        </Panel>
+
+        <Panel title="Базовые акценты (UI Kit)">
+          <SwatchRow swatches={BASE_ACCENTS} active={accent} onPick={pickAccent} />
+        </Panel>
+
+        <Panel title="Вариации (5 светлее / 5 темнее)">
+          <SwatchRow swatches={variations} active={accent} onPick={pickAccent} />
+        </Panel>
+      </div>
+
+      {/* Preview */}
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>Превью компонентов</h2>
+      <PreviewArea />
+    </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section
+      style={{
+        background: "var(--background-elevated)", border: "1px solid var(--border)",
+        borderRadius: "var(--r-card)", padding: 16,
+      }}
+    >
+      <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function ModeBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px",
+        borderRadius: 10, fontSize: 13, fontWeight: 600,
+        background: active ? "var(--accent)" : "var(--background-surface)",
+        color: active ? "#fff" : "var(--foreground-70)",
+        border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+        boxShadow: active ? "var(--shadow-button)" : "none",
+      }}
+    >
+      {icon}{label}
+    </button>
+  );
+}
+
+function SwatchRow({ swatches, active, onPick }: { swatches: AccentSwatch[]; active: string; onPick: (hex: string) => void }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      {swatches.map((s) => {
+        const isActive = s.hex.toUpperCase() === active.toUpperCase();
+        return (
+          <button
+            key={s.id + s.hex}
+            onClick={() => onPick(s.hex)}
+            title={`${s.label} — ${s.hex}`}
+            style={{
+              width: 88, padding: 6, borderRadius: 12,
+              border: `2px solid ${isActive ? "var(--foreground)" : "transparent"}`,
+              background: "var(--background-surface)",
+              display: "flex", flexDirection: "column", gap: 6,
+            }}
+          >
+            <div style={{ height: 44, borderRadius: 8, background: s.hex }} />
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--foreground-70)" }}>{s.hex}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PreviewArea() {
+  return (
+    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+      {/* Buttons */}
+      <Panel title="Кнопки">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Основная</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>Мягкая</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 600, border: "1px solid var(--border)" }}>Контур</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 13, fontWeight: 600 }} disabled>Disabled</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center" }}><Plus size={16} /></button>
+          <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", display: "grid", placeItems: "center" }}><Pencil size={16} /></button>
+          <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", display: "grid", placeItems: "center", border: "1px solid var(--border)" }}><Trash2 size={16} /></button>
+        </div>
+      </Panel>
+
+      {/* Badges */}
+      <Panel title="Бейджи">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <Badge bg="var(--accent)" fg="#fff">PRO</Badge>
+          <Badge bg="var(--accent-soft)" fg="var(--accent)">Новое</Badge>
+          <Badge bg="var(--success-soft)" fg="var(--success)">Активно</Badge>
+          <Badge bg="var(--warning-soft)" fg="var(--warning)">На проверке</Badge>
+          <Badge bg="var(--error-soft)" fg="var(--error)">Отклонено</Badge>
+          <Badge bg="var(--info-soft)" fg="var(--info)">Инфо</Badge>
+        </div>
+      </Panel>
+
+      {/* Alerts */}
+      <Panel title="Уведомления">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Alert icon={<CheckCircle2 size={16} />} bg="var(--success-soft)" fg="var(--success)" text="Изменения сохранены" />
+          <Alert icon={<Info size={16} />} bg="var(--info-soft)" fg="var(--info)" text="Подсказка для пользователя" />
+          <Alert icon={<AlertCircle size={16} />} bg="var(--error-soft)" fg="var(--error)" text="Произошла ошибка" />
+        </div>
+      </Panel>
+
+      {/* Card */}
+      <Panel title="Карточка">
+        <div style={{ padding: 14, borderRadius: 12, background: "var(--background-surface)", border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Заголовок карточки</div>
+          <div style={{ fontSize: 12, color: "var(--foreground-70)", marginBottom: 10 }}>Краткое описание содержимого с акцентом на детали.</div>
+          <a style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)" }}>Подробнее →</a>
+        </div>
+      </Panel>
+
+      {/* Inputs */}
+      <Panel title="Поля ввода">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <input placeholder="Email" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <input placeholder="Активное (focus)" autoFocus style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1.5px solid var(--accent)", color: "var(--foreground)", fontSize: 13, outline: "none" }} />
+          <textarea placeholder="Сообщение" rows={3} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13, resize: "none" }} />
+        </div>
+      </Panel>
+
+      {/* Upload */}
+      <Panel title="Загрузка файла">
+        <div style={{ padding: 20, borderRadius: 12, border: "2px dashed var(--border-accent)", background: "var(--accent-soft)", textAlign: "center" }}>
+          <Upload size={20} style={{ color: "var(--accent)", margin: "0 auto 6px" }} />
+          <div style={{ fontSize: 12, color: "var(--foreground-70)" }}>Перетащите файл или <span style={{ color: "var(--accent)", fontWeight: 600 }}>выберите</span></div>
+        </div>
+      </Panel>
+
+      {/* Login form */}
+      <Panel title="Форма входа">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <input placeholder="Логин" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <input placeholder="Пароль" type="password" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Войти</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground-70)", fontSize: 13, fontWeight: 500, border: "1px solid var(--border)" }}>Создать аккаунт</button>
+        </div>
+      </Panel>
+
+      {/* Nav */}
+      <Panel title="Навигация">
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {[
+            { label: "Главная", active: true },
+            { label: "Лента", active: false },
+            { label: "Каналы", active: false },
+            { label: "Сообщения", active: false },
+          ].map((it) => (
+            <div key={it.label} style={{
+              padding: "8px 12px", borderRadius: 8, fontSize: 13,
+              fontWeight: it.active ? 600 : 500,
+              color: it.active ? "var(--accent)" : "var(--foreground-70)",
+              background: it.active ? "var(--accent-soft)" : "transparent",
+            }}>{it.label}</div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function Badge({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
+  return <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: bg, color: fg }}>{children}</span>;
+}
+function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: string; text: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, background: bg, color: fg, fontSize: 13, fontWeight: 500 }}>
+      {icon}{text}
+    </div>
+  );
 }
 
 /* ============ DASHBOARD ============ */
@@ -914,7 +1158,7 @@ function CategoriesSection() {
 /* ============ NOTIFICATIONS ============ */
 function NotificationsSection() {
   const emailTpl = [
-    ["Приветствие", "Добро пожаловать в МоДЕЛИЗМ Форум!", "01.06.2026"],
+    ["Приветствие", "Добро пожаловать в МоДелизМ Форум!", "01.06.2026"],
     ["Подтверждение почты", "Подтвердите ваш email", "15.05.2026"],
     ["Сброс пароля", "Восстановление доступа", "10.05.2026"],
     ["Оповещение о модерации", "Ваш пост проверен", "05.06.2026"],
@@ -1072,7 +1316,7 @@ function SettingsSection() {
           Настройки платформы
         </h4>
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {field("Название проекта", "МоДЕЛИЗМ Форум")}
+          {field("Название проекта", "МоДелизМ Форум")}
           {field("Домен", "modelizm-forum.ru")}
           {field("Email поддержки", "support@modelizm-forum.ru")}
           {field("Платёжный ключ ЮKassa (Shop ID)", "••••••••", "password")}

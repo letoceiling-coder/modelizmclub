@@ -214,7 +214,7 @@ export const users: User[] = [
   { id: "u2", name: "Сергей ДВС", city: "Москва", interests: "Двигатели, тюнинг, ДВС, нитро", avatar: avatar("Сергей ДВС"), subscription: "Месяц", bio: "Двигателист со стажем. Знаю о ДВС всё: от обкатки до форсирования. Помогу с настройкой.", status: "Чемпион гонок 2025", coverImage: photo(102), joinedDate: "2024-04-02T14:30:00Z", friendIds: ["u1","u4"], online: true },
   { id: "u3", name: "Михаил Квадро", city: "Санкт-Петербург", interests: "FPV, квадрокоптеры, видео, 5дюймов", avatar: avatar("Михаил Квадро"), subscription: "Полгода", bio: "FPV-пилот. Летаю на 5-дюймовых рамах. Снимаю видео с коптера. Ищу напарников для совместных полётов.", coverImage: photo(103), joinedDate: "2024-05-20T08:00:00Z", friendIds: ["u1","u6","u8"], online: false },
   { id: "u4", name: "Андрей Самолёты", city: "Новосибирск", interests: "Авиамодели, планеры, реставрация", avatar: avatar("Андрей Самолёты"), subscription: null, bio: "Авиамоделист. Восстанавливаю советские модели. Ищу редкие декали и чертежи.", coverImage: photo(104), joinedDate: "2024-06-10T12:00:00Z", friendIds: ["u2"], online: true },
-  { id: "u5", name: "Дмитрий Моделист", city: "Екатеринбург", interests: "Корабли, катера, парусники", avatar: avatar("Дмитрий Моделист"), subscription: "Тестовый", bio: "Судомоделист из Екатеринбурга. Строю катера на ДВС и электротяге.", coverImage: photo(105), joinedDate: "2024-07-01T09:00:00Z", friendIds: ["u1"], online: false },
+  { id: "u5", name: "Дмитрий Моделист", city: "Екатеринбург", interests: "Корабли, катера, парусники", avatar: avatar("Дмитрий Моделист"), subscription: "Месяц", bio: "Судомоделист из Екатеринбурга. Строю катера на ДВС и электротяге.", coverImage: photo(105), joinedDate: "2024-07-01T09:00:00Z", friendIds: ["u1"], online: false },
   { id: "u6", name: "Игорь Электрик", city: "Казань", interests: "Электроника, DIY, пайка, ESC", avatar: avatar("Игорь Электрик"), subscription: "Месяц", bio: "DIY-электронщик. Паяю контроллеры, ESC, датчики. Делюсь схемами и прошивками.", status: "Мастер пайки", coverImage: photo(106), joinedDate: "2024-08-15T16:00:00Z", friendIds: ["u1","u3"], online: true },
   { id: "u7", name: "Павел Самокат", city: "Сочи", interests: "Электросамокаты, моды, аккумуляторы", avatar: avatar("Павел Самокат"), subscription: null, bio: "Моддинг электросамокатов: аккумуляторы, прошивки, контроллеры.", coverImage: photo(107), joinedDate: "2025-01-10T11:00:00Z", friendIds: ["u1"], online: false },
   { id: "u8", name: "Олег Разработчик", city: "Ростов-на-Дону", interests: "Автопилоты, прошивки, STM32", avatar: avatar("Олег Разработчик"), subscription: "Год", bio: "Разрабатываю автопилоты на базе STM32. Пишу прошивки под ArduPilot и PX4.", status: "Разработчик", coverImage: photo(108), joinedDate: "2024-09-01T07:00:00Z", friendIds: ["u3"], online: true },
@@ -298,7 +298,8 @@ export const posts: Post[] = [
   { id: "p22", authorId: "u1", date: "месяц назад", category: "Автомодели", title: "Сезон открыт: первые гонки 2026", text: "Стартанули в Краснодаре. 18 пилотов, 3 класса. Фотоотчёт и краткий анализ круга лидеров.", images: [photo(32), photo(33)], tags: ["гонки", "сезон2026"], views: 3200, likes: 104, comments: 1, saves: 47, reposts: 18, isFollowing: true, commentList: [cmt("c1", "u4", "3 нед назад", "Огонь сезон стартанул!", 5)] },
 ];
 
-const gal = (seeds: number[]) => seeds.map((s) => photo(s));
+const gal = (seeds: number[]) =>
+  seeds.map((s) => `/demo/posts/post-${((s - 1) % DEMO_POST_COUNT) + 1}.jpg`);
 
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
@@ -358,7 +359,7 @@ export const banners: Banner[] = [
 ];
 
 export const tariffs: Tariff[] = [
-  { id: "t0", name: "Тестовый доступ", price: 1, period: "1 день", features: ["Все разделы", "Чаты", "Объявления"] },
+  
   { id: "t1", name: "Месяц", price: 100, period: "30 дней", features: ["Все разделы", "Чаты", "Объявления", "Поддержка"] },
   { id: "t2", name: "Полгода", price: 500, period: "180 дней", features: ["Всё из «Месяц»", "Приоритет в ленте", "Скидки в магазине"], popular: true },
   { id: "t3", name: "Год", price: 800, period: "365 дней", features: ["Всё из «Полгода»", "Бесплатные объявления", "Бейдж Pro"] },
@@ -562,16 +563,16 @@ export interface PromoCode {
 }
 
 export const subscriptionPlans: SubscriptionPlan[] = [
-  { id: "test", name: "Тестовый доступ", price: 1, periodLabel: "1 день", features: ["Доступ ко всем разделам", "Чат в подкатегориях", "Просмотр объявлений", "1 размещение объявления"] },
+  
   { id: "month", name: "Месяц", price: 100, periodLabel: "месяц", features: ["Всё из Тестового", "Безлимитные объявления", "Приоритет в ленте", "Поддержка 24/7"], accent: true },
   { id: "half", name: "Полгода", price: 500, periodLabel: "полгода", savingsLabel: "Экономия 100₽", isPopular: true, features: ["Всё из «Месяц»", "Скидки в магазине 10%", "Бейдж «Форум» в профиле", "Комиссия 0% на продажи"], accent: true },
   { id: "year", name: "Год", price: 800, periodLabel: "год", savingsLabel: "Экономия 400₽", isBestValue: true, features: ["Всё из «Полгода»", "3 бесплатных объявления/мес", "Бейдж «Форум Pro» в профиле", "Без рекламы на платформе", "Приоритетная поддержка"] },
 ];
 
 export const faqItems: FAQItem[] = [
-  { id: "f1", category: "general", question: "Что такое МоДЕЛИЗМ Форум?", answer: "Это социальная платформа для моделистов, где можно общаться, делиться проектами, продавать и покупать запчасти и модели." },
+  { id: "f1", category: "general", question: "Что такое МоДелизМ Форум?", answer: "Это социальная платформа для моделистов, где можно общаться, делиться проектами, продавать и покупать запчасти и модели." },
   { id: "f2", category: "general", question: "Как зарегистрироваться?", answer: "Нажмите «Регистрация» на главной, укажите имя, email и пароль. Подтвердите почту и заполните профиль." },
-  { id: "f3", category: "general", question: "Нужна ли подписка?", answer: "Базовый доступ бесплатный. Для расширенных функций нужна подписка — от 1 ₽ за тестовый день." },
+  { id: "f3", category: "general", question: "Нужна ли подписка?", answer: "Базовый доступ бесплатный. Для расширенных функций — подписка от 99 ₽ в месяц." },
   { id: "f4", category: "ads", question: "Как разместить объявление?", answer: "Нажмите «Создать» → «Объявление», заполните форму (название, цена, фото), оплатите 20 ₽ и ждите модерации." },
   { id: "f5", category: "ads", question: "Сколько стоит размещение?", answer: "20 ₽ за одно объявление. Подписчики «Год» получают 3 бесплатных размещения в месяц." },
   { id: "f6", category: "ads", question: "Как долго висит объявление?", answer: "30 дней. После этого можно продлить или снять с публикации." },
@@ -626,7 +627,7 @@ export const adminUsers: AdminUser[] = [
   { id: "au2", name: "Сергей Моторин", avatar: ava("Сергей Моторин"), email: "sergey@modelizm.ru", city: "Краснодар", subscription: "Месяц", role: "user", status: "active", registeredAt: "01.04.2025" },
   { id: "au3", name: "Михаил Летов", avatar: ava("Михаил Летов"), email: "mikhail@modelizm.ru", city: "Москва", subscription: "Полгода", role: "moderator", status: "active", registeredAt: "15.04.2025" },
   { id: "au4", name: "Андрей Крылов", avatar: ava("Андрей Крылов"), email: "andrey@modelizm.ru", city: "СПб", subscription: null, role: "user", status: "active", registeredAt: "20.04.2025" },
-  { id: "au5", name: "Олег Паяльник", avatar: ava("Олег Паяльник"), email: "oleg@modelizm.ru", city: "Новосибирск", subscription: "Тестовый", role: "user", status: "active", registeredAt: "05.05.2025" },
+  { id: "au5", name: "Олег Паяльник", avatar: ava("Олег Паяльник"), email: "oleg@modelizm.ru", city: "Новосибирск", subscription: "Месяц", role: "user", status: "active", registeredAt: "05.05.2025" },
   { id: "au6", name: "Дмитрий Шасси", avatar: ava("Дмитрий Шасси"), email: "dima@modelizm.ru", city: "Краснодар", subscription: null, role: "user", status: "blocked", registeredAt: "10.05.2025" },
   { id: "au7", name: "Игорь Пропеллер", avatar: ava("Игорь Пропеллер"), email: "igor@modelizm.ru", city: "Екатеринбург", subscription: "Год", role: "user", status: "active", registeredAt: "12.05.2025" },
   { id: "au8", name: "Виктор Рулевой", avatar: ava("Виктор Рулевой"), email: "victor@modelizm.ru", city: "Казань", subscription: "Месяц", role: "user", status: "active", registeredAt: "01.06.2025" },

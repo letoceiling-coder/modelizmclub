@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 
 export const Route = createFileRoute("/subscription")({
-  head: () => ({ meta: [{ title: "Подписка — МоДЕЛИЗМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Подписка — МоДелизМ Форум" }] }),
   component: SubscriptionPage,
 });
 

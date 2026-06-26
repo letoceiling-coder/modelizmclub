@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { faqCategories, faqItems, type FAQItem } from "@/lib/mock";
 
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Помощь — МоДЕЛИЗМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Помощь — МоДелизМ Форум" }] }),
   component: HelpPage,
 });
 
@@ -60,7 +60,7 @@ function HelpPage() {
           База знаний
         </h1>
         <p style={{ fontSize: "var(--fs-body-lg)", lineHeight: 1.6, color: "var(--foreground-70)", marginTop: "12px", maxWidth: "600px" }}>
-          Ответы на частые вопросы о платформе МоДЕЛИЗМ Форум
+          Ответы на частые вопросы о платформе МоДелизМ Форум
         </p>
 
         {/* Search */}

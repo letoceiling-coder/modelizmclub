@@ -10,6 +10,7 @@ import { userById, me, formatRelativeTime, VOICE_TRANSCRIPTS, makeMockWaveform }
 import type { Message } from "@/lib/mock";
 import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
@@ -494,8 +495,10 @@ function MessengerPage() {
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
+                  <LanguageSwitcher />
                   <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} />
                 </div>
+
 
               </header>
 

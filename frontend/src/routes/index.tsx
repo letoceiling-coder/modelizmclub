@@ -14,7 +14,7 @@ const VIDEO_URL = "";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "МоДелизМ Форум — сообщество моделистов России" },
+      { title: "МоДелизМ Форум — сообщество моделистов" },
       { name: "description", content: "Социальная платформа для RC-моделистов: лента, чаты по категориям, объявления и сообщества." },
     ],
   }),
@@ -167,7 +167,7 @@ function ZeroBlock() {
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: 999, background: "#ef5350" }} />
-                Сообщество моделистов России
+                Сообщество моделистов
               </motion.div>
 
               <motion.h1
@@ -183,7 +183,7 @@ function ZeroBlock() {
                   textShadow: "0 4px 24px rgba(0,0,0,0.5)",
                 }}
               >
-                МОДЕЛИЗМ
+                МоДелизМ
                 <br />
                 <span style={{ color: "#e53935" }}>Форум</span>
               </motion.h1>
@@ -821,7 +821,7 @@ function FooterSection() {
               className="mt-[12px] max-w-[420px]"
               style={{ fontSize: 13, lineHeight: 1.6, color: "var(--foreground-70, rgba(240,240,240,0.65))" }}
             >
-              Сообщество моделистов России: лента, чаты по интересам, объявления и тематические сообщества.
+              Сообщество моделистов: лента, чаты по интересам, объявления и тематические сообщества.
             </p>
           </div>
 
