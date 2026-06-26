@@ -232,41 +232,6 @@ html, body {
   transform: translateZ(0);
 }
 
-@layer components {
-  /* Fixed sidebars aligned to max-w-7xl shell */
-  .layout-sidebar-left,
-  .layout-sidebar-right {
-    position: fixed;
-    top: 1rem;
-    z-index: 20;
-    max-height: calc(100dvh - 2rem);
-  }
-
-  .layout-sidebar-left {
-    width: 15rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .layout-sidebar-right {
-    width: 18rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  @media (min-width: 1024px) {
-    .layout-sidebar-left {
-      left: max(1.5rem, calc((100vw - min(100vw, 80rem)) / 2 + 1.5rem));
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .layout-sidebar-right {
-      right: max(1.5rem, calc((100vw - min(100vw, 80rem)) / 2 + 1.5rem));
-    }
-  }
-}
-
 @layer base {
   * { border-color: var(--border); }
   html, body {

@@ -13,7 +13,7 @@ export function AppLayout({ children, rightColumn }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <MobileHeader />
-      <div className="mx-auto flex w-full max-w-7xl items-start gap-6 px-3 pb-24 pt-4 lg:px-6 lg:pb-8">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-3 pb-24 pt-4 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[15rem_minmax(0,1fr)_18rem] lg:px-6 lg:pb-8">
         <Sidebar />
         <main className="min-w-0 flex-1">{children}</main>
         {rightColumn === false ? null : rightColumn ?? <RightCategories />}

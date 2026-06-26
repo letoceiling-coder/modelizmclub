@@ -93,6 +93,7 @@ export interface Banner {
   title: string;
   text?: string;
   linkUrl?: string;
+  imageUrl?: string;
   placement?: string;
 }
 

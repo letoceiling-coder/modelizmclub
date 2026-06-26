@@ -71,6 +71,9 @@ export function EventsHero() {
             className="absolute inset-0"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-[var(--accent-muted)]" />
+            {current.imageUrl ? (
+              <img src={current.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : null}
             <div
               className="absolute inset-0"
               style={{

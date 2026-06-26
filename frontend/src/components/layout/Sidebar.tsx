@@ -27,19 +27,16 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   return (
-    <div className="hidden w-[15rem] shrink-0 lg:block">
-      <aside className="layout-sidebar-left">
-        <div className="space-y-1">
-        <div className="border-b border-border/60 px-3 pb-3 pt-3">
-          <Link to={ROUTES.feed} search={ROUTE_SEARCH.feed} className="block min-w-0">
-            <Logo size={30} />
-          </Link>
-          <div className="mt-2.5 flex items-center justify-end gap-1">
+    <aside className="hidden min-w-0 lg:block">
+      <div className="sticky top-4 z-20 max-h-[calc(100dvh-2rem)] space-y-1 overflow-y-auto overscroll-contain">
+        <div className="flex items-center justify-between px-3 py-3">
+          <Link to={ROUTES.feed} search={ROUTE_SEARCH.feed}><Logo /></Link>
+          <div className="flex items-center gap-1">
             <LanguageSwitcher compact showFooter={false} />
-            <ThemeToggle size={36} />
+            <ThemeToggle />
           </div>
         </div>
-        <nav className="space-y-0.5 px-1.5 pt-1">
+        <nav className="space-y-0.5">
           {itemKeys.map((item) => {
             const { to, labelKey, icon: Icon, section } = item;
             const search = "search" in item ? item.search : undefined;
@@ -97,15 +94,14 @@ export function Sidebar() {
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
           </a>
         </nav>
-        <div className="mx-1.5 mt-4 rounded-xl border bg-card p-3">
+        <div className="mt-4 rounded-xl border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("common.subscription")}</div>
           <div className="mt-1 text-sm font-medium">{t("common.subscriptionActive")}</div>
           <Link to={ROUTES.subscription} search={ROUTE_SEARCH.subscription} className="mt-2 inline-block text-xs text-primary hover:underline">
             {t("common.manage")}
           </Link>
         </div>
-        </div>
-      </aside>
-    </div>
+      </div>
+    </aside>
   );
 }

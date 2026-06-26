@@ -2,7 +2,7 @@ import { apiRequest } from "./client";
 import type { Banner, FaqCategory } from "@/lib/types";
 
 export async function fetchBanners(placement = "feed"): Promise<Banner[]> {
-  const res = await apiRequest<{ data: Array<{ id: number; title: string; text?: string; link_url?: string; placement?: string }> }>(
+  const res = await apiRequest<{ data: Array<{ id: number; title: string; text?: string; link_url?: string; image_url?: string | null; placement?: string }> }>(
     `/public/banners?placement=${encodeURIComponent(placement)}`,
   );
   return (res.data ?? []).map((b) => ({
@@ -10,6 +10,7 @@ export async function fetchBanners(placement = "feed"): Promise<Banner[]> {
     title: b.title,
     text: b.text,
     linkUrl: b.link_url,
+    imageUrl: b.image_url ?? undefined,
     placement: b.placement,
   }));
 }

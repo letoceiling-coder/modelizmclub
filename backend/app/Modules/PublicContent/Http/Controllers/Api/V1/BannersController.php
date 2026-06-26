@@ -16,6 +16,7 @@ class BannersController extends Controller
         $placement = $request->string('placement')->toString() ?: 'feed';
 
         $banners = Banner::query()
+            ->with('image')
             ->where('is_active', true)
             ->where('placement', $placement)
             ->where(function ($q): void {
@@ -32,6 +33,7 @@ class BannersController extends Controller
                 'title' => $b->title,
                 'text' => $b->text,
                 'link_url' => $b->link_url,
+                'image_url' => $b->image?->url,
             ]);
 
         return response()->json(['data' => $banners]);
