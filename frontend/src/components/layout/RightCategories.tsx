@@ -23,9 +23,10 @@ export function RightCategories() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <aside className="sticky top-4 z-20 hidden min-w-0 self-start xl:block">
+    <div className="hidden w-[18rem] shrink-0 xl:block">
+      <aside className="layout-sidebar-right">
       <div
-        className="max-h-[calc(100dvh-2rem)] overflow-hidden rounded-[14px] border"
+        className="overflow-hidden rounded-[14px] border"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
@@ -111,6 +112,7 @@ export function RightCategories() {
           })}
         </ul>
       </div>
-    </aside>
+      </aside>
+    </div>
   );
 }
