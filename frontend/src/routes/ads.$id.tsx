@@ -27,14 +27,22 @@ function AdDetailPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const item = await fetchListing(id);
-      if (cancelled) return;
-      setAd(item);
-      if (item) {
-        const all = await fetchListings({ q: item.category });
-        if (!cancelled) setSimilar(all.filter((a) => a.id !== item.id).slice(0, 8));
+      try {
+        const item = await fetchListing(id);
+        if (cancelled) return;
+        setAd(item);
+        if (item) {
+          const all = await fetchListings({ q: item.category });
+          if (!cancelled) setSimilar(all.filter((a) => a.id !== item.id).slice(0, 8));
+        }
+      } catch {
+        if (!cancelled) {
+          setAd(null);
+          setSimilar([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [id]);

@@ -72,6 +72,7 @@ export interface Category {
 
 export interface Community {
   id: ID;
+  dbId?: number;
   uuid?: string;
   name: string;
   description: string;

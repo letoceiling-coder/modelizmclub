@@ -1,11 +1,11 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
-import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2 } from "lucide-react";
-import type { Post, Comment, PostAuthor } from "@/lib/types";
+import type { Post, Comment } from "@/lib/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { avatarUrl } from "@/lib/utils/time";
-import { reactToPost, bookmarkPost, repostPost } from "@/lib/api/feed";
+import { reactToPost, bookmarkPost, repostPost, fetchPostComments, createPostComment } from "@/lib/api/feed";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
@@ -21,7 +21,7 @@ interface Props {
 
 export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const { t } = useTranslation();
-  const { slug, displayName, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const author = post.author;
   const reposter = post.repostedBy ?? null;
 
@@ -36,6 +36,17 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!commentsOpen || commentsLoaded) return;
+    setCommentsLoading(true);
+    void fetchPostComments(post.id).then((items) => {
+      setCommentList(items);
+      setCommentsLoaded(true);
+    }).finally(() => setCommentsLoading(false));
+  }, [commentsOpen, commentsLoaded, post.id]);
 
   const isLong = post.text.length > 220;
   const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
@@ -75,27 +86,17 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
     });
   };
 
-  const currentAuthor = (): PostAuthor => ({
-    slug: slug ?? "me",
-    name: displayName ?? tStatic("common.you"),
-    avatar: avatarUrl(displayName ?? "Me"),
-  });
-
   const addComment = (text: string, parentId?: string) => {
-    const newC: Comment = {
-      id: `nc${Date.now()}`,
-      author: currentAuthor(),
-      time: tStatic("common.justNow"),
-      text,
-      likes: 0,
-      replies: [],
-    };
-    setCommentList((list) => {
-      if (!parentId) return [...list, newC];
-      return list.map((c) =>
-        c.id === parentId ? { ...c, replies: [...(c.replies ?? []), newC] } : c,
-      );
-    });
+    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
+    void createPostComment(post.id, text, parentId).then((created) => {
+      if (!created) return toast.error(t("common.error"));
+      setCommentList((list) => {
+        if (!parentId) return [...list, created];
+        return list.map((c) =>
+          c.id === parentId ? { ...c, replies: [...(c.replies ?? []), created] } : c,
+        );
+      });
+    }).catch(() => toast.error(t("common.error")));
   };
 
   return (
@@ -268,7 +269,11 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <CommentSection comments={commentList} onAdd={addComment} />
+            {commentsLoading ? (
+              <div className="px-4 py-6 text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("common.loading")}</div>
+            ) : (
+              <CommentSection comments={commentList} onAdd={addComment} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

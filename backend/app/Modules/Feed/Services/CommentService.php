@@ -16,7 +16,13 @@ class CommentService
     public function listForPost(Post $post, int $perPage = 20): LengthAwarePaginator
     {
         return Comment::query()
-            ->with(['author.profile.avatar'])
+            ->with([
+                'author.profile.avatar',
+                'replies' => fn ($q) => $q
+                    ->with(['author.profile.avatar'])
+                    ->where('status', 'published')
+                    ->orderBy('created_at'),
+            ])
             ->where('commentable_type', Post::class)
             ->where('commentable_id', $post->id)
             ->whereNull('parent_id')

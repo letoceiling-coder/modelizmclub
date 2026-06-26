@@ -1,6 +1,6 @@
 import { apiRequest } from "./client";
 import { getAuthToken } from "./auth";
-import type { Post, PostAuthor } from "@/lib/types";
+import type { Post, PostAuthor, Comment } from "@/lib/types";
 import { avatarUrl } from "@/lib/utils/time";
 import { tStatic } from "@/lib/i18n";
 
@@ -116,6 +116,7 @@ export async function createPost(input: {
   title: string;
   body: string;
   category_id: number;
+  community_id?: number;
   hashtags?: string[];
   media_ids?: string[];
   publish?: boolean;
@@ -128,6 +129,7 @@ export async function createPost(input: {
       title: input.title,
       body: input.body,
       category_id: input.category_id,
+      community_id: input.community_id,
       hashtags: input.hashtags ?? [],
       media_ids: input.media_ids ?? [],
     },
@@ -161,4 +163,62 @@ export async function bookmarkPost(uuid: string, bookmarked: boolean): Promise<v
 export async function repostPost(uuid: string, comment?: string): Promise<void> {
   const token = getAuthToken();
   await apiRequest(`/posts/${uuid}/repost`, { method: "POST", token, json: { comment: comment ?? null } });
+}
+
+type ApiCommentAuthor = {
+  display_name: string | null;
+  slug: string | null;
+  uuid?: string;
+  avatar?: { url: string | null } | null;
+};
+
+type ApiComment = {
+  uuid: string;
+  body: string;
+  author?: ApiCommentAuthor;
+  stats?: { reactions: number };
+  replies?: ApiComment[];
+  created_at: string;
+};
+
+function mapApiComment(item: ApiComment): Comment {
+  const name = item.author?.display_name ?? "User";
+  return {
+    id: item.uuid,
+    author: {
+      slug: item.author?.slug ?? item.author?.uuid ?? "user",
+      name,
+      avatar: item.author?.avatar?.url ?? avatarUrl(name),
+    },
+    time: formatRelativeDate(item.created_at),
+    text: item.body,
+    likes: item.stats?.reactions ?? 0,
+    replies: (item.replies ?? []).map(mapApiComment),
+  };
+}
+
+export async function fetchPostComments(uuid: string): Promise<Comment[]> {
+  try {
+    const res = await apiRequest<{ data: ApiComment[] }>(`/posts/${uuid}/comments?per_page=50`, {
+      token: getAuthToken(),
+    });
+    return (res.data ?? []).map(mapApiComment);
+  } catch {
+    return [];
+  }
+}
+
+export async function createPostComment(
+  uuid: string,
+  body: string,
+  parentUuid?: string,
+): Promise<Comment | null> {
+  const token = getAuthToken();
+  if (!token) return null;
+  const res = await apiRequest<{ data: ApiComment }>(`/posts/${uuid}/comments`, {
+    method: "POST",
+    token,
+    json: { body, parent_uuid: parentUuid ?? null },
+  });
+  return mapApiComment(res.data);
 }

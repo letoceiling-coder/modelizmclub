@@ -4,6 +4,7 @@ import type { Community, Post } from "@/lib/types";
 import { mapApiPost, type ApiPost } from "./feed";
 
 export type ApiCommunity = {
+  id: number;
   uuid: string;
   name: string;
   slug: string;
@@ -23,6 +24,7 @@ type PaginatedCommunities = {
 export function mapApiCommunity(item: ApiCommunity): Community {
   return {
     id: item.slug,
+    dbId: item.id,
     uuid: item.uuid,
     name: item.name,
     description: item.description ?? "",

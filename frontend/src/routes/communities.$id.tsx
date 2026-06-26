@@ -59,14 +59,22 @@ function CommunityDetailPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const c = await fetchCommunity(id);
-      if (cancelled) return;
-      setCommunity(c);
-      if (c) {
-        const p = await fetchCommunityPosts(id);
-        if (!cancelled) setPosts(p);
+      try {
+        const c = await fetchCommunity(id);
+        if (cancelled) return;
+        setCommunity(c);
+        if (c) {
+          const p = await fetchCommunityPosts(id);
+          if (!cancelled) setPosts(p);
+        }
+      } catch {
+        if (!cancelled) {
+          setCommunity(null);
+          setPosts([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [id]);
@@ -124,6 +132,11 @@ function CommunityDetailPage() {
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => void toggleJoin()} className="inline-flex h-11 items-center px-5 font-semibold rounded-xl" style={{ background: community.joined ? "transparent" : "var(--accent)", color: community.joined ? "var(--foreground)" : "white", border: community.joined ? "1px solid var(--border)" : "none" }}>
                 {community.joined ? t("communities.leave") : t("communities.join")}
               </motion.button>
+              {community.joined && (
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => setSubmitOpen(true)} className="inline-flex h-11 items-center gap-2 px-5 font-semibold rounded-xl border" style={{ borderColor: "var(--border)" }}>
+                  <FilePlus size={16} />{t("communities.suggestPost")}
+                </motion.button>
+              )}
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShareOpen(true)} className="inline-flex h-11 items-center gap-2 px-5 font-semibold rounded-xl border" style={{ borderColor: "var(--border)" }}>
                 <Share2 size={16} />{t("post.menuShare")}
               </motion.button>
@@ -139,7 +152,13 @@ function CommunityDetailPage() {
         )}
       </div>
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} />
-      <SubmitPostSheet open={submitOpen} onOpenChange={setSubmitOpen} communityName={community.name} />
+      <SubmitPostSheet
+        open={submitOpen}
+        onOpenChange={setSubmitOpen}
+        communityName={community.name}
+        communityDbId={community.dbId}
+        onCreated={(post) => setPosts((prev) => [post, ...prev])}
+      />
     </AppLayout>
   );
 }

@@ -31,12 +31,16 @@ function ChannelsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchCommunities({ official: true, per_page: 50 }).then((items) => {
-      if (!cancelled) {
-        setChannels(items);
-        setLoading(false);
-      }
-    });
+    void fetchCommunities({ official: true, per_page: 50 })
+      .then((items) => {
+        if (!cancelled) setChannels(items);
+      })
+      .catch(() => {
+        if (!cancelled) setChannels([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => { cancelled = true; };
   }, []);
 

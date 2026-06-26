@@ -11,6 +11,7 @@ class CommunityResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'id' => $this->id,
             'uuid' => $this->uuid,
             'name' => $this->name,
             'slug' => $this->slug,
