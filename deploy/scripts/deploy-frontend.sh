@@ -16,6 +16,7 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 
 export NODE_ENV=production
+export NITRO_PRESET=node-server
 
 # Reverb / Echo — read public key from backend .env at build time
 BACKEND_ENV="${FRONTEND_DIR}/../backend/.env"
