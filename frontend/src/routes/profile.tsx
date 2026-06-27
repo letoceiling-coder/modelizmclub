@@ -1,231 +1,211 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BadgeCheck, FileText, MapPin, Pencil, Tag, User as UserIcon,
-  UserPlus, Users, X, Plus, Camera,
+  Bell, BadgeCheck, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
+  UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
 } from "lucide-react";
-import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { me, posts, ads, communities, userById } from "@/lib/mock";
+import type { User } from "@/lib/mock";
+import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
+import { toast } from "sonner";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
-import { useTranslation, tStatic } from "@/lib/i18n";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { avatarUrl } from "@/lib/utils/time";
-import { fetchUserProfile, updateMyProfile, fetchMyInterests, fetchCities } from "@/lib/api/catalog";
-import { fetchFeed } from "@/lib/api/feed";
-import { fetchMyListings } from "@/lib/api/listings";
-import { fetchFriends } from "@/lib/api/friends";
-import { fetchCommunities } from "@/lib/api/communities";
-import { uploadMedia } from "@/lib/api/media";
-import type { Post, Listing, Community, Category } from "@/lib/types";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: tStatic("profile.metaTitle") }] }),
+  head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { slug } = useAuth();
-  return <ProfileView slug={slug ?? undefined} isOwn />;
-}
-
-interface ProfileVM {
-  id?: number;
-  slug: string;
-  name: string;
-  avatar: string;
-  bio: string;
-  city: string;
-  cityId?: number;
+  const currentUser = useStore(selectors.currentUser);
+  return <ProfileView user={currentUser} isOwn />;
 }
 
 type TabKey = "posts" | "ads" | "communities" | "invited" | "about";
 
-const ICON_MAP: Record<string, typeof Users> = { Users };
+const TABS_BASE: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
+  { key: "posts", label: "Публикации", Icon: FileText },
+  { key: "ads", label: "Объявления", Icon: Tag },
+  { key: "communities", label: "Сообщества", Icon: Users },
+  { key: "invited", label: "Приглашённые", Icon: UserPlus, ownOnly: true },
+  { key: "about", label: "О себе", Icon: UserIcon },
+];
+
+
+const ICON_MAP: Record<string, typeof Car> = {
+  Car, Plane, Ship, Send: SendIcon, Code2, Wrench, Cpu, BatteryCharging,
+};
 
 type AdStatus = "active" | "moderation" | "rejected" | "archived";
+const AD_STATUS_FILTERS: { key: AdStatus | "all"; label: string }[] = [
+  { key: "all", label: "Все" },
+  { key: "active", label: "Активные" },
+  { key: "moderation", label: "На модерации" },
+  { key: "rejected", label: "Отклонённые" },
+  { key: "archived", label: "Архив" },
+];
+const AD_STATUS_STYLE: Record<AdStatus, { label: string; bg: string; color: string }> = {
+  active: { label: "Активно", bg: "var(--success-soft)", color: "var(--success)" },
+  moderation: { label: "На модерации", bg: "var(--warning-soft)", color: "var(--warning)" },
+  rejected: { label: "Отклонено", bg: "var(--error-soft)", color: "var(--error)" },
+  archived: { label: "В архиве", bg: "var(--background-surface)", color: "var(--foreground-50)" },
+};
 
-function statusOf(listing: Listing): AdStatus {
-  if (listing.moderation === "moderation") return "moderation";
-  if (listing.moderation === "rejected") return "rejected";
-  if (listing.status === "archived" || listing.status === "unpublished") return "archived";
-  return "active";
-}
-
-export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) {
-  const { t } = useTranslation();
-  const { displayName, isAuthenticated } = useAuth();
-
-  const [vm, setVm] = useState<ProfileVM | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
+  const navigateToMessenger = useNavigate();
+  const friendIds = useStore(selectors.friendsOf(me.id));
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [friendsCount, setFriendsCount] = useState(0);
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const [interests, setInterests] = useState<Category[]>([]);
+  const [isFriend, setIsFriend] = useState(!isOwn && friendIds.includes(user.id));
+  const [subscribed, setSubscribed] = useState(false);
+  const [draft, setDraft] = useState<User>(user);
 
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!slug) { setLoading(false); setNotFound(true); return; }
-    let cancelled = false;
-    setLoading(true);
-    setNotFound(false);
-    void fetchUserProfile(slug)
-      .then((data) => {
-        if (cancelled) return;
-        const cityObj = data.city as { id?: number; name?: string } | null;
-        const next: ProfileVM = {
-          id: typeof data.id === "number" ? data.id : undefined,
-          slug: (data.slug as string) ?? slug,
-          name: (data.display_name as string) ?? displayName ?? "",
-          avatar: (data.avatar as { url?: string } | null)?.url ?? avatarUrl((data.display_name as string) ?? displayName ?? "User"),
-          bio: (data.bio as string) ?? "",
-          city: cityObj?.name ?? "",
-          cityId: cityObj?.id,
-        };
-        setVm(next);
-        const stats = data.stats as { followers_count?: number } | undefined;
-        if (next.id) {
-          void fetchFeed({ author_id: next.id, per_page: 20 }).then((r) => !cancelled && setPosts(r.posts)).catch(() => setPosts([]));
-        }
-        if (!isOwn) setFriendsCount(stats?.followers_count ?? 0);
-      })
-      .catch(() => { if (!cancelled) { setVm(null); setNotFound(true); } })
-      .finally(() => { if (!cancelled) setLoading(false); });
-
-    if (isOwn) {
-      void fetchMyListings().then((l) => !cancelled && setListings(l)).catch(() => setListings([]));
-      void fetchFriends().then((f) => !cancelled && setFriendsCount(f.length)).catch(() => setFriendsCount(0));
-      void fetchCommunities({ per_page: 100 }).then((c) => !cancelled && setCommunities(c.filter((x) => x.joined))).catch(() => setCommunities([]));
-      void fetchMyInterests().then((i) => !cancelled && setInterests(i)).catch(() => setInterests([]));
-    }
-    return () => { cancelled = true; };
-  }, [slug, isOwn, displayName]);
-
-  const filteredListings = useMemo(
-    () => (adFilter === "all" ? listings : listings.filter((l) => statusOf(l) === adFilter)),
-    [listings, adFilter],
+  const userPosts = useMemo(() => posts.filter((p) => p.authorId === user.id), [user.id]);
+  const userAds = useMemo(() => ads.filter((a) => a.authorId === user.id), [user.id]);
+  const userAdsWithStatus = useMemo(() => {
+    const statuses: AdStatus[] = ["active", "active", "moderation", "active", "rejected", "archived", "active"];
+    return userAds.map((a, i) => ({ ad: a, status: statuses[i % statuses.length] }));
+  }, [userAds]);
+  const filteredUserAds = useMemo(
+    () => (adFilter === "all" ? userAdsWithStatus : userAdsWithStatus.filter((x) => x.status === adFilter)),
+    [userAdsWithStatus, adFilter],
   );
+  const userCommunities = useStore(selectors.userCommunities(user.id));
+  const friendsCountDerived = isOwn ? friendIds.length : (user.friendIds?.length ?? 0);
+  const interestList = (user.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setAvatarUploading(true);
-    try {
-      const media = await uploadMedia(file, "avatar");
-      await updateMyProfile({ avatar_media_uuid: media.uuid });
-      setVm((p) => (p ? { ...p, avatar: media.url ?? p.avatar } : p));
-      toast.success(t("profile.avatarUpdated"));
-    } catch {
-      toast.error(t("profile.avatarError"));
-    } finally {
-      setAvatarUploading(false);
-    }
-  };
-
-  if (isOwn && !isAuthenticated) {
-    return <AppLayout rightColumn={false}><div className="py-20 text-center" style={{ color: "var(--foreground-50)" }}>{t("auth.loginRequired")}</div></AppLayout>;
-  }
-  if (loading) {
-    return <AppLayout rightColumn={false}><div className="py-20 text-center" style={{ color: "var(--foreground-50)" }}>{t("common.loading")}</div></AppLayout>;
-  }
-  if (notFound || !vm) {
-    return (
-      <AppLayout rightColumn={false}>
-        <div className="flex flex-col items-center justify-center py-[120px] text-center">
-          <div className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>{t("user.notFound")}</div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  const allTabs: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
-    { key: "posts", label: t("profile.tabPosts"), Icon: FileText },
-    { key: "ads", label: t("profile.tabAds"), Icon: Tag },
-    { key: "communities", label: t("profile.tabCommunities"), Icon: Users },
-    { key: "invited", label: t("profile.tabInvited"), Icon: UserPlus, ownOnly: true },
-    { key: "about", label: t("profile.tabAbout"), Icon: UserIcon },
-  ];
-  const tabs = allTabs.filter((x) => isOwn || !x.ownOnly);
 
   return (
     <AppLayout rightColumn={false}>
       <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
         {/* Cover */}
         <div className="relative">
-          <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+          {user.coverImage ? (
+            <img src={user.coverImage} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} />
+          ) : (
+            <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+          )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]" style={{ background: "linear-gradient(to bottom, transparent, color-mix(in oklab, var(--background) 85%, transparent))" }} />
         </div>
 
         {/* Identity */}
         <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:gap-[24px] md:px-[32px]">
-          <div className="relative shrink-0" style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}>
+          <div
+            className="relative shrink-0"
+            style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
+          >
             <img
-              src={vm.avatar}
+              src={user.avatar}
               alt=""
               className="h-[88px] w-[88px] rounded-full object-cover md:h-[112px] md:w-[112px]"
-              style={{ border: "4px solid var(--background)", boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)", background: "var(--background)" }}
+              style={{
+                border: "4px solid var(--background)",
+                boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
+                background: "var(--background)",
+              }}
             />
-            {isOwn && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={avatarUploading}
-                  aria-label={t("profile.changeAvatar")}
-                  className="absolute bottom-0 right-0 grid h-[32px] w-[32px] place-items-center rounded-full"
-                  style={{ background: "var(--accent)", color: "#fff", border: "2px solid var(--background)" }}
-                >
-                  <Camera size={14} />
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
-              </>
-            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-[6px]">
-              <h1 className="min-w-0 truncate font-display text-[18px] font-bold md:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>{vm.name}</h1>
+              <h1 className="min-w-0 truncate font-display text-[18px] font-bold md:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>{user.name}</h1>
+              {user.subscription && (
+                <span
+                  className="inline-flex items-center gap-[3px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 10, padding: "2px 7px", borderRadius: 999 }}
+                >
+                  <BadgeCheck size={10} /> Pro
+                </span>
+              )}
+              {user.firstHundred && (
+                <span
+                  className="inline-flex items-center gap-[3px] font-semibold"
+                  style={{
+                    background: "linear-gradient(135deg, #FBBF24, #B45309)",
+                    color: "#1F1300",
+                    fontSize: 10,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                  }}
+                  title="Один из первых 100 участников клуба"
+                >
+                  ★ Первые 100
+                </span>
+              )}
             </div>
-            {vm.city && (
-              <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-                <MapPin size={12} /> {vm.city}
-              </div>
-            )}
+            <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
+              <MapPin size={12} /> {user.city}
+            </div>
+            {user.status && <div className="mt-[2px] text-[12.5px] italic" style={{ color: "var(--foreground-50)" }}>{user.status}</div>}
           </div>
 
           <div className="flex w-full gap-[8px] md:w-auto">
-            {isOwn && (
+            {isOwn ? (
               <button
                 onClick={() => setEditOpen(true)}
                 className="inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 md:flex-none"
                 style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
               >
-                <Pencil size={14} /> {t("profile.edit")}
+                <Pencil size={14} /> Редактировать
               </button>
+            ) : (
+              <>
+                {isFriend ? (
+                  <span
+                    className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium md:flex-none"
+                    style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 14 }}
+                  >
+                    <BadgeCheck size={14} style={{ color: "var(--success)" }} /> В друзьях
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => { setIsFriend(true); toast.success("Заявка отправлена"); }}
+                    className="inline-flex flex-1 items-center justify-center gap-[6px] font-semibold transition-colors duration-150 md:flex-none"
+                    style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}
+                  >
+                    <UserPlus size={14} /> В друзья
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const dialogId = openOrCreateDialogWith(user.id);
+                    navigateToMessenger({ to: "/messenger", search: { chat: dialogId } });
+                  }}
+                  className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium transition-colors duration-150 md:flex-none"
+                  style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
+                >
+                  <MessageSquare size={14} /> Написать
+                </button>
+
+                <button
+                  onClick={() => { setSubscribed((s) => !s); toast.success(subscribed ? "Вы отписались" : "Вы подписались"); }}
+                  className="grid h-[40px] w-[40px] shrink-0 place-items-center transition-colors duration-150"
+                  style={{ borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
+                  aria-label="Подписаться"
+                >
+                  <Bell size={14} />
+                </button>
+              </>
             )}
           </div>
         </div>
 
+
         {/* Counters */}
         <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <Counter label={t("profile.counterPosts")} value={posts.length} divider />
-          <Counter label={t("profile.counterAds")} value={listings.length} divider />
-          <Counter label={t("profile.counterFriends")} value={friendsCount} divider />
-          <Counter label={t("profile.counterCommunities")} value={communities.length} />
+          <Counter label="Публикаций" value={userPosts.length} divider />
+          <Counter label="Объявлений" value={userAds.length} divider />
+          <Counter label="Друзей" value={friendsCountDerived} divider />
+          <Counter label="Сообществ" value={userCommunities.length} />
         </div>
 
         {/* Tabs */}
-        <Tabs tab={tab} setTab={setTab} tabs={tabs} />
+        <Tabs tab={tab} setTab={setTab} isOwn={isOwn} />
 
         {/* Tab content */}
         <div className="px-[16px] py-[24px] md:px-[32px]">
@@ -238,16 +218,16 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               {tab === "posts" && (
-                posts.length === 0 ? <EmptyTab text={t("profile.emptyPosts")} /> : (
-                  <div className="space-y-[16px]">{posts.map((p) => <PostCard key={p.id} post={p} />)}</div>
+                userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
+                  <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
                 )
               )}
               {tab === "ads" && (
-                listings.length === 0 ? (
-                  <EmptyTab text={t("profile.emptyAds")}>
+                userAds.length === 0 ? (
+                  <EmptyTab text="Нет объявлений">
                     {isOwn && (
                       <Link to="/ads/new" className="mt-[16px] inline-flex items-center gap-[6px] font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>
-                        <Plus size={14} /> {t("profile.createAd")}
+                        <Plus size={14} /> Создать объявление
                       </Link>
                     )}
                   </EmptyTab>
@@ -255,45 +235,65 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
                   <div className="space-y-[16px]">
                     {isOwn && (
                       <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {([
-                          { key: "all", label: t("profile.adFilterAll") },
-                          { key: "active", label: t("profile.adFilterActive") },
-                          { key: "moderation", label: t("profile.adFilterModeration") },
-                          { key: "rejected", label: t("profile.adFilterRejected") },
-                          { key: "archived", label: t("profile.adFilterArchived") },
-                        ] as const).map(({ key, label }) => {
-                          const count = key === "all" ? listings.length : listings.filter((l) => statusOf(l) === key).length;
-                          const active = adFilter === key;
+                        {AD_STATUS_FILTERS.map((f) => {
+                          const count = f.key === "all" ? userAdsWithStatus.length : userAdsWithStatus.filter((x) => x.status === f.key).length;
+                          const active = adFilter === f.key;
                           return (
                             <button
-                              key={key}
-                              onClick={() => setAdFilter(key)}
+                              key={f.key}
+                              onClick={() => setAdFilter(f.key)}
                               className="shrink-0 inline-flex items-center gap-[6px] text-[13px] transition-colors"
                               style={{
-                                height: 32, padding: "0 14px", borderRadius: 999,
+                                height: 32,
+                                padding: "0 14px",
+                                borderRadius: 999,
                                 background: active ? "var(--accent)" : "var(--background-surface)",
                                 color: active ? "#fff" : "var(--foreground-70)",
                                 fontWeight: active ? 600 : 500,
                                 border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
                               }}
                             >
-                              {label}
-                              <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: active ? "rgba(255,255,255,0.22)" : "var(--background)", color: active ? "#fff" : "var(--foreground-50)" }}>{count}</span>
+                              {f.label}
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "1px 7px",
+                                  borderRadius: 999,
+                                  background: active ? "rgba(255,255,255,0.22)" : "var(--background)",
+                                  color: active ? "#fff" : "var(--foreground-50)",
+                                }}
+                              >
+                                {count}
+                              </span>
                             </button>
                           );
                         })}
                       </div>
                     )}
-                    {filteredListings.length === 0 ? (
-                      <EmptyTab text={t("profile.emptyAdsFiltered")} />
+                    {filteredUserAds.length === 0 ? (
+                      <EmptyTab text="Нет объявлений с этим статусом" />
                     ) : (
                       <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredListings.map((ad) => {
-                          const status = statusOf(ad);
-                          const cardState: "default" | "moderation" | "rejected" = status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
+                        {filteredUserAds.map(({ ad, status }) => {
+                          const badge = AD_STATUS_STYLE[status];
+                          const cardState: "default" | "moderation" | "rejected" =
+                            status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
                           return (
                             <div key={ad.id} className="relative" style={{ opacity: status === "archived" ? 0.65 : 1 }}>
                               <AdCard ad={ad} state={cardState} />
+                              <span
+                                className="absolute right-[12px] top-[12px] z-[2] inline-flex items-center text-[11px] font-semibold"
+                                style={{
+                                  background: badge.bg,
+                                  color: badge.color,
+                                  padding: "4px 10px",
+                                  borderRadius: 999,
+                                  backdropFilter: "blur(6px)",
+                                }}
+                              >
+                                {badge.label}
+                              </span>
                             </div>
                           );
                         })}
@@ -303,15 +303,15 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
                 )
               )}
               {tab === "communities" && (
-                communities.length === 0 ? <EmptyTab text={t("profile.emptyCommunities")} /> : (
+                userCommunities.length === 0 ? <EmptyTab text="Не состоит в сообществах" /> : (
                   <div className="grid gap-[12px] md:grid-cols-2">
-                    {communities.map((c) => {
+                    {userCommunities.map((c) => {
                       const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
                       return (
                         <Link
                           key={c.id}
                           to="/communities/$id"
-                          params={{ id: String(c.id) }}
+                          params={{ id: c.id }}
                           className="flex items-center gap-[12px] p-[14px] transition-colors duration-150"
                           style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--background)" }}
                         >
@@ -320,7 +320,7 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
                           </div>
                           <div className="min-w-0">
                             <div className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</div>
-                            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("common.membersCount", { n: c.members })}</div>
+                            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{c.members.toLocaleString("ru")} участников</div>
                           </div>
                         </Link>
                       );
@@ -331,15 +331,21 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
               {tab === "invited" && isOwn && <InvitedFriendsSection />}
               {tab === "about" && (
                 <div className="max-w-[600px]">
-                  {vm.bio ? (
-                    <p className="text-[15px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>{vm.bio}</p>
+                  {user.bio ? (
+                    <p className="text-[15px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>{user.bio}</p>
                   ) : (
-                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("profile.emptyAbout")}</p>
+                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>Пользователь ещё не заполнил раздел «О себе»</p>
                   )}
-                  {interests.length > 0 && (
+                  {interestList.length > 0 && (
                     <div className="mt-[20px] flex flex-wrap gap-[8px]">
-                      {interests.map((p) => (
-                        <span key={p.id} className="font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 14px", borderRadius: 999 }}>{p.name}</span>
+                      {interestList.map((p) => (
+                        <span
+                          key={p}
+                          className="font-medium"
+                          style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 14px", borderRadius: 999 }}
+                        >
+                          {p}
+                        </span>
                       ))}
                     </div>
                   )}
@@ -353,9 +359,15 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
       <AnimatePresence>
         {editOpen && (
           <EditSheet
-            initial={{ name: vm.name, city: vm.city, bio: vm.bio }}
+            draft={draft}
+            setDraft={setDraft}
             onClose={() => setEditOpen(false)}
-            onSaved={(next) => { setVm((p) => (p ? { ...p, name: next.name, city: next.city, bio: next.bio } : p)); setEditOpen(false); }}
+            onSave={() => {
+              if (isOwn) actions.updateProfile(user.id, draft);
+              setEditOpen(false);
+              toast.success("Профиль обновлён");
+            }}
+
           />
         )}
       </AnimatePresence>
@@ -372,9 +384,10 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
   );
 }
 
-function Tabs({ tab, setTab, tabs }: { tab: TabKey; setTab: (k: TabKey) => void; tabs: { key: TabKey; label: string; Icon: typeof FileText }[] }) {
+function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
+  const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
 
   useEffect(() => {
     const el = refs.current[tab];
@@ -382,7 +395,10 @@ function Tabs({ tab, setTab, tabs }: { tab: TabKey; setTab: (k: TabKey) => void;
   }, [tab]);
 
   return (
-    <div className="sticky top-0 z-10 overflow-x-auto" style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}>
+    <div
+      className="sticky top-0 z-10 overflow-x-auto"
+      style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
+    >
       <div className="relative flex">
         {tabs.map(({ key, label, Icon }) => {
           const active = tab === key;
@@ -392,7 +408,11 @@ function Tabs({ tab, setTab, tabs }: { tab: TabKey; setTab: (k: TabKey) => void;
               ref={(el) => { refs.current[key] = el; }}
               onClick={() => setTab(key)}
               className="inline-flex shrink-0 items-center gap-[8px] font-display transition-colors duration-200"
-              style={{ height: 48, padding: "0 20px", fontSize: 14, fontWeight: active ? 600 : 500, color: active ? "var(--accent)" : "var(--foreground-50)" }}
+              style={{
+                height: 48, padding: "0 20px", fontSize: 14,
+                fontWeight: active ? 600 : 500,
+                color: active ? "var(--accent)" : "var(--foreground-50)",
+              }}
             >
               <Icon size={16} /> {label}
             </button>
@@ -418,34 +438,19 @@ function EmptyTab({ text, children }: { text: string; children?: React.ReactNode
   );
 }
 
-function EditSheet({ initial, onClose, onSaved }: {
-  initial: { name: string; city: string; bio: string };
-  onClose: () => void;
-  onSaved: (next: { name: string; city: string; bio: string }) => void;
+function EditSheet({ draft, setDraft, onClose, onSave }: {
+  draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: () => void;
 }) {
-  const { t } = useTranslation();
-  const [name, setName] = useState(initial.name);
-  const [city, setCity] = useState(initial.city);
-  const [bio, setBio] = useState(initial.bio);
-  const [saving, setSaving] = useState(false);
+  const [newInterest, setNewInterest] = useState("");
+  const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-  const save = async () => {
-    if (!name.trim()) { toast.error(t("profile.nameRequired")); return; }
-    setSaving(true);
-    try {
-      let cityId: number | undefined;
-      if (city.trim()) {
-        const cities = await fetchCities().catch(() => []);
-        cityId = cities.find((c) => c.name.toLowerCase() === city.trim().toLowerCase())?.id;
-      }
-      await updateMyProfile({ display_name: name.trim(), bio: bio.trim(), ...(cityId ? { city_id: cityId } : {}) });
-      toast.success(t("profile.saved"));
-      onSaved({ name: name.trim(), city: city.trim(), bio: bio.trim() });
-    } catch {
-      toast.error(t("profile.saveError"));
-    } finally {
-      setSaving(false);
-    }
+  const addInterest = () => {
+    if (!newInterest.trim()) return;
+    setDraft({ ...draft, interests: [...interestList, newInterest.trim()].join(", ") });
+    setNewInterest("");
+  };
+  const removeInterest = (i: string) => {
+    setDraft({ ...draft, interests: interestList.filter((x) => x !== i).join(", ") });
   };
 
   return (
@@ -464,33 +469,64 @@ function EditSheet({ initial, onClose, onSaved }: {
         style={{ background: "var(--background)", borderRadius: "20px 20px 0 0", maxHeight: "85vh", padding: 24 }}
       >
         <div className="mx-auto h-[4px] w-[36px] rounded-[2px]" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
-        <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{t("profile.editTitle")}</h3>
+        <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>Редактирование профиля</h3>
 
         <div className="mt-[20px] space-y-[20px]">
-          <Field label={t("profile.fieldName")}>
-            <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} className="w-full outline-none" />
+          <Field label="Имя">
+            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inputStyle} className="w-full outline-none" />
           </Field>
-          <Field label={t("profile.fieldCity")}>
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={t("profile.fieldCity")} style={inputStyle} className="w-full outline-none" />
+          <Field label="Город">
+            <input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="Город" style={inputStyle} className="w-full outline-none" />
           </Field>
-          <Field label={t("profile.fieldBio")}>
+          <Field label="О себе">
             <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder={t("profile.bioPlaceholder")}
+              value={draft.bio ?? ""}
+              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
+              placeholder="Расскажите о себе"
               rows={4}
               style={{ ...inputStyle, height: "auto", minHeight: 100, padding: 14, resize: "vertical" }}
               className="w-full outline-none"
             />
           </Field>
+          <Field label="Интересы">
+            <div className="flex flex-wrap gap-[8px]">
+              {interestList.map((i) => (
+                <span key={i} className="inline-flex items-center gap-[6px]" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 12px", borderRadius: 999 }}>
+                  {i}
+                  <button onClick={() => removeInterest(i)} aria-label="Убрать"><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+            <div className="mt-[10px] flex gap-[8px]">
+              <input
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
+                placeholder="Добавить интерес"
+                style={inputStyle}
+                className="flex-1 outline-none"
+              />
+              <button onClick={addInterest} className="grid place-items-center font-bold" style={{ width: 48, height: 48, background: "var(--accent)", color: "white", borderRadius: 10 }}>
+                <Plus size={18} />
+              </button>
+            </div>
+          </Field>
         </div>
 
         <div className="mt-[24px] flex gap-[12px]">
-          <button onClick={onClose} className="flex-1 font-medium transition-colors duration-150" style={{ height: 48, border: "1px solid var(--border)", borderRadius: 12, background: "transparent", color: "var(--foreground-70)" }}>
-            {t("common.cancel")}
+          <button
+            onClick={onClose}
+            className="flex-1 font-medium transition-colors duration-150"
+            style={{ height: 48, border: "1px solid var(--border)", borderRadius: 12, background: "transparent", color: "var(--foreground-70)" }}
+          >
+            Отмена
           </button>
-          <button onClick={save} disabled={saving} className="flex-1 font-semibold transition-colors duration-150" style={{ height: 48, background: "var(--accent)", color: "white", borderRadius: 12, opacity: saving ? 0.7 : 1 }}>
-            {t("common.save")}
+          <button
+            onClick={onSave}
+            className="flex-1 font-semibold transition-colors duration-150"
+            style={{ height: 48, background: "var(--accent)", color: "white", borderRadius: 12 }}
+          >
+            Сохранить
           </button>
         </div>
       </motion.div>

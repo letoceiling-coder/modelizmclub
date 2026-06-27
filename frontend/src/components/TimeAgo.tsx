@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatRelativeTime } from "@/lib/utils/time";
+import { formatRelativeTime } from "@/lib/mock";
 
 /**
  * Hydration-safe relative-time label. Renders the absolute timestamp on the

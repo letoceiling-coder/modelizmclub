@@ -235,7 +235,7 @@ html, body {
 @layer base {
   * { border-color: var(--border); }
   html, body {
-    overflow-x: clip;
+    overflow-x: hidden;
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);

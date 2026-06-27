@@ -1,4 +1,3 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
@@ -6,18 +5,16 @@ import {
   ArrowRight, Crown, Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { useEffect, useState } from "react";
-import { fetchPublicStats } from "@/lib/api/public";
-import { fetchFeed } from "@/lib/api/feed";
-import { ROUTE_SEARCH } from "@/lib/route-search";
+import { firstHundredStats } from "@/lib/mock";
+import { showcaseImages } from "@/lib/showcase-images";
 
 export const Route = createFileRoute("/landing")({
   head: () => ({
     meta: [
-      { title: tStatic("root.metaTitle") },
-      { name: "description", content: tStatic("landing.metaDescription") },
-      { property: "og:title", content: tStatic("landing.ogTitle") },
-      { property: "og:description", content: tStatic("landing.ogDescription") },
+      { title: "МоДелизМ Форум — сообщество моделистов" },
+      { name: "description", content: "RC авто, самолёты, квадрокоптеры, корабли, электроника. Сообщество инженеров и энтузиастов в одном пространстве." },
+      { property: "og:title", content: "МоДелизМ Форум — моделизм это жизнь" },
+      { property: "og:description", content: "Платформа для моделистов: лента, чаты, объявления, сообщества." },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -65,33 +62,33 @@ const T = {
 const FONT = "'Manrope', system-ui, -apple-system, Segoe UI, sans-serif";
 const FONT_DISPLAY = "'Space Grotesk', 'Manrope', system-ui, sans-serif";
 
-const CATEGORY_DEFS = [
-  { icon: Car, nameKey: "landing.catRcCars", countKey: "landing.catMembers320" },
-  { icon: Plane, nameKey: "landing.catPlanes", countKey: "landing.catMembers180" },
-  { icon: Ship, nameKey: "landing.catShips", countKey: "landing.catMembers95" },
-  { icon: Crosshair, nameKey: "landing.catDrones", countKey: "landing.catMembers240" },
-  { icon: Cpu, nameKey: "landing.catElectronics", countKey: "landing.catMembers150" },
-  { icon: Battery, nameKey: "landing.catBatteries", countKey: "landing.catMembers85" },
-  { icon: Radio, nameKey: "landing.catRadio", countKey: "landing.catMembers110" },
-  { icon: Bike, nameKey: "landing.catScooters", countKey: "landing.catMembers70" },
-  { icon: Wrench, nameKey: "landing.catParts", countKey: "landing.catMembers200" },
-] as const;
+const CATEGORIES = [
+  { icon: Car, name: "Автомодели", count: "320+ участников" },
+  { icon: Plane, name: "Самолёты", count: "180+ участников" },
+  { icon: Ship, name: "Корабли", count: "95+ участников" },
+  { icon: Crosshair, name: "Квадрокоптеры", count: "240+ участников" },
+  { icon: Cpu, name: "Электроника", count: "150+ участников" },
+  { icon: Battery, name: "Аккумуляторы", count: "85+ участников" },
+  { icon: Radio, name: "Радиоаппаратура", count: "110+ участников" },
+  { icon: Bike, name: "Электросамокаты", count: "70+ участников" },
+  { icon: Wrench, name: "Запчасти", count: "200+ участников" },
+];
 
-const HOBBYIST_FEATURE_KEYS = [
-  "landing.hobbyistF1",
-  "landing.hobbyistF2",
-  "landing.hobbyistF3",
-  "landing.hobbyistF4",
-  "landing.hobbyistF5",
-] as const;
+const HOBBYIST_FEATURES = [
+  "Лента публикаций и проектов",
+  "Чаты по категориям и подкатегориям",
+  "Объявления о продаже / обмене",
+  "Сообщества по интересам",
+  "Друзья и личные сообщения",
+];
 
-const PRO_FEATURE_KEYS = [
-  "landing.proF1",
-  "landing.proF2",
-  "landing.proF3",
-  "landing.proF4",
-  "landing.proF5",
-] as const;
+const PRO_FEATURES = [
+  "Магазин запчастей и самодельных проектов",
+  "Рекламные баннеры и продвижение",
+  "Платное размещение объявлений (20 ₽)",
+  "Подписка на расширенные возможности",
+  "Прямые продажи через платформу",
+];
 
 const AVATAR_COLORS = ["#F26C05", "#2B3141", "#A52814", "#B04C00", "#12171B", "#A1001E", "#F26C05", "#2B3141"];
 const AVATAR_INITIALS = ["АК", "МП", "ИС", "ДВ", "ТН", "ЕР", "ОЛ", "СМ"];
@@ -117,7 +114,6 @@ function Btn({ to, children, variant = "orange", size = "md", arrow }: BtnProps)
   return (
     <Link
       to={to}
-      {...(to === "/register" ? { search: ROUTE_SEARCH.register } : to === "/feed" ? { search: ROUTE_SEARCH.feed } : {})}
       className="inline-flex items-center justify-center gap-[8px] font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0"
       style={{
         height: h,
@@ -161,29 +157,7 @@ function Eyebrow({ children, tone = "ink" }: { children: React.ReactNode; tone?:
   );
 }
 
-type ShowcaseItem = { url: string; title: string; tag?: string };
-
-function postsToShowcase(posts: Awaited<ReturnType<typeof fetchFeed>>["posts"]): ShowcaseItem[] {
-  const items: ShowcaseItem[] = [];
-  for (const p of posts) {
-    const urls = p.images?.length ? p.images : p.image ? [p.image] : [];
-    for (const url of urls) {
-      items.push({ url, title: p.title, tag: p.category || undefined });
-      if (items.length >= 10) return items;
-    }
-  }
-  return items;
-}
-
 function LandingPage() {
-  const [showcase, setShowcase] = useState<ShowcaseItem[]>([]);
-
-  useEffect(() => {
-    fetchFeed({ per_page: 30 })
-      .then(({ posts }) => setShowcase(postsToShowcase(posts)))
-      .catch(() => setShowcase([]));
-  }, []);
-
   return (
     <div
       style={{
@@ -195,10 +169,10 @@ function LandingPage() {
       }}
     >
       <TopNav />
-      <Hero showcase={showcase} />
+      <Hero />
       <FirstHundred />
       <TwoTracks />
-      <ShowcaseSection showcase={showcase} />
+      <ShowcaseSection />
       <CategoriesPreview />
       <CommunityProof />
       <Footer />
@@ -207,7 +181,6 @@ function LandingPage() {
 }
 
 function TopNav() {
-  const { t } = useTranslation();
   return (
     <div
       className="sticky top-0 z-30 flex items-center justify-between px-[20px] md:px-[40px] backdrop-blur-md"
@@ -234,15 +207,18 @@ function TopNav() {
             fontSize: 14,
             fontWeight: 600,
           }}
-        >{t("index.heroLogin")}</Link>
-        <Btn to="/register" variant="orange" arrow>{t("nav.register")}</Btn>
+        >
+          Войти
+        </Link>
+        <Btn to="/register" variant="orange" arrow>
+          Регистрация
+        </Btn>
       </div>
     </div>
   );
 }
 
-function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
-  const { t } = useTranslation();
+function Hero() {
   return (
     <section className="relative overflow-hidden" style={{ background: T.surface }}>
       {/* subtle grid */}
@@ -267,7 +243,8 @@ function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
       <div className="relative mx-auto flex max-w-[1240px] flex-col items-center gap-[48px] px-[20px] py-[72px] md:px-[40px] md:py-[112px] md:flex-row md:items-stretch">
         <div className="flex-1 md:max-w-[58%]">
           <Eyebrow tone="orange">
-            <Sparkles size={12} />{t("landing.heroEyebrow")}</Eyebrow>
+            <Sparkles size={12} /> Платформа для моделистов
+          </Eyebrow>
           <h1
             className="mt-[20px]"
             style={{
@@ -280,7 +257,7 @@ function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
               maxWidth: 620,
             }}
           >
-            {t("landing.heroTitleBefore")}{" "}
+            Моделизм — это{" "}
             <span
               style={{
                 background: T.gradOrange,
@@ -289,9 +266,9 @@ function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
                 backgroundClip: "text",
               }}
             >
-              {t("landing.heroTitleHighlight")}
+              жизнь
             </span>
-            {t("landing.heroTitleAfter")}
+            . Остальное — детали.
           </h1>
           <p
             className="mt-[22px]"
@@ -303,19 +280,24 @@ function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
               fontWeight: 500,
             }}
           >
-            {t("landing.heroSubtitle")}
+            RC авто, самолёты, квадрокоптеры, корабли, электроника. Сообщество
+            инженеров и энтузиастов в одном пространстве.
           </p>
 
           <div className="mt-[36px] flex flex-wrap gap-[12px]">
-            <Btn to="/register" variant="orange" size="lg" arrow>{t("landing.heroJoin")}</Btn>
-            <Btn to="/communities" variant="outline" size="lg">{t("landing.heroViewCommunities")}</Btn>
+            <Btn to="/register" variant="orange" size="lg" arrow>
+              Присоединиться
+            </Btn>
+            <Btn to="/communities" variant="outline" size="lg">
+              Посмотреть сообщества
+            </Btn>
           </div>
 
           <div className="mt-[48px] grid grid-cols-3 gap-[16px] sm:flex sm:gap-[56px]">
             {[
-              { n: "1 200+", l: t("landing.statModelers") },
-              { n: "45+", l: t("landing.statCommunities") },
-              { n: "9", l: t("landing.statCategories") },
+              { n: "1 200+", l: "моделистов" },
+              { n: "45+", l: "сообществ" },
+              { n: "9", l: "категорий" },
             ].map((s) => (
               <div key={s.l}>
                 <div
@@ -344,16 +326,15 @@ function Hero({ showcase }: { showcase: ShowcaseItem[] }) {
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           className="flex flex-1 items-center justify-center md:max-w-[42%]"
         >
-          <HeroVisual showcase={showcase} />
+          <HeroVisual />
         </motion.div>
       </div>
     </section>
   );
 }
 
-function HeroVisual({ showcase }: { showcase: ShowcaseItem[] }) {
-  const heroPick = showcase.slice(0, 4);
-  if (heroPick.length === 0) return null;
+function HeroVisual() {
+  const heroPick = showcaseImages.slice(0, 4);
   return (
     <div
       className="relative w-full"
@@ -403,18 +384,16 @@ function HeroVisual({ showcase }: { showcase: ShowcaseItem[] }) {
   );
 }
 
-function ShowcaseSection({ showcase }: { showcase: ShowcaseItem[] }) {
-  const { t } = useTranslation();
-  if (showcase.length === 0) return null;
+function ShowcaseSection() {
   return (
     <section style={{ padding: "64px 20px", background: T.surfaceAlt }}>
       <div className="mx-auto" style={{ maxWidth: 1200 }}>
         <div style={{ marginBottom: 28 }}>
-          <SectionLabel>{t("landing.catalogLabel")}</SectionLabel>
-          <SectionTitle>{t("landing.catalogTitle")}</SectionTitle>
+          <SectionLabel>Каталог моделей</SectionLabel>
+          <SectionTitle>Реальные модели сообщества</SectionTitle>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
-          {showcase.map((s) => (
+          {showcaseImages.map((s) => (
             <div
               key={s.url}
               className="group relative overflow-hidden"
@@ -453,17 +432,8 @@ function ShowcaseSection({ showcase }: { showcase: ShowcaseItem[] }) {
 
 
 function FirstHundred() {
-  const { t } = useTranslation();
-  const [stats, setStats] = useState({ taken: 0, total: 100 });
-  useEffect(() => {
-    let cancelled = false;
-    void fetchPublicStats().then((s) => {
-      if (!cancelled) setStats(s.firstHundred);
-    });
-    return () => { cancelled = true; };
-  }, []);
-  const taken = Math.max(0, Math.min(stats.total, stats.taken));
-  const total = stats.total || 100;
+  const taken = Math.max(0, Math.min(firstHundredStats.total, firstHundredStats.taken));
+  const total = firstHundredStats.total;
   const pct = Math.round((taken / total) * 100);
   const left = total - taken;
   return (
@@ -503,7 +473,7 @@ function FirstHundred() {
                 textTransform: "uppercase",
               }}
             >
-              <Sparkles size={12} /> {t("landing.launchBadge")}
+              <Sparkles size={12} /> Запуск МоДелизМ Форум
             </span>
             <span
               className="inline-flex items-center gap-[6px]"
@@ -516,7 +486,8 @@ function FirstHundred() {
                 fontWeight: 700,
               }}
             >
-              <Crown size={12} />{t("components.firstHundredBadge")}</span>
+              <Crown size={12} /> Первые 100
+            </span>
           </div>
           <h2
             style={{
@@ -528,18 +499,19 @@ function FirstHundred() {
               maxWidth: 720,
             }}
           >
-            {t("landing.firstHundredTitle")}
+            Первые 100 участников получают год бесплатно
           </h2>
           <p style={{ fontSize: 15, maxWidth: 620, opacity: 0.92, lineHeight: 1.5, fontWeight: 500 }}>
-            {t("landing.firstHundredDesc")}
+            Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели и получить
+            бейдж «Первые 100» в профиле навсегда.
           </p>
           <div className="grid gap-[10px]" style={{ maxWidth: 560 }}>
             <div className="flex items-end justify-between gap-[12px]">
               <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 28 }}>
-                {t("landing.occupied", { taken, total })}
+                Занято {taken} из {total}
               </span>
               <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>
-                {t("landing.spotsLeft", { left, word: left === 1 ? t("common.spot") : t("common.spots") })}
+                Осталось {left} {left === 1 ? "место" : "мест"}
               </span>
             </div>
             <div
@@ -563,10 +535,10 @@ function FirstHundred() {
           </div>
           <div className="flex flex-wrap gap-[10px]">
             <Btn to="/register" variant="dark" size="lg" arrow>
-              {t("landing.getYearFree")}
+              Получить год бесплатно
             </Btn>
             <Btn to="/login" variant="light">
-              {t("landing.alreadyWithUs")}
+              Уже с нами — войти
             </Btn>
           </div>
         </div>
@@ -611,37 +583,34 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function TwoTracks() {
-  const { t } = useTranslation();
-  const hobbyistFeatures = HOBBYIST_FEATURE_KEYS.map((k) => t(k));
-  const proFeatures = PRO_FEATURE_KEYS.map((k) => t(k));
   return (
     <section style={{ padding: "96px 20px", background: T.surfaceAlt }}>
       <div className="mx-auto" style={{ maxWidth: 1240 }}>
         <div className="text-center">
-          <SectionLabel>{t("landing.featuresLabel")}</SectionLabel>
-          <SectionTitle>{t("landing.featuresTitle")}</SectionTitle>
+          <SectionLabel>Возможности</SectionLabel>
+          <SectionTitle>Два пути в МоДелизМ Форум</SectionTitle>
           <p
             className="mx-auto mt-[14px]"
             style={{ color: T.textMuted, maxWidth: 540, fontSize: 16, fontWeight: 500 }}
           >
-            {t("landing.featuresSubtitle")}
+            Выбирайте, как взаимодействовать с платформой — как участник или как профессионал.
           </p>
         </div>
         <div className="mt-[48px] grid grid-cols-1 gap-[20px] md:grid-cols-2">
           <TrackCard
             icon={User}
-            title={t("landing.hobbyistTitle")}
-            description={t("landing.hobbyistDesc")}
-            features={hobbyistFeatures}
-            cta={t("landing.hobbyistCta")}
+            title="Для моделистов"
+            description="Общайтесь в чатах, публикуйте проекты, продавайте детали, находите единомышленников."
+            features={HOBBYIST_FEATURES}
+            cta="Начать как участник"
             ctaVariant="outline"
           />
           <TrackCard
             icon={Briefcase}
-            title={t("landing.proTitle")}
-            description={t("landing.proDesc")}
-            features={proFeatures}
-            cta={t("landing.proCta")}
+            title="Для мастеров и продавцов"
+            description="Продавайте услуги, детали и самодельные проекты. Размещайте рекламу, создавайте магазин."
+            features={PRO_FEATURES}
+            cta="Стать продавцом"
             ctaVariant="orange"
             highlight
           />
@@ -747,27 +716,26 @@ function TrackCard({
 }
 
 function CategoriesPreview() {
-  const { t } = useTranslation();
   return (
     <section style={{ padding: "96px 20px", background: T.surface }}>
       <div className="mx-auto" style={{ maxWidth: 1240 }}>
         <div className="text-center">
-          <SectionLabel>{t("nav.categories")}</SectionLabel>
-          <SectionTitle>{t("landing.categoriesTitle")}</SectionTitle>
+          <SectionLabel>Категории</SectionLabel>
+          <SectionTitle>Всё, что движется и летает</SectionTitle>
           <p
             className="mx-auto mt-[14px]"
             style={{ color: T.textMuted, maxWidth: 520, fontSize: 16, fontWeight: 500 }}
           >
-            {t("landing.categoriesSubtitle")}
+            Найди своих по интересу — от RC-машин до самодельной электроники.
           </p>
         </div>
 
         <div className="mt-[48px] grid grid-cols-2 gap-[14px] md:grid-cols-3">
-          {CATEGORY_DEFS.map((c) => {
+          {CATEGORIES.map((c) => {
             const Icon = c.icon;
             return (
               <Link
-                key={c.nameKey}
+                key={c.name}
                 to="/categories"
                 className="group flex items-center gap-[14px] transition-all hover:-translate-y-[2px]"
                 style={{
@@ -795,10 +763,10 @@ function CategoriesPreview() {
                     className="truncate"
                     style={{ color: T.ink, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}
                   >
-                    {t(c.nameKey)}
+                    {c.name}
                   </div>
                   <div style={{ marginTop: 2, color: T.textMuted, fontSize: 13, fontWeight: 500 }}>
-                    {t(c.countKey)}
+                    {c.count}
                   </div>
                 </div>
               </Link>
@@ -811,7 +779,6 @@ function CategoriesPreview() {
 }
 
 function CommunityProof() {
-  const { t } = useTranslation();
   return (
     <section style={{ padding: "96px 20px", background: T.ink, color: "#fff", position: "relative", overflow: "hidden" }}>
       <div
@@ -832,13 +799,13 @@ function CommunityProof() {
             lineHeight: 1.1,
           }}
         >
-          {t("landing.proofTitle")}
+          Присоединяйтесь к 1 200+ моделистам
         </h2>
         <p
           className="mx-auto mt-[14px]"
           style={{ color: "rgba(255,255,255,0.7)", maxWidth: 540, fontSize: 16, fontWeight: 500 }}
         >
-          {t("landing.proofSubtitle")}
+          Первые 100 участников получают бесплатную подписку на год.
         </p>
 
         <div className="mt-[32px] flex justify-center">
@@ -865,10 +832,10 @@ function CommunityProof() {
 
         <div className="mt-[36px] flex flex-wrap justify-center gap-[12px]">
           <Btn to="/register" variant="orange" size="lg" arrow>
-            {t("landing.createAccountFree")}
+            Создать аккаунт бесплатно
           </Btn>
           <Btn to="/login" variant="outline" size="lg">
-            <span style={{ color: "#fff" }}>{t("index.heroLogin")}</span>
+            <span style={{ color: "#fff" }}>Войти</span>
           </Btn>
         </div>
       </div>
@@ -877,7 +844,6 @@ function CommunityProof() {
 }
 
 function Footer() {
-  const { t } = useTranslation();
   return (
     <footer style={{ background: T.surface, borderTop: `1px solid ${T.line}` }}>
       <div
@@ -888,38 +854,42 @@ function Footer() {
           <div style={{ color: T.ink }}>
             <Logo size={32} />
           </div>
-          <p style={{ marginTop: 16, fontSize: 13, color: T.textMuted, fontWeight: 500 }}>{t("landing.footerCopyright")}</p>
+          <p style={{ marginTop: 16, fontSize: 13, color: T.textMuted, fontWeight: 500 }}>
+            МоДелизМ Форум © 2026
+          </p>
         </div>
         <FooterCol
-          title={t("landing.footerPlatform")}
+          title="Платформа"
           links={[
-            { to: "/", label: t("nav.feed") },
-            { to: "/communities", label: t("nav.communities") },
-            { to: "/ads", label: t("nav.ads") },
-            { to: "/subscription", label: t("nav.subscription") },
+            { to: "/", label: "Лента" },
+            { to: "/communities", label: "Сообщества" },
+            { to: "/ads", label: "Объявления" },
+            { to: "/subscription", label: "Подписка" },
           ]}
         />
         <FooterCol
-          title={t("nav.categories")}
+          title="Категории"
           links={[
-            { to: "/categories", label: t("landing.allCategories") },
-            { to: "/categories", label: t("landing.catRcCars") },
-            { to: "/categories", label: t("landing.catPlanes") },
-            { to: "/categories", label: t("landing.catDrones") },
+            { to: "/categories", label: "Все категории" },
+            { to: "/categories", label: "Автомодели" },
+            { to: "/categories", label: "Самолёты" },
+            { to: "/categories", label: "Квадрокоптеры" },
           ]}
         />
         <FooterCol
-          title={t("landing.footerContacts")}
+          title="Контакты"
           links={[
-            { to: "/login", label: t("landing.navLogin") },
-            { to: "/register", label: t("nav.register") },
+            { to: "/login", label: "Войти" },
+            { to: "/register", label: "Регистрация" },
           ]}
         />
       </div>
       <div
         className="px-[20px] pb-[32px] pt-[16px] text-center"
         style={{ color: T.textMuted, fontSize: 12, fontWeight: 500 }}
-      >{t("landing.footerTagline")}</div>
+      >
+        Сделано с душой для моделистов
+      </div>
     </footer>
   );
 }

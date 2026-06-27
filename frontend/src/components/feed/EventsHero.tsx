@@ -1,32 +1,32 @@
-import { useTranslation } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X, Newspaper } from "lucide-react";
-import type { Banner } from "@/lib/types";
-import { fetchBanners } from "@/lib/api/public";
+import { ChevronLeft, ChevronRight, X, CalendarDays, Newspaper, Sparkles } from "lucide-react";
+import type { Banner } from "@/lib/mock";
+import { banners as allBanners } from "@/lib/mock";
 
 const AUTOPLAY_MS = 10_000;
 
+function sortBanners(list: Banner[]): Banner[] {
+  return [...list].sort((a, b) => {
+    if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    return (b.priority ?? 0) - (a.priority ?? 0);
+  });
+}
+
+const KIND_LABEL: Record<NonNullable<Banner["kind"]>, { label: string; Icon: typeof CalendarDays }> = {
+  event: { label: "Событие", Icon: CalendarDays },
+  news: { label: "Новость", Icon: Newspaper },
+  promo: { label: "Акция", Icon: Sparkles },
+};
+
 export function EventsHero() {
-  const { t } = useTranslation();
-  const [banners, setBanners] = useState<Banner[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    void fetchBanners("feed").then((items) => {
-      if (!cancelled) setBanners(items.slice(0, 3));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const list = useMemo(
-    () => banners.filter((b) => !dismissed.has(b.id)),
-    [banners, dismissed],
+    () => sortBanners(allBanners.filter((b) => !dismissed.has(b.id))).slice(0, 3),
+    [dismissed],
   );
 
   useEffect(() => {
@@ -42,6 +42,7 @@ export function EventsHero() {
   if (list.length === 0) return null;
 
   const current = list[index];
+  const kind = KIND_LABEL[current.kind ?? "news"];
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
@@ -54,7 +55,7 @@ export function EventsHero() {
 
   return (
     <section
-      aria-label={t("components.eventsHeroAria")}
+      aria-label="События и новости форума"
       className="relative overflow-hidden rounded-[16px] border"
       style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
       onMouseEnter={() => setPaused(true)}
@@ -70,10 +71,11 @@ export function EventsHero() {
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="absolute inset-0"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] to-[var(--accent-muted)]" />
-            {current.imageUrl ? (
-              <img src={current.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : null}
+            {current.image ? (
+              <img src={current.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className={`h-full w-full bg-gradient-to-br ${current.color}`} />
+            )}
             <div
               className="absolute inset-0"
               style={{
@@ -87,8 +89,9 @@ export function EventsHero() {
                 className="inline-flex w-fit items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white"
                 style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
               >
-                <Newspaper className="h-[12px] w-[12px]" />
-                {t("components.newsKind")}
+                <kind.Icon className="h-[12px] w-[12px]" />
+                {kind.label}
+                <span className="opacity-70">· {current.until}</span>
               </span>
               <h2
                 className="max-w-[90%] text-[20px] font-semibold leading-tight text-white sm:text-[22px]"
@@ -96,26 +99,21 @@ export function EventsHero() {
               >
                 {current.title}
               </h2>
-              {current.text && <p className="max-w-[640px] text-[13px] text-white/85 sm:text-[14px]">{current.text}</p>}
-              {current.linkUrl && (
-                <div className="mt-[4px]">
-                  <a
-                    href={current.linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99]"
-                  >
-                    {t("components.readMore")}
-                  </a>
-                </div>
-              )}
+              <p className="max-w-[640px] text-[13px] text-white/85 sm:text-[14px]">{current.text}</p>
+              <div className="mt-[4px]">
+                <button
+                  className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                >
+                  {current.cta}
+                </button>
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
 
         <button
           onClick={() => dismiss(current.id)}
-          aria-label={t("components.hideBanner")}
+          aria-label="Скрыть баннер"
           className="absolute right-[10px] top-[10px] grid h-[28px] w-[28px] place-items-center rounded-full text-white"
           style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
         >
@@ -126,7 +124,7 @@ export function EventsHero() {
           <>
             <button
               onClick={prev}
-              aria-label={t("components.carouselPrevious")}
+              aria-label="Предыдущий"
               className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
             >
@@ -134,7 +132,7 @@ export function EventsHero() {
             </button>
             <button
               onClick={next}
-              aria-label={t("components.carouselNext")}
+              aria-label="Следующий"
               className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
             >
@@ -151,7 +149,7 @@ export function EventsHero() {
             return (
               <button
                 key={b.id}
-                aria-label={t("components.goToBanner", { n: i + 1 })}
+                aria-label={`Перейти к баннеру ${i + 1}`}
                 onClick={() => setIndex(i)}
                 className="rounded-full transition-all"
                 style={{

@@ -1,39 +1,44 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/legal/privacy")({
   head: () => ({
     meta: [
-      { title: tStatic("legal.privacyMetaTitle") },
-      { name: "description", content: tStatic("legal.privacyMetaDescription") },
+      { title: "Политика конфиденциальности — МоДелизМ Форум" },
+      { name: "description", content: "Как МоДелизМ Форум собирает, хранит и использует данные пользователей." },
     ],
   }),
   component: PrivacyPage,
 });
 
-const BLOCKS = [
-  { titleKey: "legal.privacy1Title", textKey: "legal.privacy1Text" },
-  { titleKey: "legal.privacy2Title", textKey: "legal.privacy2Text" },
-  { titleKey: "legal.privacy3Title", textKey: "legal.privacy3Text" },
-  { titleKey: "legal.privacy4Title", textKey: "legal.privacy4Text" },
-  { titleKey: "legal.privacy5Title", textKey: "legal.privacy5Text" },
-] as const;
-
 function PrivacyPage() {
-  const { t } = useTranslation();
   return (
     <main className="mx-auto max-w-[760px] px-[16px] py-[40px]" style={{ color: "var(--foreground)" }}>
-      <Link to="/" style={{ color: "var(--accent)", fontSize: 13 }}>{t("legal.rulesBack")}</Link>
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginTop: 16 }}>{t("legal.privacyTitle")}</h1>
-      <p style={{ color: "var(--foreground-50)", marginTop: 8, fontSize: 14 }}>{t("legal.privacyDemoNote")}</p>
+      <Link to="/" style={{ color: "var(--accent)", fontSize: 13 }}>← На главную</Link>
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, marginTop: 16 }}>
+        Политика обработки данных
+      </h1>
+      <p style={{ color: "var(--foreground-50)", marginTop: 8, fontSize: 14 }}>
+        Демонстрационная редакция. Действующая редакция будет опубликована при запуске продакшен-версии.
+      </p>
 
       <section className="mt-[28px] space-y-[20px]" style={{ fontSize: 15, lineHeight: 1.7 }}>
-        {BLOCKS.map((b) => (
-          <Block key={b.titleKey} title={t(b.titleKey)}>{t(b.textKey)}</Block>
-        ))}
-        <Block title={t("legal.privacy6Title")}>
-          {t("legal.privacy6Text")}{" "}
-          <a href="mailto:privacy@modelizm.club" style={{ color: "var(--accent)" }}>privacy@modelizm.club</a>
+        <Block title="1. Какие данные мы собираем">
+          Имя, email, аватар, контент, который вы публикуете, а также техническая информация о сессии (IP, устройство, браузер).
+        </Block>
+        <Block title="2. Зачем нам данные">
+          Авторизация, персонализация ленты, защита от мошенничества, аналитика качества сервиса.
+        </Block>
+        <Block title="3. Передача третьим лицам">
+          Мы не продаём ваши данные. Передача возможна только по требованию закона или с явного согласия пользователя.
+        </Block>
+        <Block title="4. Хранение и удаление">
+          Данные хранятся в течение жизни аккаунта. Удалить аккаунт и связанные данные можно из настроек профиля или по запросу.
+        </Block>
+        <Block title="5. Cookies">
+          Используем cookies для авторизации, сохранения настроек интерфейса и базовой аналитики.
+        </Block>
+        <Block title="6. Контакты">
+          Запросы по обработке данных: <a href="mailto:privacy@modelizm.club" style={{ color: "var(--accent)" }}>privacy@modelizm.club</a>
         </Block>
       </section>
     </main>

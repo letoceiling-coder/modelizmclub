@@ -1,8 +1,6 @@
-import { useTranslation } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Home } from "lucide-react";
 import type { ReactNode } from "react";
-import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export interface Crumb {
   label: ReactNode;
@@ -11,20 +9,18 @@ export interface Crumb {
 }
 
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
-  const { t } = useTranslation();
   return (
     <nav
-      aria-label={t("components.breadcrumbsAria")}
+      aria-label="Хлебные крошки"
       className="flex items-center gap-1 overflow-x-auto whitespace-nowrap text-[12.5px]"
       style={{ color: "var(--foreground-50)" }}
     >
       <Link
         to="/feed"
-        search={ROUTE_SEARCH.feed}
         className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]"
       >
         <Home className="h-3.5 w-3.5" />
-        <span className="sr-only">{t("nav.landing")}</span>
+        <span className="sr-only">Главная</span>
       </Link>
       {items.map((item, i) => {
         const last = i === items.length - 1;

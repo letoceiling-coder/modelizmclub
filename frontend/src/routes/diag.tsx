@@ -1,87 +1,142 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { fetchPostCategories } from "@/lib/api/catalog";
-import { fetchCommunities } from "@/lib/api/communities";
-import { fetchListings } from "@/lib/api/listings";
-import { fetchFeed } from "@/lib/api/feed";
-import { fetchFaq, fetchPublicStats } from "@/lib/api/public";
+import { categories, communities, ads } from "@/lib/mock";
+import { getAllChannels, type Channel } from "@/lib/channels";
+import { ExternalLink, CheckCircle2, Map as MapIcon } from "lucide-react";
 
 export const Route = createFileRoute("/diag")({
-  head: () => ({ meta: [{ title: tStatic("diag.metaTitle") }] }),
+  head: () => ({ meta: [{ title: "Диагностика роутов — МоДелизМ Форум" }] }),
   component: DiagPage,
 });
 
-type Check = { name: string; ok: boolean; count?: number };
+interface Group {
+  title: string;
+  links: { label: string; to: string; params?: Record<string, string> }[];
+}
 
 function DiagPage() {
-  const { t } = useTranslation();
-  const [checks, setChecks] = useState<Check[]>([]);
-  const [loading, setLoading] = useState(true);
+  const channels: Channel[] = getAllChannels();
 
-  useEffect(() => {
-    (async () => {
-      const results: Check[] = [];
-      try {
-        const cats = await fetchPostCategories();
-        results.push({ name: "POST categories", ok: true, count: cats.length });
-      } catch {
-        results.push({ name: "POST categories", ok: false });
-      }
-      try {
-        const comm = await fetchCommunities({ per_page: 5 });
-        results.push({ name: "Communities", ok: true, count: comm.length });
-      } catch {
-        results.push({ name: "Communities", ok: false });
-      }
-      try {
-        const listings = await fetchListings({ per_page: 5 });
-        results.push({ name: "Listings", ok: true, count: listings.length });
-      } catch {
-        results.push({ name: "Listings", ok: false });
-      }
-      try {
-        const feed = await fetchFeed({ per_page: 5 });
-        results.push({ name: "Feed", ok: !feed.error, count: feed.posts.length });
-      } catch {
-        results.push({ name: "Feed", ok: false });
-      }
-      try {
-        const faq = await fetchFaq();
-        results.push({ name: "FAQ", ok: true, count: faq.length });
-      } catch {
-        results.push({ name: "FAQ", ok: false });
-      }
-      try {
-        await fetchPublicStats();
-        results.push({ name: "Public stats", ok: true });
-      } catch {
-        results.push({ name: "Public stats", ok: false });
-      }
-      setChecks(results);
-      setLoading(false);
-    })();
-  }, []);
+  const groups: Group[] = [
+    {
+      title: "Основные разделы",
+      links: [
+        { label: "/ — Главная", to: "/" },
+        { label: "/landing", to: "/landing" },
+        { label: "/feed — Лента", to: "/feed" },
+        { label: "/communities — Сообщества", to: "/communities" },
+        { label: "/channels — Каналы", to: "/channels" },
+        { label: "/messenger — Мессенджер", to: "/messenger" },
+        { label: "/ads — Объявления", to: "/ads" },
+        { label: "/ads/new — Создать объявление", to: "/ads/new" },
+        { label: "/friends — Друзья", to: "/friends" },
+        { label: "/profile — Профиль", to: "/profile" },
+        { label: "/subscription — Подписка", to: "/subscription" },
+        { label: "/help — Помощь", to: "/help" },
+        { label: "/admin — Админка", to: "/admin" },
+        { label: "/categories — Все категории", to: "/categories" },
+      ],
+    },
+    {
+      title: "Аутентификация и онбординг",
+      links: [
+        { label: "/login", to: "/login" },
+        { label: "/register", to: "/register" },
+        { label: "/recover", to: "/recover" },
+        { label: "/onboarding", to: "/onboarding" },
+      ],
+    },
+    {
+      title: `Категории и комнаты (${categories.length} категорий)`,
+      links: categories.flatMap((c) => [
+        { label: `📂 ${c.name}`, to: "/categories/$id", params: { id: c.id } },
+        ...c.subcategories.map((s) => ({
+          label: `   └ # ${s.name}`,
+          to: "/categories/$id/$subId",
+          params: { id: c.id, subId: s.id },
+        })),
+      ]),
+    },
+    {
+      title: `Каналы (${channels.length})`,
+      links: channels.map((ch) => ({
+        label: `📡 ${ch.name}`,
+        to: "/channel/$id",
+        params: { id: ch.id },
+      })),
+    },
+    {
+      title: `Сообщества (${communities.length})`,
+      links: communities.slice(0, 12).map((g) => ({
+        label: `👥 ${g.name}`,
+        to: "/communities/$id",
+        params: { id: g.id },
+      })),
+    },
+    {
+      title: `Объявления (первые 8 из ${ads.length})`,
+      links: ads.slice(0, 8).map((a) => ({
+        label: `🏷 ${a.title}`,
+        to: "/ads/$id",
+        params: { id: a.id },
+      })),
+    },
+    {
+      title: "Несуществующие роуты (должны вести на 404)",
+      links: [
+        { label: "/not-a-real-page", to: "/not-a-real-page" },
+        { label: "/categories/nope", to: "/categories/nope" },
+        { label: "/channel/nope", to: "/channel/nope" },
+      ],
+    },
+  ];
 
   return (
     <AppLayout rightColumn={false}>
-      <div className="mx-auto max-w-[640px] space-y-4">
-        <h1 className="font-display text-[24px] font-bold">{t("diag.title")}</h1>
-        {loading ? (
-          <p>{t("common.loading")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {checks.map((c) => (
-              <li key={c.name} className="flex items-center justify-between rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)" }}>
-                <span>{c.name}</span>
-                <span style={{ color: c.ok ? "var(--success)" : "var(--error)" }}>
-                  {c.ok ? `OK${c.count != null ? ` (${c.count})` : ""}` : "FAIL"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="space-y-4">
+        <header className="flex items-start gap-3 rounded-xl border bg-card p-4">
+          <div className="grid h-11 w-11 place-items-center rounded-lg bg-accent text-primary">
+            <MapIcon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-xl font-bold">Карта роутов</h1>
+            <p className="text-sm text-muted-foreground">
+              Интерактивная диагностика: кликайте по ссылкам, чтобы быстро проверить переходы по всем разделам прототипа.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                {groups.reduce((s, g) => s + g.links.length, 0)} ссылок
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {groups.map((g) => (
+          <section key={g.title} className="overflow-hidden rounded-xl border bg-card">
+            <h2 className="border-b px-4 py-2.5 text-sm font-semibold">{g.title}</h2>
+            <ul className="divide-y">
+              {g.links.map((l, i) => (
+                <li key={i}>
+                  <Link
+                    to={l.to as never}
+                    params={l.params as never}
+                    className="flex items-center justify-between gap-2 px-4 py-2 text-sm transition-colors hover:bg-[var(--background-surface)]"
+                  >
+                    <span className="truncate">{l.label}</span>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                        {l.to}
+                        {l.params ? " " + JSON.stringify(l.params) : ""}
+                      </code>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     </AppLayout>
   );

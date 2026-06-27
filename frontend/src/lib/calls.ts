@@ -1,6 +1,8 @@
-// In-app calling UI stub — no WebRTC until backend calls API exists.
+// Mock-only in-app calling. No WebRTC, no audio, no network.
+// Module-scope store mirrors src/lib/store.ts pattern.
 
 import { useSyncExternalStore } from "react";
+import { me } from "./mock";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
 export type CallDirection = "outgoing" | "incoming";
@@ -36,7 +38,17 @@ const RINGING_MS = 1600;
 const CONNECTING_MS = 1400;
 const AUTO_DISMISS_MS = 1400;
 
-let state: CallsState = { active: null, history: [] };
+function seedHistory(): CallRecord[] {
+  const now = Date.now();
+  const day = 86_400_000;
+  return [
+    { id: "seed_c1", peerId: "u2", direction: "outgoing", startedAt: now - 2 * 3600_000, durationSec: 42, result: "answered" },
+    { id: "seed_c2", peerId: "u3", direction: "incoming", startedAt: now - day - 1800_000, durationSec: 0, result: "missed" },
+    { id: "seed_c3", peerId: "u4", direction: "incoming", startedAt: now - 2 * day, durationSec: 18, result: "answered" },
+  ];
+}
+
+let state: CallsState = { active: null, history: seedHistory() };
 const listeners = new Set<() => void>();
 const emit = (): void => { listeners.forEach((l) => l()); };
 const subscribe = (l: () => void): (() => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
@@ -128,3 +140,6 @@ export function formatCallDuration(sec: number): string {
   const s = sec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
+
+// Keep `me` referenced so this file can be extended later for incoming calls.
+export const _me = me;

@@ -1,7 +1,6 @@
-import { useTranslation } from "@/lib/i18n";
 import { AnimatePresence, motion } from "framer-motion";
 import { Phone, X } from "lucide-react";
-import { avatarUrl } from "@/lib/utils/time";
+import { userById } from "@/lib/mock";
 
 interface Props {
   open: boolean;
@@ -11,9 +10,7 @@ interface Props {
 }
 
 export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) {
-  const { t } = useTranslation();
-  const peerName = peerId;
-  const peerAvatar = avatarUrl(peerName);
+  const peer = userById(peerId);
   return (
     <AnimatePresence>
       {open && (
@@ -52,7 +49,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
               onClick={onCancel}
               className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--background-surface)]"
               style={{ color: "var(--foreground-50)" }}
-              aria-label={t("common.close")}
+              aria-label="Закрыть"
             >
               <X size={18} />
             </button>
@@ -63,30 +60,36 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                   style={{ background: "color-mix(in oklab, var(--accent) 30%, transparent)", filter: "blur(20px)" }}
                 />
                 <img
-                  src={peerAvatar}
+                  src={peer.avatar}
                   alt=""
                   className="relative h-[88px] w-[88px] rounded-full object-cover"
                   style={{ border: "3px solid var(--background-elevated)" }}
                 />
               </div>
               <h3 className="mt-4 font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>
-                {t("calls.confirmTitle", { name: peerName })}
+                Позвонить {peer.name}?
               </h3>
-              <p className="mt-2 text-[14px]" style={{ color: "var(--foreground-70)" }}>{t("calls.confirmDesc")}</p>
+              <p className="mt-2 text-[14px]" style={{ color: "var(--foreground-70)" }}>
+                Будет начат голосовой звонок внутри платформы.
+              </p>
               <div className="mt-6 flex w-full flex-col-reverse gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={onCancel}
                   className="h-12 flex-1 rounded-xl text-[15px] font-semibold transition-colors"
                   style={{ background: "var(--background-surface)", color: "var(--foreground)" }}
-                >{t("common.cancel")}</button>
+                >
+                  Отмена
+                </button>
                 <button
                   type="button"
                   onClick={onConfirm}
                   className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-white transition-transform active:scale-[0.98]"
                   style={{ background: "var(--accent)", boxShadow: "0 8px 20px -6px color-mix(in oklab, var(--accent) 50%, transparent)" }}
                 >
-                  <Phone size={18} />{t("calls.confirmCall")}</button>
+                  <Phone size={18} />
+                  Позвонить
+                </button>
               </div>
             </div>
           </motion.div>

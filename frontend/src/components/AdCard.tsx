@@ -1,4 +1,3 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
@@ -12,26 +11,23 @@ import {
   BoxSelect,
   Store,
 } from "lucide-react";
-import type { Ad } from "@/lib/types";
+import type { Ad } from "@/lib/mock";
 
-const STATUS_STYLE: Record<string, { bg: string; fg: string; border: string }> = {
+const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
   "Продаю":  { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
   "Куплю":   { bg: "var(--info-soft)",    fg: "var(--info)",    border: "var(--info)"    },
   "Обменяю": { bg: "var(--warning-soft)", fg: "var(--warning)", border: "var(--warning)" },
-  published: { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
-  active:    { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
 };
-const DEFAULT_STATUS = { bg: "var(--accent-soft)", fg: "var(--accent)", border: "var(--accent)" };
 
 function relativeTime(input?: string): string {
-  if (!input) return tStatic("common.recently");
+  if (!input) return "недавно";
   const d = new Date(input);
   if (isNaN(d.getTime())) return input;
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 3600) return tStatic("common.justNow");
-  if (diff < 86400) return tStatic("common.hoursAgo", { n: Math.floor(diff / 3600) });
-  if (diff < 172800) return tStatic("common.yesterday");
-  if (diff < 604800) return tStatic("common.daysAgo", { n: Math.floor(diff / 86400) });
+  if (diff < 3600) return "только что";
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
+  if (diff < 172800) return "Вчера";
+  if (diff < 604800) return `${Math.floor(diff / 86400)} дн назад`;
   return d.toLocaleDateString("ru-RU");
 }
 
@@ -50,11 +46,10 @@ interface Props {
 }
 
 export function AdCard({ ad, state = "default", compact = false }: Props) {
-  const { t } = useTranslation();
   const moderationState = state !== "default" ? state : ad.moderation && ad.moderation !== "published" ? ad.moderation : "default";
   const [liked, setLiked] = useState<boolean>(false);
   const [likeBump, setLikeBump] = useState(0);
-  const status = STATUS_STYLE[ad.status] ?? DEFAULT_STATUS;
+  const status = STATUS_STYLE[ad.status];
   const hero = ad.gallery?.[0] ?? ad.image;
   const moderated = moderationState === "moderation";
   const rejected = moderationState === "rejected";
@@ -131,7 +126,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
             <motion.button
               type="button"
               onClick={handleLike}
-              aria-label={liked ? t("ads.removeFromFavorites") : t("ads.addToFavorites")}
+              aria-label={liked ? "Убрать из избранного" : "В избранное"}
               key={likeBump}
               initial={likeBump ? { scale: 0.8 } : false}
               animate={likeBump ? { scale: [0.8, 1.1, 1] } : { scale: 1 }}
@@ -153,14 +148,16 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               className="absolute bottom-0 left-0 w-full py-[4px] text-center text-[12px] font-semibold text-white"
               style={{ background: "var(--warning)" }}
             >
-              {t("ads.onReview")}
+              На проверке
             </div>
           )}
           {rejected && (
             <div
               className="absolute bottom-0 left-0 w-full py-[4px] text-center text-[12px] font-semibold text-white"
               style={{ background: "var(--error)" }}
-            >{t("profile.adStatusRejected")}</div>
+            >
+              Отклонено
+            </div>
           )}
         </div>
 

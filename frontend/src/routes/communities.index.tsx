@@ -1,4 +1,3 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -6,12 +5,12 @@ import {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import type { Community } from "@/lib/types";
+import { useStore, selectors } from "@/lib/store";
+import type { Community } from "@/lib/mock";
 import { useDebounce } from "@/hooks/useDebounce";
-import { fetchCommunities } from "@/lib/api/communities";
 
 export const Route = createFileRoute("/communities/")({
-  head: () => ({ meta: [{ title: tStatic("communities.listMetaTitle") }] }),
+  head: () => ({ meta: [{ title: "Сообщества — МоДелизМ Форум" }] }),
   component: CommunitiesPage,
 });
 
@@ -20,19 +19,20 @@ const ICON_MAP: Record<string, typeof Car> = {
 };
 
 function CommunityCard({ c }: { c: Community }) {
-  const { t } = useTranslation();
   const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
   return (
     <article
       className="overflow-hidden flex flex-col"
       style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16 }}
     >
+      {/* banner */}
       <Link to="/communities/$id" params={{ id: c.id }} className="relative block">
         {c.coverImage ? (
           <img src={c.coverImage} alt="" className="h-[120px] w-full object-cover" />
         ) : (
           <div className="h-[120px] w-full" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
         )}
+        {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
           style={{ background: "var(--background)", border: "3px solid var(--background)", borderRadius: 14 }}
@@ -69,7 +69,8 @@ function CommunityCard({ c }: { c: Community }) {
               height: 34, padding: "0 14px", borderRadius: 10,
               background: "var(--accent)", color: "white", fontSize: 13,
             }}
-          >{t("communities.go")}<ArrowRight size={14} />
+          >
+            Перейти <ArrowRight size={14} />
           </Link>
         </div>
       </div>
@@ -78,72 +79,52 @@ function CommunityCard({ c }: { c: Community }) {
 }
 
 function EmptyMy({ onSwitch }: { onSwitch: () => void }) {
-  const { t } = useTranslation();
   return (
     <div className="grid place-items-center gap-[10px] py-[60px] text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
       <div className="grid h-[56px] w-[56px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
         <Users size={24} />
       </div>
-      <div className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("communities.emptyMyTitle")}</div>
+      <div className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Вы пока не состоите ни в одном сообществе</div>
       <p className="max-w-[320px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        {t("communities.emptyMyDesc")}
+        Посмотрите рекомендованные клубы, школы и магазины моделизма
       </p>
       <button
         onClick={onSwitch}
         className="mt-[4px] inline-flex h-[36px] items-center px-[16px] text-[13px] font-semibold"
         style={{ background: "var(--accent)", color: "white", borderRadius: 10 }}
       >
-        {t("communities.emptyMyCta")}
+        Смотреть рекомендованные
       </button>
     </div>
   );
 }
 
 function EmptySearch() {
-  const { t } = useTranslation();
   return (
     <div className="grid place-items-center gap-[8px] py-[60px] text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
       <div className="grid h-[56px] w-[56px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
         <Search size={22} />
       </div>
-      <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{t("communities.emptySearchTitle")}</div>
+      <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Ничего не найдено</div>
       <p className="max-w-[320px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        {t("communities.emptySearchDesc")}
+        Попробуйте изменить запрос или поискать в другом разделе
       </p>
     </div>
   );
 }
 
 function CommunitiesPage() {
-  const { t } = useTranslation();
-  const [apiList, setApiList] = useState<Community[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const items = await fetchCommunities({ per_page: 50 });
-      if (!cancelled) {
-        setApiList(items);
-        setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const myCommunities = useMemo(() => apiList.filter((c) => c.joined), [apiList]);
-  const recommended = useMemo(() => apiList.filter((c) => !c.joined), [apiList]);
+  const currentUserId = useStore((s) => s.currentUserId);
+  const myCommunities = useStore(selectors.userCommunities(currentUserId));
+  const recommended = useStore(selectors.recommendedCommunities(currentUserId));
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
   const [section, setSection] = useState<"my" | "recommended">("my");
 
   useEffect(() => {
-    if (!loading && myCommunities.length === 0) setSection("recommended");
-  }, [loading, myCommunities.length]);
+    if (myCommunities.length === 0) setSection("recommended");
+  }, [myCommunities.length]);
 
   const apply = (list: Community[]) => {
     const q = debounced.trim().toLowerCase();
@@ -161,26 +142,27 @@ function CommunitiesPage() {
     <AppLayout rightColumn={false}>
       <div className="space-y-[20px]">
         <header>
-          <h1 className="font-display text-[24px] font-bold sm:text-[28px]" style={{ color: "var(--foreground)" }}>{t("nav.communities")}</h1>
-          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("communities.subtitle")}</p>
+          <h1 className="font-display text-[24px] font-bold sm:text-[28px]" style={{ color: "var(--foreground)" }}>Сообщества</h1>
+          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Клубы, кружки, школы и магазины моделизма</p>
         </header>
 
+        {/* Tabs */}
         <nav role="tablist" className="relative flex items-center gap-[4px] overflow-x-auto" style={{ borderBottom: "1px solid var(--border)" }}>
           {([
-            { key: "my" as const, labelKey: "communities.tabMy", count: myCommunities.length },
-            { key: "recommended" as const, labelKey: "communities.tabRecommended", count: recommended.length },
-          ]).map((tabItem) => {
-            const active = section === tabItem.key;
+            { key: "my" as const, label: "Мои", count: myCommunities.length },
+            { key: "recommended" as const, label: "Рекомендованные", count: recommended.length },
+          ]).map((t) => {
+            const active = section === t.key;
             return (
               <button
-                key={tabItem.key}
+                key={t.key}
                 role="tab"
                 aria-selected={active}
-                onClick={() => setSection(tabItem.key)}
+                onClick={() => setSection(t.key)}
                 className="relative inline-flex shrink-0 items-center gap-[8px] px-[16px] py-[12px] text-[14px] font-semibold transition-colors"
                 style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
               >
-                {t(tabItem.labelKey)}
+                {t.label}
                 <span
                   className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
                   style={{
@@ -189,7 +171,7 @@ function CommunitiesPage() {
                     borderRadius: 999,
                   }}
                 >
-                  {tabItem.count}
+                  {t.count}
                 </span>
                 {active && (
                   <motion.span
@@ -204,12 +186,13 @@ function CommunitiesPage() {
           })}
         </nav>
 
+        {/* Search */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("communities.searchPlaceholder")}
+            placeholder="Поиск по названию, категории или описанию"
             className="w-full text-[14px] outline-none"
             style={{
               height: 44, paddingLeft: 38, paddingRight: 14,
@@ -221,9 +204,7 @@ function CommunitiesPage() {
           />
         </div>
 
-        {loading ? (
-          <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("common.loading")}</div>
-        ) : section === "my" && myCommunities.length === 0 && !hasQuery ? (
+        {section === "my" && myCommunities.length === 0 && !hasQuery ? (
           <EmptyMy onSwitch={() => setSection("recommended")} />
         ) : visible.length === 0 ? (
           <EmptySearch />

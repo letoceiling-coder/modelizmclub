@@ -1,14 +1,13 @@
-import { useTranslation } from "@/lib/i18n";
 import { Search, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 
 export type SortKey = "new" | "cheap" | "expensive" | "popular";
 export type ViewMode = "grid" | "list";
 
-const SORT_KEYS: Record<SortKey, string> = {
-  new: "ads.sortNew",
-  cheap: "ads.sortCheap",
-  expensive: "ads.sortExpensive",
-  popular: "ads.sortPopular",
+const SORT_LABEL: Record<SortKey, string> = {
+  new: "Сначала новые",
+  cheap: "Сначала дешевле",
+  expensive: "Сначала дороже",
+  popular: "Популярные",
 };
 
 interface Props {
@@ -23,14 +22,6 @@ interface Props {
 }
 
 export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFilters, count }: Props) {
-  const { t } = useTranslation();
-  const plural = (n: number) => {
-    const mod10 = n % 10;
-    const mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) return t("ads.adOne");
-    if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return t("ads.adFew");
-    return t("ads.adMany");
-  };
   return (
     <div className="flex flex-col gap-[12px]">
       <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center">
@@ -43,7 +34,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFi
           <input
             value={query}
             onChange={(e) => onQuery(e.target.value)}
-            placeholder={t("ads.searchAdsPlaceholder")}
+            placeholder="Поиск по объявлениям…"
             className="w-full text-[14px] outline-none transition-colors"
             style={{
               background: "var(--background-elevated)",
@@ -70,7 +61,8 @@ export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFi
             height: 44,
           }}
         >
-          <SlidersHorizontal size={16} />{t("ads.filtersTitle")}</button>
+          <SlidersHorizontal size={16} /> Фильтры
+        </button>
 
         <div className="flex items-center gap-[8px]">
           <select
@@ -86,8 +78,8 @@ export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFi
               padding: "0 14px",
             }}
           >
-            {(Object.keys(SORT_KEYS) as SortKey[]).map((k) => (
-              <option key={k} value={k}>{t(SORT_KEYS[k])}</option>
+            {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+              <option key={k} value={k}>{SORT_LABEL[k]}</option>
             ))}
           </select>
 
@@ -106,7 +98,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFi
                 key={m}
                 type="button"
                 onClick={() => onView(m)}
-                aria-label={m === "grid" ? t("ads.gridView") : t("ads.listView")}
+                aria-label={m === "grid" ? "Плитка" : "Список"}
                 className="grid h-[34px] w-[40px] place-items-center transition-colors"
                 style={{
                   background: view === m ? "var(--accent)" : "transparent",
@@ -122,9 +114,16 @@ export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFi
       </div>
 
       <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-        {t("ads.foundCount")} <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
+        Найдено: <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
       </div>
     </div>
   );
 }
 
+function plural(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "объявление";
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "объявления";
+  return "объявлений";
+}

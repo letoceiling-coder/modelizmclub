@@ -1,19 +1,23 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
-import { ROUTE_SEARCH } from "@/lib/route-search";
-import { useTranslation } from "@/lib/i18n";
 
-const ITEM_KEYS = [
-  { to: "/feed", search: ROUTE_SEARCH.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
-  { to: "/communities", labelKey: "nav.communities", icon: Users2, section: "communities" },
-  { to: "/messenger", search: ROUTE_SEARCH.messenger, labelKey: "nav.messages", icon: MessageSquare, section: "messenger" },
-  { to: "/ads", labelKey: "nav.ads", icon: Megaphone, section: "ads" },
-  { to: "/profile", labelKey: "nav.profile", icon: User, section: "profile" },
-] as const;
+type Item = {
+  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
+  label: string;
+  icon: typeof Newspaper;
+  section: string;
+};
+
+const ITEMS: Item[] = [
+  { to: "/feed", label: "Лента", icon: Newspaper, section: "feed" },
+  { to: "/communities", label: "Сообщества", icon: Users2, section: "communities" },
+  { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
+  { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
+  { to: "/profile", label: "Профиль", icon: User, section: "profile" },
+];
 
 export function BottomNav() {
-  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
 
@@ -29,29 +33,20 @@ export function BottomNav() {
       }}
     >
       <ul className="grid grid-cols-5 items-center" style={{ height: 60 }}>
-        {ITEM_KEYS.map((it) => (
-          <NavTab key={it.to} item={it} label={t(it.labelKey)} active={activeSection === it.section} />
+        {ITEMS.map((it) => (
+          <NavTab key={it.to} item={it} active={activeSection === it.section} />
         ))}
       </ul>
     </nav>
   );
 }
 
-function NavTab({
-  item,
-  label,
-  active,
-}: {
-  item: (typeof ITEM_KEYS)[number];
-  label: string;
-  active: boolean;
-}) {
+function NavTab({ item, active }: { item: Item; active: boolean }) {
   const Icon = item.icon;
   return (
     <li>
       <Link
         to={item.to}
-        {...("search" in item && item.search ? { search: item.search } : {})}
         className="flex h-full flex-col items-center justify-center gap-[3px] transition-colors duration-150"
         style={{
           color: active ? "var(--accent)" : "var(--foreground-50)",
@@ -60,7 +55,7 @@ function NavTab({
       >
         <Icon size={22} strokeWidth={active ? 2.4 : 2} />
         <span className="font-medium" style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}>
-          {label}
+          {item.label}
         </span>
       </Link>
     </li>

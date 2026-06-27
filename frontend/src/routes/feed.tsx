@@ -1,6 +1,5 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,18 +12,15 @@ import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyFeedState } from "@/components/feed/EmptyFeedState";
 import type { CreatePostPayload } from "@/components/CreatePostForm";
-import type { Post, Banner, Category } from "@/lib/types";
+import { posts as mockPosts, me, categories, banners } from "@/lib/mock";
+import type { Post } from "@/lib/mock";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
-import { fetchFeed } from "@/lib/api/feed";
-import { fetchBanners } from "@/lib/api/public";
-import { fetchPostCategories } from "@/lib/api/catalog";
-import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
     meta: [
-      { title: tStatic("feed.title") },
-      { name: "description", content: tStatic("feed.metaDescription") },
+      { title: "Лента — МоДелизМ Форум" },
+      { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
     ],
   }),
   validateSearch: (search: Record<string, unknown>) => ({
@@ -36,69 +32,20 @@ export const Route = createFileRoute("/feed")({
 const PAGE_SIZE = 6;
 
 function FeedPage() {
-  const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [feedCategories, setFeedCategories] = useState<Category[]>([]);
+  const [posts, setPosts] = useState<Post[]>(mockPosts);
   const [filter, setFilter] = useState<FeedFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [apiPage, setApiPage] = useState(1);
-  const [apiHasMore, setApiHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (composer === "open") {
       setComposerOpen(true);
-      navigate({ to: "/feed", search: { composer: undefined }, replace: true });
+      navigate({ to: "/feed", search: {}, replace: true });
     }
   }, [composer, navigate]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchBanners("feed").then((items) => {
-      if (!cancelled) setBanners(items);
-    });
-    void fetchPostCategories().then((items) => {
-      if (!cancelled) setFeedCategories(items);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const loadFeed = useCallback(
-    async (page = 1, append = false) => {
-      const apiFilter =
-        filter === "following" && isAuthenticated ? ("following" as const) : ("all" as const);
-      const { posts: items, hasMore } = await fetchFeed({
-        filter: apiFilter,
-        page,
-        per_page: 20,
-      });
-      setApiHasMore(hasMore);
-      setApiPage(page);
-      setPosts((prev) => (append ? [...prev, ...items] : items));
-    },
-    [filter, isAuthenticated],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setInitialLoading(true);
-      await loadFeed(1, false);
-      if (!cancelled) setInitialLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadFeed]);
 
   const toggleSave = (id: string) =>
     setSavedIds((prev) => {
@@ -108,27 +55,26 @@ function FeedPage() {
       return next;
     });
 
-  const categoryChips = useMemo(() => {
-    if (feedCategories.length > 0) return feedCategories;
-    const names = [...new Set(posts.map((p) => p.category).filter(Boolean))];
-    return names.map((name, i) => ({ id: `api-c${i}`, name, subcategories: [] }));
-  }, [feedCategories, posts]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setInitialLoading(false), 700);
+    return () => clearTimeout(t);
+  }, []);
 
   const filtered = useMemo(() => {
     if (filter === "following") return posts.filter((p) => p.isFollowing);
     if (filter === "categories" && activeCategory) return posts.filter((p) => p.category === activeCategory);
-    if (filter === "saved") {
-      return posts.filter((p) => savedIds.has(p.id) || p.isSaved);
-    }
+    if (filter === "saved") return posts.filter((p) => savedIds.has(p.id));
     return posts;
   }, [posts, filter, activeCategory, savedIds]);
 
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setVisible(PAGE_SIZE);
-  }, [filter, activeCategory, posts]);
+  }, [filter, activeCategory]);
 
   useEffect(() => {
     if (initialLoading) return;
@@ -137,15 +83,7 @@ function FeedPage() {
     const io = new IntersectionObserver(
       (entries) => {
         const e = entries[0];
-        if (!e.isIntersecting || loadingMore) return;
-
-        if (visible >= filtered.length && apiHasMore) {
-          setLoadingMore(true);
-          void loadFeed(apiPage + 1, true).finally(() => setLoadingMore(false));
-          return;
-        }
-
-        if (visible < filtered.length) {
+        if (e.isIntersecting && visible < filtered.length && !loadingMore) {
           setLoadingMore(true);
           setTimeout(() => {
             setVisible((v) => Math.min(v + PAGE_SIZE, filtered.length));
@@ -157,16 +95,34 @@ function FeedPage() {
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [filtered.length, visible, loadingMore, initialLoading, apiHasMore, apiPage, loadFeed]);
+  }, [filtered.length, visible, loadingMore, initialLoading]);
 
   const addPost = (p: CreatePostPayload) => {
-    if (p.post.status === "published") {
-      setPosts((prev) => [p.post, ...prev]);
-    }
+    setPosts([
+      {
+        id: `np${Date.now()}`,
+        authorId: me.id,
+        date: "только что",
+        category: p.category,
+        title: p.title,
+        text: p.text,
+        image: p.photos[0],
+        images: p.photos,
+        tags: p.subcategory ? [p.subcategory] : [],
+        views: 0,
+        likes: 0,
+        comments: 0,
+        saves: 0,
+        reposts: 0,
+        status: "moderation",
+        isFollowing: true,
+        commentList: [],
+      },
+      ...posts,
+    ]);
   };
 
   const slice = filtered.slice(0, visible);
-  const canLoadMore = visible < filtered.length || apiHasMore;
 
   return (
     <AppLayout>
@@ -181,7 +137,7 @@ function FeedPage() {
 
         {filter === "categories" && (
           <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0">
-            {categoryChips.map((c) => {
+            {categories.map((c) => {
               const active = activeCategory === c.name;
               return (
                 <button
@@ -209,31 +165,31 @@ function FeedPage() {
             filter === "following" ? (
               <EmptyFeedState
                 icon={UserPlus}
-                title={t("feed.emptyFollowingTitle")}
-                description={t("feed.emptyFollowingDesc")}
-                ctaLabel={t("feed.emptyFollowingCta")}
+                title="Здесь пока пусто"
+                description="Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте."
+                ctaLabel="Найти авторов"
                 onCta={() => setFilter("all")}
               />
             ) : filter === "categories" && !activeCategory ? (
               <EmptyFeedState
                 icon={Compass}
-                title={t("feed.emptyCategoryTitle")}
-                description={t("feed.emptyCategoryDesc")}
+                title="Выберите категорию"
+                description="Отфильтруйте ленту по интересующему вас направлению моделизма."
               />
             ) : filter === "saved" ? (
               <EmptyFeedState
                 icon={Bookmark}
-                title={t("feed.emptySavedTitle")}
-                description={t("feed.emptySavedDesc")}
-                ctaLabel={t("feed.emptySavedCta")}
+                title="Нет сохранённых публикаций"
+                description="Нажмите на иконку закладки у понравившейся публикации."
+                ctaLabel="Вернуться в ленту"
                 onCta={() => setFilter("all")}
               />
             ) : (
               <EmptyFeedState
                 icon={Newspaper}
-                title={t("feed.emptyDefaultTitle")}
-                description={t("feed.emptyDefaultDesc")}
-                ctaLabel={t("feed.emptyDefaultCta")}
+                title="Публикаций не найдено"
+                description="В этой категории пока никто ничего не опубликовал."
+                ctaLabel="Показать все"
                 onCta={() => {
                   setFilter("all");
                   setActiveCategory(null);
@@ -250,6 +206,7 @@ function FeedPage() {
                   onToggleSave={toggleSave}
                 />,
               ];
+              // Каждые 4 поста — нативный рекламный пост
               if ((idx + 1) % 4 === 0 && banners.length > 0) {
                 const banner = banners[Math.floor(idx / 4) % banners.length];
                 nodes.push(<SponsoredPostCard key={`ad-${idx}-${banner.id}`} banner={banner} />);
@@ -258,7 +215,7 @@ function FeedPage() {
             })
           )}
 
-          {!initialLoading && canLoadMore && (
+          {!initialLoading && visible < filtered.length && (
             <div ref={sentinelRef} className="flex items-center justify-center py-[24px]">
               <motion.div
                 animate={{ rotate: 360 }}
@@ -266,12 +223,16 @@ function FeedPage() {
               >
                 <Loader2 className="h-[20px] w-[20px]" style={{ color: "var(--accent)" }} />
               </motion.div>
-              <span className="ml-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("feed.loadMore")}</span>
+              <span className="ml-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                Загружаем ещё…
+              </span>
             </div>
           )}
 
-          {!initialLoading && slice.length > 0 && !canLoadMore && (
-            <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("feed.endReached")}</p>
+          {!initialLoading && slice.length > 0 && visible >= filtered.length && (
+            <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              Вы посмотрели всю ленту
+            </p>
           )}
         </div>
       </div>

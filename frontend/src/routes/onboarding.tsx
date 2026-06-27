@@ -1,49 +1,38 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ROUTE_SEARCH } from "@/lib/route-search";
-import { fetchPostCategories, syncMyInterests } from "@/lib/api/catalog";
-import { hasAuthForApi } from "@/lib/api/auth-api";
-import type { Category } from "@/lib/types";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: tStatic("onboarding.metaTitle") }] }),
+  head: () => ({ meta: [{ title: "Выберите интересы — МоДелизМ Форум" }] }),
   component: OnboardingPage,
 });
 
-function OnboardingPage() {
-  const { t } = useTranslation();
-  const [interests, setInterests] = useState<Category[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
-  const nav = useNavigate();
+const INTERESTS = [
+  { id: "rc-cars", title: "RC автомодели", desc: "ДВС, электро, дрифт, ралли, краулеры" },
+  { id: "rc-air", title: "Авиамодели", desc: "Планеры, пилотажки, копии" },
+  { id: "fpv", title: "Квадрокоптеры / FPV", desc: "Гонки, фристайл, синема" },
+  { id: "rc-boats", title: "Корабли и суда", desc: "Яхты, катера, копии" },
+  { id: "electronics", title: "Электроника", desc: "Регуляторы, моторы, прошивки" },
+  { id: "static", title: "Стендовый моделизм", desc: "Сборка, окраска, диорамы" },
+  { id: "trade", title: "Купля/продажа", desc: "Запчасти и готовые модели" },
+  { id: "events", title: "События и заезды", desc: "Локальные клубы и чемпионаты" },
+];
 
-  useEffect(() => {
-    void fetchPostCategories().then(setInterests).catch(() => setInterests([]));
-  }, []);
+function OnboardingPage() {
+  const [selected, setSelected] = useState<string[]>([]);
+  const nav = useNavigate();
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const finish = async () => {
-    if (selected.length < 1) return toast.error(t("onboarding.errorMin"));
-    setSaving(true);
-    try {
-      if (hasAuthForApi()) {
-        await syncMyInterests(selected.map((id) => Number(id)).filter((n) => !Number.isNaN(n)));
-      }
-      toast.success(t("onboarding.success"));
-      nav({ to: "/feed", search: ROUTE_SEARCH.feed });
-    } catch {
-      toast.error(t("onboarding.saveError"));
-    } finally {
-      setSaving(false);
-    }
+  const finish = () => {
+    if (selected.length < 1) return toast.error("Выберите хотя бы одну категорию");
+    toast.success("Готово! Лента подобрана под ваши интересы");
+    nav({ to: "/feed" });
   };
 
   return (
@@ -55,9 +44,11 @@ function OnboardingPage() {
         <Logo />
         <div className="flex items-center gap-[12px]">
           <button
-            onClick={() => nav({ to: "/feed", search: ROUTE_SEARCH.feed })}
+            onClick={() => nav({ to: "/feed" })}
             style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", background: "transparent", border: "none", cursor: "pointer" }}
-          >{t("onboarding.skip")}</button>
+          >
+            Пропустить
+          </button>
           <ThemeToggle />
         </div>
       </header>
@@ -71,12 +62,18 @@ function OnboardingPage() {
             letterSpacing: "0.12em",
             textTransform: "uppercase",
           }}
-        >{t("onboarding.step")}</div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", marginTop: 12 }}>{t("onboarding.title")}</h1>
-        <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>{t("onboarding.subtitle")}</p>
+        >
+          Шаг 1 из 1
+        </div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", marginTop: 12 }}>
+          Что вам интересно?
+        </h1>
+        <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>
+          Выберите направления — лента, чаты и объявления будут подбираться под них. Можно поменять позже в профиле.
+        </p>
 
         <div className="mt-[32px] grid gap-[12px] sm:grid-cols-2 lg:grid-cols-3">
-          {interests.map((i) => {
+          {INTERESTS.map((i) => {
             const active = selected.includes(i.id);
             return (
               <motion.button
@@ -104,13 +101,9 @@ function OnboardingPage() {
                   </div>
                 )}
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h4)" }}>
-                  {i.name}
+                  {i.title}
                 </div>
-                {i.subcategories && i.subcategories.length > 0 && (
-                  <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>
-                    {i.subcategories.slice(0, 4).map((s) => s.name).join(", ")}
-                  </div>
-                )}
+                <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>{i.desc}</div>
               </motion.button>
             );
           })}
@@ -127,11 +120,11 @@ function OnboardingPage() {
           }}
         >
           <div style={{ fontSize: "var(--fs-sm)", color: "var(--foreground-70)" }}>
-            {t("common.selected", { n: selected.length, total: interests.length })}
+            Выбрано:{" "}
+            <span style={{ color: "var(--accent)", fontWeight: 700 }}>{selected.length}</span> из {INTERESTS.length}
           </div>
           <button
-            onClick={() => void finish()}
-            disabled={saving}
+            onClick={finish}
             style={{
               background: "var(--accent)",
               color: "#fff",
@@ -143,7 +136,9 @@ function OnboardingPage() {
               cursor: "pointer",
               boxShadow: "var(--shadow-button)",
             }}
-          >{t("onboarding.continue")}</button>
+          >
+            Продолжить →
+          </button>
         </div>
       </main>
     </div>

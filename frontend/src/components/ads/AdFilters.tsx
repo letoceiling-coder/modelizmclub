@@ -1,9 +1,6 @@
-import { useTranslation } from "@/lib/i18n";
-import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
-import type { AdCondition, Category } from "@/lib/types";
-import { fetchListingCategories } from "@/lib/api/catalog";
+import { categories, type AdCondition } from "@/lib/mock";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
@@ -41,9 +38,6 @@ interface Props {
 }
 
 function Body({ value, onChange, onReset }: Props) {
-  const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
-  useEffect(() => { void fetchListingCategories().then(setCategories); }, []);
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
   const toggle = <K extends "conditions" | "deliveries">(k: K, item: string) => {
@@ -53,7 +47,7 @@ function Body({ value, onChange, onReset }: Props) {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <Group title={t("ads.filterCategory")}>
+      <Group title="Категория">
         <Select
           value={value.category}
           onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
@@ -63,12 +57,12 @@ function Body({ value, onChange, onReset }: Props) {
           <Select
             value={value.subcategory}
             onChange={(v) => set("subcategory", v)}
-            options={["Все", ...(cat.subcategories ?? []).map((s) => s.name)]}
+            options={["Все", ...cat.subcategories.map((s) => s.name)]}
           />
         )}
       </Group>
 
-      <Group title={t("ads.filterStatus")}>
+      <Group title="Статус">
         <div className="grid grid-cols-3 gap-[6px]">
           {(["Все", ...STATUSES] as const).map((s) => (
             <button
@@ -90,11 +84,11 @@ function Body({ value, onChange, onReset }: Props) {
         </div>
       </Group>
 
-      <Group title={t("ads.filterPrice")}>
+      <Group title="Цена, ₽">
         <div className="flex items-center gap-[8px]">
-          <NumInput value={value.priceMin} onChange={(v) => set("priceMin", v)} placeholder={t("ads.priceFrom")} />
+          <NumInput value={value.priceMin} onChange={(v) => set("priceMin", v)} placeholder="от" />
           <span style={{ color: "var(--foreground-50)" }}>—</span>
-          <NumInput value={value.priceMax} onChange={(v) => set("priceMax", v)} placeholder={t("ads.priceTo")} />
+          <NumInput value={value.priceMax} onChange={(v) => set("priceMax", v)} placeholder="до" />
         </div>
         <input
           type="range" min={0} max={100000} step={500}
@@ -105,11 +99,11 @@ function Body({ value, onChange, onReset }: Props) {
         />
       </Group>
 
-      <Group title={t("profile.fieldCity")}>
+      <Group title="Город">
         <input
           value={value.city}
           onChange={(e) => set("city", e.target.value)}
-          placeholder={t("ads.anyCity")}
+          placeholder="Любой"
           className="w-full text-[13px] outline-none"
           style={{
             background: "var(--background-elevated)",
@@ -122,7 +116,7 @@ function Body({ value, onChange, onReset }: Props) {
         />
       </Group>
 
-      <Group title={t("ads.specCondition")}>
+      <Group title="Состояние">
         <div className="flex flex-wrap gap-[6px]">
           {CONDITIONS.map((c) => (
             <Checkbox key={c} checked={value.conditions.includes(c)} onChange={() => toggle("conditions", c)} label={c} />
@@ -130,7 +124,7 @@ function Body({ value, onChange, onReset }: Props) {
         </div>
       </Group>
 
-      <Group title={t("ads.sectionDelivery")}>
+      <Group title="Доставка">
         <div className="flex flex-wrap gap-[6px]">
           {DELIVERIES.map((d) => (
             <Checkbox key={d} checked={value.deliveries.includes(d)} onChange={() => toggle("deliveries", d)} label={d} />
@@ -138,7 +132,7 @@ function Body({ value, onChange, onReset }: Props) {
         </div>
       </Group>
 
-      <Checkbox checked={value.withPhotoOnly} onChange={(v) => set("withPhotoOnly", v)} label={t("ads.withPhotoOnly")} />
+      <Checkbox checked={value.withPhotoOnly} onChange={(v) => set("withPhotoOnly", v)} label="Только с фото" />
 
       <button
         type="button"
@@ -152,7 +146,7 @@ function Body({ value, onChange, onReset }: Props) {
           height: 40,
         }}
       >
-        <RotateCcw size={14} /> {t("ads.resetFiltersBtn")}
+        <RotateCcw size={14} /> Сбросить фильтры
       </button>
     </div>
   );
@@ -207,7 +201,6 @@ function NumInput({ value, onChange, placeholder }: { value: number; onChange: (
 }
 
 export function AdFiltersDesktop(props: Props) {
-  const { t } = useTranslation();
   return (
     <aside
       className="sticky top-[16px] hidden h-fit w-[280px] shrink-0 overflow-hidden lg:block"
@@ -221,7 +214,7 @@ export function AdFiltersDesktop(props: Props) {
       }}
     >
       <div className="p-[20px]">
-        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{t("ads.filtersTitle")}</h3>
+        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
         <Body {...props} />
       </div>
     </aside>
@@ -229,7 +222,6 @@ export function AdFiltersDesktop(props: Props) {
 }
 
 export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: boolean; onClose: () => void }) {
-  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {open && (
@@ -257,8 +249,8 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
               <div className="mx-auto h-[4px] w-[40px]" style={{ background: "var(--foreground-15)", borderRadius: "var(--r-pill)" }} />
             </div>
             <div className="flex items-center justify-between px-[20px] pb-[12px]">
-              <h3 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>{t("ads.filtersTitle")}</h3>
-              <button type="button" onClick={onClose} aria-label={t("common.close")} className="grid h-[36px] w-[36px] place-items-center" style={{ color: "var(--foreground-70)" }}>
+              <h3 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
+              <button type="button" onClick={onClose} aria-label="Закрыть" className="grid h-[36px] w-[36px] place-items-center" style={{ color: "var(--foreground-70)" }}>
                 <X size={18} />
               </button>
             </div>

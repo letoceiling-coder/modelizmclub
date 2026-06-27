@@ -1,8 +1,7 @@
-import { useTranslation } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, ChevronDown, FileText } from "lucide-react";
-import type { VoiceMessage } from "@/lib/types";
+import type { VoiceMessage } from "@/lib/mock";
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -11,7 +10,6 @@ function fmt(s: number): string {
 }
 
 export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolean }) {
-  const { t } = useTranslation();
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1
   const [expanded, setExpanded] = useState(false);
@@ -58,7 +56,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
           onClick={() => setPlaying((p) => !p)}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full transition-transform active:scale-95"
           style={{ background: buttonBg, color: fg }}
-          aria-label={playing ? t("index.pause") : t("index.play")}
+          aria-label={playing ? "Пауза" : "Воспроизвести"}
         >
           {playing ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: 2 }} />}
         </button>
@@ -82,7 +80,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
           </div>
           <div className="flex items-center justify-between font-mono text-[10px]" style={{ color: subtle }}>
             <span>{fmt(playing || progress > 0 ? voice.duration * progress : voice.duration)}</span>
-            <span>{t("messenger.voiceLabel")}</span>
+            <span>голосовое</span>
           </div>
         </div>
       </div>

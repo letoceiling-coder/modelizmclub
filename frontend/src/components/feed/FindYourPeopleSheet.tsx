@@ -1,5 +1,4 @@
-import { useTranslation } from "@/lib/i18n";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, MessageCircle, Users } from "lucide-react";
 import * as Icons from "lucide-react";
@@ -12,12 +11,12 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import type { Category } from "@/lib/types";
-import { fetchPostCategories } from "@/lib/api/catalog";
+import { categories } from "@/lib/mock";
+import type { Category } from "@/lib/mock";
 
 function onlineFor(c: Category): number {
   const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  const base = Math.max(3, Math.round((c.members ?? 0) * 0.012));
+  const base = Math.max(3, Math.round(c.members * 0.012));
   return base + (seed % 17);
 }
 
@@ -33,14 +32,8 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
  * На desktop правую колонку показывает RightCategories; этот компонент скрыт на xl+.
  */
 export function FindYourPeopleSheet() {
-  const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
   const [open, setOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
-
-  useEffect(() => {
-    void fetchPostCategories().then(setCategories);
-  }, []);
 
   return (
     <div className="xl:hidden">
@@ -61,8 +54,12 @@ export function FindYourPeopleSheet() {
               <span
                 className="block text-[14px] font-semibold"
                 style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-              >{t("rightPanel.title")}</span>
-              <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("rightPanel.mobileSubtitle")}</span>
+              >
+                Найди своих
+              </span>
+              <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                Тематические чаты по интересам
+              </span>
             </span>
             <ChevronDown
               className="h-[16px] w-[16px] -rotate-90 shrink-0"
@@ -78,8 +75,12 @@ export function FindYourPeopleSheet() {
         >
           <SheetHeader className="border-b px-[16px] py-[14px] text-left" style={{ borderColor: "var(--border)" }}>
             <SheetTitle className="flex items-center gap-[8px] text-[15px]">
-              <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />{t("rightPanel.title")}</SheetTitle>
-            <SheetDescription className="text-[12px]">{t("rightPanel.subtitle")}</SheetDescription>
+              <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
+              Найди своих
+            </SheetTitle>
+            <SheetDescription className="text-[12px]">
+              Зайди в чат своего направления
+            </SheetDescription>
           </SheetHeader>
 
           <ul className="h-[calc(88vh-74px)] overflow-y-auto p-[8px]">
@@ -99,7 +100,7 @@ export function FindYourPeopleSheet() {
                           className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px]"
                           style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                         >
-                          <CategoryIcon name={c.icon ?? "Hash"} className="h-[16px] w-[16px]" />
+                          <CategoryIcon name={c.icon} className="h-[16px] w-[16px]" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span
@@ -116,16 +117,16 @@ export function FindYourPeopleSheet() {
                               className="inline-block h-[6px] w-[6px] rounded-full"
                               style={{ background: "#22c55e" }}
                             />
-                            {t("common.onlineCount", { n: online })}
+                            {online} онлайн
                           </span>
                         </span>
                       </Link>
                     </SheetClose>
-                    {(c.subcategories?.length ?? 0) > 0 && (
+                    {c.subcategories.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setOpenId(expanded ? null : c.id)}
-                        aria-label={expanded ? t("rightPanel.collapseSubs") : t("rightPanel.expandSubs")}
+                        aria-label={expanded ? "Свернуть подкатегории" : "Развернуть подкатегории"}
                         aria-expanded={expanded}
                         className="grid w-[36px] place-items-center rounded-r-[12px] transition-colors hover:bg-[var(--background-surface)]"
                       >
@@ -137,12 +138,12 @@ export function FindYourPeopleSheet() {
                     )}
                   </div>
 
-                  {expanded && (c.subcategories?.length ?? 0) > 0 && (
+                  {expanded && c.subcategories.length > 0 && (
                     <ul
                       className="mb-[6px] ml-[46px] mt-[2px] space-y-[1px] border-l pl-[12px]"
                       style={{ borderColor: "var(--border)" }}
                     >
-                      {c.subcategories?.map((s) => (
+                      {c.subcategories.map((s) => (
                         <li key={s.id}>
                           <SheetClose asChild>
                             <Link

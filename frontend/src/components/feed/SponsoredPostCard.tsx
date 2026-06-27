@@ -1,9 +1,8 @@
-import { useTranslation } from "@/lib/i18n";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Banner } from "@/lib/types";
+import type { Banner } from "@/lib/mock";
 
 interface Props {
   banner: Banner;
@@ -15,16 +14,11 @@ interface Props {
  * «Реклама» tag and a single CTA. No carousel, no banner strip.
  */
 export function SponsoredPostCard({ banner, onDismiss }: Props) {
-  const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
   const handleCta = () => {
-    if (banner.linkUrl) {
-      window.open(banner.linkUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-    toast(t("post.detailsSoon", { title: banner.title }));
+    toast(`«${banner.title}» — подробности будут доступны позже`);
   };
 
   const handleDismiss = () => {
@@ -71,16 +65,18 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
                 borderRadius: "var(--r-pill)",
                 letterSpacing: "0.08em",
               }}
-            >{t("post.sponsoredAd")}</span>
+            >
+              Реклама
+            </span>
           </div>
           <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            {t("post.sponsoredAd")}
+            Промо · {banner.until}
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          aria-label={t("post.menuHide")}
+          aria-label="Скрыть"
           className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full transition-colors"
           style={{ color: "var(--foreground-50)" }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface-hover)")}
@@ -103,7 +99,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{
           borderRadius: 12,
           aspectRatio: "16 / 7",
-          background: "linear-gradient(135deg, var(--accent), var(--accent-muted))",
+          background: `linear-gradient(135deg, ${gradientStops(banner.color)})`,
           border: "1px solid var(--border)",
         }}
       >
@@ -136,7 +132,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          {t("post.sponsoredAdvertiser")}
+          Рекламодатель · MODELIZM
         </span>
         <button
           type="button"
@@ -152,7 +148,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
         >
-          {banner.linkUrl ? t("components.readMore") : t("post.detailsSoonShort", { title: banner.title })}
+          {banner.cta}
           <ExternalLink size={14} />
         </button>
       </div>
@@ -160,3 +156,12 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
   );
 }
 
+/**
+ * Map the existing tailwind gradient hint ("from-red-600 to-red-800") to
+ * concrete colors so we don't rely on Tailwind JIT for arbitrary classes.
+ */
+function gradientStops(token: string): string {
+  if (token.includes("slate")) return "#334155, #0f172a";
+  if (token.includes("red-700") && token.includes("slate")) return "#991b1b, #0f172a";
+  return "#dc2626, #7f1d1d";
+}

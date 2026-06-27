@@ -1,4 +1,3 @@
-import { useTranslation } from "@/lib/i18n";
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -11,7 +10,6 @@ interface Props {
 }
 
 export function CreatePostModal({ open, onClose, onCreate }: Props) {
-  const { t } = useTranslation();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -52,10 +50,12 @@ export function CreatePostModal({ open, onClose, onCreate }: Props) {
               <h2
                 className="text-[16px] font-semibold"
                 style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-              >{t("components.createModalTitle")}</h2>
+              >
+                Новая публикация
+              </h2>
               <button
                 onClick={onClose}
-                aria-label={t("common.close")}
+                aria-label="Закрыть"
                 className="grid h-[32px] w-[32px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
                 style={{ color: "var(--foreground-70)" }}
               >

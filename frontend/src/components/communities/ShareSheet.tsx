@@ -1,4 +1,3 @@
-import { useTranslation } from "@/lib/i18n";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Link2, Send, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -11,25 +10,24 @@ interface Props {
 }
 
 export function ShareSheet({ open, onOpenChange, url, title }: Props) {
-  const { t } = useTranslation();
   const text = `${title} — ${url}`;
   const items = [
     {
       key: "friend",
-      label: t("communities.shareToFriend"),
+      label: "Отправить другу на платформе",
       icon: Users,
       onClick: () => {
-        toast.success(t("communities.shareOpenMessenger"), { description: t("communities.sharePickRecipient") });
+        toast.success("Открываем мессенджер", { description: "Выберите получателя" });
         onOpenChange(false);
       },
     },
     {
       key: "copy",
-      label: t("post.menuCopyLink"),
+      label: "Скопировать ссылку",
       icon: Link2,
       onClick: () => {
         if (typeof navigator !== "undefined") navigator.clipboard?.writeText(url);
-        toast.success(t("post.linkCopied"));
+        toast.success("Ссылка скопирована");
         onOpenChange(false);
       },
     },
@@ -66,7 +64,7 @@ export function ShareSheet({ open, onOpenChange, url, title }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl p-0 sm:max-w-md sm:left-1/2 sm:-translate-x-1/2">
         <SheetHeader className="px-5 pt-5">
-          <SheetTitle>{t("communities.shareTitle")}</SheetTitle>
+          <SheetTitle>Поделиться сообществом</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col p-2">
           {items.map((it) => (

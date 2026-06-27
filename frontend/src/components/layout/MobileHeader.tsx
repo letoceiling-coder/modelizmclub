@@ -1,13 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Radio } from "lucide-react";
+import { Bell, Search, Radio } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
-import { useTranslation } from "@/lib/i18n";
-import { ROUTE_SEARCH } from "@/lib/route-search";
 
 export function MobileHeader() {
-  const { t } = useTranslation();
   return (
     <header
       className="lg:hidden sticky top-0 z-30 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-[8px] px-[16px]"
@@ -18,20 +14,28 @@ export function MobileHeader() {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <Link to="/feed" search={ROUTE_SEARCH.feed} className="min-w-0 inline-flex items-center" aria-label={t("nav.landing")}>
+      <Link to="/feed" className="min-w-0 inline-flex items-center" aria-label="На главную">
         <Logo />
       </Link>
       <div className="flex shrink-0 items-center gap-[2px]">
         <Link
           to="/channels"
-          aria-label={t("nav.channels")}
+          aria-label="Каналы"
           className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors duration-150"
           style={{ color: "var(--foreground-70)" }}
         >
           <Radio size={18} />
         </Link>
-        <IconBtn aria-label={t("common.search")}><Search size={18} /></IconBtn>
-        <LanguageSwitcher compact showFooter={false} />
+        <IconBtn aria-label="Поиск"><Search size={18} /></IconBtn>
+        <IconBtn aria-label="Уведомления">
+          <span className="relative inline-flex">
+            <Bell size={18} />
+            <span
+              className="absolute -top-[2px] -right-[2px] h-[6px] w-[6px] rounded-full"
+              style={{ background: "var(--accent)", boxShadow: "0 0 0 2px var(--background)" }}
+            />
+          </span>
+        </IconBtn>
         <ThemeToggle />
       </div>
     </header>

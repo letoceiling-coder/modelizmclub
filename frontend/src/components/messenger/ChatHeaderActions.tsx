@@ -1,4 +1,3 @@
-import { useTranslation } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
@@ -6,26 +5,17 @@ import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRes
 import { toast } from "sonner";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { calls, useCalls } from "@/lib/calls";
-
-export type DialogMeta = {
-  archived: boolean;
-  muted: boolean;
-  blocked: boolean;
-  mutedUntil?: string;
-};
+import { actions, useStore, selectors } from "@/lib/store";
 
 interface Props {
   partnerId: string;
   partnerName: string;
   dialogId?: string;
-  meta?: DialogMeta;
-  onMetaChange?: (patch: Partial<DialogMeta>) => void;
   onSearch?: () => void;
 }
 
-export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMetaChange, onSearch }: Props) {
-  const { t } = useTranslation();
-  const dialogMeta = meta ?? { archived: false, muted: false, blocked: false };
+export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }: Props) {
+  const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeCall = useCalls((s) => s.active);
@@ -68,36 +58,36 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMe
   const toggleMute = () => {
     close();
     if (!dialogId) return;
-    if (dialogMeta.muted) {
-      onMetaChange?.({ muted: false, mutedUntil: undefined });
-      toast.success(t("messenger.notificationsEnabled"), { description: t("messenger.notificationsEnabledDesc", { name: partnerName }) });
+    if (meta.muted) {
+      actions.setDialogMeta(dialogId, { muted: false, mutedUntil: undefined });
+      toast.success("Уведомления включены", { description: `Вы снова получаете уведомления от ${partnerName}` });
     } else {
-      onMetaChange?.({ muted: true });
-      toast.success(t("messenger.notificationsDisabled"), { description: t("messenger.notificationsDisabledDesc", { name: partnerName }) });
+      actions.setDialogMeta(dialogId, { muted: true });
+      toast.success("Уведомления отключены", { description: `Чат с ${partnerName} больше не присылает уведомления` });
     }
   };
 
   const toggleArchive = () => {
     close();
     if (!dialogId) return;
-    if (dialogMeta.archived) {
-      onMetaChange?.({ archived: false });
-      toast.success(t("messenger.chatRestored"), { description: t("messenger.chatRestoredDesc") });
+    if (meta.archived) {
+      actions.setDialogMeta(dialogId, { archived: false });
+      toast.success("Чат восстановлен", { description: "Диалог вернулся в активный список" });
     } else {
-      onMetaChange?.({ archived: true });
-      toast.success(t("messenger.chatArchived"), { description: t("messenger.chatArchivedDesc") });
+      actions.setDialogMeta(dialogId, { archived: true });
+      toast.success("Чат заархивирован", { description: "Чат перемещён в архив. Вы можете найти его в списке архивированных." });
     }
   };
 
   const toggleBlock = () => {
     close();
     if (!dialogId) return;
-    if (dialogMeta.blocked) {
-      onMetaChange?.({ blocked: false });
-      toast.success(t("messenger.userUnblocked", { name: partnerName }), { description: t("messenger.userUnblockedDesc") });
+    if (meta.blocked) {
+      actions.setDialogMeta(dialogId, { blocked: false });
+      toast.success(`${partnerName} разблокирован`, { description: "Вы снова можете обмениваться сообщениями" });
     } else {
-      onMetaChange?.({ blocked: true });
-      toast.success(t("messenger.userBlockedToast", { name: partnerName }), { description: t("messenger.userBlockedToastDesc") });
+      actions.setDialogMeta(dialogId, { blocked: true });
+      toast.success(`${partnerName} заблокирован`, { description: "Вы больше не будете получать сообщения от этого пользователя" });
     }
   };
 
@@ -107,11 +97,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMe
         type="button"
         onClick={() => {
           if (callBusy) {
-            toast(t("calls.callInProgress"));
+            toast("Звонок уже идёт");
             return;
           }
-          if (dialogMeta.blocked) {
-            toast.error(t("messenger.userBlocked"), { description: t("messenger.callBlockedDesc") });
+          if (meta.blocked) {
+            toast.error("Пользователь заблокирован", { description: "Разблокируйте, чтобы позвонить" });
             return;
           }
           setConfirmOpen(true);
@@ -119,7 +109,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMe
         disabled={callBusy}
         className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-50"
         style={{ color: "var(--accent)" }}
-        aria-label={t("calls.callUser", { name: partnerName })}
+        aria-label={`Позвонить ${partnerName}`}
       >
         <Phone size={19} />
       </button>
@@ -130,7 +120,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMe
           onClick={() => setOpen((v) => !v)}
           className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-50)" }}
-          aria-label={t("messenger.chatMenu")}
+          aria-label="Меню чата"
           aria-expanded={open}
         >
           <MoreHorizontal size={18} />
@@ -151,24 +141,24 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, meta, onMe
                 boxShadow: "var(--shadow-float)",
               }}
             >
-              <Item icon={Info} label={t("messenger.chatInfo")} onClick={goProfile} />
-              {onSearch && <Item icon={Search} label={t("messenger.chatSearch")} onClick={() => { close(); onSearch(); }} />}
+              <Item icon={Info} label="Информация" onClick={goProfile} />
+              {onSearch && <Item icon={Search} label="Поиск в чате" onClick={() => { close(); onSearch(); }} />}
               <Item
-                icon={dialogMeta.muted ? Bell : BellOff}
-                label={dialogMeta.muted ? t("messenger.enableNotifications") : t("messenger.disableNotifications")}
+                icon={meta.muted ? Bell : BellOff}
+                label={meta.muted ? "Включить уведомления" : "Отключить уведомления"}
                 onClick={toggleMute}
               />
               <Item
-                icon={dialogMeta.archived ? ArchiveRestore : Archive}
-                label={dialogMeta.archived ? t("messenger.restoreFromArchive") : t("messenger.archiveChatAction")}
+                icon={meta.archived ? ArchiveRestore : Archive}
+                label={meta.archived ? "Вернуть из архива" : "Архивировать"}
                 onClick={toggleArchive}
               />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
-                icon={dialogMeta.blocked ? ShieldOff : Ban}
-                label={dialogMeta.blocked ? t("messenger.unblock") : t("messenger.block")}
+                icon={meta.blocked ? ShieldOff : Ban}
+                label={meta.blocked ? "Разблокировать" : "Заблокировать"}
                 onClick={toggleBlock}
-                danger={!dialogMeta.blocked}
+                danger={!meta.blocked}
               />
             </motion.div>
           )}

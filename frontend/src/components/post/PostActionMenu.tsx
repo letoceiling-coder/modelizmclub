@@ -1,19 +1,17 @@
-import { useTranslation } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check } from "lucide-react";
 import { toast } from "sonner";
+import { actions } from "@/lib/store";
 
 interface Props {
   postId: string;
   saved: boolean;
   title: string;
   text: string;
-  onToggleSave?: () => void;
 }
 
-export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Props) {
-  const { t } = useTranslation();
+export function PostActionMenu({ postId, saved, title, text }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -40,8 +38,8 @@ export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Pro
   };
 
   const handleSave = () => {
-    onToggleSave?.();
-    toast.success(saved ? t("post.unsaved") : t("post.saved"));
+    actions.savePost(postId, !saved);
+    toast.success(saved ? "Удалено из сохранённых" : "Добавлено в сохранённые");
     setOpen(false);
   };
 
@@ -49,10 +47,10 @@ export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Pro
     try {
       await navigator.clipboard.writeText(buildUrl());
       setCopied(true);
-      toast.success(t("post.linkCopied"));
+      toast.success("Ссылка скопирована");
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      toast.error(t("common.copyLinkFailed"));
+      toast.error("Не удалось скопировать ссылку");
     }
   };
 
@@ -71,7 +69,7 @@ export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Pro
 
   const placeholder = (label: string) => () => {
     setOpen(false);
-    toast(t("common.comingSoon", { label }));
+    toast(`${label}: будет доступно позже`);
   };
 
   return (
@@ -81,7 +79,7 @@ export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Pro
         onClick={() => setOpen((v) => !v)}
         className="grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)]"
         style={{ color: "var(--foreground-70)" }}
-        aria-label={t("post.menuActions")}
+        aria-label="Меню действий"
         aria-expanded={open}
       >
         <MoreHorizontal className="h-[16px] w-[16px]" />
@@ -102,12 +100,12 @@ export function PostActionMenu({ postId, saved, title, text, onToggleSave }: Pro
               boxShadow: "var(--shadow-float)",
             }}
           >
-            <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? t("post.menuUnsave") : t("post.save")} accent={saved} />
-            <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? t("post.menuCopied") : t("post.menuCopyLink")} accent={copied} />
-            <MenuItem onClick={handleShare} icon={Share2} label={t("post.menuShare")} />
+            <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? "Убрать из сохранённых" : "Сохранить"} accent={saved} />
+            <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? "Скопировано" : "Скопировать ссылку"} accent={copied} />
+            <MenuItem onClick={handleShare} icon={Share2} label="Поделиться" />
             <div className="border-t" style={{ borderColor: "var(--border)" }} />
-            <MenuItem onClick={placeholder(t("post.hidePost"))} icon={EyeOff} label={t("post.menuHide")} />
-            <MenuItem onClick={placeholder(t("post.reportPost"))} icon={Flag} label={t("post.menuReport")} />
+            <MenuItem onClick={placeholder("Скрыть публикацию")} icon={EyeOff} label="Скрыть" />
+            <MenuItem onClick={placeholder("Жалоба")} icon={Flag} label="Пожаловаться" />
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,27 +1,11 @@
-import { useTranslation } from "@/lib/i18n";
 import { Crown, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { fetchPublicStats } from "@/lib/api/public";
-import { ROUTE_SEARCH } from "@/lib/route-search";
+import { firstHundredStats } from "@/lib/mock";
 
 export function FirstHundredBanner() {
-  const { t } = useTranslation();
-  const [stats, setStats] = useState({ taken: 0, total: 100 });
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchPublicStats().then((s) => {
-      if (!cancelled) setStats(s.firstHundred);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const taken = Math.max(0, Math.min(stats.total, stats.taken));
-  const total = stats.total || 100;
-  const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
+  const taken = Math.max(0, Math.min(firstHundredStats.total, firstHundredStats.taken));
+  const total = firstHundredStats.total;
+  const pct = Math.round((taken / total) * 100);
   const left = total - taken;
 
   return (
@@ -64,7 +48,7 @@ export function FirstHundredBanner() {
                 textTransform: "uppercase",
               }}
             >
-              <Sparkles size={12} /> {t("landing.launchBadge")}
+              <Sparkles size={12} /> Запуск МоДелизМ Форум
             </span>
             <span
               className="inline-flex items-center"
@@ -78,7 +62,8 @@ export function FirstHundredBanner() {
                 fontWeight: 700,
               }}
             >
-              <Crown size={12} />{t("components.firstHundredBadge")}</span>
+              <Crown size={12} /> Первые 100
+            </span>
           </div>
 
           <h2
@@ -91,19 +76,20 @@ export function FirstHundredBanner() {
               maxWidth: "720px",
             }}
           >
-            {t("landing.firstHundredTitle")}
+            Первые 100 участников получают год бесплатно
           </h2>
           <p style={{ fontSize: "15px", maxWidth: "640px", opacity: 0.85, lineHeight: 1.5 }}>
-            {t("landing.firstHundredDesc")}
+            Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели клуба и получить
+            бейдж «Первые 100» в профиле навсегда.
           </p>
 
           <div className="grid" style={{ gap: "10px", maxWidth: "520px" }}>
             <div className="flex items-end justify-between" style={{ gap: "12px" }}>
               <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "28px" }}>
-                {t("common.occupied", { taken, total })}
+                Занято {taken} из {total}
               </span>
               <span style={{ fontSize: "13px", fontWeight: 600, opacity: 0.8 }}>
-                {t("common.spotsLeft", { left, word: left === 1 ? t("common.spot") : t("common.spots") })}
+                Осталось {left} {left === 1 ? "место" : "мест"}
               </span>
             </div>
             <div
@@ -129,7 +115,6 @@ export function FirstHundredBanner() {
           <div className="flex flex-wrap" style={{ gap: "10px" }}>
             <Link
               to="/register"
-              search={ROUTE_SEARCH.register}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -143,7 +128,7 @@ export function FirstHundredBanner() {
                 fontSize: "15px",
               }}
             >
-              {t("landing.getYearFree")}
+              Получить год бесплатно
             </Link>
             <Link
               to="/login"
@@ -160,7 +145,7 @@ export function FirstHundredBanner() {
                 border: "1px solid rgba(31, 19, 0, 0.3)",
               }}
             >
-              {t("landing.alreadyWithUs")}
+              Уже с нами — войти
             </Link>
           </div>
         </div>

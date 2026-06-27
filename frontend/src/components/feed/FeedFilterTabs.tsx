@@ -1,4 +1,3 @@
-import { useTranslation } from "@/lib/i18n";
 import { motion } from "framer-motion";
 
 export type FeedFilter = "all" | "following" | "categories" | "saved";
@@ -8,20 +7,14 @@ interface Props {
   onChange: (v: FeedFilter) => void;
 }
 
-const FILTER_KEYS: Record<FeedFilter, string> = {
-  all: "feed.filterAll",
-  following: "feed.filterFollowing",
-  categories: "feed.filterCategories",
-  saved: "feed.filterSaved",
-};
+const items: { id: FeedFilter; label: string }[] = [
+  { id: "all", label: "Все" },
+  { id: "following", label: "Подписки" },
+  { id: "categories", label: "По категориям" },
+  { id: "saved", label: "Сохранённое" },
+];
 
 export function FeedFilterTabs({ value, onChange }: Props) {
-  const { t } = useTranslation();
-  const items = (Object.keys(FILTER_KEYS) as FeedFilter[]).map((id) => ({
-    id,
-    label: t(FILTER_KEYS[id]),
-  }));
-
   return (
     <div
       className="sticky top-0 z-20 -mx-3 border-y px-[12px] backdrop-blur lg:mx-0 lg:rounded-[12px] lg:border"

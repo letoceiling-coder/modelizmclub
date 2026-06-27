@@ -1,10 +1,8 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { PhoneIncoming, PhoneOutgoing, PhoneMissed, Phone, MessageSquare } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCalls, calls, formatCallDuration, type CallRecord } from "@/lib/calls";
-import { avatarUrl } from "@/lib/utils/time";
-import { createConversation } from "@/lib/api/chat";
-import { ROUTE_SEARCH } from "@/lib/route-search";
+import { userById } from "@/lib/mock";
+import { openOrCreateDialogWith } from "@/lib/store";
 
 function formatWhen(ts: number): string {
   const d = new Date(ts);
@@ -14,8 +12,8 @@ function formatWhen(ts: number): string {
   yest.setDate(now.getDate() - 1);
   const isYest = d.toDateString() === yest.toDateString();
   const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-  if (same) return tStatic("calls.list.today", { time });
-  if (isYest) return tStatic("calls.list.yesterday", { time });
+  if (same) return `Сегодня · ${time}`;
+  if (isYest) return `Вчера · ${time}`;
   return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + " · " + time;
 }
 
@@ -30,7 +28,6 @@ interface Props {
 }
 
 export function CallsList({ onOpenChat }: Props) {
-  const { t } = useTranslation();
   const history = useCalls((s) => s.history);
   const navigate = useNavigate();
 
@@ -43,9 +40,11 @@ export function CallsList({ onOpenChat }: Props) {
         >
           <Phone size={36} />
         </div>
-        <div className="mt-4 font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("calls.listEmpty")}</div>
+        <div className="mt-4 font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+          Пока нет звонков
+        </div>
         <div className="mt-1 text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          {t("calls.listHint")}
+          Совершите вызов из любого диалога
         </div>
       </div>
     );
@@ -56,8 +55,7 @@ export function CallsList({ onOpenChat }: Props) {
   return (
     <ul>
       {sorted.map((rec) => {
-        const peerName = rec.peerId;
-        const peerAvatar = avatarUrl(peerName);
+        const peer = userById(rec.peerId);
         const isMissed = rec.result === "missed";
         return (
           <li
@@ -65,19 +63,19 @@ export function CallsList({ onOpenChat }: Props) {
             className="flex items-center gap-[12px] px-[16px] py-[12px]"
             style={{ borderBottom: "1px solid var(--border)" }}
           >
-            <img src={peerAvatar} alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
+            <img src={peer.avatar} alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
             <div className="min-w-0 flex-1">
               <div
                 className="truncate font-display text-[14px] font-semibold"
                 style={{ color: isMissed ? "var(--error)" : "var(--foreground)" }}
               >
-                {peerName}
+                {peer.name}
               </div>
               <div className="mt-[2px] flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
                 <CallIcon rec={rec} />
                 <span>
-                  {rec.direction === "incoming" ? t("calls.incoming") : t("calls.outgoing")}
-                  {rec.result === "missed" ? t("calls.missedSuffix") : rec.durationSec > 0 ? ` · ${formatCallDuration(rec.durationSec)}` : ""}
+                  {rec.direction === "incoming" ? "Входящий" : "Исходящий"}
+                  {rec.result === "missed" ? " · пропущен" : rec.durationSec > 0 ? ` · ${formatCallDuration(rec.durationSec)}` : ""}
                 </span>
               </div>
               <div className="mt-[2px] font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
@@ -90,26 +88,22 @@ export function CallsList({ onOpenChat }: Props) {
                 onClick={() => calls.start(rec.peerId)}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                aria-label={t("calls.redial")}
-                title={t("calls.redial")}
+                aria-label="Перезвонить"
+                title="Перезвонить"
               >
                 <Phone size={16} />
               </button>
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    const conv = await createConversation(Number(rec.peerId));
-                    onOpenChat(conv.id);
-                    navigate({ to: "/messenger", search: { chat: conv.id } });
-                  } catch {
-                    navigate({ to: "/messenger", search: ROUTE_SEARCH.messenger });
-                  }
+                onClick={() => {
+                  const did = openOrCreateDialogWith(rec.peerId);
+                  onOpenChat(did);
+                  navigate({ to: "/messenger", search: { chat: did } });
                 }}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
-                aria-label={t("calls.openChat")}
-                title={t("calls.openChat")}
+                aria-label="Открыть чат"
+                title="Открыть чат"
               >
                 <MessageSquare size={16} />
               </button>

@@ -1,12 +1,10 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { fetchConversations, sendMessage } from "@/lib/api/chat";
-import type { Conversation } from "@/lib/types";
-import { avatarUrl } from "@/lib/utils/time";
+import { useStore, selectors, openOrCreateDialogWith, actions } from "@/lib/store";
+import { userById, me } from "@/lib/mock";
 
 interface Props {
   postId: string;
@@ -18,24 +16,12 @@ interface Props {
 type View = "main" | "chats";
 
 export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
-  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const ref = useRef<HTMLDivElement>(null);
+  const dialogs = useStore(selectors.dialogsList);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!open || view !== "chats") return;
-    let cancelled = false;
-    void fetchConversations().then((items) => {
-      if (!cancelled) setConversations(items);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, view]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,23 +59,23 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
     try {
       await navigator.clipboard.writeText(url());
       setCopied(true);
-      toast.success(t("post.linkCopied"));
+      toast.success("Ссылка скопирована");
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      toast.error(t("common.copyLinkFailed"));
+      toast.error("Не удалось скопировать ссылку");
     }
   };
 
   const repostToFeed = () => {
     onRepost();
-    toast.success(reposted ? t("post.repostRemoved") : t("post.repostAdded"));
+    toast.success(reposted ? "Репост отменён" : "Репост добавлен в вашу ленту");
     close();
   };
 
   const shareExternal = async () => {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
-        await navigator.share({ title: tStatic("components.chooserPost"), url: url() });
+        await navigator.share({ title: "Публикация", url: url() });
         close();
         return;
       } catch {
@@ -100,15 +86,17 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
     close();
   };
 
-  const sendToChat = async (conversationId: string, partnerName: string) => {
-    try {
-      await sendMessage(conversationId, t("post.repostShareText", { url: url() }));
-      toast.success(t("post.repostSent", { name: partnerName }));
-      close();
-      navigate({ to: "/messenger", search: { chat: conversationId } });
-    } catch {
-      toast.error(t("common.error"));
-    }
+  const sendToChat = (dialogId: string, partnerName: string) => {
+    actions.addMessage(dialogId, {
+      id: `nm${Date.now()}`,
+      authorId: me.id,
+      time: new Date().toISOString(),
+      text: `🔗 Поделился публикацией: ${url()}`,
+      status: "sent",
+    });
+    toast.success(`Отправлено ${partnerName}`);
+    close();
+    navigate({ to: "/messenger", search: { chat: dialogId } });
   };
 
   return (
@@ -120,7 +108,7 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",
         }}
-        aria-label={t("post.repostTitle")}
+        aria-label="Репост"
         aria-expanded={open}
       >
         <Repeat2 className="h-[16px] w-[16px]" />
@@ -143,16 +131,16 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
           >
             {view === "main" && (
               <>
-                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("post.repostCancel") : t("post.repostToFeed")} accent />
-                <Item onClick={() => setView("chats")} icon={MessageSquare} label={t("post.repostToMessages")} />
+                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? "Отменить репост" : "Репост в ленту"} accent />
+                <Item onClick={() => setView("chats")} icon={MessageSquare} label="Отправить в сообщения" />
                 <Item
                   onClick={copyLink}
                   icon={copied ? Check : Link2}
-                  label={copied ? t("post.menuCopied") : t("post.menuCopyLink")}
+                  label={copied ? "Скопировано" : "Скопировать ссылку"}
                   accent={copied}
                 />
                 <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item onClick={shareExternal} icon={Share2} label={t("post.repostExternal")} />
+                <Item onClick={shareExternal} icon={Share2} label="Внешние сети" />
               </>
             )}
             {view === "chats" && (
@@ -163,24 +151,25 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
                   className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
                   style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
                 >
-                  <ArrowLeft className="h-[14px] w-[14px]" />{t("post.repostWhere")}</button>
+                  <ArrowLeft className="h-[14px] w-[14px]" /> Куда отправить
+                </button>
                 <div className="max-h-[280px] overflow-y-auto">
-                  {conversations.length === 0 ? (
-                    <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("messenger.noDialogs")}</div>
+                  {dialogs.length === 0 ? (
+                    <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                      Нет диалогов
+                    </div>
                   ) : (
-                    conversations.map((d) => {
-                      const partner = d.participants[0];
-                      const name = partner?.name ?? d.title;
-                      const avatar = partner?.avatar ?? avatarUrl(name);
+                    dialogs.map((d) => {
+                      const u = userById(d.userId);
                       return (
                         <button
                           key={d.id}
                           type="button"
-                          onClick={() => sendToChat(d.id, name)}
+                          onClick={() => sendToChat(d.id, u.name)}
                           className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                         >
-                          <img src={avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
-                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>{name}</span>
+                          <img src={u.avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
+                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>{u.name}</span>
                         </button>
                       );
                     })

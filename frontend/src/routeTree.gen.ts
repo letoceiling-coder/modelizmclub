@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as SubscriptionRouteImport } from './routes/subscription'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RecoverRouteImport } from './routes/recover'
@@ -43,11 +42,6 @@ import { Route as AdsIdRouteImport } from './routes/ads.$id'
 import { Route as CategoriesIdIndexRouteImport } from './routes/categories.$id.index'
 import { Route as CategoriesIdSubIdRouteImport } from './routes/categories.$id.$subId'
 
-const VerifyEmailRoute = VerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SubscriptionRoute = SubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
@@ -228,7 +222,6 @@ export interface FileRoutesByFullPath {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/subscription': typeof SubscriptionRoute
-  '/verify-email': typeof VerifyEmailRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/categories/$id': typeof CategoriesIdRouteWithChildren
@@ -260,7 +253,6 @@ export interface FileRoutesByTo {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/subscription': typeof SubscriptionRoute
-  '/verify-email': typeof VerifyEmailRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/channel/$id': typeof ChannelIdRoute
@@ -295,7 +287,6 @@ export interface FileRoutesById {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/subscription': typeof SubscriptionRoute
-  '/verify-email': typeof VerifyEmailRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/categories/$id': typeof CategoriesIdRouteWithChildren
@@ -332,7 +323,6 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/subscription'
-    | '/verify-email'
     | '/ads/$id'
     | '/ads/new'
     | '/categories/$id'
@@ -364,7 +354,6 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/subscription'
-    | '/verify-email'
     | '/ads/$id'
     | '/ads/new'
     | '/channel/$id'
@@ -398,7 +387,6 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/subscription'
-    | '/verify-email'
     | '/ads/$id'
     | '/ads/new'
     | '/categories/$id'
@@ -434,7 +422,6 @@ export interface RootRouteChildren {
   RecoverRoute: typeof RecoverRoute
   RegisterRoute: typeof RegisterRoute
   SubscriptionRoute: typeof SubscriptionRoute
-  VerifyEmailRoute: typeof VerifyEmailRoute
   ChannelIdRoute: typeof ChannelIdRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalRulesRoute: typeof LegalRulesRoute
@@ -444,13 +431,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/verify-email': {
-      id: '/verify-email'
-      path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof VerifyEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/subscription': {
       id: '/subscription'
       path: '/subscription'
@@ -753,7 +733,6 @@ const rootRouteChildren: RootRouteChildren = {
   RecoverRoute: RecoverRoute,
   RegisterRoute: RegisterRoute,
   SubscriptionRoute: SubscriptionRoute,
-  VerifyEmailRoute: VerifyEmailRoute,
   ChannelIdRoute: ChannelIdRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalRulesRoute: LegalRulesRoute,
@@ -763,13 +742,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

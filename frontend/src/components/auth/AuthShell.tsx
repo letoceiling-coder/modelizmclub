@@ -1,4 +1,3 @@
-import { useTranslation } from "@/lib/i18n";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export function AuthShell({ title, subtitle, children, footer }: Props) {
-  const { t } = useTranslation();
   return (
     <div
       className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]"
@@ -40,7 +38,9 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
                 color: "rgba(255,255,255,0.7)",
                 textTransform: "uppercase",
               }}
-            >{t("auth.shellVersion")}</div>
+            >
+              МоДелизМ Форум · v2.1
+            </div>
             <h2
               style={{
                 fontFamily: "var(--font-display)",
@@ -51,10 +51,16 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
                 marginTop: 16,
                 maxWidth: 460,
               }}
-            >{t("index.heroBadge")}</h2>
-            <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>{t("auth.shellDesc")}</p>
+            >
+              Сообщество моделистов
+            </h2>
+            <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
+              Сборки, обсуждения, объявления и тематические чаты — для тех, для кого моделизм это жизнь.
+            </p>
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>{t("auth.shellQuote")}</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
+            «Моделизм — это жизнь, остальное детали»
+          </div>
         </div>
       </div>
 

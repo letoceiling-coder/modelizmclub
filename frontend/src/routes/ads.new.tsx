@@ -1,14 +1,8 @@
-import { useTranslation, tStatic } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
-import type { AdCondition, Category } from "@/lib/types";
-import { fetchListingCategories, fetchCities } from "@/lib/api/catalog";
-import { createListing } from "@/lib/api/listings";
-import { uploadMedia } from "@/lib/api/media";
-import { hasAuthForApi } from "@/lib/api/auth-api";
+import { categories, type AdCondition } from "@/lib/mock";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { SuccessModal } from "@/components/ads/wizard/SuccessModal";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
@@ -19,7 +13,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/ads/new")({
-  head: () => ({ meta: [{ title: tStatic("ads.newMetaTitle") }] }),
+  head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ Форум" }] }),
   component: NewAdPage,
 });
 
@@ -27,23 +21,10 @@ type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
 const DELIVERIES = ["СДЭК", "Почта России", "Яндекс Доставка", "Ozon", "Wildberries"];
 const MAX_PHOTOS = 10;
-
-const STATUS_I18N = { "Продаю": "ads.statusSell", "Куплю": "ads.statusBuy", "Обменяю": "ads.statusSwap" } as const;
-const CONDITION_I18N: Record<AdCondition, string> = {
-  "Новое": "ads.conditionNew",
-  "Б/у — отлично": "ads.conditionExcellent",
-  "Б/у — хорошо": "ads.conditionGood",
-  "Под восстановление": "ads.conditionRestore",
-};
-
-interface Photo {
-  url: string;
-  uuid?: string;
-  uploading?: boolean;
-}
+const STEPS = ["Фото", "Данные", "Превью"];
 
 interface Form {
-  photos: Photo[];
+  photos: string[];
   status: Status;
   title: string;
   description: string;
@@ -51,115 +32,58 @@ interface Form {
   categoryId: string;
   subcategoryId: string;
   condition: AdCondition;
-  cityId: string;
+  city: string;
   contact: string;
   deliveries: string[];
 }
 
-const emptyInitial = (): Form => ({
+const initial: Form = {
   photos: [],
   status: "Продаю",
   title: "",
   description: "",
   price: "",
-  categoryId: "",
-  subcategoryId: "",
+  categoryId: categories[0].id,
+  subcategoryId: categories[0].subcategories[0].id,
   condition: "Б/у — отлично",
-  cityId: "",
+  city: "",
   contact: "",
   deliveries: ["СДЭК"],
-});
+};
 
 function NewAdPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [cities, setCities] = useState<{ id: number; name: string }[]>([]);
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<Form>(emptyInitial);
+  const [form, setForm] = useState<Form>(initial);
   const [success, setSuccess] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    void fetchListingCategories().then((items) => {
-      setCategories(items);
-      if (items[0]) {
-        setForm((f) => ({
-          ...f,
-          categoryId: items[0].id,
-          subcategoryId: items[0].subcategories?.[0]?.id ?? "",
-        }));
-      }
-    }).catch(() => setCategories([]));
-    void fetchCities().then((items) => {
-      setCities(items);
-      if (items[0]) setForm((f) => (f.cityId ? f : { ...f, cityId: String(items[0].id) }));
-    }).catch(() => setCities([]));
-  }, []);
-
-  const cat = useMemo(() => categories.find((c) => c.id === form.categoryId), [categories, form.categoryId]);
-  const uploading = form.photos.some((p) => p.uploading);
+  const cat = useMemo(() => categories.find((c) => c.id === form.categoryId)!, [form.categoryId]);
 
   const valid = useMemo(() => {
-    if (step === 1) return form.photos.length > 0 && !uploading;
-    if (step === 2) return form.title.trim().length >= 4 && Boolean(form.price) && Boolean(form.cityId) && form.contact.trim().length > 0;
+    if (step === 1) return form.photos.length > 0;
+    if (step === 2) return form.title.trim().length >= 4 && form.price && form.city.trim() && form.contact.trim();
     return true;
-  }, [step, form, uploading]);
+  }, [step, form]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const stepLabels = [t("ads.stepPhotos"), t("ads.stepData"), t("ads.stepPreview")];
-  const statusLabel = (s: Status) => t(STATUS_I18N[s]);
-
-  const submit = async () => {
-    if (!hasAuthForApi()) {
-      toast.error(t("ads.authRequired"));
-      navigate({ to: "/login" });
-      return;
-    }
-    const mediaIds = form.photos.map((p) => p.uuid).filter((u): u is string => Boolean(u));
-    const categoryId = Number(form.subcategoryId || form.categoryId);
-    if (!categoryId) {
-      toast.error(t("ads.categoryRequired"));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await createListing({
-        title: form.title.trim(),
-        description: form.description.trim() || form.title.trim(),
-        category_id: Number(form.categoryId),
-        subcategory_id: form.subcategoryId ? Number(form.subcategoryId) : undefined,
-        price_cents: Math.round(Number(form.price || 0) * 100),
-        city_id: form.cityId ? Number(form.cityId) : undefined,
-        delivery_methods: form.deliveries,
-        media_ids: mediaIds,
-        publish: true,
-      });
-      setSuccess(true);
-    } catch {
-      toast.error(t("ads.publishError"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[120px]">
         <header className="space-y-[6px]">
           <Link to="/ads" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            <ChevronLeft size={14} /> {t("ads.backToList")}
+            <ChevronLeft size={14} /> Назад к объявлениям
           </Link>
           <h1 className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
             style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            {t("ads.newTitle")}
+            Новое объявление
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
-            {t("ads.newSubtitle")}
+            Размещение — 20 ₽. После оплаты объявление пройдёт модерацию.
           </p>
         </header>
 
-        <StepIndicator current={step} labels={stepLabels} />
+        <StepIndicator current={step} labels={STEPS} />
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -170,8 +94,8 @@ function NewAdPage() {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && cat && <StepData form={form} set={set} cat={cat} categories={categories} cities={cities} />}
-            {step === 3 && cat && <StepPreview form={form} cat={cat} statusLabel={statusLabel} cities={cities} />}
+            {step === 2 && <StepData form={form} set={set} cat={cat} />}
+            {step === 3 && <StepPreview form={form} cat={cat} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -198,7 +122,8 @@ function NewAdPage() {
               height: 44,
             }}
           >
-            <ChevronLeft size={16} />{t("common.back")}</button>
+            <ChevronLeft size={16} /> Назад
+          </button>
           {step < 3 ? (
             <button
               type="button"
@@ -213,14 +138,13 @@ function NewAdPage() {
                 height: 44,
               }}
             >
-              {t("ads.next")} <ChevronRight size={16} />
+              Далее <ChevronRight size={16} />
             </button>
           ) : (
             <button
               type="button"
-              disabled={submitting}
-              onClick={() => void submit()}
-              className="inline-flex items-center gap-[8px] px-[22px] text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+              onClick={() => setSuccess(true)}
+              className="inline-flex items-center gap-[8px] px-[22px] text-[13px] font-semibold transition-opacity hover:opacity-90"
               style={{
                 background: "var(--accent)",
                 color: "#fff",
@@ -229,7 +153,7 @@ function NewAdPage() {
                 height: 44,
               }}
             >
-              <CreditCard size={16} /> {submitting ? t("ads.publishing") : t("ads.payAndPublish")}
+              <CreditCard size={16} /> Оплатить 20 ₽ и опубликовать
             </button>
           )}
         </div>
@@ -242,45 +166,27 @@ function NewAdPage() {
 
 /* ────────── STEP 1: Photos ────────── */
 function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
-  const { t } = useTranslation();
-  const [photos, setPhotos] = useState<Photo[]>(form.photos);
-
-  useEffect(() => {
-    set("photos", photos);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photos]);
-
-  const addPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS - photos.length);
-    e.target.value = "";
-    for (const file of files) {
-      const url = URL.createObjectURL(file);
-      setPhotos((prev) => [...prev, { url, uploading: true }]);
-      try {
-        const media = await uploadMedia(file, "listing");
-        setPhotos((prev) => prev.map((p) => (p.url === url ? { url: media.url ?? url, uuid: media.uuid } : p)));
-      } catch {
-        toast.error(t("ads.photoUploadError"));
-        setPhotos((prev) => prev.filter((p) => p.url !== url));
-      }
-    }
+  const addPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const urls = files.slice(0, MAX_PHOTOS - form.photos.length).map((f) => URL.createObjectURL(f));
+    set("photos", [...form.photos, ...urls]);
   };
-  const remove = (i: number) => setPhotos((prev) => prev.filter((_, j) => j !== i));
-  const makeMain = (i: number) => setPhotos((prev) => {
-    const next = [...prev];
+  const remove = (i: number) => set("photos", form.photos.filter((_, j) => j !== i));
+  const makeMain = (i: number) => {
+    const next = [...form.photos];
     const [m] = next.splice(i, 1);
     next.unshift(m);
-    return next;
-  });
+    set("photos", next);
+  };
 
   return (
     <section className="space-y-[20px]">
       <div>
         <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-          {t("ads.photosTitle")}
+          Фотографии
         </h2>
         <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          {t("ads.photosHint", { n: MAX_PHOTOS })}
+          До {MAX_PHOTOS} фото. Первое — главное в карточке.
         </p>
       </div>
 
@@ -297,17 +203,17 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
           <ImagePlus size={24} />
         </div>
         <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-          {t("ads.photosDrop")}
+          Перетащите фото или нажмите, чтобы выбрать
         </div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("ads.photosFormat")}</div>
-        <input type="file" accept="image/*" multiple onChange={(e) => void addPhoto(e)} className="hidden" />
+        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>JPG, PNG до 10 МБ</div>
+        <input type="file" accept="image/*" multiple onChange={addPhoto} className="hidden" />
       </label>
 
-      {photos.length > 0 && (
+      {form.photos.length > 0 && (
         <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 md:grid-cols-4">
-          {photos.map((photo, i) => (
+          {form.photos.map((src, i) => (
             <motion.div
-              key={photo.url}
+              key={src}
               layout={false}
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.18 }}
@@ -319,29 +225,24 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
                 borderRadius: "var(--r-card-sm)",
               }}
             >
-              <img src={photo.url} alt="" className="h-full w-full object-cover" style={{ opacity: photo.uploading ? 0.5 : 1 }} />
-              {photo.uploading && (
-                <span className="absolute inset-0 grid place-items-center text-[11px] font-semibold" style={{ background: "rgba(0,0,0,0.35)", color: "#fff" }}>
-                  {t("ads.photoUploading")}
-                </span>
-              )}
-              {i === 0 && !photo.uploading && (
+              <img src={src} alt="" className="h-full w-full object-cover" />
+              {i === 0 && (
                 <span
                   className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
                   style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
                 >
-                  <Star size={9} fill="currentColor" /> {t("ads.photoMain")}
+                  <Star size={9} fill="currentColor" /> Главное
                 </span>
               )}
               <div className="absolute right-[6px] top-[6px] flex gap-[4px] opacity-0 transition-opacity group-hover:opacity-100">
                 {i !== 0 && (
-                  <button type="button" onClick={() => makeMain(i)} title={t("ads.photoMakeMain")}
+                  <button type="button" onClick={() => makeMain(i)} title="Сделать главным"
                     className="grid h-[28px] w-[28px] place-items-center"
                     style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}>
                     <Star size={12} />
                   </button>
                 )}
-                <button type="button" onClick={() => remove(i)} title={t("ads.photoRemove")}
+                <button type="button" onClick={() => remove(i)} title="Удалить"
                   className="grid h-[28px] w-[28px] place-items-center"
                   style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}>
                   <X size={12} />
@@ -356,67 +257,65 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 }
 
 /* ────────── STEP 2: Data ────────── */
-function StepData({ form, set, cat, categories, cities }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: Category; categories: Category[]; cities: { id: number; name: string }[] }) {
-  const { t } = useTranslation();
+function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: (typeof categories)[number] }) {
   return (
     <section className="space-y-[24px]">
-      <Block title={t("ads.blockType")}>
+      <Block title="Тип объявления">
         <div className="grid gap-[10px] sm:grid-cols-3">
           <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
-            icon={Tag} title={t("ads.statusSell")} description={t("ads.statusSellDesc")} accentVar="var(--accent)" />
+            icon={Tag} title="Продаю" description="Хочу продать вещь" accentVar="var(--accent)" />
           <RadioCard selected={form.status === "Куплю"} onClick={() => set("status", "Куплю")}
-            icon={ShoppingCart} title={t("ads.statusBuy")} description={t("ads.statusBuyDesc")} accentVar="var(--info)" />
+            icon={ShoppingCart} title="Куплю" description="Ищу для покупки" accentVar="var(--info)" />
           <RadioCard selected={form.status === "Обменяю"} onClick={() => set("status", "Обменяю")}
-            icon={ArrowLeftRight} title={t("ads.statusSwap")} description={t("ads.statusSwapDesc")} accentVar="var(--warning)" />
+            icon={ArrowLeftRight} title="Обменяю" description="Готов на обмен" accentVar="var(--warning)" />
         </div>
       </Block>
 
-      <Block title={t("ads.blockDescription")}>
-        <Field label={t("ads.fieldTitle")} required>
-          <Input value={form.title} onChange={(v) => set("title", v)} placeholder={t("ads.titlePlaceholder")} />
+      <Block title="Описание">
+        <Field label="Название" required>
+          <Input value={form.title} onChange={(v) => set("title", v)} placeholder="Двигатель Picco .21 для багги 1:8" />
         </Field>
-        <Field label={t("ads.fieldDescription")}>
+        <Field label="Подробное описание">
           <Textarea value={form.description} onChange={(v) => set("description", v)}
-            placeholder={t("ads.descPlaceholder")} rows={5} />
+            placeholder="Состояние, история использования, комплектация…" rows={5} />
         </Field>
       </Block>
 
-      <Block title={t("ads.blockParams")}>
+      <Block title="Параметры">
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label={t("ads.fieldPrice")} required>
+          <Field label="Цена, ₽" required>
             <Input value={form.price} onChange={(v) => set("price", v.replace(/\D/g, ""))} placeholder="0" inputMode="numeric" />
           </Field>
-          <Field label={t("ads.fieldCondition")}>
+          <Field label="Состояние">
             <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)}
-              options={CONDITIONS.map((c) => ({ value: c, label: t(CONDITION_I18N[c]) }))} />
+              options={CONDITIONS} />
           </Field>
-          <Field label={t("ads.fieldCategory")}>
+          <Field label="Категория">
             <NativeSelect value={form.categoryId}
               onChange={(v) => {
                 const c = categories.find((x) => x.id === v)!;
                 set("categoryId", v);
-                set("subcategoryId", c.subcategories?.[0]?.id ?? "");
+                set("subcategoryId", c.subcategories[0].id);
               }}
               options={categories.map((c) => ({ label: c.name, value: c.id }))} />
           </Field>
-          <Field label={t("ads.fieldSubcategory")}>
+          <Field label="Подкатегория">
             <NativeSelect value={form.subcategoryId} onChange={(v) => set("subcategoryId", v)}
-              options={cat.subcategories?.map((s) => ({ label: s.name, value: s.id })) ?? []} />
+              options={cat.subcategories.map((s) => ({ label: s.name, value: s.id }))} />
           </Field>
         </div>
       </Block>
 
-      <Block title={t("ads.blockContacts")}>
+      <Block title="Контакты и доставка">
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label={t("ads.fieldCity")} required>
-            <NativeSelect value={form.cityId} onChange={(v) => set("cityId", v)}
-              options={cities.map((c) => ({ label: c.name, value: String(c.id) }))} />
+          <Field label="Город" required>
+            <Input value={form.city} onChange={(v) => set("city", v)} placeholder="Краснодар" leftIcon={<MapPin size={14} />} />
           </Field>
-          <Field label={t("ads.fieldContact")} required>
-            <Input value={form.contact} onChange={(v) => set("contact", v)} placeholder={t("ads.contactPlaceholder")} />
+          <Field label="Контакт" required>
+            <Input value={form.contact} onChange={(v) => set("contact", v)} placeholder="+7 999 000-00-00 или @telegram" />
           </Field>
         </div>
-        <Field label={t("ads.fieldDelivery")}>
+        <Field label="Способы доставки">
           <div className="flex flex-wrap gap-[6px]">
             {DELIVERIES.map((d) => (
               <Checkbox key={d}
@@ -433,26 +332,24 @@ function StepData({ form, set, cat, categories, cities }: { form: Form; set: <K 
 }
 
 /* ────────── STEP 3: Preview ────────── */
-function StepPreview({ form, cat, statusLabel, cities }: { form: Form; cat: Category; statusLabel: (s: Status) => string; cities: { id: number; name: string }[] }) {
-  const { t } = useTranslation();
-  const sub = cat.subcategories?.find((s) => s.id === form.subcategoryId);
-  const cityName = cities.find((c) => String(c.id) === form.cityId)?.name ?? "—";
+function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[number] }) {
+  const sub = cat.subcategories.find((s) => s.id === form.subcategoryId);
   const status = form.status;
   const statusStyle = status === "Продаю"
     ? { bg: "var(--accent-soft)", fg: "var(--accent)" }
     : status === "Куплю"
     ? { bg: "var(--info-soft)", fg: "var(--info)" }
     : { bg: "var(--warning-soft)", fg: "var(--warning)" };
-  const image = form.photos[0]?.url;
+  const image = form.photos[0] ?? "https://picsum.photos/seed/preview/800/600";
 
   return (
     <section className="space-y-[20px]">
       <div>
         <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-          {t("ads.previewTitle")}
+          Превью
         </h2>
         <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          {t("ads.previewHint")}
+          Так ваше объявление увидят покупатели.
         </p>
       </div>
 
@@ -467,14 +364,14 @@ function StepPreview({ form, cat, statusLabel, cities }: { form: Form; cat: Cate
           }}
         >
           <div className="relative" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
-            {image && <img src={image} alt="" className="h-full w-full object-cover" />}
+            <img src={image} alt="" className="h-full w-full object-cover" />
             <span className="absolute left-[10px] top-[10px] px-[10px] py-[4px] text-[11px] font-semibold uppercase"
               style={{ background: statusStyle.bg, color: statusStyle.fg, borderRadius: "var(--r-pill)" }}>
-              {statusLabel(status)}
+              {status}
             </span>
           </div>
           <div className="space-y-[8px] p-[14px]">
-            <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{form.title || t("ads.titleFallback")}</div>
+            <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{form.title || "Название объявления"}</div>
             <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>
               {Number(form.price || 0).toLocaleString("ru")} ₽
             </div>
@@ -493,21 +390,21 @@ function StepPreview({ form, cat, statusLabel, cities }: { form: Form; cat: Cate
             boxShadow: "var(--shadow-card)",
           }}
         >
-          <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{form.title || t("ads.titleFallback")}</h3>
+          <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{form.title || "Название объявления"}</h3>
           <p className="text-[13px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
-            {form.description || t("ads.descFallback")}
+            {form.description || "Описание не заполнено."}
           </p>
           <div className="grid gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            <div className="inline-flex items-center gap-[6px]"><MapPin size={14} /> {cityName}</div>
+            <div className="inline-flex items-center gap-[6px]"><MapPin size={14} /> {form.city || "—"}</div>
             <div className="inline-flex items-center gap-[6px]"><Truck size={14} /> {form.deliveries.join(", ") || "—"}</div>
-            <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {t(CONDITION_I18N[form.condition])}</div>
+            <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {form.condition}</div>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-[12px] p-[14px] text-[12px]"
         style={{ background: "var(--info-soft)", color: "var(--info)", borderRadius: "var(--r-card-sm)" }}>
-        <CreditCard size={16} /> {t("ads.payNote")}
+        <CreditCard size={16} /> После оплаты 20 ₽ объявление отправится на модерацию (обычно до 60 минут).
       </div>
     </section>
   );

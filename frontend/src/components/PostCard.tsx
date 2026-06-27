@@ -1,12 +1,8 @@
-import { useTranslation } from "@/lib/i18n";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2 } from "lucide-react";
-import type { Post, Comment } from "@/lib/types";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { avatarUrl } from "@/lib/utils/time";
-import { reactToPost, bookmarkPost, repostPost, fetchPostComments, createPostComment } from "@/lib/api/feed";
-import { toast } from "sonner";
+import type { Post, Comment } from "@/lib/mock";
+import { userById, me } from "@/lib/mock";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { RepostMenu } from "@/components/feed/RepostMenu";
@@ -20,10 +16,8 @@ interface Props {
 }
 
 export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
-  const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
-  const author = post.author;
-  const reposter = post.repostedBy ?? null;
+  const author = userById(post.authorId);
+  const reposter = post.repostedBy ? userById(post.repostedBy) : null;
 
   const [liked, setLiked] = useState(!!post.isLiked);
   const [savedInner, setSavedInner] = useState(!!post.isSaved);
@@ -36,17 +30,6 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
-  const [commentsLoaded, setCommentsLoaded] = useState(false);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-
-  useEffect(() => {
-    if (!commentsOpen || commentsLoaded) return;
-    setCommentsLoading(true);
-    void fetchPostComments(post.id).then((items) => {
-      setCommentList(items);
-      setCommentsLoaded(true);
-    }).finally(() => setCommentsLoading(false));
-  }, [commentsOpen, commentsLoaded, post.id]);
 
   const isLong = post.text.length > 220;
   const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
@@ -54,49 +37,34 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
 
   const toggleLike = () => {
-    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
-    const next = !liked;
-    setLiked(next);
-    setLikes((n) => n + (next ? 1 : -1));
-    void reactToPost(post.id, next).catch(() => {
-      setLiked(!next);
-      setLikes((n) => n + (next ? -1 : 1));
-    });
+    setLiked((v) => !v);
+    setLikes((n) => n + (liked ? -1 : 1));
   };
   const toggleSave = () => {
-    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
-    const next = !saved;
     if (onToggleSave) onToggleSave(post.id);
-    else setSavedInner(next);
-    setSaves((n) => n + (next ? 1 : -1));
-    void bookmarkPost(post.id, next).catch(() => {
-      if (onToggleSave) onToggleSave(post.id);
-      else setSavedInner(!next);
-      setSaves((n) => n + (next ? -1 : 1));
-    });
+    else setSavedInner((v) => !v);
+    setSaves((n) => n + (saved ? -1 : 1));
   };
   const toggleRepost = () => {
-    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
-    if (reposted) return;
-    setReposted(true);
-    setReposts((n) => n + 1);
-    void repostPost(post.id).then(() => toast.success(t("post.reposted"))).catch(() => {
-      setReposted(false);
-      setReposts((n) => n - 1);
-    });
+    setReposted((v) => !v);
+    setReposts((n) => n + (reposted ? -1 : 1));
   };
 
   const addComment = (text: string, parentId?: string) => {
-    if (!isAuthenticated) return toast.error(t("auth.loginRequired"));
-    void createPostComment(post.id, text, parentId).then((created) => {
-      if (!created) return toast.error(t("common.error"));
-      setCommentList((list) => {
-        if (!parentId) return [...list, created];
-        return list.map((c) =>
-          c.id === parentId ? { ...c, replies: [...(c.replies ?? []), created] } : c,
-        );
-      });
-    }).catch(() => toast.error(t("common.error")));
+    const newC: Comment = {
+      id: `nc${Date.now()}`,
+      authorId: me.id,
+      time: "только что",
+      text,
+      likes: 0,
+      replies: [],
+    };
+    setCommentList((list) => {
+      if (!parentId) return [...list, newC];
+      return list.map((c) =>
+        c.id === parentId ? { ...c, replies: [...(c.replies ?? []), newC] } : c,
+      );
+    });
   };
 
   return (
@@ -121,26 +89,28 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           }}
         >
           <Repeat2 className="h-[14px] w-[14px]" style={{ color: "var(--accent)" }} />
-          <span>{t("post.repostedBy", { name: reposter.name })}</span>
+          <span>
+            <span style={{ color: "var(--foreground)", fontWeight: 600 }}>{reposter.name}</span> сделал репост
+          </span>
         </div>
       )}
 
       <header className="flex items-center gap-[12px] px-[16px] pt-[16px]">
-        <img src={author.avatar ?? avatarUrl(author.name)} alt={author.name} className="h-[40px] w-[40px] rounded-full" />
+        <img src={author.avatar} alt={author.name} className="h-[40px] w-[40px] rounded-full" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[8px]">
             <span className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
               {author.name}
             </span>
             {post.status === "moderation" && (
-              <StatusBadge variant="moderation">{t("post.onModeration")}</StatusBadge>
+              <StatusBadge variant="moderation">На модерации</StatusBadge>
             )}
           </div>
           <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
             {post.date} · {post.category}
           </div>
         </div>
-        <PostActionMenu postId={post.id} saved={saved} title={post.title} text={post.text} onToggleSave={toggleSave} />
+        <PostActionMenu postId={post.id} saved={saved} title={post.title} text={post.text} />
 
       </header>
 
@@ -180,7 +150,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
         </p>
         {isLong && (
           <span className="mt-[6px] inline-block text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
-            {expanded ? t("post.collapse") : t("post.readMore")}
+            {expanded ? "Свернуть" : "Читать полностью"}
           </span>
         )}
       </button>
@@ -204,7 +174,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           onClick={toggleLike}
           className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
-          aria-label={t("post.like")}
+          aria-label="Нравится"
         >
           <motion.span
             key={liked ? "on" : "off"}
@@ -231,7 +201,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           onClick={() => setCommentsOpen((v) => !v)}
           className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: commentsOpen ? "var(--accent)" : "var(--foreground-70)" }}
-          aria-label={t("post.comments")}
+          aria-label="Комментарии"
         >
           <MessageCircle className="h-[16px] w-[16px]" />
           <span>{commentsCount}</span>
@@ -243,7 +213,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
           onClick={toggleSave}
           className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: saved ? "var(--accent)" : "var(--foreground-70)" }}
-          aria-label={t("post.save")}
+          aria-label="Сохранить"
         >
           <motion.span whileTap={{ scale: 1.3 }} transition={{ type: "spring", stiffness: 500, damping: 14 }}>
             <Bookmark className="h-[16px] w-[16px]" fill={saved ? "currentColor" : "none"} />
@@ -269,11 +239,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            {commentsLoading ? (
-              <div className="px-4 py-6 text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("common.loading")}</div>
-            ) : (
-              <CommentSection comments={commentList} onAdd={addComment} />
-            )}
+            <CommentSection comments={commentList} onAdd={addComment} />
           </motion.div>
         )}
       </AnimatePresence>

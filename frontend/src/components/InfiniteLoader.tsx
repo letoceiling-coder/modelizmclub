@@ -1,4 +1,3 @@
-import { useTranslation } from "@/lib/i18n";
 import { motion, useInView } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -10,7 +9,6 @@ interface Props {
 }
 
 export function InfiniteLoader({ onLoad, hasMore, isLoading }: Props) {
-  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { margin: "-100px 0px" });
 
@@ -25,7 +23,9 @@ export function InfiniteLoader({ onLoad, hasMore, isLoading }: Props) {
         ref={ref}
         className="flex justify-center py-[24px] text-[13px]"
         style={{ color: "var(--foreground-30)", fontFamily: "var(--font-mono)" }}
-      >{t("common.endOfFeed")}</div>
+      >
+        — конец ленты —
+      </div>
     );
   }
 
@@ -41,7 +41,7 @@ export function InfiniteLoader({ onLoad, hasMore, isLoading }: Props) {
           >
             <Loader2 size={20} />
           </motion.div>
-          <span className="text-[14px]" style={{ fontWeight: 500 }}>{t("common.loading")}</span>
+          <span className="text-[14px]" style={{ fontWeight: 500 }}>Загрузка…</span>
         </div>
       ) : (
         <button
@@ -55,7 +55,9 @@ export function InfiniteLoader({ onLoad, hasMore, isLoading }: Props) {
             borderRadius: "var(--r-button)",
             height: 44,
           }}
-        >{t("common.showMore")}</button>
+        >
+          Показать ещё
+        </button>
       )}
     </div>
   );

@@ -1,37 +1,31 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, MessageCircle } from "lucide-react";
 import * as Icons from "lucide-react";
-import { useTranslation } from "@/lib/i18n";
-import type { Category } from "@/lib/types";
-import { fetchListingCategories } from "@/lib/api/catalog";
+import { categories } from "@/lib/mock";
+import type { Category } from "@/lib/mock";
 
 // Детерминированный «онлайн» по id категории — без бэка, но стабильно от рендера к рендеру.
 function onlineFor(c: Category): number {
-  const seed = String(c.id).split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  return 3 + (seed % 24);
+  const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
+  const base = Math.max(3, Math.round(c.members * 0.012));
+  return base + (seed % 17);
 }
 
-function CategoryIcon({ name, className }: { name?: string; className?: string }) {
+function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon =
-    (name ? (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] : undefined) ??
+    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] ??
     Icons.Hash;
   return <Icon className={className} />;
 }
 
 export function RightCategories() {
-  const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  useEffect(() => {
-    void fetchListingCategories().then(setCategories).catch(() => setCategories([]));
-  }, []);
-
   return (
-    <aside className="hidden min-w-0 xl:block">
+    <aside className="hidden xl:block w-72 shrink-0">
       <div
-        className="sticky top-4 z-20 max-h-[calc(100dvh-2rem)] overflow-hidden rounded-[14px] border"
+        className="sticky top-4 rounded-[14px] border"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
@@ -40,26 +34,23 @@ export function RightCategories() {
             style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
           >
             <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
-            {t("rightPanel.title")}
+            Найди своих
           </h3>
           <p className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            {t("rightPanel.subtitle")}
+            Зайди в чат своего направления
           </p>
         </div>
 
-        <ul className="max-h-[calc(100dvh-12rem)] overflow-y-auto p-[6px]">
+        <ul className="max-h-[calc(100vh-180px)] overflow-y-auto p-[6px]">
           {categories.map((c) => {
-            const id = String(c.id);
-            const linkId = c.slug ?? id;
-            const open = openId === id;
+            const open = openId === c.id;
             const online = onlineFor(c);
-            const subs = c.subcategories ?? [];
             return (
-              <li key={id}>
+              <li key={c.id}>
                 <div className="flex items-stretch">
                   <Link
                     to="/categories/$id"
-                    params={{ id: linkId }}
+                    params={{ id: c.id }}
                     className="group flex flex-1 items-center gap-[10px] rounded-l-[10px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
                   >
                     <span
@@ -77,14 +68,14 @@ export function RightCategories() {
                       </span>
                       <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
                         <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                        {t("common.onlineCount", { n: online })}
+                        {online} онлайн
                       </span>
                     </span>
                   </Link>
-                  {subs.length > 0 && (
+                  {c.subcategories.length > 0 && (
                     <button
-                      onClick={() => setOpenId(open ? null : id)}
-                      aria-label={open ? t("rightPanel.collapseSubs") : t("rightPanel.expandSubs")}
+                      onClick={() => setOpenId(open ? null : c.id)}
+                      aria-label={open ? "Свернуть подкатегории" : "Развернуть подкатегории"}
                       aria-expanded={open}
                       className="grid w-[28px] place-items-center rounded-r-[10px] transition-colors hover:bg-[var(--background-surface)]"
                     >
@@ -96,16 +87,16 @@ export function RightCategories() {
                   )}
                 </div>
 
-                {open && subs.length > 0 && (
+                {open && c.subcategories.length > 0 && (
                   <ul
                     className="mb-[4px] ml-[36px] mt-[2px] space-y-[1px] border-l pl-[10px]"
                     style={{ borderColor: "var(--border)" }}
                   >
-                    {subs.map((s) => (
-                      <li key={String(s.id)}>
+                    {c.subcategories.map((s) => (
+                      <li key={s.id}>
                         <Link
                           to="/categories/$id/$subId"
-                          params={{ id: linkId, subId: s.slug ?? String(s.id) }}
+                          params={{ id: c.id, subId: s.id }}
                           className="block rounded-[6px] px-[8px] py-[5px] text-[12.5px] transition-colors hover:bg-[var(--background-surface)]"
                           style={{ color: "var(--foreground-70)" }}
                         >

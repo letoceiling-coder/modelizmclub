@@ -1,20 +1,18 @@
-import { useTranslation } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, MicOff, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
-import { avatarUrl } from "@/lib/utils/time";
+import { userById } from "@/lib/mock";
 
-const STATUS_KEYS: Record<CallStatus, string> = {
-  ringing: "calls.statusRinging",
-  connecting: "calls.statusConnecting",
-  connected: "calls.statusConnected",
-  ended: "calls.statusEnded",
+const STATUS_LABEL: Record<CallStatus, string> = {
+  ringing: "Вызов...",
+  connecting: "Соединение...",
+  connected: "В разговоре",
+  ended: "Звонок завершён",
 };
 
 export function CallScreen() {
-  const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   const [elapsed, setElapsed] = useState(0);
 
@@ -34,14 +32,14 @@ export function CallScreen() {
   useEffect(() => {
     const unsub = onCallEvent({
       onEnded: (rec) => {
-        const peerName = rec.peerId;
-        if (rec.result === "missed") toast.error(t("calls.noAnswer", { name: peerName }));
-        else if (rec.result === "answered") toast.success(t("calls.callEndedWith", { duration: formatCallDuration(rec.durationSec) }));
-        else toast(t("calls.callEndedShort"));
+        const peer = userById(rec.peerId);
+        if (rec.result === "missed") toast.error(`Нет ответа — ${peer.name}`);
+        else if (rec.result === "answered") toast.success(`Звонок завершён · ${formatCallDuration(rec.durationSec)}`);
+        else toast(`Звонок завершён`);
       },
     });
     return unsub;
-  }, [t]);
+  }, []);
 
   return (
     <AnimatePresence>
@@ -62,7 +60,7 @@ export function CallScreen() {
           }}
           role="dialog"
           aria-modal="true"
-          aria-label={t("calls.callScreenAria")}
+          aria-label="Экран звонка"
         >
           <CallBody elapsed={elapsed} />
           <CallControls />
@@ -73,20 +71,18 @@ export function CallScreen() {
 }
 
 function CallBody({ elapsed }: { elapsed: number }) {
-  const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   if (!active) return null;
-  const peerName = active.peerId;
-  const peerAvatar = avatarUrl(peerName);
+  const peer = userById(active.peerId);
   const statusText =
     active.status === "connected"
       ? formatCallDuration(elapsed)
-      : t(STATUS_KEYS[active.status]);
+      : STATUS_LABEL[active.status];
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
       <div className="text-[12px] uppercase tracking-[0.18em]" style={{ color: "var(--foreground-50)" }}>
-        {active.direction === "outgoing" ? t("calls.outgoing") : t("calls.incoming")}
+        {active.direction === "outgoing" ? "Исходящий" : "Входящий"}
       </div>
 
       <motion.div
@@ -106,14 +102,14 @@ function CallBody({ elapsed }: { elapsed: number }) {
           }}
         />
         <img
-          src={peerAvatar}
+          src={peer.avatar}
           alt=""
           className="relative h-[160px] w-[160px] rounded-full object-cover"
           style={{ boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
         />
       </motion.div>
 
-      <h2 className="mt-6 font-display text-[26px] font-bold leading-tight">{peerName}</h2>
+      <h2 className="mt-6 font-display text-[26px] font-bold leading-tight">{peer.name}</h2>
       <div
         className="mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-medium"
         style={{
@@ -132,17 +128,16 @@ function CallBody({ elapsed }: { elapsed: number }) {
 }
 
 function CallControls() {
-  const { t } = useTranslation();
   const active = useCalls((s) => s.active);
   const ended = active?.status === "ended";
   return (
     <div className="flex w-full max-w-md items-center justify-center gap-6 px-6 pb-2">
-      <SecondaryBtn label={t("calls.microphone")} icon={MicOff} disabled />
+      <SecondaryBtn label="Микрофон" icon={MicOff} disabled />
       <button
         type="button"
         onClick={() => calls.end()}
         disabled={ended}
-        aria-label={t("calls.hangup")}
+        aria-label="Завершить звонок"
         className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95"
         style={{
           background: "var(--error, #ef4444)",
@@ -153,7 +148,7 @@ function CallControls() {
       >
         <PhoneOff size={28} />
       </button>
-      <SecondaryBtn label={t("calls.videoBtn")} icon={Video} disabled />
+      <SecondaryBtn label="Видео" icon={Video} disabled />
     </div>
   );
 }
