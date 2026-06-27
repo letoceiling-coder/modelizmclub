@@ -43,6 +43,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Broadcast::routes(['middleware' => ['auth:sanctum'], 'prefix' => 'api/v1']);
 
+        // Constrain every {uuid} route param to the canonical UUID shape. A
+        // malformed identifier otherwise reaches a Postgres uuid-column query and
+        // surfaces as a 500 ("invalid input syntax for type uuid"); with the
+        // pattern it simply fails to match the route and returns a clean 404.
+        \Illuminate\Support\Facades\Route::pattern('uuid', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
+
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
         RateLimiter::for('auth-verify', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip().'|'.$request->input('email')));
