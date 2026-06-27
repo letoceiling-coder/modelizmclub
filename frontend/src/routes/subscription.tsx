@@ -71,8 +71,8 @@ function SubscriptionPage() {
         const mapped = items.map((p, i) => ({
           id: p.slug,
           name: p.name,
-          price: Math.round(p.priceCents / 100),
-          period: periodLabel(p.periodDays),
+          price: Math.round(p.price_cents / 100),
+          period: periodLabel(p.period_days),
           best: items.length >= 3 ? i === 1 : i === 0,
         }));
         setPlans(mapped);

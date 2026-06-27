@@ -6,7 +6,6 @@ use App\Enums\MediaStatus;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class Media extends Model
 {
@@ -54,12 +53,8 @@ class Media extends Model
             return null;
         }
 
-        $disk = Storage::disk($this->disk);
-
-        if (method_exists($disk, 'url')) {
-            return $disk->url($this->path);
-        }
-
-        return null;
+        // Served via the backend media proxy so the shared, private object
+        // storage never needs to be made world-readable. Stable + cacheable.
+        return rtrim((string) config('app.url'), '/').'/api/v1/media/'.$this->uuid;
     }
 }

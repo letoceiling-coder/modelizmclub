@@ -56,12 +56,14 @@ export function mapApiListing(item: ApiListing): Listing {
 
 export async function fetchListings(params?: {
   category_id?: number;
+  subcategory_id?: number;
   city_id?: number;
   q?: string;
   per_page?: number;
 }): Promise<Listing[]> {
   const search = new URLSearchParams();
   if (params?.category_id) search.set("category_id", String(params.category_id));
+  if (params?.subcategory_id) search.set("subcategory_id", String(params.subcategory_id));
   if (params?.city_id) search.set("city_id", String(params.city_id));
   if (params?.q) search.set("q", params.q);
   if (params?.per_page) search.set("per_page", String(params.per_page));

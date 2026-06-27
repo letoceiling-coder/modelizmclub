@@ -9,6 +9,7 @@ import {
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { ROUTE_SEARCH } from "@/lib/route-search";
 import {
   fetchAdminDashboard, type AdminStats,
   fetchModerationQueue, approveModeration, rejectModeration, type ModerationItem,
@@ -42,19 +43,20 @@ function AdminPage() {
       <Shell>
         <div className="py-24 text-center">
           <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("admin.noAccess")}</p>
-          <Link to="/feed" className="mt-4 inline-block font-semibold" style={{ color: "var(--accent)" }}>{t("admin.backToSite")}</Link>
+          <Link to="/feed" search={ROUTE_SEARCH.feed} className="mt-4 inline-block font-semibold" style={{ color: "var(--accent)" }}>{t("admin.backToSite")}</Link>
         </div>
       </Shell>
     );
   }
 
-  const tabs: { key: TabKey; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean }[] = [
+  const allTabs: { key: TabKey; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean }[] = [
     { key: "dashboard", label: t("admin.tabDashboard"), icon: LayoutDashboard, adminOnly: true },
     { key: "moderation", label: t("admin.tabModeration"), icon: ShieldCheck },
     { key: "users", label: t("admin.tabUsers"), icon: Users, adminOnly: true },
     { key: "banners", label: t("admin.tabBanners"), icon: ImageIcon, adminOnly: true },
     { key: "settings", label: t("admin.tabSettings"), icon: Settings, adminOnly: true },
-  ].filter((x) => !x.adminOnly || isAdmin);
+  ];
+  const tabs = allTabs.filter((x) => !x.adminOnly || isAdmin);
 
   return (
     <Shell>
@@ -92,7 +94,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link to="/feed" className="inline-flex items-center gap-1 text-[12px]" style={{ color: "var(--foreground-70)" }}>
+          <Link to="/feed" search={ROUTE_SEARCH.feed} className="inline-flex items-center gap-1 text-[12px]" style={{ color: "var(--foreground-70)" }}>
             <Home size={14} />{t("admin.backToSite")}
           </Link>
         </div>

@@ -149,13 +149,14 @@ export function ProfileView({ slug, isOwn }: { slug?: string; isOwn: boolean }) 
     );
   }
 
-  const tabs: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
+  const allTabs: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
     { key: "posts", label: t("profile.tabPosts"), Icon: FileText },
     { key: "ads", label: t("profile.tabAds"), Icon: Tag },
     { key: "communities", label: t("profile.tabCommunities"), Icon: Users },
     { key: "invited", label: t("profile.tabInvited"), Icon: UserPlus, ownOnly: true },
     { key: "about", label: t("profile.tabAbout"), Icon: UserIcon },
-  ].filter((x) => isOwn || !x.ownOnly);
+  ];
+  const tabs = allTabs.filter((x) => isOwn || !x.ownOnly);
 
   return (
     <AppLayout rightColumn={false}>
