@@ -10,6 +10,8 @@ declare global {
   }
 }
 
+type ChannelAuthData = { auth: string; channel_data?: string; shared_secret?: string };
+
 const REVERB_KEY = import.meta.env.VITE_REVERB_APP_KEY ?? "";
 const REVERB_HOST = import.meta.env.VITE_REVERB_HOST ?? "ws.modelizmclub.ru";
 const REVERB_PORT = Number(import.meta.env.VITE_REVERB_PORT ?? 443);
@@ -38,7 +40,7 @@ export function getEcho(): Echo<"reverb"> | null {
     authorizer: (channel: { name: string }) => ({
       authorize: (
         socketId: string,
-        callback: (error: Error | null, data: unknown) => void,
+        callback: (error: Error | null, data: ChannelAuthData | null) => void,
       ) => {
         fetch(authUrl, {
           method: "POST",
@@ -51,7 +53,7 @@ export function getEcho(): Echo<"reverb"> | null {
         })
           .then((res) => {
             if (!res.ok) throw new Error(`broadcasting auth ${res.status}`);
-            return res.json();
+            return res.json() as Promise<ChannelAuthData>;
           })
           .then((data) => callback(null, data))
           .catch((err: Error) => callback(err, null));
