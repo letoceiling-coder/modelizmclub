@@ -47,9 +47,7 @@ class FeedService
 
         $paginator = $query->paginate($perPage);
 
-        $paginator->getCollection()->each(
-            fn (Post $post) => $this->posts->attachViewerFlags($post, $viewer),
-        );
+        $this->posts->attachViewerFlagsToCollection($paginator->getCollection(), $viewer);
 
         return $paginator;
     }

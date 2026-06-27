@@ -206,6 +206,51 @@ class PostService
             ->exists();
     }
 
+    /**
+     * Batch-attach viewer flags to a collection of posts using two queries total
+     * (avoids the per-post N+1 when rendering the feed).
+     *
+     * @param  \Illuminate\Support\Collection<int, Post>  $posts
+     */
+    public function attachViewerFlagsToCollection($posts, ?User $viewer): void
+    {
+        if ($viewer === null) {
+            $posts->each(function (Post $post): void {
+                $post->viewer_reacted = false;
+                $post->viewer_bookmarked = false;
+            });
+
+            return;
+        }
+
+        $ids = $posts->pluck('id')->filter()->values()->all();
+
+        if ($ids === []) {
+            return;
+        }
+
+        $reacted = array_flip(
+            DB::table('post_reactions')
+                ->where('user_id', $viewer->id)
+                ->whereIn('post_id', $ids)
+                ->pluck('post_id')
+                ->all(),
+        );
+
+        $bookmarked = array_flip(
+            DB::table('post_bookmarks')
+                ->where('user_id', $viewer->id)
+                ->whereIn('post_id', $ids)
+                ->pluck('post_id')
+                ->all(),
+        );
+
+        $posts->each(function (Post $post) use ($reacted, $bookmarked): void {
+            $post->viewer_reacted = isset($reacted[$post->id]);
+            $post->viewer_bookmarked = isset($bookmarked[$post->id]);
+        });
+    }
+
     /** @param list<string> $hashtags */
     private function syncHashtags(Post $post, array $hashtags): void
     {
