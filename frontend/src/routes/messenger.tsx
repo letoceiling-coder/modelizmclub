@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, me, formatRelativeTime, VOICE_TRANSCRIPTS, makeMockWaveform } from "@/lib/mock";
 import type { Message } from "@/lib/mock";
 import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
+import { fetchMessages } from "@/lib/api/chat";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -201,11 +202,16 @@ function MessengerPage() {
 
 
   useEffect(() => {
-    if (activeId) {
-      setChatLoading(true);
-      const t = setTimeout(() => setChatLoading(false), 350);
-      return () => clearTimeout(t);
-    }
+    if (!activeId) return;
+    let alive = true;
+    setChatLoading(true);
+    fetchMessages(activeId)
+      .then((msgs) => {
+        if (alive) actions.setDialogMessages(activeId, msgs);
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setChatLoading(false); });
+    return () => { alive = false; };
   }, [activeId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);

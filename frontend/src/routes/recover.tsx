@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
+import { authErrorMessage, forgotPassword } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/recover")({
   head: () => ({ meta: [{ title: "Восстановление пароля — МоДелизМ Форум" }] }),
@@ -10,11 +11,21 @@ export const Route = createFileRoute("/recover")({
 
 function RecoverPage() {
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
-    toast.success("Письмо отправлено (демо)");
+    setLoading(true);
+    try {
+      await forgotPassword(email.trim());
+      setSent(true);
+      toast.success("Если email зарегистрирован — письмо отправлено");
+    } catch (err) {
+      toast.error(authErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,9 +56,16 @@ function RecoverPage() {
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-[12px]">
-          <input required type="email" placeholder="Ваш email" style={inputStyle} />
-          <button type="submit" style={{ ...primaryBtn, marginTop: 8 }}>
-            Отправить ссылку
+          <input
+            required
+            type="email"
+            placeholder="Ваш email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={inputStyle}
+          />
+          <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Отправляем…" : "Отправить ссылку"}
           </button>
         </form>
       )}

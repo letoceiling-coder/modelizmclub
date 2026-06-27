@@ -8,6 +8,11 @@ export const API_BASE = stripTrailingSlash(
     "https://api.modelizmclub.ru/api/v1",
 );
 
+export function mediaUrl(uuid: string | null | undefined): string | undefined {
+  if (!uuid) return undefined;
+  return `${API_BASE}/media/${uuid}`;
+}
+
 export const REVERB = {
   key: (import.meta.env.VITE_REVERB_APP_KEY as string | undefined) || "",
   host: (import.meta.env.VITE_REVERB_HOST as string | undefined) || "ws.modelizmclub.ru",

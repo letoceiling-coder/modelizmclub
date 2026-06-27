@@ -9,6 +9,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { bootstrapSession } from "../lib/auth/session";
+import { bootstrapAppData } from "../lib/auth/bootstrap-data";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
@@ -102,6 +104,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    void bootstrapSession().then(() => bootstrapAppData());
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

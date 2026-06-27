@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
+import { authErrorMessage, login } from "@/lib/api/auth";
+import { applySession } from "@/lib/auth/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Вход — МоДелизМ Форум" }] }),
@@ -11,14 +13,22 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      toast.success("Вход выполнен (демо)");
+    try {
+      const { user, token } = await login(email.trim(), password);
+      applySession(user, token);
+      toast.success("Вход выполнен");
       nav({ to: "/feed" });
-    }, 400);
+    } catch (err) {
+      toast.error(authErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,8 +45,22 @@ function LoginPage() {
       }
     >
       <form onSubmit={submit} className="space-y-[12px]">
-        <input required type="email" placeholder="Email или телефон" style={inputStyle} />
-        <input required type="password" placeholder="Пароль" style={inputStyle} />
+        <input
+          required
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={inputStyle}
+        />
+        <input
+          required
+          type="password"
+          placeholder="Пароль"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={inputStyle}
+        />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
             <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} />
@@ -55,7 +79,7 @@ function LoginPage() {
         className="mt-[16px] block text-center"
         style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-50)" }}
       >
-        Посмотреть прототип без входа →
+        Посмотреть ленту без входа →
       </Link>
     </AuthShell>
   );

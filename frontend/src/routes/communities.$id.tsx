@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging, Users,
@@ -8,6 +8,7 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { communities, communityById, userById } from "@/lib/mock";
 import type { CommunityContacts } from "@/lib/mock";
+import { fetchCommunity } from "@/lib/api/communities";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
 
@@ -74,9 +75,18 @@ function ContactsBlock({ contacts }: { contacts?: CommunityContacts }) {
 
 function CommunityDetailPage() {
   const { id } = Route.useParams();
-  const community = communities.find((c) => c.id === id);
+  const [community, setCommunity] = useState(() => communities.find((c) => c.id === id) ?? communityById(id));
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
+
+  useEffect(() => {
+    if (community?.id === id) return;
+    let alive = true;
+    fetchCommunity(id)
+      .then((c) => { if (alive && c) setCommunity(c); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [id, community?.id]);
 
   if (!community) {
     return (

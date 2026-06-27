@@ -12,8 +12,6 @@ export const Route = createFileRoute("/ads/")({
   component: MyAdsPage,
 });
 
-const CURRENT_USER_ID = "u1";
-
 type TabKey = "active" | "moderation" | "rejected" | "unpublished" | "archived" | "deleted" | "draft";
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -45,8 +43,9 @@ const DEFAULT_FILTERS: Filters = { category: "all", dateRange: "all", minViews: 
 
 function MyAdsPage() {
   const navigate = useNavigate();
+  const currentUserId = useStore((s) => s.currentUserId);
   const [tab, setTab] = useState<TabKey>("active");
-  const allMyAds = useStore(selectors.myAds(CURRENT_USER_ID));
+  const allMyAds = useStore(selectors.myAds(currentUserId));
   const adStatusMap = useStore((s) => s.adStatus);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);

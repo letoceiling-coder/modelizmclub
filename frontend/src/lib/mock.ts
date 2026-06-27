@@ -225,6 +225,18 @@ export const friendRequests: FriendRequest[] = [
 
 export const me: User = users[0];
 
+/** Replace the current user in-place so all `me` imports stay valid. */
+export function setCurrentUser(u: User): void {
+  Object.assign(me, u);
+  upsertUsers([u]);
+}
+
+/** Replace mock communities list (used by community detail route). */
+export function replaceCommunities(list: Community[]): void {
+  communities.length = 0;
+  communities.push(...list);
+}
+
 export const categories: Category[] = [
   {
     id: "c1", name: "Автомодели", description: "RC авто всех масштабов", icon: "Car", members: 2840,

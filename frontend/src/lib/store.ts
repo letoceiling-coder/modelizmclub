@@ -153,7 +153,8 @@ type Action =
   | { type: "LIKE_POST"; postId: ID; like: boolean }
   | { type: "SAVE_POST"; postId: ID; save: boolean }
   | { type: "ADD_COMMENT"; postId: ID; comment: Comment }
-  | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> };
+  | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
+  | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] };
 
 function reducer(s: AppState, a: Action): AppState {
   switch (a.type) {
@@ -309,6 +310,11 @@ function reducer(s: AppState, a: Action): AppState {
       const prev = s.dialogMeta[a.dialogId] ?? { archived: false, muted: false, blocked: false };
       return { ...s, dialogMeta: { ...s.dialogMeta, [a.dialogId]: { ...prev, ...a.patch } } };
     }
+    case "SET_DIALOG_MESSAGES": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages: a.messages } } };
+    }
     default:
       return s;
   }
@@ -350,6 +356,8 @@ export const actions = {
   savePost: (postId: ID, save: boolean) => dispatch({ type: "SAVE_POST", postId, save }),
   addComment: (postId: ID, comment: Comment) => dispatch({ type: "ADD_COMMENT", postId, comment }),
   setDialogMeta: (dialogId: ID, patch: Partial<DialogMeta>) => dispatch({ type: "SET_DIALOG_META", dialogId, patch }),
+  setDialogMessages: (dialogId: ID, messages: Message[]) =>
+    dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages }),
 };
 
 // Imperative helper: find an existing dialog with the given user, or create one.
@@ -396,3 +404,47 @@ export const selectors = {
   dialogMeta: (dialogId: ID) => (s: AppState): DialogMeta =>
     s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
 };
+
+/** Hydrate store from backend API (data layer only — components unchanged). */
+export function hydrateStore(partial: {
+  userId?: ID;
+  communities?: Community[];
+  ads?: Ad[];
+  adStatus?: Record<ID, AdStatusKey>;
+  dialogs?: Dialog[];
+  friendRequests?: FriendRequest[];
+  friendships?: Friendship[];
+}): void {
+  const userId = partial.userId ?? state.currentUserId;
+  let next: AppState = { ...state };
+
+  if (partial.userId) next.currentUserId = partial.userId;
+
+  if (partial.communities) {
+    const joined = partial.communities.filter((c) => c.joined).map((c) => c.id);
+    next = {
+      ...next,
+      communities: toRecord(partial.communities),
+      communityMemberships: { ...next.communityMemberships, [userId]: joined },
+    };
+  }
+
+  if (partial.ads) {
+    next = { ...next, ads: toRecord(partial.ads) };
+  }
+  if (partial.adStatus) {
+    next = { ...next, adStatus: { ...next.adStatus, ...partial.adStatus } };
+  }
+  if (partial.dialogs) {
+    next = { ...next, dialogs: toRecord(partial.dialogs) };
+  }
+  if (partial.friendRequests) {
+    next = { ...next, friendRequests: partial.friendRequests };
+  }
+  if (partial.friendships) {
+    next = { ...next, friendships: partial.friendships };
+  }
+
+  state = next;
+  emit();
+}
