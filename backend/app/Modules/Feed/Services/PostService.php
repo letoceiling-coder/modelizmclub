@@ -187,6 +187,23 @@ class PostService
         ];
     }
 
+    /**
+     * Count a view for a published post. The author's own views are ignored.
+     * Updates the in-memory model so the response reflects the new total.
+     */
+    public function recordView(Post $post, ?User $viewer): void
+    {
+        if ($post->status !== ContentStatus::Published) {
+            return;
+        }
+
+        if ($viewer && $viewer->id === $post->user_id) {
+            return;
+        }
+
+        $post->increment('views_count');
+    }
+
     public function attachViewerFlags(Post $post, ?User $viewer): void
     {
         if (! $viewer) {

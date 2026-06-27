@@ -12,7 +12,9 @@ class ShowListingController extends Controller
 {
     public function __invoke(string $uuid, Request $request, ListingService $listings): JsonResponse
     {
-        $listing = $listings->show($uuid, $request->user());
+        $viewer = $request->user();
+        $listing = $listings->show($uuid, $viewer);
+        $listings->recordView($listing, $viewer);
 
         return response()->json([
             'data' => new ListingResource($listing),

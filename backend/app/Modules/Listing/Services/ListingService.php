@@ -69,6 +69,22 @@ class ListingService
         return $listing;
     }
 
+    /**
+     * Count a view for a published listing. The owner's own views are ignored.
+     */
+    public function recordView(Listing $listing, ?User $viewer): void
+    {
+        if ($listing->status !== ListingStatus::Published) {
+            return;
+        }
+
+        if ($viewer && $viewer->id === $listing->user_id) {
+            return;
+        }
+
+        $listing->increment('views_count');
+    }
+
     /** @param array<string, mixed> $data */
     public function create(User $user, array $data): Listing
     {
