@@ -477,6 +477,16 @@ export const chatMessages: Message[] = [
 ];
 
 export const userById = (id: ID) => users.find((u) => u.id === id) ?? users[0];
+
+// Upsert API-sourced users into the shared registry so userById() resolves
+// real authors. Mutates the `users` array in place (live binding).
+export function upsertUsers(list: User[]): void {
+  for (const u of list) {
+    const i = users.findIndex((x) => x.id === u.id);
+    if (i >= 0) users[i] = { ...users[i], ...u };
+    else users.push(u);
+  }
+}
 export const categoryById = (id: ID) => categories.find((c) => c.id === id);
 export const communityById = (id: ID) => communities.find((c) => c.id === id);
 

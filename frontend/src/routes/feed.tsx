@@ -12,8 +12,9 @@ import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyFeedState } from "@/components/feed/EmptyFeedState";
 import type { CreatePostPayload } from "@/components/CreatePostForm";
-import { posts as mockPosts, me, categories, banners } from "@/lib/mock";
+import { me, categories, banners } from "@/lib/mock";
 import type { Post } from "@/lib/mock";
+import { fetchFeedPosts } from "@/lib/api/feed";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 
 export const Route = createFileRoute("/feed")({
@@ -34,7 +35,7 @@ const PAGE_SIZE = 6;
 function FeedPage() {
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [filter, setFilter] = useState<FeedFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -57,8 +58,12 @@ function FeedPage() {
 
   const [initialLoading, setInitialLoading] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setInitialLoading(false), 700);
-    return () => clearTimeout(t);
+    let alive = true;
+    fetchFeedPosts()
+      .then((p) => { if (alive) setPosts(p); })
+      .catch(() => { if (alive) setPosts([]); })
+      .finally(() => { if (alive) setInitialLoading(false); });
+    return () => { alive = false; };
   }, []);
 
   const filtered = useMemo(() => {
