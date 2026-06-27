@@ -2,10 +2,11 @@
 
 namespace Modules\Admin\Http\Resources;
 
+use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Report */
+/** @mixin Report */
 class ReportResource extends JsonResource
 {
     public function toArray(Request $request): array

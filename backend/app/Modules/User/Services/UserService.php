@@ -3,6 +3,7 @@
 namespace Modules\User\Services;
 
 use App\Enums\UserStatus;
+use App\Models\Media;
 use App\Models\NotificationPreference;
 use App\Models\PostCategory;
 use App\Models\User;
@@ -68,7 +69,7 @@ class UserService
             if ($uuid === null || $uuid === '') {
                 $data['avatar_media_id'] = null;
             } else {
-                $media = \App\Models\Media::query()
+                $media = Media::query()
                     ->where('uuid', $uuid)
                     ->where('uploaded_by', $user->id)
                     ->first();

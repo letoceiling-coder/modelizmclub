@@ -3,10 +3,8 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
-use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;

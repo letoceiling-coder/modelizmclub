@@ -92,7 +92,7 @@ class CommentService
 
         return Comment::query()
             ->with(['author.profile.avatar'])
-            ->where(function ($q) use ($root, $rootId): void {
+            ->where(function ($q) use ($rootId): void {
                 $q->where('id', $rootId)
                     ->orWhere('root_id', $rootId);
             })

@@ -5,8 +5,8 @@ namespace Modules\User\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Modules\User\Http\Resources\NotificationPreferenceResource;
 use Modules\User\Http\Requests\UpdateSettingsRequest;
+use Modules\User\Http\Resources\NotificationPreferenceResource;
 use Modules\User\Services\UserService;
 
 class SettingsController extends Controller

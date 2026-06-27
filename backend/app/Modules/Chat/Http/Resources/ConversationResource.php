@@ -3,11 +3,12 @@
 namespace Modules\Chat\Http\Resources;
 
 use App\Enums\ConversationType;
+use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\User\Http\Resources\UserCompactResource;
 
-/** @mixin \App\Models\Conversation */
+/** @mixin Conversation */
 class ConversationResource extends JsonResource
 {
     public function toArray(Request $request): array

@@ -6,6 +6,7 @@ use App\Enums\ContentStatus;
 use App\Models\Community;
 use App\Models\Post;
 use App\Models\PostCategory;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -132,7 +133,7 @@ class DemoFeedSeeder extends Seeder
             $tagIds = [];
             foreach ($item['hashtags'] as $name) {
                 $slug = Str::slug($name);
-                $tag = \App\Models\Tag::query()->firstOrCreate(
+                $tag = Tag::query()->firstOrCreate(
                     ['slug' => $slug],
                     ['name' => $name, 'usage_count' => 0],
                 );

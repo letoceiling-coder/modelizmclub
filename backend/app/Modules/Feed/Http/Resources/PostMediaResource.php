@@ -2,10 +2,11 @@
 
 namespace Modules\Feed\Http\Resources;
 
+use App\Models\PostMedia;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\PostMedia */
+/** @mixin PostMedia */
 class PostMediaResource extends JsonResource
 {
     public function toArray(Request $request): array

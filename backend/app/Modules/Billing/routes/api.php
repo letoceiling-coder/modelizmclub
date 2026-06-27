@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
-use Modules\Billing\Http\Controllers\Api\V1\PaymentStatusController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\SyncPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\VtbWebhookController;

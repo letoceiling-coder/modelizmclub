@@ -3,7 +3,6 @@
 namespace Modules\User\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateSettingsRequest extends FormRequest
 {

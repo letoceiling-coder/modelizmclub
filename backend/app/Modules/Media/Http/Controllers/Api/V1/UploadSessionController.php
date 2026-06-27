@@ -4,7 +4,6 @@ namespace Modules\Media\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
-use Modules\Media\Http\Requests\ConfirmUploadRequest;
 use Modules\Media\Http\Requests\CreateUploadSessionRequest;
 use Modules\Media\Services\MediaUploadService;
 

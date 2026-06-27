@@ -2,10 +2,11 @@
 
 namespace Modules\Admin\Http\Resources;
 
+use App\Models\ModerationQueue;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\ModerationQueue */
+/** @mixin ModerationQueue */
 class ModerationQueueResource extends JsonResource
 {
     public function toArray(Request $request): array

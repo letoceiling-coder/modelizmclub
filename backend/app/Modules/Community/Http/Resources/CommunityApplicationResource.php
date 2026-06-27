@@ -2,10 +2,11 @@
 
 namespace Modules\Community\Http\Resources;
 
+use App\Models\CommunityApplication;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\CommunityApplication */
+/** @mixin CommunityApplication */
 class CommunityApplicationResource extends JsonResource
 {
     public function toArray(Request $request): array

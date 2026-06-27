@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Enums\ContentStatus;
 use App\Enums\MediaStatus;
 use App\Enums\UserStatus;
-use App\Models\Media;
-use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;

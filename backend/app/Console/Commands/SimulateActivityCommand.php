@@ -10,12 +10,12 @@ use App\Models\Comment;
 use App\Models\Community;
 use App\Models\Conversation;
 use App\Models\FriendRequest;
+use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\Message;
 use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
-use App\Models\Listing;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Console\Command;
@@ -136,7 +136,7 @@ class SimulateActivityCommand extends Command
             $this->cleanup();
         }
 
-        $this->info("Подготовка справочных данных…");
+        $this->info('Подготовка справочных данных…');
         $postCategories = PostCategory::query()->where('is_active', true)->pluck('id')->all();
         $listingCategories = ListingCategory::query()->where('is_active', true)->pluck('id')->all();
         $cityId = City::query()->value('id');

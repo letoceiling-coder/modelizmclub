@@ -13,6 +13,15 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Modules\Billing\Clients\VtbAcquiringClient;
+use Modules\Billing\Clients\YooKassaClient;
+use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Billing\Services\PaymentFulfillmentService;
+use Modules\Billing\Services\PaymentGatewayManager;
+use Modules\Billing\Services\PaymentRecorder;
+use Modules\Billing\Services\StubPaymentGateway;
+use Modules\Billing\Services\VtbPaymentGateway;
+use Modules\Billing\Services\YooKassaPaymentGateway;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,18 +30,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\Modules\Billing\Services\PaymentRecorder::class);
-        $this->app->singleton(\Modules\Billing\Services\PaymentFulfillmentService::class);
-        $this->app->singleton(\Modules\Billing\Clients\VtbAcquiringClient::class);
-        $this->app->singleton(\Modules\Billing\Clients\YooKassaClient::class);
-        $this->app->singleton(\Modules\Billing\Services\VtbPaymentGateway::class);
-        $this->app->singleton(\Modules\Billing\Services\YooKassaPaymentGateway::class);
-        $this->app->singleton(\Modules\Billing\Services\StubPaymentGateway::class);
-        $this->app->singleton(\Modules\Billing\Services\PaymentGatewayManager::class);
+        $this->app->singleton(PaymentRecorder::class);
+        $this->app->singleton(PaymentFulfillmentService::class);
+        $this->app->singleton(VtbAcquiringClient::class);
+        $this->app->singleton(YooKassaClient::class);
+        $this->app->singleton(VtbPaymentGateway::class);
+        $this->app->singleton(YooKassaPaymentGateway::class);
+        $this->app->singleton(StubPaymentGateway::class);
+        $this->app->singleton(PaymentGatewayManager::class);
 
         $this->app->bind(
-            \Modules\Billing\Contracts\PaymentGateway::class,
-            \Modules\Billing\Services\PaymentGatewayManager::class,
+            PaymentGateway::class,
+            PaymentGatewayManager::class,
         );
     }
 

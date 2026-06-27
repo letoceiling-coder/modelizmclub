@@ -3,11 +3,13 @@
 namespace Modules\Feed\Services;
 
 use App\Enums\ContentStatus;
+use App\Models\Community;
 use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Tag;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -171,7 +173,7 @@ class PostService
             ->update(['status' => 'approved']);
 
         if ($post->community_id) {
-            \App\Models\Community::query()->whereKey($post->community_id)->increment('posts_count');
+            Community::query()->whereKey($post->community_id)->increment('posts_count');
         }
     }
 
@@ -235,7 +237,7 @@ class PostService
      * Batch-attach viewer flags to a collection of posts using two queries total
      * (avoids the per-post N+1 when rendering the feed).
      *
-     * @param  \Illuminate\Support\Collection<int, Post>  $posts
+     * @param  Collection<int, Post>  $posts
      */
     public function attachViewerFlagsToCollection($posts, ?User $viewer): void
     {
@@ -333,7 +335,7 @@ class PostService
             return;
         }
 
-        $community = \App\Models\Community::query()->find($communityId);
+        $community = Community::query()->find($communityId);
 
         if (! $community) {
             throw ValidationException::withMessages([

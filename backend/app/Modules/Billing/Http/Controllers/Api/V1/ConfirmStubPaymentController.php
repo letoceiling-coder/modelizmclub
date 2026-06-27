@@ -3,6 +3,7 @@
 namespace Modules\Billing\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Billing\Services\StubPaymentGateway;
@@ -12,7 +13,7 @@ class ConfirmStubPaymentController extends Controller
 {
     public function __invoke(Request $request, string $uuid, StubPaymentGateway $gateway): JsonResponse
     {
-        $payment = \App\Models\Payment::query()
+        $payment = Payment::query()
             ->where('uuid', $uuid)
             ->where('user_id', $request->user()->id)
             ->where('provider', 'stub')

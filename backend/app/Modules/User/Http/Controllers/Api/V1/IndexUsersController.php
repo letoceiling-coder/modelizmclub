@@ -3,8 +3,8 @@
 namespace Modules\User\Http\Controllers\Api\V1;
 
 use App\Enums\UserStatus;
-use App\Models\User;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\User\Http\Resources\UserCompactResource;

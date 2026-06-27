@@ -10,6 +10,7 @@ use App\Models\UserProfile;
 use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class BillingModuleTest extends TestCase
@@ -155,7 +156,7 @@ class BillingModuleTest extends TestCase
         $user = $this->seedUser();
 
         $payment = Payment::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'user_id' => $user->id,
             'amount_cents' => 99000,
             'currency' => 'RUB',
