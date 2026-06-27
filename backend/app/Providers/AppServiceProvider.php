@@ -56,7 +56,7 @@ class AppServiceProvider extends ServiceProvider
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.
         RateLimiter::for('api', function (Request $request) {
-            if ($request->is('api/v1/media/*') || $request->is('api/v1/payments/webhooks/*')) {
+            if ($request->is('api/v1/media/*') || $request->is('api/v1/payments/webhooks/*') || $request->is('api/v1/health')) {
                 return Limit::none();
             }
 

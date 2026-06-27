@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\UpsertCategoryRequest;
 use Modules\Admin\Services\AuditService;
+use Modules\Catalog\Services\CatalogService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 abstract class AdminCategoryController extends Controller
@@ -45,6 +46,7 @@ abstract class AdminCategoryController extends Controller
         $class = $this->modelClass();
         $category = $class::query()->create($request->validated());
         $audit->log($request->user(), $this->auditPrefix().'.create', $category, null, $category->toArray(), $request);
+        CatalogService::flushCache();
 
         return response()->json(['data' => $category], 201);
     }
@@ -64,6 +66,7 @@ abstract class AdminCategoryController extends Controller
         $old = $category->toArray();
         $category->update($request->validated());
         $audit->log($request->user(), $this->auditPrefix().'.update', $category, $old, $category->fresh()->toArray(), $request);
+        CatalogService::flushCache();
 
         return response()->json(['data' => $category->fresh()]);
     }
@@ -74,6 +77,7 @@ abstract class AdminCategoryController extends Controller
         $category = $this->findCategory($id);
         $category->delete();
         $audit->log(request()->user(), $this->auditPrefix().'.delete', $category, $category->toArray(), null, request());
+        CatalogService::flushCache();
 
         return response()->json(['data' => ['message' => 'Категория удалена.']]);
     }

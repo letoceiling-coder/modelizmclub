@@ -9,10 +9,22 @@ use App\Models\PostCategory;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Modules\Catalog\Support\CategoryTreeBuilder;
 
 class CatalogService
 {
+    /** Reference data changes only via the admin panel, so cache it aggressively. */
+    private const TTL = 86400;
+
+    private const KEY_TREE_POST = 'catalog:tree:post';
+
+    private const KEY_TREE_COMMUNITY = 'catalog:tree:community';
+
+    private const KEY_TREE_LISTING = 'catalog:tree:listing';
+
+    private const KEY_CITIES = 'catalog:cities:all';
+
     public function __construct(
         private readonly CategoryTreeBuilder $treeBuilder,
     ) {}
@@ -20,23 +32,45 @@ class CatalogService
     /** @return list<array<string, mixed>> */
     public function postCategoryTree(): array
     {
-        return $this->categoryTree(PostCategory::query());
+        return Cache::remember(self::KEY_TREE_POST, self::TTL, fn () => $this->categoryTree(PostCategory::query()));
     }
 
     /** @return list<array<string, mixed>> */
     public function communityCategoryTree(): array
     {
-        return $this->categoryTree(CommunityCategory::query());
+        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, fn () => $this->categoryTree(CommunityCategory::query()));
     }
 
     /** @return list<array<string, mixed>> */
     public function listingCategoryTree(): array
     {
-        return $this->categoryTree(ListingCategory::query(), includeListingPrice: true);
+        return Cache::remember(self::KEY_TREE_LISTING, self::TTL, fn () => $this->categoryTree(ListingCategory::query(), includeListingPrice: true));
+    }
+
+    /**
+     * Forget every cached reference-data entry. Called from the admin category
+     * controllers so edits are reflected immediately instead of after the TTL.
+     */
+    public static function flushCache(): void
+    {
+        foreach ([self::KEY_TREE_POST, self::KEY_TREE_COMMUNITY, self::KEY_TREE_LISTING, self::KEY_CITIES] as $key) {
+            Cache::forget($key);
+        }
     }
 
     /** @return Collection<int, City> */
     public function cities(?string $query = null): Collection
+    {
+        // Only the unfiltered list is cacheable; search queries stay dynamic.
+        if ($query === null || $query === '') {
+            return Cache::remember(self::KEY_CITIES, self::TTL, fn () => $this->fetchCities(null));
+        }
+
+        return $this->fetchCities($query);
+    }
+
+    /** @return Collection<int, City> */
+    private function fetchCities(?string $query): Collection
     {
         return City::query()
             ->where('is_active', true)
