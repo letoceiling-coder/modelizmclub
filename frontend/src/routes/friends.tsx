@@ -5,7 +5,7 @@ import {
   Search, MapPin, UserPlus, MessageSquare, Check, X, Clock,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { users, me, userById, formatRelativeTime } from "@/lib/mock";
+import { me, userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
 import { toast } from "sonner";
 
@@ -44,18 +44,21 @@ function FriendsPage() {
   }, [tab, loading]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      if (u.id === me.id) return false;
+    const base =
+      tab === "requests"
+        ? []
+        : friendIds.map((id) => userById(id)).filter((u) => u.id !== me.id);
+    return base.filter((u) => {
       if (tab === "online" && !u.online) return false;
       const ql = q.toLowerCase();
       if (!ql) return true;
       return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
     });
-  }, [q, tab]);
+  }, [q, tab, friendIds]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: "Все", count: users.length - 1 },
-    { key: "online", label: "Онлайн", count: users.filter((u) => u.id !== me.id && u.online).length },
+    { key: "all", label: "Все", count: friendIds.length },
+    { key: "online", label: "Онлайн", count: friendIds.filter((id) => userById(id).online).length },
     { key: "requests", label: "Заявки", count: requests.length },
   ];
 
