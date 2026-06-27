@@ -126,9 +126,6 @@ class DemoFeedSeeder extends Seeder
                 'body' => $item['body'],
                 'status' => ContentStatus::Published,
                 'published_at' => $publishedAt,
-                'views_count' => 120 + ($index * 47),
-                'reactions_count' => 5 + ($index * 3),
-                'comments_count' => $index % 4,
             ]);
             $post->save();
 
@@ -142,6 +139,16 @@ class DemoFeedSeeder extends Seeder
                 $tagIds[] = $tag->id;
             }
             $post->tags()->sync($tagIds);
+        }
+
+        // Keep the community's denormalized post counter consistent with the
+        // posts we just seeded (idempotent — recomputed from real rows).
+        if ($community) {
+            $community->posts_count = Post::query()
+                ->where('community_id', $community->id)
+                ->where('status', ContentStatus::Published)
+                ->count();
+            $community->save();
         }
     }
 }

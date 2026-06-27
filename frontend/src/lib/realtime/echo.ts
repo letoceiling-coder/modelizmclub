@@ -20,6 +20,8 @@ export function getEcho(): Echo<"reverb"> | null {
   if (!REVERB_KEY) return null;
   if (window.Echo) return window.Echo;
 
+  const authUrl = apiUrl("/broadcasting/auth");
+
   window.Pusher = Pusher;
   window.Echo = new Echo({
     broadcaster: "reverb",
@@ -29,13 +31,32 @@ export function getEcho(): Echo<"reverb"> | null {
     wssPort: REVERB_PORT,
     forceTLS: REVERB_SCHEME === "https",
     enabledTransports: ["ws", "wss"],
-    authEndpoint: apiUrl("/broadcasting/auth"),
-    auth: {
-      headers: {
-        Authorization: `Bearer ${getAuthToken() ?? ""}`,
-        Accept: "application/json",
+    // Custom authorizer so the auth token is read fresh on every channel
+    // authorization request. The Echo instance is a singleton; a static
+    // header would otherwise pin the token captured at creation time and
+    // break realtime after re-login / token refresh without a page reload.
+    authorizer: (channel: { name: string }) => ({
+      authorize: (
+        socketId: string,
+        callback: (error: Error | null, data: unknown) => void,
+      ) => {
+        fetch(authUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${getAuthToken() ?? ""}`,
+          },
+          body: JSON.stringify({ socket_id: socketId, channel_name: channel.name }),
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error(`broadcasting auth ${res.status}`);
+            return res.json();
+          })
+          .then((data) => callback(null, data))
+          .catch((err: Error) => callback(err, null));
       },
-    },
+    }),
   });
 
   return window.Echo;
