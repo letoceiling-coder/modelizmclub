@@ -23,6 +23,13 @@ class FeedService
             ->where('status', ContentStatus::Published)
             ->orderByDesc('published_at');
 
+        // Reposts are meaningful in the "following" tab (you want to see what the
+        // people you follow shared). In the global/category/discovery feed they
+        // only duplicate originals and flood the timeline, so hide them there.
+        if ($filter !== 'following') {
+            $query->whereNull('repost_of_id');
+        }
+
         if ($filter === 'following') {
             if (! $viewer) {
                 return Post::query()->whereRaw('1 = 0')->paginate($perPage);

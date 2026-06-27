@@ -5,6 +5,7 @@ namespace Modules\Auth\Services;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Modules\Auth\Notifications\VerificationCodeNotification;
 
 class EmailVerificationService
 {
@@ -23,11 +24,18 @@ class EmailVerificationService
             'expires_at' => now()->addMinutes(30),
         ]);
 
-        Log::info('Email verification code issued', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'code' => $code,
-        ]);
+        // Deliver the code by email. If the mail transport is unavailable we keep
+        // the code in the log as an emergency fallback so registration never 500s.
+        try {
+            $user->notify(new VerificationCodeNotification($code));
+        } catch (\Throwable $e) {
+            Log::warning('Verification email could not be sent; code retained in log as fallback', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'code' => $code,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return $record;
     }

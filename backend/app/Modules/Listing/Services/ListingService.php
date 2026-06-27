@@ -9,6 +9,7 @@ use App\Models\ListingMedia;
 use App\Models\Media;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -79,6 +80,11 @@ class ListingService
         }
 
         if ($viewer && $viewer->id === $listing->user_id) {
+            return;
+        }
+
+        $who = $viewer ? 'u'.$viewer->id : 'ip'.request()->ip();
+        if (! Cache::add('lv:'.$listing->id.':'.$who, 1, now()->addHours(6))) {
             return;
         }
 

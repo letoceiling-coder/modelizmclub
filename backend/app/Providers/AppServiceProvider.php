@@ -47,6 +47,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-verify', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip().'|'.$request->input('email')));
 
+        // Global API limiter. The media proxy (image loads) and payment webhooks
+        // are exempt so normal browsing and provider callbacks are never throttled.
+        RateLimiter::for('api', function (Request $request) {
+            if ($request->is('api/v1/media/*') || $request->is('api/v1/payments/webhooks/*')) {
+                return Limit::none();
+            }
+
+            return $request->user()
+                ? Limit::perMinute(300)->by('u:'.$request->user()->id)
+                : Limit::perMinute(120)->by('ip:'.$request->ip());
+        });
+
         Gate::define('viewApiDocs', fn () => app()->environment(['local', 'development', 'staging']));
 
         Scramble::configure()

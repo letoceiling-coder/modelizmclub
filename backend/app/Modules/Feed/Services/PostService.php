@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Tag;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -198,6 +199,13 @@ class PostService
         }
 
         if ($viewer && $viewer->id === $post->user_id) {
+            return;
+        }
+
+        // De-duplicate: a given viewer (or anonymous IP) only counts once per
+        // 6h window, so reloads/bots can't inflate the counter.
+        $who = $viewer ? 'u'.$viewer->id : 'ip'.request()->ip();
+        if (! Cache::add('pv:'.$post->id.':'.$who, 1, now()->addHours(6))) {
             return;
         }
 
