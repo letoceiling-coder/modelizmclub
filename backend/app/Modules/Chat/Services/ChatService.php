@@ -26,7 +26,7 @@ class ChatService
             ->whereIn('id', $conversationIds)
             ->with([
                 'participants.user.profile',
-                'messages' => fn ($q) => $q->latest()->limit(1)->with('author.profile'),
+                'latestMessage.author.profile',
             ])
             ->orderByDesc('last_message_at')
             ->paginate($perPage);

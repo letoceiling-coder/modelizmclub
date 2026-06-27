@@ -14,7 +14,11 @@ class ConversationResource extends JsonResource
     {
         $user = $request->user();
         $participants = $this->whenLoaded('participants', fn () => $this->participants);
-        $lastMessage = $this->relationLoaded('messages') ? $this->messages->first() : null;
+        $lastMessage = match (true) {
+            $this->relationLoaded('latestMessage') => $this->latestMessage,
+            $this->relationLoaded('messages') => $this->messages->first(),
+            default => null,
+        };
 
         $title = $this->title;
         if ($this->type === ConversationType::Direct && $user && $participants) {
