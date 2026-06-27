@@ -32,7 +32,17 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   });
 
   const text = await res.text();
-  const data = text ? (JSON.parse(text) as unknown) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text) as unknown;
+    } catch {
+      // Non-JSON body (e.g. an nginx 502/503/504 HTML page during a restart
+      // or timeout). Keep `data` null so callers always get a clean ApiError
+      // with the real status instead of a raw SyntaxError.
+      data = null;
+    }
+  }
 
   if (!res.ok) {
     const message =
