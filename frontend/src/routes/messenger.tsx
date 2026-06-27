@@ -9,7 +9,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, me, formatRelativeTime, VOICE_TRANSCRIPTS, makeMockWaveform } from "@/lib/mock";
 import type { Message } from "@/lib/mock";
 import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
-import { fetchMessages } from "@/lib/api/chat";
+import { fetchMessages, sendMessage } from "@/lib/api/chat";
+import { subscribeConversation } from "@/lib/realtime/chat-listener";
+import { getToken } from "@/lib/api/client";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -203,6 +205,7 @@ function MessengerPage() {
 
   useEffect(() => {
     if (!activeId) return;
+    subscribeConversation(activeId);
     let alive = true;
     setChatLoading(true);
     fetchMessages(activeId)
@@ -258,23 +261,37 @@ function MessengerPage() {
     actions.markRead(id);
   };
 
-  const send = () => {
+  const send = async () => {
     if (!text.trim() || !active) return;
     if (getMeta(active.id).blocked) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
+    const body = text.trim();
+    const replyId = replyTo?.id;
+    setText("");
+    setReplyTo(null);
+
+    if (getToken()) {
+      try {
+        const m = await sendMessage(active.id, body, replyId);
+        actions.addMessage(active.id, m);
+        return;
+      } catch {
+        toast.error("Не удалось отправить сообщение");
+        return;
+      }
+    }
+
     const m: Message = {
       id: `nm${Date.now()}`,
       authorId: me.id,
       time: new Date().toISOString(),
-      text: text.trim(),
+      text: body,
       status: "sent",
-      replyTo: replyTo?.id,
+      replyTo: replyId,
     };
     actions.addMessage(active.id, m);
-    setText("");
-    setReplyTo(null);
   };
 
   const sendVoice = (durationSec: number) => {

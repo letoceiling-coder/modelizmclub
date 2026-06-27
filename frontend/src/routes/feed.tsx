@@ -15,8 +15,11 @@ import type { CreatePostPayload } from "@/components/CreatePostForm";
 import { me, banners } from "@/lib/mock";
 import type { Post } from "@/lib/mock";
 import { fetchFeedPosts } from "@/lib/api/feed";
+import { createPost } from "@/lib/api/feed-actions";
 import { useCategories } from "@/lib/api/catalog";
+import { getToken } from "@/lib/api/client";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -104,29 +107,28 @@ function FeedPage() {
     return () => io.disconnect();
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
-  const addPost = (p: CreatePostPayload) => {
-    setPosts([
-      {
-        id: `np${Date.now()}`,
-        authorId: me.id,
-        date: "только что",
-        category: p.category,
+  const addPost = async (p: CreatePostPayload) => {
+    const cat = categories.find((c) => c.name === p.category);
+    if (!cat) {
+      toast.error("Категория не найдена");
+      return;
+    }
+    if (!getToken()) {
+      toast.error("Войдите, чтобы публиковать");
+      return;
+    }
+    try {
+      const post = await createPost({
         title: p.title,
-        text: p.text,
-        image: p.photos[0],
-        images: p.photos,
-        tags: p.subcategory ? [p.subcategory] : [],
-        views: 0,
-        likes: 0,
-        comments: 0,
-        saves: 0,
-        reposts: 0,
-        status: "moderation",
-        isFollowing: true,
-        commentList: [],
-      },
-      ...posts,
-    ]);
+        body: p.text,
+        categoryId: Number(cat.id),
+        hashtags: p.subcategory ? [p.subcategory.replace(/^#/, "")] : [],
+      });
+      setPosts((prev) => [post, ...prev]);
+      toast.success("Публикация опубликована");
+    } catch {
+      toast.error("Не удалось создать публикацию");
+    }
   };
 
   const slice = filtered.slice(0, visible);

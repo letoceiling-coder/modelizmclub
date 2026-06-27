@@ -3,6 +3,7 @@ import { formatRelativeTime, upsertUsers } from "@/lib/mock";
 import { me } from "@/lib/mock";
 import { hydrateStore } from "@/lib/store";
 import { api } from "./client";
+import { subscribeConversations } from "@/lib/realtime/chat-listener";
 
 interface ApiParticipant {
   user?: {
@@ -93,10 +94,29 @@ export async function fetchMessages(conversationUuid: string): Promise<Message[]
   return (res.data ?? []).map(mapMessage);
 }
 
+export async function sendMessage(
+  conversationUuid: string,
+  body: string,
+  replyToUuid?: string,
+): Promise<Message> {
+  const res = await api<{ data: ApiMessage }>(
+    `/conversations/${encodeURIComponent(conversationUuid)}/messages`,
+    {
+      method: "POST",
+      json: {
+        body,
+        reply_to_uuid: replyToUuid ?? null,
+      },
+    },
+  );
+  return mapMessage(res.data);
+}
+
 export async function loadConversationsIntoStore(): Promise<void> {
   try {
     const dialogs = await fetchConversations();
     hydrateStore({ userId: me.id, dialogs });
+    subscribeConversations(dialogs.map((d) => d.id));
   } catch {
     // not authenticated
   }

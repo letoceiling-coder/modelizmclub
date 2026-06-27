@@ -4,6 +4,8 @@ import { hydrateStore } from "@/lib/store";
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken, setToken } from "@/lib/api/client";
 import { bootstrapAppData, resetAppDataBootstrap } from "./bootstrap-data";
+import { disconnectEcho } from "@/lib/realtime/echo";
+import { resetChatSubscriptions } from "@/lib/realtime/chat-listener";
 
 let bootstrapped = false;
 let bootstrapPromise: Promise<User | null> | null = null;
@@ -19,6 +21,8 @@ export function applySession(user: User, token: string): void {
 export function clearSession(): void {
   setToken(null);
   resetAppDataBootstrap();
+  resetChatSubscriptions();
+  disconnectEcho();
 }
 
 export async function signOut(): Promise<void> {

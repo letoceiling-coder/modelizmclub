@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
-import { categories, me } from "@/lib/mock";
+import { me } from "@/lib/mock";
+import { useCategories } from "@/lib/api/catalog";
 
 const MAX_PHOTOS = 5;
 
@@ -20,15 +21,23 @@ export function CreatePostForm({
   onCreate?: (p: CreatePostPayload) => void;
   compact?: boolean;
 }) {
+  const categories = useCategories();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
-  const [catId, setCatId] = useState(categories[0].id);
-  const [subId, setSubId] = useState<string>(categories[0].subcategories[0]?.id ?? "");
+  const [catId, setCatId] = useState("");
+  const [subId, setSubId] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const cat = useMemo(() => categories.find((c) => c.id === catId)!, [catId]);
-  const sub = cat.subcategories.find((s) => s.id === subId);
+  const cat = useMemo(() => categories.find((c) => c.id === catId) ?? categories[0], [catId, categories]);
+  const sub = cat?.subcategories.find((s) => s.id === subId);
+
+  useEffect(() => {
+    if (categories.length > 0 && !catId) {
+      setCatId(categories[0].id);
+      setSubId(categories[0].subcategories[0]?.id ?? "");
+    }
+  }, [categories, catId]);
 
   const addPhotos = (files: FileList | null) => {
     if (!files) return;
@@ -42,6 +51,7 @@ export function CreatePostForm({
   const submit = () => {
     if (!title.trim()) return toast.error("Введите заголовок");
     if (!text.trim()) return toast.error("Введите текст публикации");
+    if (!cat) return toast.error("Выберите категорию");
     onCreate?.({ title, text, category: cat.name, subcategory: sub?.name, photos });
     toast.success("Публикация отправлена на модерацию");
     setTitle("");
@@ -84,7 +94,7 @@ export function CreatePostForm({
         <select
           value={subId}
           onChange={(e) => setSubId(e.target.value)}
-          disabled={cat.subcategories.length === 0}
+          disabled={!cat || cat.subcategories.length === 0}
           className="rounded-lg border bg-background px-3 py-2 text-xs disabled:opacity-50"
         >
           {cat.subcategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
