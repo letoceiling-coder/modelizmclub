@@ -1,12 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Phone, X } from "lucide-react";
+import { Phone, Video, X } from "lucide-react";
 import { userById } from "@/lib/mock";
 
 interface Props {
   open: boolean;
   peerId: string;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (media: "audio" | "video") => void;
 }
 
 export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) {
@@ -70,25 +70,36 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                 Позвонить {peer.name}?
               </h3>
               <p className="mt-2 text-[14px]" style={{ color: "var(--foreground-70)" }}>
-                Будет начат голосовой звонок внутри платформы.
+                Звонок проходит внутри платформы по защищённому соединению.
               </p>
-              <div className="mt-6 flex w-full flex-col-reverse gap-2 sm:flex-row">
+              <div className="mt-6 flex w-full flex-col gap-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onConfirm("audio")}
+                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-white transition-transform active:scale-[0.98]"
+                    style={{ background: "var(--accent)", boxShadow: "0 8px 20px -6px color-mix(in oklab, var(--accent) 50%, transparent)" }}
+                  >
+                    <Phone size={18} />
+                    Аудио
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onConfirm("video")}
+                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-[15px] font-semibold transition-transform active:scale-[0.98]"
+                    style={{ background: "var(--background-surface)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+                  >
+                    <Video size={18} />
+                    Видео
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="h-12 flex-1 rounded-xl text-[15px] font-semibold transition-colors"
-                  style={{ background: "var(--background-surface)", color: "var(--foreground)" }}
+                  className="h-11 w-full rounded-xl text-[14px] font-semibold transition-colors"
+                  style={{ color: "var(--foreground-50)" }}
                 >
                   Отмена
-                </button>
-                <button
-                  type="button"
-                  onClick={onConfirm}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-white transition-transform active:scale-[0.98]"
-                  style={{ background: "var(--accent)", boxShadow: "0 8px 20px -6px color-mix(in oklab, var(--accent) 50%, transparent)" }}
-                >
-                  <Phone size={18} />
-                  Позвонить
                 </button>
               </div>
             </div>

@@ -4,6 +4,12 @@ use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use Illuminate\Support\Facades\Broadcast;
 
+// Personal signaling channel for WebRTC calls. A user may only subscribe to
+// their own channel (keyed by their public UUID).
+Broadcast::channel('calls.{uuid}', function ($user, string $uuid) {
+    return $user->uuid === $uuid;
+});
+
 Broadcast::channel('conversation.{uuid}', function ($user, string $uuid) {
     return ConversationParticipant::query()
         ->where('user_id', $user->id)

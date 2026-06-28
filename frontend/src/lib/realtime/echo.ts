@@ -68,3 +68,30 @@ export async function subscribeConversation(
     }
   };
 }
+
+/**
+ * Subscribe to the current user's private call-signaling channel.
+ * `onSignal` receives every WebRTC signaling payload (offer/answer/ice/...).
+ */
+export async function subscribeCalls(
+  userUuid: string,
+  onSignal: (payload: { type: string; [k: string]: any }) => void,
+): Promise<() => void> {
+  const e = await getEcho();
+  if (!e) return () => {};
+  try {
+    const channel = e.private(`calls.${userUuid}`);
+    channel.listen(".call.signal", (payload: { type: string }) => {
+      if (payload?.type) onSignal(payload);
+    });
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      e.leave(`calls.${userUuid}`);
+    } catch {
+      /* ignore */
+    }
+  };
+}

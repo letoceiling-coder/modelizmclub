@@ -1,17 +1,29 @@
-// Mock-only in-app calling. No WebRTC, no audio, no network.
-// Module-scope store mirrors src/lib/store.ts pattern.
+// Real 1:1 WebRTC calling (audio/video) over Reverb signaling.
+// Exposes the same module-store API the call UI already consumes.
 
 import { useSyncExternalStore } from "react";
-import { me } from "./mock";
+import {
+  fetchIceServers,
+  initiateCall,
+  answerCall,
+  sendIce,
+  rejectCall,
+  hangupCall,
+} from "./api/calls";
+import { subscribeCalls } from "./realtime/echo";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
 export type CallDirection = "outgoing" | "incoming";
 export type CallResult = "answered" | "missed" | "ended";
+export type CallMedia = "audio" | "video";
 
 export interface ActiveCall {
-  id: string;
-  peerId: string;
+  id: string; // backend call uuid (or a temp id before it is assigned)
+  peerId: string; // peer user uuid
+  peerName: string;
+  peerAvatar?: string;
   direction: CallDirection;
+  media: CallMedia;
   status: CallStatus;
   startedAt: number;
   connectedAt?: number;
@@ -22,7 +34,10 @@ export interface ActiveCall {
 export interface CallRecord {
   id: string;
   peerId: string;
+  peerName: string;
+  peerAvatar?: string;
   direction: CallDirection;
+  media: CallMedia;
   startedAt: number;
   durationSec: number;
   result: CallResult;
@@ -30,34 +45,34 @@ export interface CallRecord {
 
 interface CallsState {
   active: ActiveCall | null;
-  history: CallRecord[];
+  muted: boolean;
+  cameraOff: boolean;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
 }
 
-const MAX_CALL_MS = 60_000;
-const RINGING_MS = 1600;
-const CONNECTING_MS = 1400;
-const AUTO_DISMISS_MS = 1400;
+const RING_TIMEOUT_MS = 35_000;
+const AUTO_DISMISS_MS = 1500;
 
-function seedHistory(): CallRecord[] {
-  const now = Date.now();
-  const day = 86_400_000;
-  return [
-    { id: "seed_c1", peerId: "u2", direction: "outgoing", startedAt: now - 2 * 3600_000, durationSec: 42, result: "answered" },
-    { id: "seed_c2", peerId: "u3", direction: "incoming", startedAt: now - day - 1800_000, durationSec: 0, result: "missed" },
-    { id: "seed_c3", peerId: "u4", direction: "incoming", startedAt: now - 2 * day, durationSec: 18, result: "answered" },
-  ];
-}
+let state: CallsState = {
+  active: null,
+  muted: false,
+  cameraOff: false,
+  localStream: null,
+  remoteStream: null,
+};
 
-let state: CallsState = { active: null, history: seedHistory() };
 const listeners = new Set<() => void>();
-const emit = (): void => { listeners.forEach((l) => l()); };
-const subscribe = (l: () => void): (() => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+const emit = (): void => listeners.forEach((l) => l());
+const subscribe = (l: () => void): (() => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
 const getSnap = (): CallsState => state;
 
-let timers: ReturnType<typeof setTimeout>[] = [];
-function clearTimers(): void {
-  for (const t of timers) clearTimeout(t);
-  timers = [];
+function setState(patch: Partial<CallsState>): void {
+  state = { ...state, ...patch };
+  emit();
 }
 function patchActive(patch: Partial<ActiveCall>): void {
   if (!state.active) return;
@@ -71,65 +86,301 @@ export interface CallListener {
 const callListeners = new Set<CallListener>();
 export function onCallEvent(l: CallListener): () => void {
   callListeners.add(l);
-  return () => { callListeners.delete(l); };
+  return () => callListeners.delete(l);
+}
+
+// ---- engine internals ----
+let pc: RTCPeerConnection | null = null;
+let myUuid: string | null = null;
+let incomingOffer: RTCSessionDescriptionInit | null = null;
+let remoteDescSet = false;
+let pendingCandidates: RTCIceCandidateInit[] = [];
+let ringTimer: ReturnType<typeof setTimeout> | null = null;
+let dismissTimer: ReturnType<typeof setTimeout> | null = null;
+let signalUnsub: (() => void) | null = null;
+
+function clearTimers(): void {
+  if (ringTimer) clearTimeout(ringTimer);
+  if (dismissTimer) clearTimeout(dismissTimer);
+  ringTimer = null;
+  dismissTimer = null;
+}
+
+async function buildPc(): Promise<RTCPeerConnection> {
+  const iceServers = await fetchIceServers();
+  const conn = new RTCPeerConnection({ iceServers });
+  const remote = new MediaStream();
+  setState({ remoteStream: remote });
+
+  conn.onicecandidate = (ev) => {
+    const callId = state.active?.id;
+    if (ev.candidate && callId) void sendIce(callId, ev.candidate.toJSON()).catch(() => {});
+  };
+  conn.ontrack = (ev) => {
+    ev.streams[0]?.getTracks().forEach((t) => remote.addTrack(t));
+    if (ev.streams.length === 0) remote.addTrack(ev.track);
+  };
+  conn.onconnectionstatechange = () => {
+    const s = conn.connectionState;
+    if (s === "connected") {
+      if (state.active && state.active.status !== "connected") {
+        patchActive({ status: "connected", connectedAt: Date.now() });
+        if (ringTimer) {
+          clearTimeout(ringTimer);
+          ringTimer = null;
+        }
+      }
+    } else if (s === "failed" || s === "closed") {
+      finish("ended");
+    }
+  };
+  return conn;
+}
+
+async function getMedia(media: CallMedia): Promise<MediaStream> {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: media === "video" ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+  });
+  setState({ localStream: stream, muted: false, cameraOff: false });
+  return stream;
+}
+
+async function drainCandidates(): Promise<void> {
+  if (!pc) return;
+  for (const c of pendingCandidates) {
+    try {
+      await pc.addIceCandidate(c);
+    } catch {
+      /* ignore */
+    }
+  }
+  pendingCandidates = [];
+}
+
+function recordFrom(active: ActiveCall, result: CallResult): CallRecord {
+  const durationSec =
+    active.connectedAt && result === "answered"
+      ? Math.max(0, Math.round((Date.now() - active.connectedAt) / 1000))
+      : 0;
+  return {
+    id: active.id,
+    peerId: active.peerId,
+    peerName: active.peerName,
+    peerAvatar: active.peerAvatar,
+    direction: active.direction,
+    media: active.media,
+    startedAt: active.startedAt,
+    durationSec,
+    result,
+  };
+}
+
+function teardownMedia(): void {
+  state.localStream?.getTracks().forEach((t) => t.stop());
+  if (pc) {
+    pc.onicecandidate = null;
+    pc.ontrack = null;
+    pc.onconnectionstatechange = null;
+    try {
+      pc.close();
+    } catch {
+      /* ignore */
+    }
+  }
+  pc = null;
+  incomingOffer = null;
+  remoteDescSet = false;
+  pendingCandidates = [];
+}
+
+/** Close the call locally, emit a history record and auto-dismiss the screen. */
+function finish(result: CallResult): void {
+  const active = state.active;
+  if (!active || active.status === "ended") {
+    teardownMedia();
+    return;
+  }
+  clearTimers();
+  const wasConnected = active.status === "connected" && !!active.connectedAt;
+  const finalResult: CallResult = wasConnected
+    ? "answered"
+    : active.direction === "incoming"
+      ? "missed"
+      : result === "answered"
+        ? "answered"
+        : "ended";
+  const record = recordFrom(active, finalResult);
+
+  teardownMedia();
+
+  setState({
+    active: { ...active, status: "ended", endedAt: Date.now(), result: finalResult },
+    localStream: null,
+    remoteStream: null,
+  });
+  callListeners.forEach((l) => l.onEnded?.(record));
+
+  dismissTimer = setTimeout(() => setState({ active: null }), AUTO_DISMISS_MS);
+}
+
+async function handleSignal(payload: { type: string; [k: string]: any }): Promise<void> {
+  const type = payload.type;
+
+  if (type === "offer") {
+    // Ignore a second incoming call while busy — tell the caller we are busy.
+    if (state.active && state.active.status !== "ended") {
+      void rejectCall(payload.call_uuid).catch(() => {});
+      return;
+    }
+    clearTimers();
+    incomingOffer = payload.sdp as RTCSessionDescriptionInit;
+    const from = payload.from ?? {};
+    setState({
+      active: {
+        id: payload.call_uuid,
+        peerId: from.uuid ?? "",
+        peerName: from.name ?? "Пользователь",
+        peerAvatar: from.avatar ?? undefined,
+        direction: "incoming",
+        media: payload.media === "video" ? "video" : "audio",
+        status: "ringing",
+        startedAt: Date.now(),
+      },
+    });
+    return;
+  }
+
+  if (!state.active || state.active.id !== payload.call_uuid) return;
+
+  if (type === "answer") {
+    if (!pc) return;
+    patchActive({ status: "connecting" });
+    try {
+      await pc.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
+      remoteDescSet = true;
+      await drainCandidates();
+    } catch {
+      finish("ended");
+    }
+  } else if (type === "ice") {
+    const cand = payload.candidate as RTCIceCandidateInit;
+    if (pc && remoteDescSet) {
+      try {
+        await pc.addIceCandidate(cand);
+      } catch {
+        /* ignore */
+      }
+    } else {
+      pendingCandidates.push(cand);
+    }
+  } else if (type === "reject" || type === "hangup" || type === "busy") {
+    finish(type === "hangup" ? "ended" : "missed");
+  }
 }
 
 export const calls = {
-  start(peerId: string, direction: CallDirection = "outgoing"): void {
-    if (state.active) return;
+  /** Subscribe to the signaling channel for the logged-in user. Idempotent. */
+  async init(userUuid: string): Promise<void> {
+    if (myUuid === userUuid && signalUnsub) return;
+    if (signalUnsub) {
+      signalUnsub();
+      signalUnsub = null;
+    }
+    myUuid = userUuid;
+    signalUnsub = await subscribeCalls(userUuid, (p) => void handleSignal(p));
+  },
+
+  async start(
+    peerUuid: string,
+    peerName = "Пользователь",
+    peerAvatar?: string,
+    media: CallMedia = "audio",
+  ): Promise<void> {
+    if (state.active && state.active.status !== "ended") return;
     clearTimers();
-    const active: ActiveCall = {
-      id: `c_${Date.now()}`,
-      peerId,
-      direction,
-      status: "ringing",
-      startedAt: Date.now(),
-    };
-    state = { ...state, active };
-    emit();
-    timers.push(setTimeout(() => patchActive({ status: "connecting" }), RINGING_MS));
-    timers.push(setTimeout(() => {
-      patchActive({ status: "connected", connectedAt: Date.now() });
-      timers.push(setTimeout(() => calls.end(), MAX_CALL_MS));
-    }, RINGING_MS + CONNECTING_MS));
+    setState({
+      active: {
+        id: `pending_${Date.now()}`,
+        peerId: peerUuid,
+        peerName,
+        peerAvatar,
+        direction: "outgoing",
+        media,
+        status: "ringing",
+        startedAt: Date.now(),
+      },
+    });
+    try {
+      const stream = await getMedia(media);
+      pc = await buildPc();
+      stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
+      patchActive({ id: callUuid });
+      ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
+    } catch {
+      finish("ended");
+    }
+  },
+
+  async accept(): Promise<void> {
+    const active = state.active;
+    if (!active || active.direction !== "incoming" || !incomingOffer) return;
+    clearTimers();
+    patchActive({ status: "connecting" });
+    try {
+      const stream = await getMedia(active.media);
+      pc = await buildPc();
+      stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      await pc.setRemoteDescription(incomingOffer);
+      remoteDescSet = true;
+      await drainCandidates();
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await answerCall(active.id, answer);
+    } catch {
+      finish("ended");
+    }
+  },
+
+  decline(): void {
+    const active = state.active;
+    if (!active) return;
+    void rejectCall(active.id).catch(() => {});
+    finish("ended");
   },
 
   end(): void {
-    const a = state.active;
-    if (!a || a.status === "ended") return;
-    clearTimers();
-    const endedAt = Date.now();
-    const wasConnected = a.status === "connected" && !!a.connectedAt;
-    const durationSec = wasConnected ? Math.max(0, Math.round((endedAt - (a.connectedAt as number)) / 1000)) : 0;
-    const result: CallResult = wasConnected ? "answered" : (a.direction === "incoming" ? "missed" : "ended");
-    const record: CallRecord = {
-      id: a.id,
-      peerId: a.peerId,
-      direction: a.direction,
-      startedAt: a.startedAt,
-      durationSec,
-      result,
-    };
-    state = {
-      active: { ...a, status: "ended", endedAt, result },
-      history: [record, ...state.history],
-    };
-    emit();
-    callListeners.forEach((l) => l.onEnded?.(record));
-    timers.push(setTimeout(() => {
-      state = { ...state, active: null };
-      emit();
-    }, AUTO_DISMISS_MS));
+    const active = state.active;
+    if (!active || active.status === "ended") return;
+    void hangupCall(active.id).catch(() => {});
+    finish(active.status === "connected" ? "answered" : "ended");
   },
 
   dismiss(): void {
     clearTimers();
-    state = { ...state, active: null };
-    emit();
+    setState({ active: null });
+  },
+
+  toggleMute(): void {
+    const stream = state.localStream;
+    if (!stream) return;
+    const next = !state.muted;
+    stream.getAudioTracks().forEach((t) => (t.enabled = !next));
+    setState({ muted: next });
+  },
+
+  toggleCamera(): void {
+    const stream = state.localStream;
+    if (!stream) return;
+    const next = !state.cameraOff;
+    stream.getVideoTracks().forEach((t) => (t.enabled = !next));
+    setState({ cameraOff: next });
   },
 };
 
-// hook
 export function useCalls<T>(selector: (s: CallsState) => T): T {
   const snap = useSyncExternalStore(subscribe, getSnap, getSnap);
   return selector(snap);
@@ -140,6 +391,3 @@ export function formatCallDuration(sec: number): string {
   const s = sec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
-
-// Keep `me` referenced so this file can be extended later for incoming calls.
-export const _me = me;

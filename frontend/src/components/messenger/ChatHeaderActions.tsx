@@ -169,9 +169,9 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
         open={confirmOpen}
         peerId={partnerId}
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => {
+        onConfirm={(media) => {
           setConfirmOpen(false);
-          calls.start(partnerId);
+          void calls.start(partnerId, partnerName, undefined, media);
         }}
       />
     </>
