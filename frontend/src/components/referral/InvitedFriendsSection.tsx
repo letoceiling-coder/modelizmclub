@@ -1,15 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Users, Gift } from "lucide-react";
-import { userById } from "@/lib/mock";
-import {
-  getInvitedFriends,
-  getReferralBonus,
-  REFERRAL_MAX_BONUS,
-} from "@/lib/referral";
+import { REFERRAL_MAX_BONUS } from "@/lib/referral";
+import { useReferral } from "@/lib/api/referral";
+import { formatRelativeTime } from "@/lib/mock";
 
 export function InvitedFriendsSection() {
-  const invited = getInvitedFriends();
-  const bonus = getReferralBonus();
+  const { data } = useReferral();
+  const invited = data?.invited ?? [];
+  const bonus = data?.bonus ?? 0;
 
   return (
     <section>
@@ -68,12 +66,13 @@ export function InvitedFriendsSection() {
       ) : (
         <ul className="mt-[12px] space-y-[8px]">
           {invited.map((inv) => {
-            const u = userById(inv.userId);
+            const u = inv.user;
+            const to = u.slug ?? u.uuid;
             return (
-              <li key={inv.userId}>
+              <li key={u.uuid}>
                 <Link
                   to="/user/$id"
-                  params={{ id: u.id }}
+                  params={{ id: to }}
                   className="flex items-center gap-[12px] p-[12px] transition-colors"
                   style={{
                     border: "1px solid var(--border)",
@@ -82,7 +81,7 @@ export function InvitedFriendsSection() {
                   }}
                 >
                   <img
-                    src={u.avatar}
+                    src={u.avatar ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.displayName)}`}
                     alt=""
                     className="h-[40px] w-[40px] rounded-full object-cover"
                   />
@@ -91,10 +90,10 @@ export function InvitedFriendsSection() {
                       className="truncate font-semibold"
                       style={{ fontSize: 14, color: "var(--foreground)" }}
                     >
-                      {u.name}
+                      {u.displayName}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--foreground-50)" }}>
-                      Присоединился {inv.joinedAt}
+                      Присоединился {inv.joinedAt ? formatRelativeTime(inv.joinedAt) : ""}
                     </div>
                   </div>
                   <span

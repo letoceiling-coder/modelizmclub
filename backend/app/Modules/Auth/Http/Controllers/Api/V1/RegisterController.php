@@ -24,6 +24,7 @@ class RegisterController extends Controller
     #[BodyParameter('password_confirmation', description: 'Повтор пароля', example: 'password123')]
     #[BodyParameter('registration_track', description: 'Трек регистрации: `community` — лента и сообщества; `listing` — объявления', example: 'community')]
     #[BodyParameter('display_name', description: 'Отображаемое имя (необязательно)', required: false, example: 'Иван Моделист')]
+    #[BodyParameter('referral_code', description: 'Реферальный код пригласившего (необязательно)', required: false, example: 'MDLZM-ABC123')]
     public function __invoke(RegisterRequest $request, AuthService $auth): JsonResponse
     {
         $auth->register(
@@ -31,6 +32,7 @@ class RegisterController extends Controller
             password: $request->string('password')->toString(),
             track: RegistrationTrack::from($request->string('registration_track')->toString()),
             displayName: $request->filled('display_name') ? $request->string('display_name')->toString() : null,
+            referralCode: $request->filled('referral_code') ? $request->string('referral_code')->toString() : null,
         );
 
         return response()->json([

@@ -69,6 +69,7 @@ export async function register(input: {
   password: string;
   passwordConfirmation: string;
   track?: RegistrationTrack;
+  referralCode?: string;
 }): Promise<void> {
   await api("/auth/register", {
     method: "POST",
@@ -79,6 +80,7 @@ export async function register(input: {
       password: input.password,
       password_confirmation: input.passwordConfirmation,
       registration_track: input.track ?? "community",
+      referral_code: input.referralCode?.trim() || undefined,
     },
   });
 }

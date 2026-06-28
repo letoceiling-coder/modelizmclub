@@ -1,24 +1,23 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getReferralLink,
-  getInvitedFriends,
-  getReferralBonus,
   REFERRAL_MAX_BONUS,
   REFERRAL_BONUS_PER_INVITE,
 } from "@/lib/referral";
+import { useReferral } from "@/lib/api/referral";
 import { useStore, selectors } from "@/lib/store";
 
 export function InviteBlock() {
   const me = useStore(selectors.currentUser);
   const [copied, setCopied] = useState(false);
-  // Initial render (SSR + first client paint) uses the stable canonical link
-  // so hydration matches. The actual origin-derived link replaces it on mount.
-  const [link, setLink] = useState<string>(() => getReferralLink(me.id));
-  useEffect(() => setLink(getReferralLink(me.id)), [me.id]);
-  const invited = getInvitedFriends();
-  const bonus = getReferralBonus();
+  const { data } = useReferral();
+  // SSR + first client paint use the stable canonical link so hydration matches;
+  // the real API-backed link/stats replace it once loaded.
+  const link = data?.link ?? getReferralLink(me.id);
+  const invitedCount = data?.invitedCount ?? 0;
+  const bonus = data?.bonus ?? 0;
   const remaining = Math.max(0, REFERRAL_MAX_BONUS - bonus);
 
   const copy = async () => {
@@ -118,7 +117,7 @@ export function InviteBlock() {
       <div className="mt-[14px] flex flex-wrap items-center justify-between gap-[10px]">
         <div className="flex items-center gap-[12px] text-[13px]">
           <span style={{ color: "var(--foreground-50)" }}>
-            Приглашено: <b style={{ color: "var(--foreground)" }}>{invited.length}</b>
+            Приглашено: <b style={{ color: "var(--foreground)" }}>{invitedCount}</b>
           </span>
           <span style={{ color: "var(--foreground-50)" }}>
             Бонус: <b style={{ color: "var(--accent)" }}>+{bonus}</b> объявлений

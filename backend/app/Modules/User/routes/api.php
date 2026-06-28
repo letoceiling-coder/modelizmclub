@@ -8,6 +8,7 @@ use Modules\User\Http\Controllers\Api\V1\IndexUsersController;
 use Modules\User\Http\Controllers\Api\V1\InterestsController;
 use Modules\User\Http\Controllers\Api\V1\NotificationController;
 use Modules\User\Http\Controllers\Api\V1\PrivacyController;
+use Modules\User\Http\Controllers\Api\V1\ReferralController;
 use Modules\User\Http\Controllers\Api\V1\SettingsController;
 use Modules\User\Http\Controllers\Api\V1\ShowProfileController;
 use Modules\User\Http\Controllers\Api\V1\UpdateProfileController;
@@ -21,6 +22,8 @@ Route::prefix('users')->group(function (): void {
         Route::patch('me/privacy', PrivacyController::class);
         Route::get('me/interests', [InterestsController::class, 'show']);
         Route::put('me/interests', [InterestsController::class, 'sync']);
+        Route::get('me/referrals', ReferralController::class);
+
         Route::get('me/notifications', [NotificationController::class, 'index']);
         Route::get('me/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('me/notifications/read-all', [NotificationController::class, 'markAllRead']);

@@ -36,6 +36,8 @@ class User extends Authenticatable
         'role',
         'status',
         'registration_track',
+        'referral_code',
+        'referred_by',
         'locale',
         'last_seen_at',
         'email_verified_at',
@@ -103,6 +105,32 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(self::class, 'user_friendships', 'user_id', 'friend_id')
             ->withPivot('created_at');
+    }
+
+    public function referrer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(self::class, 'referred_by');
+    }
+
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(self::class, 'referred_by');
+    }
+
+    /** Lazily assigns a stable, unique referral code and returns it. */
+    public function ensureReferralCode(): string
+    {
+        if ($this->referral_code) {
+            return $this->referral_code;
+        }
+
+        do {
+            $code = 'MDLZM-'.strtoupper(\Illuminate\Support\Str::random(6));
+        } while (self::withTrashed()->where('referral_code', $code)->exists());
+
+        $this->forceFill(['referral_code' => $code])->save();
+
+        return $code;
     }
 
     public function isModerator(): bool

@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
-import { getInviterByCode } from "@/lib/referral";
 import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 
@@ -18,7 +17,6 @@ export const Route = createFileRoute("/register")({
 function RegisterPage() {
   const nav = useNavigate();
   const { ref } = useSearch({ from: "/register" });
-  const inviter = getInviterByCode(ref);
   const [agree, setAgree] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +33,7 @@ function RegisterPage() {
     }
     setLoading(true);
     try {
-      await register({ name, email, password, passwordConfirmation });
+      await register({ name, email, password, passwordConfirmation, referralCode: ref });
       toast.success("Аккаунт создан. Введите код из письма");
       nav({ to: "/verify-email", search: { email } });
     } catch (err) {
@@ -64,7 +62,7 @@ function RegisterPage() {
         </>
       }
     >
-      {inviter && (
+      {ref && (
         <div
           className="mb-[16px] flex items-center gap-[10px]"
           style={{
@@ -74,13 +72,18 @@ function RegisterPage() {
             padding: "10px 12px",
           }}
         >
-          <img src={inviter.avatar} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
+          <div
+            className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            <UserPlus size={16} />
+          </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-[6px]" style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
-              <UserPlus size={12} /> Приглашён {inviter.name}
+            <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
+              Вы регистрируетесь по приглашению
             </div>
             <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>
-              Вы и {inviter.name.split(" ")[0]} получите по бонусному объявлению
+              Вы и пригласивший получите бонусное объявление
             </div>
           </div>
         </div>
