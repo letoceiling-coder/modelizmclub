@@ -1,6 +1,5 @@
 <?php
 
-use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 use Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy;
 
 return [
@@ -178,10 +177,9 @@ MD,
     /*
      * Allow API docs UI on non-production environments (see viewApiDocs gate).
      */
-    'middleware' => array_values(array_filter([
+    'middleware' => [
         'web',
-        env('APP_ENV') === 'production' ? RestrictedDocsAccess::class : null,
-    ])),
+    ],
 
     'extensions' => [],
 

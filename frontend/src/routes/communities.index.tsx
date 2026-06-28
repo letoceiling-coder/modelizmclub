@@ -5,8 +5,8 @@ import {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useStore, selectors } from "@/lib/store";
 import type { Community } from "@/lib/mock";
+import { fetchCommunities } from "@/lib/api/communities";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export const Route = createFileRoute("/communities/")({
@@ -114,9 +114,14 @@ function EmptySearch() {
 }
 
 function CommunitiesPage() {
-  const currentUserId = useStore((s) => s.currentUserId);
-  const myCommunities = useStore(selectors.userCommunities(currentUserId));
-  const recommended = useStore(selectors.recommendedCommunities(currentUserId));
+  const [all, setAll] = useState<Community[]>([]);
+
+  useEffect(() => {
+    fetchCommunities().then(setAll).catch(() => {});
+  }, []);
+
+  const myCommunities = useMemo(() => all.filter((c) => c.joined), [all]);
+  const recommended = useMemo(() => all.filter((c) => !c.joined), [all]);
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);

@@ -1,8 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { categories, type AdCondition } from "@/lib/mock";
+import { type AdCondition, type Category } from "@/lib/mock";
+import { fetchListingCategories } from "@/lib/api/categories";
+import { searchCities } from "@/lib/api/cities";
+import { uploadMedia } from "@/lib/api/media";
+import { createListing } from "@/lib/api/listings";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { SuccessModal } from "@/components/ads/wizard/SuccessModal";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
@@ -25,6 +30,7 @@ const STEPS = ["Фото", "Данные", "Превью"];
 
 interface Form {
   photos: string[];
+  files: File[];
   status: Status;
   title: string;
   description: string;
@@ -39,12 +45,13 @@ interface Form {
 
 const initial: Form = {
   photos: [],
+  files: [],
   status: "Продаю",
   title: "",
   description: "",
   price: "",
-  categoryId: categories[0].id,
-  subcategoryId: categories[0].subcategories[0].id,
+  categoryId: "",
+  subcategoryId: "",
   condition: "Б/у — отлично",
   city: "",
   contact: "",
@@ -56,8 +63,23 @@ function NewAdPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
   const [success, setSuccess] = useState(false);
+  const [cats, setCats] = useState<Category[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const cat = useMemo(() => categories.find((c) => c.id === form.categoryId)!, [form.categoryId]);
+  useEffect(() => {
+    fetchListingCategories()
+      .then((list) => {
+        setCats(list);
+        setForm((f) =>
+          f.categoryId
+            ? f
+            : { ...f, categoryId: list[0]?.id ?? "", subcategoryId: list[0]?.subcategories[0]?.id ?? "" },
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  const cat = useMemo(() => cats.find((c) => c.id === form.categoryId) ?? cats[0], [cats, form.categoryId]);
 
   const valid = useMemo(() => {
     if (step === 1) return form.photos.length > 0;
@@ -66,6 +88,39 @@ function NewAdPage() {
   }, [step, form]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const mediaIds: string[] = [];
+      for (const file of form.files) {
+        const m = await uploadMedia(file, "listing");
+        mediaIds.push(m.uuid);
+      }
+      let cityId: number | undefined;
+      if (form.city.trim()) {
+        const found = await searchCities(form.city.trim());
+        cityId = found[0]?.id;
+      }
+      await createListing({
+        title: form.title.trim(),
+        description: form.description.trim(),
+        priceCents: Number(form.price || 0) * 100,
+        categoryId: Number(form.categoryId),
+        subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
+        cityId,
+        deliveryMethods: form.deliveries,
+        mediaIds,
+        publish: true,
+      });
+      setSuccess(true);
+    } catch {
+      toast.error("Не удалось опубликовать объявление");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <AppLayout rightColumn={false}>
@@ -94,7 +149,7 @@ function NewAdPage() {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && <StepData form={form} set={set} cat={cat} />}
+            {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} />}
             {step === 3 && <StepPreview form={form} cat={cat} />}
           </motion.div>
         </AnimatePresence>
@@ -143,8 +198,9 @@ function NewAdPage() {
           ) : (
             <button
               type="button"
-              onClick={() => setSuccess(true)}
-              className="inline-flex items-center gap-[8px] px-[22px] text-[13px] font-semibold transition-opacity hover:opacity-90"
+              onClick={submit}
+              disabled={submitting}
+              className="inline-flex items-center gap-[8px] px-[22px] text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background: "var(--accent)",
                 color: "#fff",
@@ -153,7 +209,7 @@ function NewAdPage() {
                 height: 44,
               }}
             >
-              <CreditCard size={16} /> Оплатить 20 ₽ и опубликовать
+              <CreditCard size={16} /> {submitting ? "Публикуем…" : "Оплатить 20 ₽ и опубликовать"}
             </button>
           )}
         </div>
@@ -168,15 +224,24 @@ function NewAdPage() {
 function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
   const addPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    const urls = files.slice(0, MAX_PHOTOS - form.photos.length).map((f) => URL.createObjectURL(f));
+    const picked = files.slice(0, MAX_PHOTOS - form.photos.length);
+    const urls = picked.map((f) => URL.createObjectURL(f));
     set("photos", [...form.photos, ...urls]);
+    set("files", [...form.files, ...picked]);
   };
-  const remove = (i: number) => set("photos", form.photos.filter((_, j) => j !== i));
+  const remove = (i: number) => {
+    set("photos", form.photos.filter((_, j) => j !== i));
+    set("files", form.files.filter((_, j) => j !== i));
+  };
   const makeMain = (i: number) => {
     const next = [...form.photos];
     const [m] = next.splice(i, 1);
     next.unshift(m);
     set("photos", next);
+    const nf = [...form.files];
+    const [mf] = nf.splice(i, 1);
+    nf.unshift(mf);
+    set("files", nf);
   };
 
   return (
@@ -257,7 +322,7 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 }
 
 /* ────────── STEP 2: Data ────────── */
-function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: (typeof categories)[number] }) {
+function StepData({ form, set, cat, cats }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: Category | undefined; cats: Category[] }) {
   return (
     <section className="space-y-[24px]">
       <Block title="Тип объявления">
@@ -293,15 +358,15 @@ function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(
           <Field label="Категория">
             <NativeSelect value={form.categoryId}
               onChange={(v) => {
-                const c = categories.find((x) => x.id === v)!;
+                const c = cats.find((x) => x.id === v);
                 set("categoryId", v);
-                set("subcategoryId", c.subcategories[0].id);
+                set("subcategoryId", c?.subcategories[0]?.id ?? "");
               }}
-              options={categories.map((c) => ({ label: c.name, value: c.id }))} />
+              options={cats.map((c) => ({ label: c.name, value: c.id }))} />
           </Field>
           <Field label="Подкатегория">
             <NativeSelect value={form.subcategoryId} onChange={(v) => set("subcategoryId", v)}
-              options={cat.subcategories.map((s) => ({ label: s.name, value: s.id }))} />
+              options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))} />
           </Field>
         </div>
       </Block>
@@ -332,15 +397,15 @@ function StepData({ form, set, cat }: { form: Form; set: <K extends keyof Form>(
 }
 
 /* ────────── STEP 3: Preview ────────── */
-function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[number] }) {
-  const sub = cat.subcategories.find((s) => s.id === form.subcategoryId);
+function StepPreview({ form, cat }: { form: Form; cat: Category | undefined }) {
+  const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
   const status = form.status;
   const statusStyle = status === "Продаю"
     ? { bg: "var(--accent-soft)", fg: "var(--accent)" }
     : status === "Куплю"
     ? { bg: "var(--info-soft)", fg: "var(--info)" }
     : { bg: "var(--warning-soft)", fg: "var(--warning)" };
-  const image = form.photos[0] ?? "https://picsum.photos/seed/preview/800/600";
+  const image = form.photos[0] ?? "";
 
   return (
     <section className="space-y-[20px]">
@@ -376,7 +441,7 @@ function StepPreview({ form, cat }: { form: Form; cat: (typeof categories)[numbe
               {Number(form.price || 0).toLocaleString("ru")} ₽
             </div>
             <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              {cat.name} · {sub?.name}
+              {cat?.name} · {sub?.name}
             </div>
           </div>
         </div>

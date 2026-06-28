@@ -154,6 +154,8 @@ type Action =
   | { type: "SAVE_POST"; postId: ID; save: boolean }
   | { type: "ADD_COMMENT"; postId: ID; comment: Comment }
   | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
+  | { type: "SET_CURRENT_USER"; user: User }
+  | { type: "SET_DIALOGS"; dialogs: Dialog[] }
   | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] };
 
 function reducer(s: AppState, a: Action): AppState {
@@ -310,6 +312,23 @@ function reducer(s: AppState, a: Action): AppState {
       const prev = s.dialogMeta[a.dialogId] ?? { archived: false, muted: false, blocked: false };
       return { ...s, dialogMeta: { ...s.dialogMeta, [a.dialogId]: { ...prev, ...a.patch } } };
     }
+    case "SET_CURRENT_USER": {
+      const existing = s.users[a.user.id];
+      return {
+        ...s,
+        users: { ...s.users, [a.user.id]: { ...existing, ...a.user } },
+        currentUserId: a.user.id,
+      };
+    }
+    case "SET_DIALOGS": {
+      const dialogs: Record<ID, Dialog> = {};
+      for (const d of a.dialogs) {
+        // Preserve already-loaded messages when refreshing the list.
+        const prev = s.dialogs[d.id];
+        dialogs[d.id] = prev ? { ...d, messages: prev.messages.length ? prev.messages : d.messages } : d;
+      }
+      return { ...s, dialogs };
+    }
     case "SET_DIALOG_MESSAGES": {
       const d = s.dialogs[a.dialogId];
       if (!d) return s;
@@ -356,9 +375,37 @@ export const actions = {
   savePost: (postId: ID, save: boolean) => dispatch({ type: "SAVE_POST", postId, save }),
   addComment: (postId: ID, comment: Comment) => dispatch({ type: "ADD_COMMENT", postId, comment }),
   setDialogMeta: (dialogId: ID, patch: Partial<DialogMeta>) => dispatch({ type: "SET_DIALOG_META", dialogId, patch }),
-  setDialogMessages: (dialogId: ID, messages: Message[]) =>
-    dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages }),
+  setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
+
+// Hydrate the current session user into the store (used after login / on boot).
+export function setCurrentUser(user: User): void {
+  dispatch({ type: "SET_CURRENT_USER", user });
+}
+
+export function setDialogs(dialogs: Dialog[]): void {
+  dispatch({ type: "SET_DIALOGS", dialogs });
+}
+
+export function setDialogMessages(dialogId: ID, messages: Message[]): void {
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
+}
+
+// Upsert an incoming message (from API send or realtime) into a dialog.
+export function upsertMessage(dialogId: ID, message: Message): void {
+  const d = state.dialogs[dialogId];
+  if (!d) return;
+  if (d.messages.some((m) => m.id === message.id)) return;
+  dispatch({ type: "ADD_MESSAGE", dialogId, message });
+}
+
+// Replace an optimistic message (temp id) with the server-confirmed one.
+export function replaceMessage(dialogId: ID, tempId: ID, message: Message): void {
+  const d = state.dialogs[dialogId];
+  if (!d) return;
+  const messages = d.messages.map((m) => (m.id === tempId ? message : m));
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
+}
 
 // Imperative helper: find an existing dialog with the given user, or create one.
 // Always returns the dialogId — never falls back to dialogs[0]. Bug #17.
@@ -404,47 +451,3 @@ export const selectors = {
   dialogMeta: (dialogId: ID) => (s: AppState): DialogMeta =>
     s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
 };
-
-/** Hydrate store from backend API (data layer only — components unchanged). */
-export function hydrateStore(partial: {
-  userId?: ID;
-  communities?: Community[];
-  ads?: Ad[];
-  adStatus?: Record<ID, AdStatusKey>;
-  dialogs?: Dialog[];
-  friendRequests?: FriendRequest[];
-  friendships?: Friendship[];
-}): void {
-  const userId = partial.userId ?? state.currentUserId;
-  let next: AppState = { ...state };
-
-  if (partial.userId) next.currentUserId = partial.userId;
-
-  if (partial.communities) {
-    const joined = partial.communities.filter((c) => c.joined).map((c) => c.id);
-    next = {
-      ...next,
-      communities: toRecord(partial.communities),
-      communityMemberships: { ...next.communityMemberships, [userId]: joined },
-    };
-  }
-
-  if (partial.ads) {
-    next = { ...next, ads: toRecord(partial.ads) };
-  }
-  if (partial.adStatus) {
-    next = { ...next, adStatus: { ...next.adStatus, ...partial.adStatus } };
-  }
-  if (partial.dialogs) {
-    next = { ...next, dialogs: toRecord(partial.dialogs) };
-  }
-  if (partial.friendRequests) {
-    next = { ...next, friendRequests: partial.friendRequests };
-  }
-  if (partial.friendships) {
-    next = { ...next, friendships: partial.friendships };
-  }
-
-  state = next;
-  emit();
-}

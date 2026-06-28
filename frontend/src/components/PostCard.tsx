@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2 } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
-import { userById, me } from "@/lib/mock";
-import { getToken } from "@/lib/api/client";
-import { reactPost, addPostComment } from "@/lib/api/feed-actions";
-import { toast } from "sonner";
+import { userById } from "@/lib/mock";
+import { useStore, selectors } from "@/lib/store";
+import {
+  reactToPost,
+  bookmarkPost,
+  fetchPostComments,
+  createComment,
+} from "@/lib/api/feed";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { RepostMenu } from "@/components/feed/RepostMenu";
@@ -19,6 +23,7 @@ interface Props {
 }
 
 export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
+  const me = useStore(selectors.currentUser);
   const author = userById(post.authorId);
   const reposter = post.repostedBy ? userById(post.repostedBy) : null;
 
@@ -33,6 +38,15 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!commentsOpen || commentsLoaded) return;
+    setCommentsLoaded(true);
+    fetchPostComments(post.id)
+      .then(setCommentList)
+      .catch(() => {});
+  }, [commentsOpen, commentsLoaded, post.id]);
 
   const isLong = post.text.length > 220;
   const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
@@ -42,19 +56,21 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const toggleLike = () => {
     const next = !liked;
     setLiked(next);
-    setLikes((n) => n + (liked ? -1 : 1));
-    if (getToken()) {
-      reactPost(post.id, next).catch(() => {
-        setLiked(liked);
-        setLikes((n) => n + (next ? -1 : 1));
-        toast.error("Не удалось обновить реакцию");
-      });
-    }
+    setLikes((n) => n + (next ? 1 : -1));
+    reactToPost(post.id, next).catch(() => {
+      setLiked(!next);
+      setLikes((n) => n + (next ? -1 : 1));
+    });
   };
   const toggleSave = () => {
+    const next = !saved;
     if (onToggleSave) onToggleSave(post.id);
     else setSavedInner((v) => !v);
-    setSaves((n) => n + (saved ? -1 : 1));
+    setSaves((n) => n + (next ? 1 : -1));
+    bookmarkPost(post.id, next).catch(() => {
+      if (!onToggleSave) setSavedInner((v) => !v);
+      setSaves((n) => n + (next ? -1 : 1));
+    });
   };
   const toggleRepost = () => {
     setReposted((v) => !v);
@@ -62,8 +78,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   };
 
   const addComment = (text: string, parentId?: string) => {
-    const optimistic: Comment = {
-      id: `nc${Date.now()}`,
+    const tempId = `nc${Date.now()}`;
+    const newC: Comment = {
+      id: tempId,
       authorId: me.id,
       time: "только что",
       text,
@@ -71,26 +88,23 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
       replies: [],
     };
     setCommentList((list) => {
-      if (!parentId) return [...list, optimistic];
+      if (!parentId) return [...list, newC];
       return list.map((c) =>
-        c.id === parentId ? { ...c, replies: [...(c.replies ?? []), optimistic] } : c,
+        c.id === parentId ? { ...c, replies: [...(c.replies ?? []), newC] } : c,
       );
     });
-    if (getToken()) {
-      addPostComment(post.id, text, parentId)
-        .then((saved) => {
-          setCommentList((list) => {
-            const replace = (items: Comment[]): Comment[] =>
-              items.map((c) => {
-                if (c.id === optimistic.id) return { ...saved, replies: c.replies };
-                if (c.replies?.length) return { ...c, replies: replace(c.replies) };
-                return c;
-              });
-            return replace(list);
-          });
-        })
-        .catch(() => toast.error("Не удалось отправить комментарий"));
-    }
+    createComment(post.id, text, parentId)
+      .then((saved) => {
+        setCommentList((list) => {
+          if (!parentId) return list.map((c) => (c.id === tempId ? saved : c));
+          return list.map((c) =>
+            c.id === parentId
+              ? { ...c, replies: (c.replies ?? []).map((r) => (r.id === tempId ? saved : r)) }
+              : c,
+          );
+        });
+      })
+      .catch(() => {});
   };
 
   return (

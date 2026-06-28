@@ -1,49 +1,70 @@
-// Laravel Echo + Reverb realtime. Initialized once when user is authenticated.
+import type { Message } from "@/lib/mock";
+import { mapMessage } from "@/lib/api/chat";
+import { getToken, API_BASE_URL } from "@/lib/api/client";
 
-import Echo from "laravel-echo";
-import Pusher from "pusher-js";
-import { API_BASE, REVERB } from "@/lib/api/config";
-import { getToken } from "@/lib/api/client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-let echo: Echo | null = null;
+let echo: any = null;
+let initTried = false;
 
-declare global {
-  interface Window {
-    Pusher: typeof Pusher;
-    Echo?: Echo;
-  }
+function env(key: string): string | undefined {
+  return (import.meta as { env?: Record<string, string | undefined> }).env?.[key];
 }
 
-export function getEcho(): Echo | null {
-  if (typeof window === "undefined") return null;
-  if (!REVERB.key || !getToken()) return null;
+async function getEcho(): Promise<any> {
+  if (echo || initTried) return echo;
+  initTried = true;
+  const key = env("VITE_REVERB_APP_KEY");
+  if (!key || typeof window === "undefined") return null;
 
-  if (!echo) {
-    window.Pusher = Pusher;
+  try {
+    const [{ default: Echo }, PusherModule] = await Promise.all([
+      import("laravel-echo"),
+      import("pusher-js"),
+    ]);
+    (window as any).Pusher = (PusherModule as any).default ?? PusherModule;
+
+    const port = Number(env("VITE_REVERB_PORT") ?? 443);
     echo = new Echo({
       broadcaster: "reverb",
-      key: REVERB.key,
-      wsHost: REVERB.host,
-      wsPort: REVERB.port,
-      wssPort: REVERB.port,
-      forceTLS: REVERB.scheme === "https",
+      key,
+      wsHost: env("VITE_REVERB_HOST"),
+      wsPort: port,
+      wssPort: port,
+      forceTLS: (env("VITE_REVERB_SCHEME") ?? "https") === "https",
       enabledTransports: ["ws", "wss"],
-      authEndpoint: `${API_BASE}/broadcasting/auth`,
-      auth: {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-          Accept: "application/json",
-        },
-      },
+      authEndpoint: API_BASE_URL.replace(/\/api\/v1\/?$/, "") + "/broadcasting/auth",
+      auth: { headers: { Authorization: `Bearer ${getToken() ?? ""}` } },
     });
-    window.Echo = echo;
+  } catch {
+    echo = null;
   }
-
   return echo;
 }
 
-export function disconnectEcho(): void {
-  echo?.disconnect();
-  echo = null;
-  if (typeof window !== "undefined") delete window.Echo;
+/**
+ * Subscribe to a private conversation channel. Resolves to an unsubscribe
+ * function. No-ops gracefully when Reverb is not configured.
+ */
+export async function subscribeConversation(
+  uuid: string,
+  onMessage: (m: Message) => void,
+): Promise<() => void> {
+  const e = await getEcho();
+  if (!e) return () => {};
+  try {
+    const channel = e.private(`conversation.${uuid}`);
+    channel.listen(".message.sent", (payload: { message: any }) => {
+      if (payload?.message) onMessage(mapMessage(payload.message));
+    });
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      e.leave(`conversation.${uuid}`);
+    } catch {
+      /* ignore */
+    }
+  };
 }

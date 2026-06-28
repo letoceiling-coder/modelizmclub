@@ -10,17 +10,18 @@ use App\Models\CommunityApplication;
 use App\Models\CommunityCategory;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CommunityService
 {
-    public function list(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 20, ?User $viewer = null): LengthAwarePaginator
     {
-        return Community::query()
+        $paginator = Community::query()
             ->active()
-            ->with(['category', 'avatar'])
+            ->with(['category', 'avatar', 'cover'])
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
             ->when($filters['q'] ?? null, function ($q, $term): void {
                 $q->where(function ($q) use ($term): void {
@@ -33,6 +34,21 @@ class CommunityService
             ->orderByDesc('members_count')
             ->orderBy('name')
             ->paginate($perPage);
+
+        if ($viewer) {
+            $ids = $paginator->getCollection()->pluck('id');
+            $memberIds = DB::table('community_members')
+                ->where('user_id', $viewer->id)
+                ->whereIn('community_id', $ids)
+                ->pluck('community_id')
+                ->all();
+            $set = array_flip($memberIds);
+            $paginator->getCollection()->each(
+                fn (Community $c) => $c->setAttribute('is_member', isset($set[$c->id])),
+            );
+        }
+
+        return $paginator;
     }
 
     public function show(string $slug, ?User $viewer = null): Community

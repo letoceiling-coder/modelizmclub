@@ -27,9 +27,11 @@ class CommunityResource extends JsonResource
             ]),
             'avatar' => $this->whenLoaded('avatar', fn () => $this->avatar ? [
                 'uuid' => $this->avatar->uuid,
+                'url' => $this->avatar->url,
             ] : null),
             'cover' => $this->whenLoaded('cover', fn () => $this->cover ? [
                 'uuid' => $this->cover->uuid,
+                'url' => $this->cover->url,
             ] : null),
             'subcategories' => $this->whenLoaded('subcategories', fn () => $this->subcategories->map(fn ($s) => [
                 'id' => $s->id,

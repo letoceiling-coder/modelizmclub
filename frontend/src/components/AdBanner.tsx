@@ -1,11 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { toast } from "sonner";
-import { banners } from "@/lib/mock";
+import type { Banner } from "@/lib/mock";
+import { fetchBanners } from "@/lib/api/banners";
 
 export function AdBanner() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [banners, setBanners] = useState<Banner[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchBanners("feed").then((b) => active && setBanners(b)).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const visible = banners.filter((b) => !dismissed.has(b.id));
   if (visible.length === 0) return null;

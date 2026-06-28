@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Languages, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
-type Lang = "ru" | "en" | "zh";
+import { setLocale, type Locale } from "@/lib/i18n";
+
+type Lang = Locale;
 
 const LANGS: { code: Lang; label: string; native: string; flag: string }[] = [
   { code: "ru", label: "Русский", native: "Русский", flag: "🇷🇺" },
@@ -10,16 +13,9 @@ const LANGS: { code: Lang; label: string; native: string; flag: string }[] = [
   { code: "zh", label: "中文", native: "中文", flag: "🇨🇳" },
 ];
 
-const STORAGE_KEY = "chat-lang";
-
-function getInitial(): Lang {
-  if (typeof window === "undefined") return "ru";
-  const v = window.localStorage.getItem(STORAGE_KEY);
-  return v === "en" || v === "zh" ? v : "ru";
-}
-
 export function LanguageSwitcher() {
-  const [lang, setLang] = useState<Lang>(getInitial);
+  const { i18n } = useTranslation();
+  const lang = (i18n.language as Lang) || "ru";
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -40,14 +36,13 @@ export function LanguageSwitcher() {
   }, [open]);
 
   const pick = (code: Lang) => {
-    setLang(code);
+    setLocale(code);
     setOpen(false);
-    try { window.localStorage.setItem(STORAGE_KEY, code); } catch { /* ignore */ }
     const name = LANGS.find((l) => l.code === code)?.native ?? code;
     toast.success(
-      code === "ru" ? `Язык чата: ${name}` :
-      code === "en" ? `Chat language: ${name}` :
-      `聊天语言：${name}`,
+      code === "ru" ? `Язык: ${name}` :
+      code === "en" ? `Language: ${name}` :
+      `语言：${name}`,
     );
   };
 

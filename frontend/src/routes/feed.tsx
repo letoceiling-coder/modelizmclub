@@ -12,14 +12,12 @@ import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyFeedState } from "@/components/feed/EmptyFeedState";
 import type { CreatePostPayload } from "@/components/CreatePostForm";
-import { me, banners } from "@/lib/mock";
-import type { Post } from "@/lib/mock";
-import { fetchFeedPosts } from "@/lib/api/feed";
-import { createPost } from "@/lib/api/feed-actions";
-import { useCategories } from "@/lib/api/catalog";
-import { getToken } from "@/lib/api/client";
+import { useStore, selectors } from "@/lib/store";
+import type { Post, Category, Banner } from "@/lib/mock";
+import { fetchFeed } from "@/lib/api/feed";
+import { fetchPostCategories, categoryIdByName } from "@/lib/api/categories";
+import { fetchBanners } from "@/lib/api/banners";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -39,8 +37,10 @@ const PAGE_SIZE = 6;
 function FeedPage() {
   const { composer } = Route.useSearch();
   const navigate = useNavigate();
+  const me = useStore(selectors.currentUser);
   const [posts, setPosts] = useState<Post[]>([]);
-  const categories = useCategories();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [filter, setFilter] = useState<FeedFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -62,21 +62,51 @@ function FeedPage() {
     });
 
   const [initialLoading, setInitialLoading] = useState(true);
+
   useEffect(() => {
-    let alive = true;
-    fetchFeedPosts()
-      .then((p) => { if (alive) setPosts(p); })
-      .catch(() => { if (alive) setPosts([]); })
-      .finally(() => { if (alive) setInitialLoading(false); });
-    return () => { alive = false; };
+    fetchPostCategories().then(setCategories).catch(() => {});
+    fetchBanners().then(setBanners).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    if (filter === "categories" && !activeCategory) {
+      setPosts([]);
+      setInitialLoading(false);
+      return;
+    }
+    setInitialLoading(true);
+    const query =
+      filter === "following"
+        ? { filter: "following" as const }
+        : filter === "categories" && activeCategory
+          ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory) }
+          : { filter: "all" as const };
+    fetchFeed({ ...query, perPage: 50 })
+      .then((r) => {
+        if (!alive) return;
+        setPosts(r.posts);
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          for (const p of r.posts) if (p.isSaved) next.add(p.id);
+          return next;
+        });
+      })
+      .catch(() => {
+        if (alive) setPosts([]);
+      })
+      .finally(() => {
+        if (alive) setInitialLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [filter, activeCategory]);
+
   const filtered = useMemo(() => {
-    if (filter === "following") return posts.filter((p) => p.isFollowing);
-    if (filter === "categories" && activeCategory) return posts.filter((p) => p.category === activeCategory);
-    if (filter === "saved") return posts.filter((p) => savedIds.has(p.id));
+    if (filter === "saved") return posts.filter((p) => savedIds.has(p.id) || p.isSaved);
     return posts;
-  }, [posts, filter, activeCategory, savedIds]);
+  }, [posts, filter, savedIds]);
 
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -107,28 +137,29 @@ function FeedPage() {
     return () => io.disconnect();
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
-  const addPost = async (p: CreatePostPayload) => {
-    const cat = categories.find((c) => c.name === p.category);
-    if (!cat) {
-      toast.error("Категория не найдена");
-      return;
-    }
-    if (!getToken()) {
-      toast.error("Войдите, чтобы публиковать");
-      return;
-    }
-    try {
-      const post = await createPost({
+  const addPost = (p: CreatePostPayload) => {
+    setPosts([
+      {
+        id: `np${Date.now()}`,
+        authorId: me.id,
+        date: "только что",
+        category: p.category,
         title: p.title,
-        body: p.text,
-        categoryId: Number(cat.id),
-        hashtags: p.subcategory ? [p.subcategory.replace(/^#/, "")] : [],
-      });
-      setPosts((prev) => [post, ...prev]);
-      toast.success("Публикация опубликована");
-    } catch {
-      toast.error("Не удалось создать публикацию");
-    }
+        text: p.text,
+        image: p.photos[0],
+        images: p.photos,
+        tags: p.subcategory ? [p.subcategory] : [],
+        views: 0,
+        likes: 0,
+        comments: 0,
+        saves: 0,
+        reposts: 0,
+        status: "moderation",
+        isFollowing: true,
+        commentList: [],
+      },
+      ...posts,
+    ]);
   };
 
   const slice = filtered.slice(0, visible);

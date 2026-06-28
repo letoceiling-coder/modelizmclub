@@ -6,14 +6,14 @@ import {
   Share2, Globe, Phone, MessageCircle, FilePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { communities, communityById, userById } from "@/lib/mock";
-import type { CommunityContacts } from "@/lib/mock";
+import { userById } from "@/lib/mock";
+import type { Community, CommunityContacts } from "@/lib/mock";
 import { fetchCommunity } from "@/lib/api/communities";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
 
 export const Route = createFileRoute("/communities/$id")({
-  head: ({ params }) => ({ meta: [{ title: `${communityById(params.id)?.name ?? "Сообщество"} — МоДелизМ Форум` }] }),
+  head: () => ({ meta: [{ title: "Сообщество — МоДелизМ Форум" }] }),
   component: CommunityDetailPage,
 });
 
@@ -75,18 +75,38 @@ function ContactsBlock({ contacts }: { contacts?: CommunityContacts }) {
 
 function CommunityDetailPage() {
   const { id } = Route.useParams();
-  const [community, setCommunity] = useState(() => communities.find((c) => c.id === id) ?? communityById(id));
+  const [community, setCommunity] = useState<Community | null>(null);
+  const [loading, setLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
 
   useEffect(() => {
-    if (community?.id === id) return;
     let alive = true;
+    setLoading(true);
     fetchCommunity(id)
-      .then((c) => { if (alive && c) setCommunity(c); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [id, community?.id]);
+      .then((c) => {
+        if (alive) setCommunity(c);
+      })
+      .catch(() => {
+        if (alive) setCommunity(null);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="flex items-center justify-center py-[120px]" style={{ color: "var(--foreground-50)" }}>
+          Загрузка…
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (!community) {
     return (

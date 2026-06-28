@@ -11,8 +11,8 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { categories } from "@/lib/mock";
 import type { Category } from "@/lib/mock";
+import { usePostCategories } from "@/lib/hooks/useCategories";
 
 function onlineFor(c: Category): number {
   const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
@@ -34,6 +34,7 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 export function FindYourPeopleSheet() {
   const [open, setOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const categories = usePostCategories();
 
   return (
     <div className="xl:hidden">

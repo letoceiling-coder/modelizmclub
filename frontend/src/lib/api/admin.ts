@@ -1,0 +1,316 @@
+import { api } from "./client";
+
+interface Paginated<T> {
+  data: T[];
+  meta?: { current_page?: number; last_page?: number; total?: number };
+}
+
+export interface AdminDashboard {
+  usersTotal: number;
+  postsTotal: number;
+  communitiesTotal: number;
+  moderationPending: number;
+  reportsPending: number;
+  plansActive: number;
+  promocodesActive: number;
+  bannersActive: number;
+}
+
+interface ApiDashboard {
+  users_total?: number;
+  posts_total?: number;
+  communities_total?: number;
+  moderation_pending?: number;
+  reports_pending?: number;
+  plans_active?: number;
+  promocodes_active?: number;
+  banners_active?: number;
+}
+
+export async function fetchDashboard(): Promise<AdminDashboard> {
+  const res = await api<{ data: ApiDashboard }>("/admin/dashboard");
+  const d = res.data ?? {};
+  return {
+    usersTotal: d.users_total ?? 0,
+    postsTotal: d.posts_total ?? 0,
+    communitiesTotal: d.communities_total ?? 0,
+    moderationPending: d.moderation_pending ?? 0,
+    reportsPending: d.reports_pending ?? 0,
+    plansActive: d.plans_active ?? 0,
+    promocodesActive: d.promocodes_active ?? 0,
+    bannersActive: d.banners_active ?? 0,
+  };
+}
+
+export interface AuditEntry {
+  id: string;
+  user: string;
+  action: string;
+  target: string;
+  time: string;
+}
+
+interface ApiAuditLog {
+  id?: number;
+  action?: string;
+  auditable_type?: string | null;
+  auditable_id?: number | null;
+  created_at?: string | null;
+  user?: { name?: string | null; email?: string | null } | null;
+}
+
+export async function fetchAuditLogs(): Promise<AuditEntry[]> {
+  const res = await api<{ data: Paginated<ApiAuditLog> }>("/admin/audit-logs", {
+    query: { per_page: 20 },
+  });
+  const rows = res.data?.data ?? [];
+  return rows.map((r) => ({
+    id: String(r.id ?? Math.random()),
+    user: r.user?.name ?? r.user?.email ?? "—",
+    action: r.action ?? "",
+    target: r.auditable_type ? r.auditable_type.split("\\").pop() ?? "" : "",
+    time: r.created_at ?? "",
+  }));
+}
+
+export type AdminUserRole = "user" | "subscriber" | "moderator" | "admin";
+export type AdminUserStatus = "active" | "blocked" | "pending_verification";
+
+export interface AdminUserRow {
+  uuid: string;
+  name: string;
+  email: string;
+  role: AdminUserRole;
+  status: AdminUserStatus;
+  city: string;
+  createdAt: string;
+}
+
+interface ApiAdminUser {
+  uuid: string;
+  email?: string;
+  name?: string | null;
+  role?: string;
+  status?: string;
+  profile?: { display_name?: string | null; slug?: string | null } | null;
+  created_at?: string | null;
+}
+
+function mapAdminUser(u: ApiAdminUser): AdminUserRow {
+  return {
+    uuid: u.uuid,
+    name: u.profile?.display_name || u.name || u.email || "Пользователь",
+    email: u.email ?? "",
+    role: (u.role as AdminUserRole) ?? "user",
+    status: (u.status as AdminUserStatus) ?? "active",
+    city: "",
+    createdAt: u.created_at ?? "",
+  };
+}
+
+export async function fetchAdminUsers(opts: { role?: string; status?: string } = {}): Promise<AdminUserRow[]> {
+  const res = await api<Paginated<ApiAdminUser>>("/admin/users", {
+    query: {
+      role: opts.role && opts.role !== "all" ? opts.role : undefined,
+      status: opts.status && opts.status !== "all" ? opts.status : undefined,
+      per_page: 50,
+    },
+  });
+  return (res.data ?? []).map(mapAdminUser);
+}
+
+export async function updateAdminUser(
+  uuid: string,
+  patch: { name?: string; status?: AdminUserStatus; role?: AdminUserRole },
+): Promise<AdminUserRow> {
+  const res = await api<{ data: ApiAdminUser }>(`/admin/users/${uuid}`, {
+    method: "PATCH",
+    json: patch,
+  });
+  return mapAdminUser(res.data);
+}
+
+export type ModerationType = "posts" | "communities";
+
+export interface ModerationItem {
+  id: number;
+  type: ModerationType;
+  targetId: string;
+  title: string;
+  author: string;
+  category: string;
+}
+
+interface ApiModerationItem {
+  id: number;
+  queue?: string;
+  status?: string;
+  moderatable_type?: string;
+  moderatable_id?: number;
+  moderatable?: {
+    uuid?: string;
+    title?: string | null;
+    name?: string | null;
+    author?: { display_name?: string | null } | null;
+    category?: { name?: string | null } | null;
+  } | null;
+}
+
+function moderationTypeFromClass(cls?: string): ModerationType {
+  return cls === "Community" ? "communities" : "posts";
+}
+
+export async function fetchModerationQueue(status = "pending"): Promise<ModerationItem[]> {
+  const res = await api<Paginated<ApiModerationItem>>("/admin/moderation/queue", {
+    query: { status, per_page: 50 },
+  });
+  return (res.data ?? []).map((m) => ({
+    id: m.id,
+    type: moderationTypeFromClass(m.moderatable_type),
+    targetId: m.moderatable?.uuid ?? "",
+    title: m.moderatable?.title ?? m.moderatable?.name ?? "Без названия",
+    author: m.moderatable?.author?.display_name ?? "",
+    category: m.moderatable?.category?.name ?? (m.queue ?? ""),
+  }));
+}
+
+// ---- Plans (tariffs) ----
+import type { Tariff, PromoCode, Banner } from "@/lib/mock";
+
+interface ApiPlan {
+  id?: number;
+  slug: string;
+  name: string;
+  description?: string | null;
+  price_cents?: number;
+  period_days?: number | null;
+  features?: string[] | null;
+  is_active?: boolean;
+  sort_order?: number | null;
+}
+
+export async function fetchAdminPlans(): Promise<Tariff[]> {
+  const res = await api<{ data: Paginated<ApiPlan> }>("/admin/plans");
+  const rows = res.data?.data ?? [];
+  return rows.map((p) => ({
+    id: p.slug,
+    name: p.name,
+    price: Math.round((p.price_cents ?? 0) / 100),
+    period: p.period_days ? `${p.period_days} дней` : "",
+    features: p.features ?? [],
+  }));
+}
+
+export async function updateAdminPlan(
+  slug: string,
+  patch: { name?: string; price_cents?: number; period_days?: number },
+): Promise<void> {
+  await api(`/admin/plans/${slug}`, { method: "PATCH", json: patch });
+}
+
+// ---- Promocodes ----
+interface ApiPromocode {
+  id?: number;
+  code: string;
+  type?: string;
+  value?: number;
+  used_count?: number;
+  max_usages?: number | null;
+  valid_until?: string | null;
+  is_active?: boolean;
+}
+
+export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
+  const res = await api<{ data: Paginated<ApiPromocode> }>("/admin/promocodes");
+  const rows = res.data?.data ?? [];
+  const today = new Date().toISOString().slice(0, 10);
+  return rows.map((p) => {
+    const expiresAt = p.valid_until ? p.valid_until.slice(0, 10) : "";
+    const status: "active" | "expired" =
+      p.is_active === false || (expiresAt && expiresAt < today) ? "expired" : "active";
+    return {
+      id: p.code,
+      code: p.code,
+      discount: p.value ?? 0,
+      usedCount: p.used_count ?? 0,
+      limit: p.max_usages ?? 0,
+      expiresAt,
+      status,
+    };
+  });
+}
+
+export async function createPromocode(input: {
+  code: string;
+  value: number;
+  max_usages: number;
+  valid_until: string;
+}): Promise<void> {
+  await api("/admin/promocodes", {
+    method: "POST",
+    json: {
+      code: input.code,
+      type: "percent",
+      value: input.value,
+      max_usages: input.max_usages,
+      valid_until: input.valid_until,
+      is_active: true,
+    },
+  });
+}
+
+export async function deletePromocode(code: string): Promise<void> {
+  await api(`/admin/promocodes/${code}`, { method: "DELETE" });
+}
+
+// ---- Banners ----
+interface ApiBanner {
+  id: number;
+  placement?: string;
+  title: string;
+  text?: string | null;
+  link_url?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  is_active?: boolean;
+}
+
+export async function fetchAdminBanners(): Promise<Banner[]> {
+  const res = await api<{ data: Paginated<ApiBanner> }>("/admin/banners");
+  const rows = res.data?.data ?? [];
+  return rows.map((b) => ({
+    id: String(b.id),
+    title: b.title,
+    text: b.text ?? "",
+    cta: "",
+    until: "",
+    color: "from-slate-700 to-slate-900",
+    pinned: false,
+    priority: 0,
+    scheduleFrom: b.starts_at ? b.starts_at.slice(0, 10) : "",
+    scheduleTo: b.ends_at ? b.ends_at.slice(0, 10) : "",
+  }));
+}
+
+export async function updateAdminBanner(
+  id: string,
+  patch: { title?: string; text?: string; starts_at?: string | null; ends_at?: string | null; is_active?: boolean },
+): Promise<void> {
+  await api(`/admin/banners/${id}`, { method: "PATCH", json: patch });
+}
+
+export async function deleteAdminBanner(id: string): Promise<void> {
+  await api(`/admin/banners/${id}`, { method: "DELETE" });
+}
+
+export async function approveModeration(type: ModerationType, id: string): Promise<void> {
+  await api(`/admin/moderation/${type}/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectModeration(type: ModerationType, id: string, reason?: string): Promise<void> {
+  await api(`/admin/moderation/${type}/${id}/reject`, { method: "POST", json: { reason } });
+}
+
+export async function reviseModeration(type: ModerationType, id: string, comment?: string): Promise<void> {
+  await api(`/admin/moderation/${type}/${id}/revision`, { method: "POST", json: { comment } });
+}

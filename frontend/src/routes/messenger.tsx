@@ -6,12 +6,14 @@ import {
   Paperclip, Search, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { userById, me, formatRelativeTime, VOICE_TRANSCRIPTS, makeMockWaveform } from "@/lib/mock";
+import { userById, formatRelativeTime, VOICE_TRANSCRIPTS, makeMockWaveform } from "@/lib/mock";
 import type { Message } from "@/lib/mock";
-import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
-import { fetchMessages, sendMessage } from "@/lib/api/chat";
-import { subscribeConversation } from "@/lib/realtime/chat-listener";
-import { getToken } from "@/lib/api/client";
+import {
+  useStore, actions, selectors, openOrCreateDialogWith,
+  setDialogs, setDialogMessages, replaceMessage, upsertMessage,
+} from "@/lib/store";
+import { fetchConversations, fetchMessages, sendMessage as apiSendMessage } from "@/lib/api/chat";
+import { subscribeConversation } from "@/lib/realtime/echo";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -90,7 +92,8 @@ function MessageBubble({
 }: {
   msg: Message; prev?: Message; allMessages: Message[]; onReply: (m: Message) => void;
 }) {
-  const isMe = msg.authorId === me.id;
+  const meId = useStore((s) => s.currentUserId);
+  const isMe = msg.authorId === meId;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
@@ -136,7 +139,7 @@ function MessageBubble({
                 color: isMe ? "rgba(255,255,255,0.85)" : "var(--foreground-50)",
               }}
             >
-              <div className="font-semibold">{reply.authorId === me.id ? "Вы" : replyAuthor?.name}</div>
+              <div className="font-semibold">{reply.authorId === meId ? "Вы" : replyAuthor?.name}</div>
               <div className="truncate">{reply.text}</div>
             </div>
           )}
@@ -169,6 +172,7 @@ function MessageBubble({
 
 function MessengerPage() {
   const dlgs = useStore(selectors.dialogsList);
+  const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const { chat } = Route.useSearch();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
@@ -198,23 +202,38 @@ function MessengerPage() {
   }, [chat, dlgs]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
+    let alive = true;
+    fetchConversations(meId)
+      .then((list) => { if (alive) setDialogs(list); })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [meId]);
 
 
   useEffect(() => {
     if (!activeId) return;
-    subscribeConversation(activeId);
     let alive = true;
     setChatLoading(true);
     fetchMessages(activeId)
-      .then((msgs) => {
-        if (alive) actions.setDialogMessages(activeId, msgs);
-      })
+      .then((msgs) => { if (alive) setDialogMessages(activeId, msgs); })
       .catch(() => {})
       .finally(() => { if (alive) setChatLoading(false); });
     return () => { alive = false; };
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    let alive = true;
+    let cleanup = () => {};
+    subscribeConversation(activeId, (m) => upsertMessage(activeId, m)).then((fn) => {
+      if (alive) cleanup = fn;
+      else fn();
+    });
+    return () => {
+      alive = false;
+      cleanup();
+    };
   }, [activeId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
@@ -267,31 +286,27 @@ function MessengerPage() {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
+    const dialogId = active.id;
     const body = text.trim();
     const replyId = replyTo?.id;
-    setText("");
-    setReplyTo(null);
-
-    if (getToken()) {
-      try {
-        const m = await sendMessage(active.id, body, replyId);
-        actions.addMessage(active.id, m);
-        return;
-      } catch {
-        toast.error("Не удалось отправить сообщение");
-        return;
-      }
-    }
-
-    const m: Message = {
-      id: `nm${Date.now()}`,
-      authorId: me.id,
+    const tempId = `tmp${Date.now()}`;
+    const optimistic: Message = {
+      id: tempId,
+      authorId: meId,
       time: new Date().toISOString(),
       text: body,
       status: "sent",
       replyTo: replyId,
     };
-    actions.addMessage(active.id, m);
+    actions.addMessage(dialogId, optimistic);
+    setText("");
+    setReplyTo(null);
+    try {
+      const saved = await apiSendMessage(dialogId, body, replyId);
+      replaceMessage(dialogId, tempId, saved);
+    } catch {
+      toast.error("Не удалось отправить сообщение");
+    }
   };
 
   const sendVoice = (durationSec: number) => {
@@ -304,7 +319,7 @@ function MessengerPage() {
     const transcript = VOICE_TRANSCRIPTS[seed % VOICE_TRANSCRIPTS.length];
     const m: Message = {
       id: `nm${seed}`,
-      authorId: me.id,
+      authorId: meId,
       time: new Date().toISOString(),
       text: "",
       status: "sent",
@@ -502,7 +517,7 @@ function MessengerPage() {
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <Link to="/user/$id" params={{ id: partner!.id }} className="flex items-center gap-[12px]">
+                <Link to="/user/$id" params={{ id: partner!.slug ?? partner!.id }} className="flex items-center gap-[12px]">
                   <img src={partner!.avatar} alt="" className="h-[40px] w-[40px] rounded-full object-cover" />
                   <div>
                     <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{partner!.name}</div>
@@ -558,7 +573,7 @@ function MessengerPage() {
                         <CornerUpLeft size={14} style={{ color: "var(--accent)" }} />
                         <div className="min-w-0 flex-1 text-[12px]">
                           <div className="font-semibold" style={{ color: "var(--foreground-70)" }}>
-                            Ответ: {replyTo.authorId === me.id ? "Вы" : userById(replyTo.authorId).name}
+                            Ответ: {replyTo.authorId === meId ? "Вы" : userById(replyTo.authorId).name}
                           </div>
                           <div className="truncate" style={{ color: "var(--foreground-50)" }}>{replyTo.text}</div>
                         </div>

@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { getInviterByCode } from "@/lib/referral";
-import { authErrorMessage, register } from "@/lib/api/auth";
+import { register } from "@/lib/api/auth";
+import { setCurrentUser } from "@/lib/store";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -20,25 +22,33 @@ function RegisterPage() {
   const inviter = getInviterByCode(ref);
   const [agree, setAgree] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!agree) return toast.error("Подтвердите согласие с правилами");
+    const form = new FormData(e.currentTarget);
+    const name = String(form.get("name") ?? "").trim();
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
     setLoading(true);
     try {
-      await register({
-        email: email.trim(),
-        password,
-        displayName: displayName.trim() || undefined,
-        track: "community",
-      });
-      toast.success("Код подтверждения отправлен на email");
-      nav({ to: "/verify-email", search: { email: email.trim() } });
+      const { user, needsVerification } = await register({ name, email, password });
+      if (needsVerification) {
+        toast.success("Аккаунт создан. Подтвердите email по ссылке из письма");
+        nav({ to: "/login" });
+        return;
+      }
+      setCurrentUser(user);
+      toast.success(inviter ? `Аккаунт создан. Приглашён ${inviter.name}` : "Аккаунт создан");
+      nav({ to: "/onboarding" });
     } catch (err) {
-      toast.error(authErrorMessage(err));
+      const msg =
+        err instanceof ApiError
+          ? err.errors
+            ? Object.values(err.errors)[0]?.[0] ?? err.message
+            : err.message
+          : "Не удалось зарегистрироваться. Попробуйте позже";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -79,30 +89,9 @@ function RegisterPage() {
         </div>
       )}
       <form onSubmit={submit} className="space-y-[12px]">
-        <input
-          required
-          placeholder="Имя и фамилия"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          style={inputStyle}
-        />
-        <input
-          required
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={inputStyle}
-        />
-        <input
-          required
-          type="password"
-          placeholder="Пароль (от 8 символов)"
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={inputStyle}
-        />
+        <input required name="name" placeholder="Имя и фамилия" style={inputStyle} />
+        <input required name="email" type="email" placeholder="Email" style={inputStyle} />
+        <input required name="password" type="password" placeholder="Пароль (от 8 символов)" minLength={8} style={inputStyle} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>

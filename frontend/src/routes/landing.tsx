@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   User, Briefcase, Car, Plane, Ship, Crosshair, Cpu, Battery, Radio, Bike, Wrench, Check,
   ArrowRight, Crown, Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { firstHundredStats } from "@/lib/mock";
+import { fetchStats } from "@/lib/api/content";
 import { showcaseImages } from "@/lib/showcase-images";
 
 export const Route = createFileRoute("/landing")({
@@ -432,9 +433,17 @@ function ShowcaseSection() {
 
 
 function FirstHundred() {
-  const taken = Math.max(0, Math.min(firstHundredStats.total, firstHundredStats.taken));
-  const total = firstHundredStats.total;
-  const pct = Math.round((taken / total) * 100);
+  const [stats, setStats] = useState({ taken: 0, total: 100 });
+  useEffect(() => {
+    let active = true;
+    fetchStats()
+      .then((s) => active && setStats(s.firstHundred))
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+  const taken = Math.max(0, Math.min(stats.total, stats.taken));
+  const total = stats.total;
+  const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
   const left = total - taken;
   return (
     <section style={{ padding: "32px 20px" }}>

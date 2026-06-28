@@ -4,15 +4,11 @@ import * as Icons from "lucide-react";
 import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { categoryById, ads } from "@/lib/mock";
 import type { Category } from "@/lib/mock";
+import { usePostCategories } from "@/lib/hooks/useCategories";
 
 export const Route = createFileRoute("/categories/$id/")({
-  head: ({ params }) => {
-    const c = categoryById(params.id);
-    const title = c ? `${c.name} — комнаты` : "Категория";
-    return { meta: [{ title: `${title} — МоДелизМ Форум` }] };
-  },
+  head: () => ({ meta: [{ title: "Категория — МоДелизМ Форум" }] }),
   component: CategoryRoomsPage,
 });
 
@@ -44,7 +40,8 @@ const ROOM_PREVIEWS = [
 
 function CategoryRoomsPage() {
   const { id } = Route.useParams();
-  const c = categoryById(id);
+  const categories = usePostCategories();
+  const c = categories.find((x) => x.id === id);
   const [query, setQuery] = useState("");
 
   const filteredSubs = useMemo(() => {
@@ -58,7 +55,7 @@ function CategoryRoomsPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          Категория не найдена.
+          {categories.length === 0 ? "Загрузка…" : "Категория не найдена."}
         </p>
       </AppLayout>
     );
@@ -158,7 +155,7 @@ function CategoryRoomsPage() {
             {filteredSubs.map((s, i) => {
               const online = onlineFor(c, s.id);
               const members = membersOf(c, s.id);
-              const adsCount = ads.filter((a) => a.category === c.name && a.subcategory === s.name).length;
+              const adsCount = 0;
               const preview = ROOM_PREVIEWS[(seedFrom(c.id + s.id) + i) % ROOM_PREVIEWS.length];
               return (
                 <li key={s.id} className="border-t first:border-t-0" style={{ borderColor: "var(--border)" }}>

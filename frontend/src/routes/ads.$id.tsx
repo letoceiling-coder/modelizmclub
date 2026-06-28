@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { ads, adById } from "@/lib/mock";
+import type { Ad } from "@/lib/mock";
+import { fetchListing, fetchListings } from "@/lib/api/listings";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds } from "@/components/ads/SimilarAds";
@@ -12,15 +13,12 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ads/$id")({
-  head: ({ params }) => {
-    const ad = adById(params.id);
-    return {
-      meta: [
-        { title: ad ? `${ad.title} — МоДелизМ Форум` : "Объявление — МоДелизМ Форум" },
-        { name: "description", content: ad?.description?.slice(0, 160) ?? "Объявление на МоДелизМ Форум" },
-      ],
-    };
-  },
+  head: () => ({
+    meta: [
+      { title: "Объявление — МоДелизМ Форум" },
+      { name: "description", content: "Объявление на МоДелизМ Форум" },
+    ],
+  }),
   component: AdDetailPage,
 });
 
@@ -32,10 +30,48 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
 
 function AdDetailPage() {
   const { id } = Route.useParams();
-  const ad = adById(id);
   const navigate = useNavigate();
+  const [ad, setAd] = useState<Ad | null>(null);
+  const [similar, setSimilar] = useState<Ad[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showContact, setShowContact] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchListing(id)
+      .then((a) => {
+        if (!alive) return;
+        setAd(a);
+        fetchListings()
+          .then((list) =>
+            setSimilar(
+              list
+                .filter((x) => x.id !== a.id && (x.category === a.category || x.subcategory === a.subcategory))
+                .slice(0, 8),
+            ),
+          )
+          .catch(() => {});
+      })
+      .catch(() => {
+        if (alive) setAd(null);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="grid place-items-center py-[80px]" style={{ color: "var(--foreground-50)" }}>Загрузка…</div>
+      </AppLayout>
+    );
+  }
 
   if (!ad) {
     return (
@@ -52,7 +88,6 @@ function AdDetailPage() {
   }
 
   const status = STATUS_COLOR[ad.status];
-  const similar = ads.filter((a) => a.id !== ad.id && (a.category === ad.category || a.subcategory === ad.subcategory)).slice(0, 8);
   const images = ad.gallery && ad.gallery.length ? ad.gallery : [ad.image];
 
   const share = async () => {

@@ -23,6 +23,12 @@ class MessageResource extends JsonResource
                 'body' => $this->replyTo->body,
                 'author' => new UserCompactResource($this->replyTo->author),
             ] : null),
+            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
+                'media' => $attachment->relationLoaded('media') && $attachment->media ? [
+                    'uuid' => $attachment->media->uuid,
+                    'url' => $attachment->media->url,
+                ] : null,
+            ])),
             'created_at' => $this->created_at->toIso8601String(),
             'edited_at' => $this->edited_at?->toIso8601String(),
         ];

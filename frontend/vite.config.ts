@@ -12,7 +12,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  nitro: {
-    preset: "node-server",
-  },
+  // VPS runs a long-lived Node process (systemd). The wrapper defaults Nitro to
+  // the cloudflare target, which exits immediately under Node and yields 502.
+  nitro: { preset: "node-server" },
 });

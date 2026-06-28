@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
-import { authErrorMessage, forgotPassword } from "@/lib/api/auth";
+import { forgotPassword } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/recover")({
   head: () => ({ meta: [{ title: "Восстановление пароля — МоДелизМ Форум" }] }),
@@ -12,19 +12,20 @@ export const Route = createFileRoute("/recover")({
 function RecoverPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
     setLoading(true);
     try {
-      await forgotPassword(email.trim());
-      setSent(true);
-      toast.success("Если email зарегистрирован — письмо отправлено");
-    } catch (err) {
-      toast.error(authErrorMessage(err));
+      await forgotPassword(email);
+    } catch {
+      // Don't reveal whether the email exists — always show the same result.
     } finally {
       setLoading(false);
+      setSent(true);
+      toast.success("Письмо отправлено");
     }
   };
 
@@ -56,14 +57,7 @@ function RecoverPage() {
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-[12px]">
-          <input
-            required
-            type="email"
-            placeholder="Ваш email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
-          />
+          <input required name="email" type="email" placeholder="Ваш email" style={inputStyle} />
           <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
             {loading ? "Отправляем…" : "Отправить ссылку"}
           </button>

@@ -1,10 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Search, Send } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { faqCategories, faqItems, type FAQItem } from "@/lib/mock";
+import { fetchFaq } from "@/lib/api/content";
+
+interface FaqTab {
+  id: string;
+  label: string;
+}
+interface FaqEntry {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
 
 export const Route = createFileRoute("/help")({
   head: () => ({ meta: [{ title: "Помощь — МоДелизМ Форум" }] }),
@@ -13,11 +24,38 @@ export const Route = createFileRoute("/help")({
 
 function HelpPage() {
   const [query, setQuery] = useState("");
-  const [cat, setCat] = useState<FAQItem["category"] | "all">("all");
+  const [cat, setCat] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
+
+  const [faqCategories, setFaqCategories] = useState<FaqTab[]>([{ id: "all", label: "Все" }]);
+  const [faqItems, setFaqItems] = useState<FaqEntry[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchFaq()
+      .then((cats) => {
+        if (!active) return;
+        setFaqCategories([
+          { id: "all", label: "Все" },
+          ...cats.map((c) => ({ id: c.slug, label: c.name })),
+        ]);
+        setFaqItems(
+          cats.flatMap((c) =>
+            c.articles.map((a) => ({
+              id: String(a.id),
+              question: a.question,
+              answer: a.answer,
+              category: c.slug,
+            })),
+          ),
+        );
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -26,7 +64,7 @@ function HelpPage() {
       const matchQ = !q || i.question.toLowerCase().includes(q) || i.answer.toLowerCase().includes(q);
       return matchCat && matchQ;
     });
-  }, [query, cat]);
+  }, [query, cat, faqItems]);
 
   return (
     <AppLayout rightColumn={false}>

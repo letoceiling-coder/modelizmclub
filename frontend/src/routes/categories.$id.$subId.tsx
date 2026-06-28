@@ -19,18 +19,17 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
-import { categoryById, ads, users, me, userById } from "@/lib/mock";
-import type { Category, Message, User } from "@/lib/mock";
+import { userById } from "@/lib/mock";
+import type { Category, Message, User, Ad } from "@/lib/mock";
+import { usePostCategories } from "@/lib/hooks/useCategories";
+import { useStore, selectors } from "@/lib/store";
+import { searchUsers } from "@/lib/api/social";
+import { fetchListings } from "@/lib/api/listings";
 
 type Tab = "chat" | "ads" | "members";
 
 export const Route = createFileRoute("/categories/$id/$subId")({
-  head: ({ params }) => {
-    const c = categoryById(params.id);
-    const sub = c?.subcategories.find((s) => s.id === params.subId);
-    const title = c && sub ? `${sub.name} · ${c.name}` : "Подкатегория";
-    return { meta: [{ title: `${title} — МоДелизМ Форум` }] };
-  },
+  head: () => ({ meta: [{ title: "Подкатегория — МоДелизМ Форум" }] }),
   component: SubcategoryRoomPage,
 });
 
@@ -128,10 +127,10 @@ function highlightNodes(
   );
 }
 
-function buildMessages(c: Category, subName: string): RoomMessage[] {
+function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[] {
+  if (pool.length === 0) return [];
   const base = `Привет всем в чате «${subName}»! Кто сейчас в теме?`;
   const seed = seedFrom(c.id + subName);
-  const pool = users.slice(0, 5);
   const pick = (i: number) => pool[(seed + i) % pool.length];
 
   return [
@@ -182,9 +181,13 @@ function buildMessages(c: Category, subName: string): RoomMessage[] {
   ];
 }
 
-function buildMembers(c: Category, subId: string): Array<User & { role?: string; isOnline: boolean }> {
+function buildMembers(
+  c: Category,
+  subId: string,
+  pool: User[],
+): Array<User & { role?: string; isOnline: boolean }> {
   const seed = seedFrom(c.id + subId);
-  return users.map((u, i) => ({
+  return pool.map((u, i) => ({
     ...u,
     isOnline: ((seed + i) % 3) !== 0,
     role: i === 0 ? "Модератор" : i === 1 ? "Эксперт" : undefined,
@@ -193,17 +196,44 @@ function buildMembers(c: Category, subId: string): Array<User & { role?: string;
 
 function SubcategoryRoomPage() {
   const { id, subId } = Route.useParams();
-  const c = categoryById(id);
+  const categories = usePostCategories();
+  const c = categories.find((x) => x.id === id);
   const sub = c?.subcategories.find((s) => s.id === subId);
 
   const [tab, setTab] = useState<Tab>("chat");
   const [subSheetOpen, setSubSheetOpen] = useState(false);
+  const [pool, setPool] = useState<User[]>([]);
+  const [subAds, setSubAds] = useState<Ad[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    searchUsers("").then((u) => active && setPool(u.slice(0, 12))).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!c || !sub) return;
+    let active = true;
+    fetchListings()
+      .then((all) =>
+        active &&
+        setSubAds(all.filter((a) => a.category === c.name && a.subcategory === sub.name)),
+      )
+      .catch(() => {});
+    return () => { active = false; };
+  }, [c, sub]);
+
+  const members = useMemo(
+    () => (c && sub ? buildMembers(c, sub.id, pool) : []),
+    [c, sub, pool],
+  );
+  const onlineCount = members.filter((m) => m.isOnline).length;
 
   if (!c || !sub) {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          Подкатегория не найдена.
+          {categories.length === 0 ? "Загрузка…" : "Подкатегория не найдена."}
         </p>
       </AppLayout>
     );
@@ -212,13 +242,6 @@ function SubcategoryRoomPage() {
   const Icon =
     (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[c.icon] ??
     Icons.Hash;
-
-  const subAds = useMemo(
-    () => ads.filter((a) => a.category === c.name && a.subcategory === sub.name),
-    [c.name, sub.name],
-  );
-  const members = useMemo(() => buildMembers(c, sub.id), [c, sub.id]);
-  const onlineCount = members.filter((m) => m.isOnline).length;
 
   return (
     <AppLayout rightColumn={false}>
@@ -292,7 +315,7 @@ function SubcategoryRoomPage() {
 
         {/* Tab content */}
         <div className="min-h-0 flex-1">
-          {tab === "chat" && <ChatTab category={c} subId={sub.id} subName={sub.name} />}
+          {tab === "chat" && <ChatTab category={c} subId={sub.id} subName={sub.name} pool={pool} />}
           {tab === "ads" && <AdsTab ads={subAds} subName={sub.name} />}
           {tab === "members" && <MembersTab members={members} />}
         </div>
@@ -404,8 +427,9 @@ function TabBtn({
 
 /* --------------------------- CHAT TAB --------------------------- */
 
-function ChatTab({ category, subId, subName }: { category: Category; subId: string; subName: string }) {
-  const [messages, setMessages] = useState<RoomMessage[]>(() => buildMessages(category, subName));
+function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
+  const me = useStore(selectors.currentUser);
+  const [messages, setMessages] = useState<RoomMessage[]>(() => buildMessages(category, subName, pool));
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<RoomMessage | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<string[]>([]);
@@ -421,7 +445,7 @@ function ChatTab({ category, subId, subName }: { category: Category; subId: stri
 
   // reset when room changes
   useEffect(() => {
-    setMessages(buildMessages(category, subName));
+    setMessages(buildMessages(category, subName, pool));
     setText("");
     setReplyTo(null);
     setPendingAttachments((prev) => {
@@ -431,7 +455,7 @@ function ChatTab({ category, subId, subName }: { category: Category; subId: stri
     setQuery("");
     setSearchOpen(false);
     setActiveMatch(0);
-  }, [category, subId, subName]);
+  }, [category, subId, subName, pool]);
 
   const trimmedQuery = query.trim();
   const matchIds = useMemo(() => {
@@ -861,7 +885,7 @@ function ChatTab({ category, subId, subName }: { category: Category; subId: stri
 
 /* --------------------------- ADS TAB --------------------------- */
 
-function AdsTab({ ads: subAds, subName }: { ads: typeof ads; subName: string }) {
+function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
   if (subAds.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-[8px] px-[24px] py-[40px] text-center">

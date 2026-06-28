@@ -74,7 +74,16 @@ class AppServiceProvider extends ServiceProvider
                 : Limit::perMinute(120)->by('ip:'.$request->ip());
         });
 
-        Gate::define('viewApiDocs', fn () => app()->environment(['local', 'development', 'staging']));
+        Gate::define('viewApiDocs', function () {
+            if (app()->environment(['local', 'development', 'staging'])) {
+                return true;
+            }
+
+            return in_array(request()->getHost(), [
+                'dev.modelizmclub.ru',
+                'api.modelizmclub.ru',
+            ], true);
+        });
 
         Scramble::configure()
             ->routes(fn (Route $route) => Str::startsWith($route->uri, 'api/'))

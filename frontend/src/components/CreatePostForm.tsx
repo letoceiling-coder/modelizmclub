@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
-import { me } from "@/lib/mock";
-import { useCategories } from "@/lib/api/catalog";
+import { usePostCategories } from "@/lib/hooks/useCategories";
+import { useStore, selectors } from "@/lib/store";
 
 const MAX_PHOTOS = 5;
 
@@ -21,23 +21,24 @@ export function CreatePostForm({
   onCreate?: (p: CreatePostPayload) => void;
   compact?: boolean;
 }) {
-  const categories = useCategories();
+  const categories = usePostCategories();
+  const me = useStore(selectors.currentUser);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [catId, setCatId] = useState("");
-  const [subId, setSubId] = useState("");
+  const [subId, setSubId] = useState<string>("");
   const [photos, setPhotos] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const cat = useMemo(() => categories.find((c) => c.id === catId) ?? categories[0], [catId, categories]);
-  const sub = cat?.subcategories.find((s) => s.id === subId);
-
   useEffect(() => {
-    if (categories.length > 0 && !catId) {
+    if (!catId && categories.length > 0) {
       setCatId(categories[0].id);
       setSubId(categories[0].subcategories[0]?.id ?? "");
     }
   }, [categories, catId]);
+
+  const cat = useMemo(() => categories.find((c) => c.id === catId), [categories, catId]);
+  const sub = cat?.subcategories.find((s) => s.id === subId);
 
   const addPhotos = (files: FileList | null) => {
     if (!files) return;
@@ -97,7 +98,7 @@ export function CreatePostForm({
           disabled={!cat || cat.subcategories.length === 0}
           className="rounded-lg border bg-background px-3 py-2 text-xs disabled:opacity-50"
         >
-          {cat.subcategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          {(cat?.subcategories ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
 

@@ -8,13 +8,15 @@ import {
   REFERRAL_MAX_BONUS,
   REFERRAL_BONUS_PER_INVITE,
 } from "@/lib/referral";
+import { useStore, selectors } from "@/lib/store";
 
 export function InviteBlock() {
+  const me = useStore(selectors.currentUser);
   const [copied, setCopied] = useState(false);
   // Initial render (SSR + first client paint) uses the stable canonical link
   // so hydration matches. The actual origin-derived link replaces it on mount.
-  const [link, setLink] = useState<string>(() => getReferralLink());
-  useEffect(() => setLink(getReferralLink()), []);
+  const [link, setLink] = useState<string>(() => getReferralLink(me.id));
+  useEffect(() => setLink(getReferralLink(me.id)), [me.id]);
   const invited = getInvitedFriends();
   const bonus = getReferralBonus();
   const remaining = Math.max(0, REFERRAL_MAX_BONUS - bonus);

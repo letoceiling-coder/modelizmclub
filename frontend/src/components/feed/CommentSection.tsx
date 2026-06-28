@@ -2,7 +2,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send } from "lucide-react";
 import type { Comment } from "@/lib/mock";
-import { userById, me } from "@/lib/mock";
+import { userById } from "@/lib/mock";
+import { useStore, selectors } from "@/lib/store";
 
 interface Props {
   comments: Comment[];
@@ -123,6 +124,7 @@ function CommentItem({
 }
 
 export function CommentSection({ comments, onAdd }: Props) {
+  const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
 
   const handleReply = (parentId: string, text: string) => onAdd(text, parentId);

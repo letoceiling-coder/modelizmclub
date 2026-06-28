@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
-import { categories, type AdCondition } from "@/lib/mock";
+import { type AdCondition } from "@/lib/mock";
+import { useListingCategories } from "@/lib/hooks/useCategories";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
@@ -38,6 +39,7 @@ interface Props {
 }
 
 function Body({ value, onChange, onReset }: Props) {
+  const categories = useListingCategories();
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
   const toggle = <K extends "conditions" | "deliveries">(k: K, item: string) => {

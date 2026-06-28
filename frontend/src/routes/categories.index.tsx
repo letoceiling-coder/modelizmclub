@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CategoryCard } from "@/components/CategoryCard";
-import { categories } from "@/lib/mock";
+import { usePostCategories } from "@/lib/hooks/useCategories";
 import { showcaseImages } from "@/lib/showcase-images";
 
 export const Route = createFileRoute("/categories/")({
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/categories/")({
 });
 
 function CategoriesPage() {
+  const categories = usePostCategories();
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-5">

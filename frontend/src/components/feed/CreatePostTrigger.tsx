@@ -1,11 +1,12 @@
 import { ImagePlus, Smile, MapPin } from "lucide-react";
-import { me } from "@/lib/mock";
+import { useStore, selectors } from "@/lib/store";
 
 interface Props {
   onOpen: () => void;
 }
 
 export function CreatePostTrigger({ onOpen }: Props) {
+  const me = useStore(selectors.currentUser);
   return (
     <div
       className="rounded-[14px] border p-[14px]"

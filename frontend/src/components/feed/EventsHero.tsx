@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import type { Banner } from "@/lib/mock";
-import { banners as allBanners } from "@/lib/mock";
+import { fetchBanners } from "@/lib/api/banners";
 
 const AUTOPLAY_MS = 10_000;
 
@@ -23,10 +23,19 @@ export function EventsHero() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [allBanners, setAllBanners] = useState<Banner[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchBanners("events")
+      .then((b) => active && setAllBanners(b))
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const list = useMemo(
     () => sortBanners(allBanners.filter((b) => !dismissed.has(b.id))).slice(0, 3),
-    [dismissed],
+    [dismissed, allBanners],
   );
 
   useEffect(() => {

@@ -6,22 +6,78 @@ import {
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { me, posts, ads, communities, userById } from "@/lib/mock";
-import type { User } from "@/lib/mock";
-import { useStore, actions, selectors, openOrCreateDialogWith } from "@/lib/store";
+import type { User, Post, Ad, Community } from "@/lib/mock";
+import { useStore, actions, selectors, openOrCreateDialogWith, setCurrentUser } from "@/lib/store";
+import type { AdStatusKey } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
 import { toast } from "sonner";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
+import { fetchMyListings } from "@/lib/api/listings";
+import { fetchCommunities } from "@/lib/api/communities";
+import { fetchFeed } from "@/lib/api/feed";
+import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
   component: ProfilePage,
 });
 
+function toAdStatus(k: AdStatusKey): AdStatus {
+  switch (k) {
+    case "active":
+      return "active";
+    case "moderation":
+    case "draft":
+      return "moderation";
+    case "rejected":
+      return "rejected";
+    default:
+      return "archived";
+  }
+}
+
 function ProfilePage() {
   const currentUser = useStore(selectors.currentUser);
-  return <ProfileView user={currentUser} isOwn />;
+  const [myAds, setMyAds] = useState<{ ad: Ad; status: AdStatus }[]>([]);
+  const [myCommunities, setMyCommunities] = useState<Community[]>([]);
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [friendsCount, setFriendsCount] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    if (!currentUser?.id) return;
+    fetchMyListings()
+      .then((list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) }))))
+      .catch(() => {});
+    fetchCommunities()
+      .then((cs) => active && setMyCommunities(cs.filter((c) => c.joined)))
+      .catch(() => {});
+    fetchFeed({ perPage: 50 })
+      .then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id)))
+      .catch(() => {});
+    fetchFriends()
+      .then((fr) => active && setFriendsCount(fr.length))
+      .catch(() => {});
+    return () => { active = false; };
+  }, [currentUser?.id]);
+
+  const saveProfile = async (draft: User) => {
+    await updateOwnProfile({ display_name: draft.name, bio: draft.bio ?? "" });
+    setCurrentUser({ ...currentUser, name: draft.name, bio: draft.bio, city: draft.city, interests: draft.interests });
+  };
+
+  return (
+    <ProfileView
+      user={currentUser}
+      isOwn
+      stats={{ friends: friendsCount }}
+      postsOverride={myPosts}
+      adsOverride={myAds}
+      communitiesOverride={myCommunities}
+      onSaveProfile={saveProfile}
+    />
+  );
 }
 
 type TabKey = "posts" | "ads" | "communities" | "invited" | "about";
@@ -54,29 +110,52 @@ const AD_STATUS_STYLE: Record<AdStatus, { label: string; bg: string; color: stri
   archived: { label: "В архиве", bg: "var(--background-surface)", color: "var(--foreground-50)" },
 };
 
-export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
+export interface ProfileViewProps {
+  user: User;
+  isOwn: boolean;
+  stats?: { publications?: number; ads?: number; friends?: number; communities?: number };
+  postsOverride?: Post[];
+  adsOverride?: { ad: Ad; status: AdStatus }[];
+  communitiesOverride?: Community[];
+  isFriendInitial?: boolean;
+  isFollowingInitial?: boolean;
+  onToggleFriend?: (next: boolean) => void | Promise<void>;
+  onToggleFollow?: (next: boolean) => void | Promise<void>;
+  onWrite?: () => void | Promise<void>;
+  onSaveProfile?: (draft: User) => void | Promise<void>;
+}
+
+export function ProfileView({
+  user, isOwn, stats, postsOverride, adsOverride, communitiesOverride,
+  isFriendInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile,
+}: ProfileViewProps) {
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
   const navigateToMessenger = useNavigate();
-  const friendIds = useStore(selectors.friendsOf(me.id));
+  const currentUser = useStore(selectors.currentUser);
+  const storeFriendIds = useStore(selectors.friendsOf(currentUser?.id ?? user.id));
 
-  const [isFriend, setIsFriend] = useState(!isOwn && friendIds.includes(user.id));
-  const [subscribed, setSubscribed] = useState(false);
+  const [isFriend, setIsFriend] = useState(
+    isFriendInitial ?? (!isOwn && storeFriendIds.includes(user.id)),
+  );
+  const [subscribed, setSubscribed] = useState(isFollowingInitial ?? false);
   const [draft, setDraft] = useState<User>(user);
 
-  const userPosts = useMemo(() => posts.filter((p) => p.authorId === user.id), [user.id]);
-  const userAds = useMemo(() => ads.filter((a) => a.authorId === user.id), [user.id]);
-  const userAdsWithStatus = useMemo(() => {
-    const statuses: AdStatus[] = ["active", "active", "moderation", "active", "rejected", "archived", "active"];
-    return userAds.map((a, i) => ({ ad: a, status: statuses[i % statuses.length] }));
-  }, [userAds]);
+  useEffect(() => { setDraft(user); }, [user]);
+  useEffect(() => { if (isFriendInitial !== undefined) setIsFriend(isFriendInitial); }, [isFriendInitial]);
+  useEffect(() => { if (isFollowingInitial !== undefined) setSubscribed(isFollowingInitial); }, [isFollowingInitial]);
+
+  const userPosts = postsOverride ?? [];
+  const userAdsWithStatus = adsOverride ?? [];
+  const userAds = userAdsWithStatus;
   const filteredUserAds = useMemo(
     () => (adFilter === "all" ? userAdsWithStatus : userAdsWithStatus.filter((x) => x.status === adFilter)),
     [userAdsWithStatus, adFilter],
   );
-  const userCommunities = useStore(selectors.userCommunities(user.id));
-  const friendsCountDerived = isOwn ? friendIds.length : (user.friendIds?.length ?? 0);
+  const storeUserCommunities = useStore(selectors.userCommunities(user.id));
+  const userCommunities = communitiesOverride ?? storeUserCommunities;
+  const friendsCountDerived = stats?.friends ?? (isOwn ? storeFriendIds.length : (user.friendIds?.length ?? 0));
   const interestList = (user.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
 
@@ -163,7 +242,16 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                   </span>
                 ) : (
                   <button
-                    onClick={() => { setIsFriend(true); toast.success("Заявка отправлена"); }}
+                    onClick={async () => {
+                      setIsFriend(true);
+                      try {
+                        await onToggleFriend?.(true);
+                        toast.success("Заявка отправлена");
+                      } catch {
+                        setIsFriend(false);
+                        toast.error("Не удалось отправить заявку");
+                      }
+                    }}
                     className="inline-flex flex-1 items-center justify-center gap-[6px] font-semibold transition-colors duration-150 md:flex-none"
                     style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}
                   >
@@ -172,7 +260,8 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                 )}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
+                    if (onWrite) { await onWrite(); return; }
                     const dialogId = openOrCreateDialogWith(user.id);
                     navigateToMessenger({ to: "/messenger", search: { chat: dialogId } });
                   }}
@@ -183,7 +272,17 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
                 </button>
 
                 <button
-                  onClick={() => { setSubscribed((s) => !s); toast.success(subscribed ? "Вы отписались" : "Вы подписались"); }}
+                  onClick={async () => {
+                    const next = !subscribed;
+                    setSubscribed(next);
+                    try {
+                      await onToggleFollow?.(next);
+                      toast.success(next ? "Вы подписались" : "Вы отписались");
+                    } catch {
+                      setSubscribed(!next);
+                      toast.error("Не удалось изменить подписку");
+                    }
+                  }}
                   className="grid h-[40px] w-[40px] shrink-0 place-items-center transition-colors duration-150"
                   style={{ borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
                   aria-label="Подписаться"
@@ -198,10 +297,10 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
 
         {/* Counters */}
         <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <Counter label="Публикаций" value={userPosts.length} divider />
-          <Counter label="Объявлений" value={userAds.length} divider />
+          <Counter label="Публикаций" value={stats?.publications ?? userPosts.length} divider />
+          <Counter label="Объявлений" value={stats?.ads ?? userAds.length} divider />
           <Counter label="Друзей" value={friendsCountDerived} divider />
-          <Counter label="Сообществ" value={userCommunities.length} />
+          <Counter label="Сообществ" value={stats?.communities ?? userCommunities.length} />
         </div>
 
         {/* Tabs */}
@@ -362,10 +461,18 @@ export function ProfileView({ user, isOwn }: { user: User; isOwn: boolean }) {
             draft={draft}
             setDraft={setDraft}
             onClose={() => setEditOpen(false)}
-            onSave={() => {
-              if (isOwn) actions.updateProfile(user.id, draft);
-              setEditOpen(false);
-              toast.success("Профиль обновлён");
+            onSave={async () => {
+              try {
+                if (onSaveProfile) {
+                  await onSaveProfile(draft);
+                } else if (isOwn) {
+                  actions.updateProfile(user.id, draft);
+                }
+                setEditOpen(false);
+                toast.success("Профиль обновлён");
+              } catch {
+                toast.error("Не удалось сохранить профиль");
+              }
             }}
 
           />

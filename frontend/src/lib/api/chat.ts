@@ -1,123 +1,112 @@
-import type { Dialog, Message } from "@/lib/mock";
-import { formatRelativeTime, upsertUsers } from "@/lib/mock";
-import { me } from "@/lib/mock";
-import { hydrateStore } from "@/lib/store";
+import type { Dialog, Message, User } from "@/lib/mock";
+import { registerUser } from "@/lib/mock";
 import { api } from "./client";
-import { subscribeConversations } from "@/lib/realtime/chat-listener";
+import { mapApiUser, type ApiUser } from "./auth";
 
-interface ApiParticipant {
-  user?: {
-    uuid: string;
-    display_name?: string | null;
-    avatar?: { url?: string | null } | null;
-  };
-}
-
-interface ApiConversation {
+interface ApiCompactUser {
+  id?: number;
   uuid: string;
-  type: string;
-  title?: string | null;
-  last_message_at?: string | null;
-  participants?: ApiParticipant[];
-  last_message?: { body?: string | null } | null;
+  display_name?: string | null;
+  slug?: string | null;
+  avatar?: { url?: string | null } | null;
 }
 
 interface ApiMessage {
   uuid: string;
   body?: string | null;
-  author?: { uuid: string; display_name?: string | null; avatar?: { url?: string | null } | null };
-  created_at: string;
+  type?: string;
+  status?: string;
+  author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
+  attachments?: Array<{ media?: { url?: string | null } | null }>;
+  created_at: string;
+}
+
+interface ApiConversation {
+  uuid: string;
+  type?: string;
+  title?: string | null;
+  last_message_at?: string | null;
+  participants?: Array<{ user?: ApiCompactUser | null; role?: string }>;
+  last_message?: ApiMessage | null;
 }
 
 interface Paginated<T> {
   data: T[];
+  meta?: { current_page?: number; last_page?: number; total?: number };
 }
 
-function otherUserId(c: ApiConversation): string {
-  const parts = c.participants ?? [];
-  const other = parts.find((p) => p.user?.uuid && p.user.uuid !== me.id);
-  return other?.user?.uuid ?? parts[0]?.user?.uuid ?? "unknown";
-}
-
-function registerAuthor(u?: ApiMessage["author"]): void {
-  if (!u?.uuid) return;
-  const name = u.display_name ?? "Пользователь";
-  upsertUsers([
-    {
-      id: u.uuid,
-      name,
-      city: "",
-      interests: "",
-      avatar: u.avatar?.url ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
-    },
-  ]);
-}
-
-export function mapConversation(c: ApiConversation): Dialog {
-  for (const p of c.participants ?? []) registerAuthor(p.user as ApiMessage["author"]);
-
-  const userId = otherUserId(c);
-  const preview = c.last_message?.body ?? "";
-
-  return {
-    id: c.uuid,
-    userId,
-    lastMessage: preview,
-    time: c.last_message_at ? formatRelativeTime(c.last_message_at) : "",
-    unread: 0,
-    messages: [],
-  };
+function registerCompact(u?: ApiCompactUser | null): User | null {
+  if (!u?.uuid) return null;
+  const user = mapApiUser({
+    uuid: u.uuid,
+    name: u.display_name ?? undefined,
+    profile: { display_name: u.display_name, slug: u.slug, avatar: u.avatar ?? null },
+  } as ApiUser);
+  registerUser(user);
+  return user;
 }
 
 export function mapMessage(m: ApiMessage): Message {
-  registerAuthor(m.author);
+  registerCompact(m.author);
+  const image = m.attachments?.map((a) => a.media?.url).find((u): u is string => Boolean(u));
   return {
     id: m.uuid,
-    authorId: m.author?.uuid ?? me.id,
+    authorId: m.author?.uuid ?? "",
     time: m.created_at,
     text: m.body ?? "",
+    image,
     status: "read",
     replyTo: m.reply_to?.uuid,
   };
 }
 
-export async function fetchConversations(): Promise<Dialog[]> {
-  const res = await api<Paginated<ApiConversation>>("/conversations?per_page=50");
-  return (res.data ?? []).map(mapConversation);
+export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
+  const other = (c.participants ?? [])
+    .map((p) => p.user)
+    .find((u) => u && u.uuid !== meUuid);
+  const partner = registerCompact(other);
+  return {
+    id: c.uuid,
+    userId: partner?.id ?? "",
+    lastMessage: c.last_message?.body ?? "",
+    time: c.last_message_at ?? c.last_message?.created_at ?? "",
+    unread: 0,
+    messages: [],
+  };
 }
 
-export async function fetchMessages(conversationUuid: string): Promise<Message[]> {
-  const res = await api<Paginated<ApiMessage>>(
-    `/conversations/${encodeURIComponent(conversationUuid)}/messages?per_page=100`,
-  );
-  return (res.data ?? []).map(mapMessage);
+export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
+  const res = await api<Paginated<ApiConversation>>("/conversations", {
+    query: { per_page: 50 },
+  });
+  return (res.data ?? []).map((c) => mapConversation(c, meUuid));
+}
+
+export async function fetchMessages(uuid: string): Promise<Message[]> {
+  const res = await api<Paginated<ApiMessage>>(`/conversations/${uuid}/messages`, {
+    query: { per_page: 50 },
+  });
+  // API returns newest-first; the UI renders oldest-first.
+  return (res.data ?? []).map(mapMessage).reverse();
 }
 
 export async function sendMessage(
-  conversationUuid: string,
+  uuid: string,
   body: string,
   replyToUuid?: string,
 ): Promise<Message> {
-  const res = await api<{ data: ApiMessage }>(
-    `/conversations/${encodeURIComponent(conversationUuid)}/messages`,
-    {
-      method: "POST",
-      json: {
-        body,
-        reply_to_uuid: replyToUuid ?? null,
-      },
-    },
-  );
+  const res = await api<{ data: ApiMessage }>(`/conversations/${uuid}/messages`, {
+    method: "POST",
+    json: { body, reply_to_uuid: replyToUuid },
+  });
   return mapMessage(res.data);
 }
 
-export async function loadConversationsIntoStore(): Promise<void> {
-  try {
-    const dialogs = await fetchConversations();
-    hydrateStore({ userId: me.id, dialogs });
-    subscribeConversations(dialogs.map((d) => d.id));
-  } catch {
-    // not authenticated
-  }
+export async function createConversation(userId: number, meUuid: string): Promise<Dialog> {
+  const res = await api<{ data: ApiConversation }>("/conversations", {
+    method: "POST",
+    json: { user_id: userId },
+  });
+  return mapConversation(res.data, meUuid);
 }

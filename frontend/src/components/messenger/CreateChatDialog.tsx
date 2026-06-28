@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Search } from "lucide-react";
-import { users as allUsers, me } from "@/lib/mock";
+import type { User } from "@/lib/mock";
+import { useStore, selectors } from "@/lib/store";
+import { searchUsers } from "@/lib/api/social";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface Props {
@@ -11,17 +13,21 @@ interface Props {
 }
 
 export function CreateChatDialog({ open, onClose, onPick }: Props) {
+  const me = useStore(selectors.currentUser);
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
   const [highlight, setHighlight] = useState(0);
+  const [candidates, setCandidates] = useState<User[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const candidates = useMemo(() => {
-    const q = debounced.trim().toLowerCase();
-    return allUsers
-      .filter((u) => u.id !== me.id)
-      .filter((u) => !q || u.name.toLowerCase().includes(q));
-  }, [debounced]);
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    searchUsers(debounced.trim())
+      .then((list) => active && setCandidates(list.filter((u) => u.id !== me.id)))
+      .catch(() => {});
+    return () => { active = false; };
+  }, [debounced, open, me.id]);
 
   useEffect(() => {
     setHighlight(0);

@@ -19,6 +19,7 @@ class MediaUploadService
         'post' => ['max_files' => 10, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'post_video' => ['max_files' => 3, 'max_size' => 104_857_600, 'mimes' => ['video/mp4', 'video/webm']],
         'listing' => ['max_files' => 20, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
+        'banner' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'chat' => ['max_files' => 10, 'max_size' => 26_214_400, 'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']],
     ];
 

@@ -25,8 +25,9 @@ class ChatService
         return Conversation::query()
             ->whereIn('id', $conversationIds)
             ->with([
-                'participants.user.profile',
-                'latestMessage.author.profile',
+                'participants.user.profile.avatar',
+                'latestMessage.author.profile.avatar',
+                'latestMessage.attachments.media',
             ])
             ->orderByDesc('last_message_at')
             ->paginate($perPage);
@@ -36,7 +37,7 @@ class ChatService
     {
         $conversation = Conversation::query()
             ->where('uuid', $uuid)
-            ->with(['participants.user.profile'])
+            ->with(['participants.user.profile.avatar'])
             ->first();
 
         if (! $conversation || ! $this->isParticipant($conversation, $user)) {
@@ -52,7 +53,7 @@ class ChatService
 
         return Message::query()
             ->where('conversation_id', $conversation->id)
-            ->with(['author.profile', 'replyTo.author.profile'])
+            ->with(['author.profile.avatar', 'replyTo.author.profile', 'attachments.media'])
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }
@@ -83,7 +84,7 @@ class ChatService
 
             $conversation->update(['last_message_at' => now()]);
 
-            $message->load(['author.profile', 'replyTo.author.profile', 'conversation']);
+            $message->load(['author.profile.avatar', 'replyTo.author.profile', 'attachments.media', 'conversation']);
 
             try {
                 broadcast(new MessageSent($message))->toOthers();

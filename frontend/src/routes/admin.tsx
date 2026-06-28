@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
@@ -11,11 +11,19 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
-  adminStats, adminActions, adminUsers, promoCodes as initialPromos,
+  promoCodes as initialPromos,
   ads, posts, categories, tariffs, banners as initialBanners,
-  type AdminUser, type PromoCode, type Banner,
+  type PromoCode, type Banner,
 } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
+import {
+  fetchDashboard, fetchAuditLogs, fetchAdminUsers, updateAdminUser,
+  fetchModerationQueue, approveModeration, rejectModeration,
+  fetchAdminPlans, updateAdminPlan,
+  fetchAdminPromocodes, createPromocode, deletePromocode,
+  fetchAdminBanners, updateAdminBanner, deleteAdminBanner,
+  type AdminUserRow, type AuditEntry, type ModerationItem,
+} from "@/lib/api/admin";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ Форум" }] }),
@@ -459,13 +467,23 @@ function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: 
 
 /* ============ DASHBOARD ============ */
 function Dashboard() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof fetchDashboard>> | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchDashboard().then((d) => active && setData(d)).catch(() => {});
+    fetchAuditLogs().then((a) => active && setAudit(a)).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   const stats = [
-    { v: adminStats.totalUsers.toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "+8%", up: true },
-    { v: `${adminStats.monthlyRevenue.toLocaleString("ru")} ₽`, l: "Доход за месяц", icon: DollarSign, ch: "+15%", up: true },
-    { v: adminStats.activeAds.toLocaleString("ru"), l: "Активных объявлений", icon: Megaphone, ch: "+5%", up: true },
-    { v: adminStats.totalPosts.toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "+22%", up: true },
-    { v: String(adminStats.inModeration), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true },
-    { v: String(adminStats.newToday), l: "Новых за сегодня", icon: UserPlus, ch: "+3%", up: true },
+    { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "", up: true },
+    { v: (data?.communitiesTotal ?? 0).toLocaleString("ru"), l: "Сообществ", icon: Users, ch: "", up: true },
+    { v: (data?.bannersActive ?? 0).toLocaleString("ru"), l: "Активных баннеров", icon: Megaphone, ch: "", up: true },
+    { v: (data?.postsTotal ?? 0).toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "", up: true },
+    { v: String(data?.moderationPending ?? 0), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true },
+    { v: String(data?.reportsPending ?? 0), l: "Жалоб", icon: UserPlus, ch: "", up: true },
   ];
   const bars = [40, 65, 55, 80, 70, 90, 60];
   const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -538,7 +556,7 @@ function Dashboard() {
         <div style={{ overflowX: "auto" }}>
           <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
             <tbody>
-              {adminActions.map((a) => (
+              {audit.map((a) => (
                 <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
                   <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{a.user}</td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.action}</td>
@@ -557,8 +575,14 @@ function Dashboard() {
 /* ============ USERS ============ */
 function UsersSection() {
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState<"all" | AdminUser["role"]>("all");
-  const [users, setUsers] = useState(adminUsers);
+  const [role, setRole] = useState<"all" | AdminUserRow["role"]>("all");
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchAdminUsers({ role }).then((list) => active && setUsers(list)).catch(() => {});
+    return () => { active = false; };
+  }, [role]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -569,21 +593,24 @@ function UsersSection() {
     });
   }, [users, query, role]);
 
-  const toggle = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== id) return u;
-        const ns = u.status === "active" ? "blocked" : "active";
-        toast.success(ns === "blocked" ? "Пользователь заблокирован" : "Пользователь разблокирован");
-        return { ...u, status: ns };
-      })
-    );
+  const toggle = async (uuid: string) => {
+    const target = users.find((u) => u.uuid === uuid);
+    if (!target) return;
+    const ns = target.status === "active" ? "blocked" : "active";
+    try {
+      await updateAdminUser(uuid, { status: ns });
+      setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, status: ns } : u)));
+      toast.success(ns === "blocked" ? "Пользователь заблокирован" : "Пользователь разблокирован");
+    } catch {
+      toast.error("Не удалось изменить статус");
+    }
   };
 
-  const roleBadge = (r: AdminUser["role"]) => {
-    const map = {
+  const roleBadge = (r: AdminUserRow["role"]) => {
+    const map: Record<AdminUserRow["role"], { bg: string; c: string; l: string }> = {
       admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: "Админ" },
       moderator: { bg: "var(--info-soft)", c: "var(--info)", l: "Модератор" },
+      subscriber: { bg: "var(--success-soft)", c: "var(--success)", l: "Подписчик" },
       user: { bg: "var(--background-surface)", c: "var(--foreground-50)", l: "Польз." },
     };
     const s = map[r];
@@ -607,7 +634,7 @@ function UsersSection() {
         />
         <select
           value={role}
-          onChange={(e) => setRole(e.target.value as "all" | AdminUser["role"])}
+          onChange={(e) => setRole(e.target.value as "all" | AdminUserRow["role"])}
           className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
@@ -632,26 +659,28 @@ function UsersSection() {
             </thead>
             <tbody>
               {filtered.map((u) => (
-                <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
+                <tr key={u.uuid} style={{ borderTop: "1px solid var(--border)" }}>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex items-center gap-[10px]">
-                      <img src={u.avatar} alt="" style={{ width: "32px", height: "32px", borderRadius: "var(--r-pill)" }} />
+                      <div style={{ width: "32px", height: "32px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent)", display: "grid", placeItems: "center", fontSize: "12px", fontWeight: 700 }}>
+                        {u.name.slice(0, 1).toUpperCase()}
+                      </div>
                       <span style={{ color: "var(--foreground)", fontWeight: 500 }}>{u.name}</span>
                     </div>
                   </td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.email}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.city}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.subscription ?? "—"}</td>
+                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.city || "—"}</td>
+                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.role === "subscriber" ? "Подписка" : "—"}</td>
                   <td style={{ padding: "10px 16px" }}>{roleBadge(u.role)}</td>
                   <td style={{ padding: "10px 16px" }}>
                     <StatusBadge variant={u.status === "active" ? "published" : "rejected"}>
-                      {u.status === "active" ? "Активен" : "Заблокирован"}
+                      {u.status === "active" ? "Активен" : u.status === "blocked" ? "Заблокирован" : "Ожидает"}
                     </StatusBadge>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex gap-[6px]">
                       <IconBtn onClick={() => toast.info(`Просмотр: ${u.name}`)}><Eye size={14} /></IconBtn>
-                      <IconBtn danger onClick={() => toggle(u.id)}><Ban size={14} /></IconBtn>
+                      <IconBtn danger onClick={() => toggle(u.uuid)}><Ban size={14} /></IconBtn>
                     </div>
                   </td>
                 </tr>
@@ -804,24 +833,26 @@ function AdsSection() {
 
 /* ============ MODERATION ============ */
 function ModerationSection() {
-  const [postQueue, setPostQueue] = useState(posts.slice(0, 2).map((p) => ({ id: p.id, title: p.title, author: p.authorId, category: p.category })));
-  const [adQueue, setAdQueue] = useState(ads.slice(0, 1).map((a) => ({ id: a.id, title: a.title, author: a.authorId, category: a.category })));
-  const [channelQueue, setChannelQueue] = useState([
-    { id: "chp-m1", title: "Обзор нового набора красок Mr.Hobby", author: "Моя мастерская", category: "Канал · Автор" },
-    { id: "chp-m2", title: "Скидка 20% на наборы Tamiya — выходные", author: "Tamiya News", category: "Канал · Бренд" },
-  ]);
+  const [queue, setQueue] = useState<ModerationItem[]>([]);
 
-  const removePost = (id: string, ok: boolean) => {
-    setPostQueue((q) => q.filter((x) => x.id !== id));
-    ok ? toast.success("Пост одобрен") : toast.error("Пост отклонён");
-  };
-  const removeAd = (id: string, ok: boolean) => {
-    setAdQueue((q) => q.filter((x) => x.id !== id));
-    ok ? toast.success("Объявление одобрено") : toast.error("Объявление отклонено");
-  };
-  const removeChannel = (id: string, ok: boolean) => {
-    setChannelQueue((q) => q.filter((x) => x.id !== id));
-    ok ? toast.success("Пост канала одобрен") : toast.error("Пост канала отклонён");
+  useEffect(() => {
+    let active = true;
+    fetchModerationQueue("pending").then((q) => active && setQueue(q)).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const postQueue = queue.filter((q) => q.type === "posts");
+  const communityQueue = queue.filter((q) => q.type === "communities");
+
+  const decide = async (item: ModerationItem, ok: boolean) => {
+    try {
+      if (ok) await approveModeration(item.type, item.targetId);
+      else await rejectModeration(item.type, item.targetId);
+      setQueue((q) => q.filter((x) => x.id !== item.id));
+      ok ? toast.success("Одобрено") : toast.error("Отклонено");
+    } catch {
+      toast.error("Не удалось выполнить действие");
+    }
   };
 
   return (
@@ -840,8 +871,8 @@ function ModerationSection() {
                   title={p.title}
                   author={p.author}
                   category={p.category}
-                  onApprove={() => removePost(p.id, true)}
-                  onReject={() => removePost(p.id, false)}
+                  onApprove={() => decide(p, true)}
+                  onReject={() => decide(p, false)}
                 />
               ))}
             </AnimatePresence>
@@ -850,42 +881,22 @@ function ModerationSection() {
         </div>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Объявления на модерации ({adQueue.length})
+            Сообщества на модерации ({communityQueue.length})
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
-              {adQueue.map((a) => (
-                <ModerationCard
-                  key={a.id}
-                  title={a.title}
-                  author={a.author}
-                  category={a.category}
-                  onApprove={() => removeAd(a.id, true)}
-                  onReject={() => removeAd(a.id, false)}
-                />
-              ))}
-            </AnimatePresence>
-            {adQueue.length === 0 && <EmptyQueue label="Нет объявлений на модерации" />}
-          </div>
-        </div>
-        <div className="lg:col-span-2">
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Каналы на модерации ({channelQueue.length})
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <AnimatePresence>
-              {channelQueue.map((c) => (
+              {communityQueue.map((c) => (
                 <ModerationCard
                   key={c.id}
                   title={c.title}
                   author={c.author}
                   category={c.category}
-                  onApprove={() => removeChannel(c.id, true)}
-                  onReject={() => removeChannel(c.id, false)}
+                  onApprove={() => decide(c, true)}
+                  onReject={() => decide(c, false)}
                 />
               ))}
             </AnimatePresence>
-            {channelQueue.length === 0 && <EmptyQueue label="Нет постов каналов на модерации" />}
+            {communityQueue.length === 0 && <EmptyQueue label="Нет сообществ на модерации" />}
           </div>
         </div>
       </div>
@@ -933,12 +944,61 @@ function MonetizationSection() {
   const [promos, setPromos] = useState(initialPromos);
   const [bannerList, setBannerList] = useState<Banner[]>(initialBanners);
 
+  const reloadPromos = () => fetchAdminPromocodes().then(setPromos).catch(() => {});
+
+  useEffect(() => {
+    let active = true;
+    fetchAdminPlans().then((p) => active && p.length && setEditedTariffs(p)).catch(() => {});
+    fetchAdminPromocodes().then((p) => active && setPromos(p)).catch(() => {});
+    fetchAdminBanners().then((b) => active && setBannerList(b)).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const saveTariffs = async () => {
+    try {
+      await Promise.all(
+        editedTariffs.map((t) =>
+          updateAdminPlan(t.id, {
+            name: t.name,
+            price_cents: Math.round(t.price * 100),
+            period_days: parseInt(t.period, 10) || undefined,
+          }),
+        ),
+      );
+      toast.success("Тарифы сохранены");
+    } catch {
+      toast.error("Не удалось сохранить тарифы");
+    }
+  };
+
   const updateBanner = (id: string, patch: Partial<Banner>) => {
     setBannerList((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
   };
-  const removeBanner = (id: string) => {
-    setBannerList((prev) => prev.filter((b) => b.id !== id));
-    toast.success("Баннер удалён");
+  const removeBanner = async (id: string) => {
+    try {
+      await deleteAdminBanner(id);
+      setBannerList((prev) => prev.filter((b) => b.id !== id));
+      toast.success("Баннер удалён");
+    } catch {
+      toast.error("Не удалось удалить баннер");
+    }
+  };
+  const saveBanners = async () => {
+    try {
+      await Promise.all(
+        bannerList.map((b) =>
+          updateAdminBanner(b.id, {
+            title: b.title,
+            text: b.text,
+            starts_at: b.scheduleFrom || null,
+            ends_at: b.scheduleTo || null,
+          }),
+        ),
+      );
+      toast.success("Настройки баннеров сохранены");
+    } catch {
+      toast.error("Не удалось сохранить баннеры");
+    }
   };
   const sortedBanners = [...bannerList].sort((a, b) => {
     if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
@@ -978,11 +1038,11 @@ function MonetizationSection() {
             </div>
           ))}
         </div>
-        <button onClick={() => toast.success("Тарифы сохранены")} style={{ ...primaryBtn, marginTop: "12px" }}>Сохранить тарифы</button>
+        <button onClick={saveTariffs} style={{ ...primaryBtn, marginTop: "12px" }}>Сохранить тарифы</button>
       </div>
 
       {/* Promocodes */}
-      <PromoCodesBlock promos={promos} setPromos={setPromos} />
+      <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
 
 
       {/* Banners */}
@@ -1083,7 +1143,7 @@ function MonetizationSection() {
           )}
         </div>
         <button
-          onClick={() => toast.success("Настройки баннеров сохранены")}
+          onClick={saveBanners}
           style={{ ...primaryBtn, marginTop: "14px" }}
         >
           Сохранить баннеры
@@ -1344,7 +1404,7 @@ function SettingsSection() {
 }
 
 /* ============ PROMO CODES BLOCK ============ */
-function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos: React.Dispatch<React.SetStateAction<PromoCode[]>> }) {
+function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; setPromos: React.Dispatch<React.SetStateAction<PromoCode[]>>; reload?: () => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
@@ -1362,19 +1422,25 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
     return true;
   });
 
-  const create = () => {
+  const create = async () => {
     if (!form.code.trim()) return toast.error("Введите название");
     if (!form.expiresAt) return toast.error("Укажите срок действия");
     if (form.discount < 1 || form.discount > 100) return toast.error("Скидка от 1 до 100%");
     if (form.limit < 1) return toast.error("Лимит должен быть больше 0");
-    const status: "active" | "expired" = form.expiresAt >= today ? "active" : "expired";
-    setPromos((p) => [
-      ...p,
-      { id: String(Date.now()), code: form.code.toUpperCase(), discount: form.discount, usedCount: 0, limit: form.limit, expiresAt: form.expiresAt, status },
-    ]);
-    setForm({ code: "", discount: 10, expiresAt: "", limit: 100 });
-    setOpen(false);
-    toast.success("Промокод создан");
+    try {
+      await createPromocode({
+        code: form.code.toUpperCase(),
+        value: form.discount,
+        max_usages: form.limit,
+        valid_until: form.expiresAt,
+      });
+      setForm({ code: "", discount: 10, expiresAt: "", limit: 100 });
+      setOpen(false);
+      reload?.();
+      toast.success("Промокод создан");
+    } catch {
+      toast.error("Не удалось создать промокод");
+    }
   };
 
   return (
@@ -1478,7 +1544,15 @@ function PromoCodesBlock({ promos, setPromos }: { promos: PromoCode[]; setPromos
                   </span>
                 </td>
                 <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                  <IconBtn danger onClick={() => { setPromos((q) => q.filter((x) => x.id !== p.id)); toast.success("Промокод удалён"); }}><Trash2 size={14} /></IconBtn>
+                  <IconBtn danger onClick={async () => {
+                    try {
+                      await deletePromocode(p.code);
+                      setPromos((q) => q.filter((x) => x.id !== p.id));
+                      toast.success("Промокод удалён");
+                    } catch {
+                      toast.error("Не удалось удалить промокод");
+                    }
+                  }}><Trash2 size={14} /></IconBtn>
                 </td>
               </tr>
             ))}

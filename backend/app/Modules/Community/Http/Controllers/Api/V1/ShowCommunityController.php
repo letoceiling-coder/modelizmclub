@@ -12,7 +12,7 @@ class ShowCommunityController extends Controller
 {
     public function __invoke(string $slug, Request $request, CommunityService $communities): JsonResponse
     {
-        $community = $communities->show($slug, $request->user());
+        $community = $communities->show($slug, $request->user('sanctum'));
 
         return response()->json([
             'data' => new CommunityResource($community),

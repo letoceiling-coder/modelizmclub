@@ -3,6 +3,8 @@ export type ID = string;
 
 export interface User {
   id: ID;
+  numericId?: number;
+  slug?: string;
   name: string;
   city: string;
   interests: string;
@@ -224,18 +226,6 @@ export const friendRequests: FriendRequest[] = [
 ];
 
 export const me: User = users[0];
-
-/** Replace the current user in-place so all `me` imports stay valid. */
-export function setCurrentUser(u: User): void {
-  Object.assign(me, u);
-  upsertUsers([u]);
-}
-
-/** Replace mock communities list (used by community detail route). */
-export function replaceCommunities(list: Community[]): void {
-  communities.length = 0;
-  communities.push(...list);
-}
 
 export const categories: Category[] = [
   {
@@ -488,17 +478,17 @@ export const chatMessages: Message[] = [
   { id: "cm5", authorId: "u3", time: _ago(30), text: "Видео обкатки скинете?", status: "read" },
 ];
 
-export const userById = (id: ID) => users.find((u) => u.id === id) ?? users[0];
+// Runtime registry for users that arrive from the API (authors, sellers, chat
+// peers, …). Lets components keep using userById() while real data flows in.
+const dynamicUsers: Record<ID, User> = {};
 
-// Upsert API-sourced users into the shared registry so userById() resolves
-// real authors. Mutates the `users` array in place (live binding).
-export function upsertUsers(list: User[]): void {
-  for (const u of list) {
-    const i = users.findIndex((x) => x.id === u.id);
-    if (i >= 0) users[i] = { ...users[i], ...u };
-    else users.push(u);
-  }
+export function registerUser(u: User): void {
+  if (!u?.id) return;
+  dynamicUsers[u.id] = { ...dynamicUsers[u.id], ...u };
 }
+
+export const userById = (id: ID): User =>
+  dynamicUsers[id] ?? users.find((u) => u.id === id) ?? users[0];
 export const categoryById = (id: ID) => categories.find((c) => c.id === id);
 export const communityById = (id: ID) => communities.find((c) => c.id === id);
 

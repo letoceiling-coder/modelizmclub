@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { type Ad } from "@/lib/mock";
-import { useStore, actions, selectors, type AdStatusKey } from "@/lib/store";
+import { type AdStatusKey } from "@/lib/store";
+import { fetchMyListings, publishListing, archiveListing, deleteListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 
 export const Route = createFileRoute("/ads/")({
@@ -43,19 +44,36 @@ const DEFAULT_FILTERS: Filters = { category: "all", dateRange: "all", minViews: 
 
 function MyAdsPage() {
   const navigate = useNavigate();
-  const currentUserId = useStore((s) => s.currentUserId);
   const [tab, setTab] = useState<TabKey>("active");
-  const allMyAds = useStore(selectors.myAds(currentUserId));
-  const adStatusMap = useStore((s) => s.adStatus);
+  const [items, setItems] = useState<{ ad: Ad; status: AdStatusKey }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [query, setQuery] = useState("");
 
-  const decorated = useMemo(
-    () => allMyAds.map((ad) => ({ ad, status: (adStatusMap[ad.id] ?? "active") as AdStatusKey })),
-    [allMyAds, adStatusMap]
-  );
+  useEffect(() => {
+    fetchMyListings()
+      .then(setItems)
+      .catch(() => setItems([]));
+  }, []);
+
+  const setLocalStatus = (id: string, status: AdStatusKey) =>
+    setItems((prev) => prev.map((x) => (x.ad.id === id ? { ...x, status } : x)));
+  const removeLocal = (id: string) => setItems((prev) => prev.filter((x) => x.ad.id !== id));
+  const doArchive = (id: string) => {
+    setLocalStatus(id, "archived");
+    archiveListing(id).catch(() => {});
+  };
+  const doPublish = (id: string) => {
+    setLocalStatus(id, "active");
+    publishListing(id).catch(() => {});
+  };
+  const doDelete = (id: string) => {
+    removeLocal(id);
+    deleteListing(id).catch(() => {});
+  };
+
+  const decorated = items;
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -125,8 +143,8 @@ function MyAdsPage() {
     });
   };
   const clearSelection = () => setSelected(new Set());
-  const archiveSelected = () => { selected.forEach((id) => actions.archiveAd(id)); clearSelection(); };
-  const deleteSelected = () => { selected.forEach((id) => actions.deleteAd(id)); clearSelection(); };
+  const archiveSelected = () => { selected.forEach((id) => doArchive(id)); clearSelection(); };
+  const deleteSelected = () => { selected.forEach((id) => doDelete(id)); clearSelection(); };
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -394,9 +412,9 @@ function MyAdsPage() {
                   status={status}
                   selected={selected.has(ad.id)}
                   onSelect={handleSelect}
-                  onArchive={(id) => actions.archiveAd(id)}
-                  onPublish={(id) => actions.setAdStatus(id, "active")}
-                  onDelete={(id) => actions.deleteAd(id)}
+                  onArchive={(id) => doArchive(id)}
+                  onPublish={(id) => doPublish(id)}
+                  onDelete={(id) => doDelete(id)}
                 />
               ))
             )}

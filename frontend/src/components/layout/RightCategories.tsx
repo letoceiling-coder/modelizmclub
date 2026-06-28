@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronDown, MessageCircle } from "lucide-react";
 import * as Icons from "lucide-react";
 import type { Category } from "@/lib/mock";
-import { useCategories } from "@/lib/api/catalog";
+import { usePostCategories } from "@/lib/hooks/useCategories";
 
 // Детерминированный «онлайн» по id категории — без бэка, но стабильно от рендера к рендеру.
 function onlineFor(c: Category): number {
@@ -21,7 +21,7 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 
 export function RightCategories() {
   const [openId, setOpenId] = useState<string | null>(null);
-  const categories = useCategories();
+  const categories = usePostCategories();
 
   return (
     <aside className="hidden xl:block w-72 shrink-0">

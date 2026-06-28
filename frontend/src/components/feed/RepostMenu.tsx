@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, selectors, openOrCreateDialogWith, actions } from "@/lib/store";
-import { userById, me } from "@/lib/mock";
+import { userById } from "@/lib/mock";
 
 interface Props {
   postId: string;
@@ -21,6 +21,7 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const dialogs = useStore(selectors.dialogsList);
+  const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
 
   useEffect(() => {
