@@ -7,7 +7,10 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 class ResetPasswordNotification extends BaseResetPassword
 {
-    public function toMail(object $notifiable): MailMessage
+    /**
+     * Signature must match the parent (untyped $notifiable, no return type).
+     */
+    public function toMail($notifiable)
     {
         $url = $this->resetUrl($notifiable);
         $minutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
@@ -22,16 +25,5 @@ class ResetPasswordNotification extends BaseResetPassword
             ->line($url)
             ->line('Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо — никаких действий не требуется.')
             ->salutation('С уважением, команда МоДелизМ Клуб');
-    }
-
-    protected function resetUrl(object $notifiable): string
-    {
-        if (static::$createUrlCallback) {
-            return call_user_func(static::$createUrlCallback, $notifiable, $this->token);
-        }
-
-        $base = rtrim((string) config('app.frontend_url'), '/');
-
-        return $base.'/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
     }
 }
