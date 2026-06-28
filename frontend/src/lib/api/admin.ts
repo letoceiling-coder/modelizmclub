@@ -303,6 +303,124 @@ export async function deleteAdminBanner(id: string): Promise<void> {
   await api(`/admin/banners/${id}`, { method: "DELETE" });
 }
 
+// ---- Categories ----
+export type CategoryKind = "post" | "community" | "listing";
+
+export interface AdminCategory {
+  id: number;
+  parentId: number | null;
+  name: string;
+  slug: string;
+  icon: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+interface ApiAdminCategory {
+  id: number;
+  parent_id?: number | null;
+  name: string;
+  slug: string;
+  icon?: string | null;
+  sort_order?: number | null;
+  is_active?: boolean;
+}
+
+function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
+  return {
+    id: c.id,
+    parentId: c.parent_id ?? null,
+    name: c.name,
+    slug: c.slug,
+    icon: c.icon ?? null,
+    sortOrder: c.sort_order ?? 0,
+    isActive: c.is_active ?? true,
+  };
+}
+
+export async function fetchAdminCategories(kind: CategoryKind): Promise<AdminCategory[]> {
+  const res = await api<{ data: Paginated<ApiAdminCategory> | ApiAdminCategory[] }>(
+    `/admin/categories/${kind}`,
+    { query: { per_page: 200 } },
+  );
+  const payload = res.data as Paginated<ApiAdminCategory> | ApiAdminCategory[] | undefined;
+  const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
+  return list.map(mapAdminCategory);
+}
+
+export interface UpsertCategoryInput {
+  name: string;
+  slug: string;
+  parentId?: number | null;
+  icon?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+function categoryBody(input: UpsertCategoryInput): Record<string, unknown> {
+  return {
+    name: input.name,
+    slug: input.slug,
+    parent_id: input.parentId ?? null,
+    icon: input.icon ?? null,
+    sort_order: input.sortOrder ?? 0,
+    is_active: input.isActive ?? true,
+  };
+}
+
+export async function createAdminCategory(
+  kind: CategoryKind,
+  input: UpsertCategoryInput,
+): Promise<AdminCategory> {
+  const res = await api<{ data: ApiAdminCategory }>(`/admin/categories/${kind}`, {
+    method: "POST",
+    json: categoryBody(input),
+  });
+  return mapAdminCategory(res.data);
+}
+
+export async function updateAdminCategory(
+  kind: CategoryKind,
+  id: number,
+  input: UpsertCategoryInput,
+): Promise<AdminCategory> {
+  const res = await api<{ data: ApiAdminCategory }>(`/admin/categories/${kind}/${id}`, {
+    method: "PUT",
+    json: categoryBody(input),
+  });
+  return mapAdminCategory(res.data);
+}
+
+export async function deleteAdminCategory(kind: CategoryKind, id: number): Promise<void> {
+  await api(`/admin/categories/${kind}/${id}`, { method: "DELETE" });
+}
+
+// ---- System settings ----
+export interface AdminSetting {
+  key: string;
+  value: unknown;
+  group: string;
+}
+
+interface ApiAdminSetting {
+  key: string;
+  value: unknown;
+  group?: string | null;
+}
+
+export async function fetchAdminSettings(): Promise<AdminSetting[]> {
+  const res = await api<{ data: ApiAdminSetting[] }>("/admin/settings");
+  return (res.data ?? []).map((s) => ({ key: s.key, value: s.value, group: s.group ?? "general" }));
+}
+
+export async function updateAdminSettings(settings: AdminSetting[]): Promise<AdminSetting[]> {
+  const res = await api<{ data: ApiAdminSetting[] }>("/admin/settings", {
+    method: "PATCH",
+    json: { settings: settings.map((s) => ({ key: s.key, value: s.value, group: s.group })) },
+  });
+  return (res.data ?? []).map((s) => ({ key: s.key, value: s.value, group: s.group ?? "general" }));
+}
+
 export async function approveModeration(type: ModerationType, id: string): Promise<void> {
   await api(`/admin/moderation/${type}/${id}/approve`, { method: "POST" });
 }

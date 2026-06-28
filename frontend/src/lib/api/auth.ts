@@ -59,32 +59,41 @@ export async function login(email: string, password: string): Promise<User> {
   return mapApiUser(res.data);
 }
 
+export type RegistrationTrack = "community" | "listing";
+
+// Регистрация создаёт аккаунт со статусом «ожидает подтверждения» и отправляет
+// 6-значный код на email. Токен выдаётся только после verify-email.
 export async function register(input: {
-  name: string;
+  name?: string;
   email: string;
   password: string;
-}): Promise<{ user: User; token?: string; needsVerification: boolean }> {
-  const res = await api<AuthResponse>("/auth/register", {
+  passwordConfirmation: string;
+  track?: RegistrationTrack;
+}): Promise<void> {
+  await api("/auth/register", {
     method: "POST",
     auth: false,
-    json: input,
+    json: {
+      display_name: input.name?.trim() || undefined,
+      email: input.email,
+      password: input.password,
+      password_confirmation: input.passwordConfirmation,
+      registration_track: input.track ?? "community",
+    },
   });
-  if (res.meta?.token) setToken(res.meta.token);
-  return {
-    user: mapApiUser(res.data),
-    token: res.meta?.token,
-    needsVerification: !res.meta?.token,
-  };
 }
 
-export async function verifyEmail(email: string, code: string): Promise<User> {
+export async function verifyEmail(
+  email: string,
+  code: string,
+): Promise<{ user: User; token?: string }> {
   const res = await api<AuthResponse>("/auth/verify-email", {
     method: "POST",
     auth: false,
     json: { email, code },
   });
   if (res.meta?.token) setToken(res.meta.token);
-  return mapApiUser(res.data);
+  return { user: mapApiUser(res.data), token: res.meta?.token };
 }
 
 export async function forgotPassword(email: string): Promise<void> {

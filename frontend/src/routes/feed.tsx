@@ -26,7 +26,7 @@ export const Route = createFileRoute("/feed")({
       { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { composer?: string } => ({
     composer: (search.composer as string) || undefined,
   }),
   component: FeedPage,

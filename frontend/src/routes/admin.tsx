@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   promoCodes as initialPromos,
-  ads, posts, categories, tariffs, banners as initialBanners,
+  ads, posts, tariffs, banners as initialBanners,
   type PromoCode, type Banner,
 } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
@@ -22,7 +22,10 @@ import {
   fetchAdminPlans, updateAdminPlan,
   fetchAdminPromocodes, createPromocode, deletePromocode,
   fetchAdminBanners, updateAdminBanner, deleteAdminBanner,
+  fetchAdminCategories, createAdminCategory, updateAdminCategory, deleteAdminCategory,
+  fetchAdminSettings, updateAdminSettings,
   type AdminUserRow, type AuditEntry, type ModerationItem,
+  type AdminCategory, type CategoryKind, type AdminSetting,
 } from "@/lib/api/admin";
 
 export const Route = createFileRoute("/admin")({
@@ -1154,62 +1157,179 @@ function MonetizationSection() {
 }
 
 /* ============ CATEGORIES ============ */
+const CATEGORY_KINDS: { id: CategoryKind; label: string }[] = [
+  { id: "post", label: "Посты" },
+  { id: "community", label: "Сообщества" },
+  { id: "listing", label: "Объявления" },
+];
+
+// Простой транслит для генерации slug из кириллического названия.
+function slugify(input: string): string {
+  const map: Record<string, string> = {
+    а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
+    й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
+    у: "u", ф: "f", х: "h", ц: "c", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "",
+    э: "e", ю: "yu", я: "ya",
+  };
+  const s = input
+    .toLowerCase()
+    .split("")
+    .map((ch) => map[ch] ?? ch)
+    .join("")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return s || `cat-${Date.now()}`;
+}
+
 function CategoriesSection() {
-  const [open, setOpen] = useState<Record<string, boolean>>({ c1: true });
+  const [kind, setKind] = useState<CategoryKind>("post");
+  const [items, setItems] = useState<AdminCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+
+  const load = (k: CategoryKind) => {
+    setLoading(true);
+    fetchAdminCategories(k)
+      .then(setItems)
+      .catch(() => toast.error("Не удалось загрузить категории"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(kind); }, [kind]);
+
+  const roots = useMemo(() => items.filter((c) => c.parentId === null), [items]);
+  const childrenOf = (id: number) => items.filter((c) => c.parentId === id);
+
+  const addRoot = async () => {
+    const name = window.prompt("Название категории")?.trim();
+    if (!name) return;
+    const slug = window.prompt("Slug (латиницей)", slugify(name))?.trim();
+    if (!slug) return;
+    try {
+      const created = await createAdminCategory(kind, { name, slug, sortOrder: roots.length });
+      setItems((p) => [...p, created]);
+      toast.success("Категория добавлена");
+    } catch { toast.error("Не удалось создать категорию (возможно, slug занят)"); }
+  };
+
+  const addSub = async (parent: AdminCategory) => {
+    const name = window.prompt(`Подкатегория в «${parent.name}»`)?.trim();
+    if (!name) return;
+    const slug = window.prompt("Slug (латиницей)", slugify(name))?.trim();
+    if (!slug) return;
+    try {
+      const created = await createAdminCategory(kind, {
+        name, slug, parentId: parent.id, sortOrder: childrenOf(parent.id).length,
+      });
+      setItems((p) => [...p, created]);
+      setOpen((p) => ({ ...p, [parent.id]: true }));
+      toast.success("Подкатегория добавлена");
+    } catch { toast.error("Не удалось создать подкатегорию"); }
+  };
+
+  const edit = async (c: AdminCategory) => {
+    const name = window.prompt("Название", c.name)?.trim();
+    if (!name) return;
+    const slug = window.prompt("Slug", c.slug)?.trim();
+    if (!slug) return;
+    try {
+      const updated = await updateAdminCategory(kind, c.id, {
+        name, slug, parentId: c.parentId, icon: c.icon, sortOrder: c.sortOrder, isActive: c.isActive,
+      });
+      setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
+      toast.success("Сохранено");
+    } catch { toast.error("Не удалось обновить категорию"); }
+  };
+
+  const remove = async (c: AdminCategory) => {
+    if (!window.confirm(`Удалить «${c.name}»?`)) return;
+    try {
+      await deleteAdminCategory(kind, c.id);
+      setItems((p) => p.filter((x) => x.id !== c.id && x.parentId !== c.id));
+      toast.success("Удалено");
+    } catch { toast.error("Не удалось удалить категорию"); }
+  };
+
   return (
     <div>
       <H
         action={
-          <div className="flex gap-[8px]">
-            <button style={{ ...primaryBtn }} onClick={() => toast.success("Категория добавлена")}>
-              <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />Добавить
-            </button>
-            <button style={{ ...primaryBtn, background: "transparent", color: "var(--foreground)", border: "1px solid var(--border)" }} onClick={() => toast.success("Порядок сохранён")}>
-              Сохранить порядок
-            </button>
-          </div>
+          <button style={{ ...primaryBtn }} onClick={addRoot}>
+            <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />Добавить
+          </button>
         }
       >
         Категории
       </H>
-      <div style={{ ...card, padding: "16px" }}>
-        {categories.map((c) => (
-          <div key={c.id} style={{ marginBottom: "4px" }}>
-            <div className="flex items-center justify-between" style={{ padding: "8px 0" }}>
-              <button onClick={() => setOpen((p) => ({ ...p, [c.id]: !p[c.id] }))} className="flex items-center gap-[8px] flex-1">
-                <motion.span animate={{ rotate: open[c.id] ? 90 : 0 }} style={{ display: "inline-block", color: "var(--foreground-50)", fontSize: "10px" }}>▶</motion.span>
-                <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{c.name}</span>
-                <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>({c.members.toLocaleString("ru")} уч.)</span>
-              </button>
-              <div className="flex gap-[4px]">
-                <IconBtn onClick={() => toast.info("Добавить подкатегорию")}><Plus size={14} /></IconBtn>
-                <IconBtn onClick={() => toast.info("Редактировать")}><Pencil size={14} /></IconBtn>
-                <IconBtn danger onClick={() => toast.success("Удалено")}><Trash2 size={14} /></IconBtn>
-              </div>
-            </div>
-            <AnimatePresence>
-              {open[c.id] && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  style={{ overflow: "hidden", borderLeft: "1px solid var(--border)", marginLeft: "8px", paddingLeft: "16px" }}
-                >
-                  {c.subcategories.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between" style={{ padding: "6px 0" }}>
-                      <span style={{ fontSize: "14px", color: "var(--foreground-70)" }}>{s.name}</span>
-                      <div className="flex gap-[4px]">
-                        <IconBtn onClick={() => toast.info("Редактировать")}><Pencil size={14} /></IconBtn>
-                        <IconBtn danger onClick={() => toast.success("Удалено")}><Trash2 size={14} /></IconBtn>
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+      <div className="flex gap-[6px]" style={{ marginBottom: "12px" }}>
+        {CATEGORY_KINDS.map((k) => (
+          <button
+            key={k.id}
+            onClick={() => setKind(k.id)}
+            style={{
+              padding: "6px 14px",
+              fontSize: "13px",
+              fontWeight: kind === k.id ? 600 : 500,
+              borderRadius: "var(--r-pill)",
+              border: `1px solid ${kind === k.id ? "var(--border-accent)" : "var(--border)"}`,
+              background: kind === k.id ? "var(--accent-soft)" : "transparent",
+              color: kind === k.id ? "var(--accent)" : "var(--foreground-70)",
+            }}
+          >
+            {k.label}
+          </button>
         ))}
+      </div>
+
+      <div style={{ ...card, padding: "16px" }}>
+        {loading ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+        ) : roots.length === 0 ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Категорий пока нет</p>
+        ) : (
+          roots.map((c) => {
+            const subs = childrenOf(c.id);
+            return (
+              <div key={c.id} style={{ marginBottom: "4px" }}>
+                <div className="flex items-center justify-between" style={{ padding: "8px 0" }}>
+                  <button onClick={() => setOpen((p) => ({ ...p, [c.id]: !p[c.id] }))} className="flex items-center gap-[8px] flex-1">
+                    <motion.span animate={{ rotate: open[c.id] ? 90 : 0 }} style={{ display: "inline-block", color: "var(--foreground-50)", fontSize: "10px" }}>▶</motion.span>
+                    <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{c.name}</span>
+                    {!c.isActive && <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>(скрыта)</span>}
+                    {subs.length > 0 && <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>({subs.length})</span>}
+                  </button>
+                  <div className="flex gap-[4px]">
+                    <IconBtn onClick={() => addSub(c)}><Plus size={14} /></IconBtn>
+                    <IconBtn onClick={() => edit(c)}><Pencil size={14} /></IconBtn>
+                    <IconBtn danger onClick={() => remove(c)}><Trash2 size={14} /></IconBtn>
+                  </div>
+                </div>
+                <AnimatePresence>
+                  {open[c.id] && subs.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{ overflow: "hidden", borderLeft: "1px solid var(--border)", marginLeft: "8px", paddingLeft: "16px" }}
+                    >
+                      {subs.map((s) => (
+                        <div key={s.id} className="flex items-center justify-between" style={{ padding: "6px 0" }}>
+                          <span style={{ fontSize: "14px", color: "var(--foreground-70)" }}>{s.name}</span>
+                          <div className="flex gap-[4px]">
+                            <IconBtn onClick={() => edit(s)}><Pencil size={14} /></IconBtn>
+                            <IconBtn danger onClick={() => remove(s)}><Trash2 size={14} /></IconBtn>
+                          </div>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -1314,89 +1434,137 @@ function AnalyticsSection() {
 
 /* ============ SETTINGS ============ */
 function SettingsSection() {
-  const [toggles, setToggles] = useState({ modPosts: true, modAds: true, regOpen: true, emailReq: true });
+  const [settings, setSettings] = useState<AdminSetting[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const field = (label: string, defaultValue: string, type = "text") => (
-    <label style={{ display: "grid", gap: "6px" }}>
-      <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-50)" }}>{label}</span>
-      <input
-        type={type}
-        defaultValue={defaultValue}
-        className="outline-none"
-        style={{
-          height: "40px",
-          background: "var(--background)",
-          border: "1.5px solid var(--border)",
-          borderRadius: "var(--r-input)",
-          padding: "0 14px",
-          fontSize: "13px",
-          color: "var(--foreground)",
-        }}
-      />
-    </label>
-  );
+  useEffect(() => {
+    fetchAdminSettings()
+      .then((rows) => {
+        setSettings(rows);
+        const d: Record<string, string> = {};
+        for (const s of rows) {
+          d[s.key] = typeof s.value === "string" ? s.value : JSON.stringify(s.value, null, 2);
+        }
+        setDrafts(d);
+      })
+      .catch(() => toast.error("Не удалось загрузить настройки"))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const Toggle = ({ label, k }: { label: string; k: keyof typeof toggles }) => (
-    <button
-      onClick={() => setToggles((p) => ({ ...p, [k]: !p[k] }))}
-      className="flex items-center justify-between w-full"
-      style={{ padding: "8px 0" }}
-    >
-      <span style={{ fontSize: "13px", color: "var(--foreground)" }}>{label}</span>
-      <div
-        style={{
-          width: "44px", height: "24px",
-          borderRadius: "var(--r-pill)",
-          background: toggles[k] ? "var(--accent)" : "var(--background-surface)",
-          position: "relative",
-          transition: "background 200ms ease",
-        }}
-      >
-        <motion.div
-          animate={{ x: toggles[k] ? 22 : 2 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          style={{
-            width: "20px", height: "20px",
-            borderRadius: "var(--r-pill)",
-            background: "#fff",
-            position: "absolute",
-            top: "2px",
-            boxShadow: "var(--shadow-card)",
-          }}
-        />
-      </div>
-    </button>
-  );
+  const save = async () => {
+    const next: AdminSetting[] = [];
+    for (const s of settings) {
+      const raw = drafts[s.key] ?? "";
+      let value: unknown = raw;
+      const trimmed = raw.trim();
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        try {
+          value = JSON.parse(trimmed);
+        } catch {
+          toast.error(`Некорректный JSON в «${s.key}»`);
+          return;
+        }
+      }
+      next.push({ key: s.key, value, group: s.group });
+    }
+    setSaving(true);
+    try {
+      const updated = await updateAdminSettings(next);
+      setSettings(updated);
+      toast.success("Настройки сохранены");
+    } catch {
+      toast.error("Не удалось сохранить настройки");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const groups = useMemo(() => {
+    const map = new Map<string, AdminSetting[]>();
+    for (const s of settings) {
+      const arr = map.get(s.group) ?? [];
+      arr.push(s);
+      map.set(s.group, arr);
+    }
+    return Array.from(map.entries());
+  }, [settings]);
 
   return (
     <div>
       <H>Настройки</H>
-      <div style={{ ...card, padding: "24px", maxWidth: "600px" }}>
+      <div style={{ ...card, padding: "24px", maxWidth: "640px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "16px" }}>
-          Настройки платформы
+          Системные настройки платформы
         </h4>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {field("Название проекта", "МоДелизМ Форум")}
-          {field("Домен", "modelizm-forum.ru")}
-          {field("Email поддержки", "support@modelizm-forum.ru")}
-          {field("Платёжный ключ ЮKassa (Shop ID)", "••••••••", "password")}
-          {field("Платёжный ключ Т-Банк (Terminal Key)", "••••••••", "password")}
-          {field("SMTP сервер", "smtp.mail.ru")}
-          {field("SMTP порт", "587", "number")}
-          {field("SMTP логин", "noreply@modelizm-forum.ru")}
-          {field("SMTP пароль", "••••••••", "password")}
-        </div>
-        <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "4px" }}>
-          <Toggle label="Модерация постов вручную" k="modPosts" />
-          <Toggle label="Модерация объявлений вручную" k="modAds" />
-          <Toggle label="Регистрация открыта" k="regOpen" />
-          <Toggle label="Email-подтверждение обязательно" k="emailReq" />
-        </div>
+
+        {loading ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+        ) : settings.length === 0 ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Настроек пока нет</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {groups.map(([group, rows]) => (
+              <div key={group}>
+                <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--foreground-50)", marginBottom: "10px" }}>
+                  {group}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  {rows.map((s) => {
+                    const multiline = (drafts[s.key] ?? "").includes("\n");
+                    return (
+                      <label key={s.key} style={{ display: "grid", gap: "6px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{s.key}</span>
+                        {multiline ? (
+                          <textarea
+                            value={drafts[s.key] ?? ""}
+                            onChange={(e) => setDrafts((p) => ({ ...p, [s.key]: e.target.value }))}
+                            rows={Math.min(8, (drafts[s.key] ?? "").split("\n").length + 1)}
+                            className="outline-none"
+                            style={{
+                              background: "var(--background)",
+                              border: "1.5px solid var(--border)",
+                              borderRadius: "var(--r-input)",
+                              padding: "10px 14px",
+                              fontSize: "13px",
+                              fontFamily: "var(--font-mono)",
+                              color: "var(--foreground)",
+                              resize: "vertical",
+                            }}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={drafts[s.key] ?? ""}
+                            onChange={(e) => setDrafts((p) => ({ ...p, [s.key]: e.target.value }))}
+                            className="outline-none"
+                            style={{
+                              height: "40px",
+                              background: "var(--background)",
+                              border: "1.5px solid var(--border)",
+                              borderRadius: "var(--r-input)",
+                              padding: "0 14px",
+                              fontSize: "13px",
+                              color: "var(--foreground)",
+                            }}
+                          />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
-          onClick={() => toast.success("Настройки сохранены")}
-          style={{ ...primaryBtn, height: "44px", padding: "0 32px", fontSize: "14px", marginTop: "20px" }}
+          onClick={save}
+          disabled={saving || loading}
+          style={{ ...primaryBtn, height: "44px", padding: "0 32px", fontSize: "14px", marginTop: "20px", opacity: saving || loading ? 0.7 : 1 }}
         >
-          Сохранить
+          {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
     </div>

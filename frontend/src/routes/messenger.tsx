@@ -27,7 +27,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ Форум" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { chat?: string } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
   }),
   component: MessengerPage,

@@ -5,11 +5,10 @@ import { UserPlus } from "lucide-react";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { getInviterByCode } from "@/lib/referral";
 import { register } from "@/lib/api/auth";
-import { setCurrentUser } from "@/lib/store";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/register")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { ref?: string } => ({
     ref: typeof s.ref === "string" ? s.ref : undefined,
   }),
   head: () => ({ meta: [{ title: "Регистрация — МоДелизМ Форум" }] }),
@@ -30,17 +29,15 @@ function RegisterPage() {
     const name = String(form.get("name") ?? "").trim();
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
+    const passwordConfirmation = String(form.get("password_confirmation") ?? "");
+    if (password !== passwordConfirmation) {
+      return toast.error("Пароли не совпадают");
+    }
     setLoading(true);
     try {
-      const { user, needsVerification } = await register({ name, email, password });
-      if (needsVerification) {
-        toast.success("Аккаунт создан. Подтвердите email по ссылке из письма");
-        nav({ to: "/login" });
-        return;
-      }
-      setCurrentUser(user);
-      toast.success(inviter ? `Аккаунт создан. Приглашён ${inviter.name}` : "Аккаунт создан");
-      nav({ to: "/onboarding" });
+      await register({ name, email, password, passwordConfirmation });
+      toast.success("Аккаунт создан. Введите код из письма");
+      nav({ to: "/verify-email", search: { email } });
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -92,6 +89,7 @@ function RegisterPage() {
         <input required name="name" placeholder="Имя и фамилия" style={inputStyle} />
         <input required name="email" type="email" placeholder="Email" style={inputStyle} />
         <input required name="password" type="password" placeholder="Пароль (от 8 символов)" minLength={8} style={inputStyle} />
+        <input required name="password_confirmation" type="password" placeholder="Повторите пароль" minLength={8} style={inputStyle} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
