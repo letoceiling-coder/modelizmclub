@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Modules\Channel\Http\Resources\ChannelPostResource;
 use Modules\Channel\Http\Resources\ChannelResource;
@@ -126,10 +127,11 @@ class ChannelController extends Controller
 
     private function findChannel(string $slug): Channel
     {
-        $channel = Channel::query()
-            ->where('slug', $slug)
-            ->orWhere('uuid', $slug)
-            ->first();
+        $channel = Channel::query()->where('slug', $slug)->first();
+
+        if (! $channel && Str::isUuid($slug)) {
+            $channel = Channel::query()->where('uuid', $slug)->first();
+        }
 
         if (! $channel) {
             throw new NotFoundHttpException('Канал не найден.');
