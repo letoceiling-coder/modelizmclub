@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, CheckCheck, UserPlus, Megaphone, MessageSquare } from "lucide-react";
+import { Bell, CheckCheck, UserPlus, Megaphone, MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime } from "@/lib/mock";
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/notifications")({
 function iconFor(type: string) {
   if (type === "friend_request" || type === "friend_accept") return UserPlus;
   if (type === "message") return MessageSquare;
+  if (type === "call") return Phone;
   if (type === "system") return Megaphone;
   return Bell;
 }

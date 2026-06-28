@@ -2,6 +2,7 @@ import type { AppNotification } from "@/lib/api/notifications";
 import { mapMessage, type ApiMessage } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
 import { GUEST_USER, ingestIncomingMessage } from "@/lib/store";
+import { ingestCallSignal } from "@/lib/calls";
 import { subscribeUser } from "@/lib/realtime/echo";
 
 interface ApiNotificationPayload {
@@ -67,6 +68,11 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     const n = mapRealtimeNotification(p.notification);
     notificationListeners.forEach((cb) => cb(n));
     unreadBumpListeners.forEach((cb) => cb());
+    return;
+  }
+
+  if (type === "call") {
+    ingestCallSignal(data as { type: string; [k: string]: unknown });
   }
 }
 

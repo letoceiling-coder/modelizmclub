@@ -298,6 +298,10 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
   }
 }
 
+export function ingestCallSignal(payload: { type: string; [k: string]: unknown }): void {
+  void handleSignal(payload as { type: string; [k: string]: any });
+}
+
 export const calls = {
   /** Subscribe to the personal call-signaling channel. Safe to call after Echo reset. */
   async init(userUuid: string): Promise<void> {

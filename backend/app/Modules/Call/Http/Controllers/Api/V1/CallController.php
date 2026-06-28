@@ -5,12 +5,14 @@ namespace Modules\Call\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CallLog;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Modules\Call\Events\CallSignal;
+use Modules\Call\Services\CallSignaling;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Calls', weight: 36)]
@@ -71,12 +73,24 @@ class CallController extends Controller
             'started_at' => now(),
         ]);
 
-        broadcast(new CallSignal($callee->uuid, 'offer', [
+        $from = $this->userPayload($caller);
+
+        CallSignaling::send($callee->uuid, 'offer', [
             'call_uuid' => $call->uuid,
             'media' => $data['media'],
             'sdp' => $data['sdp'],
-            'from' => $this->userPayload($caller),
-        ]));
+            'from' => $from,
+        ]);
+
+        try {
+            $label = $data['media'] === 'video' ? 'Видеозвонок' : 'Звонок';
+            InAppNotify::send(
+                $callee,
+                new InAppNotification('call', (string) $from['name'], $label, '/messenger'),
+            );
+        } catch (\Throwable) {
+            // notifications are optional when DB/Reverb is down
+        }
 
         return response()->json(['data' => ['call_uuid' => $call->uuid]], 201);
     }
@@ -88,10 +102,10 @@ class CallController extends Controller
 
         $call->update(['status' => 'answered', 'answered_at' => now()]);
 
-        broadcast(new CallSignal($call->caller->uuid, 'answer', [
+        CallSignaling::send($call->caller->uuid, 'answer', [
             'call_uuid' => $call->uuid,
             'sdp' => $data['sdp'],
-        ]));
+        ]);
 
         return response()->json(['data' => ['ok' => true]]);
     }
@@ -101,10 +115,10 @@ class CallController extends Controller
         $data = $request->validate(['candidate' => ['required', 'array']]);
         $call = $this->findCall($uuid, $request->user());
 
-        broadcast(new CallSignal($this->peerUuid($call, $request->user()), 'ice', [
+        CallSignaling::send($this->peerUuid($call, $request->user()), 'ice', [
             'call_uuid' => $call->uuid,
             'candidate' => $data['candidate'],
-        ]));
+        ]);
 
         return response()->json(['data' => ['ok' => true]]);
     }
@@ -117,9 +131,9 @@ class CallController extends Controller
             $call->update(['status' => 'rejected', 'ended_at' => now()]);
         }
 
-        broadcast(new CallSignal($this->peerUuid($call, $request->user()), 'reject', [
+        CallSignaling::send($this->peerUuid($call, $request->user()), 'reject', [
             'call_uuid' => $call->uuid,
-        ]));
+        ]);
 
         return response()->json(['data' => ['ok' => true]]);
     }
@@ -137,9 +151,9 @@ class CallController extends Controller
             ]);
         }
 
-        broadcast(new CallSignal($this->peerUuid($call, $request->user()), 'hangup', [
+        CallSignaling::send($this->peerUuid($call, $request->user()), 'hangup', [
             'call_uuid' => $call->uuid,
-        ]));
+        ]);
 
         return response()->json(['data' => ['ok' => true]]);
     }
