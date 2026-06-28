@@ -129,7 +129,7 @@ class CallController extends Controller
         $call = $this->findCall($uuid, $request->user());
 
         if (! in_array($call->status, ['ended', 'rejected', 'missed'], true)) {
-            $duration = $call->answered_at ? max(0, now()->diffInSeconds($call->answered_at)) : 0;
+            $duration = $call->answered_at ? (int) $call->answered_at->diffInSeconds(now(), true) : 0;
             $call->update([
                 'status' => $call->answered_at ? 'ended' : 'missed',
                 'ended_at' => now(),
