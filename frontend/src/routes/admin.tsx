@@ -30,6 +30,10 @@ import {
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   component: AdminPage,
 });
 

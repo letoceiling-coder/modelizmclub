@@ -20,6 +20,10 @@ import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   component: ProfilePage,
 });
 

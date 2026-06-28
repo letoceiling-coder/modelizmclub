@@ -14,6 +14,10 @@ import {
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({ meta: [{ title: "Уведомления — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   component: NotificationsPage,
 });
 

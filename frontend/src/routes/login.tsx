@@ -4,15 +4,20 @@ import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { login } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
+import { resetSessionCache } from "@/lib/auth/session";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Вход — МоДелизМ Форум" }] }),
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const nav = useNavigate();
+  const { redirect: redirectTo } = Route.useSearch();
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -23,9 +28,11 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await login(email, password);
+      resetSessionCache();
       setCurrentUser(user);
       toast.success("Вход выполнен");
-      nav({ to: "/feed" });
+      const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
+      nav({ to: target as "/feed" });
     } catch (err) {
       const msg =
         err instanceof ApiError

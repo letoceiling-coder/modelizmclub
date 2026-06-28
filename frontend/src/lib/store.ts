@@ -138,7 +138,7 @@ function reducer(s: AppState, a: Action): AppState {
     }
     case "MARK_READ": {
       const d = s.dialogs[a.dialogId];
-      if (!d) return s;
+      if (!d || !d.unread) return s;
       return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, unread: 0 } } };
     }
     case "UPDATE_PROFILE": {

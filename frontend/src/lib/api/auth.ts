@@ -1,5 +1,5 @@
 import type { User } from "@/lib/mock";
-import { api, setToken, getToken } from "./client";
+import { api, setToken, getToken, ApiError } from "./client";
 
 export interface ApiProfile {
   display_name?: string | null;
@@ -125,7 +125,10 @@ export async function fetchMe(): Promise<User | null> {
   try {
     const res = await api<{ data: ApiUser }>("/auth/me");
     return mapApiUser(res.data);
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      setToken(null);
+    }
     return null;
   }
 }

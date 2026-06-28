@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { verifyEmail } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
+import { resetSessionCache } from "@/lib/auth/session";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/verify-email")({
@@ -26,6 +27,7 @@ function VerifyEmailPage() {
     setLoading(true);
     try {
       const { user } = await verifyEmail(email.trim(), code.trim());
+      resetSessionCache();
       setCurrentUser(user);
       toast.success("Email подтверждён");
       nav({ to: "/onboarding" });

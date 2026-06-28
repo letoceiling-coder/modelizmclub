@@ -17,6 +17,10 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: "Друзья — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   component: FriendsPage,
 });
 

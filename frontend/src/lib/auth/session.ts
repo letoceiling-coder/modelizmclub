@@ -2,16 +2,37 @@ import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken } from "@/lib/api/client";
 import { setCurrentUser } from "@/lib/store";
 
-let restored = false;
+let sessionPromise: Promise<boolean> | null = null;
+
+/**
+ * Validates the stored token against /auth/me and hydrates the store.
+ * Returns true when the user is authenticated.
+ */
+export async function ensureSession(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (!getToken()) return false;
+
+  if (!sessionPromise) {
+    sessionPromise = loadSession();
+  }
+  return sessionPromise;
+}
+
+async function loadSession(): Promise<boolean> {
+  const me = await fetchMe();
+  if (!me) return false;
+  setCurrentUser(me);
+  return true;
+}
+
+/** Clears the in-flight session promise (after login / logout). */
+export function resetSessionCache(): void {
+  sessionPromise = null;
+}
 
 // Restore the authenticated user into the store on app boot.
-// Safe to call multiple times — runs the network fetch only once.
 export async function restoreSession(): Promise<void> {
-  if (restored) return;
-  restored = true;
-  if (!getToken()) return;
-  const me = await fetchMe();
-  if (me) setCurrentUser(me);
+  await ensureSession();
 }
 
 export function isAuthenticated(): boolean {
@@ -20,5 +41,5 @@ export function isAuthenticated(): boolean {
 
 export async function signOut(): Promise<void> {
   await apiLogout();
-  restored = false;
+  resetSessionCache();
 }

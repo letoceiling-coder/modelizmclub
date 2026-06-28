@@ -19,6 +19,10 @@ import {
 
 export const Route = createFileRoute("/ads/new")({
   head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   component: NewAdPage,
 });
 

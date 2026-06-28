@@ -33,7 +33,7 @@ async function getEcho(): Promise<any> {
       wssPort: port,
       forceTLS: (env("VITE_REVERB_SCHEME") ?? "https") === "https",
       enabledTransports: ["ws", "wss"],
-      authEndpoint: API_BASE_URL.replace(/\/api\/v1\/?$/, "") + "/broadcasting/auth",
+      authEndpoint: `${API_BASE_URL}/broadcasting/auth`,
       auth: { headers: { Authorization: `Bearer ${getToken() ?? ""}` } },
     });
   } catch {

@@ -8,6 +8,10 @@ import { InviteBlock } from "@/components/referral/InviteBlock";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   component: SubscriptionPage,
 });
 

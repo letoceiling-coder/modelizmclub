@@ -30,6 +30,10 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ Форум" }] }),
+  beforeLoad: async ({ location }) => {
+    const { requireAuth } = await import("@/lib/auth/requireAuth");
+    await requireAuth(location);
+  },
   validateSearch: (search: Record<string, unknown>): { chat?: string } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
   }),
@@ -196,12 +200,11 @@ function MessengerPage() {
   // Respond to ?chat= search-param changes (e.g. "Написать" from another page)
   useEffect(() => {
     if (!chat) return;
-    const exists = dlgs.some((d) => d.id === chat);
-    if (exists) {
-      setActiveId(chat);
-      setMobileView("chat");
-      actions.markRead(chat);
-    }
+    const dlg = dlgs.find((d) => d.id === chat);
+    if (!dlg) return;
+    setActiveId(chat);
+    setMobileView("chat");
+    if (dlg.unread) actions.markRead(chat);
   }, [chat, dlgs]);
 
   useEffect(() => {
