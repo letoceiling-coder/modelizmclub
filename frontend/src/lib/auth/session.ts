@@ -1,5 +1,6 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken, setToken } from "@/lib/api/client";
+import { calls } from "@/lib/calls";
 import { setCurrentUser } from "@/lib/store";
 import { resetEcho } from "@/lib/realtime/echo";
 
@@ -25,6 +26,7 @@ async function loadSession(): Promise<boolean> {
   setCurrentUser(me);
   // Reconnect WebSocket with a validated token (fixes broadcast/auth 403 after boot).
   resetEcho();
+  await calls.init(me.id);
   return true;
 }
 

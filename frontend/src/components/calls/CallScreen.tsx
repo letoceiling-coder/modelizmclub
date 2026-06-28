@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
-import { useStore, selectors } from "@/lib/store";
+import { GUEST_USER, useStore, selectors } from "@/lib/store";
 
 const STATUS_LABEL: Record<CallStatus, string> = {
   ringing: "Вызов…",
@@ -19,7 +19,7 @@ export function CallScreen() {
 
   // Subscribe to the personal signaling channel once we know who we are.
   useEffect(() => {
-    if (me?.id) void calls.init(me.id);
+    if (me?.id && me.id !== GUEST_USER.id) void calls.init(me.id);
   }, [me?.id]);
 
   useEffect(() => {
@@ -66,6 +66,7 @@ export function CallScreen() {
           aria-label="Экран звонка"
         >
           <VideoLayer />
+          <RemoteAudio />
           <CallBody elapsed={elapsed} />
           <CallControls />
         </motion.div>
@@ -86,7 +87,10 @@ function VideoLayer() {
     if (localRef.current && localStream) localRef.current.srcObject = localStream;
   }, [localStream]);
   useEffect(() => {
-    if (remoteRef.current && remoteStream) remoteRef.current.srcObject = remoteStream;
+    const el = remoteRef.current;
+    if (!el || !remoteStream) return;
+    el.srcObject = remoteStream;
+    void el.play().catch(() => {});
   }, [remoteStream]);
 
   if (active?.media !== "video") return null;
@@ -114,6 +118,23 @@ function VideoLayer() {
       <div className="absolute inset-0" style={{ zIndex: 1, background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 25%, transparent 60%, rgba(0,0,0,0.55) 100%)" }} />
     </>
   );
+}
+
+function RemoteAudio() {
+  const active = useCalls((s) => s.active);
+  const remoteStream = useCalls((s) => s.remoteStream);
+  const ref = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !remoteStream) return;
+    el.srcObject = remoteStream;
+    void el.play().catch(() => {});
+  }, [remoteStream]);
+
+  if (!active || active.media !== "audio") return null;
+
+  return <audio ref={ref} autoPlay playsInline className="hidden" aria-hidden="true" />;
 }
 
 function CallBody({ elapsed }: { elapsed: number }) {

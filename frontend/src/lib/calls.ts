@@ -10,6 +10,8 @@ import {
   rejectCall,
   hangupCall,
 } from "./api/calls";
+import { getToken } from "./api/client";
+import { GUEST_USER } from "./store";
 import { subscribeCalls } from "./realtime/echo";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
@@ -98,6 +100,8 @@ let pendingCandidates: RTCIceCandidateInit[] = [];
 let ringTimer: ReturnType<typeof setTimeout> | null = null;
 let dismissTimer: ReturnType<typeof setTimeout> | null = null;
 let signalUnsub: (() => void) | null = null;
+let initGen = 0;
+let pendingLocalCandidates: RTCIceCandidateInit[] = [];
 
 function clearTimers(): void {
   if (ringTimer) clearTimeout(ringTimer);
@@ -113,8 +117,14 @@ async function buildPc(): Promise<RTCPeerConnection> {
   setState({ remoteStream: remote });
 
   conn.onicecandidate = (ev) => {
+    if (!ev.candidate) return;
+    const cand = ev.candidate.toJSON();
     const callId = state.active?.id;
-    if (ev.candidate && callId) void sendIce(callId, ev.candidate.toJSON()).catch(() => {});
+    if (callId && !callId.startsWith("pending_")) {
+      void sendIce(callId, cand).catch(() => {});
+    } else {
+      pendingLocalCandidates.push(cand);
+    }
   };
   conn.ontrack = (ev) => {
     ev.streams[0]?.getTracks().forEach((t) => remote.addTrack(t));
@@ -192,6 +202,15 @@ function teardownMedia(): void {
   incomingOffer = null;
   remoteDescSet = false;
   pendingCandidates = [];
+  pendingLocalCandidates = [];
+}
+
+function flushPendingLocalIce(callId: string): void {
+  if (!callId || callId.startsWith("pending_")) return;
+  for (const c of pendingLocalCandidates) {
+    void sendIce(callId, c).catch(() => {});
+  }
+  pendingLocalCandidates = [];
 }
 
 /** Close the call locally, emit a history record and auto-dismiss the screen. */
@@ -280,15 +299,24 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
 }
 
 export const calls = {
-  /** Subscribe to the signaling channel for the logged-in user. Idempotent. */
+  /** Subscribe to the personal call-signaling channel. Safe to call after Echo reset. */
   async init(userUuid: string): Promise<void> {
-    if (myUuid === userUuid && signalUnsub) return;
+    if (!userUuid || userUuid === GUEST_USER.id) return;
+    if (!getToken()) return;
+
+    const gen = ++initGen;
     if (signalUnsub) {
       signalUnsub();
       signalUnsub = null;
     }
     myUuid = userUuid;
-    signalUnsub = await subscribeCalls(userUuid, (p) => void handleSignal(p));
+
+    const unsub = await subscribeCalls(userUuid, (p) => void handleSignal(p));
+    if (gen !== initGen) {
+      unsub();
+      return;
+    }
+    signalUnsub = unsub;
   },
 
   async start(
@@ -319,6 +347,7 @@ export const calls = {
       await pc.setLocalDescription(offer);
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
       patchActive({ id: callUuid });
+      flushPendingLocalIce(callUuid);
       ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
     } catch {
       finish("ended");

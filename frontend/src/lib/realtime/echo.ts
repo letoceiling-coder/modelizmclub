@@ -115,6 +115,7 @@ export async function subscribeCalls(
   userUuid: string,
   onSignal: (payload: { type: string; [k: string]: any }) => void,
 ): Promise<() => void> {
+  if (!getToken()) return () => {};
   const e = await getEcho();
   if (!e) return () => {};
   try {
