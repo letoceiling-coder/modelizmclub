@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { formatRelativeTime } from "@/lib/mock";
 
 /**
- * Hydration-safe relative-time label. Renders the absolute timestamp on the
- * server and during the first client render, then swaps to the relative form
- * after hydration to avoid SSR/client text mismatches.
+ * Hydration-safe relative-time label. Renders a stable placeholder until the
+ * client has mounted, then shows the relative form.
  */
 export function TimeAgo({ iso, className, style }: { iso: string; className?: string; style?: React.CSSProperties }) {
-  const [text, setText] = useState<string>(() => fallback(iso));
+  const [text, setText] = useState<string>(() => placeholder(iso));
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setText(formatRelativeTime(iso));
     const id = window.setInterval(() => setText(formatRelativeTime(iso)), 60_000);
     return () => window.clearInterval(id);
@@ -17,14 +18,14 @@ export function TimeAgo({ iso, className, style }: { iso: string; className?: st
 
   return (
     <span className={className} style={style} suppressHydrationWarning>
-      {text}
+      {mounted ? text : placeholder(iso)}
     </span>
   );
 }
 
-function fallback(iso: string): string {
+function placeholder(iso: string): string {
   const t = new Date(iso);
   if (Number.isNaN(t.getTime())) return iso;
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+  return `${pad(t.getHours())}:${pad(t.getMinutes())}`;
 }

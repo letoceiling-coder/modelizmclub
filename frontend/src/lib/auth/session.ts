@@ -23,6 +23,8 @@ async function loadSession(): Promise<boolean> {
   const me = await fetchMe();
   if (!me) return false;
   setCurrentUser(me);
+  // Reconnect WebSocket with a validated token (fixes broadcast/auth 403 after boot).
+  resetEcho();
   return true;
 }
 

@@ -13,6 +13,9 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
+  // Match THEME_INIT_SCRIPT output (runs before React hydrates).
+  const fromDom = document.documentElement.getAttribute("data-theme");
+  if (fromDom === "dark" || fromDom === "light") return fromDom;
   const stored = window.localStorage.getItem("theme");
   if (stored === "dark" || stored === "light") return stored;
   return "dark";

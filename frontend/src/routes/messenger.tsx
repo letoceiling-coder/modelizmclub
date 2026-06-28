@@ -11,6 +11,7 @@ import type { Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
   setDialogs, setDialogMessages, replaceMessage, upsertMessage,
+  GUEST_USER,
 } from "@/lib/store";
 import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
@@ -243,7 +244,7 @@ function MessengerPage() {
   }, [activeId]);
 
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId || meId === GUEST_USER.id) return;
     let alive = true;
     let cleanup = () => {};
     subscribeConversation(activeId, (m) => upsertMessage(activeId, m)).then((fn) => {
@@ -254,7 +255,7 @@ function MessengerPage() {
       alive = false;
       cleanup();
     };
-  }, [activeId]);
+  }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
   const partner = active ? userById(active.userId) : null;

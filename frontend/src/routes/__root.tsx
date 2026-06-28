@@ -94,10 +94,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // Theme/lang are adjusted by inline scripts / client providers before hydration.
+  // suppressHydrationWarning avoids React #418 when SSR defaults differ from DOM.
   return (
-    <html lang="ru" data-theme="dark" className="dark">
+    <html lang="ru" suppressHydrationWarning>
       <head><HeadContent /></head>
-      <body>{children}<Scripts /></body>
+      <body suppressHydrationWarning>{children}<Scripts /></body>
     </html>
   );
 }

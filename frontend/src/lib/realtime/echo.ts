@@ -5,7 +5,6 @@ import { getToken, API_BASE_URL } from "@/lib/api/client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 let echo: any = null;
-let initTried = false;
 
 function env(key: string): string | undefined {
   return (import.meta as { env?: Record<string, string | undefined> }).env?.[key];
@@ -21,16 +20,15 @@ export function resetEcho(): void {
     }
   }
   echo = null;
-  initTried = false;
 }
 
 async function getEcho(): Promise<any> {
   if (echo) return echo;
-  if (initTried) return null;
-  initTried = true;
+  if (typeof window === "undefined") return null;
 
   const key = env("VITE_REVERB_APP_KEY");
-  if (!key || typeof window === "undefined") return null;
+  if (!key) return null;
+  if (!getToken()) return null;
 
   try {
     const [{ default: Echo }, PusherModule] = await Promise.all([
@@ -90,6 +88,7 @@ export async function subscribeConversation(
   uuid: string,
   onMessage: (m: Message) => void,
 ): Promise<() => void> {
+  if (!getToken()) return () => {};
   const e = await getEcho();
   if (!e) return () => {};
   try {

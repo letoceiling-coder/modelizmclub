@@ -36,6 +36,8 @@ if (!i18n.isInitialized) {
     defaultNS: "translation",
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
+    // Silence the Locize promo message in production consoles.
+    showSupportNotice: false,
   });
 }
 
