@@ -16,9 +16,51 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   const raf = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const startProgRef = useRef<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasAudio = Boolean(voice.src);
 
+  // Real audio playback (when a recording URL is present).
   useEffect(() => {
-    if (!playing) return;
+    if (!hasAudio) return;
+    const audio = new Audio(voice.src);
+    audioRef.current = audio;
+    const onTime = () => {
+      const dur = audio.duration && isFinite(audio.duration) ? audio.duration : voice.duration;
+      setProgress(dur > 0 ? Math.min(1, audio.currentTime / dur) : 0);
+    };
+    const onEnd = () => {
+      setPlaying(false);
+      setProgress(0);
+    };
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("ended", onEnd);
+    return () => {
+      audio.pause();
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("ended", onEnd);
+      audioRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.src]);
+
+  const toggle = () => {
+    if (hasAudio) {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (playing) {
+        audio.pause();
+        setPlaying(false);
+      } else {
+        void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      }
+      return;
+    }
+    setPlaying((p) => !p);
+  };
+
+  // Simulated playback fallback (used only when there is no real audio source).
+  useEffect(() => {
+    if (hasAudio || !playing) return;
     startRef.current = performance.now();
     startProgRef.current = progress >= 1 ? 0 : progress;
     if (progress >= 1) setProgress(0);
@@ -37,7 +79,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
       if (raf.current) cancelAnimationFrame(raf.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing]);
+  }, [playing, hasAudio]);
 
   const fg = isMe ? "white" : "var(--foreground)";
   const subtle = isMe ? "rgba(255,255,255,0.6)" : "var(--foreground-50)";
@@ -45,15 +87,16 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   const playedBg = isMe ? "white" : "var(--accent)";
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
+  const transcript = voice.transcript ?? "";
   const previewLimit = 60;
-  const isLong = voice.transcript.length > previewLimit;
-  const preview = isLong ? voice.transcript.slice(0, previewLimit).trimEnd() + "…" : voice.transcript;
+  const isLong = transcript.length > previewLimit;
+  const preview = isLong ? transcript.slice(0, previewLimit).trimEnd() + "…" : transcript;
 
   return (
     <div style={{ minWidth: 220, maxWidth: 280 }}>
       <div className="flex items-center gap-[10px]">
         <button
-          onClick={() => setPlaying((p) => !p)}
+          onClick={toggle}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full transition-transform active:scale-95"
           style={{ background: buttonBg, color: fg }}
           aria-label={playing ? "Пауза" : "Воспроизвести"}
@@ -85,6 +128,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
         </div>
       </div>
 
+      {transcript && (
       <button
         onClick={() => setExpanded((e) => !e)}
         className="mt-[8px] flex w-full items-start gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
@@ -104,7 +148,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
               transition={{ duration: 0.18 }}
               style={{ overflow: "hidden" }}
             >
-              {expanded ? voice.transcript : preview}
+              {expanded ? transcript : preview}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -121,6 +165,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
           />
         )}
       </button>
+      )}
     </div>
   );
 }

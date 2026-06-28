@@ -27,6 +27,8 @@ class MessageResource extends JsonResource
                 'media' => $attachment->relationLoaded('media') && $attachment->media ? [
                     'uuid' => $attachment->media->uuid,
                     'url' => $attachment->media->url,
+                    'mime_type' => $attachment->media->mime_type,
+                    'duration' => $attachment->media->duration_seconds,
                 ] : null,
             ])),
             'created_at' => $this->created_at->toIso8601String(),

@@ -157,7 +157,8 @@ export interface Tariff {
 export interface VoiceMessage {
   duration: number; // seconds
   waveform: number[]; // normalized 0..1 bar heights
-  transcript: string;
+  transcript?: string; // optional speech-to-text (not produced for real recordings)
+  src?: string; // playable audio URL for real voice notes
 }
 
 export interface Message {

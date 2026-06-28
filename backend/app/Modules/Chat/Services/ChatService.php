@@ -58,8 +58,17 @@ class ChatService
             ->paginate($perPage);
     }
 
-    public function sendMessage(Conversation $conversation, User $user, string $body, ?string $replyToUuid = null): Message
-    {
+    /**
+     * @param  list<string>  $mediaUuids
+     */
+    public function sendMessage(
+        Conversation $conversation,
+        User $user,
+        ?string $body,
+        ?string $replyToUuid = null,
+        string $type = 'text',
+        array $mediaUuids = [],
+    ): Message {
         if (! $this->isParticipant($conversation, $user)) {
             throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
         }
@@ -72,15 +81,32 @@ class ChatService
                 ->value('id');
         }
 
-        return DB::transaction(function () use ($conversation, $user, $body, $replyToId): Message {
+        $mediaIds = [];
+        if ($mediaUuids !== []) {
+            $mediaIds = \App\Models\Media::query()
+                ->whereIn('uuid', $mediaUuids)
+                ->where('uploaded_by', $user->id)
+                ->pluck('id')
+                ->all();
+
+            if ($mediaIds === []) {
+                throw ValidationException::withMessages(['media_uuids' => ['Вложение не найдено.']]);
+            }
+        }
+
+        return DB::transaction(function () use ($conversation, $user, $body, $replyToId, $type, $mediaIds): Message {
             $message = Message::create([
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'body' => $body,
-                'type' => 'text',
+                'type' => $type,
                 'reply_to_id' => $replyToId,
                 'status' => 'sent',
             ]);
+
+            foreach ($mediaIds as $mediaId) {
+                $message->attachments()->create(['media_id' => $mediaId]);
+            }
 
             $conversation->update(['last_message_at' => now()]);
 

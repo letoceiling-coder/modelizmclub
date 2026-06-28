@@ -6,13 +6,16 @@ import {
   Paperclip, Search, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { userById, formatRelativeTime, VOICE_TRANSCRIPTS, makeMockWaveform } from "@/lib/mock";
+import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
 import type { Message } from "@/lib/mock";
 import {
   useStore, actions, selectors, openOrCreateDialogWith,
   setDialogs, setDialogMessages, replaceMessage, upsertMessage,
 } from "@/lib/store";
-import { fetchConversations, fetchMessages, sendMessage as apiSendMessage } from "@/lib/api/chat";
+import {
+  fetchConversations, fetchMessages, sendMessage as apiSendMessage,
+  uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
+} from "@/lib/api/chat";
 import { subscribeConversation } from "@/lib/realtime/echo";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
@@ -309,30 +312,39 @@ function MessengerPage() {
     }
   };
 
-  const sendVoice = (durationSec: number) => {
+  const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
     if (getMeta(active.id).blocked) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
-    const seed = Date.now();
-    const transcript = VOICE_TRANSCRIPTS[seed % VOICE_TRANSCRIPTS.length];
-    const m: Message = {
-      id: `nm${seed}`,
+    const dialogId = active.id;
+    const replyId = replyTo?.id;
+    const tempId = `tmp${Date.now()}`;
+    const localUrl = URL.createObjectURL(blob);
+    const optimistic: Message = {
+      id: tempId,
       authorId: meId,
       time: new Date().toISOString(),
       text: "",
       status: "sent",
-      replyTo: replyTo?.id,
+      replyTo: replyId,
       voice: {
         duration: durationSec,
-        waveform: makeMockWaveform(seed),
-        transcript,
+        waveform: makeMockWaveform(Date.now()),
+        src: localUrl,
       },
     };
-    actions.addMessage(active.id, m);
+    actions.addMessage(dialogId, optimistic);
     setReplyTo(null);
-    toast.success("Голосовое отправлено");
+    try {
+      const { uuid } = await uploadVoice(blob, durationSec);
+      const saved = await apiSendVoiceMessage(dialogId, uuid, durationSec, replyId);
+      replaceMessage(dialogId, tempId, saved);
+      URL.revokeObjectURL(localUrl);
+    } catch {
+      toast.error("Не удалось отправить голосовое");
+    }
   };
 
 

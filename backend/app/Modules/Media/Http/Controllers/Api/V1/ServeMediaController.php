@@ -16,8 +16,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ServeMediaController extends Controller
 {
-    /** Purposes that are safe to serve to anonymous clients. */
-    private const PUBLIC_PURPOSES = ['avatar', 'post', 'post_video', 'listing', 'banner'];
+    /**
+     * Purposes that are safe to serve to anonymous clients. Voice notes are
+     * addressed by an unguessable UUID (same posture as the rest of the media
+     * proxy) so they can be played back via a plain <audio> element.
+     */
+    private const PUBLIC_PURPOSES = ['avatar', 'post', 'post_video', 'listing', 'banner', 'voice'];
 
     public function __invoke(Request $request, string $uuid): StreamedResponse
     {

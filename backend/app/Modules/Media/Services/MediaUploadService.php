@@ -21,6 +21,9 @@ class MediaUploadService
         'listing' => ['max_files' => 20, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'banner' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'chat' => ['max_files' => 10, 'max_size' => 26_214_400, 'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']],
+        // Voice notes recorded in the browser. webm/opus is reported as video/webm
+        // by libmagic, so it is accepted alongside the audio/* variants.
+        'voice' => ['max_files' => 1, 'max_size' => 20_971_520, 'mimes' => ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'video/webm', 'video/mp4']],
     ];
 
     /**
@@ -106,7 +109,7 @@ class MediaUploadService
      * Direct server-side upload: receives the file, stores it on the configured
      * disk (public), extracts image dimensions, and returns a ready Media row.
      */
-    public function storeUploadedFile(User $user, UploadedFile $file, string $purpose): Media
+    public function storeUploadedFile(User $user, UploadedFile $file, string $purpose, ?int $durationSeconds = null): Media
     {
         if (! isset(self::LIMITS[$purpose])) {
             throw ValidationException::withMessages([
@@ -156,6 +159,7 @@ class MediaUploadService
             'size_bytes' => $size,
             'width' => $width,
             'height' => $height,
+            'duration_seconds' => $durationSeconds,
             'uploaded_by' => $user->id,
             'status' => MediaStatus::Ready,
             'metadata' => ['upload' => 'direct'],
@@ -258,6 +262,11 @@ class MediaUploadService
             'image/webp' => 'webp',
             'video/mp4' => 'mp4',
             'video/webm' => 'webm',
+            'audio/webm' => 'weba',
+            'audio/ogg' => 'ogg',
+            'audio/mpeg' => 'mp3',
+            'audio/mp4' => 'm4a',
+            'audio/wav', 'audio/x-wav' => 'wav',
             'application/pdf' => 'pdf',
             default => null,
         };

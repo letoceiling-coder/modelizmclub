@@ -1,7 +1,13 @@
 import type { Dialog, Message, User } from "@/lib/mock";
-import { registerUser } from "@/lib/mock";
+import { registerUser, makeMockWaveform } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
+
+function seedFromId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 233280;
+  return h;
+}
 
 interface ApiCompactUser {
   id?: number;
@@ -18,7 +24,7 @@ interface ApiMessage {
   status?: string;
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
-  attachments?: Array<{ media?: { url?: string | null } | null }>;
+  attachments?: Array<{ media?: { url?: string | null; mime_type?: string | null; duration?: number | null } | null }>;
   created_at: string;
 }
 
@@ -49,8 +55,11 @@ function registerCompact(u?: ApiCompactUser | null): User | null {
 
 export function mapMessage(m: ApiMessage): Message {
   registerCompact(m.author);
-  const image = m.attachments?.map((a) => a.media?.url).find((u): u is string => Boolean(u));
-  return {
+  const media = (m.attachments ?? []).map((a) => a.media).filter((x): x is NonNullable<typeof x> => Boolean(x?.url));
+  const audio = media.find((x) => m.type === "voice" || (x.mime_type ?? "").startsWith("audio/"));
+  const image = media.find((x) => x !== audio)?.url ?? undefined;
+
+  const base: Message = {
     id: m.uuid,
     authorId: m.author?.uuid ?? "",
     time: m.created_at,
@@ -59,6 +68,16 @@ export function mapMessage(m: ApiMessage): Message {
     status: "read",
     replyTo: m.reply_to?.uuid,
   };
+
+  if (audio?.url) {
+    base.voice = {
+      duration: Math.max(1, Math.round(audio.duration ?? 1)),
+      waveform: makeMockWaveform(seedFromId(m.uuid)),
+      src: audio.url,
+    };
+  }
+
+  return base;
 }
 
 export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
@@ -101,6 +120,40 @@ export async function sendMessage(
     json: { body, reply_to_uuid: replyToUuid },
   });
   return mapMessage(res.data);
+}
+
+export async function uploadVoice(
+  blob: Blob,
+  durationSec: number,
+): Promise<{ uuid: string; url: string; duration: number }> {
+  const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+  const form = new FormData();
+  form.append("file", blob, `voice-${Date.now()}.${ext}`);
+  form.append("purpose", "voice");
+  form.append("duration", String(Math.max(1, Math.round(durationSec))));
+  const res = await api<{ data: { uuid: string; url: string; duration: number } }>("/media", {
+    method: "POST",
+    body: form,
+  });
+  return res.data;
+}
+
+export async function sendVoiceMessage(
+  conversationUuid: string,
+  mediaUuid: string,
+  durationSec: number,
+  replyToUuid?: string,
+): Promise<Message> {
+  const res = await api<{ data: ApiMessage }>(`/conversations/${conversationUuid}/messages`, {
+    method: "POST",
+    json: { type: "voice", media_uuids: [mediaUuid], reply_to_uuid: replyToUuid },
+  });
+  const msg = mapMessage(res.data);
+  // The API echoes the stored attachment URL/duration; ensure duration falls back to the recorded value.
+  if (msg.voice && (!msg.voice.duration || msg.voice.duration < 1)) {
+    msg.voice.duration = Math.max(1, Math.round(durationSec));
+  }
+  return msg;
 }
 
 export async function createConversation(userId: number, meUuid: string): Promise<Dialog> {

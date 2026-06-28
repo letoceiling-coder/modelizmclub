@@ -13,13 +13,15 @@ class DirectUploadController extends Controller
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:102400'],
-            'purpose' => ['required', 'string', 'in:avatar,post,post_video,listing,chat'],
+            'purpose' => ['required', 'string', 'in:avatar,post,post_video,listing,chat,voice'],
+            'duration' => ['nullable', 'integer', 'min:1', 'max:600'],
         ]);
 
         $media = $uploads->storeUploadedFile(
             $request->user(),
             $validated['file'],
             $validated['purpose'],
+            isset($validated['duration']) ? (int) $validated['duration'] : null,
         );
 
         return response()->json([
@@ -29,6 +31,7 @@ class DirectUploadController extends Controller
                 'mime_type' => $media->mime_type,
                 'width' => $media->width,
                 'height' => $media->height,
+                'duration' => $media->duration_seconds,
                 'status' => $media->status->value,
             ],
         ], 201);
