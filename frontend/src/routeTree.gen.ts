@@ -16,6 +16,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MessengerRouteImport } from './routes/messenger'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
@@ -77,6 +78,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessengerRoute = MessengerRouteImport.update({
@@ -229,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/notifications'
     | '/onboarding'
     | '/profile'
     | '/recover'
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/notifications'
     | '/onboarding'
     | '/profile'
     | '/recover'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/notifications'
     | '/onboarding'
     | '/profile'
     | '/recover'
@@ -441,6 +453,7 @@ export interface RootRouteChildren {
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   MessengerRoute: typeof MessengerRoute
+  NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   RecoverRoute: typeof RecoverRoute
@@ -504,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messenger': {
@@ -768,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   MessengerRoute: MessengerRoute,
+  NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   RecoverRoute: RecoverRoute,

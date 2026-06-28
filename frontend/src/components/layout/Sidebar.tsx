@@ -1,11 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink, Bell } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ROUTES, getActiveSection } from "@/lib/routes";
+import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 
 interface Item {
-  to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/profile" | "/subscription" | "/help";
+  to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/notifications" | "/profile" | "/subscription" | "/help";
   label: string;
   icon: typeof Newspaper;
   section: string;
@@ -18,6 +19,7 @@ const items: Item[] = [
   { to: ROUTES.messenger,    label: "Мессенджер",   icon: MessageSquare, section: "messenger" },
   { to: ROUTES.ads,          label: "Объявления",   icon: Megaphone,    section: "ads" },
   { to: ROUTES.friends,      label: "Друзья",       icon: UserPlus,     section: "friends" },
+  { to: ROUTES.notifications, label: "Уведомления", icon: Bell,         section: "notifications" },
   { to: ROUTES.profile,      label: "Профиль",      icon: User,         section: "profile" },
   { to: ROUTES.subscription, label: "Подписка",     icon: Crown,        section: "subscription" },
   { to: ROUTES.help,         label: "Помощь",       icon: HelpCircle,   section: "help" },
@@ -26,6 +28,7 @@ const items: Item[] = [
 export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
+  const unread = useUnreadNotifications();
   return (
     <aside className="hidden lg:block w-60 shrink-0">
       <div className="sticky top-4 space-y-1">
@@ -58,6 +61,14 @@ export function Sidebar() {
               >
                 <Icon className="h-4 w-4" />
                 {label}
+                {section === "notifications" && unread > 0 && (
+                  <span
+                    className="ml-auto grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold text-white"
+                    style={{ height: 18, background: "var(--accent)" }}
+                  >
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
               </Link>
             );
           })}

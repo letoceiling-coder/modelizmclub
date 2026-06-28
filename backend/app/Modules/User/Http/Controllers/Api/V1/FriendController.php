@@ -5,6 +5,7 @@ namespace Modules\User\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Notifications\InAppNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\User\Http\Resources\FriendRequestResource;
@@ -36,6 +37,15 @@ class FriendController extends Controller
         $friendRequest = $friends->sendRequest($request->user(), $target);
         $friendRequest->load(['fromUser.profile.avatar', 'toUser.profile.avatar']);
 
+        if ($friendRequest->wasRecentlyCreated) {
+            $name = $request->user()->profile?->display_name ?? $request->user()->name ?? 'Пользователь';
+            $target->notify(new InAppNotification(
+                type: 'friend_request',
+                title: $name.' отправил заявку в друзья',
+                link: '/friends',
+            ));
+        }
+
         return (new FriendRequestResource($friendRequest))
             ->response()
             ->setStatusCode($friendRequest->wasRecentlyCreated ? 201 : 200);
@@ -45,6 +55,16 @@ class FriendController extends Controller
     {
         $friendRequest = $this->findRequest($requestId);
         $updated = $friends->acceptRequest($request->user(), $friendRequest);
+
+        $requester = $updated->fromUser ?? $friendRequest->fromUser;
+        if ($requester) {
+            $name = $request->user()->profile?->display_name ?? $request->user()->name ?? 'Пользователь';
+            $requester->notify(new InAppNotification(
+                type: 'friend_accept',
+                title: $name.' принял вашу заявку в друзья',
+                link: '/friends',
+            ));
+        }
 
         return response()->json([
             'data' => new FriendRequestResource($updated),

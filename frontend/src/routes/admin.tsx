@@ -26,6 +26,7 @@ import {
   fetchAdminSettings, updateAdminSettings,
   fetchAdminPosts, updateAdminPostStatus, deleteAdminPost,
   fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
+  broadcastNotification,
   type AdminUserRow, type AuditEntry, type ModerationItem,
   type AdminCategory, type CategoryKind, type AdminSetting,
   type AdminPostRow, type AdminListingRow,
@@ -1432,61 +1433,63 @@ function CategoriesSection() {
 
 /* ============ NOTIFICATIONS ============ */
 function NotificationsSection() {
-  const emailTpl = [
-    ["Приветствие", "Добро пожаловать в МоДелизМ Форум!", "01.06.2026"],
-    ["Подтверждение почты", "Подтвердите ваш email", "15.05.2026"],
-    ["Сброс пароля", "Восстановление доступа", "10.05.2026"],
-    ["Оповещение о модерации", "Ваш пост проверен", "05.06.2026"],
-  ];
-  const pushTpl = [
-    ["Новый пост в ленте", "В ленте новый пост от {{author}}", "20.05.2026"],
-    ["Новое сообщение", "{{sender}} написал вам", "18.05.2026"],
-    ["Объявление одобрено", "Ваше объявление прошло модерацию", "12.05.2026"],
-  ];
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [link, setLink] = useState("");
+  const [sending, setSending] = useState(false);
 
-  const renderTable = (title: string, rows: string[][]) => (
-    <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>{title}</h4>
-      <div style={{ overflowX: "auto" }}>
-        <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
-          <thead>
-            <tr style={{ background: "var(--background-surface)" }}>
-              {["Название", "Тема", "Изменено", "Действия"].map((h) => (
-                <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
-                <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{r[0]}</td>
-                <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{r[1]}</td>
-                <td style={{ padding: "10px 16px", color: "var(--foreground-30)", fontSize: "12px" }}>{r[2]}</td>
-                <td style={{ padding: "10px 16px" }}>
-                  <div className="flex gap-[6px]">
-                    <IconBtn onClick={() => toast.info("Редактировать")}><Pencil size={14} /></IconBtn>
-                    <IconBtn onClick={() => toast.success("Тестовое уведомление отправлено")}><Send size={14} /></IconBtn>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const send = async () => {
+    if (!title.trim()) return toast.error("Введите заголовок");
+    if (!window.confirm("Отправить уведомление всем активным пользователям?")) return;
+    setSending(true);
+    try {
+      const sent = await broadcastNotification({
+        title: title.trim(),
+        body: body.trim() || undefined,
+        link: link.trim() || undefined,
+      });
+      toast.success(`Отправлено получателям: ${sent}`);
+      setTitle(""); setBody(""); setLink("");
+    } catch {
+      toast.error("Не удалось отправить рассылку");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div>
       <H>Уведомления</H>
-      {renderTable("Email-шаблоны", emailTpl)}
-      {renderTable("Push-шаблоны", pushTpl)}
-      <button
-        onClick={() => toast.success("Уведомление отправлено всем пользователям")}
-        style={{ ...primaryBtn, height: "44px", padding: "0 24px", fontSize: "14px", marginTop: "16px" }}
-      >
-        Отправить уведомление всем
-      </button>
+      <div style={{ ...card, padding: "20px", maxWidth: "640px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Рассылка в приложении
+        </h4>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Уведомление получат все активные пользователи. Оно появится в колокольчике и на странице «Уведомления».
+        </p>
+        <div className="space-y-[12px]">
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>Заголовок *</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="Например: Новое мероприятие в эти выходные" className="outline-none" style={{ ...inputStyle, width: "100%", marginTop: 4 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>Текст</label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={1000} rows={3} placeholder="Подробности (необязательно)" className="outline-none" style={{ ...inputStyle, width: "100%", height: "auto", padding: "10px 12px", marginTop: 4, resize: "vertical" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>Ссылка внутри приложения</label>
+            <input value={link} onChange={(e) => setLink(e.target.value)} maxLength={255} placeholder="/feed" className="outline-none" style={{ ...inputStyle, width: "100%", marginTop: 4 }} />
+          </div>
+        </div>
+        <button
+          onClick={send}
+          disabled={sending}
+          className="inline-flex items-center gap-[8px]"
+          style={{ ...primaryBtn, height: "44px", padding: "0 24px", fontSize: "14px", marginTop: "16px", opacity: sending ? 0.7 : 1 }}
+        >
+          <Send size={15} /> {sending ? "Отправляем…" : "Отправить всем"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPlanController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
@@ -52,6 +53,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
         Route::apiResource('promocodes', AdminPromocodeController::class)->parameters(['promocodes' => 'code']);
         Route::apiResource('banners', AdminBannerController::class);
+
+        Route::post('notifications', AdminNotificationController::class);
 
         Route::get('audit-logs', AdminAuditLogController::class);
         Route::get('settings', [AdminSettingsController::class, 'index']);

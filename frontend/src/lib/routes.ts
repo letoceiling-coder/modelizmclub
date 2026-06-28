@@ -22,6 +22,7 @@ export const ROUTES = {
   admin: "/admin",
   channels: "/channels",
   channel: (id: string) => `/channel/${id}` as const,
+  notifications: "/notifications",
 } as const;
 
 // Maps sidebar section ids to URL prefixes that should highlight it.
@@ -36,6 +37,7 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   subscription: ["/subscription"],
   help: ["/help"],
   admin: ["/admin"],
+  notifications: ["/notifications"],
 };
 
 export function getActiveSection(pathname: string): string | null {

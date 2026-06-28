@@ -6,6 +6,7 @@ use Modules\User\Http\Controllers\Api\V1\FollowController;
 use Modules\User\Http\Controllers\Api\V1\FriendController;
 use Modules\User\Http\Controllers\Api\V1\IndexUsersController;
 use Modules\User\Http\Controllers\Api\V1\InterestsController;
+use Modules\User\Http\Controllers\Api\V1\NotificationController;
 use Modules\User\Http\Controllers\Api\V1\PrivacyController;
 use Modules\User\Http\Controllers\Api\V1\SettingsController;
 use Modules\User\Http\Controllers\Api\V1\ShowProfileController;
@@ -20,6 +21,11 @@ Route::prefix('users')->group(function (): void {
         Route::patch('me/privacy', PrivacyController::class);
         Route::get('me/interests', [InterestsController::class, 'show']);
         Route::put('me/interests', [InterestsController::class, 'sync']);
+        Route::get('me/notifications', [NotificationController::class, 'index']);
+        Route::get('me/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('me/notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::post('me/notifications/{id}/read', [NotificationController::class, 'markRead']);
+
         Route::get('me/blocks', [BlockController::class, 'index']);
         Route::get('me/friends', [FriendController::class, 'indexFriends']);
         Route::delete('me/friends/{id}', [FriendController::class, 'destroyFriend'])->whereNumber('id');

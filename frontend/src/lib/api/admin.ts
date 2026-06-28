@@ -303,6 +303,23 @@ export async function deleteAdminBanner(id: string): Promise<void> {
   await api(`/admin/banners/${id}`, { method: "DELETE" });
 }
 
+// ---- Notifications broadcast ----
+export async function broadcastNotification(input: {
+  title: string;
+  body?: string;
+  link?: string;
+}): Promise<number> {
+  const res = await api<{ data: { sent?: number } }>("/admin/notifications", {
+    method: "POST",
+    json: {
+      title: input.title,
+      ...(input.body ? { body: input.body } : {}),
+      ...(input.link ? { link: input.link } : {}),
+    },
+  });
+  return res.data?.sent ?? 0;
+}
+
 // ---- Content: posts ----
 export interface AdminPostRow {
   uuid: string;
