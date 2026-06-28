@@ -1,9 +1,9 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  getChannel, useChannelPosts, useSubscriptions, toggleSubscribe, createChannelPost,
+  useChannel, useChannelPosts, setChannelSubscription, createChannelPost,
   formatCount, formatDate, kindLabel,
   POST_KIND_LABEL,
   type Channel, type ChannelPost, type PostStatus, type PostKind,
@@ -12,20 +12,15 @@ import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/channel/$id")({
-  loader: ({ params }) => {
-    const channel = getChannel(params.id);
-    if (!channel) throw notFound();
-    return { channel };
-  },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.channel.name} — канал · МоДелизМ Форум` },
-          { name: "description", content: loaderData.channel.description },
-        ]
-      : [{ title: "Канал" }],
-  }),
-  notFoundComponent: () => (
+  head: () => ({ meta: [{ title: "Канал — МоДелизМ Форум" }] }),
+  component: ChannelPage,
+});
+
+type PostFilter = "all" | "mine";
+type ChannelTab = "posts" | "about";
+
+function NotFoundView() {
+  return (
     <AppLayout rightColumn={false}>
       <div className="grid place-items-center gap-3 py-20 text-center">
         <Radio size={28} style={{ color: "var(--foreground-50)" }} />
@@ -35,29 +30,37 @@ export const Route = createFileRoute("/channel/$id")({
         </Link>
       </div>
     </AppLayout>
-  ),
-  component: ChannelPage,
-});
-
-type PostFilter = "all" | "mine";
-type ChannelTab = "posts" | "about";
+  );
+}
 
 function ChannelPage() {
-  const { channel } = Route.useLoaderData();
-  const subs = useSubscriptions();
-  const subscribed = subs.has(channel.id);
-  const posts = useChannelPosts(channel.id);
+  const { id } = Route.useParams();
+  const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
+  const { posts, reload: reloadPosts } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>("posts");
+  const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
 
+  if (loading) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="py-20 text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>Загрузка…</div>
+      </AppLayout>
+    );
+  }
+  if (notFound || !channel) return <NotFoundView />;
+
+  const subscribed = Boolean(channel.isSubscribed);
   const visiblePublic = posts.filter((p: ChannelPost) => p.status === "published");
-  const [showOwnerView, setShowOwnerView] = useState<boolean>(!!channel.isOwner);
   const list = channel.isOwner && showOwnerView ? posts : visiblePublic;
 
-
-
-  const onToggle = () => {
-    toggleSubscribe(channel.id);
-    toast.success(subscribed ? `Отписка от «${channel.name}»` : `Подписка на «${channel.name}»`);
+  const onToggle = async () => {
+    try {
+      await setChannelSubscription(channel.slug, !subscribed);
+      toast.success(subscribed ? `Отписка от «${channel.name}»` : `Подписка на «${channel.name}»`);
+      reloadChannel();
+    } catch {
+      toast.error("Не удалось обновить подписку");
+    }
   };
 
   return (
@@ -115,7 +118,7 @@ function ChannelPage() {
                   <Users size={13} /> <b style={{ color: "var(--foreground)" }}>{formatCount(channel.subscribers)}</b> подписчиков
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck size={13} /> Премодерация постов
+                  <ShieldCheck size={13} /> Публикует только владелец
                 </span>
               </div>
 
@@ -215,7 +218,7 @@ function ChannelPage() {
             )}
 
             {/* composer (owner only) */}
-            {channel.isOwner && <Composer channelId={channel.id} ownerName={channel.ownerName} />}
+            {channel.isOwner && <Composer channelSlug={channel.slug} onPosted={reloadPosts} />}
 
             {list.length === 0 ? (
               <div className="grid place-items-center gap-2 py-12 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
@@ -341,20 +344,29 @@ function KindIcon({ kind }: { kind: PostKind }) {
   return <Icon size={11} />;
 }
 
-function Composer({ channelId, ownerName }: { channelId: string; ownerName: string }) {
+function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: () => void }) {
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState<null | { id: string }>(null);
   const MAX = 800;
-  const canSend = text.trim().length >= 4 && text.length <= MAX;
+  const canSend = text.trim().length >= 4 && text.length <= MAX && !sending;
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSend) return;
-    const post = createChannelPost({ channelId, authorName: ownerName, text: text.trim(), kind });
-    setText("");
-    setJustSent({ id: post.id });
-    toast.success("Пост отправлен на проверку модератору");
-    window.setTimeout(() => setJustSent(null), 6000);
+    setSending(true);
+    try {
+      const post = await createChannelPost({ channelSlug, text: text.trim(), kind });
+      setText("");
+      setJustSent({ id: post.id });
+      toast.success("Пост опубликован");
+      onPosted();
+      window.setTimeout(() => setJustSent(null), 6000);
+    } catch {
+      toast.error("Не удалось опубликовать пост");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -368,9 +380,9 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
         </h3>
         <span
           className="inline-flex items-center gap-1 text-[11px] font-semibold"
-          style={{ background: "rgba(245,158,11,0.14)", color: "rgb(217,119,6)", padding: "4px 8px", borderRadius: 6 }}
+          style={{ background: "rgba(16,185,129,0.12)", color: "rgb(16,185,129)", padding: "4px 8px", borderRadius: 6 }}
         >
-          <ShieldCheck size={11} /> Уйдёт на модерацию
+          <ShieldCheck size={11} /> Публикуется сразу
         </span>
       </div>
 
@@ -434,20 +446,20 @@ function Composer({ channelId, ownerName }: { channelId: string; ownerName: stri
             cursor: canSend ? "pointer" : "not-allowed",
           }}
         >
-          <Send size={14} /> Отправить на проверку
+          <Send size={14} /> {sending ? "Публикуем…" : "Опубликовать"}
         </button>
       </div>
 
       {justSent && (
         <div
           className="mt-3 flex items-start gap-2 p-3 text-[12px]"
-          style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 10, color: "rgb(146,64,14)" }}
+          style={{ background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.35)", borderRadius: 10, color: "rgb(6,95,70)" }}
         >
-          <Clock size={14} className="mt-0.5 shrink-0" />
+          <ShieldCheck size={14} className="mt-0.5 shrink-0" />
           <div>
-            <div className="font-semibold">Пост на проверке</div>
-            <div style={{ color: "rgb(180,83,9)" }}>
-              Модератор проверит публикацию обычно в течение нескольких часов. До этого пост виден только вам в «Виде владельца».
+            <div className="font-semibold">Пост опубликован</div>
+            <div style={{ color: "rgb(4,120,87)" }}>
+              Публикация уже видна подписчикам в ленте канала.
             </div>
           </div>
         </div>

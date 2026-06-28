@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { categories, communities, ads } from "@/lib/mock";
-import { getAllChannels, type Channel } from "@/lib/channels";
+import { useChannels } from "@/lib/channels";
 import { ExternalLink, CheckCircle2, Map as MapIcon } from "lucide-react";
 
 export const Route = createFileRoute("/diag")({
@@ -15,7 +15,7 @@ interface Group {
 }
 
 function DiagPage() {
-  const channels: Channel[] = getAllChannels();
+  const { channels } = useChannels();
 
   const groups: Group[] = [
     {

@@ -21,7 +21,7 @@ import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
 import { CallsList } from "@/components/calls/CallsList";
-import { getAllChannels, useSubscriptions, formatCount } from "@/lib/channels";
+import { useChannels, formatCount } from "@/lib/channels";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -690,15 +690,14 @@ function EmptyDialogs() {
 }
 
 function ChannelsList({ query }: { query: string }) {
-  const subs = useSubscriptions();
-  const all = getAllChannels();
+  const { channels: all } = useChannels();
   const q = query.trim().toLowerCase();
   const list = (q
     ? all.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
     : all
   ).slice().sort((a, b) => {
-    const sa = subs.has(a.id) ? 1 : 0;
-    const sb = subs.has(b.id) ? 1 : 0;
+    const sa = a.isSubscribed ? 1 : 0;
+    const sb = b.isSubscribed ? 1 : 0;
     if (sa !== sb) return sb - sa;
     return b.subscribers - a.subscribers;
   });
@@ -717,7 +716,7 @@ function ChannelsList({ query }: { query: string }) {
   return (
     <ul>
       {list.map((c) => {
-        const subscribed = subs.has(c.id);
+        const subscribed = Boolean(c.isSubscribed);
         return (
           <li key={c.id} style={{ borderBottom: "1px solid var(--border)" }}>
             <Link

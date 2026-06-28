@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Search, Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  getAllChannels, useSubscriptions, toggleSubscribe,
+  useChannels, setChannelSubscription,
   formatCount, kindLabel,
   type Channel, type ChannelKind,
 } from "@/lib/channels";
@@ -30,21 +30,21 @@ const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
 };
 
 function ChannelsPage() {
-  const subs = useSubscriptions();
+  const { channels: all, reload } = useChannels();
   const [tab, setTab] = useState<Tab>("popular");
   const [q, setQ] = useState("");
 
-  const all = getAllChannels();
+  const subsCount = all.filter((c) => c.isSubscribed).length;
 
   const list = useMemo(() => {
     let arr: Channel[] = [...all];
     if (tab === "popular") arr.sort((a, b) => b.subscribers - a.subscribers);
     else if (tab === "new") arr.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-    else arr = arr.filter((c) => subs.has(c.id));
+    else arr = arr.filter((c) => c.isSubscribed);
     const query = q.trim().toLowerCase();
     if (query) arr = arr.filter((c) => c.name.toLowerCase().includes(query) || c.description.toLowerCase().includes(query));
     return arr;
-  }, [all, tab, q, subs]);
+  }, [all, tab, q]);
 
   return (
     <AppLayout rightColumn={false}>
@@ -89,7 +89,7 @@ function ChannelsPage() {
           {([
             ["popular", "Популярные"],
             ["new", "Новые"],
-            ["subs", `Подписки${subs.size ? ` · ${subs.size}` : ""}`],
+            ["subs", `Подписки${subsCount ? ` · ${subsCount}` : ""}`],
           ] as const).map(([key, label]) => {
             const active = tab === key;
             return (
@@ -135,7 +135,7 @@ function ChannelsPage() {
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {list.map((c) => (
-              <ChannelCard key={c.id} channel={c} subscribed={subs.has(c.id)} />
+              <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={reload} />
             ))}
           </ul>
         )}
@@ -148,13 +148,18 @@ function ChannelsPage() {
   );
 }
 
-function ChannelCard({ channel: c, subscribed }: { channel: Channel; subscribed: boolean }) {
+function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; subscribed: boolean; onChanged: () => void }) {
   const KindIcon = KIND_ICON[c.kind];
-  const onToggle = (e: React.MouseEvent) => {
+  const onToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleSubscribe(c.id);
-    toast.success(subscribed ? `Отписка от «${c.name}»` : `Подписка на «${c.name}»`);
+    try {
+      await setChannelSubscription(c.slug, !subscribed);
+      toast.success(subscribed ? `Отписка от «${c.name}»` : `Подписка на «${c.name}»`);
+      onChanged();
+    } catch {
+      toast.error("Не удалось обновить подписку");
+    }
   };
   return (
     <li>
