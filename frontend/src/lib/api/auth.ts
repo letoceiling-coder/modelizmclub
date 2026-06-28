@@ -104,8 +104,18 @@ export async function resetPassword(input: {
   email: string;
   token: string;
   password: string;
+  passwordConfirmation: string;
 }): Promise<void> {
-  await api("/auth/reset-password", { method: "POST", auth: false, json: input });
+  await api("/auth/reset-password", {
+    method: "POST",
+    auth: false,
+    json: {
+      email: input.email,
+      token: input.token,
+      password: input.password,
+      password_confirmation: input.passwordConfirmation,
+    },
+  });
 }
 
 export async function fetchMe(): Promise<User | null> {

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as SubscriptionRouteImport } from './routes/subscription'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -51,6 +52,11 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const SubscriptionRoute = SubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/ads/$id': typeof AdsIdRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/ads/$id': typeof AdsIdRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/ads/$id': typeof AdsIdRoute
@@ -331,6 +340,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recover'
     | '/register'
+    | '/reset-password'
     | '/subscription'
     | '/verify-email'
     | '/ads/$id'
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recover'
     | '/register'
+    | '/reset-password'
     | '/subscription'
     | '/verify-email'
     | '/ads/$id'
@@ -397,6 +408,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recover'
     | '/register'
+    | '/reset-password'
     | '/subscription'
     | '/verify-email'
     | '/ads/$id'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RecoverRoute: typeof RecoverRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SubscriptionRoute: typeof SubscriptionRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ChannelIdRoute: typeof ChannelIdRoute
@@ -456,6 +469,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/subscription'
       preLoaderRoute: typeof SubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -752,6 +772,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RecoverRoute: RecoverRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SubscriptionRoute: SubscriptionRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ChannelIdRoute: ChannelIdRoute,

@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend (SPA) URL
+    |--------------------------------------------------------------------------
+    |
+    | Public origin of the TanStack Start frontend. Used to build links that
+    | must open in the SPA (e.g. the password-reset email link).
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'https://modelizmclub.ru'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

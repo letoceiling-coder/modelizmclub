@@ -5,6 +5,7 @@ namespace App\Providers;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
@@ -51,6 +52,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Broadcast::routes(['middleware' => ['auth:sanctum'], 'prefix' => 'api/v1']);
+
+        // This is an API-only backend: the password-reset link must point at the
+        // SPA reset page, not a (non-existent) `password.reset` web route — otherwise
+        // the default ResetPassword notification throws RouteNotFoundException.
+        ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
+            $base = rtrim((string) config('app.frontend_url'), '/');
+
+            return $base.'/reset-password?token='.$token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
+        });
 
         // Constrain every {uuid} route param to the canonical UUID shape. A
         // malformed identifier otherwise reaches a Postgres uuid-column query and
