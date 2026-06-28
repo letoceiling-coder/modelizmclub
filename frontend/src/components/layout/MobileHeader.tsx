@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Bell, Search, Radio } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 
 export function MobileHeader() {
@@ -54,6 +55,7 @@ export function MobileHeader() {
             )}
           </span>
         </Link>
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
     </header>

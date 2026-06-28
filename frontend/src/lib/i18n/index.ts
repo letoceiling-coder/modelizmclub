@@ -24,15 +24,16 @@ export function readStoredLocale(): Locale {
 // is applied right after mount by the I18nProvider.
 if (!i18n.isInitialized) {
   void i18n.use(initReactI18next).init({
+    // A single default namespace holding a nested dictionary, so callers use
+    // dot-path keys like t("nav.feed") / t("common.save").
     resources: {
-      ru: ru,
-      en: en,
-      zh: zh,
+      ru: { translation: ru },
+      en: { translation: en },
+      zh: { translation: zh },
     },
     lng: "ru",
     fallbackLng: "ru",
-    defaultNS: "common",
-    ns: ["common", "nav", "auth", "lang"],
+    defaultNS: "translation",
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
   });

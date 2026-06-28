@@ -14,7 +14,7 @@ const LANGS: { code: Lang; label: string; native: string; flag: string }[] = [
 ];
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const lang = (i18n.language as Lang) || "ru";
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -55,8 +55,8 @@ export function LanguageSwitcher() {
         onClick={() => setOpen((v) => !v)}
         className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[color:var(--background-surface-hover)]"
         style={{ color: "var(--foreground-70)" }}
-        aria-label="Язык чата"
-        title={`Язык чата: ${current.native}`}
+        aria-label={t("lang.title")}
+        title={`${t("lang.title")}: ${current.native}`}
       >
         <span className="relative inline-flex">
           <Languages size={18} />
@@ -92,12 +92,6 @@ export function LanguageSwitcher() {
               {l.code === lang && <Check size={14} style={{ color: "var(--accent)" }} />}
             </button>
           ))}
-          <div
-            className="px-[14px] py-[8px] text-[11px]"
-            style={{ borderTop: "1px solid var(--border)", color: "var(--foreground-50)" }}
-          >
-            Перевод сообщений — скоро
-          </div>
         </div>
       )}
     </div>

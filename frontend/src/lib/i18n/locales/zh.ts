@@ -20,6 +20,8 @@ export const zh: TranslationSchema = {
     confirm: "确认",
     close: "关闭",
     online: "在线",
+    manage: "管理",
+    subscriptionActive: "年 · 有效",
   },
   nav: {
     feed: "动态",
@@ -28,6 +30,7 @@ export const zh: TranslationSchema = {
     messenger: "消息",
     ads: "广告",
     friends: "好友",
+    notifications: "通知",
     profile: "个人资料",
     subscription: "订阅",
     help: "帮助",

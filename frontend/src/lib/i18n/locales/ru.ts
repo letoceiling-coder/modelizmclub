@@ -18,6 +18,8 @@ export const ru = {
     confirm: "Подтвердить",
     close: "Закрыть",
     online: "онлайн",
+    manage: "Управлять",
+    subscriptionActive: "Год · активна",
   },
   nav: {
     feed: "Лента",
@@ -26,6 +28,7 @@ export const ru = {
     messenger: "Мессенджер",
     ads: "Объявления",
     friends: "Друзья",
+    notifications: "Уведомления",
     profile: "Профиль",
     subscription: "Подписка",
     help: "Помощь",

@@ -20,6 +20,8 @@ export const en: TranslationSchema = {
     confirm: "Confirm",
     close: "Close",
     online: "online",
+    manage: "Manage",
+    subscriptionActive: "Year · active",
   },
   nav: {
     feed: "Feed",
@@ -28,6 +30,7 @@ export const en: TranslationSchema = {
     messenger: "Messenger",
     ads: "Listings",
     friends: "Friends",
+    notifications: "Notifications",
     profile: "Profile",
     subscription: "Subscription",
     help: "Help",

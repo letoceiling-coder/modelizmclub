@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Modules\Auth\Notifications\ResetPasswordNotification;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -60,6 +61,11 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'registration_track' => RegistrationTrack::class,
         ];
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     public function profile(): HasOne
