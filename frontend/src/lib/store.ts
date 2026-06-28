@@ -3,14 +3,6 @@
 // Components subscribe via useSyncExternalStore and re-render on every change.
 
 import { useMemo, useSyncExternalStore } from "react";
-import {
-  users as mockUsers,
-  posts as mockPosts,
-  ads as mockAds,
-  dialogs as mockDialogs,
-  communities as mockCommunities,
-  friendRequests as mockFriendRequests,
-} from "./mock";
 import type {
   User,
   Post,
@@ -22,6 +14,16 @@ import type {
   Comment,
   ID,
 } from "./mock";
+
+// Neutral placeholder used before the session is restored / when signed out.
+// Carries no mock identity so nothing fake ever reaches the UI.
+export const GUEST_USER: User = {
+  id: "guest",
+  name: "Гость",
+  city: "",
+  interests: "",
+  avatar: "",
+};
 
 export type AdStatusKey =
   | "active"
@@ -60,66 +62,22 @@ export interface AppState {
   currentUserId: ID;
 }
 
-function toRecord<T extends { id: ID }>(arr: T[]): Record<ID, T> {
-  const out: Record<ID, T> = {};
-  for (const item of arr) out[item.id] = item;
-  return out;
-}
-
+// The store starts empty and is hydrated exclusively from the API
+// (session restore, feed/listing/chat mappers, friend hydration, …).
+// Only a neutral guest user is present so `currentUser` is always defined.
 export function createInitialState(): AppState {
-  const currentUserId = mockUsers[0]?.id ?? "u1";
-
-  // Seed friendships from each user's friendIds (deduped pairs)
-  const seen = new Set<string>();
-  const friendships: Friendship[] = [];
-  for (const u of mockUsers) {
-    for (const fid of u.friendIds ?? []) {
-      const key = [u.id, fid].sort().join("|");
-      if (seen.has(key)) continue;
-      seen.add(key);
-      friendships.push({
-        id: `fs_${key}`,
-        userId1: u.id,
-        userId2: fid,
-        since: u.joinedDate ?? new Date().toISOString(),
-      });
-    }
-  }
-
-  // Memberships: every joined community gets the current user as member
-  const communityMemberships: Record<ID, ID[]> = {};
-  communityMemberships[currentUserId] = mockCommunities
-    .filter((c) => c.joined)
-    .map((c) => c.id);
-
-  // Seed ad statuses from `moderation` field; default 'active'
-  const adStatus: Record<ID, AdStatusKey> = {};
-  for (const a of mockAds) {
-    if (a.moderation === "moderation") adStatus[a.id] = "moderation";
-    else if (a.moderation === "rejected") adStatus[a.id] = "rejected";
-    else adStatus[a.id] = "active";
-  }
-  // Demo overrides matching previous local state
-  adStatus["a10"] = "archived";
-  adStatus["a17"] = "archived";
-  adStatus["a22"] = "moderation";
-  adStatus["a11"] = "rejected";
-  if (mockAds[12]) adStatus[mockAds[12].id] = "draft";
-  if (mockAds[13]) adStatus[mockAds[13].id] = "unpublished";
-  if (mockAds[14]) adStatus[mockAds[14].id] = "deleted";
-
   return {
-    users: toRecord(mockUsers),
-    posts: toRecord(mockPosts),
-    ads: toRecord(mockAds),
-    adStatus,
-    dialogs: toRecord(mockDialogs),
+    users: { [GUEST_USER.id]: GUEST_USER },
+    posts: {},
+    ads: {},
+    adStatus: {},
+    dialogs: {},
     dialogMeta: {},
-    communities: toRecord(mockCommunities),
-    communityMemberships,
-    friendRequests: [...mockFriendRequests],
-    friendships,
-    currentUserId,
+    communities: {},
+    communityMemberships: {},
+    friendRequests: [],
+    friendships: [],
+    currentUserId: GUEST_USER.id,
   };
 }
 
@@ -428,7 +386,7 @@ export function openOrCreateDialogWith(userId: ID): ID {
 
 
 export const selectors = {
-  currentUser: (s: AppState): User => s.users[s.currentUserId],
+  currentUser: (s: AppState): User => s.users[s.currentUserId] ?? GUEST_USER,
   dialogsList: (s: AppState): Dialog[] => Object.values(s.dialogs),
   friendsOf: (userId: ID) => (s: AppState): ID[] =>
     s.friendships

@@ -10,11 +10,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
-import {
-  promoCodes as initialPromos,
-  tariffs, banners as initialBanners,
-  type PromoCode, type Banner,
-} from "@/lib/mock";
+import type { Tariff, PromoCode, Banner } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
   fetchDashboard, fetchAuditLogs, fetchAdminUsers, updateAdminUser,
@@ -1039,15 +1035,15 @@ function ModerationCard({ title, author, category, onApprove, onReject }: { titl
 
 /* ============ MONETIZATION ============ */
 function MonetizationSection() {
-  const [editedTariffs, setEditedTariffs] = useState(tariffs);
-  const [promos, setPromos] = useState(initialPromos);
-  const [bannerList, setBannerList] = useState<Banner[]>(initialBanners);
+  const [editedTariffs, setEditedTariffs] = useState<Tariff[]>([]);
+  const [promos, setPromos] = useState<PromoCode[]>([]);
+  const [bannerList, setBannerList] = useState<Banner[]>([]);
 
   const reloadPromos = () => fetchAdminPromocodes().then(setPromos).catch(() => {});
 
   useEffect(() => {
     let active = true;
-    fetchAdminPlans().then((p) => active && p.length && setEditedTariffs(p)).catch(() => {});
+    fetchAdminPlans().then((p) => active && setEditedTariffs(p)).catch(() => {});
     fetchAdminPromocodes().then((p) => active && setPromos(p)).catch(() => {});
     fetchAdminBanners().then((b) => active && setBannerList(b)).catch(() => {});
     return () => { active = false; };

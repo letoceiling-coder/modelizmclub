@@ -488,8 +488,19 @@ export function registerUser(u: User): void {
   dynamicUsers[u.id] = { ...dynamicUsers[u.id], ...u };
 }
 
+// Resolves a user from the runtime registry (filled by API mappers via
+// registerUser). Falls back to a neutral placeholder — never mock identities —
+// so an unresolved author/peer shows as "Пользователь", not a fake person.
+const placeholderUser = (id: ID): User => ({
+  id,
+  name: "Пользователь",
+  city: "",
+  interests: "",
+  avatar: "",
+});
+
 export const userById = (id: ID): User =>
-  dynamicUsers[id] ?? users.find((u) => u.id === id) ?? users[0];
+  dynamicUsers[id] ?? placeholderUser(id);
 export const categoryById = (id: ID) => categories.find((c) => c.id === id);
 export const communityById = (id: ID) => communities.find((c) => c.id === id);
 
