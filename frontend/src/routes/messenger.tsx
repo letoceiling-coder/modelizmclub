@@ -9,12 +9,13 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
 import type { Message } from "@/lib/mock";
 import {
-  useStore, actions, selectors, openOrCreateDialogWith,
+  useStore, actions, selectors,
   setDialogs, setDialogMessages, replaceMessage, upsertMessage,
 } from "@/lib/store";
 import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
+  createConversation,
 } from "@/lib/api/chat";
 import { subscribeConversation } from "@/lib/realtime/echo";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
@@ -228,6 +229,19 @@ function MessengerPage() {
     return () => { alive = false; };
   }, [activeId]);
 
+  // Poll while chat is open — fallback when WebSocket auth/subscription fails.
+  useEffect(() => {
+    if (!activeId) return;
+    const id = activeId;
+    const tick = () => {
+      fetchMessages(id)
+        .then((msgs) => setDialogMessages(id, msgs))
+        .catch(() => {});
+    };
+    const interval = window.setInterval(tick, 12_000);
+    return () => window.clearInterval(interval);
+  }, [activeId]);
+
   useEffect(() => {
     if (!activeId) return;
     let alive = true;
@@ -263,14 +277,25 @@ function MessengerPage() {
     [dlgs, dialogMetaMap]
   );
 
-  const handleCreateChat = (userId: string) => {
-    const id = openOrCreateDialogWith(userId);
-    setCreateOpen(false);
-    setActiveId(id);
-    setMobileView("chat");
-    setShowArchived(false);
-    actions.markRead(id);
-    toast.success("Чат открыт", { description: "Можете начать переписку прямо сейчас" });
+  const handleCreateChat = async (userId: string) => {
+    const partner = userById(userId);
+    if (!partner.numericId) {
+      toast.error("Не удалось открыть диалог");
+      return;
+    }
+    try {
+      const dialog = await createConversation(partner.numericId, meId);
+      const list = await fetchConversations(meId);
+      setDialogs(list);
+      setCreateOpen(false);
+      setActiveId(dialog.id);
+      setMobileView("chat");
+      setShowArchived(false);
+      actions.markRead(dialog.id);
+      toast.success("Чат открыт", { description: "Можете начать переписку прямо сейчас" });
+    } catch {
+      toast.error("Не удалось открыть диалог");
+    }
   };
 
 

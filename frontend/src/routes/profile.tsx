@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { User, Post, Ad, Community } from "@/lib/mock";
-import { useStore, actions, selectors, openOrCreateDialogWith, setCurrentUser } from "@/lib/store";
+import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
 import type { AdStatusKey } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
@@ -17,6 +17,7 @@ import { fetchMyListings } from "@/lib/api/listings";
 import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
+import { createConversation } from "@/lib/api/chat";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
@@ -266,8 +267,16 @@ export function ProfileView({
                   type="button"
                   onClick={async () => {
                     if (onWrite) { await onWrite(); return; }
-                    const dialogId = openOrCreateDialogWith(user.id);
-                    navigateToMessenger({ to: "/messenger", search: { chat: dialogId } });
+                    if (!user.numericId || !currentUser?.id) {
+                      toast.error("Не удалось открыть диалог");
+                      return;
+                    }
+                    try {
+                      const dialog = await createConversation(user.numericId, currentUser.id);
+                      navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
+                    } catch {
+                      toast.error("Не удалось открыть диалог");
+                    }
                   }}
                   className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium transition-colors duration-150 md:flex-none"
                   style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}

@@ -1,6 +1,7 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
-import { getToken } from "@/lib/api/client";
+import { getToken, setToken } from "@/lib/api/client";
 import { setCurrentUser } from "@/lib/store";
+import { resetEcho } from "@/lib/realtime/echo";
 
 let sessionPromise: Promise<boolean> | null = null;
 
@@ -28,6 +29,7 @@ async function loadSession(): Promise<boolean> {
 /** Clears the in-flight session promise (after login / logout). */
 export function resetSessionCache(): void {
   sessionPromise = null;
+  resetEcho();
 }
 
 // Restore the authenticated user into the store on app boot.

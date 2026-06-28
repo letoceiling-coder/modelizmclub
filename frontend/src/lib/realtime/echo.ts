@@ -11,9 +11,24 @@ function env(key: string): string | undefined {
   return (import.meta as { env?: Record<string, string | undefined> }).env?.[key];
 }
 
+/** Disconnect and allow Echo to re-initialise with a fresh auth token. */
+export function resetEcho(): void {
+  if (echo) {
+    try {
+      echo.disconnect();
+    } catch {
+      /* ignore */
+    }
+  }
+  echo = null;
+  initTried = false;
+}
+
 async function getEcho(): Promise<any> {
-  if (echo || initTried) return echo;
+  if (echo) return echo;
+  if (initTried) return null;
   initTried = true;
+
   const key = env("VITE_REVERB_APP_KEY");
   if (!key || typeof window === "undefined") return null;
 
@@ -25,6 +40,8 @@ async function getEcho(): Promise<any> {
     (window as any).Pusher = (PusherModule as any).default ?? PusherModule;
 
     const port = Number(env("VITE_REVERB_PORT") ?? 443);
+    const authUrl = `${API_BASE_URL}/broadcasting/auth`;
+
     echo = new Echo({
       broadcaster: "reverb",
       key,
@@ -33,9 +50,32 @@ async function getEcho(): Promise<any> {
       wssPort: port,
       forceTLS: (env("VITE_REVERB_SCHEME") ?? "https") === "https",
       enabledTransports: ["ws", "wss"],
-      authEndpoint: `${API_BASE_URL}/broadcasting/auth`,
-      auth: { headers: { Authorization: `Bearer ${getToken() ?? ""}` } },
-    });
+      authorizer: (channel: { name: string }) => ({
+        authorize: (socketId: string, callback: (error: Error | null, data: { auth: string } | null) => void) => {
+          fetch(authUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${getToken() ?? ""}`,
+            },
+            body: JSON.stringify({
+              socket_id: socketId,
+              channel_name: channel.name,
+            }),
+          })
+            .then(async (res) => {
+              const data = (await res.json().catch(() => null)) as { auth?: string } | null;
+              if (!res.ok || !data?.auth) {
+                callback(new Error(`Broadcast auth ${res.status}`), null);
+                return;
+              }
+              callback(null, { auth: data.auth });
+            })
+            .catch((err: Error) => callback(err, null));
+        },
+      }),
+    } as ConstructorParameters<typeof Echo>[0]);
   } catch {
     echo = null;
   }
@@ -71,7 +111,6 @@ export async function subscribeConversation(
 
 /**
  * Subscribe to the current user's private call-signaling channel.
- * `onSignal` receives every WebRTC signaling payload (offer/answer/ice/...).
  */
 export async function subscribeCalls(
   userUuid: string,

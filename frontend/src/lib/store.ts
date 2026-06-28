@@ -116,11 +116,23 @@ type Action =
   | { type: "SET_DIALOGS"; dialogs: Dialog[] }
   | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] };
 
+function dedupeMessages(messages: Message[]): Message[] {
+  const seen = new Set<string>();
+  const out: Message[] = [];
+  for (const m of messages) {
+    if (!m.id || seen.has(m.id)) continue;
+    seen.add(m.id);
+    out.push(m);
+  }
+  return out;
+}
+
 function reducer(s: AppState, a: Action): AppState {
   switch (a.type) {
     case "ADD_MESSAGE": {
       const d = s.dialogs[a.dialogId];
       if (!d) return s;
+      if (d.messages.some((m) => m.id === a.message.id)) return s;
       const preview = a.message.text
         ? a.message.text
         : a.message.voice
@@ -290,7 +302,13 @@ function reducer(s: AppState, a: Action): AppState {
     case "SET_DIALOG_MESSAGES": {
       const d = s.dialogs[a.dialogId];
       if (!d) return s;
-      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages: a.messages } } };
+      return {
+        ...s,
+        dialogs: {
+          ...s.dialogs,
+          [a.dialogId]: { ...d, messages: dedupeMessages(a.messages) },
+        },
+      };
     }
     default:
       return s;
@@ -361,8 +379,8 @@ export function upsertMessage(dialogId: ID, message: Message): void {
 export function replaceMessage(dialogId: ID, tempId: ID, message: Message): void {
   const d = state.dialogs[dialogId];
   if (!d) return;
-  const messages = d.messages.map((m) => (m.id === tempId ? message : m));
-  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
+  const withoutTemp = d.messages.filter((m) => m.id !== tempId && m.id !== message.id);
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages: [...withoutTemp, message] });
 }
 
 // Imperative helper: find an existing dialog with the given user, or create one.
