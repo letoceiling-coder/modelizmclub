@@ -303,6 +303,102 @@ export async function deleteAdminBanner(id: string): Promise<void> {
   await api(`/admin/banners/${id}`, { method: "DELETE" });
 }
 
+// ---- Content: posts ----
+export interface AdminPostRow {
+  uuid: string;
+  title: string;
+  author: string;
+  category: string;
+  community: string | null;
+  status: string;
+  createdAt: string;
+}
+
+interface ApiAdminPost {
+  uuid: string;
+  title?: string | null;
+  status?: string;
+  author?: { display_name?: string | null; name?: string | null } | null;
+  category?: { name?: string | null } | null;
+  community?: { name?: string | null } | null;
+  created_at?: string;
+}
+
+export async function fetchAdminPosts(params?: { status?: string; q?: string }): Promise<AdminPostRow[]> {
+  const res = await api<Paginated<ApiAdminPost>>("/admin/posts", {
+    query: {
+      per_page: 50,
+      ...(params?.status ? { status: params.status } : {}),
+      ...(params?.q ? { q: params.q } : {}),
+    },
+  });
+  return (res.data ?? []).map((p) => ({
+    uuid: p.uuid,
+    title: p.title ?? "Без названия",
+    author: p.author?.display_name ?? p.author?.name ?? "—",
+    category: p.category?.name ?? "—",
+    community: p.community?.name ?? null,
+    status: p.status ?? "",
+    createdAt: p.created_at ?? "",
+  }));
+}
+
+export async function updateAdminPostStatus(uuid: string, status: string): Promise<void> {
+  await api(`/admin/posts/${uuid}`, { method: "PATCH", json: { status } });
+}
+
+export async function deleteAdminPost(uuid: string): Promise<void> {
+  await api(`/admin/posts/${uuid}`, { method: "DELETE" });
+}
+
+// ---- Content: listings ----
+export interface AdminListingRow {
+  uuid: string;
+  title: string;
+  author: string;
+  category: string;
+  price: number;
+  status: string;
+  createdAt: string;
+}
+
+interface ApiAdminListing {
+  uuid: string;
+  title?: string | null;
+  status?: string;
+  price_cents?: number | null;
+  author?: { display_name?: string | null; name?: string | null } | null;
+  category?: { name?: string | null } | null;
+  created_at?: string;
+}
+
+export async function fetchAdminListings(params?: { status?: string; q?: string }): Promise<AdminListingRow[]> {
+  const res = await api<Paginated<ApiAdminListing>>("/admin/listings", {
+    query: {
+      per_page: 50,
+      ...(params?.status ? { status: params.status } : {}),
+      ...(params?.q ? { q: params.q } : {}),
+    },
+  });
+  return (res.data ?? []).map((l) => ({
+    uuid: l.uuid,
+    title: l.title ?? "Без названия",
+    author: l.author?.display_name ?? l.author?.name ?? "—",
+    category: l.category?.name ?? "—",
+    price: Math.round((l.price_cents ?? 0) / 100),
+    status: l.status ?? "",
+    createdAt: l.created_at ?? "",
+  }));
+}
+
+export async function updateAdminListingStatus(uuid: string, status: string): Promise<void> {
+  await api(`/admin/listings/${uuid}`, { method: "PATCH", json: { status } });
+}
+
+export async function deleteAdminListing(uuid: string): Promise<void> {
+  await api(`/admin/listings/${uuid}`, { method: "DELETE" });
+}
+
 // ---- Categories ----
 export type CategoryKind = "post" | "community" | "listing";
 

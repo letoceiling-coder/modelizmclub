@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   promoCodes as initialPromos,
-  ads, posts, tariffs, banners as initialBanners,
+  tariffs, banners as initialBanners,
   type PromoCode, type Banner,
 } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
@@ -24,8 +24,11 @@ import {
   fetchAdminBanners, updateAdminBanner, deleteAdminBanner,
   fetchAdminCategories, createAdminCategory, updateAdminCategory, deleteAdminCategory,
   fetchAdminSettings, updateAdminSettings,
+  fetchAdminPosts, updateAdminPostStatus, deleteAdminPost,
+  fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
   type AdminUserRow, type AuditEntry, type ModerationItem,
   type AdminCategory, type CategoryKind, type AdminSetting,
+  type AdminPostRow, type AdminListingRow,
 } from "@/lib/api/admin";
 
 export const Route = createFileRoute("/admin")({
@@ -718,30 +721,78 @@ function IconBtn({ children, onClick, danger, success }: { children: React.React
 }
 
 /* ============ CONTENT ============ */
+type BadgeVariant = "published" | "moderation" | "rejected" | "default";
+
+const POST_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
+  published: { label: "Опубликовано", variant: "published" },
+  pending_moderation: { label: "На модерации", variant: "moderation" },
+  revision: { label: "На доработке", variant: "moderation" },
+  rejected: { label: "Отклонено", variant: "rejected" },
+  draft: { label: "Черновик", variant: "default" },
+  hidden: { label: "Скрыто", variant: "default" },
+  archived: { label: "Архив", variant: "default" },
+};
+
+const LISTING_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
+  published: { label: "Опубликовано", variant: "published" },
+  pending_moderation: { label: "На модерации", variant: "moderation" },
+  awaiting_payment: { label: "Ждёт оплаты", variant: "moderation" },
+  revision: { label: "На доработке", variant: "moderation" },
+  rejected: { label: "Отклонено", variant: "rejected" },
+  draft: { label: "Черновик", variant: "default" },
+  unpublished: { label: "Снято", variant: "default" },
+  sold: { label: "Продано", variant: "default" },
+  expired: { label: "Истекло", variant: "default" },
+};
+
+function statusMeta(map: Record<string, { label: string; variant: BadgeVariant }>, status: string) {
+  return map[status] ?? { label: status || "—", variant: "default" as BadgeVariant };
+}
+
 function ContentSection() {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | "published" | "moderation" | "rejected">("all");
-  const items = posts.slice(0, 8).map((p, i) => ({
-    ...p,
-    st: (i === 3 || i === 6 ? "moderation" : i === 7 ? "rejected" : "published") as "published" | "moderation" | "rejected",
-  }));
-  const filtered = items.filter((p) => {
-    const q = query.trim().toLowerCase();
-    const matchQ = !q || p.title.toLowerCase().includes(q);
-    const matchS = status === "all" || p.st === status;
-    return matchQ && matchS;
-  });
+  const [status, setStatus] = useState("all");
+  const [rows, setRows] = useState<AdminPostRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchAdminPosts(status === "all" ? {} : { status })
+      .then(setRows)
+      .catch(() => toast.error("Не удалось загрузить публикации"))
+      .finally(() => setLoading(false));
+  }, [status]);
+
+  const filtered = rows.filter((p) => !query || p.title.toLowerCase().includes(query.toLowerCase()));
+
+  const changeStatus = async (uuid: string, next: string) => {
+    try {
+      await updateAdminPostStatus(uuid, next);
+      setRows((prev) => prev.map((r) => (r.uuid === uuid ? { ...r, status: next } : r)));
+      toast.success("Статус обновлён");
+    } catch { toast.error("Не удалось обновить статус"); }
+  };
+  const remove = async (uuid: string) => {
+    if (!window.confirm("Удалить публикацию?")) return;
+    try {
+      await deleteAdminPost(uuid);
+      setRows((prev) => prev.filter((r) => r.uuid !== uuid));
+      toast.success("Удалено");
+    } catch { toast.error("Не удалось удалить"); }
+  };
 
   return (
     <div>
       <H>Публикации</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
-        <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
           <option value="all">Все статусы</option>
           <option value="published">Опубликовано</option>
-          <option value="moderation">На модерации</option>
+          <option value="pending_moderation">На модерации</option>
           <option value="rejected">Отклонено</option>
+          <option value="hidden">Скрыто</option>
+          <option value="draft">Черновик</option>
         </select>
       </div>
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
@@ -755,25 +806,30 @@ function ContentSection() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{p.title}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{p.authorId}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{p.category}</td>
-                  <td style={{ padding: "10px 16px" }}>
-                    <StatusBadge variant={p.st}>
-                      {p.st === "published" ? "Опубликовано" : p.st === "moderation" ? "На модерации" : "Отклонено"}
-                    </StatusBadge>
-                  </td>
-                  <td style={{ padding: "10px 16px" }}>
-                    <div className="flex gap-[6px]">
-                      <IconBtn onClick={() => toast.info("Открыть пост")}><Eye size={14} /></IconBtn>
-                      <IconBtn success onClick={() => toast.success("Одобрено")}><Check size={14} /></IconBtn>
-                      <IconBtn danger onClick={() => toast.error("Отклонено")}><X size={14} /></IconBtn>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                <tr><td colSpan={5} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={5} style={{ padding: "16px", color: "var(--foreground-50)" }}>Публикаций нет</td></tr>
+              ) : filtered.map((p) => {
+                const meta = statusMeta(POST_STATUS_META, p.status);
+                return (
+                  <tr key={p.uuid} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{p.title}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{p.author}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{p.community ?? p.category}</td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>
+                    </td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <div className="flex gap-[6px]">
+                        <IconBtn success onClick={() => changeStatus(p.uuid, "published")}><Check size={14} /></IconBtn>
+                        <IconBtn onClick={() => changeStatus(p.uuid, "hidden")}><Eye size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => remove(p.uuid)}><Trash2 size={14} /></IconBtn>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -785,16 +841,50 @@ function ContentSection() {
 /* ============ ADS ============ */
 function AdsSection() {
   const [query, setQuery] = useState("");
-  const items = ads.slice(0, 8).map((a, i) => ({
-    ...a,
-    st: (i < 6 ? "published" : i === 6 ? "moderation" : "rejected") as "published" | "moderation" | "rejected",
-  }));
-  const filtered = items.filter((a) => !query || a.title.toLowerCase().includes(query.toLowerCase()));
+  const [status, setStatus] = useState("all");
+  const [rows, setRows] = useState<AdminListingRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchAdminListings(status === "all" ? {} : { status })
+      .then(setRows)
+      .catch(() => toast.error("Не удалось загрузить объявления"))
+      .finally(() => setLoading(false));
+  }, [status]);
+
+  const filtered = rows.filter((a) => !query || a.title.toLowerCase().includes(query.toLowerCase()));
+
+  const changeStatus = async (uuid: string, next: string) => {
+    try {
+      await updateAdminListingStatus(uuid, next);
+      setRows((prev) => prev.map((r) => (r.uuid === uuid ? { ...r, status: next } : r)));
+      toast.success("Статус обновлён");
+    } catch { toast.error("Не удалось обновить статус"); }
+  };
+  const remove = async (uuid: string) => {
+    if (!window.confirm("Удалить объявление?")) return;
+    try {
+      await deleteAdminListing(uuid);
+      setRows((prev) => prev.filter((r) => r.uuid !== uuid));
+      toast.success("Удалено");
+    } catch { toast.error("Не удалось удалить"); }
+  };
 
   return (
     <div>
       <H>Объявления</H>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+      <div className="flex flex-wrap" style={{ gap: "12px" }}>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
+          <option value="all">Все статусы</option>
+          <option value="published">Опубликовано</option>
+          <option value="pending_moderation">На модерации</option>
+          <option value="rejected">Отклонено</option>
+          <option value="unpublished">Снято</option>
+          <option value="sold">Продано</option>
+        </select>
+      </div>
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
@@ -806,26 +896,31 @@ function AdsSection() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a) => (
-                <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{a.title}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.authorId}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 600 }}>{a.price.toLocaleString("ru")} ₽</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.category}</td>
-                  <td style={{ padding: "10px 16px" }}>
-                    <StatusBadge variant={a.st}>
-                      {a.st === "published" ? "Опубликовано" : a.st === "moderation" ? "На модерации" : "Отклонено"}
-                    </StatusBadge>
-                  </td>
-                  <td style={{ padding: "10px 16px" }}>
-                    <div className="flex gap-[6px]">
-                      <IconBtn onClick={() => toast.info("Открыть объявление")}><Eye size={14} /></IconBtn>
-                      <IconBtn success onClick={() => toast.success("Одобрено")}><Check size={14} /></IconBtn>
-                      <IconBtn danger onClick={() => toast.error("Отклонено")}><X size={14} /></IconBtn>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Объявлений нет</td></tr>
+              ) : filtered.map((a) => {
+                const meta = statusMeta(LISTING_STATUS_META, a.status);
+                return (
+                  <tr key={a.uuid} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{a.title}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.author}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 600 }}>{a.price.toLocaleString("ru")} ₽</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.category}</td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>
+                    </td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <div className="flex gap-[6px]">
+                        <IconBtn success onClick={() => changeStatus(a.uuid, "published")}><Check size={14} /></IconBtn>
+                        <IconBtn onClick={() => changeStatus(a.uuid, "unpublished")}><Eye size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => remove(a.uuid)}><Trash2 size={14} /></IconBtn>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

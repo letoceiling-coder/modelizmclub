@@ -7,8 +7,10 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPlanController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
@@ -37,6 +39,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             Route::apiResource('community', AdminCommunityCategoryController::class);
             Route::apiResource('listing', AdminListingCategoryController::class);
         });
+
+        Route::get('posts', [AdminPostController::class, 'index']);
+        Route::patch('posts/{uuid}', [AdminPostController::class, 'update']);
+        Route::delete('posts/{uuid}', [AdminPostController::class, 'destroy']);
+
+        Route::get('listings', [AdminListingController::class, 'index']);
+        Route::patch('listings/{uuid}', [AdminListingController::class, 'update']);
+        Route::delete('listings/{uuid}', [AdminListingController::class, 'destroy']);
 
         Route::apiResource('communities', AdminCommunityController::class)->parameters(['communities' => 'slug']);
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
