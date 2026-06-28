@@ -17,7 +17,7 @@ interface ApiCompactUser {
   avatar?: { url?: string | null } | null;
 }
 
-interface ApiMessage {
+export interface ApiMessage {
   uuid: string;
   body?: string | null;
   type?: string;

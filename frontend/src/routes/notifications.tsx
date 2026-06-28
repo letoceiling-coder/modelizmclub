@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, CheckCheck, UserPlus, Megaphone } from "lucide-react";
+import { Bell, CheckCheck, UserPlus, Megaphone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime } from "@/lib/mock";
@@ -11,6 +11,7 @@ import {
   markNotificationRead,
   type AppNotification,
 } from "@/lib/api/notifications";
+import { onRealtimeNotification } from "@/lib/realtime/user";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({ meta: [{ title: "Уведомления — МоДелизМ Форум" }] }),
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/notifications")({
 
 function iconFor(type: string) {
   if (type === "friend_request" || type === "friend_accept") return UserPlus;
+  if (type === "message") return MessageSquare;
   if (type === "system") return Megaphone;
   return Bell;
 }
@@ -37,6 +39,15 @@ function NotificationsPage() {
       .then((r) => setItems(r.items))
       .catch(() => toast.error("Не удалось загрузить уведомления"))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    return onRealtimeNotification((n) => {
+      setItems((prev) => {
+        if (prev.some((x) => x.id === n.id)) return prev;
+        return [n, ...prev];
+      });
+    });
   }, []);
 
   const unread = items.filter((n) => !n.read).length;

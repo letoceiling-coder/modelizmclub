@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { fetchUnreadCount } from "@/lib/api/notifications";
 import { getToken } from "@/lib/api/client";
+import { onUnreadBump } from "@/lib/realtime/user";
 
-// Polls the unread-notifications count so the bell badge stays roughly live.
-// Only runs while authenticated; safe to mount in multiple places.
-export function useUnreadNotifications(intervalMs = 60_000): number {
+// Keeps the bell badge live via WebSocket + a short polling fallback.
+export function useUnreadNotifications(intervalMs = 15_000): number {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -19,9 +19,11 @@ export function useUnreadNotifications(intervalMs = 60_000): number {
 
     tick();
     const id = setInterval(tick, intervalMs);
+    const unsubBump = onUnreadBump(() => tick());
     return () => {
       active = false;
       clearInterval(id);
+      unsubBump();
     };
   }, [intervalMs]);
 

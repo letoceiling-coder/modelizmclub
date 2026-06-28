@@ -108,6 +108,30 @@ export async function subscribeConversation(
   };
 }
 
+export async function subscribeUser(
+  userUuid: string,
+  onEvent: (payload: { type?: string; payload?: unknown }) => void,
+): Promise<() => void> {
+  if (!getToken()) return () => {};
+  const e = await getEcho();
+  if (!e) return () => {};
+  try {
+    const channel = e.private(`user.${userUuid}`);
+    channel.listen(".user.event", (payload: { type?: string; payload?: unknown }) => {
+      if (payload?.type) onEvent(payload);
+    });
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      e.leave(`user.${userUuid}`);
+    } catch {
+      /* ignore */
+    }
+  };
+}
+
 /**
  * Subscribe to the current user's private call-signaling channel.
  */

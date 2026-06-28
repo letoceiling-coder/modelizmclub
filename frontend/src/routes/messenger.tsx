@@ -19,6 +19,7 @@ import {
   createConversation,
 } from "@/lib/api/chat";
 import { subscribeConversation } from "@/lib/realtime/echo";
+import { setWatchingDialog } from "@/lib/realtime/user";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -218,6 +219,22 @@ function MessengerPage() {
     return () => { alive = false; };
   }, [meId]);
 
+  useEffect(() => {
+    setWatchingDialog(activeId);
+    return () => setWatchingDialog(null);
+  }, [activeId]);
+
+  // Poll dialog list — fallback when WebSocket is down.
+  useEffect(() => {
+    if (meId === GUEST_USER.id) return;
+    const tick = () => {
+      fetchConversations(meId)
+        .then((list) => setDialogs(list))
+        .catch(() => {});
+    };
+    const interval = window.setInterval(tick, 20_000);
+    return () => window.clearInterval(interval);
+  }, [meId]);
 
   useEffect(() => {
     if (!activeId) return;

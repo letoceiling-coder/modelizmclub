@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FriendRequest;
 use App\Models\User;
 use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\User\Http\Resources\FriendRequestResource;
@@ -39,11 +40,14 @@ class FriendController extends Controller
 
         if ($friendRequest->wasRecentlyCreated) {
             $name = $request->user()->profile?->display_name ?? $request->user()->name ?? 'Пользователь';
-            $target->notify(new InAppNotification(
-                type: 'friend_request',
-                title: $name.' отправил заявку в друзья',
-                link: '/friends',
-            ));
+            InAppNotify::send(
+                $target,
+                new InAppNotification(
+                    type: 'friend_request',
+                    title: $name.' отправил заявку в друзья',
+                    link: '/friends',
+                ),
+            );
         }
 
         return (new FriendRequestResource($friendRequest))
@@ -59,11 +63,14 @@ class FriendController extends Controller
         $requester = $updated->fromUser ?? $friendRequest->fromUser;
         if ($requester) {
             $name = $request->user()->profile?->display_name ?? $request->user()->name ?? 'Пользователь';
-            $requester->notify(new InAppNotification(
-                type: 'friend_accept',
-                title: $name.' принял вашу заявку в друзья',
-                link: '/friends',
-            ));
+            InAppNotify::send(
+                $requester,
+                new InAppNotification(
+                    type: 'friend_accept',
+                    title: $name.' принял вашу заявку в друзья',
+                    link: '/friends',
+                ),
+            );
         }
 
         return response()->json([

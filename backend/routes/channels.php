@@ -10,6 +10,11 @@ Broadcast::channel('calls.{uuid}', function ($user, string $uuid) {
     return $user->uuid === $uuid;
 });
 
+// Personal inbox: messages, notifications, and other per-user realtime events.
+Broadcast::channel('user.{uuid}', function ($user, string $uuid) {
+    return $user->uuid === $uuid;
+});
+
 Broadcast::channel('conversation.{uuid}', function ($user, string $uuid) {
     return ConversationParticipant::query()
         ->where('user_id', $user->id)

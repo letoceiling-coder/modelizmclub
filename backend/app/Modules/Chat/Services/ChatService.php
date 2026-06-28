@@ -7,10 +7,14 @@ use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Chat\Events\MessageSent;
+use Modules\Chat\Http\Resources\MessageResource;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ChatService
@@ -118,6 +122,8 @@ class ChatService
                 // Reverb may be unavailable during tests or maintenance
             }
 
+            $this->notifyRecipients($conversation, $user, $message, $body, $type);
+
             return $message;
         });
     }
@@ -164,5 +170,55 @@ class ChatService
             ->where('user_id', $user->id)
             ->whereNull('left_at')
             ->exists();
+    }
+
+    private function notifyRecipients(
+        Conversation $conversation,
+        User $author,
+        Message $message,
+        ?string $body,
+        string $type,
+    ): void {
+        $author->loadMissing('profile');
+        $authorName = $author->profile?->display_name ?? $author->name ?? 'Пользователь';
+
+        $preview = $body !== null && $body !== ''
+            ? Str::limit($body, 80)
+            : ($type === 'voice' ? 'Голосовое сообщение' : 'Новое сообщение');
+
+        $messagePayload = (new MessageResource($message))->resolve();
+
+        $recipients = ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $author->id)
+            ->whereNull('left_at')
+            ->with('user.profile')
+            ->get();
+
+        foreach ($recipients as $participant) {
+            $recipient = $participant->user;
+            if (! $recipient) {
+                continue;
+            }
+
+            try {
+                InAppNotify::send(
+                    $recipient,
+                    new InAppNotification(
+                        'message',
+                        $authorName,
+                        $preview,
+                        '/messenger?chat='.$conversation->uuid,
+                    ),
+                    'message',
+                    [
+                        'conversation_uuid' => $conversation->uuid,
+                        'message' => $messagePayload,
+                    ],
+                );
+            } catch (\Throwable) {
+                // Reverb / notifications may be unavailable during maintenance
+            }
+        }
     }
 }

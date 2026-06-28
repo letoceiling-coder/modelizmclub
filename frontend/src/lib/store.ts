@@ -96,7 +96,7 @@ const emit = (): void => {
 };
 
 type Action =
-  | { type: "ADD_MESSAGE"; dialogId: ID; message: Message }
+  | { type: "ADD_MESSAGE"; dialogId: ID; message: Message; incrementUnread?: boolean }
   | { type: "MARK_READ"; dialogId: ID }
   | { type: "UPDATE_PROFILE"; userId: ID; data: Partial<User> }
   | { type: "SEND_FRIEND_REQUEST"; fromId: ID; toId: ID }
@@ -140,11 +140,14 @@ function reducer(s: AppState, a: Action): AppState {
           : a.message.image
             ? "📷 Изображение"
             : "";
+      const shouldUnread = Boolean(a.incrementUnread) && a.message.authorId !== s.currentUserId;
+      const unread = shouldUnread ? (d.unread ?? 0) + 1 : d.unread ?? 0;
       const nextDialog: Dialog = {
         ...d,
         messages: [...d.messages, a.message],
         lastMessage: preview,
         time: a.message.time,
+        unread,
       };
       return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: nextDialog } };
     }
@@ -369,10 +372,26 @@ export function setDialogMessages(dialogId: ID, messages: Message[]): void {
 
 // Upsert an incoming message (from API send or realtime) into a dialog.
 export function upsertMessage(dialogId: ID, message: Message): void {
+  ingestIncomingMessage(dialogId, message, false);
+}
+
+export function ingestIncomingMessage(
+  dialogId: ID,
+  message: Message,
+  incrementUnread = true,
+): void {
   const d = state.dialogs[dialogId];
-  if (!d) return;
+  if (!d) {
+    const meId = state.currentUserId;
+    if (meId && meId !== GUEST_USER.id) {
+      void import("./api/chat").then(({ fetchConversations }) => {
+        fetchConversations(meId).then(setDialogs).catch(() => {});
+      });
+    }
+    return;
+  }
   if (d.messages.some((m) => m.id === message.id)) return;
-  dispatch({ type: "ADD_MESSAGE", dialogId, message });
+  dispatch({ type: "ADD_MESSAGE", dialogId, message, incrementUnread });
 }
 
 // Replace an optimistic message (temp id) with the server-confirmed one.
