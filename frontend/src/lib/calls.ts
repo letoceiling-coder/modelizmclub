@@ -390,12 +390,34 @@ async function checkMediaAlive(): Promise<void> {
 }
 
 async function getMedia(media: CallMedia): Promise<MediaStream> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
-    video: media === "video" ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
-  });
-  setState({ localStream: stream, muted: false, cameraOff: false });
-  return stream;
+  const wantVideo = media === "video";
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: wantVideo ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+    });
+    setState({ localStream: stream, muted: false, cameraOff: false });
+    return stream;
+  } catch (err) {
+    const name = (err as { name?: string })?.name ?? "";
+    // No / busy / blocked camera on a video call — gracefully continue audio-only
+    // instead of failing the whole call. Audio is still sent; we just don't add video.
+    if (
+      wantVideo &&
+      (name === "NotFoundError" ||
+        name === "NotReadableError" ||
+        name === "OverconstrainedError" ||
+        name === "NotAllowedError")
+    ) {
+      clog("getMedia: video failed (", name, ") — falling back to audio-only");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      patchActive({ media: "audio" });
+      toast.info("Камера недоступна — звонок продолжится со звуком");
+      setState({ localStream: stream, muted: false, cameraOff: true });
+      return stream;
+    }
+    throw err;
+  }
 }
 
 async function drainCandidates(): Promise<void> {
@@ -464,8 +486,6 @@ function flushPendingLocalIce(callId: string): void {
 function finish(result: CallResult): void {
   const active = state.active;
   clog("finish()", result, "status=", active?.status, "ice=", pc?.iceConnectionState, "conn=", pc?.connectionState);
-  // eslint-disable-next-line no-console
-  console.trace("[calls] finish trace");
   if (!active || active.status === "ended") {
     stopCallSounds();
     teardownMedia();
