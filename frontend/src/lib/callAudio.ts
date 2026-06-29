@@ -49,6 +49,18 @@ export function stopCallSounds(): void {
   }
 }
 
+/**
+ * Stop only the repeating ring loop (ringback / ringtone) without killing
+ * one-shot cues like "connected". Used the moment a call leaves the
+ * "ringing" state so the гудки/мелодия always go silent on connect.
+ */
+export function stopRingLoop(): void {
+  if (loopTimer) {
+    clearInterval(loopTimer);
+    loopTimer = null;
+  }
+}
+
 function playDualTone(
   freqs: [number, number],
   durationMs: number,

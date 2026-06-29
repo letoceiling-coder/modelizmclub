@@ -15,12 +15,14 @@ import {
 import { getToken } from "./api/client";
 import { GUEST_USER } from "./store";
 import { subscribeCalls, onEchoConnection } from "./realtime/echo";
+import { initLogger, logEvent, setLogCall } from "./logger";
 import {
   bindCallAudioUnlock,
   unlockCallAudio,
   startRingback,
   startRingtone,
   stopCallSounds,
+  stopRingLoop,
   playConnecting,
   playConnected,
   playDisconnected,
@@ -63,6 +65,8 @@ interface CallsState {
   active: ActiveCall | null;
   muted: boolean;
   cameraOff: boolean;
+  speakerOn: boolean;
+  canSwitchCamera: boolean;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
 }
@@ -74,9 +78,13 @@ let state: CallsState = {
   active: null,
   muted: false,
   cameraOff: false,
+  speakerOn: true,
+  canSwitchCamera: false,
   localStream: null,
   remoteStream: null,
 };
+
+let currentFacing: "user" | "environment" = "user";
 
 const listeners = new Set<() => void>();
 const emit = (): void => listeners.forEach((l) => l());
@@ -88,11 +96,26 @@ const getSnap = (): CallsState => state;
 
 function setState(patch: Partial<CallsState>): void {
   state = { ...state, ...patch };
+  if (patch.active !== undefined) setLogCall(patch.active?.id);
   emit();
 }
 function patchActive(patch: Partial<ActiveCall>): void {
   if (!state.active) return;
+  const prevStatus = state.active.status;
   state = { ...state, active: { ...state.active, ...patch } };
+  if (patch.id) setLogCall(patch.id);
+  if (patch.status && patch.status !== prevStatus) {
+    // The ring loop (гудки / мелодия) must only sound while "ringing".
+    if (patch.status !== "ringing") {
+      stopRingLoop();
+      // Negotiation has begun — the "no answer" timeout must not kill the call.
+      if (ringTimer) {
+        clearTimeout(ringTimer);
+        ringTimer = null;
+      }
+    }
+    logEvent("info", "calls", `status ${prevStatus} -> ${patch.status}`);
+  }
   emit();
 }
 
@@ -196,10 +219,44 @@ function clearTimers(): void {
   dismissTimer = null;
 }
 
-/** Verbose call tracing — visible in the browser console while we stabilise calls. */
+/** Verbose call tracing — console + remote diagnostic logger. */
 function clog(...args: unknown[]): void {
   // eslint-disable-next-line no-console
   console.log("%c[calls]", "color:#e85d2a;font-weight:bold", ...args);
+  const [head, ...rest] = args;
+  const msg = typeof head === "string" ? head : String(head);
+  logEvent("debug", "calls", msg, rest.length ? rest : undefined);
+}
+
+/** Snapshot the selected ICE candidate pair (types/protocol) for diagnosis. */
+async function logSelectedPair(reason: string): Promise<void> {
+  if (!pc) return;
+  try {
+    const stats = await pc.getStats();
+    let local: any = null;
+    let remote: any = null;
+    let pair: any = null;
+    stats.forEach((r: any) => {
+      if (r.type === "candidate-pair" && (r.selected || r.nominated) && r.state === "succeeded") pair = r;
+    });
+    if (pair) {
+      stats.forEach((r: any) => {
+        if (r.id === pair.localCandidateId) local = r;
+        if (r.id === pair.remoteCandidateId) remote = r;
+      });
+    }
+    logEvent("info", "calls", `ice pair (${reason})`, {
+      ice: pc.iceConnectionState,
+      conn: pc.connectionState,
+      localType: local?.candidateType,
+      localProto: local?.protocol,
+      remoteType: remote?.candidateType,
+      remoteProto: remote?.protocol,
+      rtt: pair?.currentRoundTripTime,
+    });
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Surface the real failure instead of silently ending the call. */
@@ -221,12 +278,18 @@ function reportCallError(where: string, err: unknown): void {
   }
   // eslint-disable-next-line no-console
   console.error(`[calls:${where}]`, e?.name ?? "", err);
+  logEvent("error", "calls", `error @ ${where}`, { name: e?.name, message: e?.message });
   toast.error(`Звонок: ${msg}`);
 }
 
 async function buildPc(): Promise<RTCPeerConnection> {
   const iceServers = await fetchIceServers();
-  const conn = new RTCPeerConnection({ iceServers, bundlePolicy: "max-bundle" });
+  const conn = new RTCPeerConnection({
+    iceServers,
+    bundlePolicy: "max-bundle",
+    rtcpMuxPolicy: "require",
+    iceCandidatePoolSize: 2,
+  });
   const remote = new MediaStream();
   setState({ remoteStream: remote });
 
@@ -279,6 +342,7 @@ function markConnected(): void {
     ringTimer = null;
   }
   startMediaWatchdog();
+  void logSelectedPair("connected");
 }
 
 function onIceState(ice: RTCIceConnectionState): void {
@@ -298,6 +362,7 @@ function onIceState(ice: RTCIceConnectionState): void {
     }, DISCONNECT_GRACE_MS);
   } else if (ice === "failed") {
     patchActive({ status: "reconnecting" });
+    void logSelectedPair("ice-failed");
     scheduleIceRestart();
   }
 }
@@ -403,7 +468,9 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
       audio: true,
       video: wantVideo ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
     });
+    currentFacing = "user";
     setState({ localStream: stream, muted: false, cameraOff: false });
+    if (wantVideo) void detectMultipleCameras();
     return stream;
   } catch (err) {
     const name = (err as { name?: string })?.name ?? "";
@@ -553,6 +620,8 @@ function finish(result: CallResult): void {
     active: { ...active, status: "ended", endedAt: Date.now(), result: finalResult },
     localStream: null,
     remoteStream: null,
+    canSwitchCamera: false,
+    speakerOn: true,
   });
   callListeners.forEach((l) => l.onEnded?.(record));
 
@@ -689,6 +758,7 @@ export const calls = {
   async init(userUuid: string): Promise<void> {
     if (!userUuid || userUuid === GUEST_USER.id) return;
     if (!getToken()) return;
+    initLogger();
 
     const gen = ++initGen;
     if (signalUnsub) {
@@ -818,7 +888,72 @@ export const calls = {
     stream.getVideoTracks().forEach((t) => (t.enabled = !next));
     setState({ cameraOff: next });
   },
+
+  /** Flip between front and back camera on mobile (replaceTrack — no renegotiation). */
+  async switchCamera(): Promise<void> {
+    if (!pc || !state.localStream || state.active?.media !== "video") return;
+    const next: "user" | "environment" = currentFacing === "user" ? "environment" : "user";
+    try {
+      const fresh = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: next }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      const track = fresh.getVideoTracks()[0];
+      if (!track) return;
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(track);
+      const old = state.localStream.getVideoTracks()[0];
+      if (old) {
+        state.localStream.removeTrack(old);
+        old.stop();
+      }
+      track.enabled = !state.cameraOff;
+      state.localStream.addTrack(track);
+      currentFacing = next;
+      setState({ localStream: state.localStream });
+      logEvent("info", "calls", "camera switched", { facing: next });
+    } catch (err) {
+      reportCallError("switchCamera", err);
+    }
+  },
+
+  /** Toggle loud-speaker output where the browser exposes output routing. */
+  async toggleSpeaker(): Promise<boolean> {
+    const next = !state.speakerOn;
+    setState({ speakerOn: next });
+    await applyAudioOutput(next);
+    logEvent("info", "calls", "speaker toggled", { speakerOn: next });
+    return next;
+  },
 };
+
+async function detectMultipleCameras(): Promise<void> {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === "videoinput");
+    setState({ canSwitchCamera: cams.length > 1 });
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Best-effort output routing. setSinkId is desktop-only; mobile is a no-op. */
+async function applyAudioOutput(speakerOn: boolean): Promise<void> {
+  if (typeof document === "undefined") return;
+  const els = Array.from(document.querySelectorAll<HTMLMediaElement>("[data-call-media]"));
+  for (const el of els) {
+    const anyEl = el as HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
+    if (typeof anyEl.setSinkId !== "function") continue;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices.filter((d) => d.kind === "audiooutput");
+      const speaker = outputs.find((d) => /speaker|loud/i.test(d.label));
+      await anyEl.setSinkId(speakerOn ? (speaker?.deviceId ?? "default") : "default");
+    } catch {
+      /* unsupported — ignore */
+    }
+  }
+}
 
 export function useCalls<T>(selector: (s: CallsState) => T): T {
   const snap = useSyncExternalStore(subscribe, getSnap, getSnap);

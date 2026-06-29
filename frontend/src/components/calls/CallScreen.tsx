@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff, SwitchCamera, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
 import { GUEST_USER, useStore, selectors } from "@/lib/store";
@@ -109,6 +109,7 @@ function VideoLayer() {
     <>
       <video
         ref={remoteRef}
+        data-call-media
         autoPlay
         playsInline
         className="absolute inset-0 h-full w-full object-cover"
@@ -144,7 +145,7 @@ function RemoteAudio() {
 
   if (!active || active.media !== "audio") return null;
 
-  return <audio ref={ref} autoPlay playsInline className="hidden" aria-hidden="true" />;
+  return <audio ref={ref} data-call-media autoPlay playsInline className="hidden" aria-hidden="true" />;
 }
 
 function CallBody({ elapsed }: { elapsed: number }) {
@@ -218,6 +219,8 @@ function CallControls() {
   const active = useCalls((s) => s.active);
   const muted = useCalls((s) => s.muted);
   const cameraOff = useCalls((s) => s.cameraOff);
+  const speakerOn = useCalls((s) => s.speakerOn);
+  const canSwitchCamera = useCalls((s) => s.canSwitchCamera);
   if (!active) return null;
 
   const incomingRinging = active.direction === "incoming" && active.status === "ringing";
@@ -259,12 +262,46 @@ function CallControls() {
     );
   }
 
+  const isVideo = active.media === "video";
+
   return (
     <div
-      className="relative z-[10] shrink-0 flex w-full max-w-md items-center justify-center gap-6 px-6 mx-auto"
+      className="relative z-[10] shrink-0 flex w-full max-w-md flex-col items-center gap-4 px-6 mx-auto"
       style={{ paddingBottom: "max(4px, env(safe-area-inset-bottom))" }}
     >
-      <ToggleBtn label={muted ? "Включить микрофон" : "Выключить микрофон"} icon={muted ? MicOff : Mic} active={muted} onClick={() => calls.toggleMute()} disabled={ended} />
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        <ToggleBtn
+          label={muted ? "Включить микрофон" : "Выключить микрофон"}
+          icon={muted ? MicOff : Mic}
+          active={muted}
+          onClick={() => calls.toggleMute()}
+          disabled={ended}
+        />
+        <ToggleBtn
+          label={speakerOn ? "Выключить динамик" : "Включить динамик"}
+          icon={speakerOn ? Volume2 : VolumeX}
+          active={!speakerOn}
+          onClick={() => void calls.toggleSpeaker()}
+          disabled={ended}
+        />
+        {isVideo && (
+          <ToggleBtn
+            label={cameraOff ? "Включить камеру" : "Выключить камеру"}
+            icon={cameraOff ? VideoOff : Video}
+            active={cameraOff}
+            onClick={() => calls.toggleCamera()}
+            disabled={ended}
+          />
+        )}
+        {isVideo && canSwitchCamera && (
+          <ToggleBtn
+            label="Сменить камеру"
+            icon={SwitchCamera}
+            onClick={() => void calls.switchCamera()}
+            disabled={ended || cameraOff}
+          />
+        )}
+      </div>
       <button
         type="button"
         onClick={() => calls.end()}
@@ -275,11 +312,6 @@ function CallControls() {
       >
         <PhoneOff size={28} />
       </button>
-      {active.media === "video" ? (
-        <ToggleBtn label={cameraOff ? "Включить камеру" : "Выключить камеру"} icon={cameraOff ? VideoOff : Video} active={cameraOff} onClick={() => calls.toggleCamera()} disabled={ended} />
-      ) : (
-        <div style={{ width: 56 }} />
-      )}
     </div>
   );
 }
