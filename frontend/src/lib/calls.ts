@@ -196,6 +196,12 @@ function clearTimers(): void {
   dismissTimer = null;
 }
 
+/** Verbose call tracing — visible in the browser console while we stabilise calls. */
+function clog(...args: unknown[]): void {
+  // eslint-disable-next-line no-console
+  console.log("%c[calls]", "color:#e85d2a;font-weight:bold", ...args);
+}
+
 /** Surface the real failure instead of silently ending the call. */
 function reportCallError(where: string, err: unknown): void {
   const e = err as { name?: string; message?: string } | undefined;
@@ -240,10 +246,12 @@ async function buildPc(): Promise<RTCPeerConnection> {
     pokeMedia();
   };
   conn.oniceconnectionstatechange = () => {
+    clog("iceConnectionState ->", conn.iceConnectionState);
     onIceState(conn.iceConnectionState);
   };
   conn.onconnectionstatechange = () => {
     const s = conn.connectionState;
+    clog("connectionState ->", s);
     if (s === "connected") {
       markConnected();
     } else if (s === "closed") {
@@ -455,6 +463,9 @@ function flushPendingLocalIce(callId: string): void {
 /** Close the call locally, emit a history record and auto-dismiss the screen. */
 function finish(result: CallResult): void {
   const active = state.active;
+  clog("finish()", result, "status=", active?.status, "ice=", pc?.iceConnectionState, "conn=", pc?.connectionState);
+  // eslint-disable-next-line no-console
+  console.trace("[calls] finish trace");
   if (!active || active.status === "ended") {
     stopCallSounds();
     teardownMedia();
@@ -492,6 +503,7 @@ function finish(result: CallResult): void {
 
 async function handleSignal(payload: { type: string; [k: string]: any }): Promise<void> {
   const type = payload.type;
+  clog("signal IN", type, "call=", payload.call_uuid, "myActive=", state.active?.id, state.active?.status);
 
   if (type === "offer") {
     // Duplicate delivery (calls.* + user.* channels) — ignore, do not auto-reject.
@@ -672,15 +684,21 @@ export const calls = {
     patchActive({ status: "connecting" });
     const offer = incomingOffer;
     try {
+      clog("accept: getMedia", active.media);
       const stream = await getMedia(active.media);
+      clog("accept: got media tracks", stream.getTracks().map((t) => t.kind));
       pc = await buildPc();
       stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      clog("accept: setRemoteDescription(offer)");
       await pc.setRemoteDescription(offer);
       remoteDescSet = true;
       await drainCandidates();
+      clog("accept: createAnswer");
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+      clog("accept: POST answer", active.id);
       await answerCall(active.id, answer);
+      clog("accept: answer sent OK");
     } catch (err) {
       reportCallError("accept", err);
       finish("ended");
