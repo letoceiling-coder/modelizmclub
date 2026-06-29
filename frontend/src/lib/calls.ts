@@ -431,6 +431,33 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
   }
 }
 
+/**
+ * Repair SDP line endings. When an offer/answer travels through PHP + JSON +
+ * Reverb, the trailing CRLF (or all CRLFs) can be stripped/normalised, which
+ * makes Chrome reject the last `a=ssrc:` line with "Invalid SDP line".
+ * We rebuild canonical `\r\n` endings and guarantee a trailing CRLF.
+ */
+function normalizeSdp(desc: RTCSessionDescriptionInit | undefined | null): RTCSessionDescriptionInit | null {
+  if (!desc || typeof desc.sdp !== "string") return (desc as RTCSessionDescriptionInit) ?? null;
+  const lines = desc.sdp
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((l) => l.replace(/\s+$/g, ""))
+    .filter((l) => l.length > 0);
+  const sdp = lines.join("\r\n") + "\r\n";
+  return { type: desc.type, sdp };
+}
+
+async function setRemote(desc: RTCSessionDescriptionInit): Promise<void> {
+  if (!pc) return;
+  const raw = desc?.sdp ?? "";
+  clog("setRemote", desc?.type, "len=", raw.length, "endsCRLF=", raw.endsWith("\r\n"), "hasCR=", raw.includes("\r"));
+  const fixed = normalizeSdp(desc);
+  if (!fixed) throw new Error("Empty SDP");
+  await pc.setRemoteDescription(fixed);
+}
+
 async function drainCandidates(): Promise<void> {
   if (!pc) return;
   for (const c of pendingCandidates) {
@@ -589,7 +616,7 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       patchActive({ status: "connecting" });
     }
     try {
-      await pc.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
+      await setRemote(payload.sdp as RTCSessionDescriptionInit);
       remoteDescSet = true;
       await drainCandidates();
       renegotiating = false;
@@ -612,7 +639,7 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       if (pc.signalingState !== "stable") {
         await pc.setLocalDescription({ type: "rollback" } as RTCLocalSessionDescriptionInit).catch(() => {});
       }
-      await pc.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
+      await setRemote(payload.sdp as RTCSessionDescriptionInit);
       remoteDescSet = true;
       await drainCandidates();
       const answer = await pc.createAnswer();
@@ -728,7 +755,7 @@ export const calls = {
       // No local tracks → createAnswer still produces recvonly m-lines for the
       // peer's offer, so the connection establishes and we receive their media.
       clog("accept: setRemoteDescription(offer)");
-      await pc.setRemoteDescription(offer);
+      await setRemote(offer);
       remoteDescSet = true;
       await drainCandidates();
       clog("accept: createAnswer");
