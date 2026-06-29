@@ -68,6 +68,7 @@ export type AdCondition = "Новое" | "Б/у — отлично" | "Б/у —
 
 export interface AdSeller {
   id: ID;
+  numericId?: number;
   name: string;
   avatar: string;
   rating: number;

@@ -11,6 +11,9 @@ import {
   MessageSquare, Eye, Heart, Clock, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useStore, selectors } from "@/lib/store";
+import { createConversation } from "@/lib/api/chat";
+import { getToken } from "@/lib/api/client";
 
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({
@@ -31,6 +34,7 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
 function AdDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const me = useStore(selectors.currentUser);
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +67,29 @@ function AdDetailPage() {
       alive = false;
     };
   }, [id]);
+
+  const writeToSeller = async () => {
+    if (!getToken()) {
+      toast.info("Войдите, чтобы написать продавцу");
+      navigate({ to: "/login" });
+      return;
+    }
+    const sellerId = ad?.seller?.numericId;
+    if (!sellerId || !me) {
+      toast.error("Не удалось открыть диалог с продавцом");
+      return;
+    }
+    if (me.numericId === sellerId) {
+      toast.info("Это ваше объявление");
+      return;
+    }
+    try {
+      const dialog = await createConversation(sellerId, me.id);
+      navigate({ to: "/messenger", search: { chat: dialog.id } });
+    } catch {
+      toast.error("Не удалось открыть диалог");
+    }
+  };
 
   if (loading) {
     return (
@@ -154,7 +181,7 @@ function AdDetailPage() {
               <div className="flex flex-col gap-[8px]">
                 <button
                   type="button"
-                  onClick={() => navigate({ to: "/messenger" })}
+                  onClick={writeToSeller}
                   className="inline-flex items-center justify-center gap-[8px] py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
                   style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)" }}
                 >
@@ -262,7 +289,7 @@ function AdDetailPage() {
             <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
               Продавец
             </h2>
-            <SellerCard seller={ad.seller} />
+            <SellerCard seller={ad.seller} onWrite={writeToSeller} />
           </section>
         )}
 

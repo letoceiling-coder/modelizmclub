@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Star, ShieldCheck, MessageSquare, Calendar } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
 
-export function SellerCard({ seller }: { seller: AdSeller }) {
+export function SellerCard({ seller, onWrite }: { seller: AdSeller; onWrite?: () => void }) {
   return (
     <div
       className="flex flex-col gap-[16px] p-[20px]"
@@ -41,8 +41,9 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
       </div>
 
       <div className="flex flex-col gap-[8px]">
-        <Link
-          to="/messenger"
+        <button
+          type="button"
+          onClick={onWrite}
           className="inline-flex items-center justify-center gap-[8px] py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
           style={{
             background: "var(--accent)",
@@ -52,7 +53,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
           }}
         >
           <MessageSquare size={16} /> Написать продавцу
-        </Link>
+        </button>
         <Link
           to="/profile"
           className="inline-flex items-center justify-center py-[10px] text-[13px] font-medium transition-colors"

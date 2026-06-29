@@ -5,6 +5,7 @@ import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 
 interface ApiListingAuthor {
+  id?: number;
   uuid: string;
   display_name?: string | null;
   slug?: string | null;
@@ -76,7 +77,7 @@ export function mapListing(l: ApiListing): Ad {
     .map((m) => m.url)
     .filter((u): u is string => Boolean(u));
   const seller: AdSeller | undefined = author
-    ? { id: author.id, name: author.name, avatar: author.avatar, rating: 0, deals: 0, since: "" }
+    ? { id: author.id, numericId: l.author?.id ?? undefined, name: author.name, avatar: author.avatar, rating: 0, deals: 0, since: "" }
     : undefined;
   return {
     id: l.uuid,
