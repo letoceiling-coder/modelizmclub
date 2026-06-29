@@ -659,11 +659,25 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
     } else {
       pendingCandidates.push(cand);
     }
+  } else if (type === "handled") {
+    // Answered/declined on ANOTHER device of the same account — stop ringing here
+    // without recording a missed call (the other device owns this call now).
+    if (state.active?.direction === "incoming" && state.active.status === "ringing") {
+      dismissSilently();
+    }
   } else if (type === "reject" || type === "hangup" || type === "busy") {
     if (type === "busy") finish("busy");
     else if (type === "reject") finish("rejected");
     else finish(state.active?.status === "connected" ? "answered" : "ended");
   }
+}
+
+/** Close the incoming-call UI on a non-answering device, leaving no history record. */
+function dismissSilently(): void {
+  clearTimers();
+  stopCallSounds();
+  teardownMedia();
+  setState({ active: null, localStream: null, remoteStream: null });
 }
 
 export function ingestCallSignal(payload: { type: string; [k: string]: unknown }): void {

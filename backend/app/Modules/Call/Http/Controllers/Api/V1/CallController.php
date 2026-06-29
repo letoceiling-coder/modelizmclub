@@ -113,6 +113,12 @@ class CallController extends Controller
             'sdp' => $data['sdp'],
         ]);
 
+        // Stop ringing on the callee's OTHER devices (same account, multiple sessions).
+        CallSignaling::send($request->user()->uuid, 'handled', [
+            'call_uuid' => $call->uuid,
+            'reason' => 'answered',
+        ]);
+
         return response()->json(['data' => ['ok' => true]]);
     }
 
@@ -161,6 +167,12 @@ class CallController extends Controller
         $signalType = $reason === 'busy' ? 'busy' : 'reject';
 
         CallSignaling::send($this->peerUuid($call, $request->user()), $signalType, [
+            'call_uuid' => $call->uuid,
+            'reason' => $reason,
+        ]);
+
+        // Stop ringing on the rejecter's OTHER devices (same account, multiple sessions).
+        CallSignaling::send($request->user()->uuid, 'handled', [
             'call_uuid' => $call->uuid,
             'reason' => $reason,
         ]);
