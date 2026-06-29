@@ -18,12 +18,18 @@ export interface GroupCallActive {
   title?: string;
 }
 
+export interface PickerState {
+  mode: "start" | "invite";
+  preselect: string[];
+}
+
 interface GroupCallState {
   active: GroupCallActive | null;
   connecting: boolean;
+  picker: PickerState | null;
 }
 
-let state: GroupCallState = { active: null, connecting: false };
+let state: GroupCallState = { active: null, connecting: false, picker: null };
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -79,9 +85,28 @@ export const groupCalls = {
     await connect(room, media, title);
   },
 
+  /** Invite more people into the room we're already in. */
+  async inviteMore(uuids: string[], media?: GroupMedia, title?: string): Promise<void> {
+    if (!state.active || uuids.length === 0) return;
+    try {
+      const n = await inviteToGroup(state.active.room, uuids, media ?? state.active.media, title ?? state.active.title);
+      toast.success(n === 1 ? "Приглашение отправлено" : `Приглашено: ${n}`);
+    } catch {
+      toast.error("Не удалось пригласить участников");
+    }
+  },
+
   leave(): void {
     if (state.active) logEvent("info", "group", "left room", { room: state.active.room });
     setState({ active: null });
+  },
+
+  /** Open the participant picker (to start a new call or invite into the current one). */
+  openPicker(mode: "start" | "invite", preselect: string[] = []): void {
+    setState({ picker: { mode, preselect } });
+  },
+  closePicker(): void {
+    setState({ picker: null });
   },
 };
 

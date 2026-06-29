@@ -13,6 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
+import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
 import { I18nProvider } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
@@ -119,6 +120,7 @@ function RootComponent() {
           <Outlet />
           <CallScreen />
           <GroupCallScreen />
+          <GroupCallInviteDialog />
           <Toaster position="top-center" richColors />
         </ThemeProvider>
       </I18nProvider>

@@ -153,7 +153,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
                     toast("Звонок уже идёт");
                     return;
                   }
-                  void groupCalls.start([partnerId], "video", partnerName);
+                  groupCalls.openPicker("start", [partnerId]);
                 }}
               />
               {onSearch && <Item icon={Search} label="Поиск в чате" onClick={() => { close(); onSearch(); }} />}

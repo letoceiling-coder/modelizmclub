@@ -2,11 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, MapPin, UserPlus, MessageSquare, Check, X, Clock,
+  Search, MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime, type User } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
+import { groupCalls } from "@/lib/groupCall";
 import {
   fetchFriends, fetchIncomingRequests, searchUsers,
   sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest,
@@ -133,9 +134,19 @@ function FriendsPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[16px]">
-        <header>
-          <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
-          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
+        <header className="flex items-start justify-between gap-[12px]">
+          <div>
+            <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
+            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => groupCalls.openPicker("start")}
+            className="inline-flex shrink-0 items-center gap-[6px] rounded-[10px] px-[14px] py-[9px] text-[13px] font-semibold transition-transform active:scale-95"
+            style={{ background: "var(--accent)", color: "white" }}
+          >
+            <Users size={16} /> Групповой звонок
+          </button>
         </header>
 
         {/* Tabs */}
