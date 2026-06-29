@@ -134,6 +134,7 @@ let pc: RTCPeerConnection | null = null;
 let myUuid: string | null = null;
 let incomingOffer: RTCSessionDescriptionInit | null = null;
 let remoteDescSet = false;
+let applyingAnswer = false;
 let pendingCandidates: RTCIceCandidateInit[] = [];
 let ringTimer: ReturnType<typeof setTimeout> | null = null;
 let dismissTimer: ReturnType<typeof setTimeout> | null = null;
@@ -576,6 +577,7 @@ function teardownMedia(): void {
   pc = null;
   incomingOffer = null;
   remoteDescSet = false;
+  applyingAnswer = false;
   pendingCandidates = [];
   pendingLocalCandidates = [];
 }
@@ -683,6 +685,11 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
     if (!pc) return;
     // Duplicate delivery (calls.* + user.*) — only a pending local offer accepts an answer.
     if (pc.signalingState !== "have-local-offer") return;
+    // Synchronous lock: the second copy of the same answer must not slip past the
+    // signalingState check while the first setRemoteDescription is still awaiting
+    // (that race caused "Called in wrong state: stable" and dropped the call).
+    if (applyingAnswer) return;
+    applyingAnswer = true;
     // Answer arrives both for the initial offer and for ICE-restart offers.
     const isRestart = renegotiating || state.active.status === "reconnecting";
     if (!isRestart) {
@@ -702,6 +709,8 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
         reportCallError("answer", err);
         finish("ended");
       }
+    } finally {
+      applyingAnswer = false;
     }
   } else if (type === "restart") {
     // Peer initiated an ICE restart — apply as a remote offer and answer back.

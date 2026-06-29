@@ -11,6 +11,7 @@ class ClientLog extends Model
 
     protected $fillable = [
         'user_id',
+        'client_id',
         'session_id',
         'call_uuid',
         'platform',

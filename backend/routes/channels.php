@@ -15,6 +15,16 @@ Broadcast::channel('user.{uuid}', function ($user, string $uuid) {
     return $user->uuid === $uuid;
 });
 
+// Global presence: every authenticated user joins so others can see who is online.
+Broadcast::channel('online', function ($user) {
+    $user->loadMissing('profile');
+
+    return [
+        'uuid' => $user->uuid,
+        'name' => $user->profile?->display_name ?? $user->name,
+    ];
+});
+
 Broadcast::channel('conversation.{uuid}', function ($user, string $uuid) {
     return ConversationParticipant::query()
         ->where('user_id', $user->id)

@@ -7,6 +7,16 @@ import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { fetchLiveKitToken, inviteToGroup } from "./api/livekit";
 import { logEvent } from "./logger";
+import { startRingtone, stopCallSounds } from "./callAudio";
+
+let inviteRingTimer: ReturnType<typeof setTimeout> | null = null;
+function stopInviteRing(): void {
+  if (inviteRingTimer) {
+    clearTimeout(inviteRingTimer);
+    inviteRingTimer = null;
+  }
+  stopCallSounds();
+}
 
 export type GroupMedia = "audio" | "video";
 
@@ -115,11 +125,25 @@ export function handleGroupInvite(payload: { room?: string; media?: string; titl
   if (!payload.room || state.active) return;
   const media: GroupMedia = payload.media === "audio" ? "audio" : "video";
   const who = payload.from?.name ?? "Пользователь";
+
+  // Audible ring while the invite toast is shown.
+  stopInviteRing();
+  startRingtone();
+  if (typeof navigator !== "undefined" && navigator.vibrate) {
+    try { navigator.vibrate([200, 100, 200]); } catch { /* ignore */ }
+  }
+  inviteRingTimer = setTimeout(stopInviteRing, 20000);
+
   toast.info(`Групповой звонок — ${who}`, {
-    duration: 15000,
+    duration: 20000,
+    onDismiss: stopInviteRing,
+    onAutoClose: stopInviteRing,
     action: {
       label: "Войти",
-      onClick: () => void groupCalls.join(payload.room as string, media, payload.title),
+      onClick: () => {
+        stopInviteRing();
+        void groupCalls.join(payload.room as string, media, payload.title);
+      },
     },
   });
 }

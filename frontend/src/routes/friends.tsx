@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime, type User } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
+import { useOnlineSet } from "@/lib/realtime/presence";
 import {
   fetchFriends, fetchIncomingRequests, searchUsers,
   sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest,
@@ -41,6 +42,8 @@ function FriendsPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const navigateMessenger = useNavigate();
+  const onlineSet = useOnlineSet();
+  const isOnline = (u: User) => onlineSet.has(u.id) || !!u.online;
 
   useEffect(() => {
     let active = true;
@@ -70,7 +73,7 @@ function FriendsPage() {
   const filteredUsers = useMemo(() => {
     return allUsers.filter((u) => {
       if (me && u.id === me.id) return false;
-      if (tab === "online" && !u.online) return false;
+      if (tab === "online" && !isOnline(u)) return false;
       const ql = q.toLowerCase();
       if (!ql) return true;
       return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
@@ -79,7 +82,7 @@ function FriendsPage() {
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: "Все", count: allUsers.length },
-    { key: "online", label: "Онлайн", count: allUsers.filter((u) => u.online).length },
+    { key: "online", label: "Онлайн", count: allUsers.filter((u) => isOnline(u)).length },
     { key: "requests", label: "Заявки", count: requests.length },
   ];
 
@@ -260,7 +263,7 @@ function FriendsPage() {
                     <article key={u.id} className="flex gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
                       <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="relative shrink-0">
                         <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
-                        {u.online && <span className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full" style={{ background: "var(--success)", border: "2px solid var(--background)" }} />}
+                        {isOnline(u) && <span className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full" style={{ background: "var(--success)", border: "2px solid var(--background)" }} />}
                       </Link>
                       <div className="min-w-0 flex-1">
                         <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{u.name}</Link>

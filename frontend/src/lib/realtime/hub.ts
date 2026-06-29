@@ -3,6 +3,7 @@ import { getToken } from "@/lib/api/client";
 import { GUEST_USER } from "@/lib/store";
 import { calls, syncIncomingOffer } from "@/lib/calls";
 import { initUserRealtime, resetUserRealtime } from "@/lib/realtime/user";
+import { initPresence, resetPresence } from "@/lib/realtime/presence";
 import {
   getEcho,
   isEchoConnected,
@@ -38,6 +39,7 @@ export async function resubscribeRealtime(): Promise<void> {
   await getEcho();
   await calls.init(hubUser);
   await initUserRealtime(hubUser);
+  await initPresence(hubUser);
   await bindConversation();
   syncIncomingOffer();
 }
@@ -105,5 +107,6 @@ export function stopRealtimeHub(): void {
   convId = null;
   convHandler = null;
   resetUserRealtime();
+  resetPresence();
   resetEcho();
 }

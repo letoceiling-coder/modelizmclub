@@ -6,6 +6,7 @@ import { fetchFriends, searchUsers } from "@/lib/api/social";
 import type { User } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { groupCalls, useGroupCall, type GroupMedia } from "@/lib/groupCall";
+import { useOnlineSet } from "@/lib/realtime/presence";
 
 export function GroupCallInviteDialog() {
   const picker = useGroupCall((s) => s.picker);
@@ -38,11 +39,12 @@ export function GroupCallInviteDialog() {
     });
   }, [picker]);
 
+  const onlineSet = useOnlineSet();
   const onlineMap = useMemo(() => {
     const m = new Map<string, boolean>();
-    all.forEach((u) => m.set(u.id, !!u.online));
+    [...friends, ...all].forEach((u) => m.set(u.id, onlineSet.has(u.id) || !!u.online));
     return m;
-  }, [all]);
+  }, [friends, all, onlineSet]);
 
   const byId = useMemo(() => {
     const m = new Map<string, User>();
@@ -54,10 +56,16 @@ export function GroupCallInviteDialog() {
     const ql = q.trim().toLowerCase();
     let base: User[];
     if (ql) base = all.filter((u) => u.name.toLowerCase().includes(ql) || (u.interests ?? "").toLowerCase().includes(ql));
-    else if (tab === "online") base = all.filter((u) => u.online);
+    else if (tab === "online") base = [...friends, ...all].filter((u) => onlineMap.get(u.id));
     else base = friends.length ? friends : all;
-    return base.filter((u) => !me || u.id !== me.id);
-  }, [q, tab, friends, all, me]);
+    const seen = new Set<string>();
+    return base.filter((u) => {
+      if (me && u.id === me.id) return false;
+      if (seen.has(u.id)) return false;
+      seen.add(u.id);
+      return true;
+    });
+  }, [q, tab, friends, all, me, onlineMap]);
 
   if (!mounted || !picker) return null;
 

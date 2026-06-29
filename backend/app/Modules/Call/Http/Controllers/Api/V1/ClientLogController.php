@@ -28,6 +28,7 @@ class ClientLogController extends Controller
             'device.network' => ['nullable', 'string', 'max:32'],
             'device.user_agent' => ['nullable', 'string', 'max:512'],
             'entries' => ['required', 'array', 'max:500'],
+            'entries.*.id' => ['nullable', 'string', 'max:64'],
             'entries.*.t' => ['nullable', 'numeric'],
             'entries.*.level' => ['nullable', 'string', 'max:16'],
             'entries.*.tag' => ['nullable', 'string', 'max:32'],
@@ -42,12 +43,23 @@ class ClientLogController extends Controller
         $now = CarbonImmutable::now();
 
         $rows = [];
+        $seen = [];
         foreach ($data['entries'] as $e) {
             $clientTime = isset($e['t']) ? CarbonImmutable::createFromTimestampMs((int) $e['t']) : null;
             $context = $e['data'] ?? null;
+            $clientId = isset($e['id']) ? (string) $e['id'] : null;
+
+            // Drop in-batch duplicates so the unique index never rejects the whole insert.
+            if ($clientId !== null) {
+                if (isset($seen[$clientId])) {
+                    continue;
+                }
+                $seen[$clientId] = true;
+            }
 
             $rows[] = [
                 'user_id' => $userId,
+                'client_id' => $clientId,
                 'session_id' => $sessionId,
                 'call_uuid' => isset($e['call_uuid']) ? (string) $e['call_uuid'] : null,
                 'platform' => $device['platform'] ?? null,
@@ -66,7 +78,9 @@ class ClientLogController extends Controller
         }
 
         if ($rows !== []) {
-            ClientLog::query()->insert($rows);
+            // Idempotent: a re-sent batch (failed flush retry, second tab) is
+            // skipped on the client_id unique index instead of duplicated.
+            ClientLog::query()->insertOrIgnore($rows);
         }
 
         return response()->json(['data' => ['stored' => count($rows)]]);

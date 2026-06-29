@@ -11,12 +11,14 @@ import { api, getToken } from "./api/client";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LogEntry {
+  id: string;
   t: number;
   level: LogLevel;
   tag: string;
   msg: string;
   call_uuid?: string;
   data?: unknown;
+  n?: number; // repeat count for collapsed consecutive duplicates
 }
 
 interface DeviceInfo {
@@ -33,6 +35,7 @@ const SID_KEY = "mc_sid";
 const MAX_BUFFER = 500;
 const FLUSH_MS = 15_000;
 const BATCH_SIZE = 100;
+const COLLAPSE_MS = 4_000; // fold identical repeats (e.g. recurring errors) within this window
 
 let buffer: LogEntry[] = [];
 let sessionId = "";
@@ -102,7 +105,11 @@ function detectDevice(): DeviceInfo {
 function loadBuffer(): void {
   try {
     const raw = window.localStorage.getItem(BUF_KEY);
-    buffer = raw ? (JSON.parse(raw) as LogEntry[]) : [];
+    const parsed = raw ? (JSON.parse(raw) as LogEntry[]) : [];
+    // Backfill ids for entries written by older builds so id-based dedup/removal stays precise.
+    buffer = Array.isArray(parsed)
+      ? parsed.map((e) => (e && e.id ? e : { ...e, id: uuid() }))
+      : [];
   } catch {
     buffer = [];
   }
@@ -143,7 +150,28 @@ export function setLogCall(uuid: string | undefined): void {
 
 export function logEvent(level: LogLevel, tag: string, msg: string, data?: unknown): void {
   if (typeof window === "undefined") return;
-  const entry: LogEntry = { t: Date.now(), level, tag, msg, call_uuid: activeCallUuid, data: safeData(data) };
+  const safe = safeData(data);
+
+  // Collapse a burst of identical entries (same level/tag/msg/call + payload)
+  // into a single record with a repeat count, so recurring errors don't flood
+  // the buffer and get sent many times over.
+  const last = buffer[buffer.length - 1];
+  if (
+    last &&
+    last.level === level &&
+    last.tag === tag &&
+    last.msg === msg &&
+    last.call_uuid === activeCallUuid &&
+    Date.now() - last.t < COLLAPSE_MS &&
+    JSON.stringify(last.data) === JSON.stringify(safe)
+  ) {
+    last.n = (last.n ?? 1) + 1;
+    last.t = Date.now();
+    saveBuffer();
+    return;
+  }
+
+  const entry: LogEntry = { id: uuid(), t: Date.now(), level, tag, msg, call_uuid: activeCallUuid, data: safe };
   buffer.push(entry);
   if (buffer.length > MAX_BUFFER) buffer = buffer.slice(buffer.length - MAX_BUFFER);
   saveBuffer();
@@ -152,19 +180,35 @@ export function logEvent(level: LogLevel, tag: string, msg: string, data?: unkno
 
 export async function flushLogs(): Promise<void> {
   if (flushing || typeof window === "undefined") return;
-  if (buffer.length === 0) return;
   if (!getToken()) return; // only logged-in sessions can post
+  // Re-read the persisted buffer so concurrent tabs share one source of truth
+  // and we never re-send entries another tab already cleared.
+  loadBuffer();
+  if (buffer.length === 0) return;
   flushing = true;
   const batch = buffer.slice(0, BATCH_SIZE);
+  const entries = batch.map((e) => ({
+    id: e.id,
+    t: e.t,
+    level: e.level,
+    tag: e.tag,
+    msg: e.n && e.n > 1 ? `${e.msg} (×${e.n})` : e.msg,
+    call_uuid: e.call_uuid,
+    data: e.data,
+  }));
   try {
     await api("/diagnostics/logs", {
       method: "POST",
-      json: { session_id: sessionId, device, entries: batch },
+      json: { session_id: sessionId, device, entries },
     });
-    buffer = buffer.slice(batch.length);
+    // Remove exactly the sent entries by id (cross-tab safe; tolerant of new
+    // entries appended during the request).
+    const sent = new Set(batch.map((e) => e.id));
+    loadBuffer();
+    buffer = buffer.filter((e) => !sent.has(e.id));
     saveBuffer();
   } catch {
-    // keep buffer for the next attempt
+    // keep buffer for the next attempt — backend dedupes by client_id on retry
   } finally {
     flushing = false;
   }

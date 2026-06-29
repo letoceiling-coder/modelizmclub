@@ -1,9 +1,11 @@
+import { toast } from "sonner";
 import type { AppNotification } from "@/lib/api/notifications";
 import { mapMessage, type ApiMessage } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
 import { GUEST_USER, ingestIncomingMessage } from "@/lib/store";
 import { ingestCallSignal } from "@/lib/calls";
 import { subscribeUser } from "@/lib/realtime/echo";
+import { playMessagePing } from "@/lib/callAudio";
 
 interface ApiNotificationPayload {
   id: string;
@@ -54,11 +56,24 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
   if (!type || !data) return;
 
   if (type === "message") {
-    const p = data as { conversation_uuid?: string; message?: ApiMessage };
+    const p = data as {
+      conversation_uuid?: string;
+      message?: ApiMessage & { author?: { display_name?: string; name?: string }; body?: string };
+    };
     if (!p.conversation_uuid || !p.message) return;
     const message = mapMessage(p.message);
-    const incrementUnread = watchingDialogId !== p.conversation_uuid;
-    ingestIncomingMessage(p.conversation_uuid, message, incrementUnread);
+    const notViewing = watchingDialogId !== p.conversation_uuid;
+    ingestIncomingMessage(p.conversation_uuid, message, notViewing);
+    if (notViewing) {
+      const who = p.message.author?.display_name ?? p.message.author?.name ?? "Новое сообщение";
+      const preview = (p.message.body ?? message.text ?? "").trim();
+      try {
+        playMessagePing();
+      } catch {
+        /* ignore */
+      }
+      toast.message(who, preview ? { description: preview.slice(0, 120) } : undefined);
+    }
     return;
   }
 

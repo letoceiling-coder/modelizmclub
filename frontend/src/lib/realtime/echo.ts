@@ -212,6 +212,35 @@ export async function subscribeUser(
 }
 
 /**
+ * Join the global presence channel. Reports the full member list and
+ * join/leave deltas so we can track who is online.
+ */
+export async function joinOnlinePresence(handlers: {
+  here: (members: Array<{ uuid: string; name?: string }>) => void;
+  joining: (member: { uuid: string; name?: string }) => void;
+  leaving: (member: { uuid: string; name?: string }) => void;
+}): Promise<() => void> {
+  if (!getToken()) return () => {};
+  const e = await getEcho();
+  if (!e) return () => {};
+  try {
+    const channel = e.join("online");
+    channel.here((members: Array<{ uuid: string; name?: string }>) => handlers.here(members ?? []));
+    channel.joining((m: { uuid: string; name?: string }) => m && handlers.joining(m));
+    channel.leaving((m: { uuid: string; name?: string }) => m && handlers.leaving(m));
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      e.leave("online");
+    } catch {
+      /* ignore */
+    }
+  };
+}
+
+/**
  * Subscribe to the current user's private call-signaling channel.
  */
 export async function subscribeCalls(

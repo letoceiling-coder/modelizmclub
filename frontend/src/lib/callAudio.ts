@@ -156,3 +156,9 @@ export function playRejected(): void {
   stopCallSounds();
   playDualTone([300, 300], 450, 0.12);
 }
+
+/** Short ping for a new incoming chat message. Does not stop call sounds. */
+export function playMessagePing(): void {
+  playDualTone([660, 880], 90, 0.07);
+  setTimeout(() => playDualTone([880, 990], 90, 0.07), 110);
+}
