@@ -389,7 +389,14 @@ async function checkMediaAlive(): Promise<void> {
   }
 }
 
-async function getMedia(media: CallMedia): Promise<MediaStream> {
+/**
+ * Acquire local media with graceful degradation:
+ *  1) full (audio + video for video calls)
+ *  2) audio-only if the camera is missing/busy/blocked
+ *  3) null (receive-only) if there is no microphone either —
+ *     the call still connects and this side can hear/see the peer.
+ */
+async function getMedia(media: CallMedia): Promise<MediaStream | null> {
   const wantVideo = media === "video";
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -400,23 +407,27 @@ async function getMedia(media: CallMedia): Promise<MediaStream> {
     return stream;
   } catch (err) {
     const name = (err as { name?: string })?.name ?? "";
-    // No / busy / blocked camera on a video call — gracefully continue audio-only
-    // instead of failing the whole call. Audio is still sent; we just don't add video.
-    if (
-      wantVideo &&
-      (name === "NotFoundError" ||
-        name === "NotReadableError" ||
-        name === "OverconstrainedError" ||
-        name === "NotAllowedError")
-    ) {
-      clog("getMedia: video failed (", name, ") — falling back to audio-only");
+    clog("getMedia: full failed (", name, ")");
+    // Try audio-only (camera missing/busy/blocked, mic may still exist).
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      patchActive({ media: "audio" });
-      toast.info("Камера недоступна — звонок продолжится со звуком");
+      if (wantVideo) {
+        patchActive({ media: "audio" });
+        toast.info("Камера недоступна — звонок продолжится со звуком");
+      }
       setState({ localStream: stream, muted: false, cameraOff: true });
       return stream;
+    } catch (err2) {
+      const name2 = (err2 as { name?: string })?.name ?? "";
+      // No input devices at all (e.g. desktop without mic/camera) → receive-only.
+      if (name2 === "NotFoundError" || name === "NotFoundError") {
+        clog("getMedia: no input devices — receive-only mode");
+        toast.info("Нет микрофона/камеры — режим только приёма");
+        setState({ localStream: null, muted: true, cameraOff: true });
+        return null;
+      }
+      throw err2;
     }
-    throw err;
   }
 }
 
@@ -681,7 +692,10 @@ export const calls = {
     try {
       const stream = await getMedia(media);
       pc = await buildPc();
-      stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      if (stream) {
+        stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      }
+      // offerToReceive* guarantees m-lines even with no local tracks (receive-only).
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: media === "video" });
       await pc.setLocalDescription(offer);
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
@@ -706,9 +720,13 @@ export const calls = {
     try {
       clog("accept: getMedia", active.media);
       const stream = await getMedia(active.media);
-      clog("accept: got media tracks", stream.getTracks().map((t) => t.kind));
+      clog("accept: media", stream ? stream.getTracks().map((t) => t.kind) : "receive-only");
       pc = await buildPc();
-      stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      if (stream) {
+        stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
+      }
+      // No local tracks → createAnswer still produces recvonly m-lines for the
+      // peer's offer, so the connection establishes and we receive their media.
       clog("accept: setRemoteDescription(offer)");
       await pc.setRemoteDescription(offer);
       remoteDescSet = true;
