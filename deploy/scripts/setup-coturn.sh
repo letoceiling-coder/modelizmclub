@@ -34,11 +34,16 @@ fi
 
 TLS_BLOCK=""
 if [[ -f "${CERT_DIR}/fullchain.pem" && -f "${CERT_DIR}/privkey.pem" ]]; then
+  install -d -m 0750 -o turnserver -g turnserver /etc/coturn
+  cp "${CERT_DIR}/fullchain.pem" /etc/coturn/turn.crt
+  cp "${CERT_DIR}/privkey.pem" /etc/coturn/turn.key
+  chown turnserver:turnserver /etc/coturn/turn.crt /etc/coturn/turn.key
+  chmod 640 /etc/coturn/turn.key
   TLS_BLOCK=$(
     cat <<TLS
 tls-listening-port=5349
-cert=${CERT_DIR}/fullchain.pem
-pkey=${CERT_DIR}/privkey.pem
+cert=/etc/coturn/turn.crt
+pkey=/etc/coturn/turn.key
 no-tlsv1
 no-tlsv1_1
 TLS
