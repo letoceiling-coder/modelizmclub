@@ -138,6 +138,7 @@ export interface Banner {
   until: string;
   color: string;
   image?: string;
+  link?: string;
   kind?: "event" | "news" | "promo";
   pinned?: boolean;
   priority?: number;

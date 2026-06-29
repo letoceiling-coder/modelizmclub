@@ -653,7 +653,7 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
 
   if (type === "offer") {
     // Duplicate delivery (calls.* + user.* channels) — ignore, do not auto-reject.
-    if (state.active?.id === payload.call_uuid && state.active.status !== "ended") {
+    if (state.active && state.active.id === payload.call_uuid && state.active.status !== "ended") {
       return;
     }
     // Busy with another active call — signal busy to the new caller.

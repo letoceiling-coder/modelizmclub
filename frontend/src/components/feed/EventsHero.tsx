@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import { fetchBanners } from "@/lib/api/banners";
@@ -20,6 +22,7 @@ const KIND_LABEL: Record<NonNullable<Banner["kind"]>, { label: string; Icon: typ
 };
 
 export function EventsHero() {
+  const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -55,6 +58,18 @@ export function EventsHero() {
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
+  const openCta = (b: Banner) => {
+    const link = b.link?.trim();
+    if (!link) {
+      toast.info("Информация о событии скоро появится");
+      return;
+    }
+    if (/^https?:\/\//i.test(link)) {
+      window.open(link, "_blank", "noopener,noreferrer");
+    } else {
+      void navigate({ to: link });
+    }
+  };
   const dismiss = (id: string) =>
     setDismissed((p) => {
       const n = new Set(p);
@@ -111,6 +126,8 @@ export function EventsHero() {
               <p className="max-w-[640px] text-[13px] text-white/85 sm:text-[14px]">{current.text}</p>
               <div className="mt-[4px]">
                 <button
+                  type="button"
+                  onClick={() => openCta(current)}
                   className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99]"
                 >
                   {current.cta}

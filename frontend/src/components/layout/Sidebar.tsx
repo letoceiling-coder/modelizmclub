@@ -37,7 +37,7 @@ export function Sidebar() {
     <aside className="hidden lg:block w-60 shrink-0">
       <div className="sticky top-4 space-y-1">
         <div className="flex items-center justify-between px-3 py-3">
-          <Link to={ROUTES.feed}><Logo /></Link>
+          <Link to={ROUTES.feed}><Logo size={44} /></Link>
           <div className="flex items-center gap-1">
             <LanguageSwitcher />
             <ThemeToggle />

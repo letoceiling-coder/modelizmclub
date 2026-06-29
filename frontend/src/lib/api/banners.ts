@@ -34,6 +34,7 @@ function mapBanner(b: ApiBanner): Banner {
     until: "",
     color: GRADIENTS[b.id % GRADIENTS.length],
     image: b.image_url ?? undefined,
+    link: b.link_url ?? undefined,
     kind: kindFor(b.placement),
   };
 }

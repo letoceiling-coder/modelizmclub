@@ -40,6 +40,7 @@ function FriendsPage() {
   const [friends, setFriends] = useState<User[]>([]);
   const [requests, setRequests] = useState<IncomingRequest[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [pending, setPending] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const navigateMessenger = useNavigate();
   const onlineSet = useOnlineSet();
@@ -108,8 +109,12 @@ function FriendsPage() {
   const added = new Set(friends.map((f) => f.id));
 
   const toggleFriend = async (u: User) => {
-    if (!u.numericId) return;
+    if (!u.numericId) {
+      toast.error("Не удалось определить пользователя");
+      return;
+    }
     const isAdded = added.has(u.id);
+    if (!isAdded && pending.has(u.id)) return;
     try {
       if (isAdded) {
         await removeFriend(u.numericId);
@@ -117,6 +122,7 @@ function FriendsPage() {
         toast.success("Удалён из друзей");
       } else {
         await sendFriendRequest(u.numericId);
+        setPending((p) => new Set(p).add(u.id));
         toast.success("Заявка отправлена");
       }
     } catch {
@@ -258,6 +264,7 @@ function FriendsPage() {
               <div className="grid gap-[12px] sm:grid-cols-2">
                 {filteredUsers.map((u) => {
                   const isAdded = added.has(u.id);
+                  const isPending = !isAdded && pending.has(u.id);
                   const interests = u.interests.split(",").slice(0, 3).join(", ");
                   return (
                     <article key={u.id} className="flex gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
@@ -274,15 +281,19 @@ function FriendsPage() {
                         <div className="mt-[10px] flex flex-wrap gap-[8px]">
                           <button
                             onClick={() => toggleFriend(u)}
+                            disabled={isPending}
                             className="inline-flex items-center gap-[4px] font-semibold"
                             style={{
                               height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
-                              background: isAdded ? "transparent" : "var(--accent)",
-                              color: isAdded ? "var(--foreground-70)" : "white",
-                              border: isAdded ? "1px solid var(--border)" : "none",
+                              background: isAdded || isPending ? "transparent" : "var(--accent)",
+                              color: isAdded || isPending ? "var(--foreground-70)" : "white",
+                              border: isAdded || isPending ? "1px solid var(--border)" : "none",
+                              cursor: isPending ? "default" : "pointer",
                             }}
                           >
-                            {isAdded ? <><Check size={12} />В друзьях</> : <><UserPlus size={12} />Добавить</>}
+                            {isAdded ? <><Check size={12} />В друзьях</>
+                              : isPending ? <><Check size={12} />Заявка отправлена</>
+                              : <><UserPlus size={12} />Добавить</>}
                           </button>
                           <button
                             type="button"

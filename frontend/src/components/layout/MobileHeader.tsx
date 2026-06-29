@@ -18,7 +18,7 @@ export function MobileHeader() {
       }}
     >
       <Link to="/feed" className="min-w-0 inline-flex items-center" aria-label="На главную">
-        <Logo />
+        <Logo size={38} />
       </Link>
       <div className="flex shrink-0 items-center gap-[2px]">
         <Link
