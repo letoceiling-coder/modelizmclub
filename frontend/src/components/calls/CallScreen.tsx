@@ -221,7 +221,6 @@ function CallControls() {
   const cameraOff = useCalls((s) => s.cameraOff);
   const speakerOn = useCalls((s) => s.speakerOn);
   const canSwitchCamera = useCalls((s) => s.canSwitchCamera);
-  const canSwitchSpeaker = useCalls((s) => s.canSwitchSpeaker);
   if (!active) return null;
 
   const incomingRinging = active.direction === "incoming" && active.status === "ringing";
@@ -278,15 +277,13 @@ function CallControls() {
           onClick={() => calls.toggleMute()}
           disabled={ended}
         />
-        {canSwitchSpeaker && (
-          <ToggleBtn
-            label={speakerOn ? "Выключить динамик" : "Включить динамик"}
-            icon={speakerOn ? Volume2 : VolumeX}
-            active={!speakerOn}
-            onClick={() => void calls.toggleSpeaker()}
-            disabled={ended}
-          />
-        )}
+        <ToggleBtn
+          label={speakerOn ? "Выключить звук собеседника" : "Включить звук собеседника"}
+          icon={speakerOn ? Volume2 : VolumeX}
+          active={!speakerOn}
+          onClick={() => void calls.toggleSpeaker()}
+          disabled={ended}
+        />
         {isVideo && (
           <ToggleBtn
             label={cameraOff ? "Включить камеру" : "Выключить камеру"}

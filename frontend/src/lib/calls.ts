@@ -955,12 +955,16 @@ export const calls = {
     }
   },
 
-  /** Toggle loud-speaker vs earpiece output where the browser exposes routing. */
+  /**
+   * Toggle whether you hear the other side. speakerOn=true → unmuted (and, on
+   * phones that expose it, routed to the loud-speaker); false → remote audio
+   * muted. Muting works on every platform, unlike setSinkId routing.
+   */
   async toggleSpeaker(): Promise<boolean> {
     const next = !state.speakerOn;
     setState({ speakerOn: next });
-    await applyAudioOutput(next);
-    logEvent("info", "calls", "speaker toggled", { speakerOn: next, supported: speakerRoutingSupported() });
+    applyRemoteAudio(next);
+    logEvent("info", "calls", "remote audio toggled", { on: next });
     return next;
   },
 };
@@ -996,36 +1000,34 @@ async function detectMultipleCameras(): Promise<void> {
   }
 }
 
-/**
- * Route remote audio to loud-speaker or earpiece via setSinkId.
- * Works on Android Chrome (and desktop); iOS Safari lacks setSinkId, so this
- * is a no-op there and the button is hidden via `canSwitchSpeaker`.
- */
-async function applyAudioOutput(speakerOn: boolean): Promise<void> {
-  if (typeof document === "undefined" || !speakerRoutingSupported()) return;
+/** Mute/unmute the remote participant's audio (universal across browsers). */
+function applyRemoteAudio(on: boolean): void {
+  if (typeof document === "undefined") return;
+  const els = Array.from(document.querySelectorAll<HTMLMediaElement>("[data-call-media]"));
+  for (const el of els) {
+    el.muted = !on;
+    if (on) el.volume = 1;
+  }
+  // Best-effort: prefer the loud-speaker when unmuting on phones that expose it.
+  if (on && speakerRoutingSupported()) void routeToLoudspeaker();
+}
+
+async function routeToLoudspeaker(): Promise<void> {
   const els = Array.from(document.querySelectorAll<HTMLMediaElement>("[data-call-media]"));
   if (els.length === 0) return;
-
-  let outputs: MediaDeviceInfo[] = [];
+  let speaker: MediaDeviceInfo | undefined;
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    outputs = devices.filter((d) => d.kind === "audiooutput");
+    speaker = devices.find((d) => d.kind === "audiooutput" && /speaker|loud/i.test(d.label));
   } catch {
-    /* ignore */
+    return;
   }
-  const speaker = outputs.find((d) => /speaker|loud/i.test(d.label));
-  const earpiece = outputs.find((d) => /earpiece|receiver|handset/i.test(d.label));
-  const targetId = speakerOn
-    ? speaker?.deviceId ?? "default"
-    : earpiece?.deviceId ?? "default";
-
+  if (!speaker) return;
   for (const el of els) {
     const anyEl = el as HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
     if (typeof anyEl.setSinkId !== "function") continue;
     try {
-      el.muted = false;
-      el.volume = 1;
-      await anyEl.setSinkId(targetId);
+      await anyEl.setSinkId(speaker.deviceId);
     } catch {
       /* device may reject the sink — ignore */
     }
