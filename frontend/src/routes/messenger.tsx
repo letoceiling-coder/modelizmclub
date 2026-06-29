@@ -21,6 +21,7 @@ import {
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
+import { useOnlineSet } from "@/lib/realtime/presence";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -185,6 +186,7 @@ function MessengerPage() {
   const dlgs = useStore(selectors.dialogsList);
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
+  const onlineSet = useOnlineSet();
   const { chat } = Route.useSearch();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
   const [query, setQuery] = useState("");
@@ -534,7 +536,7 @@ function MessengerPage() {
                       >
                         <div className="relative">
                           <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
-                          {u.online && (
+                          {(onlineSet.has(d.userId) || u.online) && (
                             <span
                               className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full"
                               style={{ background: "var(--success)", border: "2px solid var(--background-elevated)" }}
@@ -592,7 +594,7 @@ function MessengerPage() {
                   <div>
                     <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{partner!.name}</div>
                     <div className="flex items-center gap-[6px] text-[12px]">
-                      {partner!.online ? (
+                      {(onlineSet.has(partner!.id) || partner!.online) ? (
                         <>
                           <span className="h-[8px] w-[8px] rounded-full" style={{ background: "var(--success)" }} />
                           <span style={{ color: "var(--success)" }}>В сети</span>

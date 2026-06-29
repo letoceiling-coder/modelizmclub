@@ -127,7 +127,10 @@ export async function getEcho(): Promise<any> {
       activityTimeout: 120_000,
       pongTimeout: 30_000,
       authorizer: (channel: { name: string }) => ({
-        authorize: (socketId: string, callback: (error: Error | null, data: { auth: string } | null) => void) => {
+        authorize: (
+          socketId: string,
+          callback: (error: Error | null, data: { auth: string; channel_data?: string } | null) => void,
+        ) => {
           fetch(authUrl, {
             method: "POST",
             headers: {
@@ -141,12 +144,15 @@ export async function getEcho(): Promise<any> {
             }),
           })
             .then(async (res) => {
-              const data = (await res.json().catch(() => null)) as { auth?: string } | null;
+              const data = (await res.json().catch(() => null)) as
+                | { auth?: string; channel_data?: string }
+                | null;
               if (!res.ok || !data?.auth) {
                 callback(new Error(`Broadcast auth ${res.status}`), null);
                 return;
               }
-              callback(null, { auth: data.auth });
+              // Presence channels also need `channel_data`; private channels omit it.
+              callback(null, { auth: data.auth, channel_data: data.channel_data });
             })
             .catch((err: Error) => callback(err, null));
         },
