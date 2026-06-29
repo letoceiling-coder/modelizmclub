@@ -1,4 +1,4 @@
-// Real 1:1 WebRTC calling (audio/video) over Reverb signaling.
+import { toast } from "sonner";
 // Exposes the same module-store API the call UI already consumes.
 
 import { useSyncExternalStore } from "react";
@@ -116,6 +116,11 @@ function pollIncomingOnce(): void {
       if (offer) void handleSignal(offer);
     })
     .catch(() => {});
+}
+
+/** One-shot HTTP check for a ringing call (after reconnect / tab wake). */
+export function syncIncomingOffer(): void {
+  pollIncomingOnce();
 }
 
 function startDisconnectedPoll(): void {
@@ -318,6 +323,15 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
         startedAt: Date.now(),
       },
     });
+    ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
+    const label = from.name ?? "Пользователь";
+    toast.info(`Входящий звонок — ${label}`, {
+      duration: 8000,
+      action: { label: "Принять", onClick: () => void calls.accept() },
+    });
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([300, 120, 300]);
+    }
     return;
   }
 

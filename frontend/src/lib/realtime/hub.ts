@@ -1,7 +1,7 @@
 import type { Message } from "@/lib/mock";
 import { getToken } from "@/lib/api/client";
 import { GUEST_USER } from "@/lib/store";
-import { calls } from "@/lib/calls";
+import { calls, syncIncomingOffer } from "@/lib/calls";
 import { initUserRealtime, resetUserRealtime } from "@/lib/realtime/user";
 import {
   getEcho,
@@ -39,6 +39,7 @@ export async function resubscribeRealtime(): Promise<void> {
   await calls.init(hubUser);
   await initUserRealtime(hubUser);
   await bindConversation();
+  syncIncomingOffer();
 }
 
 async function ensureConnection(): Promise<void> {
@@ -54,7 +55,7 @@ function bindLifecycle(): void {
   lifecycleBound = true;
 
   const wake = (): void => {
-    void ensureConnection();
+    void ensureConnection().then(() => syncIncomingOffer());
   };
 
   window.addEventListener("online", wake);

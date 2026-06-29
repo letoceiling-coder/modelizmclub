@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
@@ -16,8 +17,10 @@ export function CallScreen() {
   const active = useCalls((s) => s.active);
   const me = useStore(selectors.currentUser);
   const [elapsed, setElapsed] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
-  // Subscribe to the personal signaling channel once we know who we are.
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (me?.id && me.id !== GUEST_USER.id) void calls.init(me.id);
   }, [me?.id]);
@@ -44,7 +47,9 @@ export function CallScreen() {
     return unsub;
   }, []);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {active && (
         <motion.div
@@ -53,13 +58,14 @@ export function CallScreen() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-between overflow-hidden"
+          className="fixed inset-0 z-[9999] flex flex-col overflow-hidden"
           style={{
+            height: "100dvh",
             background:
               "radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--accent) 30%, var(--background)) 0%, var(--background) 60%)",
             color: "var(--foreground)",
-            paddingTop: "max(48px, env(safe-area-inset-top))",
-            paddingBottom: "max(40px, env(safe-area-inset-bottom))",
+            paddingTop: "max(12px, env(safe-area-inset-top))",
+            paddingBottom: "max(12px, env(safe-area-inset-bottom))",
           }}
           role="dialog"
           aria-modal="true"
@@ -71,7 +77,8 @@ export function CallScreen() {
           <CallControls />
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -142,10 +149,11 @@ function CallBody({ elapsed }: { elapsed: number }) {
   if (!active) return null;
   const isVideoConnected = active.media === "video" && active.status === "connected";
   const statusText = active.status === "connected" ? formatCallDuration(elapsed) : STATUS_LABEL[active.status];
+  const incomingRinging = active.direction === "incoming" && active.status === "ringing";
 
   if (isVideoConnected) {
     return (
-      <div className="relative z-[2] flex w-full items-start justify-center px-6 pt-2">
+      <div className="relative z-[2] flex w-full shrink-0 items-start justify-center px-6 pt-2">
         <div className="rounded-full px-4 py-1.5 text-[14px] font-semibold text-white" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)" }}>
           {active.peerName} · <span className="font-mono">{statusText}</span>
         </div>
@@ -156,14 +164,16 @@ function CallBody({ elapsed }: { elapsed: number }) {
   const initial = (active.peerName || "?").slice(0, 1).toUpperCase();
 
   return (
-    <div className="relative z-[2] flex flex-1 flex-col items-center justify-center px-6 text-center">
+    <div
+      className={`relative z-[2] flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center ${incomingRinging ? "pb-2" : ""}`}
+    >
       <div className="text-[12px] uppercase tracking-[0.18em]" style={{ color: "var(--foreground-50)" }}>
         {active.direction === "outgoing" ? "Исходящий" : "Входящий"}
         {active.media === "video" ? " · видео" : ""}
       </div>
 
       <motion.div
-        className="relative mt-4"
+        className="relative mt-3 sm:mt-4"
         animate={active.status === "ringing" || active.status === "connecting" ? { scale: [1, 1.04, 1] } : { scale: 1 }}
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -172,12 +182,12 @@ function CallBody({ elapsed }: { elapsed: number }) {
           <img
             src={active.peerAvatar}
             alt=""
-            className="relative h-[160px] w-[160px] rounded-full object-cover"
+            className="relative h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] rounded-full object-cover"
             style={{ boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
           />
         ) : (
           <div
-            className="relative grid h-[160px] w-[160px] place-items-center rounded-full font-display text-[56px] font-bold text-white"
+            className="relative grid h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] place-items-center rounded-full font-display text-[44px] sm:text-[56px] font-bold text-white"
             style={{ background: "var(--accent)", boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
           >
             {initial}
@@ -185,9 +195,9 @@ function CallBody({ elapsed }: { elapsed: number }) {
         )}
       </motion.div>
 
-      <h2 className="mt-6 font-display text-[26px] font-bold leading-tight">{active.peerName}</h2>
+      <h2 className="mt-4 sm:mt-6 font-display text-[22px] sm:text-[26px] font-bold leading-tight">{active.peerName}</h2>
       <div
-        className="mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-medium"
+        className="mt-2 sm:mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-medium"
         style={{
           background: "color-mix(in oklab, var(--background-elevated) 70%, transparent)",
           color: active.status === "connected" ? "var(--success)" : "var(--foreground-70)",
@@ -212,44 +222,52 @@ function CallControls() {
 
   if (incomingRinging) {
     return (
-      <div className="relative z-[2] flex w-full max-w-md items-center justify-center gap-12 px-6 pb-2">
-        <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => calls.decline()}
-            aria-label="Отклонить"
-            className="grid h-[68px] w-[68px] place-items-center rounded-full transition-transform active:scale-95"
-            style={{ background: "var(--error, #ef4444)", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
-          >
-            <PhoneOff size={26} />
-          </button>
-          <span className="text-[12px]" style={{ color: "var(--foreground-70)" }}>Отклонить</span>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void calls.accept()}
-            aria-label="Принять"
-            className="grid h-[68px] w-[68px] place-items-center rounded-full transition-transform active:scale-95"
-            style={{ background: "var(--success, #22c55e)", color: "white", boxShadow: "0 12px 30px -6px rgba(34,197,94,0.55)" }}
-          >
-            <Phone size={26} />
-          </button>
-          <span className="text-[12px]" style={{ color: "var(--foreground-70)" }}>Принять</span>
+      <div
+        className="relative z-[10] shrink-0 w-full px-6"
+        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+      >
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-8 sm:gap-12">
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => calls.decline()}
+              aria-label="Отклонить"
+              className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
+              style={{ background: "var(--error, #ef4444)", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
+            >
+              <PhoneOff size={28} />
+            </button>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Отклонить</span>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void calls.accept()}
+              aria-label="Принять"
+              className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
+              style={{ background: "var(--success, #22c55e)", color: "white", boxShadow: "0 12px 30px -6px rgba(34,197,94,0.55)" }}
+            >
+              <Phone size={28} />
+            </button>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Принять</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative z-[2] flex w-full max-w-md items-center justify-center gap-6 px-6 pb-2">
+    <div
+      className="relative z-[10] shrink-0 flex w-full max-w-md items-center justify-center gap-6 px-6 mx-auto"
+      style={{ paddingBottom: "max(4px, env(safe-area-inset-bottom))" }}
+    >
       <ToggleBtn label={muted ? "Включить микрофон" : "Выключить микрофон"} icon={muted ? MicOff : Mic} active={muted} onClick={() => calls.toggleMute()} disabled={ended} />
       <button
         type="button"
         onClick={() => calls.end()}
         disabled={ended}
         aria-label="Завершить звонок"
-        className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95"
+        className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
         style={{ background: "var(--error, #ef4444)", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)", opacity: ended ? 0.6 : 1 }}
       >
         <PhoneOff size={28} />
@@ -282,7 +300,7 @@ function ToggleBtn({
       disabled={disabled}
       onClick={onClick}
       aria-label={label}
-      className="grid h-[56px] w-[56px] place-items-center rounded-full transition-transform active:scale-95"
+      className="grid h-[56px] w-[56px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
       style={{
         background: active ? "white" : "color-mix(in oklab, var(--background-elevated) 75%, transparent)",
         color: active ? "#111" : "var(--foreground-70)",
