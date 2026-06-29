@@ -13,7 +13,7 @@ import {
 } from "./api/calls";
 import { getToken } from "./api/client";
 import { GUEST_USER } from "./store";
-import { subscribeCalls } from "./realtime/echo";
+import { subscribeCalls, onEchoConnection } from "./realtime/echo";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
 export type CallDirection = "outgoing" | "incoming";
@@ -104,17 +104,24 @@ let signalUnsub: (() => void) | null = null;
 let initGen = 0;
 let pendingLocalCandidates: RTCIceCandidateInit[] = [];
 let incomingPollTimer: ReturnType<typeof setInterval> | null = null;
+let echoConnUnsub: (() => void) | null = null;
 
-function startIncomingPoll(): void {
+/** Only when WebSocket is down — not for every online user. */
+const INCOMING_POLL_MS = 30_000;
+
+function pollIncomingOnce(): void {
+  if (state.active && state.active.status !== "ended") return;
+  fetchIncomingCall()
+    .then((offer) => {
+      if (offer) void handleSignal(offer);
+    })
+    .catch(() => {});
+}
+
+function startDisconnectedPoll(): void {
   if (incomingPollTimer) return;
-  incomingPollTimer = setInterval(() => {
-    if (state.active && state.active.status !== "ended") return;
-    fetchIncomingCall()
-      .then((offer) => {
-        if (offer) void handleSignal(offer);
-      })
-      .catch(() => {});
-  }, 4_000);
+  pollIncomingOnce();
+  incomingPollTimer = setInterval(pollIncomingOnce, INCOMING_POLL_MS);
 }
 
 function stopIncomingPoll(): void {
@@ -124,8 +131,22 @@ function stopIncomingPoll(): void {
   }
 }
 
+function syncIncomingFallback(connected: boolean): void {
+  if (connected) {
+    stopIncomingPoll();
+    // One catch-up after reconnect (missed events while socket was down).
+    pollIncomingOnce();
+  } else {
+    startDisconnectedPoll();
+  }
+}
+
 export function shutdownCalls(): void {
   stopIncomingPoll();
+  if (echoConnUnsub) {
+    echoConnUnsub();
+    echoConnUnsub = null;
+  }
   initGen++;
   if (signalUnsub) {
     signalUnsub();
@@ -351,7 +372,9 @@ export const calls = {
       return;
     }
     signalUnsub = unsub;
-    startIncomingPoll();
+    if (!echoConnUnsub) {
+      echoConnUnsub = onEchoConnection(syncIncomingFallback);
+    }
   },
 
   async start(

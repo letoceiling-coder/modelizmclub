@@ -5,6 +5,41 @@ import { getToken, API_BASE_URL } from "@/lib/api/client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 let echo: any = null;
+const connectionListeners = new Set<(connected: boolean) => void>();
+
+function isPusherConnected(e: any): boolean {
+  return e?.connector?.pusher?.connection?.state === "connected";
+}
+
+function bindConnectionWatch(e: any): void {
+  const conn = e?.connector?.pusher?.connection;
+  if (!conn || conn.__mcBound) return;
+  conn.__mcBound = true;
+  const notify = (): void => {
+    const connected = conn.state === "connected";
+    connectionListeners.forEach((cb) => cb(connected));
+  };
+  conn.bind("connected", notify);
+  conn.bind("disconnected", notify);
+  conn.bind("failed", notify);
+  conn.bind("unavailable", notify);
+  notify();
+}
+
+/** True when the Reverb/Pusher socket is up. */
+export function isEchoConnected(): boolean {
+  return isPusherConnected(echo);
+}
+
+/** React to WebSocket connect/disconnect (used for rare HTTP fallbacks). */
+export function onEchoConnection(cb: (connected: boolean) => void): () => void {
+  connectionListeners.add(cb);
+  void getEcho().then((e) => {
+    if (e) bindConnectionWatch(e);
+    cb(isPusherConnected(e));
+  });
+  return () => connectionListeners.delete(cb);
+}
 
 function env(key: string): string | undefined {
   return (import.meta as { env?: Record<string, string | undefined> }).env?.[key];
@@ -74,6 +109,7 @@ async function getEcho(): Promise<any> {
         },
       }),
     } as ConstructorParameters<typeof Echo>[0]);
+    bindConnectionWatch(echo);
   } catch {
     echo = null;
   }
