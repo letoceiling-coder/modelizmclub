@@ -18,8 +18,9 @@ import {
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
   createConversation,
 } from "@/lib/api/chat";
-import { subscribeConversation } from "@/lib/realtime/echo";
 import { setWatchingDialog } from "@/lib/realtime/user";
+import { setHubConversation } from "@/lib/realtime/hub";
+import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -224,16 +225,24 @@ function MessengerPage() {
     return () => setWatchingDialog(null);
   }, [activeId]);
 
-  // Poll dialog list — fallback when WebSocket is down.
+  // Poll dialog list only when WebSocket is down.
   useEffect(() => {
     if (meId === GUEST_USER.id) return;
     const tick = () => {
+      if (isEchoConnected()) return;
       fetchConversations(meId)
         .then((list) => setDialogs(list))
         .catch(() => {});
     };
+    tick();
     const interval = window.setInterval(tick, 20_000);
-    return () => window.clearInterval(interval);
+    const unsubConn = onEchoConnection((connected) => {
+      if (connected) tick();
+    });
+    return () => {
+      window.clearInterval(interval);
+      unsubConn();
+    };
   }, [meId]);
 
   useEffect(() => {
@@ -247,31 +256,34 @@ function MessengerPage() {
     return () => { alive = false; };
   }, [activeId]);
 
-  // Poll while chat is open — fallback when WebSocket auth/subscription fails.
+  // Poll messages only when WebSocket is down (open chat fallback).
   useEffect(() => {
     if (!activeId) return;
     const id = activeId;
     const tick = () => {
+      if (isEchoConnected()) return;
       fetchMessages(id)
         .then((msgs) => setDialogMessages(id, msgs))
         .catch(() => {});
     };
+    tick();
     const interval = window.setInterval(tick, 12_000);
-    return () => window.clearInterval(interval);
+    const unsubConn = onEchoConnection((connected) => {
+      if (connected) tick();
+    });
+    return () => {
+      window.clearInterval(interval);
+      unsubConn();
+    };
   }, [activeId]);
 
   useEffect(() => {
-    if (!activeId || meId === GUEST_USER.id) return;
-    let alive = true;
-    let cleanup = () => {};
-    subscribeConversation(activeId, (m) => upsertMessage(activeId, m)).then((fn) => {
-      if (alive) cleanup = fn;
-      else fn();
-    });
-    return () => {
-      alive = false;
-      cleanup();
-    };
+    if (!activeId || meId === GUEST_USER.id) {
+      setHubConversation(null);
+      return;
+    }
+    setHubConversation(activeId, (m) => upsertMessage(activeId, m));
+    return () => setHubConversation(null);
   }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);

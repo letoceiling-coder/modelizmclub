@@ -1,9 +1,8 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken, setToken } from "@/lib/api/client";
-import { calls, shutdownCalls } from "@/lib/calls";
+import { shutdownCalls } from "@/lib/calls";
 import { setCurrentUser } from "@/lib/store";
-import { resetEcho } from "@/lib/realtime/echo";
-import { initUserRealtime, resetUserRealtime } from "@/lib/realtime/user";
+import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 
 let sessionPromise: Promise<boolean> | null = null;
 
@@ -25,21 +24,16 @@ async function loadSession(): Promise<boolean> {
   const me = await fetchMe();
   if (!me) return false;
   setCurrentUser(me);
-  // Reconnect WebSocket with a validated token (fixes broadcast/auth 403 after boot).
-  resetEcho();
-  resetUserRealtime();
   shutdownCalls();
-  await calls.init(me.id);
-  await initUserRealtime(me.id);
+  await startRealtimeHub(me.id);
   return true;
 }
 
 /** Clears the in-flight session promise (after login / logout). */
 export function resetSessionCache(): void {
   sessionPromise = null;
-  resetEcho();
-  resetUserRealtime();
   shutdownCalls();
+  stopRealtimeHub();
 }
 
 // Restore the authenticated user into the store on app boot.

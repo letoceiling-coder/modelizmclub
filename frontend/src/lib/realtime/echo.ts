@@ -6,6 +6,9 @@ import { getToken, API_BASE_URL } from "@/lib/api/client";
 
 let echo: any = null;
 const connectionListeners = new Set<(connected: boolean) => void>();
+const reconnectHandlers = new Set<() => void>();
+let connectionWatchBound = false;
+let lastConnected = false;
 
 function isPusherConnected(e: any): boolean {
   return e?.connector?.pusher?.connection?.state === "connected";
@@ -13,17 +16,32 @@ function isPusherConnected(e: any): boolean {
 
 function bindConnectionWatch(e: any): void {
   const conn = e?.connector?.pusher?.connection;
-  if (!conn || conn.__mcBound) return;
-  conn.__mcBound = true;
-  const notify = (): void => {
-    const connected = conn.state === "connected";
+  if (!conn) return;
+
+  const notify = (connected: boolean): void => {
     connectionListeners.forEach((cb) => cb(connected));
+    lastConnected = connected;
   };
-  conn.bind("connected", notify);
-  conn.bind("disconnected", notify);
-  conn.bind("failed", notify);
-  conn.bind("unavailable", notify);
-  notify();
+
+  if (!connectionWatchBound) {
+    connectionWatchBound = true;
+    conn.bind("state_change", (states: { current?: string; previous?: string }) => {
+      const current = states.current ?? conn.state;
+      const prev = states.previous ?? "";
+      const connected = current === "connected";
+      notify(connected);
+      if (
+        connected &&
+        (prev === "disconnected" || prev === "failed" || prev === "unavailable")
+      ) {
+        reconnectHandlers.forEach((cb) => cb());
+      }
+    });
+    conn.bind("disconnected", () => notify(false));
+    conn.bind("failed", () => notify(false));
+    conn.bind("unavailable", () => notify(false));
+  }
+  notify(conn.state === "connected");
 }
 
 /** True when the Reverb/Pusher socket is up. */
@@ -41,6 +59,28 @@ export function onEchoConnection(cb: (connected: boolean) => void): () => void {
   return () => connectionListeners.delete(cb);
 }
 
+/** Fires after the socket (re)connects — use to re-bind channel listeners. */
+export function onEchoReconnect(cb: () => void): () => void {
+  reconnectHandlers.add(cb);
+  return () => reconnectHandlers.delete(cb);
+}
+
+/** Force a fresh socket when disconnected or auth may be stale. */
+export async function reconnectEcho(): Promise<void> {
+  if (typeof window === "undefined" || !getToken()) return;
+  if (isEchoConnected()) return;
+  resetEcho();
+  lastConnected = false;
+  const e = await getEcho();
+  if (e?.connector?.pusher?.connection?.state !== "connected") {
+    try {
+      e?.connector?.pusher?.connect();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function env(key: string): string | undefined {
   return (import.meta as { env?: Record<string, string | undefined> }).env?.[key];
 }
@@ -55,9 +95,10 @@ export function resetEcho(): void {
     }
   }
   echo = null;
+  lastConnected = false;
 }
 
-async function getEcho(): Promise<any> {
+export async function getEcho(): Promise<any> {
   if (echo) return echo;
   if (typeof window === "undefined") return null;
 
@@ -83,6 +124,8 @@ async function getEcho(): Promise<any> {
       wssPort: port,
       forceTLS: (env("VITE_REVERB_SCHEME") ?? "https") === "https",
       enabledTransports: ["ws", "wss"],
+      activityTimeout: 120_000,
+      pongTimeout: 30_000,
       authorizer: (channel: { name: string }) => ({
         authorize: (socketId: string, callback: (error: Error | null, data: { auth: string } | null) => void) => {
           fetch(authUrl, {
