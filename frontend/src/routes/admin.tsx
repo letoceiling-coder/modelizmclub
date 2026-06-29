@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
@@ -23,9 +23,11 @@ import {
   fetchAdminPosts, updateAdminPostStatus, deleteAdminPost,
   fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
   broadcastNotification,
+  fetchAdminFeedback, updateAdminFeedbackStatus,
   type AdminUserRow, type AuditEntry, type ModerationItem,
   type AdminCategory, type CategoryKind, type AdminSetting,
   type AdminPostRow, type AdminListingRow,
+  type FeedbackRow, type FeedbackStatus,
 } from "@/lib/api/admin";
 
 export const Route = createFileRoute("/admin")({
@@ -39,7 +41,7 @@ export const Route = createFileRoute("/admin")({
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation"
-  | "monetization" | "categories" | "notifications" | "analytics" | "design" | "settings";
+  | "monetization" | "categories" | "notifications" | "analytics" | "design" | "feedback" | "settings";
 
 const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -51,6 +53,7 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "categories", label: "Категории", icon: FolderTree },
   { id: "notifications", label: "Уведомления", icon: Bell },
   { id: "analytics", label: "Аналитика", icon: BarChart3 },
+  { id: "feedback", label: "Обращения", icon: Inbox },
   { id: "design", label: "Design System", icon: Palette },
   { id: "settings", label: "Настройки", icon: Settings },
 ];
@@ -226,6 +229,7 @@ function SectionView({ section }: { section: Section }) {
   if (section === "categories") return <CategoriesSection />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
+  if (section === "feedback") return <FeedbackSection />;
   if (section === "design") return <DesignSystemSection />;
   return <SettingsSection />;
 }
@@ -1064,6 +1068,145 @@ function ModerationCard({ title, author, category, onApprove, onReject }: { titl
       </div>
     </motion.div>
   );
+}
+
+/* ============ FEEDBACK (Книга жалоб) ============ */
+const FEEDBACK_FILTERS: { id: FeedbackStatus | "all"; label: string }[] = [
+  { id: "all", label: "Все" },
+  { id: "new", label: "Новые" },
+  { id: "read", label: "Прочитано" },
+  { id: "resolved", label: "Решено" },
+];
+
+const FEEDBACK_STATUS_META: Record<FeedbackStatus, { label: string; bg: string; color: string }> = {
+  new: { label: "Новое", bg: "var(--accent-soft)", color: "var(--accent)" },
+  read: { label: "Прочитано", bg: "var(--background-subtle)", color: "var(--foreground-70)" },
+  resolved: { label: "Решено", bg: "color-mix(in oklab, var(--success) 18%, transparent)", color: "var(--success)" },
+};
+
+function FeedbackSection() {
+  const [filter, setFilter] = useState<FeedbackStatus | "all">("all");
+  const [items, setItems] = useState<FeedbackRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchAdminFeedback(filter === "all" ? undefined : filter)
+      .then((rows) => active && setItems(rows))
+      .catch(() => active && toast.error("Не удалось загрузить обращения"))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [filter]);
+
+  const setStatus = async (row: FeedbackRow, status: FeedbackStatus) => {
+    const prev = row.status;
+    setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status } : x)));
+    try {
+      await updateAdminFeedbackStatus(row.id, status);
+    } catch {
+      setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
+      toast.error("Не удалось обновить статус");
+    }
+  };
+
+  return (
+    <div>
+      <H>Книга жалоб и предложений</H>
+      <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
+        {FEEDBACK_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            style={{
+              height: "32px",
+              padding: "0 14px",
+              fontSize: "12px",
+              fontWeight: 600,
+              borderRadius: "var(--r-button)",
+              border: "1px solid var(--border)",
+              background: filter === f.id ? "var(--accent)" : "transparent",
+              color: filter === f.id ? "#fff" : "var(--foreground-70)",
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
+          Загрузка…
+        </div>
+      ) : items.length === 0 ? (
+        <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
+          <Inbox size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
+          Обращений пока нет
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {items.map((row) => {
+            const meta = FEEDBACK_STATUS_META[row.status];
+            return (
+              <div key={row.id} style={{ ...card, padding: "16px" }}>
+                <div className="flex items-center justify-between flex-wrap gap-[8px]">
+                  <div className="flex items-center gap-[8px]">
+                    <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--foreground)" }}>
+                      {row.subject || "Без темы"}
+                    </span>
+                    <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>
+                      {meta.label}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                    {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : ""}
+                  </span>
+                </div>
+                <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>
+                  {row.message}
+                </p>
+                <div className="flex items-center justify-between flex-wrap gap-[8px]" style={{ marginTop: "10px" }}>
+                  <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
+                    {row.author}{row.page ? ` · ${row.page}` : ""}
+                  </span>
+                  <div className="flex gap-[8px]">
+                    {row.status !== "read" && (
+                      <button onClick={() => setStatus(row, "read")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
+                        Прочитано
+                      </button>
+                    )}
+                    {row.status !== "resolved" && (
+                      <button onClick={() => setStatus(row, "resolved")} style={feedbackBtn("var(--success)", "#fff")}>
+                        Решено
+                      </button>
+                    )}
+                    {row.status !== "new" && (
+                      <button onClick={() => setStatus(row, "new")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
+                        В новые
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function feedbackBtn(bg: string, color: string): React.CSSProperties {
+  return {
+    height: "32px",
+    padding: "0 14px",
+    background: bg,
+    color,
+    fontWeight: 600,
+    fontSize: "12px",
+    borderRadius: "var(--r-button)",
+    border: bg === "transparent" ? "1px solid var(--border)" : "none",
+  };
 }
 
 /* ============ MONETIZATION ============ */

@@ -545,3 +545,44 @@ export async function rejectModeration(type: ModerationType, id: string, reason?
 export async function reviseModeration(type: ModerationType, id: string, comment?: string): Promise<void> {
   await api(`/admin/moderation/${type}/${id}/revision`, { method: "POST", json: { comment } });
 }
+
+export type FeedbackStatus = "new" | "read" | "resolved";
+
+export interface FeedbackRow {
+  id: number;
+  subject: string;
+  message: string;
+  page: string;
+  status: FeedbackStatus;
+  author: string;
+  createdAt: string;
+}
+
+interface ApiFeedback {
+  id: number;
+  subject?: string | null;
+  message?: string | null;
+  page?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  user?: { id?: number; name?: string | null } | null;
+}
+
+export async function fetchAdminFeedback(status?: FeedbackStatus): Promise<FeedbackRow[]> {
+  const res = await api<Paginated<ApiFeedback>>("/admin/feedback", {
+    query: { per_page: 50, ...(status ? { status } : {}) },
+  });
+  return (res.data ?? []).map((f) => ({
+    id: f.id,
+    subject: f.subject ?? "",
+    message: f.message ?? "",
+    page: f.page ?? "",
+    status: (f.status as FeedbackStatus) ?? "new",
+    author: f.user?.name ?? "Гость",
+    createdAt: f.created_at ?? "",
+  }));
+}
+
+export async function updateAdminFeedbackStatus(id: number, status: FeedbackStatus): Promise<void> {
+  await api(`/admin/feedback/${id}`, { method: "PATCH", json: { status } });
+}
