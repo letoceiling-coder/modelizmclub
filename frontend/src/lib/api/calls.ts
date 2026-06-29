@@ -37,6 +37,10 @@ export async function answerCall(uuid: string, sdp: RTCSessionDescriptionInit): 
   await api(`/calls/${uuid}/answer`, { method: "POST", json: { sdp } });
 }
 
+export async function restartCall(uuid: string, sdp: RTCSessionDescriptionInit): Promise<void> {
+  await api(`/calls/${uuid}/restart`, { method: "POST", json: { sdp } });
+}
+
 export async function sendIce(uuid: string, candidate: RTCIceCandidateInit): Promise<void> {
   await api(`/calls/${uuid}/ice`, { method: "POST", json: { candidate } });
 }

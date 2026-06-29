@@ -34,9 +34,14 @@ class CallController extends Controller
 
         if ($turnUrls !== [] && is_string($secret) && $secret !== '') {
             $ttl = (int) config('calls.turn.ttl', 3600);
-            $username = (time() + $ttl).':'.$request->user()->id;
+            // Unique suffix per issue — avoids coturn allocation collisions when both
+            // peers fetch credentials within the same second (matches reference setup).
+            $username = (time() + $ttl).':'.substr(bin2hex(random_bytes(4)), 0, 8);
             $credential = base64_encode(hash_hmac('sha1', $username, $secret, true));
 
+            // STUN and TURN MUST be separate RTCIceServer entries — a single entry
+            // mixing stun: with username/credential is invalid and silently dropped
+            // by Chrome/Safari.
             $servers[] = [
                 'urls' => array_values($turnUrls),
                 'username' => $username,
@@ -104,6 +109,22 @@ class CallController extends Controller
         $call->update(['status' => 'answered', 'answered_at' => now()]);
 
         CallSignaling::send($call->caller->uuid, 'answer', [
+            'call_uuid' => $call->uuid,
+            'sdp' => $data['sdp'],
+        ]);
+
+        return response()->json(['data' => ['ok' => true]]);
+    }
+
+    /**
+     * Relay an ICE-restart offer to the peer (renegotiation without ending the call).
+     */
+    public function restart(Request $request, string $uuid): JsonResponse
+    {
+        $data = $request->validate(['sdp' => ['required', 'array']]);
+        $call = $this->findCall($uuid, $request->user());
+
+        CallSignaling::send($this->peerUuid($call, $request->user()), 'restart', [
             'call_uuid' => $call->uuid,
             'sdp' => $data['sdp'],
         ]);

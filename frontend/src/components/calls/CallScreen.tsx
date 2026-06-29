@@ -10,6 +10,7 @@ const STATUS_LABEL: Record<CallStatus, string> = {
   ringing: "Вызов…",
   connecting: "Соединение…",
   connected: "В разговоре",
+  reconnecting: "Переподключение…",
   ended: "Звонок завершён",
 };
 

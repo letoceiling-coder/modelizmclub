@@ -6,6 +6,7 @@ import {
   fetchIceServers,
   initiateCall,
   answerCall,
+  restartCall,
   sendIce,
   rejectCall,
   hangupCall,
@@ -27,7 +28,7 @@ import {
   playRejected,
 } from "./callAudio";
 
-export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
+export type CallStatus = "ringing" | "connecting" | "connected" | "reconnecting" | "ended";
 export type CallDirection = "outgoing" | "incoming";
 export type CallResult = "answered" | "missed" | "ended" | "rejected" | "busy";
 export type CallMedia = "audio" | "video";
@@ -118,6 +119,22 @@ let pendingLocalCandidates: RTCIceCandidateInit[] = [];
 let incomingPollTimer: ReturnType<typeof setInterval> | null = null;
 let echoConnUnsub: (() => void) | null = null;
 
+// ---- reconnection / stability (ported from agent.neeklo.ru rtc-runtime) ----
+let reconnectAttempts = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let disconnectGraceTimer: ReturnType<typeof setTimeout> | null = null;
+let mediaWatchdogTimer: ReturnType<typeof setInterval> | null = null;
+let renegotiating = false;
+let lastMediaActivityAt = 0;
+let lastInboundBytes = 0;
+
+const RECONNECT_MAX_ATTEMPTS = 8;
+const RECONNECT_BASE_DELAY_MS = 1_000;
+const RECONNECT_MAX_DELAY_MS = 30_000;
+const DISCONNECT_GRACE_MS = 6_000;
+const MEDIA_STALL_MS = 25_000;
+const MEDIA_CHECK_MS = 4_000;
+
 /** Only when WebSocket is down — not for every online user. */
 const INCOMING_POLL_MS = 30_000;
 
@@ -181,7 +198,7 @@ function clearTimers(): void {
 
 async function buildPc(): Promise<RTCPeerConnection> {
   const iceServers = await fetchIceServers();
-  const conn = new RTCPeerConnection({ iceServers });
+  const conn = new RTCPeerConnection({ iceServers, bundlePolicy: "max-bundle" });
   const remote = new MediaStream();
   setState({ remoteStream: remote });
 
@@ -198,26 +215,148 @@ async function buildPc(): Promise<RTCPeerConnection> {
   conn.ontrack = (ev) => {
     ev.streams[0]?.getTracks().forEach((t) => remote.addTrack(t));
     if (ev.streams.length === 0) remote.addTrack(ev.track);
+    pokeMedia();
+  };
+  conn.oniceconnectionstatechange = () => {
+    onIceState(conn.iceConnectionState);
   };
   conn.onconnectionstatechange = () => {
     const s = conn.connectionState;
     if (s === "connected") {
-      if (state.active && state.active.status !== "connected") {
-        patchActive({ status: "connected", connectedAt: Date.now() });
-        playConnected();
-        if (ringTimer) {
-          clearTimeout(ringTimer);
-          ringTimer = null;
-        }
-      }
-    } else if (s === "failed") {
+      markConnected();
+    } else if (s === "closed") {
       const status = state.active?.status;
-      if (status === "connecting" || status === "connected") {
-        finish("ended");
-      }
+      if (status && status !== "ended") finish("ended");
     }
+    // NOTE: "failed" is handled by oniceconnectionstatechange via ICE restart —
+    // we do NOT end the call here (that was the instability bug).
   };
   return conn;
+}
+
+function markConnected(): void {
+  clearReconnectTimers();
+  reconnectAttempts = 0;
+  renegotiating = false;
+  if (state.active && state.active.status !== "connected") {
+    patchActive({ status: "connected", connectedAt: state.active.connectedAt ?? Date.now() });
+    playConnected();
+  } else if (state.active) {
+    patchActive({ status: "connected" });
+  }
+  if (ringTimer) {
+    clearTimeout(ringTimer);
+    ringTimer = null;
+  }
+  startMediaWatchdog();
+}
+
+function onIceState(ice: RTCIceConnectionState): void {
+  if (!state.active || state.active.status === "ended") return;
+  // While still ringing (callee hasn't answered) ICE has no remote side yet.
+  if (state.active.status === "ringing" && ice !== "connected" && ice !== "completed") return;
+  if (ice === "connected" || ice === "completed") {
+    markConnected();
+  } else if (ice === "disconnected") {
+    // Transient — give it a grace window before forcing an ICE restart.
+    patchActive({ status: "reconnecting" });
+    if (disconnectGraceTimer) clearTimeout(disconnectGraceTimer);
+    disconnectGraceTimer = setTimeout(() => {
+      const cur = pc?.iceConnectionState;
+      if (cur === "connected" || cur === "completed") return;
+      scheduleIceRestart();
+    }, DISCONNECT_GRACE_MS);
+  } else if (ice === "failed") {
+    patchActive({ status: "reconnecting" });
+    scheduleIceRestart();
+  }
+}
+
+function clearReconnectTimers(): void {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (disconnectGraceTimer) {
+    clearTimeout(disconnectGraceTimer);
+    disconnectGraceTimer = null;
+  }
+}
+
+/** Exponential backoff ICE restart (1s, 2s, 4s … up to 30s, max 8 tries). */
+function scheduleIceRestart(): void {
+  if (!state.active || state.active.status === "ended") return;
+  if (reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+    finish("ended");
+    return;
+  }
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  const delay = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttempts, RECONNECT_MAX_DELAY_MS);
+  reconnectAttempts += 1;
+  reconnectTimer = setTimeout(() => void performIceRestart(), delay);
+}
+
+/** Create a fresh ICE-restart offer and relay it to the peer for renegotiation. */
+async function performIceRestart(): Promise<void> {
+  if (!pc || !state.active || state.active.status === "ended") return;
+  if (renegotiating) return;
+  if (state.active.id.startsWith("pending_")) return;
+  renegotiating = true;
+  patchActive({ status: "reconnecting" });
+  try {
+    const offer = await pc.createOffer({ iceRestart: true });
+    await pc.setLocalDescription(offer);
+    await restartCall(state.active.id, offer);
+  } catch {
+    renegotiating = false;
+    scheduleIceRestart();
+  }
+}
+
+function pokeMedia(): void {
+  lastMediaActivityAt = Date.now();
+}
+
+function startMediaWatchdog(): void {
+  stopMediaWatchdog();
+  lastMediaActivityAt = Date.now();
+  lastInboundBytes = 0;
+  mediaWatchdogTimer = setInterval(() => {
+    void checkMediaAlive();
+  }, MEDIA_CHECK_MS);
+}
+
+function stopMediaWatchdog(): void {
+  if (mediaWatchdogTimer) {
+    clearInterval(mediaWatchdogTimer);
+    mediaWatchdogTimer = null;
+  }
+}
+
+/** Detect frozen media (no inbound bytes) on a "connected" PC → trigger ICE restart. */
+async function checkMediaAlive(): Promise<void> {
+  if (!pc || !state.active || state.active.status === "ended") return;
+  const remote = state.remoteStream;
+  const hasLive = remote?.getTracks().some((t) => t.readyState === "live" && t.enabled);
+  if (!hasLive) return;
+  try {
+    const stats = await pc.getStats();
+    let inbound = 0;
+    stats.forEach((r: any) => {
+      if (r.type === "inbound-rtp") inbound += r.bytesReceived ?? 0;
+    });
+    if (inbound > lastInboundBytes) {
+      lastInboundBytes = inbound;
+      lastMediaActivityAt = Date.now();
+      return;
+    }
+  } catch {
+    return;
+  }
+  if (Date.now() - lastMediaActivityAt > MEDIA_STALL_MS && !renegotiating) {
+    lastMediaActivityAt = Date.now();
+    void performIceRestart();
+  }
 }
 
 async function getMedia(media: CallMedia): Promise<MediaStream> {
@@ -260,10 +399,15 @@ function recordFrom(active: ActiveCall, result: CallResult): CallRecord {
 }
 
 function teardownMedia(): void {
+  clearReconnectTimers();
+  stopMediaWatchdog();
+  reconnectAttempts = 0;
+  renegotiating = false;
   state.localStream?.getTracks().forEach((t) => t.stop());
   if (pc) {
     pc.onicecandidate = null;
     pc.ontrack = null;
+    pc.oniceconnectionstatechange = null;
     pc.onconnectionstatechange = null;
     try {
       pc.close();
@@ -370,15 +514,44 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
 
   if (type === "answer") {
     if (!pc) return;
-    stopCallSounds();
-    playConnecting();
-    patchActive({ status: "connecting" });
+    // Duplicate delivery (calls.* + user.*) — only a pending local offer accepts an answer.
+    if (pc.signalingState !== "have-local-offer") return;
+    // Answer arrives both for the initial offer and for ICE-restart offers.
+    const isRestart = renegotiating || state.active.status === "reconnecting";
+    if (!isRestart) {
+      stopCallSounds();
+      playConnecting();
+      patchActive({ status: "connecting" });
+    }
     try {
       await pc.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
       remoteDescSet = true;
       await drainCandidates();
+      renegotiating = false;
     } catch {
-      finish("ended");
+      renegotiating = false;
+      if (isRestart) scheduleIceRestart();
+      else finish("ended");
+    }
+  } else if (type === "restart") {
+    // Peer initiated an ICE restart — apply as a remote offer and answer back.
+    if (!pc) return;
+    const newSdp = (payload.sdp as RTCSessionDescriptionInit)?.sdp;
+    // Duplicate delivery — same restart offer already applied.
+    if (newSdp && pc.remoteDescription?.sdp === newSdp) return;
+    patchActive({ status: "reconnecting" });
+    try {
+      if (pc.signalingState !== "stable") {
+        await pc.setLocalDescription({ type: "rollback" } as RTCLocalSessionDescriptionInit).catch(() => {});
+      }
+      await pc.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
+      remoteDescSet = true;
+      await drainCandidates();
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await answerCall(state.active.id, answer);
+    } catch {
+      scheduleIceRestart();
     }
   } else if (type === "ice") {
     const cand = payload.candidate as RTCIceCandidateInit;
@@ -452,7 +625,7 @@ export const calls = {
       const stream = await getMedia(media);
       pc = await buildPc();
       stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
-      const offer = await pc.createOffer();
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: media === "video" });
       await pc.setLocalDescription(offer);
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
       patchActive({ id: callUuid });

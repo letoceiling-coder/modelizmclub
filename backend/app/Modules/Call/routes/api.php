@@ -9,6 +9,7 @@ Route::middleware('auth:sanctum')->prefix('calls')->group(function (): void {
     Route::get('/', [CallController::class, 'history']);
     Route::post('/', [CallController::class, 'initiate']);
     Route::post('{uuid}/answer', [CallController::class, 'answer']);
+    Route::post('{uuid}/restart', [CallController::class, 'restart']);
     Route::post('{uuid}/ice', [CallController::class, 'ice']);
     Route::post('{uuid}/reject', [CallController::class, 'reject']);
     Route::post('{uuid}/hangup', [CallController::class, 'hangup']);
