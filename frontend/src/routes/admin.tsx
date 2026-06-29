@@ -292,6 +292,35 @@ function DesignSystemSection() {
           <SwatchRow swatches={BASE_ACCENTS} active={accent} onPick={pickAccent} />
         </Panel>
 
+        <Panel title="Свой цвет (RGB)">
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <input
+              type="color"
+              value={accent}
+              onChange={(e) => pickAccent(e.target.value)}
+              aria-label="Выбрать цвет акцента"
+              style={{ width: 48, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer", padding: 2 }}
+            />
+            <input
+              type="text"
+              value={accent}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) pickAccent(v.toUpperCase());
+                else setAccent(v);
+              }}
+              placeholder="#RRGGBB"
+              spellCheck={false}
+              style={{
+                width: 130, height: 36, padding: "0 12px", borderRadius: 8, fontSize: 13,
+                border: "1px solid var(--border)", background: "var(--background-surface)", color: "var(--foreground)",
+                fontFamily: "var(--font-mono)",
+              }}
+            />
+            <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Любой цвет — превью и переменные обновятся сразу</span>
+          </div>
+        </Panel>
+
         <Panel title="Вариации (5 светлее / 5 темнее)">
           <SwatchRow swatches={variations} active={accent} onPick={pickAccent} />
         </Panel>
