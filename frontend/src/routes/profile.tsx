@@ -13,6 +13,7 @@ import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
 import { toast } from "sonner";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { fetchMyListings } from "@/lib/api/listings";
 import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
@@ -229,13 +230,16 @@ export function ProfileView({
 
           <div className="flex w-full gap-[8px] md:w-auto">
             {isOwn ? (
-              <button
-                onClick={() => setEditOpen(true)}
-                className="inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 md:flex-none"
-                style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
-              >
-                <Pencil size={14} /> Редактировать
-              </button>
+              <>
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 md:flex-none"
+                  style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
+                >
+                  <Pencil size={14} /> Редактировать
+                </button>
+                <LogoutButton variant="profile" />
+              </>
             ) : (
               <>
                 {isFriend ? (

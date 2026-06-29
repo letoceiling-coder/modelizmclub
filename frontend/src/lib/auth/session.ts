@@ -1,7 +1,7 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken, setToken } from "@/lib/api/client";
 import { shutdownCalls } from "@/lib/calls";
-import { setCurrentUser } from "@/lib/store";
+import { GUEST_USER, setCurrentUser } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 
 let sessionPromise: Promise<boolean> | null = null;
@@ -48,4 +48,5 @@ export function isAuthenticated(): boolean {
 export async function signOut(): Promise<void> {
   await apiLogout();
   resetSessionCache();
+  setCurrentUser(GUEST_USER);
 }

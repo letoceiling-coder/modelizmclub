@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 interface Item {
   to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/notifications" | "/profile" | "/subscription" | "/help";
@@ -97,6 +98,9 @@ export function Sidebar() {
           <Link to={ROUTES.subscription} className="mt-2 inline-block text-xs text-primary hover:underline">
             {t("common.manage")}
           </Link>
+        </div>
+        <div className="mt-2 px-1">
+          <LogoutButton />
         </div>
       </div>
     </aside>
