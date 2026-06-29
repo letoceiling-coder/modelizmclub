@@ -14,10 +14,22 @@ import {
 import { getToken } from "./api/client";
 import { GUEST_USER } from "./store";
 import { subscribeCalls, onEchoConnection } from "./realtime/echo";
+import {
+  bindCallAudioUnlock,
+  unlockCallAudio,
+  startRingback,
+  startRingtone,
+  stopCallSounds,
+  playConnecting,
+  playConnected,
+  playDisconnected,
+  playBusy,
+  playRejected,
+} from "./callAudio";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "ended";
 export type CallDirection = "outgoing" | "incoming";
-export type CallResult = "answered" | "missed" | "ended";
+export type CallResult = "answered" | "missed" | "ended" | "rejected" | "busy";
 export type CallMedia = "audio" | "video";
 
 export interface ActiveCall {
@@ -148,6 +160,7 @@ function syncIncomingFallback(connected: boolean): void {
 
 export function shutdownCalls(): void {
   stopIncomingPoll();
+  stopCallSounds();
   if (echoConnUnsub) {
     echoConnUnsub();
     echoConnUnsub = null;
@@ -191,13 +204,17 @@ async function buildPc(): Promise<RTCPeerConnection> {
     if (s === "connected") {
       if (state.active && state.active.status !== "connected") {
         patchActive({ status: "connected", connectedAt: Date.now() });
+        playConnected();
         if (ringTimer) {
           clearTimeout(ringTimer);
           ringTimer = null;
         }
       }
-    } else if (s === "failed" || s === "closed") {
-      finish("ended");
+    } else if (s === "failed") {
+      const status = state.active?.status;
+      if (status === "connecting" || status === "connected") {
+        finish("ended");
+      }
     }
   };
   return conn;
@@ -273,19 +290,27 @@ function flushPendingLocalIce(callId: string): void {
 function finish(result: CallResult): void {
   const active = state.active;
   if (!active || active.status === "ended") {
+    stopCallSounds();
     teardownMedia();
     return;
   }
   clearTimers();
   const wasConnected = active.status === "connected" && !!active.connectedAt;
-  const finalResult: CallResult = wasConnected
-    ? "answered"
-    : active.direction === "incoming"
-      ? "missed"
-      : result === "answered"
-        ? "answered"
-        : "ended";
+  let finalResult: CallResult = result;
+  if (wasConnected) {
+    finalResult = "answered";
+  } else if (result !== "rejected" && result !== "busy") {
+    if (active.direction === "incoming") finalResult = "missed";
+    else if (result === "answered") finalResult = "answered";
+    else if (result !== "missed") finalResult = "ended";
+  }
   const record = recordFrom(active, finalResult);
+
+  stopCallSounds();
+  if (finalResult === "busy") playBusy();
+  else if (finalResult === "rejected") playRejected();
+  else if (wasConnected || finalResult === "answered") playDisconnected();
+  else if (finalResult === "ended") playDisconnected();
 
   teardownMedia();
 
@@ -303,9 +328,13 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
   const type = payload.type;
 
   if (type === "offer") {
-    // Ignore a second incoming call while busy — tell the caller we are busy.
+    // Duplicate delivery (calls.* + user.* channels) — ignore, do not auto-reject.
+    if (state.active?.id === payload.call_uuid && state.active.status !== "ended") {
+      return;
+    }
+    // Busy with another active call — signal busy to the new caller.
     if (state.active && state.active.status !== "ended") {
-      void rejectCall(payload.call_uuid).catch(() => {});
+      void rejectCall(payload.call_uuid, "busy").catch(() => {});
       return;
     }
     clearTimers();
@@ -324,6 +353,8 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       },
     });
     ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
+    unlockCallAudio();
+    startRingtone();
     const label = from.name ?? "Пользователь";
     toast.info(`Входящий звонок — ${label}`, {
       duration: 8000,
@@ -339,6 +370,8 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
 
   if (type === "answer") {
     if (!pc) return;
+    stopCallSounds();
+    playConnecting();
     patchActive({ status: "connecting" });
     try {
       await pc.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
@@ -359,7 +392,9 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       pendingCandidates.push(cand);
     }
   } else if (type === "reject" || type === "hangup" || type === "busy") {
-    finish(type === "hangup" ? "ended" : "missed");
+    if (type === "busy") finish("busy");
+    else if (type === "reject") finish("rejected");
+    else finish(state.active?.status === "connected" ? "answered" : "ended");
   }
 }
 
@@ -379,6 +414,7 @@ export const calls = {
       signalUnsub = null;
     }
     myUuid = userUuid;
+    bindCallAudioUnlock();
 
     const unsub = await subscribeCalls(userUuid, (p) => void handleSignal(p));
     if (gen !== initGen) {
@@ -399,6 +435,7 @@ export const calls = {
   ): Promise<void> {
     if (state.active && state.active.status !== "ended") return;
     clearTimers();
+    unlockCallAudio();
     setState({
       active: {
         id: `pending_${Date.now()}`,
@@ -420,6 +457,7 @@ export const calls = {
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
       patchActive({ id: callUuid });
       flushPendingLocalIce(callUuid);
+      startRingback();
       ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
     } catch {
       finish("ended");
@@ -430,6 +468,8 @@ export const calls = {
     const active = state.active;
     if (!active || active.direction !== "incoming" || !incomingOffer) return;
     clearTimers();
+    stopCallSounds();
+    playConnecting();
     patchActive({ status: "connecting" });
     try {
       const stream = await getMedia(active.media);
@@ -449,7 +489,7 @@ export const calls = {
   decline(): void {
     const active = state.active;
     if (!active) return;
-    void rejectCall(active.id).catch(() => {});
+    void rejectCall(active.id, "declined").catch(() => {});
     finish("ended");
   },
 

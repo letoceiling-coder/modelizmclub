@@ -14,6 +14,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { I18nProvider } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
+import { bindCallAudioUnlock } from "@/lib/callAudio";
 
 const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}})();`;
 
@@ -107,6 +108,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => {
+    bindCallAudioUnlock();
     void restoreSession();
   }, []);
   return (

@@ -40,6 +40,8 @@ export function CallScreen() {
     const unsub = onCallEvent({
       onEnded: (rec) => {
         if (rec.result === "missed") toast.error(`Нет ответа — ${rec.peerName}`);
+        else if (rec.result === "rejected") toast.error(`Звонок отклонён — ${rec.peerName}`);
+        else if (rec.result === "busy") toast.error(`Занято — ${rec.peerName}`);
         else if (rec.result === "answered") toast.success(`Звонок завершён · ${formatCallDuration(rec.durationSec)}`);
         else toast("Звонок завершён");
       },

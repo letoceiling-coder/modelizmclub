@@ -126,14 +126,22 @@ class CallController extends Controller
 
     public function reject(Request $request, string $uuid): JsonResponse
     {
+        $data = $request->validate([
+            'reason' => ['sometimes', Rule::in(['declined', 'busy'])],
+        ]);
+
         $call = $this->findCall($uuid, $request->user());
 
         if (in_array($call->status, ['ringing'], true)) {
             $call->update(['status' => 'rejected', 'ended_at' => now()]);
         }
 
-        CallSignaling::send($this->peerUuid($call, $request->user()), 'reject', [
+        $reason = $data['reason'] ?? 'declined';
+        $signalType = $reason === 'busy' ? 'busy' : 'reject';
+
+        CallSignaling::send($this->peerUuid($call, $request->user()), $signalType, [
             'call_uuid' => $call->uuid,
+            'reason' => $reason,
         ]);
 
         return response()->json(['data' => ['ok' => true]]);
