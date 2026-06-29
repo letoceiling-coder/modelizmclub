@@ -36,13 +36,16 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:block w-60 shrink-0">
       <div className="sticky top-4 space-y-1">
-        <div className="flex items-center justify-between px-3 py-3">
+        <div className="flex items-center justify-between px-3 pt-3 pb-1">
           <Link to={ROUTES.feed}><Logo size={44} /></Link>
           <div className="flex items-center gap-1">
             <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </div>
+        <p className="px-3 pb-3 text-[11px] italic" style={{ color: "var(--foreground-50)" }}>
+          Моделизм — это жизнь, остальное детали
+        </p>
         <nav className="space-y-0.5">
           {items.map(({ to, labelKey, icon: Icon, section }) => {
             const active = activeSection === section;
