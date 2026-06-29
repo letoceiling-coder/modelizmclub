@@ -289,6 +289,9 @@ function Hero() {
             <Btn to="/register" variant="orange" size="lg" arrow>
               Присоединиться
             </Btn>
+            <Btn to="/ads" variant="outline" size="lg">
+              Смотреть объявления
+            </Btn>
             <Btn to="/communities" variant="outline" size="lg">
               Посмотреть сообщества
             </Btn>

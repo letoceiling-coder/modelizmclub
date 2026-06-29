@@ -8,7 +8,7 @@ import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds } from "@/components/ads/SimilarAds";
 import {
   ChevronLeft, MapPin, Truck, Tag, Bookmark, Share2,
-  Phone, Eye, Heart, Clock, ShieldCheck,
+  MessageSquare, Eye, Heart, Clock, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,7 +34,6 @@ function AdDetailPage() {
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showContact, setShowContact] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -155,11 +154,11 @@ function AdDetailPage() {
               <div className="flex flex-col gap-[8px]">
                 <button
                   type="button"
-                  onClick={() => setShowContact((v) => !v)}
+                  onClick={() => navigate({ to: "/messenger" })}
                   className="inline-flex items-center justify-center gap-[8px] py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
                   style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)" }}
                 >
-                  <Phone size={16} /> {showContact ? ad.contact : "Показать контакт"}
+                  <MessageSquare size={16} /> Написать продавцу
                 </button>
                 <div className="grid grid-cols-2 gap-[8px]">
                   <button
