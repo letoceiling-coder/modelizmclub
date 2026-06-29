@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   User, Briefcase, Car, Plane, Ship, Crosshair, Cpu, Battery, Radio, Bike, Wrench, Check,
-  ArrowRight, Crown, Sparkles,
+  ArrowRight, Crown, Sparkles, Play, UserPlus, LogIn, Eye, PlusCircle,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { fetchStats } from "@/lib/api/content";
@@ -171,6 +171,7 @@ function LandingPage() {
     >
       <TopNav />
       <Hero />
+      <HowItWorks />
       <FirstHundred />
       <TwoTracks />
       <ShowcaseSection />
@@ -385,6 +386,90 @@ function HeroVisual() {
         ))}
       </div>
     </div>
+  );
+}
+
+const HOW_STEPS = [
+  { icon: UserPlus, title: "Зарегистрируйтесь", text: "Создайте аккаунт за минуту — почта и пароль.", to: "/register" as const },
+  { icon: LogIn, title: "Войдите", text: "Авторизуйтесь и попадёте в ленту сообщества.", to: "/login" as const },
+  { icon: Eye, title: "Смотрите объявления", text: "Каталог открыт даже без регистрации — как на Авито.", to: "/ads" as const },
+  { icon: PlusCircle, title: "Создавайте объявления", text: "Публикуйте свои лоты с фото и описанием.", to: "/ads/new" as const },
+];
+
+function HowItWorks() {
+  return (
+    <section style={{ padding: "64px 20px", background: T.surface }}>
+      <div className="mx-auto" style={{ maxWidth: 1200 }}>
+        <div style={{ marginBottom: 28 }}>
+          <SectionLabel>Как пользоваться</SectionLabel>
+          <SectionTitle>Как это работает</SectionTitle>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+          {/* Video placeholder — admin can replace with an embed later */}
+          <div
+            className="relative overflow-hidden"
+            style={{
+              aspectRatio: "16 / 9",
+              background: "linear-gradient(135deg, #1b1f24 0%, #0f1216 100%)",
+              border: `1px solid ${T.line}`,
+              borderRadius: 20,
+              boxShadow: T.shadowMd,
+            }}
+          >
+            <div className="absolute inset-0 grid place-items-center text-center">
+              <div className="flex flex-col items-center gap-3">
+                <span
+                  className="grid place-items-center"
+                  style={{ width: 64, height: 64, borderRadius: 999, background: T.gradOrange, color: "#fff", boxShadow: T.shadowOrange }}
+                >
+                  <Play size={26} fill="currentColor" />
+                </span>
+                <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: FONT_DISPLAY }}>
+                  Видео-инструкция
+                </span>
+                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, maxWidth: 360 }}>
+                  Пошаговый обзор: регистрация, вход, объявления и публикации. Скоро здесь появится ролик.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            {HOW_STEPS.map((s, i) => (
+              <Link
+                key={s.title}
+                to={s.to}
+                className="group flex items-start gap-3"
+                style={{
+                  padding: 16,
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 14,
+                  transition: "border-color 200ms, box-shadow 200ms",
+                }}
+              >
+                <span
+                  className="grid shrink-0 place-items-center"
+                  style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(242,108,5,0.12)", color: T.orangeDeep }}
+                >
+                  <s.icon size={20} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span style={{ fontSize: 11, fontWeight: 700, color: T.orange }}>0{i + 1}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.ink, fontFamily: FONT_DISPLAY }}>{s.title}</span>
+                  </span>
+                  <span className="mt-1 block" style={{ fontSize: 13, color: T.textMuted }}>{s.text}</span>
+                </span>
+                <ArrowRight size={16} style={{ color: T.textMuted, marginTop: 4 }} className="shrink-0 transition-transform group-hover:translate-x-1" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
