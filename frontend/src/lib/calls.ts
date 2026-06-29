@@ -196,6 +196,28 @@ function clearTimers(): void {
   dismissTimer = null;
 }
 
+/** Surface the real failure instead of silently ending the call. */
+function reportCallError(where: string, err: unknown): void {
+  const e = err as { name?: string; message?: string } | undefined;
+  let msg = e?.message ?? "Неизвестная ошибка";
+  switch (e?.name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      msg = "Доступ к микрофону/камере запрещён. Разрешите доступ в браузере.";
+      break;
+    case "NotFoundError":
+    case "OverconstrainedError":
+      msg = "Микрофон или камера не найдены.";
+      break;
+    case "NotReadableError":
+      msg = "Микрофон/камера заняты другим приложением.";
+      break;
+  }
+  // eslint-disable-next-line no-console
+  console.error(`[calls:${where}]`, e?.name ?? "", err);
+  toast.error(`Звонок: ${msg}`);
+}
+
 async function buildPc(): Promise<RTCPeerConnection> {
   const iceServers = await fetchIceServers();
   const conn = new RTCPeerConnection({ iceServers, bundlePolicy: "max-bundle" });
@@ -528,10 +550,13 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       remoteDescSet = true;
       await drainCandidates();
       renegotiating = false;
-    } catch {
+    } catch (err) {
       renegotiating = false;
       if (isRestart) scheduleIceRestart();
-      else finish("ended");
+      else {
+        reportCallError("answer", err);
+        finish("ended");
+      }
     }
   } else if (type === "restart") {
     // Peer initiated an ICE restart — apply as a remote offer and answer back.
@@ -632,7 +657,8 @@ export const calls = {
       flushPendingLocalIce(callUuid);
       startRingback();
       ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
-    } catch {
+    } catch (err) {
+      reportCallError("start", err);
       finish("ended");
     }
   },
@@ -644,17 +670,19 @@ export const calls = {
     stopCallSounds();
     playConnecting();
     patchActive({ status: "connecting" });
+    const offer = incomingOffer;
     try {
       const stream = await getMedia(active.media);
       pc = await buildPc();
       stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
-      await pc.setRemoteDescription(incomingOffer);
+      await pc.setRemoteDescription(offer);
       remoteDescSet = true;
       await drainCandidates();
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await answerCall(active.id, answer);
-    } catch {
+    } catch (err) {
+      reportCallError("accept", err);
       finish("ended");
     }
   },
