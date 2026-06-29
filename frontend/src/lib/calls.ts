@@ -16,6 +16,7 @@ import { getToken } from "./api/client";
 import { GUEST_USER } from "./store";
 import { subscribeCalls, onEchoConnection } from "./realtime/echo";
 import { initLogger, logEvent, setLogCall } from "./logger";
+import { handleGroupInvite } from "./groupCall";
 import {
   bindCallAudioUnlock,
   unlockCallAudio,
@@ -631,6 +632,11 @@ function finish(result: CallResult): void {
 async function handleSignal(payload: { type: string; [k: string]: any }): Promise<void> {
   const type = payload.type;
   clog("signal IN", type, "call=", payload.call_uuid, "myActive=", state.active?.id, state.active?.status);
+
+  if (type === "group_invite") {
+    handleGroupInvite(payload as { room?: string; media?: string; title?: string; from?: { name?: string } });
+    return;
+  }
 
   if (type === "offer") {
     // Duplicate delivery (calls.* + user.* channels) — ignore, do not auto-reject.

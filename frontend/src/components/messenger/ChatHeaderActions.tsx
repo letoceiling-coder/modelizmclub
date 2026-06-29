@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff } from "lucide-react";
+import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { calls, useCalls } from "@/lib/calls";
+import { groupCalls, useGroupCall } from "@/lib/groupCall";
 import { actions, useStore, selectors } from "@/lib/store";
 
 interface Props {
@@ -19,7 +20,8 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeCall = useCalls((s) => s.active);
-  const callBusy = !!activeCall && activeCall.status !== "ended";
+  const groupActive = useGroupCall((s) => !!s.active || s.connecting);
+  const callBusy = (!!activeCall && activeCall.status !== "ended") || groupActive;
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -142,6 +144,18 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
               }}
             >
               <Item icon={Info} label="Информация" onClick={goProfile} />
+              <Item
+                icon={Users}
+                label="Групповой звонок"
+                onClick={() => {
+                  close();
+                  if (callBusy) {
+                    toast("Звонок уже идёт");
+                    return;
+                  }
+                  void groupCalls.start([partnerId], "video", partnerName);
+                }}
+              />
               {onSearch && <Item icon={Search} label="Поиск в чате" onClick={() => { close(); onSearch(); }} />}
               <Item
                 icon={meta.muted ? Bell : BellOff}

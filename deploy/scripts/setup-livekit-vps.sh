@@ -36,8 +36,7 @@ log_level: info
 rtc:
   tcp_port: 7881
   udp_port: 7882
-  use_external_ip: true
-  external_ip: ${PUBLIC_IP}
+  node_ip: ${PUBLIC_IP}
 keys:
   ${LK_KEY}: ${LK_SECRET}
 EOF
