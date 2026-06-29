@@ -6,6 +6,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
@@ -28,6 +29,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('moderation/{type}/{id}/reject', RejectModerationController::class);
         Route::post('moderation/{type}/{id}/revision', RevisionModerationController::class);
         Route::get('reports', IndexReportsController::class);
+
+        Route::get('feedback', [AdminFeedbackController::class, 'index']);
+        Route::patch('feedback/{id}', [AdminFeedbackController::class, 'update'])->whereNumber('id');
     });
 
     Route::middleware('role:admin')->group(function (): void {

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\User\Http\Controllers\Api\V1\BlockController;
+use Modules\User\Http\Controllers\Api\V1\FeedbackController;
 use Modules\User\Http\Controllers\Api\V1\FollowController;
 use Modules\User\Http\Controllers\Api\V1\FriendController;
 use Modules\User\Http\Controllers\Api\V1\IndexUsersController;
@@ -40,6 +41,10 @@ Route::prefix('users')->group(function (): void {
     });
 
     Route::get('{slug}', ShowProfileController::class);
+});
+
+Route::middleware('auth:sanctum')->prefix('feedback')->group(function (): void {
+    Route::post('/', [FeedbackController::class, 'store']);
 });
 
 Route::middleware('auth:sanctum')->prefix('friend-requests')->group(function (): void {

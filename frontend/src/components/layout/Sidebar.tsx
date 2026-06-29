@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 interface Item {
   to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/notifications" | "/profile" | "/subscription" | "/help";
@@ -102,7 +103,10 @@ export function Sidebar() {
             {t("common.manage")}
           </Link>
         </div>
-        <div className="mt-2 px-1">
+        <div className="mt-2">
+          <FeedbackDialog />
+        </div>
+        <div className="mt-1 px-1">
           <LogoutButton />
         </div>
       </div>
