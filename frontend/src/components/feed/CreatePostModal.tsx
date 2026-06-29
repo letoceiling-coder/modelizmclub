@@ -2,14 +2,16 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { CreatePostForm, type CreatePostPayload } from "@/components/CreatePostForm";
+import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
 interface Props {
   open: boolean;
+  intent?: PostIntent;
   onClose: () => void;
   onCreate: (p: CreatePostPayload) => void;
 }
 
-export function CreatePostModal({ open, onClose, onCreate }: Props) {
+export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -65,6 +67,7 @@ export function CreatePostModal({ open, onClose, onCreate }: Props) {
             <div className="overflow-y-auto">
               <CreatePostForm
                 compact
+                intent={open ? intent : undefined}
                 onCreate={(p) => {
                   onCreate(p);
                   onClose();

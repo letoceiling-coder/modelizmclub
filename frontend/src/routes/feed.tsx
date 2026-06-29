@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { CreatePostTrigger } from "@/components/feed/CreatePostTrigger";
+import { CreatePostTrigger, type PostIntent } from "@/components/feed/CreatePostTrigger";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
@@ -44,6 +44,7 @@ function FeedPage() {
   const [filter, setFilter] = useState<FeedFilter>("all");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerIntent, setComposerIntent] = useState<PostIntent | undefined>(undefined);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -169,7 +170,7 @@ function FeedPage() {
       <div className="space-y-[16px]">
         <EventsHero />
 
-        <CreatePostTrigger onOpen={() => setComposerOpen(true)} />
+        <CreatePostTrigger onOpen={(intent) => { setComposerIntent(intent); setComposerOpen(true); }} />
 
         <FindYourPeopleSheet />
 
@@ -277,7 +278,7 @@ function FeedPage() {
         </div>
       </div>
 
-      <CreatePostModal open={composerOpen} onClose={() => setComposerOpen(false)} onCreate={addPost} />
+      <CreatePostModal open={composerOpen} intent={composerIntent} onClose={() => setComposerOpen(false)} onCreate={addPost} />
     </AppLayout>
   );
 }

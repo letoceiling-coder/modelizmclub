@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Send, X } from "lucide-react";
+import { ImagePlus, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
+import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
 const MAX_PHOTOS = 5;
+const QUICK_EMOJI = ["👍", "🔥", "😍", "🚀", "🛠️", "🏎️", "✈️", "🚁", "⚓", "🎯", "👏", "❤️"];
 
 export interface CreatePostPayload {
   title: string;
@@ -17,9 +19,11 @@ export interface CreatePostPayload {
 export function CreatePostForm({
   onCreate,
   compact,
+  intent,
 }: {
   onCreate?: (p: CreatePostPayload) => void;
   compact?: boolean;
+  intent?: PostIntent;
 }) {
   const categories = usePostCategories();
   const me = useStore(selectors.currentUser);
@@ -28,7 +32,9 @@ export function CreatePostForm({
   const [catId, setCatId] = useState("");
   const [subId, setSubId] = useState<string>("");
   const [photos, setPhotos] = useState<string[]>([]);
+  const [showEmoji, setShowEmoji] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!catId && categories.length > 0) {
@@ -36,6 +42,28 @@ export function CreatePostForm({
       setSubId(categories[0].subcategories[0]?.id ?? "");
     }
   }, [categories, catId]);
+
+  useEffect(() => {
+    if (!intent) return;
+    if (intent === "photo") {
+      const t = setTimeout(() => fileRef.current?.click(), 150);
+      return () => clearTimeout(t);
+    }
+    if (intent === "emoji") {
+      setShowEmoji(true);
+      textRef.current?.focus();
+    }
+    if (intent === "place") {
+      setText((cur) => (cur.includes("📍") ? cur : `${cur}${cur ? "\n" : ""}📍 `));
+      const t = setTimeout(() => textRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [intent]);
+
+  const insertEmoji = (e: string) => {
+    setText((cur) => cur + e);
+    textRef.current?.focus();
+  };
 
   const cat = useMemo(() => categories.find((c) => c.id === catId), [categories, catId]);
   const sub = cat?.subcategories.find((s) => s.id === subId);
@@ -73,12 +101,28 @@ export function CreatePostForm({
       </div>
 
       <textarea
+        ref={textRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Что нового в проекте? Поделитесь опытом, фото и деталями сборки…"
         rows={3}
         className="mt-3 w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
       />
+
+      {showEmoji && (
+        <div className="mt-2 flex flex-wrap gap-1.5 rounded-lg border bg-background p-2">
+          {QUICK_EMOJI.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => insertEmoji(e)}
+              className="rounded-md px-1.5 py-1 text-lg leading-none hover:bg-muted"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <select
@@ -128,11 +172,19 @@ export function CreatePostForm({
           onChange={(e) => addPhotos(e.target.files)}
         />
         <button
+          type="button"
           onClick={() => fileRef.current?.click()}
           disabled={photos.length >= MAX_PHOTOS}
           className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
         >
           <ImagePlus className="h-3.5 w-3.5" /> Фото {photos.length}/{MAX_PHOTOS}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowEmoji((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+        >
+          <Smile className="h-3.5 w-3.5" /> Эмоции
         </button>
         <button
           onClick={submit}

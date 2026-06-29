@@ -1,8 +1,10 @@
 import { ImagePlus, Smile, MapPin } from "lucide-react";
 import { useStore, selectors } from "@/lib/store";
 
+export type PostIntent = "photo" | "emoji" | "place";
+
 interface Props {
-  onOpen: () => void;
+  onOpen: (intent?: PostIntent) => void;
 }
 
 export function CreatePostTrigger({ onOpen }: Props) {
@@ -15,7 +17,7 @@ export function CreatePostTrigger({ onOpen }: Props) {
       <div className="flex items-center gap-[12px]">
         <img src={me.avatar} alt="" className="h-[40px] w-[40px] rounded-full" />
         <button
-          onClick={onOpen}
+          onClick={() => onOpen()}
           className="flex-1 rounded-[10px] border px-[14px] py-[10px] text-left text-[14px] transition-colors"
           style={{
             background: "var(--background-surface)",
@@ -30,9 +32,9 @@ export function CreatePostTrigger({ onOpen }: Props) {
         className="mt-[10px] flex items-center gap-[4px] border-t pt-[10px]"
         style={{ borderColor: "var(--border)" }}
       >
-        <ActionBtn icon={<ImagePlus className="h-[16px] w-[16px]" />} label="Фото" onClick={onOpen} />
-        <ActionBtn icon={<Smile className="h-[16px] w-[16px]" />} label="Эмоции" onClick={onOpen} />
-        <ActionBtn icon={<MapPin className="h-[16px] w-[16px]" />} label="Место" onClick={onOpen} />
+        <ActionBtn icon={<ImagePlus className="h-[16px] w-[16px]" />} label="Фото" onClick={() => onOpen("photo")} />
+        <ActionBtn icon={<Smile className="h-[16px] w-[16px]" />} label="Эмоции" onClick={() => onOpen("emoji")} />
+        <ActionBtn icon={<MapPin className="h-[16px] w-[16px]" />} label="Место" onClick={() => onOpen("place")} />
       </div>
     </div>
   );
