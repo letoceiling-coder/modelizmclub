@@ -59,6 +59,33 @@ export interface ApiCallRecord {
   peer: { uuid: string; name: string; avatar?: string | null };
 }
 
+export async function fetchIncomingCall(): Promise<{
+  type: string;
+  call_uuid: string;
+  media: string;
+  sdp: RTCSessionDescriptionInit;
+  from: { uuid: string; name: string; avatar?: string | null };
+} | null> {
+  const res = await api<{
+    data: {
+      type?: string;
+      call_uuid?: string;
+      media?: string;
+      sdp?: RTCSessionDescriptionInit;
+      from?: { uuid: string; name: string; avatar?: string | null };
+    } | null;
+  }>("/calls/incoming");
+  const d = res.data;
+  if (!d?.call_uuid || !d.sdp) return null;
+  return {
+    type: d.type ?? "offer",
+    call_uuid: d.call_uuid,
+    media: d.media ?? "audio",
+    sdp: d.sdp,
+    from: d.from ?? { uuid: "", name: "Пользователь" },
+  };
+}
+
 export async function fetchCallHistory(): Promise<ApiCallRecord[]> {
   const res = await api<{ data: ApiCallRecord[] }>("/calls");
   return res.data ?? [];

@@ -15,6 +15,7 @@ class CallLog extends Model
         'caller_id',
         'callee_id',
         'media',
+        'caller_sdp',
         'status',
         'started_at',
         'answered_at',
@@ -25,6 +26,7 @@ class CallLog extends Model
     protected function casts(): array
     {
         return [
+            'caller_sdp' => 'array',
             'started_at' => 'datetime',
             'answered_at' => 'datetime',
             'ended_at' => 'datetime',

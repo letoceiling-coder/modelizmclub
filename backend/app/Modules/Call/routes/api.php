@@ -5,6 +5,7 @@ use Modules\Call\Http\Controllers\Api\V1\CallController;
 
 Route::middleware('auth:sanctum')->prefix('calls')->group(function (): void {
     Route::get('ice-servers', [CallController::class, 'iceServers']);
+    Route::get('incoming', [CallController::class, 'incoming']);
     Route::get('/', [CallController::class, 'history']);
     Route::post('/', [CallController::class, 'initiate']);
     Route::post('{uuid}/answer', [CallController::class, 'answer']);

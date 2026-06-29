@@ -69,6 +69,7 @@ class CallController extends Controller
             'caller_id' => $caller->id,
             'callee_id' => $callee->id,
             'media' => $data['media'],
+            'caller_sdp' => $data['sdp'],
             'status' => 'ringing',
             'started_at' => now(),
         ]);
@@ -156,6 +157,34 @@ class CallController extends Controller
         ]);
 
         return response()->json(['data' => ['ok' => true]]);
+    }
+
+    /**
+     * Poll fallback: ringing call directed at the current user (callee).
+     */
+    public function incoming(Request $request): JsonResponse
+    {
+        $call = CallLog::query()
+            ->where('callee_id', $request->user()->id)
+            ->where('status', 'ringing')
+            ->where('started_at', '>=', now()->subMinutes(2))
+            ->with(['caller.profile.avatar'])
+            ->orderByDesc('started_at')
+            ->first();
+
+        if (! $call || ! is_array($call->caller_sdp)) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json([
+            'data' => [
+                'type' => 'offer',
+                'call_uuid' => $call->uuid,
+                'media' => $call->media,
+                'sdp' => $call->caller_sdp,
+                'from' => $this->userPayload($call->caller),
+            ],
+        ]);
     }
 
     public function history(Request $request): JsonResponse

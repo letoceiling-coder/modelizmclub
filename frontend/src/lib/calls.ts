@@ -9,6 +9,7 @@ import {
   sendIce,
   rejectCall,
   hangupCall,
+  fetchIncomingCall,
 } from "./api/calls";
 import { getToken } from "./api/client";
 import { GUEST_USER } from "./store";
@@ -102,6 +103,35 @@ let dismissTimer: ReturnType<typeof setTimeout> | null = null;
 let signalUnsub: (() => void) | null = null;
 let initGen = 0;
 let pendingLocalCandidates: RTCIceCandidateInit[] = [];
+let incomingPollTimer: ReturnType<typeof setInterval> | null = null;
+
+function startIncomingPoll(): void {
+  if (incomingPollTimer) return;
+  incomingPollTimer = setInterval(() => {
+    if (state.active && state.active.status !== "ended") return;
+    fetchIncomingCall()
+      .then((offer) => {
+        if (offer) void handleSignal(offer);
+      })
+      .catch(() => {});
+  }, 4_000);
+}
+
+function stopIncomingPoll(): void {
+  if (incomingPollTimer) {
+    clearInterval(incomingPollTimer);
+    incomingPollTimer = null;
+  }
+}
+
+export function shutdownCalls(): void {
+  stopIncomingPoll();
+  initGen++;
+  if (signalUnsub) {
+    signalUnsub();
+    signalUnsub = null;
+  }
+}
 
 function clearTimers(): void {
   if (ringTimer) clearTimeout(ringTimer);
@@ -321,6 +351,7 @@ export const calls = {
       return;
     }
     signalUnsub = unsub;
+    startIncomingPoll();
   },
 
   async start(
