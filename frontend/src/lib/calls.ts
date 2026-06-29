@@ -68,6 +68,7 @@ interface CallsState {
   cameraOff: boolean;
   speakerOn: boolean;
   canSwitchCamera: boolean;
+  canSwitchSpeaker: boolean;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
 }
@@ -81,11 +82,20 @@ let state: CallsState = {
   cameraOff: false,
   speakerOn: true,
   canSwitchCamera: false,
+  canSwitchSpeaker: false,
   localStream: null,
   remoteStream: null,
 };
 
 let currentFacing: "user" | "environment" = "user";
+
+/** setSinkId is the only standard way to route audio output; absent on iOS Safari. */
+function speakerRoutingSupported(): boolean {
+  return (
+    typeof HTMLMediaElement !== "undefined" &&
+    typeof (HTMLMediaElement.prototype as { setSinkId?: unknown }).setSinkId === "function"
+  );
+}
 
 const listeners = new Set<() => void>();
 const emit = (): void => listeners.forEach((l) => l());
@@ -471,7 +481,7 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
       video: wantVideo ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
     });
     currentFacing = "user";
-    setState({ localStream: stream, muted: false, cameraOff: false });
+    setState({ localStream: stream, muted: false, cameraOff: false, canSwitchSpeaker: speakerRoutingSupported() });
     if (wantVideo) void detectMultipleCameras();
     return stream;
   } catch (err) {
@@ -624,6 +634,7 @@ function finish(result: CallResult): void {
     localStream: null,
     remoteStream: null,
     canSwitchCamera: false,
+    canSwitchSpeaker: false,
     speakerOn: true,
   });
   callListeners.forEach((l) => l.onEnded?.(record));
@@ -907,40 +918,73 @@ export const calls = {
   /** Flip between front and back camera on mobile (replaceTrack — no renegotiation). */
   async switchCamera(): Promise<void> {
     if (!pc || !state.localStream || state.active?.media !== "video") return;
+    if (switchingCamera) return;
+    switchingCamera = true;
     const next: "user" | "environment" = currentFacing === "user" ? "environment" : "user";
+    const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+    const old = state.localStream.getVideoTracks()[0];
     try {
-      const fresh = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: next }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-      const track = fresh.getVideoTracks()[0];
-      if (!track) return;
-      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-      if (sender) await sender.replaceTrack(track);
-      const old = state.localStream.getVideoTracks()[0];
+      // Release the current camera FIRST — most phones cannot open the second
+      // camera while the first is still live ("камера занята другим приложением").
       if (old) {
         state.localStream.removeTrack(old);
         old.stop();
       }
+      const track = await acquireCamera(next);
       track.enabled = !state.cameraOff;
+      if (sender) await sender.replaceTrack(track);
       state.localStream.addTrack(track);
-      currentFacing = next;
+      const real = track.getSettings().facingMode;
+      currentFacing = real === "environment" ? "environment" : real === "user" ? "user" : next;
       setState({ localStream: state.localStream });
-      logEvent("info", "calls", "camera switched", { facing: next });
+      logEvent("info", "calls", "camera switched", { facing: currentFacing });
     } catch (err) {
+      // Restore the previous camera so the call keeps its video feed.
+      try {
+        const restore = await acquireCamera(currentFacing);
+        restore.enabled = !state.cameraOff;
+        if (sender) await sender.replaceTrack(restore);
+        state.localStream.addTrack(restore);
+        setState({ localStream: state.localStream });
+      } catch {
+        /* nothing more we can do */
+      }
       reportCallError("switchCamera", err);
+    } finally {
+      switchingCamera = false;
     }
   },
 
-  /** Toggle loud-speaker output where the browser exposes output routing. */
+  /** Toggle loud-speaker vs earpiece output where the browser exposes routing. */
   async toggleSpeaker(): Promise<boolean> {
     const next = !state.speakerOn;
     setState({ speakerOn: next });
     await applyAudioOutput(next);
-    logEvent("info", "calls", "speaker toggled", { speakerOn: next });
+    logEvent("info", "calls", "speaker toggled", { speakerOn: next, supported: speakerRoutingSupported() });
     return next;
   },
 };
+
+let switchingCamera = false;
+
+/** Acquire a camera with a preferred facing, falling back from exact to ideal. */
+async function acquireCamera(facing: "user" | "environment"): Promise<MediaStreamTrack> {
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+  } catch {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+  }
+  const track = stream.getVideoTracks()[0];
+  if (!track) throw new Error("no video track");
+  return track;
+}
 
 async function detectMultipleCameras(): Promise<void> {
   try {
@@ -952,20 +996,38 @@ async function detectMultipleCameras(): Promise<void> {
   }
 }
 
-/** Best-effort output routing. setSinkId is desktop-only; mobile is a no-op. */
+/**
+ * Route remote audio to loud-speaker or earpiece via setSinkId.
+ * Works on Android Chrome (and desktop); iOS Safari lacks setSinkId, so this
+ * is a no-op there and the button is hidden via `canSwitchSpeaker`.
+ */
 async function applyAudioOutput(speakerOn: boolean): Promise<void> {
-  if (typeof document === "undefined") return;
+  if (typeof document === "undefined" || !speakerRoutingSupported()) return;
   const els = Array.from(document.querySelectorAll<HTMLMediaElement>("[data-call-media]"));
+  if (els.length === 0) return;
+
+  let outputs: MediaDeviceInfo[] = [];
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    outputs = devices.filter((d) => d.kind === "audiooutput");
+  } catch {
+    /* ignore */
+  }
+  const speaker = outputs.find((d) => /speaker|loud/i.test(d.label));
+  const earpiece = outputs.find((d) => /earpiece|receiver|handset/i.test(d.label));
+  const targetId = speakerOn
+    ? speaker?.deviceId ?? "default"
+    : earpiece?.deviceId ?? "default";
+
   for (const el of els) {
     const anyEl = el as HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
     if (typeof anyEl.setSinkId !== "function") continue;
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const outputs = devices.filter((d) => d.kind === "audiooutput");
-      const speaker = outputs.find((d) => /speaker|loud/i.test(d.label));
-      await anyEl.setSinkId(speakerOn ? (speaker?.deviceId ?? "default") : "default");
+      el.muted = false;
+      el.volume = 1;
+      await anyEl.setSinkId(targetId);
     } catch {
-      /* unsupported — ignore */
+      /* device may reject the sink — ignore */
     }
   }
 }
