@@ -9,10 +9,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            "group toast group-[.toaster]:bg-[var(--background-elevated)] group-[.toaster]:text-[var(--foreground)] group-[.toaster]:border-[var(--border)] group-[.toaster]:shadow-[var(--shadow-card)] group-[.toaster]:rounded-[var(--r-card-sm)]",
+          description: "group-[.toast]:text-[var(--foreground-70)]",
+          actionButton: "group-[.toast]:bg-[var(--accent)] group-[.toast]:text-white",
+          cancelButton: "group-[.toast]:bg-[var(--background-surface)] group-[.toast]:text-[var(--foreground-70)]",
+          success: "group-[.toaster]:!border-l-4 group-[.toaster]:!border-l-[var(--success)]",
+          error: "group-[.toaster]:!border-l-4 group-[.toaster]:!border-l-[var(--danger)]",
+          warning: "group-[.toaster]:!border-l-4 group-[.toaster]:!border-l-[var(--warning)]",
+          info: "group-[.toaster]:!border-l-4 group-[.toaster]:!border-l-[var(--info)]",
         },
       }}
       {...props}

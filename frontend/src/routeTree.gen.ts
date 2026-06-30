@@ -42,6 +42,7 @@ import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
 import { Route as AdsNewRouteImport } from './routes/ads.new'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
+import { Route as AdminDesignSystemRouteImport } from './routes/admin.design-system'
 import { Route as CategoriesIdIndexRouteImport } from './routes/categories.$id.index'
 import { Route as CategoriesIdSubIdRouteImport } from './routes/categories.$id.$subId'
 
@@ -210,6 +211,11 @@ const AdsIdRoute = AdsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdsRoute,
 } as any)
+const AdminDesignSystemRoute = AdminDesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
+  getParentRoute: () => AdminRoute,
+} as any)
 const CategoriesIdIndexRoute = CategoriesIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -223,7 +229,7 @@ const CategoriesIdSubIdRoute = CategoriesIdSubIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ads': typeof AdsRouteWithChildren
   '/auth': typeof AuthRoute
   '/categories': typeof CategoriesRouteWithChildren
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/admin/design-system': typeof AdminDesignSystemRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/categories/$id': typeof CategoriesIdRouteWithChildren
@@ -260,7 +267,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/diag': typeof DiagRoute
   '/feed': typeof FeedRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/admin/design-system': typeof AdminDesignSystemRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/channel/$id': typeof ChannelIdRoute
@@ -294,7 +302,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ads': typeof AdsRouteWithChildren
   '/auth': typeof AuthRoute
   '/categories': typeof CategoriesRouteWithChildren
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/admin/design-system': typeof AdminDesignSystemRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/categories/$id': typeof CategoriesIdRouteWithChildren
@@ -353,6 +362,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/subscription'
     | '/verify-email'
+    | '/admin/design-system'
     | '/ads/$id'
     | '/ads/new'
     | '/categories/$id'
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/subscription'
     | '/verify-email'
+    | '/admin/design-system'
     | '/ads/$id'
     | '/ads/new'
     | '/channel/$id'
@@ -423,6 +434,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/subscription'
     | '/verify-email'
+    | '/admin/design-system'
     | '/ads/$id'
     | '/ads/new'
     | '/categories/$id'
@@ -441,7 +453,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AdsRoute: typeof AdsRouteWithChildren
   AuthRoute: typeof AuthRoute
   CategoriesRoute: typeof CategoriesRouteWithChildren
@@ -701,6 +713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdsIdRouteImport
       parentRoute: typeof AdsRoute
     }
+    '/admin/design-system': {
+      id: '/admin/design-system'
+      path: '/design-system'
+      fullPath: '/admin/design-system'
+      preLoaderRoute: typeof AdminDesignSystemRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/categories/$id/': {
       id: '/categories/$id/'
       path: '/'
@@ -717,6 +736,16 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminDesignSystemRoute: typeof AdminDesignSystemRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminDesignSystemRoute: AdminDesignSystemRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AdsRouteChildren {
   AdsIdRoute: typeof AdsIdRoute
@@ -776,7 +805,7 @@ const CommunitiesRouteWithChildren = CommunitiesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AdsRoute: AdsRouteWithChildren,
   AuthRoute: AuthRoute,
   CategoriesRoute: CategoriesRouteWithChildren,

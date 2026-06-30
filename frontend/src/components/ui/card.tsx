@@ -2,11 +2,25 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * UI Kit 2.0 "airy" style — white surface, diffused wide shadow
+   * (--shadow-card-airy), tighter radius. Opt-in, default card is unchanged.
+   */
+  airy?: boolean;
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, airy = false, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("rounded-xl border bg-card text-card-foreground shadow", className)}
+      className={cn(
+        "border text-card-foreground",
+        airy
+          ? "rounded-[var(--r-card-sm)] border-[var(--neutral-200)] bg-white shadow-[var(--shadow-card-airy)]"
+          : "rounded-xl bg-card shadow",
+        className,
+      )}
       {...props}
     />
   ),

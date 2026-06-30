@@ -265,13 +265,25 @@ function DesignSystemSection() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>
-          Design System
-        </h1>
-        <p style={{ fontSize: 13, color: "var(--foreground-70)" }}>
-          Визуальный конструктор темы. Меняет CSS-переменные глобально, сохраняет в localStorage. Не влияет на логику и данные.
-        </p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>
+            Design System
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--foreground-70)" }}>
+            Визуальный конструктор темы. Меняет CSS-переменные глобально, сохраняет в localStorage. Не влияет на логику и данные.
+          </p>
+        </div>
+        <a
+          href="/admin/design-system"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10,
+            fontSize: 13, fontWeight: 600, border: "1px solid var(--accent)", color: "var(--accent)",
+            background: "var(--accent-soft)", whiteSpace: "nowrap",
+          }}
+        >
+          Превью UI Kit 2.0 →
+        </a>
       </div>
 
       {/* Controls */}

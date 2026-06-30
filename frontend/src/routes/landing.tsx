@@ -2,10 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  User, Briefcase, Car, Plane, Ship, Crosshair, Cpu, Battery, Radio, Bike, Wrench, Check,
-  ArrowRight, Crown, Sparkles, Play, UserPlus, LogIn, Eye, PlusCircle,
+  Car, Plane, Ship, Crosshair, Wrench, Printer, Package,
+  UserPlus, MessageCircle, ShoppingBag, Truck, ShieldCheck, Newspaper,
+  ArrowRight, Heart, MapPin, Tag, Crown, Sparkles, Play, Check,
+  Star,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 import { fetchStats } from "@/lib/api/content";
 import { showcaseImages } from "@/lib/showcase-images";
 
@@ -29,296 +35,223 @@ export const Route = createFileRoute("/landing")({
   component: LandingPage,
 });
 
-// === Figma UI Kit 2.0 tokens (page-scoped) ===
-const T = {
-  // Base
-  ink: "#12171B",
-  inkSoft: "#2B3141",
-  surface: "#FFFFFF",
-  surfaceAlt: "#F5F5F5",
-  line: "#E5E5E5",
-  // Accent
-  orange: "#F26C05",
-  orangeDeep: "#B04C00",
-  red: "#A52814",
-  redDeep: "#A1001E",
-  // Text
-  text: "#12171B",
-  textMuted: "#5A6470",
-  textOnDark: "#FFFFFF",
-  // Radius
-  rBtn: 10,
-  rCard: 16,
-  rPill: 999,
-  // Shadows
-  shadowSm: "0 1px 2px rgba(18,23,27,0.06), 0 1px 3px rgba(18,23,27,0.04)",
-  shadowMd: "0 8px 24px -8px rgba(18,23,27,0.12), 0 2px 6px rgba(18,23,27,0.05)",
-  shadowOrange: "0 10px 24px -8px rgba(242,108,5,0.45)",
-  // Gradients
-  gradOrange: "linear-gradient(135deg, #F26C05 0%, #B04C00 100%)",
-  gradRed: "linear-gradient(135deg, #A52814 0%, #A1001E 100%)",
-  gradDark: "linear-gradient(135deg, #2B3141 0%, #12171B 100%)",
-};
+// ─── constants ────────────────────────────────────────────────────────────────
 
-const FONT = "'Manrope', system-ui, -apple-system, Segoe UI, sans-serif";
-const FONT_DISPLAY = "'Space Grotesk', 'Manrope', system-ui, sans-serif";
+const PLATFORM_FEATURES = [
+  { icon: Newspaper,    title: "Лента",             desc: "Публикуйте проекты, делитесь фото сборок и читайте новости сообщества." },
+  { icon: ShoppingBag, title: "Объявления",         desc: "Покупайте и продавайте модели, запчасти и оборудование как на Авито." },
+  { icon: UserPlus,    title: "Сообщества",          desc: "Вступайте в клубы по интересу: автомоделисты, авиаторы, судомоделисты." },
+  { icon: MessageCircle, title: "Мессенджер",        desc: "Личные и групповые чаты внутри платформы — всё в одном месте." },
+  { icon: ShieldCheck,  title: "Безопасная сделка", desc: "Средства на эскроу до получения — защита покупателя и продавца." },
+  { icon: Truck,        title: "Доставка",           desc: "Интеграция с СДЭК и Почтой России прямо из карточки объявления." },
+];
 
 const CATEGORIES = [
-  { icon: Car, name: "Автомодели", count: "320+ участников" },
-  { icon: Plane, name: "Самолёты", count: "180+ участников" },
-  { icon: Ship, name: "Корабли", count: "95+ участников" },
-  { icon: Crosshair, name: "Квадрокоптеры", count: "240+ участников" },
-  { icon: Cpu, name: "Электроника", count: "150+ участников" },
-  { icon: Battery, name: "Аккумуляторы", count: "85+ участников" },
-  { icon: Radio, name: "Радиоаппаратура", count: "110+ участников" },
-  { icon: Bike, name: "Электросамокаты", count: "70+ участников" },
-  { icon: Wrench, name: "Запчасти", count: "200+ участников" },
+  { icon: Car,      name: "Автомодели",  count: "320+ объявлений" },
+  { icon: Plane,    name: "Авиамодели",  count: "180+ объявлений" },
+  { icon: Ship,     name: "Судомодели",  count: "95+ объявлений"  },
+  { icon: Crosshair,name: "Дроны",       count: "240+ объявлений" },
+  { icon: Package,  name: "Запчасти",    count: "500+ объявлений" },
+  { icon: Wrench,   name: "Инструменты", count: "130+ объявлений" },
+  { icon: Printer,  name: "3D-печать",   count: "80+ объявлений"  },
 ];
 
-const HOBBYIST_FEATURES = [
-  "Лента публикаций и проектов",
-  "Чаты по категориям и подкатегориям",
-  "Объявления о продаже / обмене",
-  "Сообщества по интересам",
-  "Друзья и личные сообщения",
+const HOW_STEPS = [
+  { n: "01", title: "Зарегистрируйтесь", desc: "Создайте аккаунт за минуту — потребуется только email и пароль." },
+  { n: "02", title: "Разместите модель или деталь", desc: "Добавьте фото, укажите состояние и цену — объявление выйдет сразу." },
+  { n: "03", title: "Общайтесь с покупателем", desc: "Встроенный чат позволяет договориться об условиях без телефона." },
+  { n: "04", title: "Оформляйте доставку и безопасную сделку", desc: "Средства заморожены до получения посылки — обе стороны защищены." },
 ];
 
-const PRO_FEATURES = [
-  "Магазин запчастей и самодельных проектов",
-  "Рекламные баннеры и продвижение",
-  "Платное размещение объявлений (20 ₽)",
-  "Подписка на расширенные возможности",
-  "Прямые продажи через платформу",
+const LISTINGS: {
+  id: number; title: string; price: string; city: string; condition: "Новое" | "Б/у"; isTop?: boolean;
+  category: string; image?: string;
+}[] = [
+  { id: 1, title: "Багги XPower 1:10, ДВС, Futaba", price: "42 000 ₽",  city: "Москва",      condition: "Б/у",  isTop: true,  category: "Автомодели" },
+  { id: 2, title: "Cessna 182 масштаб 1:6, ДВС 26см³", price: "78 000 ₽", city: "СПб",       condition: "Б/у",  category: "Авиамодели" },
+  { id: 3, title: "Парусник TP52, длина 1.5 м, комплект", price: "31 500 ₽", city: "Казань",  condition: "Новое", isTop: true,  category: "Судомодели" },
+  { id: 4, title: "FPV-дрон Geprc Mark5, 5\" комплект", price: "24 900 ₽", city: "Екатеринбург", condition: "Б/у", category: "Дроны" },
 ];
 
-const AVATAR_COLORS = ["#F26C05", "#2B3141", "#A52814", "#B04C00", "#12171B", "#A1001E", "#F26C05", "#2B3141"];
 const AVATAR_INITIALS = ["АК", "МП", "ИС", "ДВ", "ТН", "ЕР", "ОЛ", "СМ"];
+const AVATAR_COLORS   = ["#627FFF", "#3F4FBF", "#F26C05", "#4caf50", "#0F1519", "#1976d2", "#627FFF", "#3F4FBF"];
 
-// === Reusable atoms (page-scoped) ===
-type BtnProps = {
-  to: string;
-  children: React.ReactNode;
-  variant?: "orange" | "dark" | "outline" | "light" | "red";
-  size?: "md" | "lg";
-  arrow?: boolean;
-};
-function Btn({ to, children, variant = "orange", size = "md", arrow }: BtnProps) {
-  const h = size === "lg" ? 54 : 46;
-  const px = size === "lg" ? 28 : 22;
-  const styles: Record<string, React.CSSProperties> = {
-    orange: { background: T.gradOrange, color: "#fff", boxShadow: T.shadowOrange },
-    red: { background: T.gradRed, color: "#fff", boxShadow: "0 10px 24px -8px rgba(165,40,20,0.5)" },
-    dark: { background: T.ink, color: "#fff" },
-    outline: { background: "transparent", color: T.ink, border: `1.5px solid ${T.ink}` },
-    light: { background: T.surface, color: T.ink, border: `1px solid ${T.line}`, boxShadow: T.shadowSm },
-  };
-  return (
-    <Link
-      to={to}
-      className="inline-flex items-center justify-center gap-[8px] font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0"
-      style={{
-        height: h,
-        padding: `0 ${px}px`,
-        borderRadius: T.rBtn,
-        fontFamily: FONT,
-        fontSize: size === "lg" ? 16 : 15,
-        fontWeight: 700,
-        letterSpacing: "-0.005em",
-        ...styles[variant],
-      }}
-    >
-      {children}
-      {arrow && <ArrowRight size={size === "lg" ? 18 : 16} strokeWidth={2.5} />}
-    </Link>
-  );
-}
-
-function Eyebrow({ children, tone = "ink" }: { children: React.ReactNode; tone?: "ink" | "orange" | "light" }) {
-  const tones = {
-    ink: { background: T.ink, color: "#fff" },
-    orange: { background: "rgba(242,108,5,0.12)", color: T.orangeDeep },
-    light: { background: T.surface, color: T.ink, border: `1px solid ${T.line}` },
-  };
-  return (
-    <span
-      className="inline-flex items-center gap-[6px]"
-      style={{
-        ...tones[tone],
-        padding: "6px 12px",
-        borderRadius: T.rPill,
-        fontFamily: FONT,
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
+// ─── page root ────────────────────────────────────────────────────────────────
 
 function LandingPage() {
   return (
-    <div
-      style={{
-        background: T.surface,
-        color: T.text,
-        fontFamily: FONT,
-        minHeight: "100vh",
-        fontFeatureSettings: '"ss01","cv11"',
-      }}
-    >
+    <div style={{ background: "var(--background)", color: "var(--foreground)", fontFamily: "var(--font-sans)" }}>
       <TopNav />
       <Hero />
+      <PlatformFeatures />
+      <CategoriesSection />
+      <ListingsSection />
       <HowItWorks />
-      <FirstHundred />
-      <TwoTracks />
-      <ShowcaseSection />
-      <CategoriesPreview />
-      <CommunityProof />
+      <CtaBanner />
       <Footer />
     </div>
   );
 }
 
+// ─── nav ──────────────────────────────────────────────────────────────────────
+
 function TopNav() {
   return (
-    <div
-      className="sticky top-0 z-30 flex items-center justify-between px-[20px] md:px-[40px] backdrop-blur-md"
+    <header
+      className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-10 backdrop-blur-md"
       style={{
-        height: 72,
-        background: "rgba(255,255,255,0.85)",
-        borderBottom: `1px solid ${T.line}`,
+        height: 68,
+        background: "color-mix(in oklab, var(--background) 88%, transparent)",
+        borderBottom: "1px solid var(--border)",
       }}
     >
-      <div style={{ color: T.ink }}>
-        <Logo size={32} />
+      <Logo size={30} />
+      <nav className="hidden md:flex items-center gap-6">
+        {[
+          { to: "/ads", label: "Объявления" },
+          { to: "/communities", label: "Сообщества" },
+          { to: "/", label: "Лента" },
+        ].map((l) => (
+          <Link
+            key={l.to}
+            to={l.to}
+            className="text-sm font-medium transition-colors"
+            style={{ color: "var(--foreground-70)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/login">Войти</Link>
+        </Button>
+        <Button size="sm" asChild>
+          <Link to="/register">
+            Создать аккаунт <ArrowRight className="size-3.5" />
+          </Link>
+        </Button>
       </div>
-      <div className="flex items-center gap-[10px]">
-        <Link
-          to="/login"
-          className="hidden sm:inline-flex items-center font-semibold transition-colors hover:bg-[#F5F5F5]"
-          style={{
-            height: 44,
-            padding: "0 18px",
-            color: T.ink,
-            border: `1px solid ${T.line}`,
-            borderRadius: T.rBtn,
-            fontFamily: FONT,
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          Войти
-        </Link>
-        <Btn to="/register" variant="orange" arrow>
-          Регистрация
-        </Btn>
-      </div>
-    </div>
+    </header>
   );
 }
 
+// ─── hero ─────────────────────────────────────────────────────────────────────
+
 function Hero() {
+  const [search, setSearch] = useState("");
+
   return (
-    <section className="relative overflow-hidden" style={{ background: T.surface }}>
-      {/* subtle grid */}
+    <section className="relative overflow-hidden" style={{ background: "var(--background)" }}>
+      {/* subtle dot grid */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage:
-            `linear-gradient(to right, ${T.line} 1px, transparent 1px), linear-gradient(to bottom, ${T.line} 1px, transparent 1px)`,
-          backgroundSize: "64px 64px",
-          opacity: 0.5,
-          maskImage: "radial-gradient(ellipse at 30% 30%, black 20%, transparent 75%)",
+          backgroundImage: "radial-gradient(circle, var(--border) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          opacity: 0.6,
+          maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 10%, transparent 70%)",
         }}
       />
-      {/* orange glow */}
+      {/* accent glow */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-[160px] -top-[160px] h-[640px] w-[640px] rounded-full"
-        style={{ background: "rgba(242,108,5,0.18)", filter: "blur(160px)" }}
+        className="pointer-events-none absolute"
+        style={{
+          top: -120, right: -80, width: 600, height: 600,
+          background: "radial-gradient(circle, var(--accent-glow) 0%, transparent 65%)",
+          filter: "blur(40px)",
+        }}
       />
 
-      <div className="relative mx-auto flex max-w-[1240px] flex-col items-center gap-[48px] px-[20px] py-[72px] md:px-[40px] md:py-[112px] md:flex-row md:items-stretch">
-        <div className="flex-1 md:max-w-[58%]">
-          <Eyebrow tone="orange">
-            <Sparkles size={12} /> Платформа для моделистов
-          </Eyebrow>
+      <div className="relative mx-auto flex max-w-[1240px] flex-col gap-12 px-5 py-16 md:px-10 md:py-24 lg:flex-row lg:items-center lg:gap-16">
+        {/* left column */}
+        <div className="flex-1 lg:max-w-[52%]">
+          <Badge variant="top" className="mb-6">
+            <Sparkles className="size-3" /> Платформа для моделистов
+          </Badge>
+
           <h1
-            className="mt-[20px]"
+            className="mt-0"
             style={{
-              fontFamily: FONT_DISPLAY,
+              fontFamily: "var(--font-display)",
               fontWeight: 700,
-              fontSize: "clamp(38px, 6.4vw, 68px)",
-              lineHeight: 1.02,
+              fontSize: "clamp(38px, 5.8vw, 66px)",
+              lineHeight: 1.04,
               letterSpacing: "-0.025em",
-              color: T.ink,
-              maxWidth: 620,
             }}
           >
-            Моделизм — это{" "}
+            Моделизм —{" "}
             <span
               style={{
-                background: T.gradOrange,
+                background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-muted) 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
               }}
             >
-              жизнь
+              это жизнь.
             </span>
-            . Остальное — детали.
+            <br />
+            Остальное — детали.
           </h1>
+
           <p
-            className="mt-[22px]"
-            style={{
-              color: T.textMuted,
-              fontSize: 18,
-              lineHeight: 1.55,
-              maxWidth: 520,
-              fontWeight: 500,
-            }}
+            className="mt-6"
+            style={{ color: "var(--foreground-70)", fontSize: 18, lineHeight: 1.6, maxWidth: 500, fontWeight: 500 }}
           >
             RC авто, самолёты, квадрокоптеры, корабли, электроника. Сообщество
             инженеров и энтузиастов в одном пространстве.
           </p>
 
-          <div className="mt-[36px] flex flex-wrap gap-[12px]">
-            <Btn to="/register" variant="orange" size="lg" arrow>
-              Присоединиться
-            </Btn>
-            <Btn to="/ads" variant="outline" size="lg">
-              Смотреть объявления
-            </Btn>
-            <Btn to="/communities" variant="outline" size="lg">
-              Посмотреть сообщества
-            </Btn>
+          {/* search */}
+          <div className="mt-8 flex max-w-[440px] gap-2">
+            <SearchInput
+              placeholder="Найти модель или запчасть…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClear={() => setSearch("")}
+            />
+            <Button asChild>
+              <Link to="/ads">Найти</Link>
+            </Button>
           </div>
 
-          <div className="mt-[48px] grid grid-cols-3 gap-[16px] sm:flex sm:gap-[56px]">
+          {/* CTA row */}
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button size="lg" asChild>
+              <Link to="/register">
+                Создать аккаунт <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <Link to="/ads">Смотреть объявления</Link>
+            </Button>
+          </div>
+
+          {/* stats */}
+          <div className="mt-10 flex gap-10">
             {[
               { n: "1 200+", l: "моделистов" },
-              { n: "45+", l: "сообществ" },
-              { n: "9", l: "категорий" },
+              { n: "45+",    l: "сообществ" },
+              { n: "7",      l: "категорий" },
             ].map((s) => (
               <div key={s.l}>
                 <div
                   style={{
-                    fontFamily: FONT_DISPLAY,
+                    fontFamily: "var(--font-display)",
                     fontWeight: 700,
-                    fontSize: 30,
-                    color: T.ink,
+                    fontSize: 28,
                     letterSpacing: "-0.02em",
+                    color: "var(--foreground)",
                   }}
                 >
                   {s.n}
                 </div>
-                <div
-                  style={{ marginTop: 4, fontSize: 13, color: T.textMuted, fontWeight: 500 }}
-                >
+                <div style={{ marginTop: 2, fontSize: 13, color: "var(--foreground-50)", fontWeight: 500 }}>
                   {s.l}
                 </div>
               </div>
@@ -326,10 +259,11 @@ function Hero() {
           </div>
         </div>
 
+        {/* right column — visual */}
         <motion.div
-          animate={{ y: [-8, 8, -8] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="flex flex-1 items-center justify-center md:max-w-[42%]"
+          animate={{ y: [-6, 6, -6] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-1 items-center justify-center"
         >
           <HeroVisual />
         </motion.div>
@@ -339,41 +273,44 @@ function Hero() {
 }
 
 function HeroVisual() {
-  const heroPick = showcaseImages.slice(0, 4);
+  const picks = showcaseImages.slice(0, 4);
   return (
     <div
       className="relative w-full"
       style={{
-        maxWidth: 480,
+        maxWidth: 460,
         aspectRatio: "5 / 4",
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 24,
-        boxShadow: T.shadowMd,
-        padding: 16,
+        background: "var(--background-elevated)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-card-lg)",
+        boxShadow: "var(--shadow-card-airy)",
+        padding: 14,
         overflow: "hidden",
       }}
     >
+      {/* label */}
       <div
-        className="absolute z-10"
+        className="absolute z-10 text-white"
         style={{
-          top: 16, left: 16,
-          padding: "4px 10px",
-          background: T.ink, color: "#fff",
-          borderRadius: T.rPill, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+          top: 14, left: 14,
+          background: "var(--accent)",
+          padding: "3px 10px",
+          borderRadius: "var(--r-pill)",
+          fontSize: 10, fontWeight: 700, letterSpacing: 1.2,
+          boxShadow: "var(--shadow-button)",
         }}
       >
-        SCALE 1:10
+        RC MODELS
       </div>
       <div className="grid h-full w-full grid-cols-2 gap-2">
-        {heroPick.map((s) => (
+        {picks.map((s) => (
           <div
             key={s.url}
             className="relative overflow-hidden"
             style={{
-              borderRadius: 16,
-              background: "linear-gradient(135deg, #2a2a2e 0%, #1a1a1e 100%)",
-              border: `1px solid ${T.line}`,
+              borderRadius: 12,
+              background: "var(--background-surface)",
+              border: "1px solid var(--border)",
             }}
           >
             <img
@@ -389,484 +326,50 @@ function HeroVisual() {
   );
 }
 
-const HOW_STEPS = [
-  { icon: UserPlus, title: "Зарегистрируйтесь", text: "Создайте аккаунт за минуту — почта и пароль.", to: "/register" as const },
-  { icon: LogIn, title: "Войдите", text: "Авторизуйтесь и попадёте в ленту сообщества.", to: "/login" as const },
-  { icon: Eye, title: "Смотрите объявления", text: "Каталог открыт даже без регистрации — как на Авито.", to: "/ads" as const },
-  { icon: PlusCircle, title: "Создавайте объявления", text: "Публикуйте свои лоты с фото и описанием.", to: "/ads/new" as const },
-];
+// ─── platform features ────────────────────────────────────────────────────────
 
-function HowItWorks() {
+function PlatformFeatures() {
   return (
-    <section style={{ padding: "64px 20px", background: T.surface }}>
-      <div className="mx-auto" style={{ maxWidth: 1200 }}>
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>Как пользоваться</SectionLabel>
-          <SectionTitle>Как это работает</SectionTitle>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-          {/* Video placeholder — admin can replace with an embed later */}
-          <div
-            className="relative overflow-hidden"
-            style={{
-              aspectRatio: "16 / 9",
-              background: "linear-gradient(135deg, #1b1f24 0%, #0f1216 100%)",
-              border: `1px solid ${T.line}`,
-              borderRadius: 20,
-              boxShadow: T.shadowMd,
-            }}
-          >
-            <div className="absolute inset-0 grid place-items-center text-center">
-              <div className="flex flex-col items-center gap-3">
-                <span
-                  className="grid place-items-center"
-                  style={{ width: 64, height: 64, borderRadius: 999, background: T.gradOrange, color: "#fff", boxShadow: T.shadowOrange }}
-                >
-                  <Play size={26} fill="currentColor" />
-                </span>
-                <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: FONT_DISPLAY }}>
-                  Видео-инструкция
-                </span>
-                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, maxWidth: 360 }}>
-                  Пошаговый обзор: регистрация, вход, объявления и публикации. Скоро здесь появится ролик.
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Steps */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            {HOW_STEPS.map((s, i) => (
-              <Link
-                key={s.title}
-                to={s.to}
-                className="group flex items-start gap-3"
-                style={{
-                  padding: 16,
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 14,
-                  transition: "border-color 200ms, box-shadow 200ms",
-                }}
-              >
-                <span
-                  className="grid shrink-0 place-items-center"
-                  style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(242,108,5,0.12)", color: T.orangeDeep }}
-                >
-                  <s.icon size={20} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span style={{ fontSize: 11, fontWeight: 700, color: T.orange }}>0{i + 1}</span>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: T.ink, fontFamily: FONT_DISPLAY }}>{s.title}</span>
-                  </span>
-                  <span className="mt-1 block" style={{ fontSize: 13, color: T.textMuted }}>{s.text}</span>
-                </span>
-                <ArrowRight size={16} style={{ color: T.textMuted, marginTop: 4 }} className="shrink-0 transition-transform group-hover:translate-x-1" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ShowcaseSection() {
-  return (
-    <section style={{ padding: "64px 20px", background: T.surfaceAlt }}>
-      <div className="mx-auto" style={{ maxWidth: 1200 }}>
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>Каталог моделей</SectionLabel>
-          <SectionTitle>Реальные модели сообщества</SectionTitle>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
-          {showcaseImages.map((s) => (
-            <div
-              key={s.url}
-              className="group relative overflow-hidden"
-              style={{
-                aspectRatio: "1 / 1",
-                background: "linear-gradient(135deg, #2a2a2e 0%, #1a1a1e 100%)",
-                border: `1px solid ${T.line}`,
-                borderRadius: 18,
-                transition: "transform 250ms var(--ease-out-expo), box-shadow 250ms var(--ease-out-expo)",
-              }}
-            >
-              <img
-                src={s.url}
-                alt={s.title}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-              />
-              <div
-                className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5"
-                style={{
-                  background: "color-mix(in oklab, #0d0d0d 70%, transparent)",
-                  backdropFilter: "blur(8px)",
-                  color: "#fff",
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 600 }}>{s.title}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: T.orange, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.tag}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-
-function FirstHundred() {
-  const [stats, setStats] = useState({ taken: 0, total: 100 });
-  useEffect(() => {
-    let active = true;
-    fetchStats()
-      .then((s) => active && setStats(s.firstHundred))
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
-  const taken = Math.max(0, Math.min(stats.total, stats.taken));
-  const total = stats.total;
-  const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
-  const left = total - taken;
-  return (
-    <section style={{ padding: "32px 20px" }}>
-      <div
-        className="mx-auto"
-        style={{
-          maxWidth: 1240,
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: 24,
-          padding: "clamp(28px, 4vw, 44px)",
-          background: T.gradOrange,
-          color: "#fff",
-          boxShadow: T.shadowOrange,
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(600px circle at 10% 0%, rgba(255,255,255,0.25), transparent 60%), radial-gradient(500px circle at 90% 100%, rgba(0,0,0,0.18), transparent 55%)",
-          }}
-        />
-        <div className="relative grid gap-[20px]">
-          <div className="flex flex-wrap gap-[10px]">
-            <span
-              className="inline-flex items-center gap-[6px]"
-              style={{
-                background: "rgba(255,255,255,0.18)",
-                padding: "6px 12px",
-                borderRadius: T.rPill,
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-              }}
-            >
-              <Sparkles size={12} /> Запуск МоДелизМ Форум
-            </span>
-            <span
-              className="inline-flex items-center gap-[6px]"
-              style={{
-                background: T.ink,
-                color: "#fff",
-                padding: "6px 12px",
-                borderRadius: T.rPill,
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              <Crown size={12} /> Первые 100
-            </span>
-          </div>
-          <h2
-            style={{
-              fontFamily: FONT_DISPLAY,
-              fontWeight: 700,
-              fontSize: "clamp(26px, 4vw, 38px)",
-              lineHeight: 1.1,
-              letterSpacing: "-0.02em",
-              maxWidth: 720,
-            }}
-          >
-            Первые 100 участников получают год бесплатно
-          </h2>
-          <p style={{ fontSize: 15, maxWidth: 620, opacity: 0.92, lineHeight: 1.5, fontWeight: 500 }}>
-            Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели и получить
-            бейдж «Первые 100» в профиле навсегда.
-          </p>
-          <div className="grid gap-[10px]" style={{ maxWidth: 560 }}>
-            <div className="flex items-end justify-between gap-[12px]">
-              <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 28 }}>
-                Занято {taken} из {total}
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>
-                Осталось {left} {left === 1 ? "место" : "мест"}
-              </span>
-            </div>
-            <div
-              style={{
-                height: 12,
-                borderRadius: T.rPill,
-                background: "rgba(255,255,255,0.25)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: "100%",
-                  borderRadius: T.rPill,
-                  background: T.ink,
-                  transition: "width 0.4s ease",
-                }}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-[10px]">
-            <Btn to="/register" variant="dark" size="lg" arrow>
-              Получить год бесплатно
-            </Btn>
-            <Btn to="/login" variant="light">
-              Уже с нами — войти
-            </Btn>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        fontFamily: FONT,
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: "0.16em",
-        color: T.orangeDeep,
-        textTransform: "uppercase",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      className="mt-[12px]"
-      style={{
-        fontFamily: FONT_DISPLAY,
-        fontWeight: 700,
-        fontSize: "clamp(28px, 4.2vw, 46px)",
-        color: T.ink,
-        letterSpacing: "-0.025em",
-        lineHeight: 1.1,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
-
-function TwoTracks() {
-  return (
-    <section style={{ padding: "96px 20px", background: T.surfaceAlt }}>
+    <section style={{ padding: "80px 20px", background: "var(--background-surface)" }}>
       <div className="mx-auto" style={{ maxWidth: 1240 }}>
-        <div className="text-center">
-          <SectionLabel>Возможности</SectionLabel>
-          <SectionTitle>Два пути в МоДелизМ Форум</SectionTitle>
-          <p
-            className="mx-auto mt-[14px]"
-            style={{ color: T.textMuted, maxWidth: 540, fontSize: 16, fontWeight: 500 }}
-          >
-            Выбирайте, как взаимодействовать с платформой — как участник или как профессионал.
-          </p>
-        </div>
-        <div className="mt-[48px] grid grid-cols-1 gap-[20px] md:grid-cols-2">
-          <TrackCard
-            icon={User}
-            title="Для моделистов"
-            description="Общайтесь в чатах, публикуйте проекты, продавайте детали, находите единомышленников."
-            features={HOBBYIST_FEATURES}
-            cta="Начать как участник"
-            ctaVariant="outline"
-          />
-          <TrackCard
-            icon={Briefcase}
-            title="Для мастеров и продавцов"
-            description="Продавайте услуги, детали и самодельные проекты. Размещайте рекламу, создавайте магазин."
-            features={PRO_FEATURES}
-            cta="Стать продавцом"
-            ctaVariant="orange"
-            highlight
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
+        <SectionEyebrow>Что внутри платформы</SectionEyebrow>
+        <SectionTitle>Всё для моделиста в одном месте</SectionTitle>
+        <p className="mt-4" style={{ color: "var(--foreground-70)", fontSize: 16, maxWidth: 520, fontWeight: 500 }}>
+          От публикаций проектов до безопасной сделки — экосистема для каждого шага в моделизме.
+        </p>
 
-function TrackCard({
-  icon: Icon, title, description, features, cta, ctaVariant, highlight,
-}: {
-  icon: typeof User; title: string; description: string; features: string[]; cta: string;
-  ctaVariant: "outline" | "orange"; highlight?: boolean;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
-      className="flex flex-col"
-      style={{
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: T.rCard,
-        boxShadow: highlight ? T.shadowMd : T.shadowSm,
-        padding: "32px",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {highlight && (
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: 0, left: 0, right: 0, height: 4,
-            background: T.gradOrange,
-          }}
-        />
-      )}
-      <div
-        className="grid place-items-center"
-        style={{
-          height: 56,
-          width: 56,
-          background: highlight ? T.gradOrange : T.ink,
-          color: "#fff",
-          borderRadius: 14,
-          boxShadow: highlight ? T.shadowOrange : "none",
-        }}
-      >
-        <Icon size={26} strokeWidth={2} />
-      </div>
-      <h3
-        className="mt-[22px]"
-        style={{
-          fontFamily: FONT_DISPLAY,
-          fontWeight: 700,
-          fontSize: 26,
-          color: T.ink,
-          letterSpacing: "-0.015em",
-        }}
-      >
-        {title}
-      </h3>
-      <p
-        className="mt-[10px]"
-        style={{ color: T.textMuted, fontSize: 15, lineHeight: 1.6, fontWeight: 500 }}
-      >
-        {description}
-      </p>
-      <ul className="mt-[24px] flex flex-col gap-[12px]">
-        {features.map((f) => (
-          <li
-            key={f}
-            className="flex items-start gap-[10px]"
-            style={{ color: T.ink, fontSize: 14, fontWeight: 500 }}
-          >
-            <span
-              className="grid place-items-center flex-shrink-0"
-              style={{
-                width: 20, height: 20,
-                borderRadius: 999,
-                background: "rgba(242,108,5,0.12)",
-                color: T.orangeDeep,
-                marginTop: 1,
-              }}
-            >
-              <Check size={12} strokeWidth={3} />
-            </span>
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="flex-1" />
-      <div className="mt-[28px]">
-        <Btn to="/register" variant={ctaVariant === "orange" ? "orange" : "outline"} arrow>
-          {cta}
-        </Btn>
-      </div>
-    </motion.div>
-  );
-}
-
-function CategoriesPreview() {
-  return (
-    <section style={{ padding: "96px 20px", background: T.surface }}>
-      <div className="mx-auto" style={{ maxWidth: 1240 }}>
-        <div className="text-center">
-          <SectionLabel>Категории</SectionLabel>
-          <SectionTitle>Всё, что движется и летает</SectionTitle>
-          <p
-            className="mx-auto mt-[14px]"
-            style={{ color: T.textMuted, maxWidth: 520, fontSize: 16, fontWeight: 500 }}
-          >
-            Найди своих по интересу — от RC-машин до самодельной электроники.
-          </p>
-        </div>
-
-        <div className="mt-[48px] grid grid-cols-2 gap-[14px] md:grid-cols-3">
-          {CATEGORIES.map((c) => {
-            const Icon = c.icon;
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {PLATFORM_FEATURES.map((f) => {
+            const Icon = f.icon;
             return (
-              <Link
-                key={c.name}
-                to="/categories"
-                className="group flex items-center gap-[14px] transition-all hover:-translate-y-[2px]"
-                style={{
-                  padding: "20px",
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: T.rCard,
-                  boxShadow: T.shadowSm,
-                }}
-              >
+              <Card airy key={f.title} className="p-6 transition-shadow hover:shadow-[var(--shadow-card-hover)]">
                 <div
-                  className="grid place-items-center transition-colors"
+                  className="grid place-items-center"
                   style={{
-                    height: 48,
-                    width: 48,
-                    background: T.surfaceAlt,
-                    color: T.ink,
-                    borderRadius: 12,
+                    width: 44, height: 44,
+                    borderRadius: "var(--r-card-sm)",
+                    background: "var(--accent-soft)",
+                    color: "var(--accent)",
                   }}
                 >
-                  <Icon size={22} strokeWidth={2} />
+                  <Icon className="size-5" />
                 </div>
-                <div className="min-w-0">
-                  <div
-                    className="truncate"
-                    style={{ color: T.ink, fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}
-                  >
-                    {c.name}
-                  </div>
-                  <div style={{ marginTop: 2, color: T.textMuted, fontSize: 13, fontWeight: 500 }}>
-                    {c.count}
-                  </div>
-                </div>
-              </Link>
+                <h3
+                  className="mt-4"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 700,
+                    fontSize: 17,
+                    letterSpacing: "-0.01em",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+                  {f.desc}
+                </p>
+              </Card>
             );
           })}
         </div>
@@ -875,117 +378,475 @@ function CategoriesPreview() {
   );
 }
 
-function CommunityProof() {
-  return (
-    <section style={{ padding: "96px 20px", background: T.ink, color: "#fff", position: "relative", overflow: "hidden" }}>
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(600px circle at 20% 30%, rgba(242,108,5,0.18), transparent 60%), radial-gradient(500px circle at 80% 70%, rgba(165,40,20,0.18), transparent 55%)",
-        }}
-      />
-      <div className="relative mx-auto text-center" style={{ maxWidth: 760 }}>
-        <h2
-          style={{
-            fontFamily: FONT_DISPLAY,
-            fontWeight: 700,
-            fontSize: "clamp(28px, 4vw, 42px)",
-            letterSpacing: "-0.025em",
-            lineHeight: 1.1,
-          }}
-        >
-          Присоединяйтесь к 1 200+ моделистам
-        </h2>
-        <p
-          className="mx-auto mt-[14px]"
-          style={{ color: "rgba(255,255,255,0.7)", maxWidth: 540, fontSize: 16, fontWeight: 500 }}
-        >
-          Первые 100 участников получают бесплатную подписку на год.
-        </p>
+// ─── categories ───────────────────────────────────────────────────────────────
 
-        <div className="mt-[32px] flex justify-center">
-          {AVATAR_INITIALS.map((init, i) => (
-            <div
-              key={init}
-              className="grid place-items-center"
-              style={{
-                height: 44,
-                width: 44,
-                background: AVATAR_COLORS[i],
-                color: "#fff",
-                fontSize: 13,
-                fontWeight: 700,
-                borderRadius: T.rPill,
-                border: `2px solid ${T.ink}`,
-                marginLeft: i === 0 ? 0 : -12,
-              }}
-            >
-              {init}
-            </div>
-          ))}
+function CategoriesSection() {
+  return (
+    <section style={{ padding: "80px 20px", background: "var(--background)" }}>
+      <div className="mx-auto" style={{ maxWidth: 1240 }}>
+        <SectionEyebrow>Категории</SectionEyebrow>
+        <SectionTitle>Всё, что движется и летает</SectionTitle>
+
+        <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+          {CATEGORIES.map((c) => {
+            const Icon = c.icon;
+            return (
+              <Link
+                key={c.name}
+                to="/ads"
+                className="group flex flex-col items-center gap-3 py-6 text-center transition-all hover:-translate-y-1"
+                style={{
+                  borderRadius: "var(--r-card)",
+                  border: "1px solid var(--border)",
+                  background: "var(--background-elevated)",
+                  boxShadow: "var(--shadow-xs)",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
+              >
+                <div
+                  className="grid place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-white"
+                  style={{
+                    width: 44, height: 44,
+                    borderRadius: "var(--r-card-sm)",
+                    background: "var(--background-surface)",
+                    color: "var(--foreground-70)",
+                    transition: "background 200ms, color 200ms",
+                  }}
+                >
+                  <Icon className="size-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+                    {c.name}
+                  </div>
+                  <div className="mt-0.5 text-xs" style={{ color: "var(--foreground-50)" }}>
+                    {c.count}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="mt-[36px] flex flex-wrap justify-center gap-[12px]">
-          <Btn to="/register" variant="orange" size="lg" arrow>
-            Создать аккаунт бесплатно
-          </Btn>
-          <Btn to="/login" variant="outline" size="lg">
-            <span style={{ color: "#fff" }}>Войти</span>
-          </Btn>
+        <div className="mt-8 text-center">
+          <Button variant="outline" asChild>
+            <Link to="/ads">
+              Все объявления <ArrowRight className="size-4" />
+            </Link>
+          </Button>
         </div>
       </div>
     </section>
   );
 }
 
+// ─── listings ─────────────────────────────────────────────────────────────────
+
+function ListingsSection() {
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const toggle = (id: number) =>
+    setFavorites((prev) => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
+
+  return (
+    <section style={{ padding: "80px 20px", background: "var(--background-surface)" }}>
+      <div className="mx-auto" style={{ maxWidth: 1240 }}>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <SectionEyebrow>Объявления</SectionEyebrow>
+            <SectionTitle>Свежие лоты от сообщества</SectionTitle>
+          </div>
+          <Button variant="outline" asChild className="hidden sm:inline-flex">
+            <Link to="/ads">
+              Смотреть все <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {LISTINGS.map((ad) => (
+            <Card
+              airy
+              key={ad.id}
+              className="group flex flex-col overflow-hidden transition-shadow hover:shadow-[var(--shadow-card-hover)]"
+            >
+              {/* photo placeholder */}
+              <div
+                className="relative flex items-center justify-center"
+                style={{
+                  height: 176,
+                  background: "var(--background-surface)",
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                {ad.isTop && (
+                  <div className="absolute left-3 top-3">
+                    <Badge variant="top" withIcon>ТОП</Badge>
+                  </div>
+                )}
+                <button
+                  aria-label={favorites.has(ad.id) ? "Убрать из избранного" : "В избранное"}
+                  onClick={() => toggle(ad.id)}
+                  className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
+                  style={{
+                    width: 32, height: 32,
+                    borderRadius: "var(--r-pill)",
+                    background: "var(--background-elevated)",
+                    border: "1px solid var(--border)",
+                    color: favorites.has(ad.id) ? "var(--danger)" : "var(--foreground-50)",
+                  }}
+                >
+                  <Heart className="size-4" fill={favorites.has(ad.id) ? "currentColor" : "none"} />
+                </button>
+                {/* category icon as placeholder */}
+                <div style={{ color: "var(--foreground-30)" }}>
+                  {ad.category === "Автомодели" && <Car className="size-16 opacity-30" />}
+                  {ad.category === "Авиамодели" && <Plane className="size-16 opacity-30" />}
+                  {ad.category === "Судомодели" && <Ship className="size-16 opacity-30" />}
+                  {ad.category === "Дроны"      && <Crosshair className="size-16 opacity-30" />}
+                </div>
+              </div>
+
+              {/* info */}
+              <div className="flex flex-1 flex-col p-4">
+                <div className="text-sm font-semibold leading-snug" style={{ color: "var(--foreground)" }}>
+                  {ad.title}
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+                    {ad.price}
+                  </span>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--foreground-50)" }}>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="size-3" />{ad.city}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Tag className="size-3" />
+                    <span
+                      style={{
+                        color: ad.condition === "Новое" ? "var(--success)" : "var(--foreground-50)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {ad.condition}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="mt-auto pt-4">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link to="/ads">Смотреть лот</Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div className="mt-6 text-center sm:hidden">
+          <Button variant="outline" asChild>
+            <Link to="/ads">
+              Смотреть все <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── how it works ─────────────────────────────────────────────────────────────
+
+function HowItWorks() {
+  return (
+    <section style={{ padding: "80px 20px", background: "var(--background)" }}>
+      <div className="mx-auto" style={{ maxWidth: 1240 }}>
+        <div className="grid gap-16 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+          {/* steps */}
+          <div>
+            <SectionEyebrow>Как это работает</SectionEyebrow>
+            <SectionTitle>Четыре шага — и вы на платформе</SectionTitle>
+
+            <ol className="mt-10 flex flex-col gap-6">
+              {HOW_STEPS.map((s, i) => (
+                <li key={s.n} className="flex gap-5">
+                  <div
+                    className="grid shrink-0 place-items-center"
+                    style={{
+                      width: 44, height: 44,
+                      borderRadius: "var(--r-card-sm)",
+                      background: "var(--accent)",
+                      color: "#fff",
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 700,
+                      fontSize: 15,
+                      boxShadow: "var(--shadow-button)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 700,
+                        fontSize: 17,
+                        color: "var(--foreground)",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {s.title}
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+                      {s.desc}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-10 flex flex-wrap gap-3">
+              <Button asChild>
+                <Link to="/register">
+                  Начать бесплатно <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/ads">Смотреть объявления</Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* video block */}
+          <div
+            className="relative overflow-hidden"
+            style={{
+              aspectRatio: "16 / 10",
+              borderRadius: "var(--r-card-lg)",
+              background: "var(--background-elevated)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          >
+            <div className="absolute inset-0 grid place-items-center text-center px-8">
+              <div className="flex flex-col items-center gap-4">
+                <div
+                  className="grid place-items-center"
+                  style={{
+                    width: 64, height: 64,
+                    borderRadius: "var(--r-pill)",
+                    background: "var(--accent)",
+                    color: "#fff",
+                    boxShadow: "var(--shadow-button)",
+                  }}
+                >
+                  <Play className="size-6" fill="currentColor" />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 700,
+                      fontSize: 18,
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    Видео-инструкция
+                  </div>
+                  <p className="mt-2 text-sm" style={{ color: "var(--foreground-50)", maxWidth: 320 }}>
+                    Пошаговый обзор: регистрация, объявления, сообщества. Ролик выйдет в ближайшее время.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── CTA / promo banner (replaces FirstHundred) ───────────────────────────────
+
+function CtaBanner() {
+  const [stats, setStats] = useState({ taken: 0, total: 100 });
+  useEffect(() => {
+    let active = true;
+    fetchStats()
+      .then((s) => active && setStats(s.firstHundred))
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+  const pct = stats.total > 0 ? Math.round((stats.taken / stats.total) * 100) : 0;
+  const left = stats.total - stats.taken;
+
+  return (
+    <section style={{ padding: "32px 20px 80px" }}>
+      <div
+        className="relative mx-auto overflow-hidden"
+        style={{
+          maxWidth: 1240,
+          borderRadius: "var(--r-card-lg)",
+          background: "linear-gradient(135deg, var(--accent-commercial) 0%, #B04C00 100%)",
+          padding: "clamp(28px, 4vw, 48px)",
+          color: "#fff",
+          boxShadow: "var(--shadow-glow-commercial)",
+        }}
+      >
+        {/* glow overlay */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: "radial-gradient(600px circle at 10% 0%, rgba(255,255,255,0.20), transparent 55%), radial-gradient(400px circle at 90% 100%, rgba(0,0,0,0.15), transparent 55%)",
+          }}
+        />
+        <div className="relative grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Badge className="border-0 text-[var(--accent-commercial)] bg-white/95 font-bold">
+                <Sparkles className="size-3" /> Запуск платформы
+              </Badge>
+              <Badge className="border-0 text-white bg-[var(--neutral-900)]/80 font-bold">
+                <Crown className="size-3" /> Первые 100
+              </Badge>
+            </div>
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 700,
+                fontSize: "clamp(24px, 3.5vw, 36px)",
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                maxWidth: 640,
+              }}
+            >
+              Первые 100 участников получают год бесплатно
+            </h2>
+            <p className="mt-3 text-sm font-medium opacity-90" style={{ maxWidth: 540 }}>
+              Без оплаты и подписки. Зарегистрируйтесь сейчас — получите бейдж «Основатель» в профиле навсегда.
+            </p>
+
+            {/* progress */}
+            <div className="mt-5" style={{ maxWidth: 480 }}>
+              <div className="flex items-end justify-between mb-2">
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22 }}>
+                  Занято {stats.taken} из {stats.total}
+                </span>
+                <span className="text-sm font-semibold opacity-90">
+                  Осталось {left} {left === 1 ? "место" : "мест"}
+                </span>
+              </div>
+              <div style={{ height: 10, borderRadius: "var(--r-pill)", background: "rgba(255,255,255,0.25)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${pct}%`, height: "100%",
+                    borderRadius: "var(--r-pill)",
+                    background: "var(--neutral-900)",
+                    transition: "width 0.4s ease",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button
+                className="bg-[var(--neutral-900)] text-white hover:bg-[var(--neutral-700)] border-0 shadow-none"
+                size="lg"
+                asChild
+              >
+                <Link to="/register">
+                  Получить год бесплатно <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-white/40 text-white hover:bg-white/15 hover:text-white"
+                asChild
+              >
+                <Link to="/login">Уже с нами — войти</Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* avatar stack */}
+          <div className="hidden lg:flex flex-col items-center gap-3">
+            <div className="flex">
+              {AVATAR_INITIALS.map((init, i) => (
+                <div
+                  key={init}
+                  className="grid place-items-center text-white text-xs font-bold"
+                  style={{
+                    width: 40, height: 40,
+                    borderRadius: "var(--r-pill)",
+                    background: AVATAR_COLORS[i],
+                    border: "2px solid rgba(255,255,255,0.5)",
+                    marginLeft: i === 0 ? 0 : -10,
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  {init}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 text-xs font-semibold opacity-90">
+              <Star className="size-3" fill="currentColor" /> 4.9 · 1 200+ моделистов
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── footer ───────────────────────────────────────────────────────────────────
+
 function Footer() {
   return (
-    <footer style={{ background: T.surface, borderTop: `1px solid ${T.line}` }}>
+    <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
       <div
-        className="mx-auto grid gap-[40px] px-[20px] py-[56px] md:grid-cols-4 md:px-[40px]"
+        className="mx-auto grid gap-10 px-5 py-12 md:px-10 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]"
         style={{ maxWidth: 1240 }}
       >
         <div>
-          <div style={{ color: T.ink }}>
-            <Logo size={32} />
-          </div>
-          <p style={{ marginTop: 16, fontSize: 13, color: T.textMuted, fontWeight: 500 }}>
-            МоДелизМ Форум © 2026
+          <Logo size={28} />
+          <p className="mt-4 text-sm" style={{ color: "var(--foreground-50)", maxWidth: 200 }}>
+            Платформа для сообщества моделистов
+          </p>
+          <p className="mt-2 text-xs" style={{ color: "var(--foreground-30)" }}>
+            © 2026 МоДелизМ Форум
           </p>
         </div>
-        <FooterCol
-          title="Платформа"
-          links={[
-            { to: "/", label: "Лента" },
-            { to: "/communities", label: "Сообщества" },
-            { to: "/ads", label: "Объявления" },
-            { to: "/subscription", label: "Подписка" },
-          ]}
-        />
-        <FooterCol
-          title="Категории"
-          links={[
-            { to: "/categories", label: "Все категории" },
-            { to: "/categories", label: "Автомодели" },
-            { to: "/categories", label: "Самолёты" },
-            { to: "/categories", label: "Квадрокоптеры" },
-          ]}
-        />
-        <FooterCol
-          title="Контакты"
-          links={[
-            { to: "/login", label: "Войти" },
-            { to: "/register", label: "Регистрация" },
-          ]}
-        />
-      </div>
-      <div
-        className="px-[20px] pb-[32px] pt-[16px] text-center"
-        style={{ color: T.textMuted, fontSize: 12, fontWeight: 500 }}
-      >
-        Сделано с душой для моделистов
+
+        <FooterCol title="Проект" links={[
+          { label: "О проекте",    to: "/help"         },
+          { label: "Правила",      to: "/legal/rules"  },
+          { label: "Безопасность", to: "/legal/privacy"},
+        ]} />
+        <FooterCol title="Платформа" links={[
+          { label: "Лента",        to: "/"            },
+          { label: "Объявления",   to: "/ads"         },
+          { label: "Сообщества",   to: "/communities" },
+          { label: "Подписка",     to: "/subscription"},
+        ]} />
+        <FooterCol title="Поддержка" links={[
+          { label: "Помощь",       to: "/help"         },
+          { label: "Контакты",     to: "/help"         },
+        ]} />
+        <FooterCol title="Аккаунт" links={[
+          { label: "Войти",        to: "/login"    },
+          { label: "Регистрация",  to: "/register" },
+        ]} />
       </div>
     </footer>
   );
@@ -994,16 +855,16 @@ function Footer() {
 function FooterCol({ title, links }: { title: string; links: { to: string; label: string }[] }) {
   return (
     <div>
-      <div style={{ color: T.ink, fontSize: 14, fontWeight: 700, letterSpacing: "-0.01em" }}>
-        {title}
-      </div>
-      <ul className="mt-[16px] flex flex-col gap-[10px]">
+      <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{title}</div>
+      <ul className="mt-4 flex flex-col gap-3">
         {links.map((l) => (
           <li key={l.label}>
             <Link
               to={l.to}
-              className="transition-colors hover:text-[#F26C05]"
-              style={{ color: T.textMuted, fontSize: 13, fontWeight: 500 }}
+              className="text-sm transition-colors"
+              style={{ color: "var(--foreground-50)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
             >
               {l.label}
             </Link>
@@ -1011,5 +872,36 @@ function FooterCol({ title, links }: { title: string; links: { to: string; label
         ))}
       </ul>
     </div>
+  );
+}
+
+// ─── shared typography helpers ────────────────────────────────────────────────
+
+function SectionEyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest"
+      style={{ color: "var(--accent)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      className="mt-3"
+      style={{
+        fontFamily: "var(--font-display)",
+        fontWeight: 700,
+        fontSize: "clamp(26px, 3.8vw, 44px)",
+        letterSpacing: "-0.025em",
+        lineHeight: 1.1,
+        color: "var(--foreground)",
+      }}
+    >
+      {children}
+    </h2>
   );
 }
