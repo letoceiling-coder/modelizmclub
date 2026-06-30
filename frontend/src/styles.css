@@ -33,6 +33,8 @@
   --color-success-foreground: #ffffff;
   --color-warning: var(--warning);
   --color-warning-foreground: #ffffff;
+  --color-commercial: var(--accent-commercial);
+  --color-commercial-foreground: #ffffff;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -71,6 +73,26 @@
   --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --theme-transition: 250ms ease;
+
+  /* ===== UI Kit 2.0 — neutral scale (raw, theme-agnostic) ===== */
+  --neutral-900: #0F1519;
+  --neutral-700: #5A6778;
+  --neutral-600: #5B6878;
+  --neutral-400: #8C99AD;
+  --neutral-300: #A8B2C2;
+  --neutral-200: #E0E5ED;
+  --neutral-100: #E9EDF2;
+  --neutral-50:  #F8F9FC;
+
+  /* Secondary / commercial accent — ex-primary orange, now used for promo
+     blocks, paid placements, marketplace highlights and commercial CTAs. */
+  --accent-commercial: #F26C05;
+  --accent-commercial-hover: #FA4F02;
+  --accent-commercial-soft: rgba(242, 108, 5, 0.12);
+  --accent-commercial-glow: rgba(242, 108, 5, 0.25);
+
+  /* "Airy" card shadow (UI Kit 2.0 — light, diffused) */
+  --shadow-card-airy: 0 5px 100px rgba(45, 63, 91, 0.10);
 }
 
 /* ===== DARK THEME (DEFAULT) ===== */
@@ -108,13 +130,13 @@
   --foreground-30: rgba(240, 240, 240, 0.30);
   --foreground-15: rgba(240, 240, 240, 0.15);
 
-  /* Accent — orange (UI Kit 2.0) */
-  --accent: #F26C05;
-  --accent-hover: #FA4F02;
-  --accent-soft: rgba(242, 108, 5, 0.12);
-  --accent-glow: rgba(242, 108, 5, 0.25);
-  --accent-muted: #A52814;
-  --border-accent: rgba(242, 108, 5, 0.40);
+  /* Accent — primary blue (UI Kit 2.0) */
+  --accent: #627FFF;
+  --accent-hover: #4F66E8;
+  --accent-soft: rgba(98, 127, 255, 0.14);
+  --accent-glow: rgba(98, 127, 255, 0.28);
+  --accent-muted: #3F4FBF;
+  --border-accent: rgba(98, 127, 255, 0.40);
 
   /* Borders */
   --border-color: #333338;
@@ -128,8 +150,8 @@
   --success-soft: rgba(76, 175, 80, 0.15);
   --warning: #ff9800;
   --warning-soft: rgba(255, 152, 0, 0.15);
-  --danger: #FA4F02;
-  --danger-soft: rgba(250, 79, 2, 0.15);
+  --danger: #EF4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
   --error: var(--danger);
   --error-soft: var(--danger-soft);
   --info: #42a5f5;
@@ -142,11 +164,13 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover: 0 4px 24px rgba(242, 108, 5, 0.18);
+  --shadow-card-hover: 0 4px 24px rgba(98, 127, 255, 0.18);
   --shadow-modal: 0 16px 64px rgba(0, 0, 0, 0.7);
   --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow-accent: 0 0 24px rgba(242, 108, 5, 0.28);
-  --shadow-button: 0 2px 8px rgba(242, 108, 5, 0.35);
+  --shadow-glow-accent: 0 0 24px rgba(98, 127, 255, 0.28);
+  --shadow-button: 0 2px 8px rgba(98, 127, 255, 0.35);
+  --shadow-glow-commercial: 0 0 24px rgba(242, 108, 5, 0.28);
+  --shadow-button-commercial: 0 2px 8px rgba(242, 108, 5, 0.35);
 
 }
 
@@ -181,12 +205,12 @@
   --foreground-30: rgba(26, 26, 30, 0.30);
   --foreground-15: rgba(26, 26, 30, 0.10);
 
-  --accent: #F26C05;
-  --accent-hover: #A52814;
-  --accent-soft: rgba(242, 108, 5, 0.10);
-  --accent-glow: rgba(242, 108, 5, 0.18);
-  --accent-muted: #A1001E;
-  --border-accent: rgba(242, 108, 5, 0.35);
+  --accent: #627FFF;
+  --accent-hover: #4F66E8;
+  --accent-soft: rgba(98, 127, 255, 0.10);
+  --accent-glow: rgba(98, 127, 255, 0.18);
+  --accent-muted: #3F4FBF;
+  --border-accent: rgba(98, 127, 255, 0.35);
 
   --border-color: #e8e8e8;
   --border-light: #f0f0f0;
@@ -198,8 +222,8 @@
   --success-soft: rgba(46, 125, 50, 0.10);
   --warning: #ef6c00;
   --warning-soft: rgba(239, 108, 0, 0.10);
-  --danger: #A1001E;
-  --danger-soft: rgba(161, 0, 30, 0.10);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.10);
   --error: var(--danger);
   --error-soft: var(--danger-soft);
   --info: #1976d2;
@@ -214,8 +238,10 @@
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
   --shadow-modal: 0 16px 64px rgba(0, 0, 0, 0.20);
   --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.10);
-  --shadow-glow-accent: 0 0 24px rgba(242, 108, 5, 0.20);
-  --shadow-button: 0 2px 8px rgba(242, 108, 5, 0.28);
+  --shadow-glow-accent: 0 0 24px rgba(98, 127, 255, 0.20);
+  --shadow-button: 0 2px 8px rgba(98, 127, 255, 0.28);
+  --shadow-glow-commercial: 0 0 24px rgba(242, 108, 5, 0.20);
+  --shadow-button-commercial: 0 2px 8px rgba(242, 108, 5, 0.28);
 
 }
 
