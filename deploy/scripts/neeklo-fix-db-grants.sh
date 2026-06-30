@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DB_NAME="modelizmclub_neeklo"
+DB_USER="modelizmclub_neeklo"
+sudo -u postgres psql -d "${DB_NAME}" <<SQL
+GRANT ALL ON SCHEMA public TO ${DB_USER};
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${DB_USER};
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${DB_USER};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${DB_USER};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ${DB_USER};
+SQL
+echo "DB grants OK"

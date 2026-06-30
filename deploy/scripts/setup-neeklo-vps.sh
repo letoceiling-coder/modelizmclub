@@ -31,6 +31,11 @@ if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_N
   echo "==> Cloning data from ${SRC_DB} (one-time copy, then independent)"
   sudo -u postgres pg_dump "${SRC_DB}" | sudo -u postgres psql "${DB_NAME}" >/dev/null
   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};"
+  sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};"
+  sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${DB_USER};"
+  sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${DB_USER};"
+  sudo -u postgres psql -d "${DB_NAME}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${DB_USER};"
+  sudo -u postgres psql -d "${DB_NAME}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ${DB_USER};"
 fi
 mkdir -p /root
 echo "NEEKLO_DB_NAME=${DB_NAME}" > /root/modelizmclub-neeklo-db.env
@@ -95,8 +100,8 @@ sed -i "s|^SESSION_DOMAIN=.*|SESSION_DOMAIN=.modelizmclub.ru|" .env
 sed -i "s|^VKONTAKTE_REDIRECT_URI=.*|VKONTAKTE_REDIRECT_URI=https://${API_DOMAIN}/api/v1/auth/oauth/vk/callback|" .env
 sed -i "s|^YANDEX_REDIRECT_URI=.*|YANDEX_REDIRECT_URI=https://${API_DOMAIN}/api/v1/auth/oauth/yandex/callback|" .env
 
-php artisan key:generate --force
 composer install --optimize-autoloader --no-interaction
+php artisan key:generate --force
 php artisan migrate --force
 php artisan config:cache
 php artisan route:cache
