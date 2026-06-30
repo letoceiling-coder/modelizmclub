@@ -1,0 +1,15 @@
+[Unit]
+Description=Neeklo Laravel Queue Worker
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/modelizmclub-neeklo/backend
+ExecStart=/usr/bin/php artisan queue:work redis --queue=default --sleep=3 --tries=3 --max-time=3600 --backoff=5
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

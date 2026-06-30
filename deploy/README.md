@@ -74,3 +74,37 @@ bash /var/www/modelizmclub/deploy/scripts/deploy-frontend.sh
 ## CI
 
 Тесты запускаются в GitHub Actions (без локального окружения). См. `.github/workflows/tests.yml` в `backend/`.
+
+## Neeklo agent (neeklo.modelizmclub.ru)
+
+Изолированный стенд для другого агента: **отдельная директория, БД, Reverb, frontend-порт**, тот же репозиторий, **другая git-ветка**.
+
+| URL | Назначение |
+|-----|------------|
+| https://neeklo.modelizmclub.ru | frontend (SSR, :3002) |
+| https://neeklo-api.modelizmclub.ru | Laravel API |
+| wss://neeklo-ws.modelizmclub.ru | Reverb WebSocket (:8082) |
+
+| Параметр | Значение |
+|----------|----------|
+| Путь | `/var/www/modelizmclub-neeklo` |
+| БД | `modelizmclub_neeklo` (копия prod, дальше независима) |
+| Git-ветка | `NEEKLO_GIT_BRANCH` (по умолчанию `neeklo`) |
+
+DNS: A-записи `neeklo`, `neeklo-api`, `neeklo-ws` → `31.207.75.124` (или wildcard `*.modelizmclub.ru`).
+
+Первичная настройка (один раз):
+
+```bash
+NEEKLO_GIT_BRANCH=neeklo bash /var/www/modelizmclub/deploy/scripts/setup-neeklo-vps.sh
+```
+
+Обновление после push в ветку neeklo:
+
+```bash
+NEEKLO_GIT_BRANCH=neeklo bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo.sh
+bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo-frontend.sh
+```
+
+Учётные данные БД: `/root/modelizmclub-neeklo-db.env`
+
