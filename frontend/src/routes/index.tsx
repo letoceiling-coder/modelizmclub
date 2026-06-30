@@ -185,7 +185,7 @@ function ZeroBlock() {
               >
                 МоДелизМ
                 <br />
-                <span style={{ color: "#e53935" }}>Форум</span>
+                <span style={{ color: "var(--accent)" }}>Форум</span>
               </motion.h1>
 
               <motion.p
