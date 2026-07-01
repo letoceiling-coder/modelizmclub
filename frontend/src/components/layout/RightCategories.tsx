@@ -25,8 +25,9 @@ export function RightCategories() {
 
   return (
     <aside className="hidden xl:block w-72 shrink-0">
+      {/* sticky: right rail stays in view while center column scrolls */}
       <div
-        className="sticky top-4 rounded-[14px] border"
+        className="sticky top-4 max-h-[calc(100dvh-32px)] overflow-hidden rounded-[14px] border"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
@@ -42,7 +43,7 @@ export function RightCategories() {
           </p>
         </div>
 
-        <ul className="max-h-[calc(100vh-180px)] overflow-y-auto p-[6px]">
+        <ul className="overflow-y-auto p-[6px]" style={{ scrollbarWidth: "thin" }}>
           {categories.map((c) => {
             const open = openId === c.id;
             const online = onlineFor(c);

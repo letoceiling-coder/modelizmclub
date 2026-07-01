@@ -51,7 +51,7 @@ export const DEMO_USER: User = {
     "&backgroundColor=627fff,3f4fbf,1976d2",
   subscription: "Год",
   bio: "Пилот RC-авиации и багги 1:8. Строю, летаю, гоняю. Собираю сообщество моделистов Краснодара.",
-  status: "Основатель · Форум Pro",
+  status: "Основатель · МоДелизМ Pro",
   coverImage: "https://picsum.photos/seed/modelizm101/1200/400",
   joinedDate: "2024-03-15T10:00:00Z",
   friendIds: ["u2", "u3", "u5", "u6", "u7"],

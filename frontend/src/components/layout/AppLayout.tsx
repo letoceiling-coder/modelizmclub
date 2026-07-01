@@ -15,9 +15,14 @@ export function AppLayout({ children, rightColumn }: Props) {
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
     <div className="min-h-[100dvh] overflow-x-clip bg-background">
       <MobileHeader />
+      {/*
+        On desktop: align-items:stretch so sidebar/right-rail fill the row height,
+        enabling their inner sticky containers to scroll independently.
+        On mobile: pb leaves space for BottomNav.
+      */}
       <div
         className="
-          mx-auto flex w-full max-w-7xl gap-6 px-3 pt-4
+          mx-auto flex w-full max-w-7xl items-start gap-6 px-3 pt-4
           pb-[calc(var(--bottom-nav-space)+8px)]
           lg:px-6 lg:pb-8
         "

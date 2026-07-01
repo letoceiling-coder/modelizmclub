@@ -36,8 +36,9 @@ export function Sidebar() {
   const { t } = useTranslation();
   return (
     <aside className="hidden lg:block w-60 shrink-0">
-      <div className="sticky top-4 space-y-1">
-        <div className="flex items-center justify-between px-3 pt-3 pb-1">
+      {/* sticky: keeps sidebar in view while center column scrolls */}
+      <div className="sticky top-0 h-[100dvh] space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
+        <div className="flex items-center justify-between px-3 pb-1">
           <Link to={ROUTES.feed}><Logo size={44} /></Link>
           <div className="flex items-center gap-1">
             <LanguageSwitcher />

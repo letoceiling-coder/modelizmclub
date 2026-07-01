@@ -3,8 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/legal/rules")({
   head: () => ({
     meta: [
-      { title: "Правила сообщества — МоДелизМ Форум" },
-      { name: "description", content: "Правила публикации, общения и поведения в сообществе МоДелизМ Форум." },
+      { title: "Правила сообщества — МоДелизМ" },
+      { name: "description", content: "Правила публикации, общения и поведения в сообществе МоДелизМ." },
     ],
   }),
   component: RulesPage,
@@ -18,7 +18,7 @@ function RulesPage() {
         Правила сообщества
       </h1>
       <p style={{ color: "var(--foreground-50)", marginTop: 8, fontSize: 14 }}>
-        Эти правила обеспечивают комфортное общение всех участников МоДелизМ Форум.
+        Эти правила обеспечивают комфортное общение всех участников МоДелизМ.
       </p>
 
       <section className="mt-[28px] space-y-[18px]" style={{ fontSize: 15, lineHeight: 1.7 }}>

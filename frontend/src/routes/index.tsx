@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, ChevronDown, Play, Pause, Volume2, VolumeX, Plus, Check,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
-  MapPin, Search, Compass, Sparkles,
+  MapPin, Search, Compass, Sparkles, ImageOff,
   Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -14,8 +14,7 @@ import { ads as mockAds } from "@/lib/mock";
 import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
 
-const DESKTOP_VIDEO = "/videos/modelizm-hero-desktop.mp4";
-const MOBILE_VIDEO = "/videos/modelizm-hero-mobile.mp4";
+const HERO_VIDEO = "/videos/herovideo.mp4";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -222,9 +221,7 @@ function Hero() {
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
-            {/* Vertical source first for narrow screens, horizontal for wide. */}
-            <source src={MOBILE_VIDEO} media="(max-width: 767px)" type="video/mp4" />
-            <source src={DESKTOP_VIDEO} type="video/mp4" />
+            <source src={HERO_VIDEO} type="video/mp4" />
           </video>
         )}
         {/* dark overlay — no white fade at the bottom, blends into --background */}
@@ -285,7 +282,7 @@ function Hero() {
 
               <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
                   <Search size={18} /> Смотреть объявления
@@ -295,9 +292,6 @@ function Hero() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
                   {enter.demo ? "Открыть демо" : "Создать аккаунт"} <ArrowRight size={18} />
-                </button>
-                <button onClick={() => navigate({ to: enter.login })} style={ctaText}>
-                  Войти
                 </button>
               </motion.div>
 
@@ -403,7 +397,7 @@ const CONDITION_COLOR = (c?: string) =>
   c === "Новое" ? "var(--success)" : "var(--foreground-50)";
 
 function PopularListings() {
-  const items = mockAds.slice(0, 8);
+  const items = mockAds.slice(0, 6);
   return (
     <Section bg="var(--background)">
       <div className="flex items-end justify-between gap-4">
@@ -416,8 +410,8 @@ function PopularListings() {
         >Все объявления <ArrowRight size={15} /></Link>
       </div>
 
-      {/* horizontal scroll on mobile, grid on desktop */}
-      <div className="mt-8 flex snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
+      {/* mobile: horizontal scroll (no page overflow), desktop: 3+3 grid */}
+      <div className="-mx-4 mt-8 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3"
         style={{ scrollbarWidth: "none" }}
       >
         {items.map((ad) => (
@@ -438,8 +432,15 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
   const [fav, setFav] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(0);
-  const gallery = ad.gallery && ad.gallery.length > 1 ? ad.gallery : [ad.image];
+  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
   const navigate = useNavigate();
+
+  // Build gallery: prefer ad.gallery when it has multiple entries, else use ad.image
+  const rawGallery = (ad.gallery && ad.gallery.length > 0 ? ad.gallery : [ad.image]).filter(Boolean) as string[];
+  // Filter out already-errored images for dot indicators but still render them (fallback shown)
+  const gallery = rawGallery.length > 0 ? rawGallery : [];
+  const hasImages = gallery.length > 0;
+  const canHover = hasImages && gallery.length > 1;
 
   return (
     <div
@@ -450,20 +451,33 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
       {/* photo */}
       <button
         onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })}
-        className="relative block h-[168px] w-full overflow-hidden"
+        className="relative block h-[180px] w-full overflow-hidden"
         style={{ background: "var(--background-surface)", borderBottom: "1px solid var(--border)" }}
         onMouseMove={(e) => {
-          if (gallery.length < 2) return;
+          if (!canHover) return;
           const r = e.currentTarget.getBoundingClientRect();
           const p = (e.clientX - r.left) / r.width;
           setHovIdx(Math.min(gallery.length - 1, Math.max(0, Math.floor(p * gallery.length))));
         }}
       >
-        <img src={gallery[hovIdx]} alt={ad.title} loading="lazy" className="h-full w-full object-cover" />
-        {gallery.length > 1 && (
+        {hasImages && !imgErrors[hovIdx] ? (
+          <img
+            src={gallery[hovIdx]}
+            alt={ad.title}
+            loading="lazy"
+            className="h-full w-full object-cover"
+            onError={() => setImgErrors((prev) => ({ ...prev, [hovIdx]: true }))}
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2" style={{ color: "var(--foreground-30)" }}>
+            <ImageOff size={28} />
+            <span style={{ fontSize: 11, color: "var(--foreground-30)" }}>Фото скоро</span>
+          </div>
+        )}
+        {canHover && (
           <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
             {gallery.slice(0, 5).map((_, i) => (
-              <span key={i} style={{ width: 14, height: 3, borderRadius: 2, background: i === hovIdx ? "#fff" : "rgba(255,255,255,0.5)" }} />
+              <span key={i} style={{ width: 14, height: 3, borderRadius: 2, background: i === hovIdx ? "#fff" : "rgba(255,255,255,0.5)", transition: "background 120ms" }} />
             ))}
           </div>
         )}
@@ -474,7 +488,7 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
         aria-label={fav ? "Убрать из избранного" : "В избранное"}
         onClick={() => setFav((v) => !v)}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
-        style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "var(--danger)" : "var(--foreground-50)" }}
+        style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
       >
         <Heart size={16} fill={fav ? "currentColor" : "none"} />
       </button>
@@ -495,7 +509,7 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
           >
             {["Скрыть", "Не интересно", "Пожаловаться"].map((label) => (
               <button key={label} onClick={() => setMenuOpen(false)}
-                className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover)]"
+                className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}
               >{label}</button>
             ))}
