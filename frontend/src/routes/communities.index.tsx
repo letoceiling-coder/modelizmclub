@@ -2,13 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight,
+  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Community } from "@/lib/mock";
 import { fetchCommunities } from "@/lib/api/communities";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 
 export const Route = createFileRoute("/communities/")({
   head: () => ({ meta: [{ title: "Сообщества — МоДелизМ Форум" }] }),
@@ -21,25 +24,44 @@ const ICON_MAP: Record<string, typeof Car> = {
 
 function CommunityCard({ c }: { c: Community }) {
   const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
+  const [brokenCover, setBrokenCover] = useState(false);
+  const [brokenAvatar, setBrokenAvatar] = useState(false);
+
+  const showCover = Boolean(c.coverImage) && !brokenCover;
+  const showAvatar = Boolean(c.avatarImage) && !brokenAvatar;
+
   return (
-    <article
-      className="overflow-hidden flex flex-col"
-      style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16 }}
+    <Card
+      className="overflow-hidden flex flex-col shadow-none"
+      style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}
     >
       {/* banner */}
       <Link to="/communities/$id" params={{ id: c.id }} className="relative block">
-        {c.coverImage ? (
-          <img src={c.coverImage} alt="" className="h-[120px] w-full object-cover" />
+        {showCover ? (
+          <img
+            src={c.coverImage}
+            alt=""
+            className="h-[120px] w-full object-cover"
+            onError={() => setBrokenCover(true)}
+          />
         ) : (
-          <div className="h-[120px] w-full" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+          <div
+            className="h-[120px] w-full"
+            style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
+          />
         )}
         {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
           style={{ background: "var(--background)", border: "3px solid var(--background)", borderRadius: 14 }}
         >
-          {c.avatarImage ? (
-            <img src={c.avatarImage} alt="" className="h-full w-full object-cover" />
+          {showAvatar ? (
+            <img
+              src={c.avatarImage}
+              alt=""
+              className="h-full w-full object-cover"
+              onError={() => setBrokenAvatar(true)}
+            />
           ) : (
             <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
               <Icon size={26} style={{ color: "var(--accent)" }} />
@@ -50,11 +72,19 @@ function CommunityCard({ c }: { c: Community }) {
 
       <div className="flex flex-1 flex-col gap-[10px] px-[16px] pt-[32px] pb-[16px]">
         <Link to="/communities/$id" params={{ id: c.id }} className="min-w-0">
-          <h3 className="truncate font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</h3>
-          <p className="mt-[4px] text-[13px]" style={{
-            color: "var(--foreground-70)",
-            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-          }}>
+          <h3 className="truncate font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+            {c.name}
+          </h3>
+          <p
+            className="mt-[4px] text-[13px]"
+            style={{
+              color: "var(--foreground-70)",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
             {c.description}
           </p>
         </Link>
@@ -62,20 +92,14 @@ function CommunityCard({ c }: { c: Community }) {
           <span className="inline-flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
             <Users size={14} /> {c.members.toLocaleString("ru")}
           </span>
-          <Link
-            to="/communities/$id"
-            params={{ id: c.id }}
-            className="inline-flex items-center gap-[6px] font-semibold transition-colors"
-            style={{
-              height: 34, padding: "0 14px", borderRadius: 10,
-              background: "var(--accent)", color: "white", fontSize: 13,
-            }}
-          >
-            Перейти <ArrowRight size={14} />
-          </Link>
+          <Button asChild size="sm" className="rounded-[10px] gap-[6px]">
+            <Link to="/communities/$id" params={{ id: c.id }}>
+              Перейти <ArrowRight size={14} />
+            </Link>
+          </Button>
         </div>
       </div>
-    </article>
+    </Card>
   );
 }
 
@@ -123,7 +147,12 @@ function CommunitiesPage() {
   const apply = (list: Community[]) => {
     const q = debounced.trim().toLowerCase();
     if (!q) return list;
-    return list.filter((c) => c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+    return list.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.category.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q),
+    );
   };
 
   const myFiltered = useMemo(() => apply(myCommunities), [myCommunities, debounced]);
@@ -136,8 +165,15 @@ function CommunitiesPage() {
     <AppLayout rightColumn={false}>
       <div className="space-y-[20px]">
         <header>
-          <h1 className="font-display text-[24px] font-bold sm:text-[28px]" style={{ color: "var(--foreground)" }}>Сообщества</h1>
-          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Клубы, кружки, школы и магазины моделизма</p>
+          <h1
+            className="font-display text-[24px] font-bold sm:text-[28px]"
+            style={{ color: "var(--foreground)" }}
+          >
+            Сообщества
+          </h1>
+          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+            Клубы, кружки, школы и магазины моделизма
+          </p>
         </header>
 
         {/* Tabs */}
@@ -181,22 +217,12 @@ function CommunitiesPage() {
         </nav>
 
         {/* Search */}
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по названию, категории или описанию"
-            className="w-full text-[14px] outline-none"
-            style={{
-              height: 44, paddingLeft: 38, paddingRight: 14,
-              background: "var(--background-surface)", borderRadius: 12,
-              border: "1.5px solid transparent", color: "var(--foreground)",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
-          />
-        </div>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery("")}
+          placeholder="Поиск по названию, категории или описанию"
+        />
 
         {section === "my" && myCommunities.length === 0 && !hasQuery ? (
           <EmptyMy onSwitch={() => setSection("recommended")} />
@@ -205,7 +231,9 @@ function CommunitiesPage() {
         ) : (
           <AnimatePresence mode="popLayout">
             <motion.div key={section} className="grid gap-[16px] grid-cols-1 sm:grid-cols-2">
-              {visible.map((c) => <CommunityCard key={c.id} c={c} />)}
+              {visible.map((c) => (
+                <CommunityCard key={c.id} c={c} />
+              ))}
             </motion.div>
           </AnimatePresence>
         )}

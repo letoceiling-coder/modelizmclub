@@ -9,6 +9,10 @@ import {
   type Channel, type ChannelPost, type PostStatus, type PostKind,
 } from "@/lib/channels";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export const Route = createFileRoute("/channel/$id")({
@@ -22,12 +26,16 @@ type ChannelTab = "posts" | "about";
 function NotFoundView() {
   return (
     <AppLayout rightColumn={false}>
-      <div className="grid place-items-center gap-3 py-20 text-center">
-        <Radio size={28} style={{ color: "var(--foreground-50)" }} />
-        <div className="text-[16px] font-semibold">Канал не найден</div>
-        <Link to="/channels" className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>
-          Все каналы
-        </Link>
+      <div className="py-[40px]">
+        <EmptyState
+          icon={Radio}
+          title="Канал не найден"
+          description="Возможно, он был удалён или ссылка некорректна"
+        >
+          <Button asChild className="rounded-[10px] px-[20px]">
+            <Link to="/channels">Все каналы</Link>
+          </Button>
+        </EmptyState>
       </div>
     </AppLayout>
   );
@@ -43,7 +51,23 @@ function ChannelPage() {
   if (loading) {
     return (
       <AppLayout rightColumn={false}>
-        <div className="py-20 text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>Загрузка…</div>
+        <div className="space-y-4">
+          <Card className="overflow-hidden shadow-none" style={{ borderColor: "var(--border)", borderRadius: 16, background: "var(--background)" }}>
+            <Skeleton className="h-28 sm:h-36 rounded-none" />
+            <div className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+              <Skeleton className="h-[64px] w-[64px] rounded-[16px]" />
+              <Skeleton className="mt-3 h-[28px] w-[55%] rounded-[8px]" />
+              <Skeleton className="mt-2 h-[16px] w-[35%] rounded-[6px]" />
+              <Skeleton className="mt-4 h-[44px] w-full rounded-[12px]" />
+            </div>
+          </Card>
+          <Skeleton className="h-[52px] w-full rounded-[12px]" />
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-[96px] w-full rounded-[14px]" />
+            ))}
+          </div>
+        </div>
       </AppLayout>
     );
   }
@@ -76,9 +100,9 @@ function ChannelPage() {
         </Link>
 
         {/* header card */}
-        <section
-          className="overflow-hidden"
-          style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16 }}
+        <Card
+          className="overflow-hidden shadow-none"
+          style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}
         >
           <div className="h-28 sm:h-36" style={{ background: channel.bannerColor }} />
           <div className="px-4 pb-4 sm:px-5 sm:pb-5">
@@ -124,19 +148,14 @@ function ChannelPage() {
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 {!channel.isOwner && (
-                  <button
+                  <Button
+                    variant={subscribed ? "outline" : "default"}
                     onClick={onToggle}
-                    className="inline-flex h-11 items-center justify-center gap-2 px-5 text-[14px] font-semibold transition-colors"
-                    style={{
-                      borderRadius: 12,
-                      background: subscribed ? "transparent" : "var(--accent)",
-                      color: subscribed ? "var(--foreground)" : "white",
-                      border: subscribed ? "1px solid var(--border-strong)" : "none",
-                      flex: 1,
-                    }}
+                    className="flex-1 rounded-[12px] gap-2"
+                    size="lg"
                   >
                     {subscribed ? (<><Check size={16} /> Вы подписаны</>) : "Подписаться"}
-                  </button>
+                  </Button>
                 )}
                 {channel.isOwner && (
                   <div
@@ -160,7 +179,7 @@ function ChannelPage() {
               </div>
             </div>
           </div>
-        </section>
+        </Card>
 
         {/* tabs */}
         <div
@@ -434,20 +453,14 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
         <span className="text-[11px]" style={{ color: text.length > MAX - 80 ? "rgb(217,119,6)" : "var(--foreground-50)" }}>
           {text.length} / {MAX}
         </span>
-        <button
+        <Button
           onClick={submit}
           disabled={!canSend}
-          className="inline-flex h-10 items-center gap-1.5 px-4 text-[13px] font-semibold transition-opacity"
-          style={{
-            borderRadius: 10,
-            background: "var(--accent)",
-            color: "white",
-            opacity: canSend ? 1 : 0.5,
-            cursor: canSend ? "pointer" : "not-allowed",
-          }}
+          className="rounded-[10px] gap-1.5"
+          size="sm"
         >
           <Send size={14} /> {sending ? "Публикуем…" : "Опубликовать"}
-        </button>
+        </Button>
       </div>
 
       {justSent && (

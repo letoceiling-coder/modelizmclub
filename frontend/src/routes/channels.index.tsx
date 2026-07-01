@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles } from "lucide-react";
+import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannels, setChannelSubscription,
@@ -8,6 +8,10 @@ import {
   type Channel, type ChannelKind,
 } from "@/lib/channels";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/channels/")({
   head: () => ({
@@ -64,22 +68,12 @@ function ChannelsPage() {
         </header>
 
         {/* search */}
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Поиск канала"
-            className="w-full text-[14px] outline-none"
-            style={{
-              height: 44, paddingLeft: 38, paddingRight: 12,
-              background: "var(--background-surface)", borderRadius: 12,
-              border: "1.5px solid transparent", color: "var(--foreground)",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
-          />
-        </div>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onClear={() => setQ("")}
+          placeholder="Поиск канала"
+        />
 
         {/* segmented tabs */}
         <div
@@ -115,23 +109,13 @@ function ChannelsPage() {
         </div>
 
         {list.length === 0 ? (
-          <div className="grid place-items-center gap-2 py-14 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
-            <div className="grid h-14 w-14 place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
-              <Radio size={22} />
-            </div>
-            <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-              {tab === "subs" ? "Вы пока ни на что не подписаны" : "Ничего не найдено"}
-            </div>
-            {tab === "subs" && (
-              <button
-                onClick={() => setTab("popular")}
-                className="mt-1 inline-flex h-9 items-center px-4 text-[13px] font-semibold"
-                style={{ background: "var(--accent)", color: "white", borderRadius: 10 }}
-              >
-                К популярным каналам
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={Radio}
+            title={tab === "subs" ? "Вы пока ни на что не подписаны" : "Ничего не найдено"}
+            description={tab !== "subs" ? "Попробуйте изменить запрос или выбрать другую вкладку" : "Найдите интересные каналы и подпишитесь"}
+            action={tab === "subs" ? { label: "К популярным каналам", onClick: () => setTab("popular") } : undefined}
+            variant="compact"
+          />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {list.map((c) => (
@@ -166,8 +150,8 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
       <Link
         to="/channel/$id"
         params={{ id: c.id }}
-        className="flex h-full flex-col gap-3 p-4"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
+        className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-[var(--background-surface)]"
+        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14, display: "flex" }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
           <div
@@ -202,18 +186,14 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
             </div>
           </div>
         </div>
-        <button
+        <Button
+          variant={subscribed ? "outline" : "default"}
           onClick={onToggle}
-          className="mt-auto inline-flex h-9 w-full items-center justify-center gap-1.5 text-[13px] font-semibold transition-colors"
-          style={{
-            borderRadius: 10,
-            background: subscribed ? "transparent" : "var(--accent)",
-            color: subscribed ? "var(--foreground-70)" : "white",
-            border: subscribed ? "1px solid var(--border)" : "none",
-          }}
+          className="mt-auto w-full rounded-[10px]"
+          size="sm"
         >
           {subscribed ? (<><Check size={14} /> Вы подписаны</>) : "Подписаться"}
-        </button>
+        </Button>
       </Link>
     </li>
   );
