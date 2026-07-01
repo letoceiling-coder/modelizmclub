@@ -165,19 +165,13 @@ function MyAdsPage() {
             </p>
           </div>
 
-          <button
-            type="button"
+          <Button
             onClick={handleCreate}
-            className="hidden items-center gap-[8px] px-[20px] text-[14px] font-semibold transition-all md:inline-flex"
-            style={{
-              background: "var(--accent)", color: "#fff",
-              borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)", height: 44,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
+            size="lg"
+            className="hidden rounded-[var(--r-button)] md:inline-flex"
           >
             <Plus size={16} /> Разместить объявление
-          </button>
+          </Button>
         </header>
 
         {/* Stats — compact (Avito-style) */}
@@ -375,22 +369,21 @@ function MyAdsPage() {
             >
               <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>Выбрано: {selected.size}</span>
               <div className="flex items-center gap-[8px]">
-                <button type="button" onClick={archiveSelected}
-                  className="inline-flex items-center px-[14px] text-[13px] font-semibold"
-                  style={{ background: "var(--background)", border: "1px solid var(--border-strong)", color: "var(--foreground)", borderRadius: "var(--r-button)", height: 34 }}>
+                <Button variant="outline" size="sm" onClick={archiveSelected} className="rounded-[var(--r-button)]">
                   Архивировать
-                </button>
-                <button type="button" onClick={deleteSelected}
-                  className="inline-flex items-center px-[14px] text-[13px] font-semibold"
-                  style={{ background: "var(--error)", color: "#fff", borderRadius: "var(--r-button)", height: 34 }}>
+                </Button>
+                <Button variant="destructive" size="sm" onClick={deleteSelected} className="rounded-[var(--r-button)]">
                   Удалить
-                </button>
-                <button type="button" onClick={clearSelection}
-                  className="grid h-[34px] w-[34px] place-items-center"
-                  style={{ background: "transparent", color: "var(--foreground-50)", borderRadius: "var(--r-pill)" }}
-                  aria-label="Отменить выбор">
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearSelection}
+                  aria-label="Отменить выбор"
+                  className="h-[34px] w-[34px] rounded-full"
+                >
                   <X size={16} />
-                </button>
+                </Button>
               </div>
             </motion.div>
           )}
@@ -424,13 +417,19 @@ function MyAdsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Mobile FAB */}
+      {/* Mobile FAB — positioned above BottomNav (z-40) */}
       <button
         type="button"
         onClick={handleCreate}
         aria-label="Разместить объявление"
-        className="fixed right-[20px] bottom-[20px] z-30 grid h-[56px] w-[56px] place-items-center md:hidden"
-        style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-glow-accent), var(--shadow-float)" }}
+        className="fixed right-[20px] z-50 grid h-[56px] w-[56px] place-items-center md:hidden"
+        style={{
+          bottom: "calc(var(--bottom-nav-space) + 16px)",
+          background: "var(--accent)",
+          color: "#fff",
+          borderRadius: "var(--r-pill)",
+          boxShadow: "var(--shadow-glow-accent), var(--shadow-float)",
+        }}
       >
         <Plus size={24} strokeWidth={2.5} />
       </button>
