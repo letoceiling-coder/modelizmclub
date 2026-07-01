@@ -5,7 +5,7 @@ import { useChannels } from "@/lib/channels";
 import { ExternalLink, CheckCircle2, Map as MapIcon } from "lucide-react";
 
 export const Route = createFileRoute("/diag")({
-  head: () => ({ meta: [{ title: "Диагностика роутов — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Диагностика роутов — МоДелизМ" }] }),
   component: DiagPage,
 });
 

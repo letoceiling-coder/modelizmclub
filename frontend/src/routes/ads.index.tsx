@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/ads/")({
-  head: () => ({ meta: [{ title: "Мои объявления — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Мои объявления — МоДелизМ" }] }),
   component: MyAdsPage,
 });
 

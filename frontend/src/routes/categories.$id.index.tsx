@@ -8,7 +8,7 @@ import type { Category } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 
 export const Route = createFileRoute("/categories/$id/")({
-  head: () => ({ meta: [{ title: "Категория — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Категория — МоДелизМ" }] }),
   component: CategoryRoomsPage,
 });
 

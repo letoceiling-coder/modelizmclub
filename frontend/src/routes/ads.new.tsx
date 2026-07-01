@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/ads/new")({
-  head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);
@@ -426,7 +426,7 @@ function StepPreview({ form, cat, submitError }: { form: Form; cat: Category | u
         <ListingPreviewCard
           title={form.title}
           price={form.price}
-          image={form.photos[0] ?? ""}
+          images={form.photos}
           status={form.status}
           category={cat?.name}
           subcategory={sub?.name}

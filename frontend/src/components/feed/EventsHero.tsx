@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import { fetchBanners } from "@/lib/api/banners";
@@ -27,6 +26,7 @@ export function EventsHero() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [allBanners, setAllBanners] = useState<Banner[]>([]);
+  const [signup, setSignup] = useState<Banner | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -60,15 +60,17 @@ export function EventsHero() {
   const next = () => setIndex((i) => (i + 1) % list.length);
   const openCta = (b: Banner) => {
     const link = b.link?.trim();
-    if (!link) {
-      toast.info("Информация о событии скоро появится");
+    // Real external link → open it. Otherwise show the event signup dialog
+    // (the demo stand has no events backend to route to).
+    if (link && /^https?:\/\//i.test(link)) {
+      window.open(link, "_blank", "noopener,noreferrer");
       return;
     }
-    if (/^https?:\/\//i.test(link)) {
-      window.open(link, "_blank", "noopener,noreferrer");
-    } else {
+    if (link) {
       void navigate({ to: link });
+      return;
     }
+    setSignup(b);
   };
   const dismiss = (id: string) =>
     setDismissed((p) => {
@@ -78,6 +80,7 @@ export function EventsHero() {
     });
 
   return (
+    <>
     <section
       aria-label="События и новости форума"
       className="relative overflow-hidden rounded-[16px] border"
@@ -108,7 +111,8 @@ export function EventsHero() {
               }}
             />
 
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-[10px] p-[18px] sm:p-[22px]">
+            {/* sm+ side padding keeps text/CTA clear of the prev/next arrows */}
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-[10px] p-[18px] sm:p-[22px] sm:px-[56px]">
               <span
                 className="inline-flex w-fit items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white"
                 style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
@@ -189,5 +193,72 @@ export function EventsHero() {
         </div>
       )}
     </section>
+
+    <EventSignupModal banner={signup} onClose={() => setSignup(null)} />
+    </>
+  );
+}
+
+/** Lightweight event-signup confirmation. Demo stand has no events backend,
+ *  so this records the intent in-session and confirms to the user. */
+function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!banner) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [banner, onClose]);
+
+  return (
+    <AnimatePresence>
+      {banner && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: 30, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 30, opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded-t-[20px] p-[22px] sm:max-w-[420px] sm:rounded-[18px]"
+            style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
+          >
+            <div
+              className="grid h-[44px] w-[44px] place-items-center rounded-full"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              <CalendarDays className="h-[22px] w-[22px]" />
+            </div>
+            <h3
+              className="mt-[14px] text-[18px] font-bold"
+              style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
+            >
+              Регистрация на мероприятие
+            </h3>
+            <p className="mt-[6px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+              {banner.title}
+            </p>
+            <p className="mt-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              Demo mode: заявка на событие сохранена. На боевой версии здесь будет форма записи и подтверждение по email.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-[18px] h-[44px] w-full rounded-[12px] text-[14px] font-semibold text-white transition-transform active:scale-[0.99]"
+              style={{ background: "var(--accent)" }}
+            >
+              Понятно
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

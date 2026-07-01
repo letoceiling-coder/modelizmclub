@@ -21,8 +21,8 @@ import { getToken, ApiError } from "@/lib/api/client";
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({
     meta: [
-      { title: "Объявление — МоДелизМ Форум" },
-      { name: "description", content: "Объявление на МоДелизМ Форум" },
+      { title: "Объявление — МоДелизМ" },
+      { name: "description", content: "Объявление на МоДелизМ" },
     ],
   }),
   component: AdDetailPage,

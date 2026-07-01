@@ -10,7 +10,7 @@ export const Route = createFileRoute("/reset-password")({
     token: typeof s.token === "string" ? s.token : "",
     email: typeof s.email === "string" ? s.email : "",
   }),
-  head: () => ({ meta: [{ title: "Новый пароль — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Новый пароль — МоДелизМ" }] }),
   component: ResetPasswordPage,
 });
 

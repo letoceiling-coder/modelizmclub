@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 export const Route = createFileRoute("/channels/")({
   head: () => ({
     meta: [
-      { title: "Каналы — МоДелизМ Форум" },
+      { title: "Каналы — МоДелизМ" },
       { name: "description", content: "Подпишитесь на каналы брендов, магазинов, авторов и экспертов: новости, обзоры и спецпредложения." },
     ],
   }),
@@ -138,8 +138,8 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
     e.preventDefault();
     e.stopPropagation();
     try {
+      // Quiet inline toggle — no intrusive top toast on a simple subscribe.
       await setChannelSubscription(c.slug, !subscribed);
-      toast.success(subscribed ? `Отписка от «${c.name}»` : `Подписка на «${c.name}»`);
       onChanged();
     } catch {
       toast.error("Не удалось обновить подписку");

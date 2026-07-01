@@ -22,7 +22,7 @@ import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 export const Route = createFileRoute("/feed")({
   head: () => ({
     meta: [
-      { title: "Лента — МоДелизМ Форум" },
+      { title: "Лента — МоДелизМ" },
       { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
     ],
   }),

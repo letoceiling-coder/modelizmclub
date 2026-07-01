@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
-import { Check, Gift, Zap } from "lucide-react";
+import { Check, Gift, Zap, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 
 export const Route = createFileRoute("/subscription")({
-  head: () => ({ meta: [{ title: "Подписка — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);
@@ -50,6 +50,23 @@ const FEATURES = [
 
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
+
+// Demo subscription state — single source of truth for the countdown.
+// On the real backend this comes from the user's active subscription record.
+const SUB_TOTAL_DAYS = 365;
+const SUB_DAYS_LEFT = 287;
+const SUB_PLAN_NAME = "Год";
+function subscriptionEndDate(): string {
+  const end = new Date(Date.now() + SUB_DAYS_LEFT * 86400000);
+  return end.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+}
+function daysWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "день";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "дня";
+  return "дней";
+}
 
 function payClick(planName: string) {
   toast("Оплата будет доступна после подключения эквайринга", {
@@ -103,9 +120,66 @@ function SubscriptionPage() {
           </p>
         </motion.div>
 
+        {/* Active subscription — the single place the countdown lives */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          className="mt-[24px] flex flex-col gap-[14px] sm:flex-row sm:items-center sm:justify-between"
+          style={{
+            background: "var(--background-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-card)",
+            padding: "18px 20px",
+          }}
+        >
+          <div className="flex items-start gap-[14px]">
+            <div
+              className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              <CalendarClock size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-[8px]">
+                <span style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>
+                  Подписка «{SUB_PLAN_NAME}» активна
+                </span>
+                <span
+                  className="inline-block"
+                  style={{ fontSize: 11, fontWeight: 600, color: "var(--success)", background: "var(--success-soft)", padding: "2px 8px", borderRadius: "var(--r-tag)" }}
+                >
+                  активна
+                </span>
+              </div>
+              <div className="mt-[4px]" style={{ fontSize: 13, color: "var(--foreground-50)" }}>
+                Действует до {subscriptionEndDate()}
+              </div>
+            </div>
+          </div>
+          <div className="sm:text-right">
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--foreground)", lineHeight: 1 }}>
+              {SUB_DAYS_LEFT} {daysWord(SUB_DAYS_LEFT)}
+            </div>
+            <div className="mt-[2px]" style={{ fontSize: 12, color: "var(--foreground-50)" }}>
+              до окончания
+            </div>
+            <div className="mt-[8px] w-full sm:w-[160px]" style={{ height: 6, background: "var(--background-surface)", borderRadius: 3, overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: `${(SUB_DAYS_LEFT / SUB_TOTAL_DAYS) * 100}%`,
+                  background: "var(--accent)",
+                  borderRadius: 3,
+                }}
+              />
+            </div>
+          </div>
+        </motion.div>
+
         {/* Free counter */}
         <div
-          className="mt-[24px] flex items-center gap-[14px]"
+          className="mt-[16px] flex items-center gap-[14px]"
           style={{
             background: "var(--accent-soft)",
             borderRadius: "var(--r-card)",

@@ -7,7 +7,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Выберите интересы — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Выберите интересы — МоДелизМ" }] }),
   component: OnboardingPage,
 });
 

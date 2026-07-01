@@ -11,7 +11,7 @@ export const Route = createFileRoute("/verify-email")({
   validateSearch: (s: Record<string, unknown>): { email?: string } => ({
     email: typeof s.email === "string" ? s.email : "",
   }),
-  head: () => ({ meta: [{ title: "Подтверждение email — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Подтверждение email — МоДелизМ" }] }),
   component: VerifyEmailPage,
 });
 

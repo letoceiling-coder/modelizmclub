@@ -40,7 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 export const Route = createFileRoute("/messenger")({
-  head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);

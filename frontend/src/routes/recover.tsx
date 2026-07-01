@@ -5,7 +5,7 @@ import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { forgotPassword } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/recover")({
-  head: () => ({ meta: [{ title: "Восстановление пароля — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Восстановление пароля — МоДелизМ" }] }),
   component: RecoverPage,
 });
 

@@ -18,7 +18,7 @@ interface FaqEntry {
 }
 
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Помощь — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Помощь — МоДелизМ" }] }),
   component: HelpPage,
 });
 
@@ -98,7 +98,7 @@ function HelpPage() {
           База знаний
         </h1>
         <p style={{ fontSize: "var(--fs-body-lg)", lineHeight: 1.6, color: "var(--foreground-70)", marginTop: "12px", maxWidth: "600px" }}>
-          Ответы на частые вопросы о платформе МоДелизМ Форум
+          Ответы на частые вопросы о платформе МоДелизМ
         </p>
 
         {/* Search */}

@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);

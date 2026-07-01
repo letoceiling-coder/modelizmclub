@@ -3,8 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/legal/privacy")({
   head: () => ({
     meta: [
-      { title: "Политика конфиденциальности — МоДелизМ Форум" },
-      { name: "description", content: "Как МоДелизМ Форум собирает, хранит и использует данные пользователей." },
+      { title: "Политика конфиденциальности — МоДелизМ" },
+      { name: "description", content: "Как МоДелизМ собирает, хранит и использует данные пользователей." },
     ],
   }),
   component: PrivacyPage,

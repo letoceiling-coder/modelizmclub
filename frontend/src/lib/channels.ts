@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoChannels, demoChannel, demoChannelPosts } from "@/lib/demo-data";
+import { demoChannels, demoChannel, demoChannelPosts, setDemoChannelSubscription } from "@/lib/demo-data";
 
 export type ChannelKind = "official" | "brand" | "shop" | "author" | "expert";
 export type PostStatus = "published" | "moderation" | "rejected";
@@ -147,7 +147,10 @@ export async function fetchChannelPosts(slug: string): Promise<ChannelPost[]> {
 }
 
 export async function setChannelSubscription(slug: string, subscribe: boolean): Promise<void> {
-  if (isDemoMode()) return;
+  if (isDemoMode()) {
+    setDemoChannelSubscription(slug, subscribe);
+    return;
+  }
   await api(`/channels/${slug}/subscribe`, { method: subscribe ? "POST" : "DELETE" });
 }
 

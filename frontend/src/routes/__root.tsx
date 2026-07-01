@@ -69,10 +69,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "МоДелизМ Форум — сообщество моделистов" },
+      { title: "МоДелизМ — сообщество моделистов" },
       { name: "description", content: "Социальная платформа для моделистов: RC авто, самолёты, квадрокоптеры, корабли, электроника. Чаты, объявления, сообщества." },
-      { property: "og:title", content: "МоДелизМ Форум — сообщество моделистов" },
-      { name: "twitter:title", content: "МоДелизМ Форум — сообщество моделистов" },
+      { property: "og:title", content: "МоДелизМ — сообщество моделистов" },
+      { name: "twitter:title", content: "МоДелизМ — сообщество моделистов" },
       { property: "og:description", content: "Социальная платформа для моделистов: RC авто, самолёты, квадрокоптеры, корабли, электроника. Чаты, объявления, сообщества." },
       { name: "twitter:description", content: "Социальная платформа для моделистов: RC авто, самолёты, квадрокоптеры, корабли, электроника. Чаты, объявления, сообщества." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png" },

@@ -201,12 +201,34 @@ const demoChannelList: DemoChannel[] = [
   { id: "sudomodel", name: "Судомоделизм", slug: "sudomodel", description: "Катера, парусники, копии кораблей — постройка и ходовые испытания.", category: "Корабли", kind: "expert", avatarColor: "#00897b", bannerColor: "linear-gradient(135deg,#004d40,#00897b)", subscribers: 2740, createdAt: iso(120), ownerName: "Дмитрий Моделист", isSubscribed: true },
 ];
 
+// In-session subscription overrides so the demo stand can toggle "Подписаться"
+// without a backend. Keyed by slug → subscribed? Resets on full reload
+// (documented demo limitation), but stays consistent within a session.
+const channelSubOverrides = new Map<string, boolean>();
+
+function applySubOverride(c: DemoChannel): DemoChannel {
+  const ov = channelSubOverrides.get(c.slug);
+  if (ov === undefined) return c;
+  if (ov === Boolean(c.isSubscribed)) return c;
+  // Reflect the toggle in the subscriber count too, so the UI reads honestly.
+  const delta = ov ? 1 : -1;
+  return { ...c, isSubscribed: ov, subscribers: Math.max(0, c.subscribers + delta) };
+}
+
+/** Toggle a demo channel subscription for the current session. */
+export function setDemoChannelSubscription(slug: string, subscribed: boolean): void {
+  const ch = demoChannelList.find((c) => c.slug === slug || c.id === slug);
+  if (!ch) return;
+  channelSubOverrides.set(ch.slug, subscribed);
+}
+
 export function demoChannels(): DemoChannel[] {
-  return demoChannelList;
+  return demoChannelList.map(applySubOverride);
 }
 
 export function demoChannel(slug: string): DemoChannel | null {
-  return demoChannelList.find((c) => c.slug === slug || c.id === slug) ?? null;
+  const found = demoChannelList.find((c) => c.slug === slug || c.id === slug);
+  return found ? applySubOverride(found) : null;
 }
 
 export interface DemoChannelPost {

@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { useState } from "react";
 
 export const Route = createFileRoute("/admin/design-system")({
-  head: () => ({ meta: [{ title: "Design System — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Design System — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);

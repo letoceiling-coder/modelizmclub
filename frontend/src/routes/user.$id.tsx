@@ -12,7 +12,7 @@ import { ProfileView } from "./profile";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/user/$id")({
-  head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),
   component: UserPage,
 });
 

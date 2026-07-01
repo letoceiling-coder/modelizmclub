@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 
 export const Route = createFileRoute("/communities/")({
-  head: () => ({ meta: [{ title: "Сообщества — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Сообщества — МоДелизМ" }] }),
   component: CommunitiesPage,
 });
 

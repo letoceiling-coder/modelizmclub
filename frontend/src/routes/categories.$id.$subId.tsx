@@ -29,7 +29,7 @@ import { fetchListings } from "@/lib/api/listings";
 type Tab = "chat" | "ads" | "members";
 
 export const Route = createFileRoute("/categories/$id/$subId")({
-  head: () => ({ meta: [{ title: "Подкатегория — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Подкатегория — МоДелизМ" }] }),
   component: SubcategoryRoomPage,
 });
 

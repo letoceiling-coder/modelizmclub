@@ -1,4 +1,4 @@
-// Mock data for МоДелизМ Форум prototype
+// Mock data for МоДелизМ prototype
 export type ID = string;
 
 export interface User {
@@ -212,14 +212,14 @@ const photo = (id: number) =>
   `https://picsum.photos/seed/modelizm${id}/800/600`;
 
 export const users: User[] = [
-  { id: "u1", name: "Александр RC", city: "Краснодар", interests: "RC авто, ДВС 1:8, багги, гонки", avatar: avatar("Александр RC"), subscription: "Год", bio: "Гоняю RC авто с 2015 года. Строю багги на базе HB Racing. Организую заезды в Краснодаре.", status: "В проекте с 2024", coverImage: photo(101), joinedDate: "2024-03-15T10:00:00Z", friendIds: ["u2","u3","u5","u6","u7"], online: true, isAdmin: true, firstHundred: true },
-  { id: "u2", name: "Сергей ДВС", city: "Москва", interests: "Двигатели, тюнинг, ДВС, нитро", avatar: avatar("Сергей ДВС"), subscription: "Месяц", bio: "Двигателист со стажем. Знаю о ДВС всё: от обкатки до форсирования. Помогу с настройкой.", status: "Чемпион гонок 2025", coverImage: photo(102), joinedDate: "2024-04-02T14:30:00Z", friendIds: ["u1","u4"], online: true },
-  { id: "u3", name: "Михаил Квадро", city: "Санкт-Петербург", interests: "FPV, квадрокоптеры, видео, 5дюймов", avatar: avatar("Михаил Квадро"), subscription: "Полгода", bio: "FPV-пилот. Летаю на 5-дюймовых рамах. Снимаю видео с коптера. Ищу напарников для совместных полётов.", coverImage: photo(103), joinedDate: "2024-05-20T08:00:00Z", friendIds: ["u1","u6","u8"], online: false },
-  { id: "u4", name: "Андрей Самолёты", city: "Новосибирск", interests: "Авиамодели, планеры, реставрация", avatar: avatar("Андрей Самолёты"), subscription: null, bio: "Авиамоделист. Восстанавливаю советские модели. Ищу редкие декали и чертежи.", coverImage: photo(104), joinedDate: "2024-06-10T12:00:00Z", friendIds: ["u2"], online: true },
-  { id: "u5", name: "Дмитрий Моделист", city: "Екатеринбург", interests: "Корабли, катера, парусники", avatar: avatar("Дмитрий Моделист"), subscription: "Месяц", bio: "Судомоделист из Екатеринбурга. Строю катера на ДВС и электротяге.", coverImage: photo(105), joinedDate: "2024-07-01T09:00:00Z", friendIds: ["u1"], online: false },
-  { id: "u6", name: "Игорь Электрик", city: "Казань", interests: "Электроника, DIY, пайка, ESC", avatar: avatar("Игорь Электрик"), subscription: "Месяц", bio: "DIY-электронщик. Паяю контроллеры, ESC, датчики. Делюсь схемами и прошивками.", status: "Мастер пайки", coverImage: photo(106), joinedDate: "2024-08-15T16:00:00Z", friendIds: ["u1","u3"], online: true },
-  { id: "u7", name: "Павел Самокат", city: "Сочи", interests: "Электросамокаты, моды, аккумуляторы", avatar: avatar("Павел Самокат"), subscription: null, bio: "Моддинг электросамокатов: аккумуляторы, прошивки, контроллеры.", coverImage: photo(107), joinedDate: "2025-01-10T11:00:00Z", friendIds: ["u1"], online: false },
-  { id: "u8", name: "Олег Разработчик", city: "Ростов-на-Дону", interests: "Автопилоты, прошивки, STM32", avatar: avatar("Олег Разработчик"), subscription: "Год", bio: "Разрабатываю автопилоты на базе STM32. Пишу прошивки под ArduPilot и PX4.", status: "Разработчик", coverImage: photo(108), joinedDate: "2024-09-01T07:00:00Z", friendIds: ["u3"], online: true },
+  { id: "u1", numericId: 1, name: "Александр RC", city: "Краснодар", interests: "RC авто, ДВС 1:8, багги, гонки", avatar: avatar("Александр RC"), subscription: "Год", bio: "Гоняю RC авто с 2015 года. Строю багги на базе HB Racing. Организую заезды в Краснодаре.", status: "В проекте с 2024", coverImage: photo(101), joinedDate: "2024-03-15T10:00:00Z", friendIds: ["u2","u3","u5","u6","u7"], online: true, isAdmin: true, firstHundred: true },
+  { id: "u2", numericId: 2, name: "Сергей ДВС", city: "Москва", interests: "Двигатели, тюнинг, ДВС, нитро", avatar: avatar("Сергей ДВС"), subscription: "Месяц", bio: "Двигателист со стажем. Знаю о ДВС всё: от обкатки до форсирования. Помогу с настройкой.", status: "Чемпион гонок 2025", coverImage: photo(102), joinedDate: "2024-04-02T14:30:00Z", friendIds: ["u1","u4"], online: true },
+  { id: "u3", numericId: 3, name: "Михаил Квадро", city: "Санкт-Петербург", interests: "FPV, квадрокоптеры, видео, 5дюймов", avatar: avatar("Михаил Квадро"), subscription: "Полгода", bio: "FPV-пилот. Летаю на 5-дюймовых рамах. Снимаю видео с коптера. Ищу напарников для совместных полётов.", coverImage: photo(103), joinedDate: "2024-05-20T08:00:00Z", friendIds: ["u1","u6","u8"], online: false },
+  { id: "u4", numericId: 4, name: "Андрей Самолёты", city: "Новосибирск", interests: "Авиамодели, планеры, реставрация", avatar: avatar("Андрей Самолёты"), subscription: null, bio: "Авиамоделист. Восстанавливаю советские модели. Ищу редкие декали и чертежи.", coverImage: photo(104), joinedDate: "2024-06-10T12:00:00Z", friendIds: ["u2"], online: true },
+  { id: "u5", numericId: 5, name: "Дмитрий Моделист", city: "Екатеринбург", interests: "Корабли, катера, парусники", avatar: avatar("Дмитрий Моделист"), subscription: "Месяц", bio: "Судомоделист из Екатеринбурга. Строю катера на ДВС и электротяге.", coverImage: photo(105), joinedDate: "2024-07-01T09:00:00Z", friendIds: ["u1"], online: false },
+  { id: "u6", numericId: 6, name: "Игорь Электрик", city: "Казань", interests: "Электроника, DIY, пайка, ESC", avatar: avatar("Игорь Электрик"), subscription: "Месяц", bio: "DIY-электронщик. Паяю контроллеры, ESC, датчики. Делюсь схемами и прошивками.", status: "Мастер пайки", coverImage: photo(106), joinedDate: "2024-08-15T16:00:00Z", friendIds: ["u1","u3"], online: true },
+  { id: "u7", numericId: 7, name: "Павел Самокат", city: "Сочи", interests: "Электросамокаты, моды, аккумуляторы", avatar: avatar("Павел Самокат"), subscription: null, bio: "Моддинг электросамокатов: аккумуляторы, прошивки, контроллеры.", coverImage: photo(107), joinedDate: "2025-01-10T11:00:00Z", friendIds: ["u1"], online: false },
+  { id: "u8", numericId: 8, name: "Олег Разработчик", city: "Ростов-на-Дону", interests: "Автопилоты, прошивки, STM32", avatar: avatar("Олег Разработчик"), subscription: "Год", bio: "Разрабатываю автопилоты на базе STM32. Пишу прошивки под ArduPilot и PX4.", status: "Разработчик", coverImage: photo(108), joinedDate: "2024-09-01T07:00:00Z", friendIds: ["u3"], online: true },
 ];
 
 export const friendRequests: FriendRequest[] = [
@@ -587,12 +587,12 @@ export interface PromoCode {
 export const subscriptionPlans: SubscriptionPlan[] = [
   
   { id: "month", name: "Месяц", price: 100, periodLabel: "месяц", features: ["Всё из Тестового", "Безлимитные объявления", "Приоритет в ленте", "Поддержка 24/7"], accent: true },
-  { id: "half", name: "Полгода", price: 500, periodLabel: "полгода", savingsLabel: "Экономия 100₽", isPopular: true, features: ["Всё из «Месяц»", "Скидки в магазине 10%", "Бейдж «Форум» в профиле", "Комиссия 0% на продажи"], accent: true },
-  { id: "year", name: "Год", price: 800, periodLabel: "год", savingsLabel: "Экономия 400₽", isBestValue: true, features: ["Всё из «Полгода»", "3 бесплатных объявления/мес", "Бейдж «Форум Pro» в профиле", "Без рекламы на платформе", "Приоритетная поддержка"] },
+  { id: "half", name: "Полгода", price: 500, periodLabel: "полгода", savingsLabel: "Экономия 100₽", isPopular: true, features: ["Всё из «Месяц»", "Скидки в магазине 10%", "Бейдж «МоДелизМ» в профиле", "Комиссия 0% на продажи"], accent: true },
+  { id: "year", name: "Год", price: 800, periodLabel: "год", savingsLabel: "Экономия 400₽", isBestValue: true, features: ["Всё из «Полгода»", "3 бесплатных объявления/мес", "Бейдж «МоДелизМ Pro» в профиле", "Без рекламы на платформе", "Приоритетная поддержка"] },
 ];
 
 export const faqItems: FAQItem[] = [
-  { id: "f1", category: "general", question: "Что такое МоДелизМ Форум?", answer: "Это социальная платформа для моделистов, где можно общаться, делиться проектами, продавать и покупать запчасти и модели." },
+  { id: "f1", category: "general", question: "Что такое МоДелизМ?", answer: "Это социальная платформа для моделистов, где можно общаться, делиться проектами, продавать и покупать запчасти и модели." },
   { id: "f2", category: "general", question: "Как зарегистрироваться?", answer: "Нажмите «Регистрация» на главной, укажите имя, email и пароль. Подтвердите почту и заполните профиль." },
   { id: "f3", category: "general", question: "Нужна ли подписка?", answer: "Базовый доступ бесплатный. Для расширенных функций — подписка от 99 ₽ в месяц." },
   { id: "f4", category: "ads", question: "Как разместить объявление?", answer: "Нажмите «Создать» → «Объявление», заполните форму (название, цена, фото), оплатите 20 ₽ и ждите модерации." },

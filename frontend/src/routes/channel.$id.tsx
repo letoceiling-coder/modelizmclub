@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 
 export const Route = createFileRoute("/channel/$id")({
-  head: () => ({ meta: [{ title: "Канал — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Канал — МоДелизМ" }] }),
   component: ChannelPage,
 });
 
@@ -79,8 +79,8 @@ function ChannelPage() {
 
   const onToggle = async () => {
     try {
+      // Quiet inline toggle — button state flips, no intrusive top toast.
       await setChannelSubscription(channel.slug, !subscribed);
-      toast.success(subscribed ? `Отписка от «${channel.name}»` : `Подписка на «${channel.name}»`);
       reloadChannel();
     } catch {
       toast.error("Не удалось обновить подписку");

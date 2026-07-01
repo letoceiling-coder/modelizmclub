@@ -31,7 +31,7 @@ import {
 } from "@/lib/api/admin";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);

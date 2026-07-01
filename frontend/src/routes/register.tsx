@@ -10,7 +10,7 @@ export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>): { ref?: string } => ({
     ref: typeof s.ref === "string" ? s.ref : undefined,
   }),
-  head: () => ({ meta: [{ title: "Регистрация — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Регистрация — МоДелизМ" }] }),
   component: RegisterPage,
 });
 

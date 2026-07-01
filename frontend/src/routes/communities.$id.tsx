@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/communities/$id")({
-  head: () => ({ meta: [{ title: "Сообщество — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Сообщество — МоДелизМ" }] }),
   component: CommunityDetailPage,
 });
 

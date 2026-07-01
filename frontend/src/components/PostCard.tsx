@@ -56,17 +56,19 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   );
 }
 
-/** Media block: fixed 16:9 aspect ratio, broken-image fallback */
+/** Media block: fixed 16:9 aspect ratio, object-fit cover. A broken/missing
+ *  image degrades to a COMPACT placeholder bar (not a half-screen empty block). */
 function PostMedia({ src, alt }: { src: string; alt: string }) {
   const [err, setErr] = useState(false);
   if (err) {
     return (
       <div
-        className="flex aspect-video w-full items-center justify-center"
+        className="flex h-[96px] w-full items-center justify-center gap-[8px]"
         style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}
         aria-label="Изображение недоступно"
       >
-        <ImageOff className="h-[28px] w-[28px]" />
+        <ImageOff className="h-[20px] w-[20px]" />
+        <span className="text-[12px]" style={{ color: "var(--foreground-30)" }}>Фото недоступно</span>
       </div>
     );
   }

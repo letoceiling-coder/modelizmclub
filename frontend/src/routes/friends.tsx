@@ -24,7 +24,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/friends")({
-  head: () => ({ meta: [{ title: "Друзья — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Друзья — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);
@@ -94,10 +94,15 @@ function FriendsPage() {
   ];
 
   const accept = async (id: number) => {
+    const req = requests.find((r) => r.id === id);
     try {
       await acceptFriendRequest(id);
       setRequests((rs) => rs.filter((r) => r.id !== id));
-      setFriends(await fetchFriends());
+      // Optimistically move the requester into the friends list so the change
+      // is visible immediately (demo has no server round-trip to re-fetch).
+      if (req) {
+        setFriends((fs) => (fs.some((f) => f.id === req.from.id) ? fs : [req.from, ...fs]));
+      }
       toast.success("Заявка принята");
     } catch {
       toast.error("Не удалось принять заявку");
@@ -147,7 +152,7 @@ function FriendsPage() {
   };
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="space-y-[16px]">
         <header className="flex items-start justify-between gap-[12px]">
           <div>

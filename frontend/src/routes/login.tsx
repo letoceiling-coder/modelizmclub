@@ -8,7 +8,7 @@ import { resetSessionCache } from "@/lib/auth/session";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Вход — МоДелизМ Форум" }] }),
+  head: () => ({ meta: [{ title: "Вход — МоДелизМ" }] }),
   validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
   }),
@@ -49,7 +49,7 @@ function LoginPage() {
   return (
     <AuthShell
       title="Вход"
-      subtitle="С возвращением в МоДелизМ Форум"
+      subtitle="С возвращением в МоДелизМ"
       footer={
         <>
           Ещё нет аккаунта?{" "}
