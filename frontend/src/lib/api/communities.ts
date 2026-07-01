@@ -1,5 +1,7 @@
 import type { Community } from "@/lib/mock";
 import { api } from "./client";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoCommunities, demoCommunity } from "@/lib/demo-data";
 
 interface ApiCommunity {
   id: number;
@@ -36,6 +38,7 @@ export function mapCommunity(c: ApiCommunity): Community {
 }
 
 export async function fetchCommunities(query?: string): Promise<Community[]> {
+  if (isDemoMode()) return demoCommunities(query);
   const res = await api<Paginated<ApiCommunity>>("/communities", {
     query: { q: query || undefined, per_page: 50 },
   });
@@ -43,14 +46,21 @@ export async function fetchCommunities(query?: string): Promise<Community[]> {
 }
 
 export async function fetchCommunity(slug: string): Promise<Community> {
+  if (isDemoMode()) {
+    const c = demoCommunity(slug);
+    if (c) return c;
+    throw new Error("Community not found");
+  }
   const res = await api<{ data: ApiCommunity }>(`/communities/${slug}`);
   return mapCommunity(res.data);
 }
 
 export async function joinCommunity(slug: string): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/communities/${slug}/join`, { method: "POST" });
 }
 
 export async function leaveCommunity(slug: string): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/communities/${slug}/leave`, { method: "DELETE" });
 }

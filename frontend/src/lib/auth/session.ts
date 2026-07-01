@@ -3,6 +3,8 @@ import { getToken, setToken } from "@/lib/api/client";
 import { shutdownCalls } from "@/lib/calls";
 import { GUEST_USER, setCurrentUser } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
+import { isDemoMode } from "@/lib/demo-mode";
+import { seedDemoStore } from "@/lib/demo-data";
 
 let sessionPromise: Promise<boolean> | null = null;
 
@@ -12,6 +14,11 @@ let sessionPromise: Promise<boolean> | null = null;
  */
 export async function ensureSession(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  // Demo mode: no token, no network — seed the store with the mock session.
+  if (isDemoMode()) {
+    seedDemoStore();
+    return true;
+  }
   if (!getToken()) return false;
 
   if (!sessionPromise) {

@@ -2,6 +2,8 @@ import type { Post, Comment, User } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoFeed, demoPostComments } from "@/lib/demo-data";
 
 interface ApiPostAuthor {
   id?: number;
@@ -92,6 +94,9 @@ export interface FeedResult {
 }
 
 export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
+  if (isDemoMode()) {
+    return demoFeed({ filter: opts.filter, page: opts.page, perPage: opts.perPage });
+  }
   const res = await api<Paginated<ApiPost>>("/feed", {
     query: {
       filter: opts.filter ?? "all",
@@ -109,10 +114,12 @@ export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
 }
 
 export async function reactToPost(uuid: string, on: boolean): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/posts/${uuid}/react`, { method: on ? "POST" : "DELETE" });
 }
 
 export async function bookmarkPost(uuid: string, on: boolean): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/posts/${uuid}/bookmark`, { method: on ? "POST" : "DELETE" });
 }
 
@@ -139,6 +146,7 @@ function mapComment(c: ApiComment): Comment {
 }
 
 export async function fetchPostComments(uuid: string): Promise<Comment[]> {
+  if (isDemoMode()) return demoPostComments(uuid);
   const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`);
   return (res.data ?? []).map(mapComment);
 }
@@ -148,6 +156,16 @@ export async function createComment(
   body: string,
   parentUuid?: string,
 ): Promise<Comment> {
+  if (isDemoMode()) {
+    return {
+      id: `demo-c-${Date.now()}`,
+      authorId: "u1",
+      time: "только что",
+      text: body,
+      likes: 0,
+      replies: [],
+    };
+  }
   const res = await api<{ data: ApiComment }>(`/posts/${uuid}/comments`, {
     method: "POST",
     json: { body, parent_uuid: parentUuid },
@@ -164,6 +182,26 @@ export interface CreatePostInput {
 }
 
 export async function createPost(input: CreatePostInput): Promise<Post> {
+  if (isDemoMode()) {
+    return {
+      id: `demo-p-${Date.now()}`,
+      authorId: "u1",
+      date: "только что",
+      category: "",
+      title: input.title,
+      text: input.body,
+      tags: input.hashtags ?? [],
+      views: 0,
+      likes: 0,
+      comments: 0,
+      saves: 0,
+      reposts: 0,
+      status: "published",
+      isLiked: false,
+      isSaved: false,
+      commentList: [],
+    };
+  }
   const res = await api<{ data: ApiPost }>("/posts", {
     method: "POST",
     json: {

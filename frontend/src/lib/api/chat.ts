@@ -2,6 +2,8 @@ import type { Dialog, Message, User } from "@/lib/mock";
 import { registerUser, makeMockWaveform } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoConversations, demoMessages } from "@/lib/demo-data";
 
 function seedFromId(id: string): number {
   let h = 0;
@@ -96,6 +98,7 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
 }
 
 export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
+  if (isDemoMode()) return demoConversations();
   const res = await api<Paginated<ApiConversation>>("/conversations", {
     query: { per_page: 50 },
   });
@@ -103,6 +106,7 @@ export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
 }
 
 export async function fetchMessages(uuid: string): Promise<Message[]> {
+  if (isDemoMode()) return demoMessages(uuid);
   const res = await api<Paginated<ApiMessage>>(`/conversations/${uuid}/messages`, {
     query: { per_page: 50 },
   });
@@ -115,6 +119,16 @@ export async function sendMessage(
   body: string,
   replyToUuid?: string,
 ): Promise<Message> {
+  if (isDemoMode()) {
+    return {
+      id: `demo-m-${Date.now()}`,
+      authorId: "u1",
+      time: new Date().toISOString(),
+      text: body,
+      status: "sent",
+      replyTo: replyToUuid,
+    };
+  }
   const res = await api<{ data: ApiMessage }>(`/conversations/${uuid}/messages`, {
     method: "POST",
     json: { body, reply_to_uuid: replyToUuid },
@@ -157,6 +171,20 @@ export async function sendVoiceMessage(
 }
 
 export async function createConversation(userId: number, meUuid: string): Promise<Dialog> {
+  if (isDemoMode()) {
+    // Reuse an existing demo dialog with this peer when possible.
+    const peerId = `u${userId}`;
+    const existing = demoConversations().find((d) => d.userId === peerId);
+    if (existing) return existing;
+    return {
+      id: `demo-d-${userId}-${Date.now()}`,
+      userId: peerId,
+      lastMessage: "",
+      time: new Date().toISOString(),
+      unread: 0,
+      messages: [],
+    };
+  }
   const res = await api<{ data: ApiConversation }>("/conversations", {
     method: "POST",
     json: { user_id: userId },

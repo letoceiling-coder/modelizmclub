@@ -1,19 +1,21 @@
 import wordmark from "@/assets/logo-modelizm-wordmark.png";
 
-export function Logo({ size = 32, showText = true }: { size?: number; showText?: boolean }) {
+export function Logo({ size = 32, showText = false }: { size?: number; showText?: boolean }) {
   // The wordmark artwork is dark — it reads well on light surfaces but
   // disappears on dark backgrounds. We wrap it in a subtle light "plate"
   // (visible only in dark mode via the .dark scope) so it always pops.
+  // `showText` (the "Форум" sub-label) is off by default — the wordmark alone
+  // is the brand; the extra word cluttered the hero/header.
   const height = size;
   return (
     <div className="flex items-center gap-2">
       <span className="logo-plate inline-flex items-center justify-center">
         <img
           src={wordmark}
-          alt="МоДелизМ Форум"
+          alt="МоДелизМ"
           height={height}
           className="object-contain block"
-          style={{ height, width: "auto", maxWidth: showText ? height * 5 : height * 1.2 }}
+          style={{ height, width: "auto", maxWidth: height * 5 }}
         />
       </span>
       {showText && (

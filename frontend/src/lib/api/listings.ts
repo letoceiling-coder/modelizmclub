@@ -3,6 +3,8 @@ import { registerUser } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoListings, demoMyListings, demoListing } from "@/lib/demo-data";
 
 interface ApiListingAuthor {
   id?: number;
@@ -107,6 +109,7 @@ export function mapListing(l: ApiListing): Ad {
 }
 
 export async function fetchListings(query?: string): Promise<Ad[]> {
+  if (isDemoMode()) return demoListings(query);
   const res = await api<Paginated<ApiListing>>("/listings", {
     query: { q: query || undefined, per_page: 50 },
   });
@@ -114,6 +117,7 @@ export async function fetchListings(query?: string): Promise<Ad[]> {
 }
 
 export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }[]> {
+  if (isDemoMode()) return demoMyListings();
   const res = await api<Paginated<ApiListing>>("/users/me/listings", {
     query: { per_page: 100 },
   });
@@ -121,19 +125,27 @@ export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }
 }
 
 export async function fetchListing(uuid: string): Promise<Ad> {
+  if (isDemoMode()) {
+    const ad = demoListing(uuid);
+    if (ad) return ad;
+    throw new Error("Listing not found");
+  }
   const res = await api<{ data: ApiListing }>(`/listings/${uuid}`);
   return mapListing(res.data);
 }
 
 export async function publishListing(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/listings/${uuid}/publish`, { method: "POST" });
 }
 
 export async function archiveListing(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/listings/${uuid}/archive`, { method: "POST" });
 }
 
 export async function deleteListing(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/listings/${uuid}`, { method: "DELETE" });
 }
 
@@ -150,6 +162,28 @@ export interface CreateListingInput {
 }
 
 export async function createListing(input: CreateListingInput): Promise<Ad> {
+  if (isDemoMode()) {
+    const demoAd: Ad = {
+      id: `demo-ad-${Date.now()}`,
+      title: input.title,
+      price: Math.round(input.priceCents / 100),
+      category: "",
+      subcategory: "",
+      city: "Краснодар",
+      image: "https://picsum.photos/seed/demo-new-ad/1200/900",
+      gallery: ["https://picsum.photos/seed/demo-new-ad/1200/900"],
+      description: input.description,
+      delivery: input.deliveryMethods ?? [],
+      status: "Продаю",
+      contact: "Написать в мессенджере",
+      authorId: "u1",
+      views: 0,
+      likes: 0,
+      createdAt: "только что",
+      moderation: input.publish === false ? "moderation" : "published",
+    };
+    return demoAd;
+  }
   const res = await api<{ data: ApiListing }>("/listings", {
     method: "POST",
     json: {

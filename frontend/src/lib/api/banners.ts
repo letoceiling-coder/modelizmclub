@@ -1,5 +1,7 @@
 import type { Banner } from "@/lib/mock";
 import { api } from "./client";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoBanners } from "@/lib/demo-data";
 
 interface ApiBanner {
   id: number;
@@ -40,6 +42,7 @@ function mapBanner(b: ApiBanner): Banner {
 }
 
 export async function fetchBanners(placement = "feed"): Promise<Banner[]> {
+  if (isDemoMode()) return demoBanners();
   const res = await api<{ data: ApiBanner[] }>("/public/banners", {
     query: { placement },
     auth: false,

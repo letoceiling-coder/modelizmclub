@@ -37,6 +37,7 @@ import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
 import { Route as LegalRulesRouteImport } from './routes/legal.rules'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as InfoSlugRouteImport } from './routes/info.$slug'
 import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
@@ -186,6 +187,11 @@ const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InfoSlugRoute = InfoSlugRouteImport.update({
+  id: '/info/$slug',
+  path: '/info/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommunitiesIdRoute = CommunitiesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/info/$slug': typeof InfoSlugRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/rules': typeof LegalRulesRoute
   '/user/$id': typeof UserIdRoute
@@ -289,6 +296,7 @@ export interface FileRoutesByTo {
   '/ads/new': typeof AdsNewRoute
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/info/$slug': typeof InfoSlugRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/rules': typeof LegalRulesRoute
   '/user/$id': typeof UserIdRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/info/$slug': typeof InfoSlugRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/rules': typeof LegalRulesRoute
   '/user/$id': typeof UserIdRoute
@@ -368,6 +377,7 @@ export interface FileRouteTypes {
     | '/categories/$id'
     | '/channel/$id'
     | '/communities/$id'
+    | '/info/$slug'
     | '/legal/privacy'
     | '/legal/rules'
     | '/user/$id'
@@ -402,6 +412,7 @@ export interface FileRouteTypes {
     | '/ads/new'
     | '/channel/$id'
     | '/communities/$id'
+    | '/info/$slug'
     | '/legal/privacy'
     | '/legal/rules'
     | '/user/$id'
@@ -440,6 +451,7 @@ export interface FileRouteTypes {
     | '/categories/$id'
     | '/channel/$id'
     | '/communities/$id'
+    | '/info/$slug'
     | '/legal/privacy'
     | '/legal/rules'
     | '/user/$id'
@@ -474,6 +486,7 @@ export interface RootRouteChildren {
   SubscriptionRoute: typeof SubscriptionRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ChannelIdRoute: typeof ChannelIdRoute
+  InfoSlugRoute: typeof InfoSlugRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalRulesRoute: typeof LegalRulesRoute
   UserIdRoute: typeof UserIdRoute
@@ -678,6 +691,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/info/$slug': {
+      id: '/info/$slug'
+      path: '/info/$slug'
+      fullPath: '/info/$slug'
+      preLoaderRoute: typeof InfoSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/communities/$id': {
       id: '/communities/$id'
       path: '/$id'
@@ -826,6 +846,7 @@ const rootRouteChildren: RootRouteChildren = {
   SubscriptionRoute: SubscriptionRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ChannelIdRoute: ChannelIdRoute,
+  InfoSlugRoute: InfoSlugRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalRulesRoute: LegalRulesRoute,
   UserIdRoute: UserIdRoute,

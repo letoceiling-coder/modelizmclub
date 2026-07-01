@@ -1,5 +1,6 @@
 import type { User } from "@/lib/mock";
 import { api, setToken, getToken, ApiError } from "./client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export interface ApiProfile {
   display_name?: string | null;
@@ -121,6 +122,10 @@ export async function resetPassword(input: {
 }
 
 export async function fetchMe(): Promise<User | null> {
+  if (isDemoMode()) {
+    const { DEMO_USER } = await import("@/lib/demo-data");
+    return DEMO_USER;
+  }
   if (!getToken()) return null;
   try {
     const res = await api<{ data: ApiUser }>("/auth/me");

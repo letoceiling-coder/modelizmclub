@@ -2,6 +2,13 @@ import type { User } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
+import { isDemoMode } from "@/lib/demo-mode";
+import {
+  demoFriends,
+  demoIncomingRequests,
+  demoSearchUsers,
+  demoPublicProfile,
+} from "@/lib/demo-data";
 
 export interface ApiCompactUser {
   id?: number;
@@ -74,6 +81,7 @@ export interface IncomingRequest {
 }
 
 export async function searchUsers(q: string): Promise<User[]> {
+  if (isDemoMode()) return demoSearchUsers(q);
   const res = await api<Paginated<ApiCompactUser>>("/users/search", {
     query: { q, per_page: 50 },
   });
@@ -81,6 +89,7 @@ export async function searchUsers(q: string): Promise<User[]> {
 }
 
 export async function fetchFriends(): Promise<User[]> {
+  if (isDemoMode()) return demoFriends();
   const res = await api<Paginated<ApiCompactUser>>("/users/me/friends", {
     query: { per_page: 50 },
   });
@@ -88,6 +97,7 @@ export async function fetchFriends(): Promise<User[]> {
 }
 
 export async function fetchIncomingRequests(): Promise<IncomingRequest[]> {
+  if (isDemoMode()) return demoIncomingRequests();
   const res = await api<{ data: ApiFriendRequest[] }>("/users/me/friend-requests");
   return (res.data ?? [])
     .filter((r) => r.from)
@@ -99,26 +109,32 @@ export async function fetchIncomingRequests(): Promise<IncomingRequest[]> {
 }
 
 export async function sendFriendRequest(userId: number): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/users/${userId}/friend-request`, { method: "POST" });
 }
 
 export async function removeFriend(userId: number): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/users/me/friends/${userId}`, { method: "DELETE" });
 }
 
 export async function acceptFriendRequest(requestId: number): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/friend-requests/${requestId}/accept`, { method: "POST" });
 }
 
 export async function declineFriendRequest(requestId: number): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/friend-requests/${requestId}/decline`, { method: "POST" });
 }
 
 export async function followUser(userId: number): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/users/${userId}/follow`, { method: "POST" });
 }
 
 export async function unfollowUser(userId: number): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/users/${userId}/follow`, { method: "DELETE" });
 }
 
@@ -127,10 +143,12 @@ export async function updateOwnProfile(input: {
   bio?: string;
   slug?: string;
 }): Promise<void> {
+  if (isDemoMode()) return;
   await api("/users/me", { method: "PATCH", json: input });
 }
 
 export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
+  if (isDemoMode()) return demoPublicProfile(slug);
   const res = await api<{ data: ApiPublicProfile }>(`/users/${slug}`);
   const p = res.data;
   const user = mapCompactUser({

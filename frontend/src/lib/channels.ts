@@ -2,6 +2,8 @@
 // Channels are one-way publishing surfaces: only owners post, users subscribe.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoChannels, demoChannel, demoChannelPosts } from "@/lib/demo-data";
 
 export type ChannelKind = "official" | "brand" | "shop" | "author" | "expert";
 export type PostStatus = "published" | "moderation" | "rejected";
@@ -123,11 +125,13 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
 
 // ---- fetchers ----
 export async function fetchChannels(): Promise<Channel[]> {
+  if (isDemoMode()) return demoChannels() as Channel[];
   const res = await api<{ data: ApiChannel[] }>("/channels");
   return (res.data ?? []).map(mapChannel);
 }
 
 export async function fetchChannel(slug: string): Promise<Channel | null> {
+  if (isDemoMode()) return (demoChannel(slug) as Channel | null) ?? null;
   try {
     const res = await api<{ data: ApiChannel }>(`/channels/${slug}`);
     return mapChannel(res.data);
@@ -137,11 +141,13 @@ export async function fetchChannel(slug: string): Promise<Channel | null> {
 }
 
 export async function fetchChannelPosts(slug: string): Promise<ChannelPost[]> {
+  if (isDemoMode()) return demoChannelPosts(slug) as ChannelPost[];
   const res = await api<{ data: ApiChannelPost[] }>(`/channels/${slug}/posts`, { query: { per_page: 50 } });
   return (res.data ?? []).map((p) => mapPost(p, slug));
 }
 
 export async function setChannelSubscription(slug: string, subscribe: boolean): Promise<void> {
+  if (isDemoMode()) return;
   await api(`/channels/${slug}/subscribe`, { method: subscribe ? "POST" : "DELETE" });
 }
 
@@ -150,6 +156,19 @@ export async function createChannelPost(input: {
   text: string;
   kind: PostKind;
 }): Promise<ChannelPost> {
+  if (isDemoMode()) {
+    return {
+      id: `demo-ch-post-${Date.now()}`,
+      channelId: input.channelSlug,
+      authorName: "Вы",
+      createdAt: new Date().toISOString(),
+      text: input.text,
+      status: "published",
+      likes: 0,
+      views: 0,
+      kind: input.kind,
+    };
+  }
   const res = await api<{ data: ApiChannelPost }>(`/channels/${input.channelSlug}/posts`, {
     method: "POST",
     json: { text: input.text, kind: input.kind },

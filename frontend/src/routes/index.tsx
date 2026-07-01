@@ -2,66 +2,194 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play, Pause, Volume2, VolumeX, ArrowRight, UserPlus, LogIn, ChevronDown,
-  Newspaper, MessageSquare, Megaphone, Users2, Compass, Check, Plus,
+  ArrowRight, ChevronDown, Play, Pause, Volume2, VolumeX, Plus, Check,
+  Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
+  MapPin, Search, Compass, Sparkles,
+  Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
+import { ads as mockAds } from "@/lib/mock";
+import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
 
-const VIDEO_URL = "";
+const DESKTOP_VIDEO = "/videos/modelizm-hero-desktop.mp4";
+const MOBILE_VIDEO = "/videos/modelizm-hero-mobile.mp4";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "МоДелизМ Форум — сообщество моделистов" },
-      { name: "description", content: "Социальная платформа для RC-моделистов: лента, чаты по категориям, объявления и сообщества." },
+      { title: "МоДелизМ — маркетплейс и сообщество моделистов" },
+      { name: "description", content: "Маркетплейс, лента и сообщество для моделистов: RC авто, самолёты, квадрокоптеры, корабли, электроника. Покупайте, публикуйте сборки, находите клубы." },
     ],
   }),
-  component: WelcomePage,
+  component: LandingPage,
 });
 
-function WelcomePage() {
+// Enter-product target: in demo mode CTAs drop straight into the app.
+function useEnter() {
+  const [demo, setDemo] = useState(false);
+  useEffect(() => setDemo(isDemoMode()), []);
+  return {
+    register: demo ? "/feed" : "/register",
+    login: demo ? "/feed" : "/login",
+    demo,
+  } as const;
+}
+
+function LandingPage() {
   return (
-    <div className="relative w-full" style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
-      <ZeroBlock />
-      <BridgeDivider />
-      <FeaturesSection />
-      <HowItWorksSection />
+    <div style={{ background: "var(--background)", color: "var(--foreground)", fontFamily: "var(--font-sans)" }}>
+      <TopNav />
+      <Hero />
+      <QuickSections />
+      <PopularListings />
+      <CategoriesSection />
+      <StepsTimeline />
       <PricingSection />
+      <WhyChoose />
       <FaqSection />
-      <FooterSection />
+      <Footer />
     </div>
   );
 }
 
-/* ===================== ZeroBlock (DO NOT REDESIGN) ===================== */
+/* ===================== TopNav (sticky) ===================== */
 
-function ZeroBlock() {
+const NAV_LINKS: { to: string; label: string }[] = [
+  { to: "/ads", label: "Объявления" },
+  { to: "/communities", label: "Сообщества" },
+  { to: "/channels", label: "Каналы" },
+  { to: "#how", label: "Как работает" },
+  { to: "/subscription", label: "Подписка" },
+];
+
+function TopNav() {
+  const enter = useEnter();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <header
+      className="sticky top-0 z-40 backdrop-blur-md"
+      style={{
+        background: "color-mix(in oklab, var(--background) 86%, transparent)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <div className="mx-auto flex h-[64px] max-w-[1240px] items-center justify-between gap-4 px-4 md:px-8">
+        <Link to="/" className="shrink-0">
+          <Logo size={28} />
+        </Link>
+
+        {/* desktop nav */}
+        <nav className="hidden items-center gap-6 lg:flex">
+          {NAV_LINKS.map((l) =>
+            l.to.startsWith("#") ? (
+              <a key={l.label} href={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
+              >{l.label}</a>
+            ) : (
+              <Link key={l.label} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
+              >{l.label}</Link>
+            ),
+          )}
+        </nav>
+
+        {/* right controls */}
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-1 md:flex">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+          <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
+            style={{ color: "var(--foreground-70)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >Войти</Link>
+          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
+          >
+            {enter.demo ? "Открыть демо" : "Создать аккаунт"}
+            <ArrowRight size={15} />
+          </Link>
+
+          {/* mobile: theme + menu */}
+          <button
+            type="button"
+            aria-label="Меню"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="grid h-[40px] w-[40px] place-items-center rounded-full lg:hidden"
+            style={{ border: "1px solid var(--border)", background: "var(--background-surface)" }}
+          >
+            <span className="flex flex-col gap-[3px]">
+              <span style={{ width: 16, height: 2, background: "var(--foreground-70)", borderRadius: 2 }} />
+              <span style={{ width: 16, height: 2, background: "var(--foreground-70)", borderRadius: 2 }} />
+              <span style={{ width: 16, height: 2, background: "var(--foreground-70)", borderRadius: 2 }} />
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* mobile menu sheet */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden lg:hidden"
+            style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
+          >
+            <div className="flex flex-col gap-1 px-4 py-3">
+              {NAV_LINKS.map((l) =>
+                l.to.startsWith("#") ? (
+                  <a key={l.label} href={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
+                ) : (
+                  <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
+                ),
+              )}
+              <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2" style={{ background: "var(--background-surface)" }}>
+                <span className="text-sm" style={{ color: "var(--foreground-70)" }}>Тема и язык</span>
+                <span className="flex items-center gap-1">
+                  <LanguageSwitcher />
+                  <ThemeToggle />
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}
+
+const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
+
+/* ===================== Hero (video-first, blue accent) ===================== */
+
+function Hero() {
+  const enter = useEnter();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
-  const [showContent, setShowContent] = useState(false);
-  const [videoError, setVideoError] = useState(!VIDEO_URL);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setShowContent(true), 300);
+    const t = setTimeout(() => setReady(true), 150);
     return () => clearTimeout(t);
   }, []);
-
-  useEffect(() => {
-    if (videoRef.current && !videoError) {
-      videoRef.current.play().catch(() => setIsPlaying(false));
-    }
-  }, [videoError]);
 
   function togglePlay() {
     const v = videoRef.current;
     if (!v) return;
     if (isPlaying) v.pause();
-    else v.play().catch(() => {});
+    else void v.play().catch(() => {});
     setIsPlaying(!isPlaying);
   }
   function toggleMute() {
@@ -71,197 +199,118 @@ function ZeroBlock() {
     setIsMuted(!isMuted);
   }
 
-  const stagger = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
-  };
   const fadeUp = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+    hidden: { opacity: 0, y: 22 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
   };
+  const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } } };
 
   return (
-    <section className="relative w-full overflow-hidden" style={{ minHeight: "100dvh" }}>
+    <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
+      {/* background media */}
       <div className="absolute inset-0 z-0">
         {videoError ? (
-          <>
-            <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(26,26,30,0.55) 0%, rgba(26,26,30,0.75) 60%, var(--bg-primary) 100%)" }} />
-          </>
+          <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
         ) : (
-          <>
-            <video
-              ref={videoRef}
-              src={VIDEO_URL}
-              poster={cover}
-              autoPlay
-              muted
-              loop
-              playsInline
-              onLoadedData={() => setVideoLoaded(true)}
-              onError={() => setVideoError(true)}
-              className={`h-full w-full object-cover transition-opacity duration-1000 ${videoLoaded ? "opacity-100" : "opacity-0"}`}
-            />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(26,26,30,0.45) 0%, rgba(26,26,30,0.70) 65%, var(--bg-primary) 100%)" }} />
-          </>
+          <video
+            ref={videoRef}
+            poster={cover}
+            autoPlay
+            muted
+            loop
+            playsInline
+            onError={() => setVideoError(true)}
+            className="h-full w-full object-cover"
+          >
+            {/* Vertical source first for narrow screens, horizontal for wide. */}
+            <source src={MOBILE_VIDEO} media="(max-width: 767px)" type="video/mp4" />
+            <source src={DESKTOP_VIDEO} type="video/mp4" />
+          </video>
         )}
+        {/* dark overlay — no white fade at the bottom, blends into --background */}
         <div
-          className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, var(--background) 100%)" }}
         />
       </div>
 
-      <div className="absolute top-0 right-0 z-20 flex items-center gap-[12px] p-[24px]">
-        <ThemeToggle />
-      </div>
-
+      {/* video controls */}
       {!videoError && (
-        <div className="absolute bottom-[24px] right-[24px] z-20 hidden sm:flex gap-[8px]">
-          <button
-            onClick={togglePlay}
-            aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
-            className="grid place-items-center"
-            style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", backdropFilter: "blur(8px)" }}
-          >
-            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          <button
-            onClick={toggleMute}
-            aria-label={isMuted ? "Включить звук" : "Выключить звук"}
-            className="grid place-items-center"
-            style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", backdropFilter: "blur(8px)" }}
-          >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
+        <div className="absolute bottom-6 right-6 z-20 hidden gap-2 sm:flex">
+          <HeroCtrl onClick={togglePlay} label={isPlaying ? "Пауза" : "Играть"}>
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </HeroCtrl>
+          <HeroCtrl onClick={toggleMute} label={isMuted ? "Звук" : "Без звука"}>
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </HeroCtrl>
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col items-center justify-center px-[24px] text-center" style={{ minHeight: "100dvh" }}>
+      {/* content */}
+      <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
         <AnimatePresence>
-          {showContent && (
-            <motion.div
-              key="hero"
-              variants={stagger}
-              initial="hidden"
-              animate="visible"
-              className="flex w-full max-w-[820px] flex-col items-center"
-            >
-              <motion.div
-                variants={fadeUp}
-                className="inline-flex items-center gap-[8px]"
-                style={{
-                  background: "rgba(229, 57, 53, 0.12)",
-                  border: "1px solid rgba(229, 57, 53, 0.30)",
-                  color: "#ef5350",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12,
-                  padding: "6px 14px",
-                  borderRadius: "var(--r-pill)",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                }}
-              >
-                <span style={{ width: 6, height: 6, borderRadius: 999, background: "#ef5350" }} />
-                Сообщество моделистов
-              </motion.div>
-
+          {ready && (
+            <motion.div variants={stagger} initial="hidden" animate="visible" className="w-full max-w-[720px] py-20">
               <motion.h1
                 variants={fadeUp}
-                className="mt-[24px]"
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: "clamp(40px, 8vw, 96px)",
-                  lineHeight: 0.95,
-                  letterSpacing: "-0.04em",
-                  fontWeight: 900,
+                  fontSize: "clamp(44px, 8vw, 92px)",
+                  lineHeight: 0.98,
+                  letterSpacing: "-0.03em",
+                  fontWeight: 800,
                   color: "#ffffff",
-                  textShadow: "0 4px 24px rgba(0,0,0,0.5)",
+                  textShadow: "0 4px 30px rgba(0,0,0,0.45)",
                 }}
               >
                 МоДелизМ
-                <br />
-                <span style={{ color: "var(--accent)" }}>Форум</span>
               </motion.h1>
 
               <motion.p
                 variants={fadeUp}
-                className="mt-[24px]"
-                style={{
-                  fontSize: "clamp(16px, 2vw, 20px)",
-                  color: "rgba(240,240,240,0.85)",
-                  maxWidth: 560,
-                  lineHeight: 1.5,
-                  textShadow: "0 2px 12px rgba(0,0,0,0.4)",
-                }}
+                className="mt-4"
+                style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.4vw, 26px)", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}
               >
-                Всё для моделиста в одном месте. Лента, чаты, объявления, сообщество.
+                Маркетплейс, лента и сообщество для моделистов
               </motion.p>
 
-              <motion.div variants={fadeUp} className="mt-[40px] flex flex-col sm:flex-row items-stretch sm:items-center gap-[12px] w-full sm:w-auto">
-                <button
-                  onClick={() => navigate({ to: "/register" })}
-                  className="flex items-center justify-center gap-[10px] active:scale-[0.97] transition-all"
-                  style={{
-                    padding: "0 32px",
-                    height: 56,
-                    borderRadius: "var(--r-pill)",
-                    background: "var(--accent)",
-                    color: "#ffffff",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    boxShadow: "var(--shadow-glow-accent)",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
+              <motion.p
+                variants={fadeUp}
+                className="mt-4"
+                style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "rgba(235,238,248,0.86)", maxWidth: 560, lineHeight: 1.55 }}
+              >
+                Покупайте модели и запчасти, публикуйте сборки, находите клубы и
+                общайтесь с моделистами по всей России.
+              </motion.p>
+
+              <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
-                  <UserPlus size={18} />
-                  Создать аккаунт
-                  <ArrowRight size={18} />
+                  <Search size={18} /> Смотреть объявления
                 </button>
-
-                <button
-                  onClick={() => navigate({ to: "/login" })}
-                  className="flex items-center justify-center gap-[10px] active:scale-[0.97] transition-all"
-                  style={{
-                    padding: "0 32px",
-                    height: 56,
-                    borderRadius: "var(--r-pill)",
-                    background: "rgba(255,255,255,0.08)",
-                    color: "#ffffff",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    border: "2px solid rgba(255,255,255,0.25)",
-                    cursor: "pointer",
-                    backdropFilter: "blur(8px)",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+                <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
-                  <LogIn size={18} />
+                  {enter.demo ? "Открыть демо" : "Создать аккаунт"} <ArrowRight size={18} />
+                </button>
+                <button onClick={() => navigate({ to: enter.login })} style={ctaText}>
                   Войти
                 </button>
               </motion.div>
 
-              <motion.div variants={fadeUp} className="mt-[48px] flex items-center justify-center gap-[24px] sm:gap-[48px] flex-wrap">
+              {/* stats */}
+              <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
                 {[
-                  { value: "5 000+", label: "моделистов" },
-                  { value: "12", label: "категорий" },
-                  { value: "24/7", label: "доступ" },
+                  { n: "1 200+", l: "моделистов" },
+                  { n: "45+", l: "сообществ" },
+                  { n: "8", l: "категорий" },
                 ].map((s) => (
-                  <div key={s.label} className="flex flex-col items-center">
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3vw, 32px)", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.02em" }}>
-                      {s.value}
-                    </div>
-                    <div style={{ fontSize: 12, color: "rgba(240,240,240,0.7)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4, fontFamily: "var(--font-mono)" }}>
-                      {s.label}
-                    </div>
+                  <div key={s.l}>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "#fff", letterSpacing: "-0.02em" }}>{s.n}</div>
+                    <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.l}</div>
                   </div>
                 ))}
               </motion.div>
@@ -270,595 +319,516 @@ function ZeroBlock() {
         </AnimatePresence>
       </div>
 
-      {showContent && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 0.6 }}
-          className="absolute bottom-[24px] left-1/2 z-10 hidden sm:flex -translate-x-1/2 flex-col items-center gap-[6px]"
-          style={{ color: "rgba(240,240,240,0.6)" }}
-        >
-          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontFamily: "var(--font-mono)" }}>
-            Узнать больше
-          </span>
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <ChevronDown size={20} />
-          </motion.div>
-        </motion.div>
-      )}
-    </section>
-  );
-}
-
-/* ===================== Shared motion ===================== */
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
-};
-const stagger = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
-};
-
-function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description?: string }) {
-  return (
-    <motion.div
-      variants={stagger}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-80px" }}
-      className="mx-auto max-w-[720px] text-center"
-    >
-      <motion.div
-        variants={fadeInUp}
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
-          color: "var(--accent)",
-          fontWeight: 600,
-        }}
-      >
-        {eyebrow}
-      </motion.div>
-      <motion.h2
-        variants={fadeInUp}
-        className="mt-[12px]"
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(28px, 4vw, 44px)",
-          lineHeight: 1.1,
-          letterSpacing: "-0.02em",
-          fontWeight: 800,
-          color: "var(--text-primary)",
-        }}
-      >
-        {title}
-      </motion.h2>
-      {description && (
-        <motion.p
-          variants={fadeInUp}
-          className="mt-[14px]"
-          style={{ fontSize: 15, color: "var(--text-secondary, var(--foreground-70))", lineHeight: 1.6 }}
-        >
-          {description}
-        </motion.p>
-      )}
-    </motion.div>
-  );
-}
-
-/* ===================== Bridge between Hero and Features ===================== */
-
-function BridgeDivider() {
-  return (
-    <div
-      aria-hidden
-      style={{
-        height: 80,
-        background: "linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary, #1e1e22) 100%)",
-      }}
-    />
-  );
-}
-
-/* ===================== Block 1. Возможности ===================== */
-
-const FEATURES = [
-  {
-    icon: Newspaper,
-    title: "Лента публикаций",
-    text: "Смотрите проекты, новости, фото и видео других моделистов.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Чаты по интересам",
-    text: "Общение внутри тематических направлений и подкатегорий.",
-  },
-  {
-    icon: Megaphone,
-    title: "Доска объявлений",
-    text: "Покупка, продажа и обмен деталей, техники и самоделок.",
-  },
-  {
-    icon: Users2,
-    title: "Сообщества",
-    text: "Объединения по направлениям: RC, авиа, суда, электроника.",
-  },
-];
-
-function FeaturesSection() {
-  return (
-    <section
-      id="features"
-      className="px-[20px] py-[80px] sm:py-[112px]"
-      style={{ background: "var(--bg-secondary, #1e1e22)" }}
-    >
-      <div className="mx-auto max-w-[1180px]">
-        <SectionHeader
-          eyebrow="Возможности"
-          title="Что есть в МоДелизМ Форум"
-          description="Четыре инструмента, которые закрывают повседневные задачи моделиста."
-        />
-
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          className="mt-[48px] grid gap-[16px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <motion.div
-              key={title}
-              variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col p-[24px]"
-              style={{
-                background: "var(--bg-tertiary, #26262b)",
-                border: "1px solid var(--border, rgba(255,255,255,0.08))",
-                borderRadius: 18,
-                boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset, 0 12px 28px -20px rgba(0,0,0,0.55)",
-              }}
-            >
-              <div
-                className="grid place-items-center"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: "rgba(229, 57, 53, 0.12)",
-                  border: "1px solid rgba(229, 57, 53, 0.25)",
-                  color: "var(--accent)",
-                }}
-              >
-                <Icon size={20} />
-              </div>
-              <h3
-                className="mt-[18px]"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 18,
-                  fontWeight: 700,
-                  letterSpacing: "-0.01em",
-                  color: "var(--text-primary)",
-                }}
-              >
-                {title}
-              </h3>
-              <p
-                className="mt-[8px]"
-                style={{ fontSize: 14, lineHeight: 1.55, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}
-              >
-                {text}
-              </p>
-            </motion.div>
-          ))}
+      {/* scroll hint */}
+      <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex" style={{ color: "rgba(235,238,248,0.6)" }}>
+        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Листайте</span>
+        <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+          <ChevronDown size={20} />
         </motion.div>
       </div>
     </section>
   );
 }
 
-/* ===================== Block 2. Как это работает ===================== */
+function HeroCtrl({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} aria-label={label} className="grid place-items-center"
+      style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.16)", color: "#fff", backdropFilter: "blur(8px)" }}
+    >{children}</button>
+  );
+}
 
-const STEPS = [
-  { n: "01", icon: UserPlus, title: "Регистрация", text: "Аккаунт за минуту — email или соцсети." },
-  { n: "02", icon: Compass, title: "Выбор интересов", text: "Отметьте категории, которые вам близки." },
-  { n: "03", icon: MessageSquare, title: "Общение и обмен", text: "Публикуйте, обсуждайте, покупайте, продавайте." },
+const ctaPrimary: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
+  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
+  background: "var(--accent)", color: "#fff", fontSize: 16, fontWeight: 700,
+  border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
+};
+const ctaGhost: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
+  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
+  background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 16, fontWeight: 700,
+  border: "2px solid rgba(255,255,255,0.28)", cursor: "pointer", backdropFilter: "blur(8px)", transition: "background 180ms",
+};
+const ctaText: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  height: 54, padding: "0 20px", borderRadius: "var(--r-pill)",
+  background: "transparent", color: "#fff", fontSize: 16, fontWeight: 600,
+  border: "none", cursor: "pointer",
+};
+
+/* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
+
+const QUICK: { icon: typeof Newspaper; title: string; desc: string; to: string }[] = [
+  { icon: Megaphone, title: "Объявления", desc: "Покупка и продажа моделей, запчастей и техники как на Авито.", to: "/ads" },
+  { icon: Newspaper, title: "Лента публикаций", desc: "Проекты, сборки, фото и видео других моделистов.", to: "/feed" },
+  { icon: Users2, title: "Сообщества", desc: "Клубы по интересам: RC, авиа, суда, электроника.", to: "/communities" },
+  { icon: Radio, title: "Каналы", desc: "Официальные каналы брендов, магазинов и экспертов.", to: "/channels" },
+  { icon: MessageSquare, title: "Мессенджер", desc: "Личные и групповые чаты внутри платформы.", to: "/messenger" },
 ];
 
-function HowItWorksSection() {
+function QuickSections() {
   return (
-    <section
-      id="how"
-      className="px-[20px] py-[80px] sm:py-[112px]"
-      style={{ background: "var(--bg-primary)" }}
-    >
-      <div className="mx-auto max-w-[1180px]">
-        <SectionHeader
-          eyebrow="Как это работает"
-          title="Три шага до сообщества"
-          description="Быстрый старт — никаких лишних форм и долгой настройки."
-        />
+    <Section bg="var(--background-surface)">
+      <Eyebrow>Всё в одном месте</Eyebrow>
+      <Title>Что есть в МоДелизМ</Title>
+      <p className="mt-3 max-w-[560px]" style={mutedP}>
+        Пять инструментов, которые закрывают повседневные задачи моделиста — от покупки детали до общения в клубе.
+      </p>
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {QUICK.map(({ icon: Icon, title, desc, to }) => (
+          <Link key={title} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
+            style={cardStyle}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
+          >
+            <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+              <Icon size={22} />
+            </div>
+            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{title}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{desc}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
+              Открыть <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+            </span>
+          </Link>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
-        <motion.ol
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          className="mt-[48px] grid gap-[16px] sm:gap-[20px] grid-cols-1 md:grid-cols-3 relative"
+/* ===================== Popular listings (Avito-like) ===================== */
+
+const CONDITION_COLOR = (c?: string) =>
+  c === "Новое" ? "var(--success)" : "var(--foreground-50)";
+
+function PopularListings() {
+  const items = mockAds.slice(0, 8);
+  return (
+    <Section bg="var(--background)">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <Eyebrow>Маркетплейс</Eyebrow>
+          <Title>Популярные объявления</Title>
+        </div>
+        <Link to="/ads" className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+        >Все объявления <ArrowRight size={15} /></Link>
+      </div>
+
+      {/* horizontal scroll on mobile, grid on desktop */}
+      <div className="mt-8 flex snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {items.map((ad) => (
+          <LandingListingCard key={ad.id} ad={ad} />
+        ))}
+      </div>
+
+      <div className="mt-6 text-center sm:hidden">
+        <Link to="/ads" className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+        >Все объявления <ArrowRight size={15} /></Link>
+      </div>
+    </Section>
+  );
+}
+
+function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
+  const [fav, setFav] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hovIdx, setHovIdx] = useState(0);
+  const gallery = ad.gallery && ad.gallery.length > 1 ? ad.gallery : [ad.image];
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className="relative flex min-w-[240px] shrink-0 snap-start flex-col overflow-hidden sm:min-w-0"
+      style={cardStyle}
+      onMouseLeave={() => { setMenuOpen(false); setHovIdx(0); }}
+    >
+      {/* photo */}
+      <button
+        onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })}
+        className="relative block h-[168px] w-full overflow-hidden"
+        style={{ background: "var(--background-surface)", borderBottom: "1px solid var(--border)" }}
+        onMouseMove={(e) => {
+          if (gallery.length < 2) return;
+          const r = e.currentTarget.getBoundingClientRect();
+          const p = (e.clientX - r.left) / r.width;
+          setHovIdx(Math.min(gallery.length - 1, Math.max(0, Math.floor(p * gallery.length))));
+        }}
+      >
+        <img src={gallery[hovIdx]} alt={ad.title} loading="lazy" className="h-full w-full object-cover" />
+        {gallery.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+            {gallery.slice(0, 5).map((_, i) => (
+              <span key={i} style={{ width: 14, height: 3, borderRadius: 2, background: i === hovIdx ? "#fff" : "rgba(255,255,255,0.5)" }} />
+            ))}
+          </div>
+        )}
+      </button>
+
+      {/* favorite */}
+      <button
+        aria-label={fav ? "Убрать из избранного" : "В избранное"}
+        onClick={() => setFav((v) => !v)}
+        className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
+        style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "var(--danger)" : "var(--foreground-50)" }}
+      >
+        <Heart size={16} fill={fav ? "currentColor" : "none"} />
+      </button>
+
+      {/* three-dots menu */}
+      <div className="absolute left-3 top-3">
+        <button
+          aria-label="Меню объявления"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="grid place-items-center"
+          style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: "var(--foreground-50)" }}
         >
-          {STEPS.map(({ n, icon: Icon, title, text }, i) => (
+          <MoreVertical size={16} />
+        </button>
+        {menuOpen && (
+          <div className="absolute left-0 top-[38px] z-20 min-w-[170px] overflow-hidden rounded-[12px] py-1"
+            style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", boxShadow: "var(--shadow-modal)" }}
+          >
+            {["Скрыть", "Не интересно", "Пожаловаться"].map((label) => (
+              <button key={label} onClick={() => setMenuOpen(false)}
+                className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover)]"
+                style={{ color: "var(--foreground)" }}
+              >{label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* info */}
+      <button onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })} className="flex flex-1 flex-col p-4 text-left">
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+          {ad.price.toLocaleString("ru-RU")} ₽
+        </div>
+        <div className="mt-1 line-clamp-2 text-sm font-medium leading-snug" style={{ color: "var(--foreground)" }}>{ad.title}</div>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--foreground-50)" }}>
+          <span className="inline-flex items-center gap-1"><MapPin size={12} />{ad.city}</span>
+          {ad.condition && (
+            <span style={{ color: CONDITION_COLOR(ad.condition), fontWeight: 600 }}>{ad.condition}</span>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+/* ===================== Categories ===================== */
+
+const CATEGORIES: { icon: typeof Car; name: string; count: string }[] = [
+  { icon: Plane, name: "Авиация", count: "180+" },
+  { icon: Car, name: "Автомодели", count: "320+" },
+  { icon: Ship, name: "Судомодели", count: "95+" },
+  { icon: TrainFront, name: "Железные дороги", count: "60+" },
+  { icon: Cpu, name: "Двигатели", count: "140+" },
+  { icon: Radio, name: "Аппаратура", count: "110+" },
+  { icon: Package, name: "Запчасти", count: "500+" },
+  { icon: Wrench, name: "Инструменты", count: "130+" },
+];
+
+function CategoriesSection() {
+  return (
+    <Section bg="var(--background-surface)">
+      <Eyebrow>Категории</Eyebrow>
+      <Title>Всё, что движется и летает</Title>
+      <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        {CATEGORIES.map(({ icon: Icon, name, count }) => (
+          <Link key={name} to="/ads" className="group flex items-center gap-3 p-4 transition-all hover:-translate-y-0.5"
+            style={cardStyle}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
+          >
+            <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-white"
+              style={{ width: 42, height: 42, borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
+              <Icon size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold" style={{ color: "var(--foreground)" }}>{name}</div>
+              <div className="text-xs" style={{ color: "var(--foreground-50)" }}>{count} объявлений</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ===================== 3 steps timeline ===================== */
+
+const STEPS: { icon: typeof Compass; title: string; desc: string }[] = [
+  { icon: Compass, title: "Выберите направление", desc: "Авиация, авто, суда, железные дороги — отметьте, что вам близко." },
+  { icon: Search, title: "Найдите модель или деталь", desc: "Объявления, проверенные продавцы, избранное и безопасная сделка." },
+  { icon: Users2, title: "Общайтесь и показывайте сборки", desc: "Лента, сообщества и мессенджер — весь моделизм в одном месте." },
+];
+
+function StepsTimeline() {
+  return (
+    <Section bg="var(--background)" id="how">
+      <Eyebrow>Как это работает</Eyebrow>
+      <Title>Три шага до сообщества</Title>
+
+      <div className="relative mt-12">
+        {/* connecting line (desktop) */}
+        <div aria-hidden className="absolute left-0 right-0 top-[26px] hidden md:block" style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)" }} />
+        <motion.ol
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }}
+          initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}
+          className="grid gap-8 md:grid-cols-3 md:gap-6"
+        >
+          {STEPS.map(({ icon: Icon, title, desc }, i) => (
             <motion.li
-              key={n}
-              variants={fadeInUp}
-              className="relative flex flex-col p-[28px]"
-              style={{
-                background: "var(--bg-secondary, #1e1e22)",
-                border: "1px solid var(--border, rgba(255,255,255,0.08))",
-                borderRadius: 18,
-              }}
+              key={title}
+              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }}
+              className="relative flex flex-col"
             >
-              <div className="flex items-center justify-between">
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 12,
-                    letterSpacing: "0.16em",
-                    color: "var(--accent)",
-                    fontWeight: 700,
-                  }}
-                >
-                  Шаг {n}
-                </span>
-                <div
-                  className="grid place-items-center"
-                  style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid var(--border, rgba(255,255,255,0.08))",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  <Icon size={18} />
+              <div className="mb-5 flex items-center gap-3 md:flex-col md:items-start">
+                {/* node — reserves space for future model animation */}
+                <div className="relative grid place-items-center" style={{ width: 54, height: 54, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "#fff", boxShadow: "var(--shadow-button)", zIndex: 1 }}>
+                  <Icon size={24} />
+                  <span className="absolute -right-1 -top-1 grid place-items-center rounded-full text-[11px] font-bold"
+                    style={{ width: 22, height: 22, background: "var(--background)", color: "var(--accent)", border: "2px solid var(--accent)" }}>
+                    {i + 1}
+                  </span>
                 </div>
               </div>
-              <h3
-                className="mt-[20px]"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 20,
-                  fontWeight: 700,
-                  letterSpacing: "-0.01em",
-                  color: "var(--text-primary)",
-                }}
-              >
-                {title}
-              </h3>
-              <p
-                className="mt-[8px]"
-                style={{ fontSize: 14, lineHeight: 1.55, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}
-              >
-                {text}
-              </p>
-              {i < STEPS.length - 1 && (
-                <div
-                  aria-hidden
-                  className="hidden md:block absolute top-1/2 -right-[10px] -translate-y-1/2"
-                  style={{
-                    width: 20, height: 1,
-                    background: "linear-gradient(90deg, var(--border, rgba(255,255,255,0.15)), transparent)",
-                  }}
-                />
-              )}
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--foreground)", letterSpacing: "-0.01em" }}>{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)", maxWidth: 320 }}>{desc}</p>
             </motion.li>
           ))}
         </motion.ol>
       </div>
-    </section>
+    </Section>
   );
 }
 
-/* ===================== Block 3. Тарифы ===================== */
+/* ===================== Pricing ===================== */
 
-const PLANS = [
-  {
-    name: "Старт",
-    price: "0 ₽",
-    period: "пробный период",
-    features: ["Лента и чаты", "Подписка на 7 дней", "До 3 объявлений"],
-    cta: "Подробнее",
-    accent: false,
-  },
-  {
-    name: "Месяц",
-    price: "от 99 ₽",
-    period: "в месяц",
-    features: ["Все возможности", "Без ограничений на публикации", "Размещение объявлений"],
-    cta: "Подробнее",
-    accent: true,
-  },
-  {
-    name: "Год",
-    price: "от 990 ₽",
-    period: "в год · выгодно",
-    features: ["Экономия до 30%", "Все возможности годом", "Приоритетная поддержка"],
-    cta: "Подробнее",
-    accent: false,
-  },
+const PLANS: { name: string; price: string; period: string; features: string[]; accent?: boolean }[] = [
+  { name: "Старт", price: "0 ₽", period: "пробный период", features: ["Лента и чаты", "Просмотр объявлений", "До 3 объявлений"] },
+  { name: "Месяц", price: "от 99 ₽", period: "в месяц", features: ["Все возможности", "Безлимитные публикации", "Приоритет в ленте"], accent: true },
+  { name: "Год", price: "от 990 ₽", period: "в год · выгодно", features: ["Экономия до 30%", "Бесплатные объявления", "Приоритетная поддержка"] },
 ];
 
 function PricingSection() {
   return (
-    <section
-      id="pricing"
-      className="px-[20px] py-[80px] sm:py-[112px]"
-      style={{ background: "var(--bg-secondary, #1e1e22)" }}
-    >
-      <div className="mx-auto max-w-[1100px]">
-        <SectionHeader
-          eyebrow="Тарифы"
-          title="Простая подписка"
-          description="Базовые возможности доступны бесплатно. Подписка снимает ограничения."
-        />
-
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          className="mt-[48px] grid gap-[16px] grid-cols-1 md:grid-cols-3"
-        >
-          {PLANS.map((p) => (
-            <motion.div
-              key={p.name}
-              variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col p-[28px]"
-              style={{
-                background: "var(--bg-tertiary, #26262b)",
-                border: p.accent
-                  ? "1px solid rgba(229, 57, 53, 0.45)"
-                  : "1px solid var(--border, rgba(255,255,255,0.08))",
-                borderRadius: 20,
-                boxShadow: p.accent
-                  ? "0 0 0 1px rgba(229, 57, 53, 0.18), 0 18px 40px -24px rgba(229, 57, 53, 0.4)"
-                  : "0 12px 28px -20px rgba(0,0,0,0.55)",
-                position: "relative",
-              }}
-            >
-              {p.accent && (
-                <span
-                  style={{
-                    position: "absolute", top: 14, right: 14,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10, letterSpacing: "0.14em",
-                    padding: "4px 10px", borderRadius: 999,
-                    background: "rgba(229, 57, 53, 0.15)",
-                    color: "var(--accent)",
-                    border: "1px solid rgba(229, 57, 53, 0.35)",
-                    fontWeight: 700, textTransform: "uppercase",
-                  }}
-                >
-                  Рекомендуем
-                </span>
-              )}
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 18, fontWeight: 700,
-                  color: "var(--text-primary)",
-                }}
-              >
-                {p.name}
-              </div>
-              <div className="mt-[12px] flex items-baseline gap-[8px]">
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 32, fontWeight: 800,
-                    letterSpacing: "-0.02em",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {p.price}
-                </span>
-                <span style={{ fontSize: 13, color: "var(--foreground-50, rgba(240,240,240,0.55))" }}>
-                  {p.period}
-                </span>
-              </div>
-              <ul className="mt-[20px] space-y-[10px]">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-[10px]" style={{ fontSize: 14, color: "var(--foreground-70, rgba(240,240,240,0.7))" }}>
-                    <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex-1" />
-              <Link
-                to="/subscription"
-                className="mt-[24px] inline-flex items-center justify-center gap-[8px] transition-colors"
-                style={{
-                  height: 44,
-                  borderRadius: "var(--r-pill)",
-                  background: p.accent ? "var(--accent)" : "rgba(255,255,255,0.06)",
-                  color: p.accent ? "#fff" : "var(--text-primary)",
-                  border: p.accent ? "none" : "1px solid var(--border, rgba(255,255,255,0.12))",
-                  fontSize: 14, fontWeight: 600,
-                }}
-              >
-                {p.cta}
-                <ArrowRight size={16} />
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+    <Section bg="var(--background-surface)">
+      <Eyebrow>Тарифы</Eyebrow>
+      <Title>Простая подписка</Title>
+      <p className="mt-3 max-w-[540px]" style={mutedP}>Базовые возможности бесплатны. Подписка снимает ограничения.</p>
+      <div className="mt-10 grid gap-4 md:grid-cols-3">
+        {PLANS.map((p) => (
+          <div key={p.name} className="relative flex flex-col p-7"
+            style={{ ...cardStyle, borderColor: p.accent ? "var(--border-accent)" : "var(--border)", boxShadow: p.accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)" }}
+          >
+            {p.accent && (
+              <span className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>Рекомендуем</span>
+            )}
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{p.name}</div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{p.price}</span>
+              <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{p.period}</span>
+            </div>
+            <ul className="mt-5 space-y-2.5">
+              {p.features.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm" style={{ color: "var(--foreground-70)" }}>
+                  <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} /><span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex-1" />
+            <Link to="/subscription" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
+              style={p.accent ? { background: "var(--accent)", color: "#fff" } : { background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+            >Подробнее <ArrowRight size={15} /></Link>
+          </div>
+        ))}
       </div>
-    </section>
+    </Section>
   );
 }
 
-/* ===================== Block 4. FAQ ===================== */
+/* ===================== Why choose (value cards) ===================== */
 
-const FAQ = [
-  { q: "Как зарегистрироваться?", a: "Нажмите «Создать аккаунт», введите email и пароль — этого достаточно. Можно использовать VK или Яндекс." },
+const VALUES: { icon: typeof Sparkles; title: string; desc: string }[] = [
+  { icon: Sparkles, title: "Только моделизм", desc: "Никакого шума — лента и объявления строго по теме." },
+  { icon: Users2, title: "Живое сообщество", desc: "Клубы, эксперты и продавцы с рейтингом и историей сделок." },
+  { icon: Boxes, title: "Всё в одном месте", desc: "Купить, продать, обсудить и договориться — без внешних сервисов." },
+  { icon: MessageSquare, title: "Прямое общение", desc: "Встроенный мессенджер с продавцами и клубами." },
+];
+
+function WhyChoose() {
+  return (
+    <Section bg="var(--background)">
+      <Eyebrow>Почему МоДелизМ</Eyebrow>
+      <Title>Почему моделисты выбирают нас</Title>
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {VALUES.map(({ icon: Icon, title, desc }) => (
+          <div key={title} className="flex flex-col p-6" style={cardStyle}>
+            <div className="grid place-items-center" style={{ width: 44, height: 44, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+              <Icon size={20} />
+            </div>
+            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{title}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{desc}</p>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ===================== FAQ ===================== */
+
+const FAQ: { q: string; a: string }[] = [
+  { q: "Нужно ли регистрироваться, чтобы смотреть?", a: "Нет. Объявления, сообщества и каналы можно смотреть без регистрации. Аккаунт нужен, чтобы публиковать и писать сообщения." },
   { q: "Сколько стоит участие?", a: "Базовое использование бесплатно. Подписка от 99 ₽ в месяц снимает ограничения и открывает расширенные возможности." },
-  { q: "Как разместить объявление?", a: "После входа перейдите в раздел «Объявления» и нажмите «Создать». Заполните форму — модерация занимает до суток." },
-  { q: "Нужна ли модерация?", a: "Да. Все объявления и часть публикаций проходят проверку, чтобы лента оставалась чистой и по теме." },
-  { q: "Можно ли общаться по категориям?", a: "Да. Есть тематические чаты и сообщества: RC-авто, авиа, суда, электроника, самокаты и другие направления." },
-  { q: "Можно ли пользоваться с телефона?", a: "Да. Интерфейс адаптирован под мобильные устройства — отдельное приложение не требуется." },
+  { q: "Как разместить объявление?", a: "После входа откройте раздел «Объявления» и нажмите «Создать». Заполните форму — модерация занимает до суток." },
+  { q: "Можно ли пользоваться с телефона?", a: "Да. Интерфейс адаптирован под мобильные — отдельное приложение не требуется." },
+  { q: "Какие категории есть?", a: "Авиация, автомодели, судомодели, железные дороги, двигатели, аппаратура, запчасти и инструменты." },
 ];
 
 function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section
-      id="faq"
-      className="px-[20px] py-[80px] sm:py-[112px]"
-      style={{ background: "var(--bg-primary)" }}
-    >
-      <div className="mx-auto max-w-[820px]">
-        <SectionHeader
-          eyebrow="Вопросы"
-          title="Часто спрашивают"
-        />
-
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          className="mt-[40px] space-y-[10px]"
-        >
-          {FAQ.map((item, i) => {
-            const isOpen = open === i;
-            return (
-              <motion.div
-                key={item.q}
-                variants={fadeInUp}
-                style={{
-                  background: "var(--bg-secondary, #1e1e22)",
-                  border: "1px solid var(--border, rgba(255,255,255,0.08))",
-                  borderRadius: 14,
-                  overflow: "hidden",
-                }}
-              >
-                <button
-                  onClick={() => setOpen(isOpen ? null : i)}
-                  aria-expanded={isOpen}
-                  className="flex w-full items-center justify-between gap-[12px] px-[20px] py-[18px] text-left transition-colors"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.005em" }}>
-                    {item.q}
-                  </span>
-                  <span
-                    className="grid shrink-0 place-items-center transition-transform"
-                    style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid var(--border, rgba(255,255,255,0.08))",
-                      transform: isOpen ? "rotate(45deg)" : "rotate(0)",
-                      transition: "transform 200ms ease",
-                      color: "var(--foreground-70, rgba(240,240,240,0.7))",
-                    }}
-                  >
-                    <Plus size={14} />
-                  </span>
-                </button>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      key="content"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                      <div
-                        className="px-[20px] pb-[20px]"
-                        style={{ fontSize: 14, lineHeight: 1.6, color: "var(--foreground-70, rgba(240,240,240,0.72))" }}
-                      >
-                        {item.a}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+    <Section bg="var(--background-surface)">
+      <Eyebrow>Вопросы</Eyebrow>
+      <Title>Часто спрашивают</Title>
+      <div className="mx-auto mt-9 max-w-[820px] space-y-2.5">
+        {FAQ.map((item, i) => {
+          const isOpen = open === i;
+          return (
+            <div key={item.q} style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+              <button onClick={() => setOpen(isOpen ? null : i)} aria-expanded={isOpen}
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left" style={{ color: "var(--foreground)" }}>
+                <span className="text-[15px] font-semibold">{item.q}</span>
+                <span className="grid shrink-0 place-items-center transition-transform"
+                  style={{ width: 28, height: 28, borderRadius: 8, background: "var(--background-surface)", border: "1px solid var(--border)", transform: isOpen ? "rotate(45deg)" : "none", color: "var(--foreground-70)" }}>
+                  <Plus size={14} />
+                </span>
+              </button>
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
+                    <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{item.a}</div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </div>
-    </section>
+    </Section>
   );
 }
 
-/* ===================== Block 5. Футер ===================== */
+/* ===================== Footer ===================== */
 
-function FooterSection() {
+const FOOTER_COLS: { title: string; links: { label: string; to: string }[] }[] = [
+  {
+    title: "МоДелизМ",
+    links: [
+      { label: "О нас", to: "/info/about" },
+      { label: "О компании", to: "/info/company" },
+      { label: "Партнёрам", to: "/info/partners" },
+      { label: "Размещение рекламы", to: "/info/advertising" },
+    ],
+  },
+  {
+    title: "Документы",
+    links: [
+      { label: "Пользовательское соглашение", to: "/legal/rules" },
+      { label: "Политика конфиденциальности", to: "/legal/privacy" },
+      { label: "Compliance", to: "/info/compliance" },
+      { label: "Обработка персональных данных", to: "/info/consent" },
+    ],
+  },
+  {
+    title: "Поддержка",
+    links: [
+      { label: "Ответы на вопросы", to: "/help" },
+      { label: "Служба поддержки", to: "/info/support" },
+      { label: "Оставить отзыв", to: "/info/feedback" },
+      { label: "Обратная связь", to: "/info/feedback" },
+    ],
+  },
+];
+
+function Footer() {
   return (
-    <footer
-      className="px-[20px] pt-[56px] pb-[40px]"
-      style={{
-        background: "var(--bg-secondary, #1e1e22)",
-        borderTop: "1px solid var(--border, rgba(255,255,255,0.08))",
-      }}
-    >
-      <div className="mx-auto max-w-[1180px]">
-        <div className="grid gap-[32px] sm:grid-cols-[1fr_auto] sm:items-start">
-          <div className="min-w-0">
-            <Logo size={32} />
-            <p
-              className="mt-[12px] max-w-[420px]"
-              style={{ fontSize: 13, lineHeight: 1.6, color: "var(--foreground-70, rgba(240,240,240,0.65))" }}
-            >
-              Сообщество моделистов — это обсуждение проектов, самостоятельные сборки. Делитесь опытом и получайте новые знания!
-            </p>
-          </div>
-
-          <nav className="flex flex-wrap gap-x-[24px] gap-y-[10px] sm:justify-end">
-            <Link to="/help" style={footerLink}>Правила</Link>
-            <Link to="/help" style={footerLink}>Поддержка</Link>
-            <Link to="/help" style={footerLink}>Контакты</Link>
-            <Link to="/subscription" style={footerLink}>Подписка</Link>
-          </nav>
+    <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
+      <div className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8" style={{ maxWidth: 1240 }}>
+        <div>
+          <Logo size={30} />
+          <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+            Маркетплейс, лента и сообщество для моделистов. Моделизм — это жизнь, остальное детали.
+          </p>
+          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} МоДелизМ</p>
         </div>
 
-        <div
-          className="mt-[32px] flex flex-col items-start justify-between gap-[8px] pt-[20px] sm:flex-row sm:items-center"
-          style={{ borderTop: "1px solid var(--border, rgba(255,255,255,0.06))" }}
-        >
-          <span style={{ fontSize: 12, color: "var(--foreground-50, rgba(240,240,240,0.5))" }}>
-            © {new Date().getFullYear()} МоДелизМ Форум. Сделано для моделистов.
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--foreground-50, rgba(240,240,240,0.45))",
-            }}
-          >
-            Моделизм — это жизнь
-          </span>
+        {FOOTER_COLS.map((col) => (
+          <div key={col.title}>
+            <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{col.title}</div>
+            <ul className="mt-4 flex flex-col gap-2.5">
+              {col.links.map((l) => (
+                <li key={l.label}>
+                  <Link to={l.to} className="text-sm transition-colors" style={{ color: "var(--foreground-50)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
+                  >{l.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
+        {/* contacts */}
+        <div>
+          <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Контакты</div>
+          <ul className="mt-4 flex flex-col gap-2.5 text-sm" style={{ color: "var(--foreground-50)" }}>
+            <li><a href="mailto:support@modelizmclub.ru" style={{ color: "inherit" }}>support@modelizmclub.ru</a></li>
+            <li><a href="tel:+78000000000" style={{ color: "inherit" }}>8 800 000-00-00</a></li>
+            <li><a href="https://t.me/modelizm" target="_blank" rel="noreferrer" style={{ color: "inherit" }}>Telegram: @modelizm</a></li>
+            <li>Пн–Вс, 10:00–20:00 МСК</li>
+          </ul>
         </div>
       </div>
     </footer>
   );
 }
 
-const footerLink: React.CSSProperties = {
-  fontSize: 13,
-  color: "var(--foreground-70, rgba(240,240,240,0.72))",
-  fontWeight: 500,
+/* ===================== shared helpers ===================== */
+
+function Section({ children, bg, id }: { children: React.ReactNode; bg: string; id?: string }) {
+  return (
+    <section id={id} style={{ background: bg, padding: "72px 0" }}>
+      <div className="mx-auto max-w-[1240px] px-4 md:px-8">{children}</div>
+    </section>
+  );
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--accent)" }}>{children}</div>
+  );
+}
+
+function Title({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mt-3" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(26px, 3.6vw, 42px)", letterSpacing: "-0.025em", lineHeight: 1.1, color: "var(--foreground)" }}>{children}</h2>
+  );
+}
+
+const mutedP: React.CSSProperties = { fontSize: 15, color: "var(--foreground-70)", lineHeight: 1.6 };
+
+const cardStyle: React.CSSProperties = {
+  background: "var(--background-elevated)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--r-card)",
+  boxShadow: "var(--shadow-xs)",
 };
