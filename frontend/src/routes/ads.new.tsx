@@ -10,11 +10,18 @@ import { uploadMedia } from "@/lib/api/media";
 import { createListing } from "@/lib/api/listings";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { SuccessModal } from "@/components/ads/wizard/SuccessModal";
+import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  ChevronLeft, ChevronRight, ImagePlus, X, Star,
-  Tag, ShoppingCart, ArrowLeftRight, MapPin, Truck, CreditCard,
+  ChevronLeft, ChevronRight, Tag, ShoppingCart,
+  ArrowLeftRight, MapPin, Truck, CreditCard,
 } from "lucide-react";
 
 export const Route = createFileRoute("/ads/new")({
@@ -67,8 +74,12 @@ function NewAdPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
   const [success, setSuccess] = useState(false);
+  const [newId, setNewId] = useState<string | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+  const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
   useEffect(() => {
     fetchListingCategories()
@@ -93,9 +104,21 @@ function NewAdPage() {
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const resetWizard = () => {
+    setForm(initial);
+    setStep(1);
+    setTouched(new Set());
+    setNewId(null);
+    setSuccess(false);
+    if (cats[0]) {
+      setForm((f) => ({ ...f, categoryId: cats[0].id, subcategoryId: cats[0].subcategories[0]?.id ?? "" }));
+    }
+  };
+
   const submit = async () => {
     if (submitting) return;
     setSubmitting(true);
+    setSubmitError(false);
     try {
       const mediaIds: string[] = [];
       for (const file of form.files) {
@@ -107,7 +130,7 @@ function NewAdPage() {
         const found = await searchCities(form.city.trim());
         cityId = found[0]?.id;
       }
-      await createListing({
+      const ad = await createListing({
         title: form.title.trim(),
         description: form.description.trim(),
         priceCents: Number(form.price || 0) * 100,
@@ -118,8 +141,10 @@ function NewAdPage() {
         mediaIds,
         publish: true,
       });
+      setNewId(ad.id);
       setSuccess(true);
     } catch {
+      setSubmitError(true);
       toast.error("Не удалось опубликовать объявление");
     } finally {
       setSubmitting(false);
@@ -128,7 +153,7 @@ function NewAdPage() {
 
   return (
     <AppLayout rightColumn={false}>
-      <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[120px]">
+      <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[96px]">
         <header className="space-y-[6px]">
           <Link to="/ads" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
             <ChevronLeft size={14} /> Назад к объявлениям
@@ -153,85 +178,68 @@ function NewAdPage() {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} />}
-            {step === 3 && <StepPreview form={form} cat={cat} />}
+            {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} touched={touched} touch={touch} />}
+            {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Sticky footer */}
+      {/* Sticky footer — lifted above the mobile BottomNav so the submit CTA is never covered */}
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur"
+        className="fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-40 border-t backdrop-blur lg:bottom-0"
         style={{
           background: "color-mix(in srgb, var(--background) 88%, transparent)",
           borderColor: "var(--border)",
         }}
       >
         <div className="mx-auto flex max-w-[760px] items-center justify-between gap-[12px] px-[16px] py-[12px] sm:px-[24px]">
-          <button
-            type="button"
+          <Button
+            variant="outline"
             disabled={step === 1}
             onClick={() => setStep((s) => Math.max(1, s - 1))}
-            className="inline-flex items-center gap-[6px] px-[18px] text-[13px] font-medium transition-opacity disabled:opacity-30"
-            style={{
-              background: "transparent",
-              color: "var(--foreground-70)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-button)",
-              height: 44,
-            }}
+            className="h-11 rounded-[var(--r-button)]"
           >
             <ChevronLeft size={16} /> Назад
-          </button>
+          </Button>
           {step < 3 ? (
-            <button
-              type="button"
+            <Button
               disabled={!valid}
               onClick={() => setStep((s) => Math.min(3, s + 1))}
-              className="inline-flex items-center gap-[6px] px-[20px] text-[13px] font-semibold transition-opacity disabled:opacity-40"
-              style={{
-                background: "var(--accent)",
-                color: "#fff",
-                borderRadius: "var(--r-button)",
-                boxShadow: "var(--shadow-button)",
-                height: 44,
-              }}
+              className="h-11 rounded-[var(--r-button)]"
             >
               Далее <ChevronRight size={16} />
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
               onClick={submit}
               disabled={submitting}
-              className="inline-flex items-center gap-[8px] px-[22px] text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                background: "var(--accent)",
-                color: "#fff",
-                borderRadius: "var(--r-button)",
-                boxShadow: "var(--shadow-button)",
-                height: 44,
-              }}
+              className="h-11 rounded-[var(--r-button)]"
             >
               <CreditCard size={16} /> {submitting ? "Публикуем…" : "Оплатить 20 ₽ и опубликовать"}
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      <SuccessModal open={success} onClose={() => { setSuccess(false); navigate({ to: "/ads" }); }} />
+      <SuccessModal
+        open={success}
+        onClose={() => { setSuccess(false); navigate({ to: "/ads" }); }}
+        onView={newId ? () => { setSuccess(false); navigate({ to: "/ads/$id", params: { id: newId } }); } : undefined}
+        onCreateAnother={resetWizard}
+        onGoToList={() => { setSuccess(false); navigate({ to: "/ads" }); }}
+      />
     </AppLayout>
   );
 }
 
 /* ────────── STEP 1: Photos ────────── */
 function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
-  const addPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    const picked = files.slice(0, MAX_PHOTOS - form.photos.length);
-    const urls = picked.map((f) => URL.createObjectURL(f));
+  const addPhoto = (picked: File[]) => {
+    const room = MAX_PHOTOS - form.photos.length;
+    const files = picked.slice(0, room);
+    const urls = files.map((f) => URL.createObjectURL(f));
     set("photos", [...form.photos, ...urls]);
-    set("files", [...form.files, ...picked]);
+    set("files", [...form.files, ...files]);
   };
   const remove = (i: number) => {
     set("photos", form.photos.filter((_, j) => j !== i));
@@ -249,149 +257,147 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
   };
 
   return (
-    <section className="space-y-[20px]">
-      <div>
-        <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-          Фотографии
-        </h2>
-        <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          До {MAX_PHOTOS} фото. Первое — главное в карточке.
-        </p>
-      </div>
-
-      <label
-        className="grid cursor-pointer place-items-center gap-[10px] px-[20px] py-[40px] text-center transition-colors"
-        style={{
-          background: "var(--background-elevated)",
-          border: "2px dashed var(--border-strong)",
-          borderRadius: "var(--r-card)",
-        }}
+    <section className="space-y-[16px]">
+      <StepHeading title="Фотографии" description={`До ${MAX_PHOTOS} фото. Первое — главное в карточке.`} />
+      <Card
+        className="p-[16px] sm:p-[20px]"
+        style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
       >
-        <div className="grid h-[56px] w-[56px] place-items-center"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}>
-          <ImagePlus size={24} />
-        </div>
-        <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Перетащите фото или нажмите, чтобы выбрать
-        </div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>JPG, PNG до 10 МБ</div>
-        <input type="file" accept="image/*" multiple onChange={addPhoto} className="hidden" />
-      </label>
-
-      {form.photos.length > 0 && (
-        <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 md:grid-cols-4">
-          {form.photos.map((src, i) => (
-            <motion.div
-              key={src}
-              layout={false}
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.18 }}
-              className="group relative overflow-hidden"
-              style={{
-                aspectRatio: "1 / 1",
-                background: "var(--background-surface)",
-                border: `2px solid ${i === 0 ? "var(--accent)" : "var(--border)"}`,
-                borderRadius: "var(--r-card-sm)",
-              }}
-            >
-              <img src={src} alt="" className="h-full w-full object-cover" />
-              {i === 0 && (
-                <span
-                  className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
-                  style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
-                >
-                  <Star size={9} fill="currentColor" /> Главное
-                </span>
-              )}
-              <div className="absolute right-[6px] top-[6px] flex gap-[4px] opacity-0 transition-opacity group-hover:opacity-100">
-                {i !== 0 && (
-                  <button type="button" onClick={() => makeMain(i)} title="Сделать главным"
-                    className="grid h-[28px] w-[28px] place-items-center"
-                    style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}>
-                    <Star size={12} />
-                  </button>
-                )}
-                <button type="button" onClick={() => remove(i)} title="Удалить"
-                  className="grid h-[28px] w-[28px] place-items-center"
-                  style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}>
-                  <X size={12} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+        <ImageUploadGrid
+          photos={form.photos}
+          max={MAX_PHOTOS}
+          onAdd={addPhoto}
+          onRemove={remove}
+          onMakeMain={makeMain}
+        />
+      </Card>
     </section>
   );
 }
 
 /* ────────── STEP 2: Data ────────── */
-function StepData({ form, set, cat, cats }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void; cat: Category | undefined; cats: Category[] }) {
+function StepData({
+  form, set, cat, cats, touched, touch,
+}: {
+  form: Form;
+  set: <K extends keyof Form>(k: K, v: Form[K]) => void;
+  cat: Category | undefined;
+  cats: Category[];
+  touched: Set<string>;
+  touch: (name: string) => void;
+}) {
+  const titleErr = touched.has("title") && form.title.trim().length < 4;
+  const priceErr = touched.has("price") && !form.price;
+  const cityErr = touched.has("city") && !form.city.trim();
+  const contactErr = touched.has("contact") && !form.contact.trim();
+
   return (
-    <section className="space-y-[24px]">
+    <section className="space-y-[16px]">
       <Block title="Тип объявления">
         <div className="grid gap-[10px] sm:grid-cols-3">
           <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
-            icon={Tag} title="Продаю" description="Хочу продать вещь" accentVar="var(--accent)" />
+            icon={Tag} title="Продаю" description="Хочу продать вещь" />
           <RadioCard selected={form.status === "Куплю"} onClick={() => set("status", "Куплю")}
-            icon={ShoppingCart} title="Куплю" description="Ищу для покупки" accentVar="var(--info)" />
+            icon={ShoppingCart} title="Куплю" description="Ищу для покупки" />
           <RadioCard selected={form.status === "Обменяю"} onClick={() => set("status", "Обменяю")}
-            icon={ArrowLeftRight} title="Обменяю" description="Готов на обмен" accentVar="var(--warning)" />
+            icon={ArrowLeftRight} title="Обменяю" description="Готов на обмен" />
         </div>
       </Block>
 
       <Block title="Описание">
-        <Field label="Название" required>
-          <Input value={form.title} onChange={(v) => set("title", v)} placeholder="Двигатель Picco .21 для багги 1:8" />
+        <Field label="Название" required error={titleErr ? "Минимум 4 символа" : undefined}>
+          <Input
+            value={form.title}
+            onChange={(e) => set("title", e.target.value)}
+            onBlur={() => touch("title")}
+            error={titleErr}
+            className="h-11"
+            placeholder="Двигатель Picco .21 для багги 1:8"
+          />
         </Field>
         <Field label="Подробное описание">
-          <Textarea value={form.description} onChange={(v) => set("description", v)}
-            placeholder="Состояние, история использования, комплектация…" rows={5} />
+          <Textarea
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            placeholder="Состояние, история использования, комплектация…"
+            rows={5}
+          />
         </Field>
       </Block>
 
       <Block title="Параметры">
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Цена, ₽" required>
-            <Input value={form.price} onChange={(v) => set("price", v.replace(/\D/g, ""))} placeholder="0" inputMode="numeric" />
+          <Field label="Цена, ₽" required error={priceErr ? "Укажите цену" : undefined}>
+            <Input
+              value={form.price}
+              onChange={(e) => set("price", e.target.value.replace(/\D/g, ""))}
+              onBlur={() => touch("price")}
+              error={priceErr}
+              className="h-11"
+              placeholder="0"
+              inputMode="numeric"
+            />
           </Field>
           <Field label="Состояние">
-            <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)}
-              options={CONDITIONS} />
+            <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)} options={CONDITIONS} />
           </Field>
           <Field label="Категория">
-            <NativeSelect value={form.categoryId}
+            <NativeSelect
+              value={form.categoryId}
               onChange={(v) => {
                 const c = cats.find((x) => x.id === v);
                 set("categoryId", v);
                 set("subcategoryId", c?.subcategories[0]?.id ?? "");
               }}
-              options={cats.map((c) => ({ label: c.name, value: c.id }))} />
+              options={cats.map((c) => ({ label: c.name, value: c.id }))}
+            />
           </Field>
           <Field label="Подкатегория">
-            <NativeSelect value={form.subcategoryId} onChange={(v) => set("subcategoryId", v)}
-              options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))} />
+            <NativeSelect
+              value={form.subcategoryId}
+              onChange={(v) => set("subcategoryId", v)}
+              options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
+            />
           </Field>
         </div>
       </Block>
 
       <Block title="Контакты и доставка">
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Город" required>
-            <Input value={form.city} onChange={(v) => set("city", v)} placeholder="Краснодар" leftIcon={<MapPin size={14} />} />
+          <Field label="Город" required error={cityErr ? "Укажите город" : undefined}>
+            <div className="relative">
+              <MapPin size={14} className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" style={{ color: "var(--foreground-50)" }} />
+              <Input
+                value={form.city}
+                onChange={(e) => set("city", e.target.value)}
+                onBlur={() => touch("city")}
+                error={cityErr}
+                className="h-11 pl-9"
+                placeholder="Краснодар"
+              />
+            </div>
           </Field>
-          <Field label="Контакт" required>
-            <Input value={form.contact} onChange={(v) => set("contact", v)} placeholder="+7 999 000-00-00 или @telegram" />
+          <Field label="Контакт" required error={contactErr ? "Укажите контакт" : undefined}>
+            <Input
+              value={form.contact}
+              onChange={(e) => set("contact", e.target.value)}
+              onBlur={() => touch("contact")}
+              error={contactErr}
+              className="h-11"
+              placeholder="+7 999 000-00-00 или @telegram"
+            />
           </Field>
         </div>
         <Field label="Способы доставки">
-          <div className="flex flex-wrap gap-[6px]">
+          <div className="flex flex-wrap gap-[8px]">
             {DELIVERIES.map((d) => (
-              <Checkbox key={d}
+              <Checkbox
+                key={d}
                 checked={form.deliveries.includes(d)}
                 onChange={() => set("deliveries", form.deliveries.includes(d)
                   ? form.deliveries.filter((x) => x !== d) : [...form.deliveries, d])}
-                label={d} />
+                label={d}
+              />
             ))}
           </div>
         </Field>
@@ -401,66 +407,39 @@ function StepData({ form, set, cat, cats }: { form: Form; set: <K extends keyof 
 }
 
 /* ────────── STEP 3: Preview ────────── */
-function StepPreview({ form, cat }: { form: Form; cat: Category | undefined }) {
+function StepPreview({ form, cat, submitError }: { form: Form; cat: Category | undefined; submitError: boolean }) {
   const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
-  const status = form.status;
-  const statusStyle = status === "Продаю"
-    ? { bg: "var(--accent-soft)", fg: "var(--accent)" }
-    : status === "Куплю"
-    ? { bg: "var(--info-soft)", fg: "var(--info)" }
-    : { bg: "var(--warning-soft)", fg: "var(--warning)" };
-  const image = form.photos[0] ?? "";
 
   return (
-    <section className="space-y-[20px]">
-      <div>
-        <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-          Превью
-        </h2>
-        <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          Так ваше объявление увидят покупатели.
-        </p>
-      </div>
+    <section className="space-y-[16px]">
+      <StepHeading title="Превью" description="Так ваше объявление увидят покупатели." />
+
+      {submitError && (
+        <Alert variant="error">
+          <AlertDescription>
+            Не удалось опубликовать объявление. Проверьте соединение и нажмите «Оплатить и опубликовать» ещё раз.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-[20px] md:grid-cols-[280px_1fr]">
-        {/* Mini card */}
-        <div className="overflow-hidden"
-          style={{
-            background: "var(--background-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-card)",
-            boxShadow: "var(--shadow-card)",
-          }}
-        >
-          <div className="relative" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
-            <img src={image} alt="" className="h-full w-full object-cover" />
-            <span className="absolute left-[10px] top-[10px] px-[10px] py-[4px] text-[11px] font-semibold uppercase"
-              style={{ background: statusStyle.bg, color: statusStyle.fg, borderRadius: "var(--r-pill)" }}>
-              {status}
-            </span>
-          </div>
-          <div className="space-y-[8px] p-[14px]">
-            <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{form.title || "Название объявления"}</div>
-            <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>
-              {Number(form.price || 0).toLocaleString("ru")} ₽
-            </div>
-            <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              {cat?.name} · {sub?.name}
-            </div>
-          </div>
-        </div>
+        <ListingPreviewCard
+          title={form.title}
+          price={form.price}
+          image={form.photos[0] ?? ""}
+          status={form.status}
+          category={cat?.name}
+          subcategory={sub?.name}
+        />
 
-        {/* Details */}
-        <div className="space-y-[16px] p-[20px]"
-          style={{
-            background: "var(--background-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-card)",
-            boxShadow: "var(--shadow-card)",
-          }}
+        <Card
+          className="space-y-[16px] p-[20px]"
+          style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
         >
-          <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{form.title || "Название объявления"}</h3>
-          <p className="text-[13px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
+          <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>
+            {form.title || "Название объявления"}
+          </h3>
+          <p className="whitespace-pre-line text-[13px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
             {form.description || "Описание не заполнено."}
           </p>
           <div className="grid gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
@@ -468,95 +447,61 @@ function StepPreview({ form, cat }: { form: Form; cat: Category | undefined }) {
             <div className="inline-flex items-center gap-[6px]"><Truck size={14} /> {form.deliveries.join(", ") || "—"}</div>
             <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {form.condition}</div>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="flex items-center gap-[12px] p-[14px] text-[12px]"
-        style={{ background: "var(--info-soft)", color: "var(--info)", borderRadius: "var(--r-card-sm)" }}>
-        <CreditCard size={16} /> После оплаты 20 ₽ объявление отправится на модерацию (обычно до 60 минут).
-      </div>
+      <Alert variant="info">
+        <AlertDescription>
+          После оплаты 20 ₽ объявление отправится на модерацию (обычно до 60 минут).
+        </AlertDescription>
+      </Alert>
     </section>
   );
 }
 
-/* ────────── Bespoke form primitives ────────── */
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+/* ────────── Layout primitives ────────── */
+function StepHeading({ title, description }: { title: string; description: string }) {
   return (
-    <div className="space-y-[14px]">
-      <h3 className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{title}</h3>
-      <div className="space-y-[12px]">{children}</div>
+    <div>
+      <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+        {title}
+      </h2>
+      <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>{description}</p>
     </div>
   );
 }
-function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
+
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card
+      className="space-y-[14px] p-[16px] sm:p-[20px]"
+      style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
+    >
+      <h3 className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{title}</h3>
+      <div className="space-y-[12px]">{children}</div>
+    </Card>
+  );
+}
+
+function Field({ label, children, required, error }: { label: string; children: React.ReactNode; required?: boolean; error?: string }) {
   return (
     <label className="block space-y-[6px]">
       <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
         {label}{required && <span style={{ color: "var(--accent)" }}> *</span>}
       </span>
       {children}
+      {error && <span className="block text-[11px] font-medium" style={{ color: "var(--danger)" }}>{error}</span>}
     </label>
   );
 }
-function Input({ value, onChange, placeholder, leftIcon, inputMode }: { value: string; onChange: (v: string) => void; placeholder?: string; leftIcon?: React.ReactNode; inputMode?: "numeric" }) {
-  return (
-    <div className="relative">
-      {leftIcon && (
-        <span className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" style={{ color: "var(--foreground-50)" }}>
-          {leftIcon}
-        </span>
-      )}
-      <input
-        value={value} onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder} inputMode={inputMode}
-        className="w-full text-[14px] outline-none transition-colors"
-        style={{
-          background: "var(--background-elevated)",
-          color: "var(--foreground)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-input)",
-          height: 44,
-          padding: `0 14px 0 ${leftIcon ? 36 : 14}px`,
-        }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-      />
-    </div>
-  );
-}
-function Textarea({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
-  return (
-    <textarea
-      value={value} onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder} rows={rows}
-      className="w-full resize-none text-[14px] outline-none transition-colors"
-      style={{
-        background: "var(--background-elevated)",
-        color: "var(--foreground)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-input)",
-        padding: "12px 14px",
-        lineHeight: 1.5,
-      }}
-      onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-      onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-    />
-  );
-}
+
 type SelOpt = string | { label: string; value: string };
 function NativeSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: SelOpt[] }) {
   return (
     <select
-      value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full cursor-pointer text-[14px] outline-none"
-      style={{
-        background: "var(--background-elevated)",
-        color: "var(--foreground)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-input)",
-        height: 44,
-        padding: "0 12px",
-      }}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-11 w-full cursor-pointer rounded-[var(--r-input)] border border-[var(--border)] bg-[var(--background-input)] px-3 text-[14px] text-[var(--foreground)] shadow-sm outline-none transition-colors focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)]"
     >
       {options.map((o) => typeof o === "string"
         ? <option key={o} value={o}>{o}</option>
