@@ -30,9 +30,9 @@ export function FeedFilterTabs({ value, onChange }: Props) {
             <button
               key={it.id}
               onClick={() => onChange(it.id)}
-              className="relative px-[16px] py-[12px] text-[14px] transition-colors"
+              className="relative shrink-0 whitespace-nowrap px-[16px] py-[12px] text-[14px] transition-colors"
               style={{
-                color: active ? "var(--foreground)" : "var(--foreground-70)",
+                color: active ? "var(--accent)" : "var(--foreground-70)",
                 fontWeight: active ? 600 : 500,
               }}
             >

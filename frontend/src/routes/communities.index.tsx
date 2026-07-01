@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import type { Community } from "@/lib/mock";
 import { fetchCommunities } from "@/lib/api/communities";
 import { useDebounce } from "@/hooks/useDebounce";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/communities/")({
   head: () => ({ meta: [{ title: "Сообщества — МоДелизМ Форум" }] }),
@@ -80,36 +81,24 @@ function CommunityCard({ c }: { c: Community }) {
 
 function EmptyMy({ onSwitch }: { onSwitch: () => void }) {
   return (
-    <div className="grid place-items-center gap-[10px] py-[60px] text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
-      <div className="grid h-[56px] w-[56px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
-        <Users size={24} />
-      </div>
-      <div className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Вы пока не состоите ни в одном сообществе</div>
-      <p className="max-w-[320px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Посмотрите рекомендованные клубы, школы и магазины моделизма
-      </p>
-      <button
-        onClick={onSwitch}
-        className="mt-[4px] inline-flex h-[36px] items-center px-[16px] text-[13px] font-semibold"
-        style={{ background: "var(--accent)", color: "white", borderRadius: 10 }}
-      >
-        Смотреть рекомендованные
-      </button>
-    </div>
+    <EmptyState
+      icon={Users}
+      title="Вы пока не в одном сообществе"
+      description="Посмотрите рекомендованные клубы, школы и магазины моделизма"
+      action={{ label: "Смотреть рекомендованные", onClick: onSwitch }}
+      variant="compact"
+    />
   );
 }
 
 function EmptySearch() {
   return (
-    <div className="grid place-items-center gap-[8px] py-[60px] text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
-      <div className="grid h-[56px] w-[56px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}>
-        <Search size={22} />
-      </div>
-      <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Ничего не найдено</div>
-      <p className="max-w-[320px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Попробуйте изменить запрос или поискать в другом разделе
-      </p>
-    </div>
+    <EmptyState
+      icon={Search}
+      title="Ничего не найдено"
+      description="Попробуйте изменить запрос или поискать в другом разделе"
+      variant="compact"
+    />
   );
 }
 

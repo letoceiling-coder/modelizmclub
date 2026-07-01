@@ -68,7 +68,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "МоДелизМ Форум — сообщество моделистов" },
       { name: "description", content: "Социальная платформа для моделистов: RC авто, самолёты, квадрокоптеры, корабли, электроника. Чаты, объявления, сообщества." },
       { property: "og:title", content: "МоДелизМ Форум — сообщество моделистов" },
@@ -121,7 +121,14 @@ function RootComponent() {
           <CallScreen />
           <GroupCallScreen />
           <GroupCallInviteDialog />
-          <Toaster position="top-center" richColors />
+          {/* Desktop: small top offset. Mobile: clear the sticky header +
+              notch so toasts never cover the mobile navigation. */}
+          <Toaster
+            position="top-center"
+            richColors
+            offset={{ top: 16 }}
+            mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)" }}
+          />
         </ThemeProvider>
       </I18nProvider>
     </QueryClientProvider>

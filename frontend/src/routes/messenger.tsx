@@ -32,6 +32,8 @@ import { CallsList } from "@/components/calls/CallsList";
 import { useChannels, formatCount } from "@/lib/channels";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ Форум" }] }),
@@ -46,20 +48,15 @@ export const Route = createFileRoute("/messenger")({
 });
 
 
-const pulse = {
-  animate: { opacity: [0.4, 0.7, 0.4] },
-  transition: { duration: 1.2, repeat: Infinity, ease: "easeInOut" as const },
-};
-
 function DialogListSkeleton() {
   return (
     <div className="flex flex-col">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-[12px] px-[16px] py-[12px] border-b" style={{ borderColor: "var(--border)" }}>
-          <motion.div {...pulse} className="h-[48px] w-[48px] rounded-full" style={{ background: "var(--background-surface)" }} />
+        <div key={i} className="flex items-center gap-[12px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
+          <Skeleton className="h-[48px] w-[48px] shrink-0 rounded-full" />
           <div className="flex-1 space-y-[8px]">
-            <motion.div {...pulse} className="h-[12px] rounded-[6px]" style={{ background: "var(--background-surface)", width: `${50 + (i * 7) % 30}%` }} />
-            <motion.div {...pulse} className="h-[12px] rounded-[6px]" style={{ background: "var(--background-surface)", width: `${60 + (i * 11) % 25}%` }} />
+            <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${50 + (i * 7) % 30}%` }} />
+            <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${60 + (i * 11) % 25}%` }} />
           </div>
         </div>
       ))}
@@ -77,12 +74,10 @@ function MessageSkeleton() {
     <div className="flex flex-col gap-[16px] p-[20px]">
       {items.map((b, i) => (
         <div key={i} className={`flex ${b.side === "right" ? "justify-end" : "justify-start"}`}>
-          <motion.div
-            {...pulse}
+          <Skeleton
             style={{
               width: b.w,
               height: b.h,
-              background: "var(--background-surface)",
               borderRadius: b.side === "right" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
             }}
           />
@@ -724,40 +719,32 @@ function MessengerPage() {
 
 function EmptyChat() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-[24px] text-center">
-      <div
-        className="grid h-[96px] w-[96px] place-items-center rounded-full"
-        style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}
-      >
-        <MessageSquare size={36} />
-      </div>
-      <div className="mt-[16px] text-[16px]" style={{ color: "var(--foreground-50)" }}>Выберите диалог</div>
-      <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-30)" }}>или начните новый разговор</div>
-    </div>
+    <EmptyState
+      icon={MessageSquare}
+      title="Выберите диалог"
+      description="или начните новый разговор"
+      variant="bare"
+      className="flex-1"
+    />
   );
 }
 
 function EmptyDialogs() {
   return (
-    <div className="flex flex-col items-center justify-center px-[24px] py-[80px] text-center">
-      <div
-        className="grid h-[120px] w-[120px] place-items-center rounded-full"
-        style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}
-      >
-        <Users size={44} />
-      </div>
-      <div className="mt-[16px] font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>Нет диалогов</div>
-      <div className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Начните общение в категориях или найдите друзей</div>
+    <EmptyState
+      icon={Users}
+      title="Нет диалогов"
+      description="Начните общение в категориях или найдите друзей"
+      variant="bare"
+    >
       <Link
         to="/friends"
-        className="mt-[20px] inline-flex items-center justify-center font-semibold transition-colors duration-150"
-        style={{
-          height: 44, padding: "0 28px", borderRadius: 999, background: "var(--accent)", color: "white", fontSize: 14,
-        }}
+        className="inline-flex items-center justify-center font-semibold transition-colors duration-150"
+        style={{ height: 44, padding: "0 28px", borderRadius: 999, background: "var(--accent)", color: "white", fontSize: 14 }}
       >
         Найти друзей
       </Link>
-    </div>
+    </EmptyState>
   );
 }
 
@@ -775,14 +762,7 @@ function ChannelsList({ query }: { query: string }) {
   });
 
   if (list.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center px-[24px] py-[60px] text-center">
-        <div className="grid h-[80px] w-[80px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}>
-          <Radio size={32} />
-        </div>
-        <div className="mt-[12px] font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Каналы не найдены</div>
-      </div>
-    );
+    return <EmptyState icon={Radio} title="Каналы не найдены" variant="bare" />;
   }
 
   return (

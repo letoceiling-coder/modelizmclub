@@ -1,4 +1,4 @@
-import { SkeletonBox } from "@/components/feed/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function AdCardSkeleton() {
   return (
@@ -11,14 +11,12 @@ export function AdCardSkeleton() {
         boxShadow: "var(--shadow-card)",
       }}
     >
-      <div style={{ aspectRatio: "4 / 3" }}>
-        <SkeletonBox w="100%" h="100%" radius={0} />
-      </div>
+      <Skeleton className="w-full" style={{ aspectRatio: "4 / 3", borderRadius: 0 }} />
       <div className="space-y-[10px] p-[16px]">
-        <SkeletonBox w="85%" h={14} />
-        <SkeletonBox w="40%" h={22} />
-        <SkeletonBox w="60%" h={11} />
-        <SkeletonBox w="70%" h={11} />
+        <Skeleton className="h-[14px] w-[85%]" />
+        <Skeleton className="h-[22px] w-[40%]" />
+        <Skeleton className="h-[11px] w-[60%]" />
+        <Skeleton className="h-[11px] w-[70%]" />
       </div>
     </div>
   );

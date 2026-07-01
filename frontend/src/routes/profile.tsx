@@ -19,6 +19,7 @@ import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
@@ -523,7 +524,8 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
       className="sticky top-0 z-10 overflow-x-auto"
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
-      <div className="relative flex">
+      {/* min-w-max lets the scroll container measure total content width */}
+      <div className="relative flex min-w-max">
         {tabs.map(({ key, label, Icon }) => {
           const active = tab === key;
           return (
@@ -531,7 +533,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
               key={key}
               ref={(el) => { refs.current[key] = el; }}
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[8px] font-display transition-colors duration-200"
+              className="inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap font-display transition-colors duration-200"
               style={{
                 height: 48, padding: "0 20px", fontSize: 14,
                 fontWeight: active ? 600 : 500,
@@ -555,10 +557,9 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
 
 function EmptyTab({ text, children }: { text: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-[60px] text-center">
-      <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{text}</div>
+    <EmptyState variant="compact" title={text}>
       {children}
-    </div>
+    </EmptyState>
   );
 }
 

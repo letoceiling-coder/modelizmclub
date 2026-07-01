@@ -93,6 +93,17 @@
 
   /* "Airy" card shadow (UI Kit 2.0 — light, diffused) */
   --shadow-card-airy: 0 5px 100px rgba(45, 63, 91, 0.10);
+
+  /* ===== Mobile App Shell ===== */
+  --mobile-header-h: 52px;       /* header content row (excl. safe-area) */
+  --bottom-nav-h: 60px;          /* bottom nav row (excl. safe-area) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* total space the fixed bottom nav occupies, incl. iOS home indicator */
+  --bottom-nav-space: calc(var(--bottom-nav-h) + var(--safe-bottom));
+  /* z-index scale for the shell — header < bottom nav < sheets/toasts */
+  --z-mobile-header: 30;
+  --z-bottom-nav: 40;
 }
 
 /* ===== DARK THEME (DEFAULT) ===== */

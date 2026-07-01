@@ -22,3 +22,7 @@
 *.log
 .DS_Store
 Thumbs.db
+.gstack/
+.playwright-mcp/
+icons:*/
+*.png

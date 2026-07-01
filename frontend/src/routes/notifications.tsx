@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, CheckCheck, UserPlus, Megaphone, MessageSquare, Phone } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime } from "@/lib/mock";
@@ -90,15 +92,33 @@ function NotificationsPage() {
         </div>
 
         {loading ? (
-          <p style={{ fontSize: "14px", color: "var(--foreground-50)" }}>Загрузка…</p>
-        ) : items.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center text-center"
-            style={{ padding: "64px 16px", color: "var(--foreground-50)" }}
-          >
-            <Bell size={36} style={{ marginBottom: 12, opacity: 0.5 }} />
-            <p style={{ fontSize: "15px" }}>Пока нет уведомлений</p>
+          <div className="space-y-[8px]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-[12px]"
+                style={{
+                  padding: "12px 14px",
+                  background: "var(--background-surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-card-sm)",
+                }}
+              >
+                <Skeleton className="h-[36px] w-[36px] shrink-0 rounded-full" />
+                <div className="flex-1 space-y-[8px]">
+                  <Skeleton className="h-[12px]" style={{ width: `${45 + (i * 13) % 35}%` }} />
+                  <Skeleton className="h-[11px]" style={{ width: `${55 + (i * 9) % 30}%` }} />
+                </div>
+              </div>
+            ))}
           </div>
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={Bell}
+            title="Пока нет уведомлений"
+            description="Здесь будут появляться уведомления о новых активностях"
+            variant="compact"
+          />
         ) : (
           <div className="space-y-[8px]">
             {items.map((n, i) => {

@@ -7,6 +7,8 @@ import { type Ad } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
 import { fetchMyListings, publishListing, archiveListing, deleteListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/ads/")({
   head: () => ({ meta: [{ title: "Мои объявления — МоДелизМ Форум" }] }),
@@ -202,8 +204,8 @@ function MyAdsPage() {
                 aria-selected={active}
                 ref={(el) => { tabRefs.current[t.key] = el; }}
                 onClick={() => setTab(t.key)}
-                className="relative inline-flex items-center gap-[8px] whitespace-nowrap px-[16px] py-[10px] text-[14px] font-semibold transition-colors"
-                style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
+                className="relative inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap px-[16px] py-[10px] text-[14px] font-semibold transition-colors"
+                style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
               >
                 {t.label}
                 <span
@@ -496,42 +498,17 @@ function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: ()
   };
   const c = config[tab];
   return (
-    <div
-      className="grid place-items-center gap-[14px] p-[56px] text-center"
-      style={{ background: "var(--background-surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}
-    >
-      <div
-        className="grid h-[64px] w-[64px] place-items-center"
-        style={{ background: "var(--background-elevated)", color: "var(--foreground-50)", borderRadius: "var(--r-pill)" }}
-      >
-        <Inbox size={26} />
-      </div>
-      <div>
-        <h3 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>{c.title}</h3>
-        <p className="mt-[6px] text-[14px]" style={{ color: "var(--foreground-70)" }}>{c.desc}</p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-[8px]">
-        {dirty && (
-          <button
-            type="button"
-            onClick={onReset}
-            className="inline-flex items-center gap-[6px] px-[14px] text-[13px] font-semibold"
-            style={{ background: "transparent", border: "1px solid var(--border-strong)", color: "var(--foreground-70)", borderRadius: "var(--r-button)", height: 38 }}
-          >
-            <RotateCcw size={13} /> Сбросить фильтры
-          </button>
-        )}
-        {tab === "active" && (
-          <button
-            type="button"
-            onClick={onCreate}
-            className="inline-flex items-center gap-[8px] px-[20px] text-[14px] font-semibold"
-            style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-button)", boxShadow: "var(--shadow-button)", height: 42 }}
-          >
-            <Plus size={16} /> Разместить объявление
-          </button>
-        )}
-      </div>
-    </div>
+    <EmptyState icon={Inbox} title={c.title} description={c.desc}>
+      {dirty && (
+        <Button type="button" variant="outline" size="sm" onClick={onReset} className="rounded-[10px]">
+          <RotateCcw size={13} /> Сбросить фильтры
+        </Button>
+      )}
+      {tab === "active" && (
+        <Button type="button" size="sm" onClick={onCreate} className="rounded-[10px]">
+          <Plus size={14} /> Разместить объявление
+        </Button>
+      )}
+    </EmptyState>
   );
 }

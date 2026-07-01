@@ -5,6 +5,11 @@ import { cn } from "@/lib/utils";
 
 const Tabs = TabsPrimitive.Root;
 
+/**
+ * UI Kit 2.0 — underline-style tabs.
+ * Scrollable on mobile (overflow-x-auto), no text clipping, 44px tap targets.
+ * Active state: #627FFF (var(--accent)).
+ */
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -12,7 +17,10 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+      // Scrollable row, hidden scrollbar
+      "flex w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      // Persistent bottom border — active trigger overlaps it with accent color
+      "border-b border-[var(--border)] bg-transparent",
       className,
     )}
     {...props}
@@ -27,7 +35,25 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+      // Layout — never shrink, never wrap, 44px tap target
+      "relative inline-flex shrink-0 items-center justify-center gap-[6px]",
+      "whitespace-nowrap px-4",
+      "min-h-[44px] cursor-pointer",
+      // Typography
+      "text-[14px] font-medium",
+      // Underline approach: -mb-px pulls the trigger's bottom border over the
+      // list's border-b, so only the accent line is visible when active.
+      "-mb-px border-b-2 border-transparent",
+      // Colors
+      "text-[var(--foreground-50)] transition-colors duration-150",
+      // Hover
+      "hover:text-[var(--foreground-70)]",
+      // Active — accent underline + accent text
+      "data-[state=active]:border-[var(--accent)] data-[state=active]:text-[var(--accent)] data-[state=active]:font-semibold",
+      // Focus
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 rounded-sm",
+      // Disabled
+      "disabled:pointer-events-none disabled:opacity-40",
       className,
     )}
     {...props}
@@ -42,7 +68,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1",
       className,
     )}
     {...props}
