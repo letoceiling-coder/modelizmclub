@@ -1,72 +1,104 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Star, ShieldCheck, MessageSquare, Calendar } from "lucide-react";
+import { Star, MessageSquare, Calendar } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-export function SellerCard({ seller, onWrite }: { seller: AdSeller; onWrite?: () => void }) {
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
+}
+
+function SellerAvatar({ seller }: { seller: AdSeller }) {
+  const [broken, setBroken] = useState(false);
+  const hasImg = Boolean(seller.avatar && seller.avatar.trim()) && !broken;
+
+  if (hasImg) {
+    return (
+      <img
+        src={seller.avatar}
+        alt={seller.name}
+        width={56}
+        height={56}
+        className="h-[56px] w-[56px] shrink-0 object-cover"
+        style={{ borderRadius: "var(--r-pill)", border: "1px solid var(--border)" }}
+        onError={() => setBroken(true)}
+      />
+    );
+  }
   return (
     <div
+      className="grid h-[56px] w-[56px] shrink-0 place-items-center text-[18px] font-semibold"
+      style={{
+        borderRadius: "var(--r-pill)",
+        background: "var(--accent-soft)",
+        color: "var(--accent)",
+        border: "1px solid var(--border)",
+      }}
+      aria-hidden
+    >
+      {initials(seller.name)}
+    </div>
+  );
+}
+
+export function SellerCard({ seller, onWrite }: { seller: AdSeller; onWrite?: () => void }) {
+  const hasRating = seller.rating > 0;
+  const hasDeals = seller.deals > 0;
+  const hasSince = Boolean(seller.since && seller.since.trim());
+  const hasStats = hasRating || hasDeals;
+
+  return (
+    <Card
       className="flex flex-col gap-[16px] p-[20px]"
       style={{
         background: "var(--background-elevated)",
-        border: "1px solid var(--border)",
+        borderColor: "var(--border)",
         borderRadius: "var(--r-card)",
         boxShadow: "var(--shadow-card)",
       }}
     >
       <div className="flex items-center gap-[14px]">
-        <img
-          src={seller.avatar}
-          alt={seller.name}
-          width={56}
-          height={56}
-          className="h-[56px] w-[56px] object-cover"
-          style={{ borderRadius: "var(--r-pill)", border: "1px solid var(--border)" }}
-        />
+        <SellerAvatar seller={seller} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-[6px] text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-            <span className="truncate">{seller.name}</span>
-            <ShieldCheck size={14} style={{ color: "var(--success)" }} />
+          <div className="truncate text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+            {seller.name}
           </div>
-          <div className="mt-[3px] flex items-center gap-[10px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
-            <span className="inline-flex items-center gap-[3px]">
-              <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
-              <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
-            </span>
-            <span>· {seller.deals} сделок</span>
-          </div>
-          <div className="mt-[2px] inline-flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            <Calendar size={10} /> На сайте с {seller.since}
-          </div>
+
+          {hasStats ? (
+            <div className="mt-[3px] flex items-center gap-[10px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+              {hasRating && (
+                <span className="inline-flex items-center gap-[3px]">
+                  <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
+                  <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
+                </span>
+              )}
+              {hasDeals && <span>{hasRating ? "· " : ""}{seller.deals} сделок</span>}
+            </div>
+          ) : (
+            <div className="mt-[3px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              Продавец на МоДелизМ
+            </div>
+          )}
+
+          {hasSince && (
+            <div className="mt-[2px] inline-flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+              <Calendar size={10} /> На сайте с {seller.since}
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex flex-col gap-[8px]">
-        <button
-          type="button"
-          onClick={onWrite}
-          className="inline-flex items-center justify-center gap-[8px] py-[12px] text-[14px] font-semibold transition-opacity hover:opacity-90"
-          style={{
-            background: "var(--accent)",
-            color: "#fff",
-            borderRadius: "var(--r-button)",
-            boxShadow: "var(--shadow-button)",
-          }}
-        >
+        <Button onClick={onWrite} size="lg" className="w-full rounded-[var(--r-button)]">
           <MessageSquare size={16} /> Написать продавцу
-        </button>
-        <Link
-          to="/profile"
-          className="inline-flex items-center justify-center py-[10px] text-[13px] font-medium transition-colors"
-          style={{
-            background: "transparent",
-            color: "var(--foreground-70)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-button)",
-          }}
-        >
-          Профиль продавца
-        </Link>
+        </Button>
+        <Button asChild variant="outline" className="rounded-[var(--r-button)]">
+          <Link to="/profile">Профиль продавца</Link>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
