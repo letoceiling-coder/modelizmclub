@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare,
-  Paperclip, Search, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck,
+  Paperclip, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
@@ -34,6 +34,10 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ Форум" }] }),
@@ -94,6 +98,29 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
   return <CheckCheck size={12} style={{ color: "white" }} />;
 }
 
+function MessageImage({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <div
+        className="mb-[6px] grid place-items-center"
+        style={{ width: 240, height: 160, maxWidth: "100%", borderRadius: 12, background: "var(--background-surface)", color: "var(--foreground-30)" }}
+      >
+        <ImageOff size={26} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className="mb-[6px] max-h-[320px] w-full object-cover"
+      style={{ borderRadius: "12px", maxWidth: 280 }}
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
 function MessageBubble({
   msg, prev, allMessages, onReply,
 }: {
@@ -116,7 +143,7 @@ function MessageBubble({
     >
       {!isMe && (
         <div className="w-[28px] shrink-0">
-          {isFirstInGroup && <img src={author.avatar} alt="" className="h-[28px] w-[28px] rounded-full object-cover" />}
+          {isFirstInGroup && <ChatAvatar src={author.avatar} name={author.name} size={28} />}
         </div>
       )}
       <div className="relative max-w-[70%]">
@@ -150,14 +177,7 @@ function MessageBubble({
               <div className="truncate">{reply.text}</div>
             </div>
           )}
-          {msg.image && (
-            <img
-              src={msg.image}
-              alt=""
-              className="mb-[6px] max-h-[320px] w-full object-cover"
-              style={{ borderRadius: "12px", maxWidth: 280 }}
-            />
-          )}
+          {msg.image && <MessageImage src={msg.image} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
             <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -407,9 +427,8 @@ function MessengerPage() {
   return (
     <AppLayout rightColumn={false}>
       <div
-        className="grid overflow-hidden md:grid-cols-[320px_1fr] lg:grid-cols-[320px_1fr]"
+        className="grid overflow-hidden h-[calc(100dvh-var(--mobile-header-h)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-120px)] lg:grid-cols-[320px_1fr]"
         style={{
-          height: "calc(100vh - 120px)",
           background: "var(--background)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-card)",
@@ -422,36 +441,25 @@ function MessengerPage() {
         >
           <div className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]" style={{ background: "var(--background-elevated)", borderBottom: "1px solid var(--border)" }}>
             <div className="flex items-center gap-[8px]">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
-                <input
+              <div className="min-w-0 flex-1">
+                <SearchInput
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onClear={() => setQuery("")}
                   placeholder="Поиск диалога"
-                  className="w-full text-[14px] outline-none"
-                  style={{
-                    height: 40,
-                    paddingLeft: 36,
-                    paddingRight: 12,
-                    background: "var(--background-surface)",
-                    borderRadius: 10,
-                    border: "1.5px solid transparent",
-                    color: "var(--foreground)",
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--background)"; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = "var(--background-surface)"; }}
+                  aria-label="Поиск диалога"
                 />
               </div>
-              <button
+              <Button
                 type="button"
+                size="icon"
                 onClick={() => setCreateOpen(true)}
                 aria-label="Новый чат"
                 title="Новый чат"
-                className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[10px]"
-                style={{ background: "var(--accent)", color: "white" }}
+                className="shrink-0 rounded-[10px]"
               >
                 <Plus size={18} />
-              </button>
+              </Button>
             </div>
             <div className="flex items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {([
@@ -529,15 +537,7 @@ function MessengerPage() {
                         onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--background-surface-hover)"; }}
                         onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                       >
-                        <div className="relative">
-                          <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
-                          {(onlineSet.has(d.userId) || u.online) && (
-                            <span
-                              className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full"
-                              style={{ background: "var(--success)", border: "2px solid var(--background-elevated)" }}
-                            />
-                          )}
-                        </div>
+                        <ChatAvatar src={u.avatar} name={u.name} size={48} online={onlineSet.has(d.userId) || u.online} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             <span className="flex min-w-0 items-center gap-[6px] truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
@@ -551,12 +551,13 @@ function MessengerPage() {
                           <div className="truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage}</div>
                         </div>
                         {!!d.unread && !getMeta(d.id).muted && (
-                          <span
-                            className="grid h-[20px] w-[20px] place-items-center rounded-full text-[11px] font-semibold"
-                            style={{ background: "var(--accent)", color: "white" }}
+                          <Badge
+                            variant="default"
+                            withIcon={false}
+                            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[6px] py-0 text-[11px] leading-none"
                           >
                             {d.unread}
-                          </span>
+                          </Badge>
                         )}
 
                       </button>
@@ -576,18 +577,19 @@ function MessengerPage() {
             <>
               {/* Header */}
               <header className="sticky top-0 z-10 flex items-center gap-[12px] px-[20px]" style={{ height: 60, background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setMobileView("list")}
-                  className="grid h-[40px] w-[40px] place-items-center rounded-full md:hidden"
-                  style={{ color: "var(--foreground-70)" }}
+                  className="rounded-full text-[var(--foreground-70)] md:hidden"
                   aria-label="Назад"
                 >
                   <ArrowLeft size={20} />
-                </button>
-                <Link to="/user/$id" params={{ id: partner!.slug ?? partner!.id }} className="flex items-center gap-[12px]">
-                  <img src={partner!.avatar} alt="" className="h-[40px] w-[40px] rounded-full object-cover" />
-                  <div>
-                    <div className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{partner!.name}</div>
+                </Button>
+                <Link to="/user/$id" params={{ id: partner!.slug ?? partner!.id }} className="flex min-w-0 items-center gap-[12px]">
+                  <ChatAvatar src={partner!.avatar} name={partner!.name} size={40} />
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{partner!.name}</div>
                     <div className="flex items-center gap-[6px] text-[12px]">
                       {(onlineSet.has(partner!.id) || partner!.online) ? (
                         <>
@@ -661,13 +663,14 @@ function MessengerPage() {
                       border: "1px solid var(--border)",
                     }}
                   >
-                    <button
-                      className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
-                      style={{ color: "var(--foreground-50)" }}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-[36px] w-[36px] shrink-0 rounded-full text-[var(--foreground-50)]"
                       aria-label="Прикрепить"
                     >
                       <Paperclip size={18} />
-                    </button>
+                    </Button>
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
@@ -689,19 +692,14 @@ function MessengerPage() {
                     />
                   </div>
                   {text.trim() ? (
-                    <motion.button
-                      whileTap={{ scale: 0.92 }}
+                    <Button
+                      size="icon"
                       onClick={send}
-                      className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full transition-opacity"
-                      style={{
-                        background: "var(--accent)",
-                        color: "white",
-                        boxShadow: "0 4px 12px -2px color-mix(in oklab, var(--accent) 50%, transparent)",
-                      }}
+                      className="h-[42px] w-[42px] shrink-0 rounded-full transition-transform active:scale-95"
                       aria-label="Отправить"
                     >
                       <Send size={18} />
-                    </motion.button>
+                    </Button>
                   ) : (
                     <VoiceRecorder onSend={sendVoice} />
                   )}
@@ -737,13 +735,9 @@ function EmptyDialogs() {
       description="Начните общение в категориях или найдите друзей"
       variant="bare"
     >
-      <Link
-        to="/friends"
-        className="inline-flex items-center justify-center font-semibold transition-colors duration-150"
-        style={{ height: 44, padding: "0 28px", borderRadius: 999, background: "var(--accent)", color: "white", fontSize: 14 }}
-      >
-        Найти друзей
-      </Link>
+      <Button asChild size="lg" className="rounded-full px-[28px]">
+        <Link to="/friends">Найти друзей</Link>
+      </Button>
     </EmptyState>
   );
 }
