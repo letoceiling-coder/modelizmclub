@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Bell, CheckCheck, UserPlus, Megaphone, MessageSquare, Phone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime } from "@/lib/mock";
@@ -77,30 +79,41 @@ function NotificationsPage() {
     <AppLayout>
       <div className="mx-auto w-full max-w-[640px] px-[8px] py-[16px]">
         <div className="mb-[16px] flex items-center justify-between">
-          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>
-            Уведомления
-          </h1>
+          <div className="flex items-center gap-[10px]">
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>
+              Уведомления
+            </h1>
+            {unread > 0 && (
+              <span
+                className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[6px] text-[11px] font-bold"
+                style={{ background: "var(--accent)", color: "white", borderRadius: 999 }}
+              >
+                {unread}
+              </span>
+            )}
+          </div>
           {unread > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={markAll}
-              className="inline-flex items-center gap-[6px]"
-              style={{ fontSize: "13px", color: "var(--accent)", fontWeight: 600 }}
+              className="gap-[6px] rounded-[8px] text-[13px]"
+              style={{ color: "var(--accent)" }}
             >
               <CheckCheck size={15} /> Прочитать все
-            </button>
+            </Button>
           )}
         </div>
 
         {loading ? (
           <div className="space-y-[8px]">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
+              <Card
                 key={i}
-                className="flex items-center gap-[12px]"
+                className="flex items-center gap-[12px] p-[12px] shadow-none"
                 style={{
-                  padding: "12px 14px",
                   background: "var(--background-surface)",
-                  border: "1px solid var(--border)",
+                  borderColor: "var(--border)",
                   borderRadius: "var(--r-card-sm)",
                 }}
               >
@@ -109,7 +122,7 @@ function NotificationsPage() {
                   <Skeleton className="h-[12px]" style={{ width: `${45 + (i * 13) % 35}%` }} />
                   <Skeleton className="h-[11px]" style={{ width: `${55 + (i * 9) % 30}%` }} />
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -124,44 +137,59 @@ function NotificationsPage() {
             {items.map((n, i) => {
               const Icon = iconFor(n.type);
               return (
-                <motion.button
+                <motion.div
                   key={n.id}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.03, 0.3) }}
-                  onClick={() => open(n)}
-                  className="flex w-full items-start gap-[12px] text-left"
-                  style={{
-                    background: n.read ? "var(--background-surface)" : "var(--accent-soft)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--r-card-sm)",
-                    padding: "12px 14px",
-                  }}
                 >
-                  <span
-                    className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
-                    style={{ background: "var(--background)", color: "var(--accent)" }}
+                  <Card
+                    className="flex w-full cursor-pointer items-start gap-[12px] p-[12px] shadow-none transition-opacity hover:opacity-80"
+                    style={{
+                      background: n.read ? "var(--background-surface)" : "var(--accent-soft)",
+                      borderColor: "var(--border)",
+                      borderRadius: "var(--r-card-sm)",
+                    }}
+                    onClick={() => open(n)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") open(n); }}
                   >
-                    <Icon size={17} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--foreground)" }}>{n.title}</div>
-                    {n.body && (
-                      <div style={{ fontSize: "13px", color: "var(--foreground-70)", marginTop: 2 }}>{n.body}</div>
-                    )}
-                    {n.createdAt && (
-                      <div style={{ fontSize: "11px", color: "var(--foreground-50)", marginTop: 4 }}>
-                        {formatRelativeTime(n.createdAt)}
-                      </div>
-                    )}
-                  </div>
-                  {!n.read && (
                     <span
-                      className="mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full"
-                      style={{ background: "var(--accent)" }}
-                    />
-                  )}
-                </motion.button>
+                      className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
+                      style={{ background: "var(--background)", color: "var(--accent)" }}
+                    >
+                      <Icon size={17} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="font-semibold"
+                        style={{ fontSize: "14px", color: "var(--foreground)" }}
+                      >
+                        {n.title}
+                      </div>
+                      {n.body && (
+                        <div
+                          className="mt-[2px] line-clamp-2"
+                          style={{ fontSize: "13px", color: "var(--foreground-70)" }}
+                        >
+                          {n.body}
+                        </div>
+                      )}
+                      {n.createdAt && (
+                        <div className="mt-[4px]" style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                          {formatRelativeTime(n.createdAt)}
+                        </div>
+                      )}
+                    </div>
+                    {!n.read && (
+                      <span
+                        className="mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full"
+                        style={{ background: "var(--accent)" }}
+                      />
+                    )}
+                  </Card>
+                </motion.div>
               );
             })}
           </div>

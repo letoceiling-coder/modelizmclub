@@ -2,8 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
+  MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime, type User } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -16,6 +17,11 @@ import {
 } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: "Друзья — МоДелизМ Форум" }] }),
@@ -28,10 +34,10 @@ export const Route = createFileRoute("/friends")({
 
 type Tab = "all" | "online" | "requests";
 
-const pulse = {
-  animate: { opacity: [0.4, 0.7, 0.4] },
-  transition: { duration: 1.2, repeat: Infinity, ease: "easeInOut" as const },
-};
+function userInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return (parts[0]?.[0] ?? "").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+}
 
 function FriendsPage() {
   const [tab, setTab] = useState<Tab>("all");
@@ -148,14 +154,14 @@ function FriendsPage() {
             <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
             <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => groupCalls.openPicker("start")}
-            className="inline-flex shrink-0 items-center gap-[6px] rounded-[10px] px-[14px] py-[9px] text-[13px] font-semibold transition-transform active:scale-95"
-            style={{ background: "var(--accent)", color: "white" }}
+            className="shrink-0 rounded-[10px] gap-[6px]"
+            size="sm"
           >
             <Users size={16} /> Групповой звонок
-          </button>
+          </Button>
         </header>
 
         {/* Tabs */}
@@ -168,15 +174,24 @@ function FriendsPage() {
                   key={t.key}
                   ref={(el) => { refs.current[t.key] = el; }}
                   onClick={() => setTab(t.key)}
-                  className="inline-flex shrink-0 items-center gap-[8px] font-display transition-colors duration-200"
+                  className="inline-flex shrink-0 items-center gap-[6px] font-display transition-colors duration-200"
                   style={{
-                    height: 48, padding: "0 20px", fontSize: 14,
+                    height: 48, padding: "0 16px", fontSize: 14,
                     fontWeight: active ? 600 : 500,
-                    color: active ? "var(--accent)" : "var(--foreground-50)",
+                    color: active ? "var(--foreground)" : "var(--foreground-50)",
                   }}
                 >
                   {t.label}
-                  <span className="font-mono text-[11px]" style={{ color: "var(--foreground-50)" }}>{t.count}</span>
+                  <span
+                    className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
+                    style={{
+                      background: active ? "var(--accent-soft)" : "var(--background-surface)",
+                      color: active ? "var(--accent)" : "var(--foreground-50)",
+                      borderRadius: 999,
+                    }}
+                  >
+                    {t.count}
+                  </span>
                 </button>
               );
             })}
@@ -190,22 +205,12 @@ function FriendsPage() {
         </div>
 
         {tab !== "requests" && (
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Поиск по имени, интересам"
-              className="w-full text-[14px] outline-none"
-              style={{
-                height: 40, paddingLeft: 36, paddingRight: 12,
-                background: "var(--background-surface)", borderRadius: 10,
-                border: "1.5px solid transparent", color: "var(--foreground)",
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
-            />
-          </div>
+          <SearchInput
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onClear={() => setQ("")}
+            placeholder="Поиск по имени, интересам"
+          />
         )}
 
         <AnimatePresence mode="wait">
@@ -218,48 +223,100 @@ function FriendsPage() {
           >
             {loading ? (
               <div className="grid gap-[12px] sm:grid-cols-2">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="flex items-start gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
-                    <motion.div {...pulse} className="h-[48px] w-[48px] rounded-full" style={{ background: "var(--background-surface)" }} />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Card
+                    key={i}
+                    className="flex items-center gap-[12px] p-[16px] shadow-none"
+                    style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                  >
+                    <Skeleton className="h-[48px] w-[48px] shrink-0 rounded-full" />
                     <div className="flex-1 space-y-[8px]">
-                      <motion.div {...pulse} className="h-[12px] rounded-[6px]" style={{ background: "var(--background-surface)", width: `${40 + (i * 13) % 40}%` }} />
-                      <motion.div {...pulse} className="h-[10px] rounded-[6px]" style={{ background: "var(--background-surface)", width: `${30 + (i * 11) % 30}%` }} />
+                      <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${40 + (i * 13) % 40}%` }} />
+                      <Skeleton className="h-[10px] rounded-[6px]" style={{ width: `${30 + (i * 11) % 30}%` }} />
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             ) : tab === "requests" ? (
               requests.length === 0 ? (
-                <div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>Нет входящих заявок</div>
+                <EmptyState
+                  icon={UserPlus}
+                  title="Нет входящих заявок"
+                  description="Заявки в друзья будут отображаться здесь"
+                  variant="compact"
+                />
               ) : (
                 <div className="grid gap-[12px] sm:grid-cols-2">
                   {requests.map((r) => {
                     const u = r.from;
                     return (
-                      <article key={r.id} className="flex items-start gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
+                      <Card
+                        key={r.id}
+                        className="flex items-start gap-[12px] p-[16px] shadow-none"
+                        style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                      >
                         <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="shrink-0">
-                          <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
+                          <Avatar className="h-[48px] w-[48px]">
+                            <AvatarImage src={u.avatar} alt="" />
+                            <AvatarFallback
+                              className="text-[13px] font-semibold"
+                              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                            >
+                              {userInitials(u.name)}
+                            </AvatarFallback>
+                          </Avatar>
                         </Link>
                         <div className="min-w-0 flex-1">
-                          <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{u.name}</Link>
-                          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Хочет добавить вас в друзья</div>
-                          <div className="mt-[2px] inline-flex items-center gap-[4px] font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
-                            <Clock size={11} /> {formatRelativeTime(r.date)}
-                          </div>
+                          <Link
+                            to="/user/$id"
+                            params={{ id: u.slug ?? u.id }}
+                            className="block truncate font-semibold text-[14px]"
+                            style={{ color: "var(--foreground)" }}
+                          >
+                            {u.name}
+                          </Link>
+                          <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                            Хочет добавить вас в друзья
+                          </p>
+                          <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
+                            <Clock size={10} /> {formatRelativeTime(r.date)}
+                          </p>
                           <div className="mt-[10px] flex gap-[8px]">
-                            <button onClick={() => accept(r.id)} className="inline-flex items-center gap-[4px] font-semibold" style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "var(--accent)", color: "white", fontSize: 12 }}>
+                            <Button
+                              size="sm"
+                              onClick={() => accept(r.id)}
+                              className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
+                            >
                               <Check size={12} /> Принять
-                            </button>
-                            <button onClick={() => decline(r.id)} className="inline-flex items-center gap-[4px] font-medium" style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "transparent", color: "var(--foreground-70)", fontSize: 12, border: "1px solid var(--border)" }}>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => decline(r.id)}
+                              className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
+                            >
                               <X size={12} /> Отклонить
-                            </button>
+                            </Button>
                           </div>
                         </div>
-                      </article>
+                      </Card>
                     );
                   })}
                 </div>
               )
+            ) : filteredUsers.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title={q ? "Никого не найдено" : tab === "online" ? "Никто не в сети" : "Список пуст"}
+                description={
+                  q
+                    ? "Попробуйте изменить запрос"
+                    : tab === "online"
+                    ? "Загляните позже — онлайн-участники появятся здесь"
+                    : "Найдите интересных участников сообщества"
+                }
+                variant="compact"
+              />
             ) : (
               <div className="grid gap-[12px] sm:grid-cols-2">
                 {filteredUsers.map((u) => {
@@ -267,46 +324,66 @@ function FriendsPage() {
                   const isPending = !isAdded && pending.has(u.id);
                   const interests = u.interests.split(",").slice(0, 3).join(", ");
                   return (
-                    <article key={u.id} className="flex gap-[12px] p-[16px]" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}>
+                    <Card
+                      key={u.id}
+                      className="flex gap-[12px] p-[16px] shadow-none"
+                      style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                    >
                       <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="relative shrink-0">
-                        <img src={u.avatar} alt="" className="h-[48px] w-[48px] rounded-full object-cover" />
-                        {isOnline(u) && <span className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full" style={{ background: "var(--success)", border: "2px solid var(--background)" }} />}
+                        <Avatar className="h-[48px] w-[48px]">
+                          <AvatarImage src={u.avatar} alt="" />
+                          <AvatarFallback
+                            className="text-[13px] font-semibold"
+                            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                          >
+                            {userInitials(u.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isOnline(u) && (
+                          <span
+                            className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full"
+                            style={{ background: "var(--success)", border: "2px solid var(--background)" }}
+                          />
+                        )}
                       </Link>
                       <div className="min-w-0 flex-1">
-                        <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="font-medium text-[14px]" style={{ color: "var(--foreground)" }}>{u.name}</Link>
-                        <div className="mt-[2px] inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                          <MapPin size={11} /> {u.city}
+                        <Link
+                          to="/user/$id"
+                          params={{ id: u.slug ?? u.id }}
+                          className="block truncate font-semibold text-[14px]"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          {u.name}
+                        </Link>
+                        <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                          <MapPin size={11} /> <span className="truncate">{u.city}</span>
                         </div>
-                        <div className="mt-[2px] line-clamp-1 text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
+                        <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
                         <div className="mt-[10px] flex flex-wrap gap-[8px]">
-                          <button
-                            onClick={() => toggleFriend(u)}
+                          <Button
+                            size="sm"
+                            variant={isAdded || isPending ? "outline" : "default"}
                             disabled={isPending}
-                            className="inline-flex items-center gap-[4px] font-semibold"
-                            style={{
-                              height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
-                              background: isAdded || isPending ? "transparent" : "var(--accent)",
-                              color: isAdded || isPending ? "var(--foreground-70)" : "white",
-                              border: isAdded || isPending ? "1px solid var(--border)" : "none",
-                              cursor: isPending ? "default" : "pointer",
-                            }}
+                            onClick={() => toggleFriend(u)}
+                            className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
                           >
-                            {isAdded ? <><Check size={12} />В друзьях</>
-                              : isPending ? <><Check size={12} />Заявка отправлена</>
-                              : <><UserPlus size={12} />Добавить</>}
-                          </button>
-                          <button
-                            type="button"
+                            {isAdded
+                              ? <><Check size={12} /> В друзьях</>
+                              : isPending
+                              ? <><Clock size={12} /> Заявка отправлена</>
+                              : <><UserPlus size={12} /> Добавить</>}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => writeTo(u)}
-                            className="inline-flex items-center gap-[4px] font-medium"
-                            style={{ height: 32, padding: "0 14px", borderRadius: 8, background: "transparent", color: "var(--foreground-70)", fontSize: 12, border: "1px solid var(--border)" }}
+                            className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
                           >
                             <MessageSquare size={12} /> Написать
-                          </button>
-
+                          </Button>
                         </div>
                       </div>
-                    </article>
+                    </Card>
                   );
                 })}
               </div>
