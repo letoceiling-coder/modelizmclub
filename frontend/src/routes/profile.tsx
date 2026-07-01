@@ -20,6 +20,12 @@ import { fetchFeed } from "@/lib/api/feed";
 import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ Форум" }] }),
@@ -110,11 +116,11 @@ const AD_STATUS_FILTERS: { key: AdStatus | "all"; label: string }[] = [
   { key: "rejected", label: "Отклонённые" },
   { key: "archived", label: "Архив" },
 ];
-const AD_STATUS_STYLE: Record<AdStatus, { label: string; bg: string; color: string }> = {
-  active: { label: "Активно", bg: "var(--success-soft)", color: "var(--success)" },
-  moderation: { label: "На модерации", bg: "var(--warning-soft)", color: "var(--warning)" },
-  rejected: { label: "Отклонено", bg: "var(--error-soft)", color: "var(--error)" },
-  archived: { label: "В архиве", bg: "var(--background-surface)", color: "var(--foreground-50)" },
+const AD_STATUS_BADGE: Record<AdStatus, { label: string; variant: "published" | "moderation" | "warning" | "draft" }> = {
+  active: { label: "Активно", variant: "published" },
+  moderation: { label: "На модерации", variant: "moderation" },
+  rejected: { label: "Отклонено", variant: "warning" },
+  archived: { label: "В архиве", variant: "draft" },
 };
 
 export interface ProfileViewProps {
@@ -171,11 +177,7 @@ export function ProfileView({
       <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
         {/* Cover */}
         <div className="relative">
-          {user.coverImage ? (
-            <img src={user.coverImage} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} />
-          ) : (
-            <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
-          )}
+          <CoverImage src={user.coverImage} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]" style={{ background: "linear-gradient(to bottom, transparent, color-mix(in oklab, var(--background) 85%, transparent))" }} />
         </div>
 
@@ -185,42 +187,25 @@ export function ProfileView({
             className="relative shrink-0"
             style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
           >
-            <img
-              src={user.avatar}
-              alt=""
-              className="h-[88px] w-[88px] rounded-full object-cover md:h-[112px] md:w-[112px]"
-              style={{
-                border: "4px solid var(--background)",
-                boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
-                background: "var(--background)",
-              }}
-            />
+            <ProfileAvatar src={user.avatar} name={user.name} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-[6px]">
               <h1 className="min-w-0 truncate font-display text-[18px] font-bold md:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>{user.name}</h1>
               {user.subscription && (
-                <span
-                  className="inline-flex items-center gap-[3px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 10, padding: "2px 7px", borderRadius: 999 }}
-                >
+                <Badge variant="top-outline" withIcon={false} className="gap-[3px] rounded-full px-[7px] py-[2px] text-[10px]">
                   <BadgeCheck size={10} /> Pro
-                </span>
+                </Badge>
               )}
               {user.firstHundred && (
-                <span
-                  className="inline-flex items-center gap-[3px] font-semibold"
-                  style={{
-                    background: "linear-gradient(135deg, #FBBF24, #B45309)",
-                    color: "#1F1300",
-                    fontSize: 10,
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                  }}
+                <Badge
+                  withIcon={false}
+                  className="gap-[3px] rounded-full border-transparent px-[8px] py-[2px] text-[10px]"
+                  style={{ background: "linear-gradient(135deg, var(--gold-1, #FBBF24), var(--gold-2, #B45309))", color: "#1F1300" }}
                   title="Один из первых 100 участников клуба"
                 >
                   ★ Первые 100
-                </span>
+                </Badge>
               )}
             </div>
             <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
@@ -232,26 +217,27 @@ export function ProfileView({
           <div className="flex w-full gap-[8px] md:w-auto">
             {isOwn ? (
               <>
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setEditOpen(true)}
-                  className="inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 md:flex-none"
-                  style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
+                  className="h-[40px] flex-1 rounded-[10px] md:flex-none"
                 >
                   <Pencil size={14} /> Редактировать
-                </button>
+                </Button>
                 <LogoutButton variant="profile" />
               </>
             ) : (
               <>
                 {isFriend ? (
-                  <span
-                    className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium md:flex-none"
-                    style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 14 }}
+                  <Button
+                    variant="secondary"
+                    disabled
+                    className="h-[40px] flex-1 rounded-[10px] disabled:opacity-100 md:flex-none"
                   >
                     <BadgeCheck size={14} style={{ color: "var(--success)" }} /> В друзьях
-                  </span>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     onClick={async () => {
                       setIsFriend(true);
                       try {
@@ -262,14 +248,14 @@ export function ProfileView({
                         toast.error("Не удалось отправить заявку");
                       }
                     }}
-                    className="inline-flex flex-1 items-center justify-center gap-[6px] font-semibold transition-colors duration-150 md:flex-none"
-                    style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}
+                    className="h-[40px] flex-1 rounded-[10px] md:flex-none"
                   >
                     <UserPlus size={14} /> В друзья
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={async () => {
                     if (onWrite) { await onWrite(); return; }
                     if (!user.numericId || !currentUser?.id) {
@@ -283,13 +269,14 @@ export function ProfileView({
                       toast.error("Не удалось открыть диалог");
                     }
                   }}
-                  className="inline-flex flex-1 items-center justify-center gap-[6px] font-medium transition-colors duration-150 md:flex-none"
-                  style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground-70)", fontSize: 14 }}
+                  className="h-[40px] flex-1 rounded-[10px] md:flex-none"
                 >
                   <MessageSquare size={14} /> Написать
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={async () => {
                     const next = !subscribed;
                     setSubscribed(next);
@@ -301,12 +288,12 @@ export function ProfileView({
                       toast.error("Не удалось изменить подписку");
                     }
                   }}
-                  className="grid h-[40px] w-[40px] shrink-0 place-items-center transition-colors duration-150"
-                  style={{ borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
+                  className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
+                  style={{ color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
                   aria-label="Подписаться"
                 >
                   <Bell size={14} />
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -343,9 +330,9 @@ export function ProfileView({
                 userAds.length === 0 ? (
                   <EmptyTab text="Нет объявлений">
                     {isOwn && (
-                      <Link to="/ads/new" className="mt-[16px] inline-flex items-center gap-[6px] font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14 }}>
-                        <Plus size={14} /> Создать объявление
-                      </Link>
+                      <Button asChild className="mt-[16px] rounded-[10px]">
+                        <Link to="/ads/new"><Plus size={14} /> Создать объявление</Link>
+                      </Button>
                     )}
                   </EmptyTab>
                 ) : (
@@ -393,24 +380,19 @@ export function ProfileView({
                     ) : (
                       <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-3">
                         {filteredUserAds.map(({ ad, status }) => {
-                          const badge = AD_STATUS_STYLE[status];
+                          const badge = AD_STATUS_BADGE[status];
                           const cardState: "default" | "moderation" | "rejected" =
                             status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
                           return (
                             <div key={ad.id} className="relative" style={{ opacity: status === "archived" ? 0.65 : 1 }}>
                               <AdCard ad={ad} state={cardState} />
-                              <span
-                                className="absolute right-[12px] top-[12px] z-[2] inline-flex items-center text-[11px] font-semibold"
-                                style={{
-                                  background: badge.bg,
-                                  color: badge.color,
-                                  padding: "4px 10px",
-                                  borderRadius: 999,
-                                  backdropFilter: "blur(6px)",
-                                }}
+                              <Badge
+                                variant={badge.variant}
+                                withIcon={false}
+                                className="absolute right-[12px] top-[12px] z-[2] rounded-full"
                               >
                                 {badge.label}
-                              </span>
+                              </Badge>
                             </div>
                           );
                         })}
@@ -425,21 +407,21 @@ export function ProfileView({
                     {userCommunities.map((c) => {
                       const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
                       return (
-                        <Link
-                          key={c.id}
-                          to="/communities/$id"
-                          params={{ id: c.id }}
-                          className="flex items-center gap-[12px] p-[14px] transition-colors duration-150"
-                          style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--background)" }}
-                        >
-                          <div className="grid h-[48px] w-[48px] place-items-center" style={{ background: "var(--accent-soft)", borderRadius: 10 }}>
-                            <Icon size={24} style={{ color: "var(--accent)" }} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</div>
-                            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{c.members.toLocaleString("ru")} участников</div>
-                          </div>
-                        </Link>
+                        <Card key={c.id} className="rounded-[14px] transition-colors hover:border-[var(--border-strong)]">
+                          <Link
+                            to="/communities/$id"
+                            params={{ id: c.id }}
+                            className="flex items-center gap-[12px] p-[14px]"
+                          >
+                            <div className="grid h-[48px] w-[48px] shrink-0 place-items-center" style={{ background: "var(--accent-soft)", borderRadius: 10 }}>
+                              <Icon size={24} style={{ color: "var(--accent)" }} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</div>
+                              <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{c.members.toLocaleString("ru")} участников</div>
+                            </div>
+                          </Link>
+                        </Card>
                       );
                     })}
                   </div>
@@ -456,13 +438,14 @@ export function ProfileView({
                   {interestList.length > 0 && (
                     <div className="mt-[20px] flex flex-wrap gap-[8px]">
                       {interestList.map((p) => (
-                        <span
+                        <Badge
                           key={p}
-                          className="font-medium"
-                          style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 14px", borderRadius: 999 }}
+                          withIcon={false}
+                          className="rounded-full border-transparent px-[14px] py-[6px] text-[13px] font-medium"
+                          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                         >
                           {p}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   )}
@@ -590,79 +573,68 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
       <motion.div
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 35 }}
-        className="fixed bottom-0 left-0 right-0 z-50 overflow-y-auto"
-        style={{ background: "var(--background)", borderRadius: "20px 20px 0 0", maxHeight: "85vh", padding: 24 }}
+        className="fixed inset-x-0 bottom-0 z-50 overflow-y-auto md:inset-x-auto md:left-1/2 md:bottom-auto md:top-1/2 md:w-[560px] md:max-w-[calc(100vw-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[20px]"
+        style={{ background: "var(--background)", borderRadius: "20px 20px 0 0", maxHeight: "85vh", padding: 24, paddingBottom: "max(24px, calc(env(safe-area-inset-bottom) + 24px))", border: "1px solid var(--border)" }}
       >
-        <div className="mx-auto h-[4px] w-[36px] rounded-[2px]" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
+        <div className="mx-auto h-[4px] w-[36px] rounded-[2px] md:hidden" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
         <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>Редактирование профиля</h3>
 
         <div className="mt-[20px] space-y-[20px]">
           <Field label="Имя">
-            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inputStyle} className="w-full outline-none" />
+            <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="h-11" />
           </Field>
           <Field label="Город">
-            <input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="Город" style={inputStyle} className="w-full outline-none" />
+            <Input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="Город" className="h-11" />
           </Field>
           <Field label="О себе">
-            <textarea
+            <Textarea
               value={draft.bio ?? ""}
               onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
               placeholder="Расскажите о себе"
               rows={4}
-              style={{ ...inputStyle, height: "auto", minHeight: 100, padding: 14, resize: "vertical" }}
-              className="w-full outline-none"
             />
           </Field>
           <Field label="Интересы">
             <div className="flex flex-wrap gap-[8px]">
               {interestList.map((i) => (
-                <span key={i} className="inline-flex items-center gap-[6px]" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, padding: "6px 12px", borderRadius: 999 }}>
+                <Badge
+                  key={i}
+                  withIcon={false}
+                  className="gap-[6px] rounded-full border-transparent px-[12px] py-[6px] text-[13px]"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
                   {i}
-                  <button onClick={() => removeInterest(i)} aria-label="Убрать"><X size={12} /></button>
-                </span>
+                  <button type="button" onClick={() => removeInterest(i)} aria-label="Убрать" className="inline-flex"><X size={12} /></button>
+                </Badge>
               ))}
             </div>
             <div className="mt-[10px] flex gap-[8px]">
-              <input
+              <Input
                 value={newInterest}
                 onChange={(e) => setNewInterest(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
                 placeholder="Добавить интерес"
-                style={inputStyle}
-                className="flex-1 outline-none"
+                className="h-11 flex-1"
               />
-              <button onClick={addInterest} className="grid place-items-center font-bold" style={{ width: 48, height: 48, background: "var(--accent)", color: "white", borderRadius: 10 }}>
+              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0 rounded-[10px]">
                 <Plus size={18} />
-              </button>
+              </Button>
             </div>
           </Field>
         </div>
 
         <div className="mt-[24px] flex gap-[12px]">
-          <button
-            onClick={onClose}
-            className="flex-1 font-medium transition-colors duration-150"
-            style={{ height: 48, border: "1px solid var(--border)", borderRadius: 12, background: "transparent", color: "var(--foreground-70)" }}
-          >
+          <Button variant="outline" onClick={onClose} className="h-[48px] flex-1 rounded-[12px]">
             Отмена
-          </button>
-          <button
-            onClick={onSave}
-            className="flex-1 font-semibold transition-colors duration-150"
-            style={{ height: 48, background: "var(--accent)", color: "white", borderRadius: 12 }}
-          >
+          </Button>
+          <Button onClick={onSave} className="h-[48px] flex-1 rounded-[12px]">
             Сохранить
-          </button>
+          </Button>
         </div>
       </motion.div>
     </>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  height: 48, border: "1px solid var(--border)", borderRadius: 10,
-  padding: "0 14px", fontSize: 16, background: "var(--background-surface)", color: "var(--foreground)",
-};
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -670,5 +642,58 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="mb-[8px] block font-mono text-[12px] uppercase tracking-[0.05em]" style={{ color: "var(--foreground-50)" }}>{label}</label>
       {children}
     </div>
+  );
+}
+
+function initials(name: string): string {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
+}
+
+/** Profile avatar on the shared Radix Avatar — initials fallback when the
+ *  image is missing or fails to load. Never renders <img src="">. */
+function ProfileAvatar({ src, name }: { src?: string; name: string }) {
+  const hasSrc = Boolean(src && src.trim());
+  return (
+    <Avatar
+      className="h-[88px] w-[88px] md:h-[112px] md:w-[112px]"
+      style={{
+        border: "4px solid var(--background)",
+        boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
+        background: "var(--background)",
+      }}
+    >
+      {hasSrc && <AvatarImage src={src} alt="" className="object-cover" />}
+      <AvatarFallback
+        className="font-display text-[28px] font-bold md:text-[36px]"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
+        {initials(name)}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+/** Cover image with a gradient fallback for empty/broken URLs. */
+function CoverImage({ src }: { src?: string }) {
+  const [broken, setBroken] = useState(false);
+  const showImg = Boolean(src && src.trim()) && !broken;
+  if (!showImg) {
+    return (
+      <div
+        className="w-full"
+        style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
+      />
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className="w-full object-cover"
+      style={{ height: "clamp(120px, 22vw, 220px)" }}
+      onError={() => setBroken(true)}
+    />
   );
 }
