@@ -70,7 +70,7 @@ export function Sidebar() {
                     : undefined
                 }
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-5 w-5" />
                 {t(labelKey)}
                 {section === "notifications" && unread > 0 && (
                   <span
@@ -90,7 +90,7 @@ export function Sidebar() {
             className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted"
           >
             <span className="flex items-center gap-3">
-              <ShoppingBag className="h-4 w-4" />
+              <ShoppingBag className="h-5 w-5" />
               {t("nav.market")}
             </span>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
