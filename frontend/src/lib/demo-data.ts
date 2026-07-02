@@ -154,8 +154,29 @@ export function demoListing(id: ID): Ad | null {
 // The demo user is a member of g1/g3/g7 — reflect that on the returned data so
 // "Мои сообщества" and join buttons are consistent with the seeded store.
 const JOINED = new Set(["g1", "g3", "g7"]);
+
+// In-session subscribe overrides (like channels): lets the VK-style community
+// page toggle "Подписаться / Вы подписаны" without a backend. Resets on full
+// reload (documented demo limitation).
+const communitySubOverrides = new Map<string, boolean>();
+
+function isJoined(c: Community): boolean {
+  const ov = communitySubOverrides.get(c.id);
+  return ov === undefined ? JOINED.has(c.id) : ov;
+}
 function withJoined(c: Community): Community {
-  return JOINED.has(c.id) ? { ...c, joined: true } : { ...c, joined: false };
+  const joined = isJoined(c);
+  const base = JOINED.has(c.id) ? c.members : c.members;
+  // reflect the toggle in the member count so the header reads honestly
+  const delta = joined && !JOINED.has(c.id) ? 1 : !joined && JOINED.has(c.id) ? -1 : 0;
+  return { ...c, joined, members: Math.max(0, base + delta) };
+}
+
+/** Toggle a demo community membership for the current session. */
+export function setDemoCommunitySubscription(slug: ID, joined: boolean): void {
+  const c = communityById(slug) ?? mockCommunities.find((x) => x.id === slug);
+  if (!c) return;
+  communitySubOverrides.set(c.id, joined);
 }
 
 export function demoCommunities(query?: string): Community[] {
@@ -170,6 +191,86 @@ export function demoCommunities(query?: string): Community[] {
 export function demoCommunity(slug: ID): Community | null {
   const c = communityById(slug) ?? mockCommunities.find((x) => x.name === slug);
   return c ? withJoined(c) : null;
+}
+
+// ── community detail content (posts / discussions / events / members) ─────────
+// Deterministic-per-community demo content so the VK-style tabs are always
+// populated. Reuses the rich mock post/user fixtures; nothing here hits a
+// backend (guarded by isDemoMode at the call site).
+
+export interface DemoDiscussion {
+  id: string;
+  title: string;
+  replies: number;
+  lastActivity: string;
+  authorName: string;
+}
+export interface DemoCommunityEvent {
+  id: string;
+  title: string;
+  date: string;
+  place: string;
+  cover: string;
+  attendees: number;
+}
+export interface DemoCommunityMember {
+  user: User;
+  role: "Администратор" | "Модератор" | "Участник";
+}
+
+function seedNum(slug: string): number {
+  return slug.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
+}
+function pmimg(id: number): string {
+  return `https://picsum.photos/seed/mzc${id}/1200/800`;
+}
+
+/** Posts shown on the community wall. Prefer the community's own postIds; then
+ *  top up from the general feed so every community has ≥4 posts. */
+export function demoCommunityPosts(slug: ID): Post[] {
+  const c = communityById(slug);
+  const pinned = (c?.postIds ?? [])
+    .map((pid) => mockPosts.find((p) => p.id === pid))
+    .filter((p): p is Post => Boolean(p));
+  const seed = seedNum(slug);
+  const filler = mockPosts
+    .filter((p) => !pinned.some((pp) => pp.id === p.id))
+    .slice(seed % 5, (seed % 5) + 5);
+  return [...pinned, ...filler].slice(0, 6);
+}
+
+export function demoCommunityDiscussions(slug: ID): DemoDiscussion[] {
+  const seed = seedNum(slug);
+  const names = mockUsers.map((u) => u.name);
+  const pick = (i: number) => names[(seed + i) % names.length];
+  return [
+    { id: "d1", title: "Настройка двигателя: делимся сетапами", replies: 24 + (seed % 30), lastActivity: "5 минут назад", authorName: pick(0) },
+    { id: "d2", title: "Выбор аппаратуры для новичка", replies: 18 + (seed % 20), lastActivity: "40 минут назад", authorName: pick(1) },
+    { id: "d3", title: "Гонки и встречи: календарь сезона", replies: 42 + (seed % 25), lastActivity: "2 часа назад", authorName: pick(2) },
+    { id: "d4", title: "Новичкам: с чего начать", replies: 63 + (seed % 15), lastActivity: "вчера", authorName: pick(3) },
+  ];
+}
+
+export function demoCommunityEvents(slug: ID): DemoCommunityEvent[] {
+  const seed = seedNum(slug);
+  return [
+    { id: "e1", title: "Гонки RC в Краснодаре", date: "12 июля, 11:00", place: "Трасса «Юбилейный», Краснодар", cover: pmimg(seed + 1), attendees: 48 + (seed % 40) },
+    { id: "e2", title: "Встреча авиамоделистов", date: "20 июля, 10:00", place: "Полётное поле, Сосновка", cover: pmimg(seed + 2), attendees: 32 + (seed % 30) },
+    { id: "e3", title: "Обзорный заезд для новичков", date: "27 июля, 12:00", place: "Клубная площадка", cover: pmimg(seed + 3), attendees: 21 + (seed % 20) },
+  ];
+}
+
+export function demoCommunityMembers(slug: ID): DemoCommunityMember[] {
+  const c = communityById(slug);
+  const adminId = c?.adminId;
+  const ordered = [
+    ...mockUsers.filter((u) => u.id === adminId),
+    ...mockUsers.filter((u) => u.id !== adminId),
+  ];
+  return ordered.map((user, i) => ({
+    user,
+    role: user.id === adminId ? "Администратор" : i === 1 ? "Модератор" : "Участник",
+  }));
 }
 
 // ── channels ─────────────────────────────────────────────────────────────────

@@ -134,7 +134,7 @@ function FriendsPage() {
       } else {
         await sendFriendRequest(u.numericId);
         setPending((p) => new Set(p).add(u.id));
-        toast.success("Заявка отправлена");
+        // Inline feedback only: the button itself flips to "Заявка отправлена".
       }
     } catch {
       toast.error("Не удалось выполнить действие");

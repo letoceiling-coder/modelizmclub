@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, ChevronDown, Play, Pause, Volume2, VolumeX, Plus, Check,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
-  MapPin, Search, Compass, Sparkles, ImageOff,
+  MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays,
   Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -359,6 +359,7 @@ const QUICK: { icon: typeof Newspaper; title: string; desc: string; to: string }
   { icon: Users2, title: "Сообщества", desc: "Клубы по интересам: RC, авиа, суда, электроника.", to: "/communities" },
   { icon: Radio, title: "Каналы", desc: "Официальные каналы брендов, магазинов и экспертов.", to: "/channels" },
   { icon: MessageSquare, title: "Мессенджер", desc: "Личные и групповые чаты внутри платформы.", to: "/messenger" },
+  { icon: CalendarDays, title: "Мероприятия", desc: "Гонки, встречи, заезды, выставки и клубные события моделистов.", to: "/feed" },
 ];
 
 function QuickSections() {
@@ -367,7 +368,7 @@ function QuickSections() {
       <Eyebrow>Всё в одном месте</Eyebrow>
       <Title>Что есть в МоДелизМ</Title>
       <p className="mt-3 max-w-[560px]" style={mutedP}>
-        Пять инструментов, которые закрывают повседневные задачи моделиста — от покупки детали до общения в клубе.
+        Шесть инструментов, которые закрывают повседневные задачи моделиста — от покупки детали до участия в гонках.
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {QUICK.map(({ icon: Icon, title, desc, to }) => (
@@ -397,7 +398,7 @@ const CONDITION_COLOR = (c?: string) =>
   c === "Новое" ? "var(--success)" : "var(--foreground-50)";
 
 function PopularListings() {
-  const items = mockAds.slice(0, 6);
+  const items = mockAds.slice(0, 10);
   return (
     <Section bg="var(--background)">
       <div className="flex items-end justify-between gap-4">
@@ -410,8 +411,9 @@ function PopularListings() {
         >Все объявления <ArrowRight size={15} /></Link>
       </div>
 
-      {/* mobile: horizontal scroll (no page overflow), desktop: 3+3 grid */}
-      <div className="-mx-4 mt-8 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3"
+      {/* mobile: horizontal scroll (no page overflow); desktop: dense 4-up grid,
+          5-up on very wide screens. Compact cards, more items visible. */}
+      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-5"
         style={{ scrollbarWidth: "none" }}
       >
         {items.map((ad) => (
@@ -444,14 +446,14 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
 
   return (
     <div
-      className="relative flex min-w-[240px] shrink-0 snap-start flex-col overflow-hidden sm:min-w-0"
+      className="relative flex min-w-[200px] shrink-0 snap-start flex-col overflow-hidden sm:min-w-0"
       style={cardStyle}
       onMouseLeave={() => { setMenuOpen(false); setHovIdx(0); }}
     >
       {/* photo */}
       <button
         onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })}
-        className="relative block h-[180px] w-full overflow-hidden"
+        className="relative block h-[150px] w-full overflow-hidden"
         style={{ background: "var(--background-surface)", borderBottom: "1px solid var(--border)" }}
         onMouseMove={(e) => {
           if (!canHover) return;
@@ -518,13 +520,13 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
       </div>
 
       {/* info */}
-      <button onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })} className="flex flex-1 flex-col p-4 text-left">
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--accent)" }}>
+      <button onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })} className="flex flex-1 flex-col p-3 text-left">
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--accent)", letterSpacing: "-0.01em" }}>
           {ad.price.toLocaleString("ru-RU")} ₽
         </div>
-        <div className="mt-1 line-clamp-2 text-sm font-medium leading-snug" style={{ color: "var(--foreground)" }}>{ad.title}</div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--foreground-50)" }}>
-          <span className="inline-flex items-center gap-1"><MapPin size={12} />{ad.city}</span>
+        <div className="mt-1 line-clamp-2 text-[13px] font-medium leading-snug" style={{ color: "var(--foreground)" }}>{ad.title}</div>
+        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-[11px]" style={{ color: "var(--foreground-50)" }}>
+          <span className="inline-flex items-center gap-1"><MapPin size={11} />{ad.city}</span>
           {ad.condition && (
             <span style={{ color: CONDITION_COLOR(ad.condition), fontWeight: 600 }}>{ad.condition}</span>
           )}

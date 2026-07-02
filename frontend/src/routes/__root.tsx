@@ -123,9 +123,12 @@ function RootComponent() {
           <GroupCallInviteDialog />
           {/* Desktop: small top offset. Mobile: clear the sticky header +
               notch so toasts never cover the mobile navigation. */}
+          {/* No richColors: keep toasts in the site's UI Kit style
+              (elevated surface + colored left border), not Sonner's
+              filled green/red boxes that looked like foreign Laravel flashes. */}
           <Toaster
             position="top-center"
-            richColors
+            closeButton
             offset={{ top: 16 }}
             mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)" }}
           />

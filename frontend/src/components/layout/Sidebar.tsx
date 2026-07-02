@@ -40,9 +40,10 @@ export function Sidebar() {
       {/* h-full: parent <aside> is stretched to 100dvh by AppLayout's items-stretch.
            No sticky needed — the shell itself is overflow:hidden on desktop. */}
       <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
-        <div className="flex items-center justify-between px-3 pb-1">
-          <Link to={ROUTES.feed}><Logo size={44} /></Link>
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-2 px-3 pb-1">
+          {/* logo takes the flexible slot and shrinks; controls stay fixed 40px each */}
+          <Link to={ROUTES.feed} className="flex min-w-0 flex-1 items-center overflow-hidden"><Logo size={40} /></Link>
+          <div className="flex shrink-0 items-center gap-1">
             <LanguageSwitcher />
             <ThemeToggle />
           </div>

@@ -8,14 +8,16 @@ export function Logo({ size = 32, showText = false }: { size?: number; showText?
   // is the brand; the extra word cluttered the hero/header.
   const height = size;
   return (
-    <div className="flex items-center gap-2">
-      <span className="logo-plate inline-flex items-center justify-center">
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="logo-plate inline-flex min-w-0 items-center justify-center">
         <img
           src={wordmark}
           alt="МоДелизМ"
           height={height}
           className="object-contain block"
-          style={{ height, width: "auto", maxWidth: height * 5 }}
+          // maxWidth:100% lets the wordmark shrink to fit its container instead
+          // of pushing sibling controls (theme/language) out of the header row.
+          style={{ height, width: "auto", maxWidth: "100%" }}
         />
       </span>
       {showText && (

@@ -1,8 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
+import { Loader2, Newspaper, UserPlus, Compass, Bookmark, Bell } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { SearchInput } from "@/components/ui/search-input";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { CreatePostTrigger, type PostIntent } from "@/components/feed/CreatePostTrigger";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
@@ -33,6 +36,59 @@ export const Route = createFileRoute("/feed")({
 });
 
 const PAGE_SIZE = 6;
+
+/** Desktop-only top utility zone: search + notifications + mini-profile.
+ *  Sticky inside the center column (the only scroll zone on desktop); hidden on
+ *  mobile where MobileHeader + BottomNav already cover these. */
+function FeedTopBar() {
+  const me = useStore(selectors.currentUser);
+  const unread = useUnreadNotifications();
+  const [q, setQ] = useState("");
+  const navigate = useNavigate();
+  const submit = () => { if (q.trim()) navigate({ to: "/ads" }); };
+  const initials = (me?.name ?? "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase() || "?";
+
+  return (
+    <div
+      className="sticky top-0 z-30 -mx-3 hidden items-center gap-[12px] px-3 py-[10px] lg:flex"
+      style={{ background: "color-mix(in oklab, var(--background) 88%, transparent)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
+    >
+      <div className="min-w-0 flex-1">
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onClear={() => setQ("")}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder="Поиск по МоДелизМ"
+        />
+      </div>
+      <Link
+        to="/notifications"
+        aria-label="Уведомления"
+        className="relative grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+        style={{ border: "1px solid var(--border)", background: "var(--background-elevated)" }}
+      >
+        <Bell size={18} style={{ color: "var(--foreground-70)" }} />
+        {unread > 0 && (
+          <span className="absolute -right-[2px] -top-[2px] grid min-w-[16px] place-items-center rounded-full px-[4px] text-[10px] font-bold text-white" style={{ height: 16, background: "var(--accent)" }}>
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </Link>
+      <Link
+        to="/profile"
+        className="flex shrink-0 items-center gap-[8px] rounded-full py-[4px] pl-[4px] pr-[12px] transition-colors hover:bg-[var(--background-surface)]"
+        style={{ border: "1px solid var(--border)", background: "var(--background-elevated)" }}
+      >
+        <Avatar className="h-[30px] w-[30px]">
+          <AvatarImage src={me?.avatar} alt="" />
+          <AvatarFallback className="text-[12px] font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{initials}</AvatarFallback>
+        </Avatar>
+        <span className="max-w-[120px] truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{me?.name ?? "Профиль"}</span>
+      </Link>
+    </div>
+  );
+}
 
 function FeedPage() {
   const { composer } = Route.useSearch();
@@ -168,6 +224,8 @@ function FeedPage() {
   return (
     <AppLayout>
       <div className="space-y-[16px]">
+        <FeedTopBar />
+
         <EventsHero />
 
         <CreatePostTrigger onOpen={(intent) => { setComposerIntent(intent); setComposerOpen(true); }} />

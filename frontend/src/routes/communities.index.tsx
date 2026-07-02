@@ -45,10 +45,17 @@ function CommunityCard({ c }: { c: Community }) {
             onError={() => setBrokenCover(true)}
           />
         ) : (
-          <div
-            className="h-[120px] w-full"
-            style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
-          />
+          <div className="relative h-[120px] w-full overflow-hidden" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}>
+            <div className="absolute inset-0 grid place-items-center opacity-25">
+              <Icon size={54} color="#fff" />
+            </div>
+          </div>
+        )}
+        {/* category chip */}
+        {c.category && (
+          <span className="absolute right-[10px] top-[10px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold text-white" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }}>
+            {c.category}
+          </span>
         )}
         {/* avatar */}
         <div
@@ -89,9 +96,15 @@ function CommunityCard({ c }: { c: Community }) {
           </p>
         </Link>
         <div className="mt-auto flex items-center justify-between gap-[8px] pt-[4px]">
-          <span className="inline-flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            <Users size={14} /> {c.members.toLocaleString("ru")}
-          </span>
+          <div className="flex flex-col gap-[2px]">
+            <span className="inline-flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              <Users size={14} /> {c.members.toLocaleString("ru")} участников
+            </span>
+            <span className="inline-flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+              <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
+              активны сегодня
+            </span>
+          </div>
           <Button asChild size="sm" className="rounded-[10px] gap-[6px]">
             <Link to="/communities/$id" params={{ id: c.id }}>
               Перейти <ArrowRight size={14} />
@@ -230,7 +243,7 @@ function CommunitiesPage() {
           <EmptySearch />
         ) : (
           <AnimatePresence mode="popLayout">
-            <motion.div key={section} className="grid gap-[16px] grid-cols-1 sm:grid-cols-2">
+            <motion.div key={section} className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
               {visible.map((c) => (
                 <CommunityCard key={c.id} c={c} />
               ))}

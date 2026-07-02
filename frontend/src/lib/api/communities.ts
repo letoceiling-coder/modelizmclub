@@ -1,7 +1,7 @@
 import type { Community } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoCommunities, demoCommunity } from "@/lib/demo-data";
+import { demoCommunities, demoCommunity, setDemoCommunitySubscription } from "@/lib/demo-data";
 
 interface ApiCommunity {
   id: number;
@@ -56,11 +56,17 @@ export async function fetchCommunity(slug: string): Promise<Community> {
 }
 
 export async function joinCommunity(slug: string): Promise<void> {
-  if (isDemoMode()) return;
+  if (isDemoMode()) {
+    setDemoCommunitySubscription(slug, true);
+    return;
+  }
   await api(`/communities/${slug}/join`, { method: "POST" });
 }
 
 export async function leaveCommunity(slug: string): Promise<void> {
-  if (isDemoMode()) return;
+  if (isDemoMode()) {
+    setDemoCommunitySubscription(slug, false);
+    return;
+  }
   await api(`/communities/${slug}/leave`, { method: "DELETE" });
 }
