@@ -25,9 +25,10 @@ export function RightCategories() {
 
   return (
     <aside className="hidden xl:block w-72 shrink-0">
-      {/* sticky: right rail stays in view while center column scrolls */}
+      {/* h-full: parent <aside> is stretched to 100dvh by AppLayout's items-stretch.
+           flex-col lets the header be fixed-height and the ul scroll freely. */}
       <div
-        className="sticky top-4 max-h-[calc(100dvh-32px)] overflow-hidden rounded-[14px] border"
+        className="flex h-full flex-col overflow-hidden rounded-[14px] border"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
@@ -43,7 +44,7 @@ export function RightCategories() {
           </p>
         </div>
 
-        <ul className="overflow-y-auto p-[6px]" style={{ scrollbarWidth: "thin" }}>
+        <ul className="flex-1 overflow-y-auto p-[6px]" style={{ scrollbarWidth: "thin" }}>
           {categories.map((c) => {
             const open = openId === c.id;
             const online = onlineFor(c);

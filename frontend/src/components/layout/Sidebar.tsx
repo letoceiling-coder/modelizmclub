@@ -37,7 +37,9 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:block w-60 shrink-0">
       {/* sticky: keeps sidebar in view while center column scrolls */}
-      <div className="sticky top-0 h-[100dvh] space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
+      {/* h-full: parent <aside> is stretched to 100dvh by AppLayout's items-stretch.
+           No sticky needed — the shell itself is overflow:hidden on desktop. */}
+      <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
         <div className="flex items-center justify-between px-3 pb-1">
           <Link to={ROUTES.feed}><Logo size={44} /></Link>
           <div className="flex items-center gap-1">
