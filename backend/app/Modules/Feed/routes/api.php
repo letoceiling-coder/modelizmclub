@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Feed\Http\Controllers\Api\V1\CommentReactionController;
 use Modules\Feed\Http\Controllers\Api\V1\CommentThreadController;
 use Modules\Feed\Http\Controllers\Api\V1\DestroyPostController;
 use Modules\Feed\Http\Controllers\Api\V1\IndexFeedController;
@@ -30,4 +31,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::delete('posts/{uuid}/bookmark', [PostBookmarkController::class, 'destroy']);
     Route::post('posts/{uuid}/repost', RepostPostController::class);
     Route::post('posts/{uuid}/comments', [PostCommentsController::class, 'store']);
+    Route::post('comments/{uuid}/react', [CommentReactionController::class, 'store']);
+    Route::delete('comments/{uuid}/react', [CommentReactionController::class, 'destroy']);
 });

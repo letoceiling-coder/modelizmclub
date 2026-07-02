@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Admin\Http\Resources;
+namespace Modules\Report\Http\Resources;
 
 use App\Models\Report;
 use Illuminate\Http\Request;
@@ -16,16 +16,7 @@ class ReportResource extends JsonResource
             'reason' => $this->reason,
             'description' => $this->description,
             'status' => $this->status,
-            'reportable_type' => class_basename($this->reportable_type),
-            'reportable_id' => $this->reportable_id,
-            'reporter' => $this->whenLoaded('reporter', fn () => [
-                'uuid' => $this->reporter?->uuid,
-                'email' => $this->reporter?->email,
-            ]),
-            'resolver' => $this->whenLoaded('resolver', fn () => $this->resolver ? [
-                'uuid' => $this->resolver->uuid,
-                'email' => $this->resolver->email,
-            ] : null),
+            'target_type' => strtolower(class_basename($this->reportable_type)),
             'created_at' => $this->created_at?->toIso8601String(),
             'resolved_at' => $this->resolved_at?->toIso8601String(),
         ];

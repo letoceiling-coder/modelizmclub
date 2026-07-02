@@ -27,6 +27,18 @@ bash deploy/scripts/export-openapi.sh
 - Ошибки валидации: HTTP 422, тело `{ message, errors: { field: ["..."] } }`.
 - Rate limits: register 3/min, verify 10/min, login 5/min (по IP/email).
 
+### Фильтрация и сортировка списков
+
+Все списочные эндпоинты поддерживают `per_page` (макс. 50) и пагинацию. Дополнительно:
+
+| Эндпоинт | Фильтры | `sort` |
+|----------|---------|--------|
+| `GET /feed` | `filter`, `category_id`, `community_id`, `author_id`, `q`, `hashtag`, `has_media`, `date_from`, `date_to` | `new` (деф.), `popular`, `discussed`, `viewed`, `oldest` |
+| `GET /listings` | `category_id`, `subcategory_id`, `category_ids[]`, `city_id`, `q`, `price_min`, `price_max` (в ₽), `delivery_method`, `has_media` | `newest` (деф.), `oldest`, `price_asc`, `price_desc`, `popular`, `favorites` |
+| `GET /users/me/listings` | `status`, `q` | `updated` (деф.), `newest`, `oldest`, `price_asc`, `price_desc`, `popular` |
+| `GET /users/search` | `q`, `city_id`, `interest` (=`category_id`) | `newest` (деф.), `name`, `popular`, `rating` |
+| `GET /communities` | `q`, `category_id`, `official` | по умолчанию, `popular`, `newest`, `name` |
+
 ---
 
 ## Health
@@ -58,6 +70,7 @@ bash deploy/scripts/export-openapi.sh
 
 | Метод | Путь | Auth | CRUD | Описание |
 |-------|------|------|------|----------|
+| GET | `/users/search` | ✓ | R | Поиск пользователей (`q`, `city_id`, `interest`, `sort`) |
 | GET | `/users/{slug}` | — | R | Публичный профиль |
 | PATCH | `/users/me` | ✓ | U | Обновить профиль |
 | GET | `/users/me/settings` | ✓ | R | Настройки уведомлений |
@@ -88,7 +101,7 @@ bash deploy/scripts/export-openapi.sh
 
 | Метод | Путь | Auth | CRUD | Описание |
 |-------|------|------|------|----------|
-| GET | `/communities` | — | R | Список сообществ |
+| GET | `/communities` | — | R | Список сообществ (`q`, `category_id`, `official`, `sort`) |
 | GET | `/communities/{slug}` | — | R | Карточка сообщества |
 | GET | `/communities/{slug}/members` | — | R | Участники |
 | GET | `/communities/{slug}/posts` | — | R | Посты сообщества |
@@ -116,6 +129,8 @@ bash deploy/scripts/export-openapi.sh
 | GET | `/posts/{uuid}/comments` | — | R | Комментарии (корневые) |
 | POST | `/posts/{uuid}/comments` | ✓ | C | Добавить комментарий |
 | GET | `/comments/{uuid}/thread` | — | R | Вся ветка обсуждения |
+| POST | `/comments/{uuid}/react` | ✓ | C | Реакция на комментарий (`type=like`) |
+| DELETE | `/comments/{uuid}/react` | ✓ | D | Убрать реакцию с комментария |
 
 \* Черновики и посты на модерации видны только автору (и модераторам).
 
@@ -144,6 +159,71 @@ Content-Type: application/json
 
 ---
 
+## Listings — доска объявлений (`/listings`)
+
+| Метод | Путь | Auth | CRUD | Описание |
+|-------|------|------|------|----------|
+| GET | `/listings` | — | R | Каталог (фильтры/сортировка — см. таблицу выше) |
+| GET | `/listings/{uuid}` | — | R | Карточка объявления |
+| GET | `/users/me/listings` | ✓ | R | Мои объявления (`status`, `sort`) |
+| GET | `/users/me/favorites` | ✓ | R | Избранные объявления |
+| POST | `/listings` | ✓ | C | Создать объявление |
+| POST | `/listings/ai-suggest` | ✓ | — | ИИ-подсказка: категория + черновик описания + теги |
+| PATCH | `/listings/{uuid}` | ✓ | U | Редактировать |
+| DELETE | `/listings/{uuid}` | ✓ | D | Удалить |
+| POST | `/listings/{uuid}/publish` | ✓ | — | Опубликовать |
+| POST | `/listings/{uuid}/archive` | ✓ | — | Снять с публикации |
+| POST | `/listings/{uuid}/favorite` | ✓ | C | В избранное |
+| DELETE | `/listings/{uuid}/favorite` | ✓ | D | Из избранного |
+
+### ИИ-помощник `POST /listings/ai-suggest`
+
+Провайдер настраивается в `config/listing.php` (`LISTING_AI_PROVIDER`): `heuristic` (офлайн, по умолчанию) или `openai` (OpenAI-совместимый API с безопасным откатом на эвристику).
+
+```http
+POST /api/v1/listings/ai-suggest
+Authorization: Bearer {token}
+
+{ "title": "Радиоуправляемый квадрокоптер FPV", "hints": ["дрон", "аккумулятор"] }
+```
+
+Ответ: `{ data: { category, category_candidates[], description, tags[], source } }`.
+
+---
+
+## Billing (`/plans`, `/payments`, `/subscription`)
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| GET | `/plans` | — | Тарифные планы |
+| GET | `/users/me/subscription` | ✓ | Текущая подписка (или `data: null` на бесплатном) |
+| POST | `/payments` | ✓ | Создать платёж (ВТБ/ЮKassa/stub) |
+| GET | `/payments/{uuid}` | ✓ | Статус платежа |
+| POST | `/payments/{uuid}/sync` | ✓ | Синхронизация статуса |
+| GET/POST | `/payments/webhooks/vtb` | — | Вебхук ВТБ |
+| POST | `/payments/webhooks/yookassa` | — | Вебхук ЮKassa |
+
+---
+
+## Reports — жалобы (`/reports`)
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| POST | `/reports` | ✓ | Пожаловаться на объект |
+
+```http
+POST /api/v1/reports
+Authorization: Bearer {token}
+
+{ "type": "post", "target_id": "{uuid}", "reason": "spam", "description": "..." }
+```
+
+- `type`: `post` \| `listing` \| `comment` \| `user`
+- `reason`: `spam` \| `offensive` \| `adult` \| `fraud` \| `violence` \| `copyright` \| `other`
+- Нельзя жаловаться на свой контент; повторная жалоба на тот же объект до обработки — 422.
+
+---
+
 ## Media (`/media`)
 
 | Метод | Путь | Auth | Описание |
@@ -167,7 +247,9 @@ Content-Type: application/json
 | POST | `/admin/moderation/{type}/{id}/approve` | U | Одобрить (`type`: `posts`, `communities`) |
 | POST | `/admin/moderation/{type}/{id}/reject` | U | Отклонить (`reason` в body) |
 | POST | `/admin/moderation/{type}/{id}/revision` | U | На доработку (`comment` в body) |
-| GET | `/admin/reports` | R | Жалобы пользователей |
+| GET | `/admin/reports` | R | Жалобы пользователей (`?status=`) |
+| GET | `/admin/reports/{id}` | R | Карточка жалобы |
+| PATCH | `/admin/reports/{id}` | U | Обработать жалобу (`status`: `reviewing`\|`resolved`\|`rejected`\|`dismissed`) |
 
 ### Admin (admin only)
 
@@ -264,7 +346,9 @@ bash deploy/scripts/verify-api-crud.sh   # полный CRUD-проход (user 
 | Feed (Posts, Comments) | ✅ |
 | Media upload | ✅ |
 | Admin + Moderation API | ✅ |
-| Listings, Chat, Billing | 🔜 Sprint 5+ |
-| Public landing API | 🔜 Sprint 4+ |
+| Listings (CRUD, фильтры, избранное, ИИ-подсказка) | ✅ |
+| Chat, Billing (тарифы, платежи, подписка) | ✅ |
+| Reports (жалобы) + реакции на комментарии | ✅ |
+| Public landing API | ✅ |
 
 Подробный план схемы БД: [PLAN-DB-API.md](./PLAN-DB-API.md).

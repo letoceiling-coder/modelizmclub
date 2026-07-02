@@ -9,6 +9,7 @@ use App\Models\ListingMedia;
 use App\Models\Media;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,31 +24,128 @@ class ListingService
         return ['author.profile.avatar', 'category', 'subcategory', 'city', 'mediaItems.media'];
     }
 
+    /**
+     * Публичный каталог опубликованных объявлений с расширенной фильтрацией.
+     *
+     * Поддерживаемые фильтры:
+     *  - category_id, subcategory_id, city_id — точное совпадение
+     *  - category_ids[] — несколько категорий сразу
+     *  - q — поиск по названию/описанию
+     *  - price_min / price_max — диапазон цены в рублях (переводится в копейки)
+     *  - delivery_method — способ доставки (в JSON-массиве delivery_methods)
+     *  - has_media — только с фото
+     *  - sort — newest|oldest|price_asc|price_desc|popular
+     *
+     * @param  array<string, mixed>  $filters
+     */
     public function list(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        return Listing::query()
+        $query = Listing::query()
             ->with($this->relations())
             ->where('status', ListingStatus::Published)
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
             ->when($filters['subcategory_id'] ?? null, fn ($q, $id) => $q->where('subcategory_id', $id))
             ->when($filters['city_id'] ?? null, fn ($q, $id) => $q->where('city_id', $id))
+            ->when(! empty($filters['category_ids']), fn ($q) => $q->whereIn('category_id', (array) $filters['category_ids']))
             ->when($filters['q'] ?? null, function ($q, $term): void {
                 $q->where(function ($q) use ($term): void {
                     $q->where('title', 'ilike', "%{$term}%")
                         ->orWhere('description', 'ilike', "%{$term}%");
                 });
             })
+            ->when(isset($filters['price_min']), fn ($q) => $q->where('price_cents', '>=', (int) round(((float) $filters['price_min']) * 100)))
+            ->when(isset($filters['price_max']), fn ($q) => $q->where('price_cents', '<=', (int) round(((float) $filters['price_max']) * 100)))
+            ->when($filters['delivery_method'] ?? null, fn ($q, $method) => $q->whereJsonContains('delivery_methods', $method))
+            ->when(($filters['has_media'] ?? null) === true, fn ($q) => $q->whereHas('mediaItems'))
+            ->when(($filters['has_media'] ?? null) === false, fn ($q) => $q->whereDoesntHave('mediaItems'));
+
+        $this->applySort($query, $filters['sort'] ?? 'newest');
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Объявления текущего пользователя. Можно фильтровать по статусу и сортировать.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function myListings(User $user, array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $query = Listing::query()
+            ->with($this->relations())
+            ->where('user_id', $user->id)
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->when($filters['q'] ?? null, fn ($q, $term) => $q->where('title', 'ilike', "%{$term}%"));
+
+        $this->applySort($query, $filters['sort'] ?? 'updated', includeOwnerSorts: true);
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Единая точка сортировки объявлений — «предусмотрены разные варианты».
+     *
+     * @param  Builder<Listing>  $query
+     */
+    private function applySort($query, ?string $sort, bool $includeOwnerSorts = false): void
+    {
+        match ($sort) {
+            'oldest' => $query->orderBy('published_at'),
+            'price_asc' => $query->orderBy('price_cents')->orderByDesc('published_at'),
+            'price_desc' => $query->orderByDesc('price_cents')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('views_count')->orderByDesc('published_at'),
+            'favorites' => $query->orderByDesc('favorites_count')->orderByDesc('published_at'),
+            'updated' => $includeOwnerSorts ? $query->orderByDesc('updated_at') : $query->orderByDesc('published_at'),
+            default => $query->orderByDesc('published_at'),
+        };
+    }
+
+    /** Объявления, добавленные пользователем в избранное. */
+    public function favorites(User $user, int $perPage = 20): LengthAwarePaginator
+    {
+        return Listing::query()
+            ->with($this->relations())
+            ->whereIn('id', function ($q) use ($user): void {
+                $q->select('listing_id')->from('listing_favorites')->where('user_id', $user->id);
+            })
             ->orderByDesc('published_at')
             ->paginate($perPage);
     }
 
-    public function myListings(User $user, int $perPage = 20): LengthAwarePaginator
+    public function addFavorite(Listing $listing, User $user): void
     {
-        return Listing::query()
-            ->with($this->relations())
+        $inserted = DB::table('listing_favorites')->insertOrIgnore([
+            'user_id' => $user->id,
+            'listing_id' => $listing->id,
+            'created_at' => now(),
+        ]);
+
+        if ($inserted) {
+            $listing->increment('favorites_count');
+        }
+    }
+
+    public function removeFavorite(Listing $listing, User $user): void
+    {
+        $deleted = DB::table('listing_favorites')
             ->where('user_id', $user->id)
-            ->orderByDesc('updated_at')
-            ->paginate($perPage);
+            ->where('listing_id', $listing->id)
+            ->delete();
+
+        if ($deleted && $listing->favorites_count > 0) {
+            $listing->decrement('favorites_count');
+        }
+    }
+
+    public function findByUuid(string $uuid): Listing
+    {
+        $listing = Listing::query()->where('uuid', $uuid)->first();
+
+        if (! $listing) {
+            throw new NotFoundHttpException('Объявление не найдено.');
+        }
+
+        return $listing;
     }
 
     public function show(string $uuid, ?User $viewer = null): Listing

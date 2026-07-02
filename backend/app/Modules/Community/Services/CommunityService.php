@@ -19,7 +19,7 @@ class CommunityService
 {
     public function list(array $filters = [], int $perPage = 20, ?User $viewer = null): LengthAwarePaginator
     {
-        $paginator = Community::query()
+        $query = Community::query()
             ->active()
             ->with(['category', 'avatar', 'cover'])
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
@@ -29,11 +29,17 @@ class CommunityService
                         ->orWhere('description', 'ilike', "%{$term}%");
                 });
             })
-            ->when(isset($filters['official']), fn ($q) => $q->where('is_official', (bool) $filters['official']))
-            ->orderByDesc('is_official')
-            ->orderByDesc('members_count')
-            ->orderBy('name')
-            ->paginate($perPage);
+            ->when(isset($filters['official']), fn ($q) => $q->where('is_official', (bool) $filters['official']));
+
+        // Варианты сортировки: popular (участники), newest, name; по умолчанию — официальные и крупные вперёд.
+        match ($filters['sort'] ?? null) {
+            'popular' => $query->orderByDesc('members_count')->orderBy('name'),
+            'newest' => $query->orderByDesc('id'),
+            'name' => $query->orderBy('name'),
+            default => $query->orderByDesc('is_official')->orderByDesc('members_count')->orderBy('name'),
+        };
+
+        $paginator = $query->paginate($perPage);
 
         if ($viewer) {
             $ids = $paginator->getCollection()->pluck('id');
