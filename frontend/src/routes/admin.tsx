@@ -62,12 +62,14 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
 
 function AdminPage() {
   const navigate = useNavigate();
-  const [access, setAccess] = useState<"checking" | "granted">("checking");
+  const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [section, setSection] = useState<Section>("dashboard");
 
   // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
   // F5 it resolves during SSR (where there is no token) and does not re-run on
-  // hydration, so the role must also be enforced here on every client mount.
+  // hydration, so access must also be enforced here on every client mount.
+  //   - not authenticated  -> redirect to the login page
+  //   - authenticated, not superadmin -> render a 403 screen (no redirect)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -77,24 +79,54 @@ function AdminPage() {
         navigate({ to: "/login", search: { redirect: "/admin" } });
         return;
       }
-      if (!selectors.currentUser(getState()).isAdmin) {
-        navigate({ to: "/" });
-        return;
-      }
-      setAccess("granted");
+      setAccess(selectors.currentUser(getState()).isAdmin ? "granted" : "forbidden");
     })();
     return () => {
       alive = false;
     };
   }, [navigate]);
 
-  if (access !== "granted") {
+  if (access === "checking") {
     return (
       <div
         className="min-h-screen grid place-items-center"
         style={{ background: "var(--background)", color: "var(--foreground-50)", fontSize: "13px" }}
       >
         Проверка доступа…
+      </div>
+    );
+  }
+
+  if (access === "forbidden") {
+    return (
+      <div
+        className="min-h-screen grid place-items-center"
+        style={{ background: "var(--background)", padding: "24px" }}
+      >
+        <div style={{ textAlign: "center", maxWidth: "420px" }}>
+          <div style={{ fontSize: "64px", fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>403</div>
+          <h1 style={{ marginTop: "16px", fontSize: "20px", fontWeight: 700, color: "var(--foreground)" }}>
+            Доступ запрещён
+          </h1>
+          <p style={{ marginTop: "8px", fontSize: "14px", color: "var(--foreground-70)" }}>
+            Админ-панель доступна только суперадминистраторам.
+          </p>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-[6px]"
+            style={{
+              marginTop: "20px",
+              fontSize: "13px",
+              fontWeight: 500,
+              padding: "8px 16px",
+              borderRadius: "var(--r-card-sm)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground-70)",
+            }}
+          >
+            <Home size={14} />На главную
+          </Link>
+        </div>
       </div>
     );
   }

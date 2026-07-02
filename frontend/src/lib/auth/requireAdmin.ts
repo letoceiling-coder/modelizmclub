@@ -1,12 +1,12 @@
 import { redirect } from "@tanstack/react-router";
 import { ensureSession } from "@/lib/auth/session";
-import { getState, selectors } from "@/lib/store";
 
 /**
- * Route guard for the admin panel.
- * 1. Redirects to /login when there is no valid session.
- * 2. Redirects to / when the authenticated user is not a superadmin.
- * Runs client-only (after hydration).
+ * Route guard for the admin panel (runs client-only, after hydration).
+ * Only enforces authentication here — redirects to /login when there is no
+ * valid session. The superadmin role check (and the 403 screen) is handled in
+ * the AdminPage component so it also works on direct load / F5, where
+ * `beforeLoad` resolves during SSR and does not re-run on hydration.
  */
 export async function requireAdmin(location?: {
   pathname: string;
@@ -20,10 +20,5 @@ export async function requireAdmin(location?: {
     const search =
       typeof location?.search === "string" ? location.search : window.location.search;
     throw redirect({ to: "/login", search: { redirect: pathname + search } });
-  }
-
-  const me = selectors.currentUser(getState());
-  if (!me.isAdmin) {
-    throw redirect({ to: "/" });
   }
 }
