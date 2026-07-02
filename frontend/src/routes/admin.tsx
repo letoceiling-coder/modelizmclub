@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useStore, selectors } from "@/lib/store";
+import { useStore, selectors, getState } from "@/lib/store";
+import { ensureSession } from "@/lib/auth/session";
 import type { Tariff, PromoCode, Banner } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
@@ -60,7 +61,43 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
 ];
 
 function AdminPage() {
+  const navigate = useNavigate();
+  const [access, setAccess] = useState<"checking" | "granted">("checking");
   const [section, setSection] = useState<Section>("dashboard");
+
+  // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
+  // F5 it resolves during SSR (where there is no token) and does not re-run on
+  // hydration, so the role must also be enforced here on every client mount.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const ok = await ensureSession();
+      if (!alive) return;
+      if (!ok) {
+        navigate({ to: "/login", search: { redirect: "/admin" } });
+        return;
+      }
+      if (!selectors.currentUser(getState()).isAdmin) {
+        navigate({ to: "/" });
+        return;
+      }
+      setAccess("granted");
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [navigate]);
+
+  if (access !== "granted") {
+    return (
+      <div
+        className="min-h-screen grid place-items-center"
+        style={{ background: "var(--background)", color: "var(--foreground-50)", fontSize: "13px" }}
+      >
+        Проверка доступа…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
