@@ -211,7 +211,7 @@ const inputStyle: React.CSSProperties = {
 };
 const primaryBtn: React.CSSProperties = {
   background: "var(--accent)",
-  color: "#fff",
+  color: "var(--accent-foreground)",
   fontWeight: 600,
   fontSize: "13px",
   borderRadius: "var(--r-button)",
@@ -238,17 +238,23 @@ function SectionView({ section }: { section: Section }) {
 // Design System — admin-only theme switcher (visual sandbox)
 // =============================================================
 import {
-  BASE_ACCENTS, generateVariations, applyTheme, loadTheme,
-  type Mode, type AccentSwatch,
+  generateVariations, applyTheme, loadTheme,
+  ACCENT_PRESET_LIST, ACCENT_PRESETS, DEFAULT_ACCENT_ID, isAccentPresetId,
+  type Mode, type AccentSwatch, type AccentPreset, type AccentPresetId,
 } from "@/lib/theme-manager";
 
 function DesignSystemSection() {
   const initial = loadTheme();
   const [mode, setMode] = useState<Mode>(initial?.mode ?? (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
-  const [accent, setAccent] = useState<string>(initial?.accent ?? "#F26C05");
+  const [accent, setAccent] = useState<string>(initial?.accent ?? DEFAULT_ACCENT_ID);
 
-  const variations = useMemo(() => generateVariations(accent), [accent]);
+  const activeHex = isAccentPresetId(accent) ? ACCENT_PRESETS[accent].primary : accent;
+  const variations = useMemo(() => generateVariations(activeHex), [activeHex]);
 
+  function pickPreset(id: AccentPresetId) {
+    setAccent(id);
+    applyTheme({ mode, accent: id });
+  }
   function pickAccent(hex: string) {
     setAccent(hex);
     applyTheme({ mode, accent: hex });
@@ -259,8 +265,8 @@ function DesignSystemSection() {
   }
   function reset() {
     setMode("dark");
-    setAccent("#F26C05");
-    applyTheme({ mode: "dark", accent: "#F26C05" });
+    setAccent(DEFAULT_ACCENT_ID);
+    applyTheme({ mode: "dark", accent: DEFAULT_ACCENT_ID });
   }
 
   return (
@@ -268,10 +274,10 @@ function DesignSystemSection() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>
-            Design System
+            Дизайн-система / Основной цвет
           </h1>
           <p style={{ fontSize: 13, color: "var(--foreground-70)" }}>
-            Визуальный конструктор темы. Меняет CSS-переменные глобально, сохраняет в localStorage. Не влияет на логику и данные.
+            Выберите один из двух брендовых акцентов. Меняет CSS-переменные глобально, сохраняется в localStorage. Не влияет на логику и данные.
           </p>
         </div>
         <a
@@ -304,42 +310,53 @@ function DesignSystemSection() {
           </div>
         </Panel>
 
-        <Panel title="Базовые акценты (UI Kit)">
-          <SwatchRow swatches={BASE_ACCENTS} active={accent} onPick={pickAccent} />
-        </Panel>
-
-        <Panel title="Свой цвет (RGB)">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <input
-              type="color"
-              value={accent}
-              onChange={(e) => pickAccent(e.target.value)}
-              aria-label="Выбрать цвет акцента"
-              style={{ width: 48, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer", padding: 2 }}
-            />
-            <input
-              type="text"
-              value={accent}
-              onChange={(e) => {
-                const v = e.target.value.trim();
-                if (/^#[0-9a-fA-F]{6}$/.test(v)) pickAccent(v.toUpperCase());
-                else setAccent(v);
-              }}
-              placeholder="#RRGGBB"
-              spellCheck={false}
-              style={{
-                width: 130, height: 36, padding: "0 12px", borderRadius: 8, fontSize: 13,
-                border: "1px solid var(--border)", background: "var(--background-surface)", color: "var(--foreground)",
-                fontFamily: "var(--font-mono)",
-              }}
-            />
-            <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Любой цвет — превью и переменные обновятся сразу</span>
+        <Panel title="Основной цвет бренда">
+          <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            {ACCENT_PRESET_LIST.map((p) => (
+              <PresetCard
+                key={p.id}
+                preset={p}
+                active={isAccentPresetId(accent) && accent === p.id}
+                onPick={() => pickPreset(p.id)}
+              />
+            ))}
           </div>
         </Panel>
 
-        <Panel title="Вариации (5 светлее / 5 темнее)">
-          <SwatchRow swatches={variations} active={accent} onPick={pickAccent} />
-        </Panel>
+        {/* Advanced / debug — free-form hex is intentionally NOT the main scenario. */}
+        <details style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-card)", padding: 16 }}>
+          <summary style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground-70)", cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.5 }}>
+            Расширенный режим (debug) — свой цвет RGB
+          </summary>
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <input
+                type="color"
+                value={activeHex}
+                onChange={(e) => pickAccent(e.target.value)}
+                aria-label="Выбрать цвет акцента"
+                style={{ width: 48, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer", padding: 2 }}
+              />
+              <input
+                type="text"
+                value={activeHex}
+                onChange={(e) => {
+                  const v = e.target.value.trim();
+                  if (/^#[0-9a-fA-F]{6}$/.test(v)) pickAccent(v.toUpperCase());
+                }}
+                placeholder="#RRGGBB"
+                spellCheck={false}
+                style={{
+                  width: 130, height: 36, padding: "0 12px", borderRadius: 8, fontSize: 13,
+                  border: "1px solid var(--border)", background: "var(--background-surface)", color: "var(--foreground)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              />
+              <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Только для отладки. Основной сценарий — два бренд-пресета выше.</span>
+            </div>
+            <SwatchRow swatches={variations} active={activeHex} onPick={pickAccent} />
+          </div>
+        </details>
       </div>
 
       {/* Preview */}
@@ -373,7 +390,7 @@ function ModeBtn({ active, onClick, icon, label }: { active: boolean; onClick: (
         display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px",
         borderRadius: 10, fontSize: 13, fontWeight: 600,
         background: active ? "var(--accent)" : "var(--background-surface)",
-        color: active ? "#fff" : "var(--foreground-70)",
+        color: active ? "var(--accent-foreground)" : "var(--foreground-70)",
         border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
         boxShadow: active ? "var(--shadow-button)" : "none",
       }}
@@ -409,19 +426,84 @@ function SwatchRow({ swatches, active, onPick }: { swatches: AccentSwatch[]; act
   );
 }
 
+/** Brand preset chooser card — swatch + hex + live component samples (rendered
+ *  with the preset's OWN colors so it previews before you apply it). */
+function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: boolean; onPick: () => void }) {
+  return (
+    <div
+      style={{
+        border: `2px solid ${active ? preset.primary : "var(--border)"}`,
+        borderRadius: 16,
+        padding: 16,
+        background: "var(--background-surface)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: active ? `0 0 0 4px ${preset.soft}` : "none",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: preset.primary, flexShrink: 0 }} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>{preset.label}</span>
+            {active && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: preset.primary }}>
+                <CheckCircle2 size={13} /> Активен
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--foreground-50)" }}>{preset.primary}</div>
+        </div>
+      </div>
+
+      {/* live component samples in the preset's own colors */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <span style={{ padding: "8px 14px", borderRadius: 10, background: preset.primary, color: preset.foreground, fontSize: 13, fontWeight: 600 }}>
+          Кнопка
+        </span>
+        <span style={{ padding: "3px 10px", borderRadius: 999, background: preset.primary, color: preset.foreground, fontSize: 11, fontWeight: 700 }}>
+          PRO
+        </span>
+        <span style={{ padding: "6px 12px", borderRadius: 8, background: preset.soft, color: preset.primary, fontSize: 12, fontWeight: 600 }}>
+          Активная вкладка
+        </span>
+      </div>
+
+      <button
+        onClick={onPick}
+        disabled={active}
+        style={{
+          marginTop: "auto",
+          height: 40,
+          borderRadius: 10,
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: active ? "default" : "pointer",
+          border: active ? "1px solid var(--border)" : "none",
+          background: active ? "var(--background-elevated)" : preset.primary,
+          color: active ? "var(--foreground-50)" : preset.foreground,
+        }}
+      >
+        {active ? "Основной" : "Сделать основным"}
+      </button>
+    </div>
+  );
+}
+
 function PreviewArea() {
   return (
     <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
       {/* Buttons */}
       <Panel title="Кнопки">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Основная</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Основная</button>
           <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>Мягкая</button>
           <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 600, border: "1px solid var(--border)" }}>Контур</button>
           <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 13, fontWeight: 600 }} disabled>Disabled</button>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center" }}><Plus size={16} /></button>
+          <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", display: "grid", placeItems: "center" }}><Plus size={16} /></button>
           <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", display: "grid", placeItems: "center" }}><Pencil size={16} /></button>
           <button style={{ width: 40, height: 40, borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", display: "grid", placeItems: "center", border: "1px solid var(--border)" }}><Trash2 size={16} /></button>
         </div>
@@ -430,7 +512,7 @@ function PreviewArea() {
       {/* Badges */}
       <Panel title="Бейджи">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          <Badge bg="var(--accent)" fg="#fff">PRO</Badge>
+          <Badge bg="var(--accent)" fg="var(--accent-foreground)">PRO</Badge>
           <Badge bg="var(--accent-soft)" fg="var(--accent)">Новое</Badge>
           <Badge bg="var(--success-soft)" fg="var(--success)">Активно</Badge>
           <Badge bg="var(--warning-soft)" fg="var(--warning)">На проверке</Badge>
@@ -479,7 +561,7 @@ function PreviewArea() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input placeholder="Логин" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
           <input placeholder="Пароль" type="password" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Войти</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Войти</button>
           <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground-70)", fontSize: 13, fontWeight: 500, border: "1px solid var(--border)" }}>Создать аккаунт</button>
         </div>
       </Panel>
@@ -1138,7 +1220,7 @@ function FeedbackSection() {
               borderRadius: "var(--r-button)",
               border: "1px solid var(--border)",
               background: filter === f.id ? "var(--accent)" : "transparent",
-              color: filter === f.id ? "#fff" : "var(--foreground-70)",
+              color: filter === f.id ? "var(--accent-foreground)" : "var(--foreground-70)",
             }}
           >
             {f.label}

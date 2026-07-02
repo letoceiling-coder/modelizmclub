@@ -33,7 +33,7 @@ export function RadioCard({ selected, onClick, icon: Icon, title, description, c
       <div
         className={cn(
           "grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[var(--r-card-sm)] transition-colors",
-          selected ? "bg-[var(--accent)] text-white" : "bg-[var(--background-surface)] text-[var(--foreground-70)]",
+          selected ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "bg-[var(--background-surface)] text-[var(--foreground-70)]",
         )}
       >
         <Icon size={20} />

@@ -357,7 +357,7 @@ function DesignSystemPage() {
             <Card airy className="p-5">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--foreground-50)]">Post card</div>
               <div className="flex items-center gap-2">
-                <div className="grid size-8 place-items-center rounded-full bg-[var(--accent)] text-xs font-semibold text-white">АТ</div>
+                <div className="grid size-8 place-items-center rounded-full bg-[var(--accent)] text-xs font-semibold text-[var(--accent-foreground)]">АТ</div>
                 <div className="text-sm font-semibold">Анастасия Т.</div>
               </div>
               <p className="mt-2 text-sm text-[var(--foreground-70)]">
@@ -429,7 +429,7 @@ function DesignSystemPage() {
                 className="rounded-[calc(var(--r-button)-2px)] px-4 py-1.5 text-sm font-medium transition-colors"
                 style={{
                   background: tab === t.id ? "var(--accent)" : "transparent",
-                  color: tab === t.id ? "#fff" : "var(--foreground-70)",
+                  color: tab === t.id ? "var(--accent-foreground)" : "var(--foreground-70)",
                 }}
               >
                 {t.label}
@@ -446,7 +446,7 @@ function DesignSystemPage() {
                 className="grid size-9 place-items-center rounded-[var(--r-button)] text-sm font-medium transition-colors"
                 style={{
                   background: page === n ? "var(--accent)" : "transparent",
-                  color: page === n ? "#fff" : "var(--foreground-70)",
+                  color: page === n ? "var(--accent-foreground)" : "var(--foreground-70)",
                   border: page === n ? "none" : "1px solid var(--border)",
                 }}
               >

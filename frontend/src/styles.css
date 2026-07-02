@@ -141,13 +141,19 @@
   --foreground-30: rgba(240, 240, 240, 0.30);
   --foreground-15: rgba(240, 240, 240, 0.15);
 
-  /* Accent — primary blue (UI Kit 2.0) */
+  /* Accent — primary blue (UI Kit 2.0). These are the default "blue" preset
+     tokens; the admin Design System switcher (theme-manager) overrides them at
+     runtime for the "menthol" preset. --accent-foreground is the text/icon
+     color that sits on an accent fill (white for blue, dark ink for menthol). */
   --accent: #627FFF;
   --accent-hover: #4F66E8;
+  --accent-active: #3F4FBF;
   --accent-soft: rgba(98, 127, 255, 0.14);
   --accent-glow: rgba(98, 127, 255, 0.28);
   --accent-muted: #3F4FBF;
+  --accent-foreground: #FFFFFF;
   --border-accent: rgba(98, 127, 255, 0.40);
+  --focus-ring: var(--accent);
 
   /* Borders */
   --border-color: #333338;
@@ -218,10 +224,13 @@
 
   --accent: #627FFF;
   --accent-hover: #4F66E8;
+  --accent-active: #3F4FBF;
   --accent-soft: rgba(98, 127, 255, 0.10);
   --accent-glow: rgba(98, 127, 255, 0.18);
   --accent-muted: #3F4FBF;
+  --accent-foreground: #FFFFFF;
   --border-accent: rgba(98, 127, 255, 0.35);
+  --focus-ring: var(--accent);
 
   --border-color: #e8e8e8;
   --border-light: #f0f0f0;

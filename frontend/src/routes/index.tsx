@@ -109,7 +109,7 @@ function TopNav() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >Войти</Link>
-          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
             style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
           >
             {enter.demo ? "Открыть демо" : "Создать аккаунт"}
@@ -335,7 +335,7 @@ function HeroCtrl({ onClick, label, children }: { onClick: () => void; label: st
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
   height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "var(--accent)", color: "#fff", fontSize: 16, fontWeight: 700,
+  background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 16, fontWeight: 700,
   border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
 };
 const ctaGhost: React.CSSProperties = {
@@ -561,7 +561,7 @@ function CategoriesSection() {
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
           >
-            <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-white"
+            <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)]"
               style={{ width: 42, height: 42, borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
               <Icon size={20} />
             </div>
@@ -606,7 +606,7 @@ function StepsTimeline() {
             >
               <div className="mb-5 flex items-center gap-3 md:flex-col md:items-start">
                 {/* node — reserves space for future model animation */}
-                <div className="relative grid place-items-center" style={{ width: 54, height: 54, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "#fff", boxShadow: "var(--shadow-button)", zIndex: 1 }}>
+                <div className="relative grid place-items-center" style={{ width: 54, height: 54, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-button)", zIndex: 1 }}>
                   <Icon size={24} />
                   <span className="absolute -right-1 -top-1 grid place-items-center rounded-full text-[11px] font-bold"
                     style={{ width: 22, height: 22, background: "var(--background)", color: "var(--accent)", border: "2px solid var(--accent)" }}>
@@ -661,7 +661,7 @@ function PricingSection() {
             </ul>
             <div className="flex-1" />
             <Link to="/subscription" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
-              style={p.accent ? { background: "var(--accent)", color: "#fff" } : { background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+              style={p.accent ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)" }}
             >Подробнее <ArrowRight size={15} /></Link>
           </div>
         ))}

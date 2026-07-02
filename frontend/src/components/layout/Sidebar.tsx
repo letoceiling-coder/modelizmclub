@@ -78,7 +78,7 @@ export function Sidebar() {
                 {t(labelKey)}
                 {section === "notifications" && unread > 0 && (
                   <span
-                    className="ml-auto grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold text-white"
+                    className="ml-auto grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold text-[var(--accent-foreground)]"
                     style={{ height: 18, background: "var(--accent)" }}
                   >
                     {unread > 9 ? "9+" : unread}

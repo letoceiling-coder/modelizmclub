@@ -73,7 +73,7 @@ function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: n
                 height: 15,
                 fontSize: 9,
                 fontWeight: 700,
-                color: "#fff",
+                color: "var(--accent-foreground)",
                 background: "var(--accent)",
                 boxShadow: "0 0 0 2px var(--background)",
               }}

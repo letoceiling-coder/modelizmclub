@@ -102,7 +102,7 @@ function CommentItem({
                 <button
                   onClick={submit}
                   className="grid h-[34px] w-[34px] place-items-center rounded-[10px]"
-                  style={{ background: "var(--accent)", color: "#fff" }}
+                  style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
                 >
                   <Send className="h-[14px] w-[14px]" />
                 </button>
@@ -157,7 +157,7 @@ export function CommentSection({ comments, onAdd }: Props) {
         <button
           onClick={submit}
           className="grid h-[36px] w-[36px] place-items-center rounded-[10px] transition-opacity hover:opacity-90"
-          style={{ background: "var(--accent)", color: "#fff", boxShadow: "var(--shadow-button)" }}
+          style={{ background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-button)" }}
           aria-label="Отправить"
         >
           <Send className="h-[14px] w-[14px]" />

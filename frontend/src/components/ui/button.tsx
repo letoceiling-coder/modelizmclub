@@ -6,13 +6,14 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        // Primary — UI Kit 2.0 accent (#627FFF / hover #4F66E8)
+        // Primary — brand accent (preset-driven). Text uses --accent-foreground
+        // so menthol gets dark ink and blue gets white (contrast-safe).
         default:
-          "bg-[var(--accent)] text-white shadow-[var(--shadow-button)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none",
+          "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-button)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none",
         // Secondary / dark — solid dark fill, "Доп кнопка" in UI Kit
         secondary:
           "bg-[var(--neutral-900)] text-white hover:bg-[var(--neutral-700)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)]",

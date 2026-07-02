@@ -251,7 +251,7 @@ function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose:
             <button
               type="button"
               onClick={onClose}
-              className="mt-[18px] h-[44px] w-full rounded-[12px] text-[14px] font-semibold text-white transition-transform active:scale-[0.99]"
+              className="mt-[18px] h-[44px] w-full rounded-[12px] text-[14px] font-semibold text-[var(--accent-foreground)] transition-transform active:scale-[0.99]"
               style={{ background: "var(--accent)" }}
             >
               Понятно

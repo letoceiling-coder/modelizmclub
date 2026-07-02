@@ -70,7 +70,7 @@ function FeedTopBar() {
       >
         <Bell size={18} style={{ color: "var(--foreground-70)" }} />
         {unread > 0 && (
-          <span className="absolute -right-[2px] -top-[2px] grid min-w-[16px] place-items-center rounded-full px-[4px] text-[10px] font-bold text-white" style={{ height: 16, background: "var(--accent)" }}>
+          <span className="absolute -right-[2px] -top-[2px] grid min-w-[16px] place-items-center rounded-full px-[4px] text-[10px] font-bold text-[var(--accent-foreground)]" style={{ height: 16, background: "var(--accent)" }}>
             {unread > 9 ? "9+" : unread}
           </span>
         )}
