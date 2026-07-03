@@ -37,6 +37,7 @@ export const en: TranslationSchema = {
     market: "Market",
     categories: "Categories",
     admin: "Admin",
+    myAds: "My Listings",
   },
   auth: {
     login: "Sign in",

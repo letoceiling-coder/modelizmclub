@@ -37,6 +37,7 @@ export const zh: TranslationSchema = {
     market: "市场",
     categories: "分类",
     admin: "管理",
+    myAds: "我的广告",
   },
   auth: {
     login: "登录",
