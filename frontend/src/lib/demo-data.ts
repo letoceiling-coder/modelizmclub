@@ -135,6 +135,58 @@ export function demoListings(query?: string): Ad[] {
   );
 }
 
+import type { CatalogParams } from "@/lib/api/listings";
+
+export function demoListingsFiltered(params: CatalogParams): Ad[] {
+  let result = mockAds;
+
+  if (params.q) {
+    const q = params.q.toLowerCase();
+    result = result.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        (a.description ?? "").toLowerCase().includes(q) ||
+        a.category.toLowerCase().includes(q),
+    );
+  }
+
+  if (params.categoryName && params.categoryName !== "Все") {
+    result = result.filter((a) => a.category === params.categoryName);
+  }
+
+  if (params.cityName) {
+    const city = params.cityName.toLowerCase();
+    result = result.filter((a) => a.city.toLowerCase().includes(city));
+  }
+
+  if (params.priceMin) {
+    result = result.filter((a) => a.price >= params.priceMin!);
+  }
+
+  if (params.priceMax && params.priceMax < 100000) {
+    result = result.filter((a) => a.price <= params.priceMax!);
+  }
+
+  if (params.conditions && params.conditions.length > 0) {
+    result = result.filter((a) => a.condition && params.conditions!.includes(a.condition));
+  }
+
+  if (params.listingStatus && params.listingStatus !== "Все") {
+    result = result.filter((a) => a.status === params.listingStatus);
+  }
+
+  if (params.withPhotoOnly) {
+    result = result.filter((a) => a.image || (a.gallery && a.gallery.length > 0));
+  }
+
+  if (params.sort === "cheap") result = [...result].sort((a, b) => a.price - b.price);
+  else if (params.sort === "expensive") result = [...result].sort((a, b) => b.price - a.price);
+  else if (params.sort === "popular") result = [...result].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+  // "new" — default order (mockAds already sorted newest first)
+
+  return result;
+}
+
 export function demoMyListings(): { ad: Ad; status: AdStatusKey }[] {
   return mockAds
     .filter((a) => a.authorId === DEMO_USER.id)
