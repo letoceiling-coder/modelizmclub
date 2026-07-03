@@ -154,6 +154,10 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
     result = result.filter((a) => a.category === params.categoryName);
   }
 
+  if (params.subcategoryName && params.subcategoryName !== "Все") {
+    result = result.filter((a) => a.subcategory === params.subcategoryName);
+  }
+
   if (params.cityName) {
     const city = params.cityName.toLowerCase();
     result = result.filter((a) => a.city.toLowerCase().includes(city));
@@ -169,6 +173,10 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
 
   if (params.conditions && params.conditions.length > 0) {
     result = result.filter((a) => a.condition && params.conditions!.includes(a.condition));
+  }
+
+  if (params.deliveries && params.deliveries.length > 0) {
+    result = result.filter((a) => a.delivery && params.deliveries!.some((d) => a.delivery.includes(d)));
   }
 
   if (params.listingStatus && params.listingStatus !== "Все") {

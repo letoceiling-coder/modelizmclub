@@ -113,9 +113,11 @@ export interface CatalogParams {
   cityId?: number;
   cityName?: string;
   categoryName?: string;
+  subcategoryName?: string;
   priceMin?: number;
   priceMax?: number;
   conditions?: string[];
+  deliveries?: string[];
   listingStatus?: string;
   sort?: "new" | "cheap" | "expensive" | "popular";
   withPhotoOnly?: boolean;

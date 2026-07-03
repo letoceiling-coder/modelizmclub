@@ -4,7 +4,7 @@ import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-re
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { type FiltersState, DEFAULT_FILTERS, AdFiltersDesktop, AdFiltersSheet } from "@/components/ads/AdFilters";
-import { AdSortBar, type SortKey, type ViewMode } from "@/components/ads/AdSortBar";
+import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CategoryChips } from "@/components/ads/CategoryChips";
 import { ListingCard } from "@/components/ads/ListingCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
@@ -48,9 +48,11 @@ function buildParams(
     cityId: filters.cityId,
     cityName: filters.city || undefined,
     categoryName: filters.category !== "Все" ? filters.category : undefined,
+    subcategoryName: filters.subcategory !== "Все" ? filters.subcategory : undefined,
     priceMin: filters.priceMin > 0 ? filters.priceMin : undefined,
     priceMax: filters.priceMax < 100000 ? filters.priceMax : undefined,
     conditions: filters.conditions.length ? filters.conditions : undefined,
+    deliveries: filters.deliveries.length ? filters.deliveries : undefined,
     listingStatus: filters.status !== "Все" ? filters.status : undefined,
     withPhotoOnly: filters.withPhotoOnly || undefined,
     sort,
@@ -65,7 +67,6 @@ function CatalogPage() {
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("new");
-  const [view, setView] = useState<ViewMode>("grid");
   const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -169,8 +170,6 @@ function CatalogPage() {
               onQuery={setQ}
               sort={sort}
               onSort={setSort}
-              view={view}
-              onView={setView}
               onOpenFilters={() => setSheetOpen(true)}
               count={ads.length}
             />
@@ -223,10 +222,7 @@ function CatalogPage() {
 
             {/* States */}
             {loadState === "loading" && (
-              <div className={view === "grid"
-                ? "grid gap-[10px] sm:grid-cols-2"
-                : "flex flex-col gap-[10px]"
-              }>
+              <div className="grid gap-[10px] sm:grid-cols-2">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <AdCardSkeleton key={i} />
                 ))}
@@ -275,10 +271,7 @@ function CatalogPage() {
             )}
 
             {loadState === "ok" && ads.length > 0 && (
-              <div className={view === "grid"
-                ? "grid gap-[10px] sm:grid-cols-2"
-                : "flex flex-col gap-[10px]"
-              }>
+              <div className="grid gap-[10px] sm:grid-cols-2">
                 {ads.map((ad) => (
                   <ListingCard key={ad.id} ad={ad} />
                 ))}
