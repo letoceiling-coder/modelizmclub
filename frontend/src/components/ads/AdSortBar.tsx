@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 
 export type SortKey = "new" | "cheap" | "expensive" | "popular";
 export type ViewMode = "grid" | "list";
@@ -15,13 +15,11 @@ interface Props {
   onQuery: (v: string) => void;
   sort: SortKey;
   onSort: (v: SortKey) => void;
-  view: ViewMode;
-  onView: (v: ViewMode) => void;
   onOpenFilters: () => void;
   count: number;
 }
 
-export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFilters, count }: Props) {
+export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count }: Props) {
   return (
     <div className="flex flex-col gap-[12px]">
       <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center">
@@ -83,33 +81,6 @@ export function AdSortBar({ query, onQuery, sort, onSort, view, onView, onOpenFi
             ))}
           </select>
 
-          <div
-            className="hidden items-center sm:inline-flex"
-            style={{
-              background: "var(--background-elevated)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-button)",
-              height: 44,
-              padding: 4,
-            }}
-          >
-            {(["grid", "list"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onView(m)}
-                aria-label={m === "grid" ? "Плитка" : "Список"}
-                className="grid h-[34px] w-[40px] place-items-center transition-colors"
-                style={{
-                  background: view === m ? "var(--accent)" : "transparent",
-                  color: view === m ? "#fff" : "var(--foreground-70)",
-                  borderRadius: "calc(var(--r-button) - 4px)",
-                }}
-              >
-                {m === "grid" ? <LayoutGrid size={14} /> : <List size={14} />}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 

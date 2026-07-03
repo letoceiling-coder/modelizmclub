@@ -35,6 +35,7 @@ export const ru = {
     market: "Маркет",
     categories: "Категории",
     admin: "Админка",
+    myAds: "Мои объявления",
   },
   auth: {
     login: "Войти",

@@ -1,16 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink, Bell } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, User, ShoppingBag, HelpCircle, Crown, ExternalLink, Bell, ClipboardList } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
+import { useStore, selectors } from "@/lib/store";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 interface Item {
-  to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/notifications" | "/profile" | "/subscription" | "/help";
+  to: "/feed" | "/communities" | "/channels" | "/messenger" | "/ads" | "/friends" | "/notifications" | "/profile" | "/subscription" | "/help" | "/my-ads";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -33,6 +34,7 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   const unread = useUnreadNotifications();
+  const me = useStore(selectors.currentUser);
   const { t } = useTranslation();
   return (
     <aside className="hidden lg:block w-60 shrink-0">
@@ -87,6 +89,29 @@ export function Sidebar() {
               </Link>
             );
           })}
+          {me && (
+            <Link
+              to={ROUTES.myAds}
+              className={`relative flex items-center gap-3 rounded-lg pl-3 pr-3 py-2 text-sm transition-colors ${
+                activeSection === "my-ads"
+                  ? "bg-accent/10 text-primary font-medium"
+                  : "text-foreground hover:bg-muted"
+              }`}
+              style={
+                activeSection === "my-ads"
+                  ? {
+                      borderLeft: "3px solid var(--accent)",
+                      paddingLeft: 9,
+                      background: "var(--accent-soft)",
+                      color: "var(--accent)",
+                    }
+                  : undefined
+              }
+            >
+              <ClipboardList className="h-5 w-5" />
+              {t("nav.myAds")}
+            </Link>
+          )}
           <a
             href="https://modelizm23.ru"
             target="_blank"
