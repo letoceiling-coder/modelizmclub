@@ -29,6 +29,8 @@ export const zh: TranslationSchema = {
     channels: "频道",
     messenger: "消息",
     ads: "广告",
+    catalog: "广告目录",
+    adCreate: "发布广告",
     friends: "好友",
     notifications: "通知",
     profile: "个人资料",
