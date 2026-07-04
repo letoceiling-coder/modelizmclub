@@ -17,6 +17,7 @@ import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as MessengerRouteImport } from './routes/messenger'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
@@ -85,6 +86,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyAdsRoute = MyAdsRouteImport.update({
+  id: '/my-ads',
+  path: '/my-ads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessengerRoute = MessengerRouteImport.update({
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
@@ -322,6 +330,7 @@ export interface FileRoutesById {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/profile'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/profile'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/profile'
@@ -477,6 +489,7 @@ export interface RootRouteChildren {
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   MessengerRoute: typeof MessengerRoute
+  MyAdsRoute: typeof MyAdsRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
@@ -549,6 +562,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-ads': {
+      id: '/my-ads'
+      path: '/my-ads'
+      fullPath: '/my-ads'
+      preLoaderRoute: typeof MyAdsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messenger': {
@@ -837,6 +857,7 @@ const rootRouteChildren: RootRouteChildren = {
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   MessengerRoute: MessengerRoute,
+  MyAdsRoute: MyAdsRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
