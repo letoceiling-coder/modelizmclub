@@ -3,6 +3,7 @@ import { Sidebar } from "./Sidebar";
 import { RightCategories } from "./RightCategories";
 import { BottomNav } from "./BottomNav";
 import { MobileHeader } from "./MobileHeader";
+import { DesktopTopBar } from "./DesktopTopBar";
 
 interface Props {
   children: ReactNode;
@@ -18,6 +19,7 @@ export function AppLayout({ children, rightColumn }: Props) {
     // Mobile: normal document scroll (min-h, no overflow-hidden, no flex-col).
     <div className="min-h-[100dvh] overflow-x-clip bg-background lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden">
       <MobileHeader />
+      <DesktopTopBar />
       {/*
         Mobile: pt-4/pb/px-3 — normal flow with BottomNav clearance.
         Desktop: flex-1 fills remaining shell height; items-stretch makes all

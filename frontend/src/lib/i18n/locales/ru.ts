@@ -27,6 +27,8 @@ export const ru = {
     channels: "Каналы",
     messenger: "Мессенджер",
     ads: "Объявления",
+    catalog: "Каталог объявлений",
+    adCreate: "Разместить объявление",
     friends: "Друзья",
     notifications: "Уведомления",
     profile: "Профиль",

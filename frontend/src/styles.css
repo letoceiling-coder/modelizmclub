@@ -96,6 +96,7 @@
 
   /* ===== Mobile App Shell ===== */
   --mobile-header-h: 52px;       /* header content row (excl. safe-area) */
+  --desktop-topbar-h: 60px;      /* desktop top bar height (lg+, excl. mobile) */
   --bottom-nav-h: 60px;          /* bottom nav row (excl. safe-area) */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
