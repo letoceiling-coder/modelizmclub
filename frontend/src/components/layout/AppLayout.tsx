@@ -29,9 +29,9 @@ export function AppLayout({ children, rightColumn }: Props) {
       */}
       <div
         className="
-          mx-auto flex w-full max-w-7xl items-start gap-6 px-3 pt-4
+          mx-auto flex w-full max-w-[var(--container-max)] items-start gap-6 px-3 pt-4
           pb-[calc(var(--bottom-nav-space)+8px)]
-          lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-6 lg:pb-0
+          lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0
         "
       >
         <Sidebar />

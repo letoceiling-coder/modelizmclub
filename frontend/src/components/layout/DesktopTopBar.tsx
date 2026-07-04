@@ -14,13 +14,14 @@ export function DesktopTopBar() {
 
   return (
     <header
-      className="hidden lg:flex shrink-0 items-center gap-4 px-6"
+      className="hidden shrink-0 lg:block"
       style={{
         height: "var(--desktop-topbar-h)",
         background: "var(--background)",
         borderBottom: "1px solid var(--border)",
       }}
     >
+      <div className="mx-auto flex h-full w-full max-w-[var(--container-max)] items-center gap-4 px-[var(--container-pad)]">
       <Link to={ROUTES.feed} className="flex shrink-0 items-center" aria-label={t("nav.feed")}>
         <Logo size={36} />
       </Link>
@@ -74,6 +75,7 @@ export function DesktopTopBar() {
           )}
         </Link>
         <UserMenu />
+      </div>
       </div>
     </header>
   );
