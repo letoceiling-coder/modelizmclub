@@ -29,6 +29,8 @@ export const en: TranslationSchema = {
     channels: "Channels",
     messenger: "Messenger",
     ads: "Listings",
+    catalog: "Listings catalog",
+    adCreate: "Post a listing",
     friends: "Friends",
     notifications: "Notifications",
     profile: "Profile",
@@ -37,6 +39,7 @@ export const en: TranslationSchema = {
     market: "Market",
     categories: "Categories",
     admin: "Admin",
+    myAds: "My Listings",
   },
   auth: {
     login: "Sign in",

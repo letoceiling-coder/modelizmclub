@@ -3,6 +3,7 @@ import { X, RotateCcw } from "lucide-react";
 import { type AdCondition } from "@/lib/mock";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
+import { CitySelect } from "@/components/ads/CitySelect";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
@@ -13,6 +14,7 @@ export interface FiltersState {
   subcategory: string;         // "Все" | subcat name
   status: string;              // "Все" | "Продаю" | "Куплю" | "Обменяю"
   city: string;                // free text
+  cityId?: number;
   conditions: AdCondition[];
   deliveries: string[];
   priceMin: number;
@@ -25,6 +27,7 @@ export const DEFAULT_FILTERS: FiltersState = {
   subcategory: "Все",
   status: "Все",
   city: "",
+  cityId: undefined,
   conditions: [],
   deliveries: [],
   priceMin: 0,
@@ -102,19 +105,11 @@ function Body({ value, onChange, onReset }: Props) {
       </Group>
 
       <Group title="Город">
-        <input
+        <CitySelect
           value={value.city}
-          onChange={(e) => set("city", e.target.value)}
-          placeholder="Любой"
-          className="w-full text-[13px] outline-none"
-          style={{
-            background: "var(--background-elevated)",
-            color: "var(--foreground)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-input)",
-            height: 40,
-            padding: "0 12px",
-          }}
+          cityId={value.cityId}
+          onChange={(name, id) => onChange({ ...value, city: name, cityId: id })}
+          placeholder="Любой город"
         />
       </Group>
 

@@ -27,6 +27,8 @@ export const ru = {
     channels: "Каналы",
     messenger: "Мессенджер",
     ads: "Объявления",
+    catalog: "Каталог объявлений",
+    adCreate: "Разместить объявление",
     friends: "Друзья",
     notifications: "Уведомления",
     profile: "Профиль",
@@ -35,6 +37,7 @@ export const ru = {
     market: "Маркет",
     categories: "Категории",
     admin: "Админка",
+    myAds: "Мои объявления",
   },
   auth: {
     login: "Войти",

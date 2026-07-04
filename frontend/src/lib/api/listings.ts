@@ -4,7 +4,7 @@ import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoListings, demoMyListings, demoListing } from "@/lib/demo-data";
+import { demoListings, demoListingsFiltered, demoMyListings, demoListing } from "@/lib/demo-data";
 
 interface ApiListingAuthor {
   id?: number;
@@ -108,10 +108,30 @@ export function mapListing(l: ApiListing): Ad {
   };
 }
 
-export async function fetchListings(query?: string): Promise<Ad[]> {
-  if (isDemoMode()) return demoListings(query);
+export interface CatalogParams {
+  q?: string;
+  cityId?: number;
+  cityName?: string;
+  categoryName?: string;
+  subcategoryName?: string;
+  priceMin?: number;
+  priceMax?: number;
+  conditions?: string[];
+  deliveries?: string[];
+  listingStatus?: string;
+  sort?: "new" | "cheap" | "expensive" | "popular";
+  withPhotoOnly?: boolean;
+}
+
+export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
+  if (isDemoMode()) return demoListingsFiltered(params);
   const res = await api<Paginated<ApiListing>>("/listings", {
-    query: { q: query || undefined, per_page: 50 },
+    query: {
+      q: params.q || undefined,
+      city_id: params.cityId || undefined,
+      per_page: 50,
+      sort: params.sort || undefined,
+    },
   });
   return (res.data ?? []).map(mapListing);
 }

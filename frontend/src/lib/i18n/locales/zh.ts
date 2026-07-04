@@ -29,6 +29,8 @@ export const zh: TranslationSchema = {
     channels: "频道",
     messenger: "消息",
     ads: "广告",
+    catalog: "广告目录",
+    adCreate: "发布广告",
     friends: "好友",
     notifications: "通知",
     profile: "个人资料",
@@ -37,6 +39,7 @@ export const zh: TranslationSchema = {
     market: "市场",
     categories: "分类",
     admin: "管理",
+    myAds: "我的广告",
   },
   auth: {
     login: "登录",
