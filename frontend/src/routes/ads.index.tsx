@@ -215,7 +215,7 @@ function CatalogPage() {
 
             {/* States */}
             {loadState === "loading" && (
-              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <AdCardSkeleton key={i} />
                 ))}
@@ -264,7 +264,7 @@ function CatalogPage() {
             )}
 
             {loadState === "ok" && ads.length > 0 && (
-              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
                 {ads.map((ad) => (
                   <CatalogCard key={ad.id} ad={ad} />
                 ))}

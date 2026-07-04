@@ -65,8 +65,8 @@
   --r-button: 12px;
   --radius: 0.75rem;
 
-  --container-max: 1280px;
-  --container-pad: 32px;
+  --container-max: 1560px;                    /* cap: контент не растягивается бесконечно на ultrawide */
+  --container-pad: clamp(24px, calc(7vw - 60px), 60px);  /* fluid поля ≈30/41/52px на 1280/1440/1600, без прыжков */
   --sidebar-w: 240px;
   --rightbar-w: 260px;
 
