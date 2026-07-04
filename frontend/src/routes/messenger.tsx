@@ -427,7 +427,7 @@ function MessengerPage() {
   return (
     <AppLayout rightColumn={false}>
       <div
-        className="grid overflow-hidden h-[calc(100dvh-var(--mobile-header-h)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-120px)] lg:grid-cols-[320px_1fr]"
+        className="grid overflow-hidden h-[calc(100dvh-var(--mobile-header-h)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]"
         style={{
           background: "var(--background)",
           border: "1px solid var(--border)",
