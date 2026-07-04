@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { RightCategories } from "./RightCategories";
 import { BottomNav } from "./BottomNav";
@@ -37,7 +38,14 @@ export function AppLayout({ children, rightColumn, navCollapsed }: Props) {
       >
         <Sidebar collapsed={navCollapsed} />
         {/* Center column: the only scroll zone on desktop. */}
-        <main className="min-w-0 flex-1 lg:overflow-y-auto">{children}</main>
+        <main
+          className={cn(
+            "min-w-0 flex-1 lg:overflow-y-auto",
+            rightColumn === false && "lg:mr-[calc(-1*var(--container-pad))] lg:pr-[var(--container-pad)]",
+          )}
+        >
+          {children}
+        </main>
         {rightColumn === false ? null : rightColumn ?? <RightCategories />}
       </div>
       <BottomNav />
