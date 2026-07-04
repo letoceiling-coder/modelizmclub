@@ -192,27 +192,6 @@ function NumInput({ value, onChange, placeholder }: { value: number; onChange: (
   );
 }
 
-export function AdFiltersDesktop(props: Props) {
-  return (
-    <aside
-      className="sticky top-[16px] hidden h-fit w-[280px] shrink-0 overflow-hidden lg:block"
-      style={{
-        background: "var(--background-elevated)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
-        boxShadow: "var(--shadow-card)",
-        maxHeight: "calc(100vh - 32px)",
-        overflowY: "auto",
-      }}
-    >
-      <div className="p-[20px]">
-        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
-        <Body {...props} />
-      </div>
-    </aside>
-  );
-}
-
 export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
