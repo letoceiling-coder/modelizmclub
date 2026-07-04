@@ -137,8 +137,16 @@ export function demoListings(query?: string): Ad[] {
 
 import type { CatalogParams } from "@/lib/api/listings";
 
+// Objявления, созданные пользователем в demo-режиме — живут в памяти сессии,
+// подмешиваются в начало каталога и находятся по id.
+const demoUserListings: Ad[] = [];
+
+export function demoAddListing(ad: Ad): void {
+  demoUserListings.unshift(ad);
+}
+
 export function demoListingsFiltered(params: CatalogParams): Ad[] {
-  let result = mockAds;
+  let result: Ad[] = [...demoUserListings, ...mockAds];
 
   if (params.q) {
     const q = params.q.toLowerCase();
@@ -207,7 +215,7 @@ export function demoMyListings(): { ad: Ad; status: AdStatusKey }[] {
 }
 
 export function demoListing(id: ID): Ad | null {
-  return adById(id) ?? null;
+  return demoUserListings.find((a) => a.id === id) ?? adById(id) ?? null;
 }
 
 // ── communities ──────────────────────────────────────────────────────────────
