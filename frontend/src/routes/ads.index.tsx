@@ -3,10 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
-import { type FiltersState, DEFAULT_FILTERS, AdFiltersDesktop, AdFiltersSheet } from "@/components/ads/AdFilters";
+import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CategoryChips } from "@/components/ads/CategoryChips";
-import { ListingCard } from "@/components/ads/ListingCard";
+import { CatalogCard } from "@/components/ads/CatalogCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
@@ -153,17 +153,9 @@ function CatalogPage() {
           onChange={handleCategoryChip}
         />
 
-        {/* Main layout: desktop filters sidebar + content */}
-        <div className="flex gap-[20px]">
-          {/* Desktop filters */}
-          <AdFiltersDesktop
-            value={filters}
-            onChange={setFilters}
-            onReset={resetFilters}
-          />
-
-          {/* Content column */}
-          <div className="min-w-0 flex-1 space-y-[12px]">
+        {/* Content — full width, filters live in the drawer */}
+        <div className="space-y-[12px]">
+          <div className="min-w-0 space-y-[12px]">
             {/* Sort bar */}
             <AdSortBar
               query={q}
@@ -172,6 +164,7 @@ function CatalogPage() {
               onSort={setSort}
               onOpenFilters={() => setSheetOpen(true)}
               count={ads.length}
+              filterCount={activeFilterCount}
             />
 
             {/* Active filter tags */}
@@ -222,8 +215,8 @@ function CatalogPage() {
 
             {/* States */}
             {loadState === "loading" && (
-              <div className="grid gap-[10px] sm:grid-cols-2">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
                   <AdCardSkeleton key={i} />
                 ))}
               </div>
@@ -271,9 +264,9 @@ function CatalogPage() {
             )}
 
             {loadState === "ok" && ads.length > 0 && (
-              <div className="grid gap-[10px] sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4">
                 {ads.map((ad) => (
-                  <ListingCard key={ad.id} ad={ad} />
+                  <CatalogCard key={ad.id} ad={ad} />
                 ))}
               </div>
             )}

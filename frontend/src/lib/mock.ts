@@ -1,4 +1,6 @@
 // Mock data for МоДелизМ prototype
+import { categoryPlaceholder } from "@/lib/placeholder-image";
+
 export type ID = string;
 
 export interface User {
@@ -300,7 +302,7 @@ export const posts: Post[] = [
   { id: "p22", authorId: "u1", date: "месяц назад", category: "Автомодели", title: "Сезон открыт: первые гонки 2026", text: "Стартанули в Краснодаре. 18 пилотов, 3 класса. Фотоотчёт и краткий анализ круга лидеров.", images: [photo(32), photo(33)], tags: ["гонки", "сезон2026"], views: 3200, likes: 104, comments: 1, saves: 47, reposts: 18, isFollowing: true, commentList: [cmt("c1", "u4", "3 нед назад", "Огонь сезон стартанул!", 5)] },
 ];
 
-const gal = (seeds: number[]) => seeds.map((s) => `https://picsum.photos/seed/mz-ad${s}/1200/900`);
+const gal = (seeds: number[], category: string) => seeds.map((s) => categoryPlaceholder(`mz-ad${s}`, category));
 
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
@@ -342,7 +344,7 @@ const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]
 
 export const ads: Ad[] = rawAds.map((r) => {
   const { seeds, sellerStats, ...rest } = r;
-  const gallery = gal(seeds);
+  const gallery = gal(seeds, rest.category);
   return {
     ...rest,
     image: gallery[0],

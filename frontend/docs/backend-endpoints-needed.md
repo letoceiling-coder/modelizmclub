@@ -91,3 +91,19 @@
 «Настройки» в `UserMenu` между «Подписка» и «Выйти».
 **Demo/mock fallback:** нет (пункт просто отсутствует в меню).
 
+---
+
+## 7. Media → Listing цепочка (подтверждение)
+
+**Задача:** Catalog Premium Redesign — photo-flow (2026-07-04)
+**Endpoints:** `POST /media` (upload) и `POST /listings` (с `media_ids`)
+**Статус:** `Existing` — прод-цепочка уже реализована (`uploadMedia` → `createListing`
+с `media_ids`). Не меняли.
+**Demo/mock fallback:** demo `uploadMedia` возвращает blob-URL (`URL.createObjectURL`);
+demo `createListing` использует его как фото и добавляет объявление в demo-каталог
+(`demoAddListing`). Так загруженное фото доходит до карточки без реального backend.
+
+**Tech-debt (вне scope):** лента/посты используют `photo()` → `picsum.photos`
+(внешний CDN, не грузится на стенде). Каталог переведён на локальные SVG-заглушки;
+ленту — отдельной задачей.
+

@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export type MediaPurpose = "avatar" | "post" | "post_video" | "listing" | "chat";
 
@@ -12,6 +13,10 @@ export interface UploadedMedia {
 }
 
 export async function uploadMedia(file: File, purpose: MediaPurpose): Promise<UploadedMedia> {
+  if (isDemoMode()) {
+    const url = URL.createObjectURL(file);
+    return { uuid: url, url };
+  }
   const form = new FormData();
   form.append("file", file);
   form.append("purpose", purpose);

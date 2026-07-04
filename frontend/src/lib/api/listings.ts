@@ -4,7 +4,8 @@ import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoListings, demoListingsFiltered, demoMyListings, demoListing } from "@/lib/demo-data";
+import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing } from "@/lib/demo-data";
+import { categoryPlaceholder } from "@/lib/placeholder-image";
 
 interface ApiListingAuthor {
   id?: number;
@@ -183,15 +184,18 @@ export interface CreateListingInput {
 
 export async function createListing(input: CreateListingInput): Promise<Ad> {
   if (isDemoMode()) {
+    const id = `demo-ad-${Date.now()}`;
+    const photos = (input.mediaIds ?? []).filter(Boolean);
+    const gallery = photos.length > 0 ? photos : [categoryPlaceholder(id)];
     const demoAd: Ad = {
-      id: `demo-ad-${Date.now()}`,
+      id,
       title: input.title,
       price: Math.round(input.priceCents / 100),
       category: "",
       subcategory: "",
       city: "Краснодар",
-      image: "https://picsum.photos/seed/demo-new-ad/1200/900",
-      gallery: ["https://picsum.photos/seed/demo-new-ad/1200/900"],
+      image: gallery[0],
+      gallery,
       description: input.description,
       delivery: input.deliveryMethods ?? [],
       status: "Продаю",
@@ -202,6 +206,7 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       createdAt: "только что",
       moderation: input.publish === false ? "moderation" : "published",
     };
+    demoAddListing(demoAd);
     return demoAd;
   }
   const res = await api<{ data: ApiListing }>("/listings", {
