@@ -52,20 +52,15 @@ function Body({ value, onChange, onReset }: Props) {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <Group title="Категория">
-        <Select
-          value={value.category}
-          onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
-          options={["Все", ...categories.map((c) => c.name)]}
-        />
-        {cat && (
+      {cat && (
+        <Group title="Подкатегория">
           <Select
             value={value.subcategory}
             onChange={(v) => set("subcategory", v)}
             options={["Все", ...cat.subcategories.map((s) => s.name)]}
           />
-        )}
-      </Group>
+        </Group>
+      )}
 
       <Group title="Статус">
         <div className="grid grid-cols-3 gap-[6px]">
