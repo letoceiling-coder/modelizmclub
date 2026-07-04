@@ -234,3 +234,19 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
     </AnimatePresence>
   );
 }
+
+export function AdFiltersPanel(props: Props) {
+  return (
+    <aside className="hidden xl:block w-[280px] shrink-0">
+      <div
+        className="sticky top-0 overflow-y-auto pr-[4px]"
+        style={{ maxHeight: "calc(100vh - var(--desktop-topbar-h) - 32px)", scrollbarWidth: "thin" }}
+      >
+        <h3 className="mb-[12px] font-display text-[15px] font-bold" style={{ color: "var(--foreground)" }}>
+          Фильтры
+        </h3>
+        <Body {...props} />
+      </div>
+    </aside>
+  );
+}
