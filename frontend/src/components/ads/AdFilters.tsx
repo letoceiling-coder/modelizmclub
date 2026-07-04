@@ -222,7 +222,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-50"
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
           <motion.div
@@ -230,7 +230,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.2}
             onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden"
             style={{
               background: "var(--background-elevated)",
               borderRadius: "var(--r-modal) var(--r-modal) 0 0",
