@@ -3,9 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
-import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet } from "@/components/ads/AdFilters";
+import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CategoryChips } from "@/components/ads/CategoryChips";
+import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -101,13 +102,19 @@ function CatalogPage() {
   const hasAnyFilter = activeFilterCount > 0 || q;
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} navCollapsed>
       <div className="space-y-[16px] pb-[24px]">
         {/* Header */}
         <div className="flex items-start justify-between gap-[12px]">
           <div>
+            <CatalogBreadcrumb
+              category={filters.category}
+              subcategory={filters.subcategory}
+              onResetToRoot={() => setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))}
+              onResetToCategory={() => setFilters((p) => ({ ...p, subcategory: "Все" }))}
+            />
             <h1
-              className="font-display text-[22px] font-bold leading-tight"
+              className="mt-[4px] font-display text-[22px] font-bold leading-tight"
               style={{ color: "var(--foreground)" }}
             >
               Объявления
@@ -153,9 +160,10 @@ function CatalogPage() {
           onChange={handleCategoryChip}
         />
 
-        {/* Content — full width, filters live in the drawer */}
-        <div className="space-y-[12px]">
-          <div className="min-w-0 space-y-[12px]">
+        {/* Content — persistent filter panel (xl+) + grid; drawer on <xl */}
+        <div className="flex gap-[20px]">
+          <AdFiltersPanel value={filters} onChange={setFilters} onReset={resetFilters} />
+          <div className="min-w-0 flex-1 space-y-[12px]">
             {/* Sort bar */}
             <AdSortBar
               query={q}

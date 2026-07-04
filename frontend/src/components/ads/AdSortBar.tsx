@@ -51,7 +51,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
         <button
           type="button"
           onClick={onOpenFilters}
-          className="inline-flex items-center justify-center gap-[8px] px-[16px] text-[14px] font-medium"
+          className="inline-flex items-center justify-center gap-[8px] px-[16px] text-[14px] font-medium xl:hidden"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",
