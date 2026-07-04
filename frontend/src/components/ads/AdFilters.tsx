@@ -52,20 +52,15 @@ function Body({ value, onChange, onReset }: Props) {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <Group title="Категория">
-        <Select
-          value={value.category}
-          onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
-          options={["Все", ...categories.map((c) => c.name)]}
-        />
-        {cat && (
+      {cat && (
+        <Group title="Подкатегория">
           <Select
             value={value.subcategory}
             onChange={(v) => set("subcategory", v)}
             options={["Все", ...cat.subcategories.map((s) => s.name)]}
           />
-        )}
-      </Group>
+        </Group>
+      )}
 
       <Group title="Статус">
         <div className="grid grid-cols-3 gap-[6px]">
@@ -197,27 +192,6 @@ function NumInput({ value, onChange, placeholder }: { value: number; onChange: (
   );
 }
 
-export function AdFiltersDesktop(props: Props) {
-  return (
-    <aside
-      className="sticky top-[16px] hidden h-fit w-[280px] shrink-0 overflow-hidden lg:block"
-      style={{
-        background: "var(--background-elevated)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
-        boxShadow: "var(--shadow-card)",
-        maxHeight: "calc(100vh - 32px)",
-        overflowY: "auto",
-      }}
-    >
-      <div className="p-[20px]">
-        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
-        <Body {...props} />
-      </div>
-    </aside>
-  );
-}
-
 export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
@@ -227,7 +201,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-50"
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
           <motion.div
@@ -235,7 +209,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.2}
             onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden"
             style={{
               background: "var(--background-elevated)",
               borderRadius: "var(--r-modal) var(--r-modal) 0 0",
