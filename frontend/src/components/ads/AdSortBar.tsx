@@ -17,9 +17,10 @@ interface Props {
   onSort: (v: SortKey) => void;
   onOpenFilters: () => void;
   count: number;
+  filterCount?: number;
 }
 
-export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count }: Props) {
+export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, filterCount = 0 }: Props) {
   return (
     <div className="flex flex-col gap-[12px]">
       <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center">
@@ -50,7 +51,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count }
         <button
           type="button"
           onClick={onOpenFilters}
-          className="inline-flex items-center justify-center gap-[8px] px-[16px] text-[14px] font-medium lg:hidden"
+          className="inline-flex items-center justify-center gap-[8px] px-[16px] text-[14px] font-medium"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",
@@ -60,6 +61,14 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count }
           }}
         >
           <SlidersHorizontal size={16} /> Фильтры
+          {filterCount > 0 && (
+            <span
+              className="grid min-w-[20px] place-items-center rounded-full px-[6px] text-[11px] font-bold"
+              style={{ height: 20, background: "var(--accent)", color: "var(--accent-foreground)" }}
+            >
+              {filterCount}
+            </span>
+          )}
         </button>
 
         <div className="flex items-center gap-[8px]">
