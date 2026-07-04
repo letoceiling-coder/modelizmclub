@@ -295,10 +295,24 @@ html, body {
   }
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* Thin, Avito-style scrollbar — semi-transparent neutral thumb, transparent track. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--text-tertiary) 55%, transparent) transparent;
+}
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: var(--r-pill); }
-::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--text-tertiary) 55%, transparent);
+  border-radius: var(--r-pill);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--text-tertiary) 80%, transparent);
+  background-clip: padding-box;
+}
 
 ::selection { background: var(--accent-soft); color: var(--accent); }
 
