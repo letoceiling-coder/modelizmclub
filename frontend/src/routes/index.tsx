@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, ChevronDown, Play, Pause, Volume2, VolumeX, Plus, Check,
+  ArrowRight, ChevronDown, Plus, Check,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
   MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays,
   Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
@@ -170,30 +170,13 @@ const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
 function Hero() {
   const enter = useEnter();
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoError, setVideoError] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
     return () => clearTimeout(t);
   }, []);
-
-  function togglePlay() {
-    const v = videoRef.current;
-    if (!v) return;
-    if (isPlaying) v.pause();
-    else void v.play().catch(() => {});
-    setIsPlaying(!isPlaying);
-  }
-  function toggleMute() {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !isMuted;
-    setIsMuted(!isMuted);
-  }
 
   const fadeUp = {
     hidden: { opacity: 0, y: 22 },
@@ -209,7 +192,6 @@ function Hero() {
           <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
         ) : (
           <video
-            ref={videoRef}
             poster={cover}
             autoPlay
             muted
@@ -229,17 +211,6 @@ function Hero() {
         />
       </div>
 
-      {/* video controls */}
-      {!videoError && (
-        <div className="absolute bottom-6 right-6 z-20 hidden gap-2 sm:flex">
-          <HeroCtrl onClick={togglePlay} label={isPlaying ? "Пауза" : "Играть"}>
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </HeroCtrl>
-          <HeroCtrl onClick={toggleMute} label={isMuted ? "Звук" : "Без звука"}>
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </HeroCtrl>
-        </div>
-      )}
 
       {/* content */}
       <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
@@ -322,13 +293,6 @@ function Hero() {
   );
 }
 
-function HeroCtrl({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} aria-label={label} className="grid place-items-center"
-      style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.16)", color: "#fff", backdropFilter: "blur(8px)" }}
-    >{children}</button>
-  );
-}
 
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
