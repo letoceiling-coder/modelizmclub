@@ -12,6 +12,7 @@ import type {
   Community,
   FriendRequest,
   Comment,
+  DialogAdRef,
   ID,
 } from "./mock";
 
@@ -62,7 +63,21 @@ export interface AppState {
   blockedUserIds: ID[];
   hiddenUserIds: ID[];
   favoriteAdIds: ID[];
+  dialogAdRefs: Record<ID, DialogAdRef>;
   currentUserId: ID;
+}
+
+const FAVORITES_KEY = "modelizm:favorites";
+
+function readPersistedFavorites(): ID[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is ID => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 // The store starts empty and is hydrated exclusively from the API
@@ -82,7 +97,8 @@ export function createInitialState(): AppState {
     friendships: [],
     blockedUserIds: [],
     hiddenUserIds: [],
-    favoriteAdIds: [],
+    favoriteAdIds: readPersistedFavorites(),
+    dialogAdRefs: {},
     currentUserId: GUEST_USER.id,
   };
 }
@@ -105,6 +121,19 @@ const subscribe = (l: () => void): (() => void) => {
 const emit = (): void => {
   listeners.forEach((l) => l());
 };
+
+// Persist favoriteAdIds to localStorage on change (session-durable favorites).
+let lastPersistedFavorites: ID[] = state.favoriteAdIds;
+subscribe(() => {
+  if (typeof window === "undefined") return;
+  if (state.favoriteAdIds === lastPersistedFavorites) return;
+  lastPersistedFavorites = state.favoriteAdIds;
+  try {
+    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favoriteAdIds));
+  } catch {
+    /* quota/full — игнор */
+  }
+});
 
 type Action =
   | { type: "ADD_MESSAGE"; dialogId: ID; message: Message; incrementUnread?: boolean }
@@ -134,7 +163,8 @@ type Action =
   | { type: "BLOCK_USER"; userId: ID }
   | { type: "UNBLOCK_USER"; userId: ID }
   | { type: "HIDE_USER"; userId: ID }
-  | { type: "TOGGLE_FAVORITE_AD"; adId: ID };
+  | { type: "TOGGLE_FAVORITE_AD"; adId: ID }
+  | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -405,6 +435,8 @@ function reducer(s: AppState, a: Action): AppState {
           ? s.favoriteAdIds.filter((id) => id !== a.adId)
           : [...s.favoriteAdIds, a.adId],
       };
+    case "SET_DIALOG_AD":
+      return { ...s, dialogAdRefs: { ...s.dialogAdRefs, [a.dialogId]: a.ref } };
     default:
       return s;
   }
@@ -455,6 +487,7 @@ export const actions = {
   unblockUser: (userId: ID) => dispatch({ type: "UNBLOCK_USER", userId }),
   hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
   toggleFavoriteAd: (adId: ID) => dispatch({ type: "TOGGLE_FAVORITE_AD", adId }),
+  setDialogAd: (dialogId: ID, ref: DialogAdRef) => dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 

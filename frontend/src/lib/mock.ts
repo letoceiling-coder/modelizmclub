@@ -219,6 +219,13 @@ export interface Dialog {
   pinned?: boolean;
 }
 
+export interface DialogAdRef {
+  id: ID;
+  title: string;
+  price: number;
+  image?: string;
+}
+
 const avatar = (seed: string) =>
   `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
 
