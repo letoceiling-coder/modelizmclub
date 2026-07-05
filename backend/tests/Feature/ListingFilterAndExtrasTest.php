@@ -8,6 +8,7 @@ use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ListingFilterAndExtrasTest extends TestCase
@@ -31,7 +32,7 @@ class ListingFilterAndExtrasTest extends TestCase
             'user_id' => $user->id,
             'category_id' => $category->id,
             'title' => $title,
-            'slug' => \Illuminate\Support\Str::slug($title),
+            'slug' => Str::slug($title),
             'description' => 'Описание '.$title,
             'price_cents' => $priceCents,
             'views_count' => $views,
@@ -63,6 +64,27 @@ class ListingFilterAndExtrasTest extends TestCase
         $this->getJson('/api/v1/listings?sort=price_desc')
             ->assertOk()
             ->assertJsonPath('data.0.title', 'Дорогой мотор');
+    }
+
+    public function test_listings_sort_frontend_aliases(): void
+    {
+        $category = $this->category();
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $this->listing($user, $category, 'Дешёвый мотор', 100_00);
+        $this->listing($user, $category, 'Дорогой мотор', 900_00);
+
+        $this->getJson('/api/v1/listings?sort=cheap')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Дешёвый мотор');
+
+        $this->getJson('/api/v1/listings?sort=expensive')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Дорогой мотор');
+
+        $this->getJson('/api/v1/listings?sort=new')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_listings_search_and_popular_sort(): void

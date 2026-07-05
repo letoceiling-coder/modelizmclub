@@ -3,6 +3,7 @@ import { X, RotateCcw } from "lucide-react";
 import { type AdCondition } from "@/lib/mock";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
+import { CitySelect } from "@/components/ads/CitySelect";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
@@ -13,6 +14,7 @@ export interface FiltersState {
   subcategory: string;         // "Все" | subcat name
   status: string;              // "Все" | "Продаю" | "Куплю" | "Обменяю"
   city: string;                // free text
+  cityId?: number;
   conditions: AdCondition[];
   deliveries: string[];
   priceMin: number;
@@ -25,6 +27,7 @@ export const DEFAULT_FILTERS: FiltersState = {
   subcategory: "Все",
   status: "Все",
   city: "",
+  cityId: undefined,
   conditions: [],
   deliveries: [],
   priceMin: 0,
@@ -49,20 +52,15 @@ function Body({ value, onChange, onReset }: Props) {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <Group title="Категория">
-        <Select
-          value={value.category}
-          onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
-          options={["Все", ...categories.map((c) => c.name)]}
-        />
-        {cat && (
+      {cat && (
+        <Group title="Подкатегория">
           <Select
             value={value.subcategory}
             onChange={(v) => set("subcategory", v)}
             options={["Все", ...cat.subcategories.map((s) => s.name)]}
           />
-        )}
-      </Group>
+        </Group>
+      )}
 
       <Group title="Статус">
         <div className="grid grid-cols-3 gap-[6px]">
@@ -102,19 +100,11 @@ function Body({ value, onChange, onReset }: Props) {
       </Group>
 
       <Group title="Город">
-        <input
+        <CitySelect
           value={value.city}
-          onChange={(e) => set("city", e.target.value)}
-          placeholder="Любой"
-          className="w-full text-[13px] outline-none"
-          style={{
-            background: "var(--background-elevated)",
-            color: "var(--foreground)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-input)",
-            height: 40,
-            padding: "0 12px",
-          }}
+          cityId={value.cityId}
+          onChange={(name, id) => onChange({ ...value, city: name, cityId: id })}
+          placeholder="Любой город"
         />
       </Group>
 
@@ -202,27 +192,6 @@ function NumInput({ value, onChange, placeholder }: { value: number; onChange: (
   );
 }
 
-export function AdFiltersDesktop(props: Props) {
-  return (
-    <aside
-      className="sticky top-[16px] hidden h-fit w-[280px] shrink-0 overflow-hidden lg:block"
-      style={{
-        background: "var(--background-elevated)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
-        boxShadow: "var(--shadow-card)",
-        maxHeight: "calc(100vh - 32px)",
-        overflowY: "auto",
-      }}
-    >
-      <div className="p-[20px]">
-        <h3 className="mb-[16px] font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
-        <Body {...props} />
-      </div>
-    </aside>
-  );
-}
-
 export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
@@ -232,7 +201,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-50"
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
           <motion.div
@@ -240,7 +209,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.2}
             onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden"
             style={{
               background: "var(--background-elevated)",
               borderRadius: "var(--r-modal) var(--r-modal) 0 0",
@@ -263,5 +232,21 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+export function AdFiltersPanel(props: Props) {
+  return (
+    <aside className="hidden xl:block w-[280px] shrink-0">
+      <div
+        className="sticky top-0 overflow-y-auto pr-[4px]"
+        style={{ maxHeight: "calc(100vh - var(--desktop-topbar-h) - 32px)", scrollbarWidth: "thin" }}
+      >
+        <h3 className="mb-[12px] font-display text-[15px] font-bold" style={{ color: "var(--foreground)" }}>
+          Фильтры
+        </h3>
+        <Body {...props} />
+      </div>
+    </aside>
   );
 }

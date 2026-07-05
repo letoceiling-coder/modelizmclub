@@ -9,6 +9,8 @@ export const ROUTES = {
   ads: "/ads",
   ad: (id: string) => `/ads/${id}` as const,
   adCreate: "/ads/new",
+  myAds: "/my-ads",
+  favorites: "/favorites",
   messenger: "/messenger",
   messengerChat: (chatId: string) => `/messenger?chat=${chatId}` as const,
   profile: "/profile",
@@ -30,7 +32,12 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   feed: ["/feed", "/categories"],
   communities: ["/communities"],
   channels: ["/channels", "/channel"],
+  // "ad-create" стоит ПЕРЕД "ads": getActiveSection возвращает первое
+  // совпадение, поэтому /ads/new матчится как отдельная секция, а не как /ads.
+  "ad-create": ["/ads/new"],
   ads: ["/ads"],
+  "my-ads": ["/my-ads"],
+  favorites: ["/favorites"],
   messenger: ["/messenger"],
   profile: ["/profile", "/user"],
   friends: ["/friends"],

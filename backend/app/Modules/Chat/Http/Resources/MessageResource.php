@@ -23,6 +23,11 @@ class MessageResource extends JsonResource
                 'body' => $this->replyTo->body,
                 'author' => new UserCompactResource($this->replyTo->author),
             ] : null),
+            'forwarded_from' => $this->whenLoaded('forwardedFrom', fn () => $this->forwardedFrom ? [
+                'uuid' => $this->forwardedFrom->uuid,
+                'body' => $this->forwardedFrom->body,
+                'author' => new UserCompactResource($this->forwardedFrom->author),
+            ] : null),
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
                 'media' => $attachment->relationLoaded('media') && $attachment->media ? [
                     'uuid' => $attachment->media->uuid,

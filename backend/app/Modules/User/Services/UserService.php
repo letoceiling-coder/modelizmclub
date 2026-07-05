@@ -62,6 +62,41 @@ class UserService
             $data['slug'] = $slug;
         }
 
+        if (array_key_exists('avatar_media_id', $data)) {
+            $value = $data['avatar_media_id'];
+            unset($data['avatar_media_id']);
+
+            if ($value === null || $value === '') {
+                $data['avatar_media_id'] = null;
+            } elseif (is_string($value) && ! ctype_digit($value)) {
+                $media = Media::query()
+                    ->where('uuid', $value)
+                    ->where('uploaded_by', $user->id)
+                    ->first();
+
+                if (! $media) {
+                    throw ValidationException::withMessages([
+                        'avatar_media_id' => ['Изображение недоступно.'],
+                    ]);
+                }
+
+                $data['avatar_media_id'] = $media->id;
+            } else {
+                $media = Media::query()
+                    ->where('id', (int) $value)
+                    ->where('uploaded_by', $user->id)
+                    ->first();
+
+                if (! $media) {
+                    throw ValidationException::withMessages([
+                        'avatar_media_id' => ['Изображение недоступно.'],
+                    ]);
+                }
+
+                $data['avatar_media_id'] = $media->id;
+            }
+        }
+
         if (array_key_exists('avatar_media_uuid', $data)) {
             $uuid = $data['avatar_media_uuid'];
             unset($data['avatar_media_uuid']);
@@ -203,6 +238,16 @@ class UserService
                 ['reason' => $reason],
             );
         });
+    }
+
+    public function unblock(User $blocker, User $target): void
+    {
+        $this->assertNotSelf($blocker, $target, 'unblock');
+
+        UserBlock::query()
+            ->where('blocker_id', $blocker->id)
+            ->where('blocked_id', $target->id)
+            ->delete();
     }
 
     /** @return Collection<int, User> */

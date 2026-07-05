@@ -38,6 +38,7 @@ Route::prefix('users')->group(function (): void {
         Route::post('{id}/follow', [FollowController::class, 'store'])->whereNumber('id');
         Route::delete('{id}/follow', [FollowController::class, 'destroy'])->whereNumber('id');
         Route::post('{id}/block', [BlockController::class, 'store'])->whereNumber('id');
+        Route::delete('{id}/block', [BlockController::class, 'destroy'])->whereNumber('id');
     });
 
     Route::get('{slug}', ShowProfileController::class);

@@ -289,6 +289,7 @@ export async function fetchAdminBanners(): Promise<Banner[]> {
     priority: 0,
     scheduleFrom: b.starts_at ? b.starts_at.slice(0, 10) : "",
     scheduleTo: b.ends_at ? b.ends_at.slice(0, 10) : "",
+    active: b.is_active ?? true,
   }));
 }
 

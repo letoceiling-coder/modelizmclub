@@ -21,6 +21,10 @@ class ConversationResource extends JsonResource
             default => null,
         };
 
+        $myParticipant = $participants
+            ? $this->participants->first(fn ($p) => $user && $p->user_id === $user->id)
+            : null;
+
         $title = $this->title;
         if ($this->type === ConversationType::Direct && $user && $participants) {
             $other = $this->participants
@@ -32,11 +36,21 @@ class ConversationResource extends JsonResource
             'uuid' => $this->uuid,
             'type' => $this->type->value,
             'title' => $title,
+            'listing_id' => $this->listing_id,
+            'listing' => $this->whenLoaded('listing', fn () => $this->listing
+                ? new ListingCompactResource($this->listing)
+                : null),
+            'is_pinned' => $myParticipant?->pinned_at !== null,
+            'pinned_at' => $myParticipant?->pinned_at?->toIso8601String(),
+            'pinned_message' => $this->whenLoaded('pinnedMessage', fn () => $this->pinnedMessage
+                ? new MessageResource($this->pinnedMessage)
+                : null),
             'last_message_at' => $this->last_message_at?->toIso8601String(),
             'participants' => $participants
                 ? $this->participants->map(fn ($p) => [
                     'user' => new UserCompactResource($p->user),
                     'role' => $p->role,
+                    'pinned_at' => $p->pinned_at?->toIso8601String(),
                 ])
                 : [],
             'last_message' => $lastMessage ? new MessageResource($lastMessage) : null,

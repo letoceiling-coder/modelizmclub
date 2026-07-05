@@ -33,17 +33,6 @@ const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send: SendIcon, Code2, Wrench, Cpu, BatteryCharging,
 };
 
-function tgLink(value: string): string {
-  if (value.startsWith("http")) return value;
-  const handle = value.startsWith("@") ? value.slice(1) : value;
-  return `https://t.me/${handle}`;
-}
-function tgLabel(value: string): string {
-  if (value.startsWith("http")) {
-    try { return "@" + new URL(value).pathname.replace(/^\//, ""); } catch { return value; }
-  }
-  return value.startsWith("@") ? value : `@${value}`;
-}
 function siteLabel(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
 }
@@ -71,8 +60,6 @@ function ContactsBlock({ contacts, compact }: { contacts?: CommunityContacts; co
     rows.push({ icon: Globe, label: "Сайт", value: siteLabel(contacts.website), href: contacts.website, external: true });
   if (contacts.phone)
     rows.push({ icon: Phone, label: "Телефон", value: contacts.phone, href: `tel:${contacts.phone.replace(/\s/g, "")}` });
-  if (contacts.telegram)
-    rows.push({ icon: MessageCircle, label: "Telegram", value: tgLabel(contacts.telegram), href: tgLink(contacts.telegram), external: true });
   if (rows.length === 0) return null;
 
   return (

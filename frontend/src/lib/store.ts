@@ -12,6 +12,7 @@ import type {
   Community,
   FriendRequest,
   Comment,
+  DialogAdRef,
   ID,
 } from "./mock";
 
@@ -59,7 +60,24 @@ export interface AppState {
   communityMemberships: Record<ID, ID[]>; // userId -> communityIds
   friendRequests: FriendRequest[];
   friendships: Friendship[];
+  blockedUserIds: ID[];
+  hiddenUserIds: ID[];
+  favoriteAdIds: ID[];
+  dialogAdRefs: Record<ID, DialogAdRef>;
   currentUserId: ID;
+}
+
+const FAVORITES_KEY = "modelizm:favorites";
+
+function readPersistedFavorites(): ID[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is ID => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 // The store starts empty and is hydrated exclusively from the API
@@ -77,6 +95,10 @@ export function createInitialState(): AppState {
     communityMemberships: {},
     friendRequests: [],
     friendships: [],
+    blockedUserIds: [],
+    hiddenUserIds: [],
+    favoriteAdIds: readPersistedFavorites(),
+    dialogAdRefs: {},
     currentUserId: GUEST_USER.id,
   };
 }
@@ -100,9 +122,23 @@ const emit = (): void => {
   listeners.forEach((l) => l());
 };
 
+// Persist favoriteAdIds to localStorage on change (session-durable favorites).
+let lastPersistedFavorites: ID[] = state.favoriteAdIds;
+subscribe(() => {
+  if (typeof window === "undefined") return;
+  if (state.favoriteAdIds === lastPersistedFavorites) return;
+  lastPersistedFavorites = state.favoriteAdIds;
+  try {
+    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favoriteAdIds));
+  } catch {
+    /* quota/full — игнор */
+  }
+});
+
 type Action =
   | { type: "ADD_MESSAGE"; dialogId: ID; message: Message; incrementUnread?: boolean }
   | { type: "MARK_READ"; dialogId: ID }
+  | { type: "MARK_UNREAD"; dialogId: ID }
   | { type: "UPDATE_PROFILE"; userId: ID; data: Partial<User> }
   | { type: "SEND_FRIEND_REQUEST"; fromId: ID; toId: ID }
   | { type: "ACCEPT_FRIEND_REQUEST"; requestId: ID }
@@ -119,7 +155,16 @@ type Action =
   | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
   | { type: "SET_CURRENT_USER"; user: User }
   | { type: "SET_DIALOGS"; dialogs: Dialog[] }
-  | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] };
+  | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] }
+  | { type: "PIN_MESSAGE"; dialogId: ID; messageId: ID }
+  | { type: "DELETE_MESSAGE_FOR_ME"; dialogId: ID; messageId: ID }
+  | { type: "PIN_DIALOG"; dialogId: ID; pinned: boolean }
+  | { type: "CLEAR_HISTORY"; dialogId: ID }
+  | { type: "BLOCK_USER"; userId: ID }
+  | { type: "UNBLOCK_USER"; userId: ID }
+  | { type: "HIDE_USER"; userId: ID }
+  | { type: "TOGGLE_FAVORITE_AD"; adId: ID }
+  | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -160,6 +205,11 @@ function reducer(s: AppState, a: Action): AppState {
       const d = s.dialogs[a.dialogId];
       if (!d || !d.unread) return s;
       return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, unread: 0 } } };
+    }
+    case "MARK_UNREAD": {
+      const d = s.dialogs[a.dialogId];
+      if (!d || d.unread) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, unread: 1 } } };
     }
     case "UPDATE_PROFILE": {
       const u = s.users[a.userId];
@@ -318,6 +368,75 @@ function reducer(s: AppState, a: Action): AppState {
         },
       };
     }
+    case "PIN_MESSAGE": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      const target = d.messages.find((m) => m.id === a.messageId);
+      const nextPinned = !target?.pinned;
+      const messages = d.messages.map((m) => ({
+        ...m,
+        pinned: m.id === a.messageId ? nextPinned : false,
+      }));
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages } } };
+    }
+    case "DELETE_MESSAGE_FOR_ME": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      const messages = d.messages.map((m) =>
+        m.id === a.messageId ? { ...m, deletedForMe: true } : m,
+      );
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages } } };
+    }
+    case "PIN_DIALOG": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, pinned: a.pinned } } };
+    }
+    case "CLEAR_HISTORY": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages: [] } } };
+    }
+    case "BLOCK_USER": {
+      if (s.blockedUserIds.includes(a.userId)) return s;
+      const meId = s.currentUserId;
+      return {
+        ...s,
+        blockedUserIds: [...s.blockedUserIds, a.userId],
+        friendships: s.friendships.filter(
+          (f) =>
+            !(
+              (f.userId1 === meId && f.userId2 === a.userId) ||
+              (f.userId1 === a.userId && f.userId2 === meId)
+            ),
+        ),
+        friendRequests: s.friendRequests.filter(
+          (r) =>
+            !(
+              (r.fromId === meId && r.toId === a.userId) ||
+              (r.fromId === a.userId && r.toId === meId)
+            ),
+        ),
+      };
+    }
+    case "UNBLOCK_USER":
+      return { ...s, blockedUserIds: s.blockedUserIds.filter((id) => id !== a.userId) };
+    case "HIDE_USER":
+      return {
+        ...s,
+        hiddenUserIds: s.hiddenUserIds.includes(a.userId)
+          ? s.hiddenUserIds
+          : [...s.hiddenUserIds, a.userId],
+      };
+    case "TOGGLE_FAVORITE_AD":
+      return {
+        ...s,
+        favoriteAdIds: s.favoriteAdIds.includes(a.adId)
+          ? s.favoriteAdIds.filter((id) => id !== a.adId)
+          : [...s.favoriteAdIds, a.adId],
+      };
+    case "SET_DIALOG_AD":
+      return { ...s, dialogAdRefs: { ...s.dialogAdRefs, [a.dialogId]: a.ref } };
     default:
       return s;
   }
@@ -343,6 +462,7 @@ export function useStore<T>(selector: (s: AppState) => T): T {
 export const actions = {
   addMessage: (dialogId: ID, message: Message) => dispatch({ type: "ADD_MESSAGE", dialogId, message }),
   markRead: (dialogId: ID) => dispatch({ type: "MARK_READ", dialogId }),
+  markUnread: (dialogId: ID) => dispatch({ type: "MARK_UNREAD", dialogId }),
   updateProfile: (userId: ID, data: Partial<User>) => dispatch({ type: "UPDATE_PROFILE", userId, data }),
   sendFriendRequest: (fromId: ID, toId: ID) => dispatch({ type: "SEND_FRIEND_REQUEST", fromId, toId }),
   acceptFriendRequest: (requestId: ID) => dispatch({ type: "ACCEPT_FRIEND_REQUEST", requestId }),
@@ -359,6 +479,15 @@ export const actions = {
   savePost: (postId: ID, save: boolean) => dispatch({ type: "SAVE_POST", postId, save }),
   addComment: (postId: ID, comment: Comment) => dispatch({ type: "ADD_COMMENT", postId, comment }),
   setDialogMeta: (dialogId: ID, patch: Partial<DialogMeta>) => dispatch({ type: "SET_DIALOG_META", dialogId, patch }),
+  pinMessage: (dialogId: ID, messageId: ID) => dispatch({ type: "PIN_MESSAGE", dialogId, messageId }),
+  deleteMessageForMe: (dialogId: ID, messageId: ID) => dispatch({ type: "DELETE_MESSAGE_FOR_ME", dialogId, messageId }),
+  pinDialog: (dialogId: ID, pinned: boolean) => dispatch({ type: "PIN_DIALOG", dialogId, pinned }),
+  clearHistory: (dialogId: ID) => dispatch({ type: "CLEAR_HISTORY", dialogId }),
+  blockUser: (userId: ID) => dispatch({ type: "BLOCK_USER", userId }),
+  unblockUser: (userId: ID) => dispatch({ type: "UNBLOCK_USER", userId }),
+  hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
+  toggleFavoriteAd: (adId: ID) => dispatch({ type: "TOGGLE_FAVORITE_AD", adId }),
+  setDialogAd: (dialogId: ID, ref: DialogAdRef) => dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 
@@ -450,4 +579,6 @@ export const selectors = {
   },
   dialogMeta: (dialogId: ID) => (s: AppState): DialogMeta =>
     s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
+  isBlocked: (userId: ID) => (s: AppState): boolean => s.blockedUserIds.includes(userId),
+  isAdFavorite: (adId: ID) => (s: AppState): boolean => s.favoriteAdIds.includes(adId),
 };

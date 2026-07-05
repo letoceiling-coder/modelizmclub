@@ -17,8 +17,10 @@ class Conversation extends Model
         'uuid',
         'type',
         'community_id',
+        'listing_id',
         'title',
         'last_message_at',
+        'pinned_message_id',
         'settings',
     ];
 
@@ -34,6 +36,16 @@ class Conversation extends Model
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);
+    }
+
+    public function listing(): BelongsTo
+    {
+        return $this->belongsTo(Listing::class);
+    }
+
+    public function pinnedMessage(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'pinned_message_id');
     }
 
     public function participants(): HasMany

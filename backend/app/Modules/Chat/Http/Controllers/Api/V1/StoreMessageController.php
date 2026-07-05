@@ -13,8 +13,9 @@ class StoreMessageController extends Controller
     public function __invoke(string $uuid, Request $request, ChatService $chat): JsonResponse
     {
         $data = $request->validate([
-            'body' => ['nullable', 'required_without:media_uuids', 'string', 'max:10000'],
+            'body' => ['nullable', 'required_without_all:media_uuids,forwarded_from_message_uuid', 'string', 'max:10000'],
             'reply_to_uuid' => ['nullable', 'string', 'uuid'],
+            'forwarded_from_message_uuid' => ['nullable', 'string', 'uuid'],
             'type' => ['nullable', 'string', 'in:text,voice,image,file'],
             'media_uuids' => ['nullable', 'array', 'max:10'],
             'media_uuids.*' => ['string', 'uuid'],
@@ -28,6 +29,7 @@ class StoreMessageController extends Controller
             $data['reply_to_uuid'] ?? null,
             $data['type'] ?? 'text',
             $data['media_uuids'] ?? [],
+            $data['forwarded_from_message_uuid'] ?? null,
         );
 
         return response()->json([

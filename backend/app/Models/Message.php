@@ -21,6 +21,7 @@ class Message extends Model
         'body',
         'type',
         'reply_to_id',
+        'forwarded_from_message_id',
         'status',
         'edited_at',
     ];
@@ -46,6 +47,11 @@ class Message extends Model
     public function replyTo(): BelongsTo
     {
         return $this->belongsTo(Message::class, 'reply_to_id');
+    }
+
+    public function forwardedFrom(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'forwarded_from_message_id');
     }
 
     public function attachments(): HasMany

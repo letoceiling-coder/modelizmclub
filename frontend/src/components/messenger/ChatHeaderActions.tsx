@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users } from "lucide-react";
+import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users, Pin, PinOff, Trash2, Flag } from "lucide-react";
 import { toast } from "sonner";
+import { userById } from "@/lib/mock";
+import { blockUser, unblockUser } from "@/lib/api/social";
+import { pinConversation, unpinConversation } from "@/lib/api/chat";
+import { isDemoMode } from "@/lib/demo-mode";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { calls, useCalls } from "@/lib/calls";
 import { groupCalls, useGroupCall } from "@/lib/groupCall";
@@ -12,11 +16,13 @@ interface Props {
   partnerId: string;
   partnerName: string;
   dialogId?: string;
+  pinned?: boolean;
   onSearch?: () => void;
 }
 
-export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }: Props) {
+export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, onSearch }: Props) {
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
+  const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeCall = useCalls((s) => s.active);
@@ -24,6 +30,19 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
   const callBusy = (!!activeCall && activeCall.status !== "ended") || groupActive;
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canHover = typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
+
+  const cancelScheduledClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelScheduledClose();
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -81,15 +100,53 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
     }
   };
 
-  const toggleBlock = () => {
+  const togglePin = async () => {
     close();
     if (!dialogId) return;
-    if (meta.blocked) {
-      actions.setDialogMeta(dialogId, { blocked: false });
+    if (pinned) {
+      actions.pinDialog(dialogId, false);
+      if (!isDemoMode()) {
+        try { await unpinConversation(dialogId); } catch { toast.error("Не удалось открепить чат"); return; }
+      }
+      toast.success("Чат откреплён");
+    } else {
+      actions.pinDialog(dialogId, true);
+      if (!isDemoMode()) {
+        try { await pinConversation(dialogId); } catch { toast.error("Не удалось закрепить чат"); return; }
+      }
+      toast.success("Чат закреплён", { description: "Теперь он вверху списка" });
+    }
+  };
+
+  const clearHistory = () => {
+    close();
+    if (!dialogId) return;
+    if (!window.confirm(`Очистить историю переписки с ${partnerName}? Это действие нельзя отменить.`)) return;
+    actions.clearHistory(dialogId);
+    toast.success("История очищена");
+  };
+
+  const reportUser = () => {
+    close();
+    toast("Жалоба: будет доступно позже");
+  };
+
+  const toggleBlock = async () => {
+    close();
+    const partner = userById(partnerId);
+    const numericId = partner.numericId;
+    if (blocked) {
+      if (!isDemoMode() && numericId) {
+        try { await unblockUser(numericId); } catch { toast.error("Не удалось разблокировать"); return; }
+      }
+      actions.unblockUser(partnerId);
       toast.success(`${partnerName} разблокирован`, { description: "Вы снова можете обмениваться сообщениями" });
     } else {
-      actions.setDialogMeta(dialogId, { blocked: true });
-      toast.success(`${partnerName} заблокирован`, { description: "Вы больше не будете получать сообщения от этого пользователя" });
+      if (!isDemoMode() && numericId) {
+        try { await blockUser(numericId); } catch { toast.error("Не удалось заблокировать"); return; }
+      }
+      actions.blockUser(partnerId);
+      toast.success(`${partnerName} заблокирован`, { description: "Вы больше не будете получать сообщения от этого пользователя, он исчез из ваших друзей" });
     }
   };
 
@@ -102,7 +159,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
             toast("Звонок уже идёт");
             return;
           }
-          if (meta.blocked) {
+          if (blocked) {
             toast.error("Пользователь заблокирован", { description: "Разблокируйте, чтобы позвонить" });
             return;
           }
@@ -116,7 +173,12 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
         <Phone size={19} />
       </button>
 
-      <div className="relative" ref={ref}>
+      <div
+        className="relative"
+        ref={ref}
+        onMouseEnter={() => { if (canHover) { cancelScheduledClose(); setOpen(true); } }}
+        onMouseLeave={() => { if (canHover) scheduleClose(); }}
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -158,6 +220,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
               />
               {onSearch && <Item icon={Search} label="Поиск в чате" onClick={() => { close(); onSearch(); }} />}
               <Item
+                icon={pinned ? PinOff : Pin}
+                label={pinned ? "Открепить чат" : "Закрепить чат"}
+                onClick={togglePin}
+              />
+              <Item
                 icon={meta.muted ? Bell : BellOff}
                 label={meta.muted ? "Включить уведомления" : "Отключить уведомления"}
                 onClick={toggleMute}
@@ -167,13 +234,15 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
                 label={meta.archived ? "Вернуть из архива" : "Архивировать"}
                 onClick={toggleArchive}
               />
+              <Item icon={Trash2} label="Очистить историю" onClick={clearHistory} />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
-                icon={meta.blocked ? ShieldOff : Ban}
-                label={meta.blocked ? "Разблокировать" : "Заблокировать"}
+                icon={blocked ? ShieldOff : Ban}
+                label={blocked ? "Разблокировать" : "Заблокировать"}
                 onClick={toggleBlock}
-                danger={!meta.blocked}
+                danger={!blocked}
               />
+              <Item icon={Flag} label="Пожаловаться" onClick={reportUser} danger />
             </motion.div>
           )}
         </AnimatePresence>

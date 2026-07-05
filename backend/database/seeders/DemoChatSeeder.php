@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\ConversationType;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
+use App\Models\Listing;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -20,13 +21,23 @@ class DemoChatSeeder extends Seeder
             return;
         }
 
+        $listing = Listing::query()
+            ->where('user_id', $demo->id)
+            ->orderBy('published_at')
+            ->first();
+
         $conversation = Conversation::query()->firstOrCreate(
             ['uuid' => '00000000-0000-4000-8000-000000000201'],
             [
                 'type' => ConversationType::Direct,
+                'listing_id' => $listing?->id,
                 'last_message_at' => now(),
             ],
         );
+
+        if ($listing && $conversation->listing_id !== $listing->id) {
+            $conversation->update(['listing_id' => $listing->id]);
+        }
 
         foreach ([$demo, $admin] as $user) {
             ConversationParticipant::query()->firstOrCreate(
@@ -38,7 +49,7 @@ class DemoChatSeeder extends Seeder
         $messages = [
             ['from' => $admin, 'body' => 'Добро пожаловать в ModelizmClub!'],
             ['from' => $demo, 'body' => 'Спасибо! Рад быть в сообществе.'],
-            ['from' => $admin, 'body' => 'Если будут вопросы — пишите сюда.'],
+            ['from' => $admin, 'body' => 'Если будут вопросы по объявлению — пишите сюда.'],
         ];
 
         foreach ($messages as $i => $msg) {

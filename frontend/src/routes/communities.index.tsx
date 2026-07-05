@@ -41,6 +41,8 @@ function CommunityCard({ c }: { c: Community }) {
           <img
             src={c.coverImage}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-[120px] w-full object-cover"
             onError={() => setBrokenCover(true)}
           />
@@ -66,6 +68,8 @@ function CommunityCard({ c }: { c: Community }) {
             <img
               src={c.avatarImage}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
               onError={() => setBrokenAvatar(true)}
             />
@@ -175,7 +179,7 @@ function CommunitiesPage() {
   const hasQuery = debounced.trim().length > 0;
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div className="space-y-[20px]">
         <header>
           <h1

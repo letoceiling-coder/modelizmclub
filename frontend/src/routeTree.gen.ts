@@ -17,12 +17,14 @@ import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as MessengerRouteImport } from './routes/messenger'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as DiagRouteImport } from './routes/diag'
 import { Route as CommunitiesRouteImport } from './routes/communities'
 import { Route as CategoriesRouteImport } from './routes/categories'
@@ -87,6 +89,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyAdsRoute = MyAdsRouteImport.update({
+  id: '/my-ads',
+  path: '/my-ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessengerRoute = MessengerRouteImport.update({
   id: '/messenger',
   path: '/messenger',
@@ -115,6 +122,11 @@ const FriendsRoute = FriendsRouteImport.update({
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiagRoute = DiagRouteImport.update({
@@ -241,12 +253,14 @@ export interface FileRoutesByFullPath {
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/diag': typeof DiagRoute
+  '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
   '/help': typeof HelpRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
@@ -277,12 +291,14 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/diag': typeof DiagRoute
+  '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
   '/help': typeof HelpRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
@@ -316,12 +332,14 @@ export interface FileRoutesById {
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/diag': typeof DiagRoute
+  '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
   '/help': typeof HelpRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
+  '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
@@ -357,12 +375,14 @@ export interface FileRouteTypes {
     | '/categories'
     | '/communities'
     | '/diag'
+    | '/favorites'
     | '/feed'
     | '/friends'
     | '/help'
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/profile'
@@ -393,12 +413,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/diag'
+    | '/favorites'
     | '/feed'
     | '/friends'
     | '/help'
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/profile'
@@ -431,12 +453,14 @@ export interface FileRouteTypes {
     | '/categories'
     | '/communities'
     | '/diag'
+    | '/favorites'
     | '/feed'
     | '/friends'
     | '/help'
     | '/landing'
     | '/login'
     | '/messenger'
+    | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/profile'
@@ -471,12 +495,14 @@ export interface RootRouteChildren {
   CategoriesRoute: typeof CategoriesRouteWithChildren
   CommunitiesRoute: typeof CommunitiesRouteWithChildren
   DiagRoute: typeof DiagRoute
+  FavoritesRoute: typeof FavoritesRoute
   FeedRoute: typeof FeedRoute
   FriendsRoute: typeof FriendsRoute
   HelpRoute: typeof HelpRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   MessengerRoute: typeof MessengerRoute
+  MyAdsRoute: typeof MyAdsRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
@@ -551,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-ads': {
+      id: '/my-ads'
+      path: '/my-ads'
+      fullPath: '/my-ads'
+      preLoaderRoute: typeof MyAdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messenger': {
       id: '/messenger'
       path: '/messenger'
@@ -591,6 +624,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/diag': {
@@ -831,12 +871,14 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriesRoute: CategoriesRouteWithChildren,
   CommunitiesRoute: CommunitiesRouteWithChildren,
   DiagRoute: DiagRoute,
+  FavoritesRoute: FavoritesRoute,
   FeedRoute: FeedRoute,
   FriendsRoute: FriendsRoute,
   HelpRoute: HelpRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   MessengerRoute: MessengerRoute,
+  MyAdsRoute: MyAdsRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,

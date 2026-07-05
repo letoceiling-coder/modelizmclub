@@ -89,7 +89,15 @@ class ListingService
      */
     private function applySort($query, ?string $sort, bool $includeOwnerSorts = false): void
     {
+        $sort = match ($sort) {
+            'new', 'newest' => 'newest',
+            'cheap' => 'price_asc',
+            'expensive' => 'price_desc',
+            default => $sort,
+        };
+
         match ($sort) {
+            'newest' => $query->orderByDesc('published_at'),
             'oldest' => $query->orderBy('published_at'),
             'price_asc' => $query->orderBy('price_cents')->orderByDesc('published_at'),
             'price_desc' => $query->orderByDesc('price_cents')->orderByDesc('published_at'),

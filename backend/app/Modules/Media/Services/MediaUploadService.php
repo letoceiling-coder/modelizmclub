@@ -20,7 +20,7 @@ class MediaUploadService
         'post_video' => ['max_files' => 3, 'max_size' => 104_857_600, 'mimes' => ['video/mp4', 'video/webm']],
         'listing' => ['max_files' => 20, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'banner' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
-        'chat' => ['max_files' => 10, 'max_size' => 26_214_400, 'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']],
+        'chat' => ['max_files' => 10, 'max_size' => 26_214_400, 'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'application/pdf']],
         // Voice notes recorded in the browser. webm/opus is reported as video/webm
         // by libmagic, so it is accepted alongside the audio/* variants.
         'voice' => ['max_files' => 1, 'max_size' => 20_971_520, 'mimes' => ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'video/webm', 'video/mp4']],

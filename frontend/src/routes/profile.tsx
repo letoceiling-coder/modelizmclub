@@ -2,8 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bell, BadgeCheck, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
+  Bell, BadgeCheck, Ban, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
+  Camera, Trash2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { User, Post, Ad, Community } from "@/lib/mock";
@@ -13,12 +14,14 @@ import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
 import { toast } from "sonner";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
+import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { fetchMyListings } from "@/lib/api/listings";
 import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
+import { uploadMedia } from "@/lib/api/media";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,13 +96,14 @@ function ProfilePage() {
   );
 }
 
-type TabKey = "posts" | "ads" | "communities" | "invited" | "about";
+type TabKey = "posts" | "ads" | "communities" | "invited" | "blocked" | "about";
 
 const TABS_BASE: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
   { key: "posts", label: "Публикации", Icon: FileText },
   { key: "ads", label: "Объявления", Icon: Tag },
   { key: "communities", label: "Сообщества", Icon: Users },
   { key: "invited", label: "Приглашённые", Icon: UserPlus, ownOnly: true },
+  { key: "blocked", label: "Заблокированные", Icon: Ban, ownOnly: true },
   { key: "about", label: "О себе", Icon: UserIcon },
 ];
 
@@ -173,7 +177,7 @@ export function ProfileView({
 
 
   return (
-    <AppLayout>
+    <AppLayout footer>
       <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
         {/* Cover */}
         <div className="relative">
@@ -187,7 +191,7 @@ export function ProfileView({
             className="relative shrink-0"
             style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
           >
-            <ProfileAvatar src={user.avatar} name={user.name} />
+            <ProfileAvatar src={user.avatar} name={user.name} editable={isOwn} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-[6px]">
@@ -428,6 +432,7 @@ export function ProfileView({
                 )
               )}
               {tab === "invited" && isOwn && <InvitedFriendsSection />}
+              {tab === "blocked" && isOwn && <BlockedUsersSection />}
               {tab === "about" && (
                 <div className="max-w-[600px]">
                   {user.bio ? (
@@ -653,25 +658,117 @@ function initials(name: string): string {
 
 /** Profile avatar on the shared Radix Avatar — initials fallback when the
  *  image is missing or fails to load. Never renders <img src="">. */
-function ProfileAvatar({ src, name }: { src?: string; name: string }) {
+function ProfileAvatar({ src, name, editable }: { src?: string; name: string; editable?: boolean }) {
   const hasSrc = Boolean(src && src.trim());
+  const currentUser = useStore(selectors.currentUser);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [menuOpen]);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const media = await uploadMedia(file, "avatar");
+      const url = media.url ?? "";
+      setCurrentUser({ ...currentUser, avatar: url });
+      void updateOwnProfile({ avatar_media_id: media.uuid });
+      toast.success("Фото профиля обновлено");
+    } catch {
+      toast.error("Не удалось загрузить фото");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = () => {
+    setMenuOpen(false);
+    setCurrentUser({ ...currentUser, avatar: "" });
+    void updateOwnProfile({ avatar_media_id: null });
+    toast.success("Фото удалено");
+  };
+
   return (
-    <Avatar
-      className="h-[88px] w-[88px] md:h-[112px] md:w-[112px]"
-      style={{
-        border: "4px solid var(--background)",
-        boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
-        background: "var(--background)",
-      }}
-    >
-      {hasSrc && <AvatarImage src={src} alt="" className="object-cover" />}
-      <AvatarFallback
-        className="font-display text-[28px] font-bold md:text-[36px]"
-        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+    <div className="group relative h-[88px] w-[88px] md:h-[112px] md:w-[112px]">
+      <Avatar
+        className="h-full w-full"
+        style={{
+          border: "4px solid var(--background)",
+          boxShadow: "0 10px 30px -10px rgba(0,0,0,.45), 0 0 0 1px var(--border)",
+          background: "var(--background)",
+        }}
       >
-        {initials(name)}
-      </AvatarFallback>
-    </Avatar>
+        {hasSrc && <AvatarImage src={src} alt="" className="object-cover" />}
+        <AvatarFallback
+          className="font-display text-[28px] font-bold md:text-[36px]"
+          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+        >
+          {initials(name)}
+        </AvatarFallback>
+      </Avatar>
+
+      {editable && (
+        <>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+          <button
+            type="button"
+            aria-label="Изменить фото"
+            onClick={() => setMenuOpen((v) => !v)}
+            disabled={uploading}
+            className="absolute inset-0 grid place-items-center rounded-full opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            style={{ background: "rgba(0,0,0,0.45)", color: "#fff", border: "4px solid transparent" }}
+          >
+            <Camera size={22} />
+          </button>
+
+          {menuOpen && (
+            <div
+              ref={menuRef}
+              role="menu"
+              className="absolute left-1/2 top-full z-[60] mt-[8px] w-[190px] -translate-x-1/2 overflow-hidden rounded-[12px] border"
+              style={{ background: "var(--background-elevated)", borderColor: "var(--border)", boxShadow: "var(--shadow-float)" }}
+            >
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}
+                className="flex w-full items-center gap-[10px] px-[14px] py-[11px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+                style={{ color: "var(--foreground)" }}
+              >
+                <Camera className="h-[16px] w-[16px]" /> Загрузить фото
+              </button>
+              {hasSrc && (
+                <button
+                  role="menuitem"
+                  type="button"
+                  onClick={removePhoto}
+                  className="flex w-full items-center gap-[10px] px-[14px] py-[11px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+                  style={{ color: "var(--error)" }}
+                >
+                  <Trash2 className="h-[16px] w-[16px]" /> Удалить
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

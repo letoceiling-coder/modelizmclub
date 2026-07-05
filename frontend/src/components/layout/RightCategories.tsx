@@ -1,16 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, MessageCircle } from "lucide-react";
+import { ChevronDown, MessageCircle, PanelRightClose, PanelRightOpen } from "lucide-react";
+
+const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
 import * as Icons from "lucide-react";
 import type { Category } from "@/lib/mock";
+import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-
-// Детерминированный «онлайн» по id категории — без бэка, но стабильно от рендера к рендеру.
-function onlineFor(c: Category): number {
-  const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  const base = Math.max(3, Math.round(c.members * 0.012));
-  return base + (seed % 17);
-}
 
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon =
@@ -21,10 +17,35 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 
 export function RightCategories() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(COLLAPSE_KEY) === "1";
+  });
   const categories = usePostCategories();
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+  }, [collapsed]);
+
+  if (collapsed) {
+    return (
+      <aside className="hidden xl:flex w-11 shrink-0 justify-center pt-4">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-label="Развернуть панель"
+          className="grid h-9 w-9 place-items-center rounded-[10px] border transition-colors hover:bg-[var(--background-surface)]"
+          style={{ background: "var(--background-elevated)", borderColor: "var(--border)", color: "var(--foreground-70)" }}
+        >
+          <PanelRightOpen className="h-[18px] w-[18px]" />
+        </button>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="hidden xl:block w-72 shrink-0">
+    <aside className="hidden xl:block w-64 shrink-0">
       {/* h-full: parent <aside> is stretched to 100dvh by AppLayout's items-stretch.
            flex-col lets the header be fixed-height and the ul scroll freely. */}
       <div
@@ -32,13 +53,24 @@ export function RightCategories() {
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
-          <h3
-            className="flex items-center gap-[8px] text-[14px] font-semibold"
-            style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-          >
-            <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
-            Найди своих
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3
+              className="flex items-center gap-[8px] text-[14px] font-semibold"
+              style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
+            >
+              <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
+              Найди своих
+            </h3>
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="Свернуть панель"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-surface)]"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              <PanelRightClose className="h-[16px] w-[16px]" />
+            </button>
+          </div>
           <p className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
             Зайди в чат своего направления
           </p>

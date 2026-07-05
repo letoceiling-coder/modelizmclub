@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
-import { fetchListing, fetchListings } from "@/lib/api/listings";
+import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds } from "@/components/ads/SimilarAds";
@@ -14,9 +14,10 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, selectors } from "@/lib/store";
+import { useStore, selectors, actions } from "@/lib/store";
 import { createConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({
@@ -37,7 +38,7 @@ function AdDetailPage() {
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
-  const [saved, setSaved] = useState(false);
+  const saved = useStore(selectors.isAdFavorite(id));
 
   useEffect(() => {
     let alive = true;
@@ -68,7 +69,7 @@ function AdDetailPage() {
   }, [id]);
 
   const writeToSeller = async () => {
-    if (!getToken()) {
+    if (!getToken() && !isDemoMode()) {
       toast.info("Войдите, чтобы написать продавцу");
       navigate({ to: "/login" });
       return;
@@ -83,7 +84,15 @@ function AdDetailPage() {
       return;
     }
     try {
-      const dialog = await createConversation(sellerId, me.id);
+      const dialog = await createConversation(sellerId, me.id, ad.id);
+      if (ad) {
+        actions.setDialogAd(dialog.id, {
+          id: ad.id,
+          title: ad.title,
+          price: ad.price,
+          image: ad.gallery?.[0] ?? ad.image,
+        });
+      }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
       toast.error("Не удалось открыть диалог");
@@ -158,11 +167,19 @@ function AdDetailPage() {
     toast.info("Скопируйте ссылку из адресной строки");
   };
 
-  const toggleSave = () => {
-    setSaved((v) => {
-      toast.success(v ? "Убрано из избранного" : "В избранное");
-      return !v;
-    });
+  const toggleSave = async () => {
+    actions.toggleFavoriteAd(id);
+    if (!isDemoMode()) {
+      try {
+        if (saved) await removeFavoriteListing(id);
+        else await addFavoriteListing(id);
+      } catch {
+        actions.toggleFavoriteAd(id);
+        toast.error("Не удалось обновить избранное");
+        return;
+      }
+    }
+    toast.success(saved ? "Убрано из избранного" : "В избранное");
   };
 
   const hasDelivery = ad.delivery.length > 0;

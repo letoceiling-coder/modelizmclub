@@ -1,4 +1,6 @@
 // Mock data for МоДелизМ prototype
+import { categoryPlaceholder } from "@/lib/placeholder-image";
+
 export type ID = string;
 
 export interface User {
@@ -111,7 +113,6 @@ export interface Category {
 export interface CommunityContacts {
   website?: string;
   phone?: string;
-  telegram?: string;
 }
 
 export interface Community {
@@ -145,6 +146,7 @@ export interface Banner {
   priority?: number;
   scheduleFrom?: string;
   scheduleTo?: string;
+  active?: boolean;
 }
 
 export interface Tariff {
@@ -163,6 +165,13 @@ export interface VoiceMessage {
   src?: string; // playable audio URL for real voice notes
 }
 
+export interface MessageFile {
+  name: string;
+  size: number; // bytes
+  kind: "video" | "file";
+  url: string; // blob: URL (demo) or real URL
+}
+
 export interface Message {
   id: ID;
   authorId: ID;
@@ -172,6 +181,10 @@ export interface Message {
   replyTo?: ID;
   image?: string;
   voice?: VoiceMessage;
+  file?: MessageFile;
+  pinned?: boolean;
+  deletedForMe?: boolean;
+  forwardedFrom?: ID;
 }
 
 export const VOICE_TRANSCRIPTS: string[] = [
@@ -203,6 +216,15 @@ export interface Dialog {
   time: string;
   unread?: number;
   messages: Message[];
+  pinned?: boolean;
+  listing?: DialogAdRef;
+}
+
+export interface DialogAdRef {
+  id: ID;
+  title: string;
+  price: number;
+  image?: string;
 }
 
 const avatar = (seed: string) =>
@@ -300,11 +322,11 @@ export const posts: Post[] = [
   { id: "p22", authorId: "u1", date: "месяц назад", category: "Автомодели", title: "Сезон открыт: первые гонки 2026", text: "Стартанули в Краснодаре. 18 пилотов, 3 класса. Фотоотчёт и краткий анализ круга лидеров.", images: [photo(32), photo(33)], tags: ["гонки", "сезон2026"], views: 3200, likes: 104, comments: 1, saves: 47, reposts: 18, isFollowing: true, commentList: [cmt("c1", "u4", "3 нед назад", "Огонь сезон стартанул!", 5)] },
 ];
 
-const gal = (seeds: number[]) => seeds.map((s) => `https://picsum.photos/seed/mz-ad${s}/1200/900`);
+const gal = (seeds: number[], category: string) => seeds.map((s) => categoryPlaceholder(`mz-ad${s}`, category));
 
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
-  return { id: u.id, name: u.name, avatar: u.avatar, rating, deals, since };
+  return { id: u.id, numericId: u.numericId, name: u.name, avatar: u.avatar, rating, deals, since };
 };
 
 const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]; sellerStats: [number, number, string] }> = [
@@ -342,7 +364,7 @@ const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]
 
 export const ads: Ad[] = rawAds.map((r) => {
   const { seeds, sellerStats, ...rest } = r;
-  const gallery = gal(seeds);
+  const gallery = gal(seeds, rest.category);
   return {
     ...rest,
     image: gallery[0],
@@ -367,14 +389,14 @@ export const tariffs: Tariff[] = [
 ];
 
 export const communities: Community[] = [
-  { id: "g1", name: "RC Авто Краснодар", description: "Клуб любителей RC-автомоделей: еженедельные заезды, обмен опытом, школа для новичков.", fullDescription: "Клуб RC-авто Краснодара объединяет более 400 моделистов. Мы проводим еженедельные тренировочные заезды на специально подготовленной трассе, помогаем новичкам с выбором первой модели, организуем городские чемпионаты и совместные закупки запчастей у проверенных поставщиков.", members: 412, category: "Автомодели", joined: true, avatarIcon: "Car", adminId: "u1", postIds: ["p1","p4"], coverImage: photo(301), avatarImage: photo(401), contacts: { website: "https://rc-krd.ru", phone: "+7 861 000-00-00", telegram: "https://t.me/rc_krd" }, allowSubmitPost: true },
-  { id: "g2", name: "Школа авиамоделизма", description: "Кружок и школа для детей и взрослых. От первой модели до соревнований.", fullDescription: "Школа авиамоделизма работает с 1998 года. Курсы для детей от 10 лет и взрослых: сборка планеров, пилотажек, реактивных моделей. Опытные инструкторы, оборудованная мастерская, выезды на полётное поле.", members: 1180, category: "Самолёты", avatarIcon: "Plane", adminId: "u4", postIds: ["p3"], coverImage: photo(302), avatarImage: photo(402), contacts: { phone: "+7 383 000-00-00", telegram: "https://t.me/aviaschool" }, allowSubmitPost: true },
-  { id: "g3", name: "FPV Академия", description: "Школа FPV-полётов и гонок. Симулятор, теория, реальные заезды.", fullDescription: "FPV Академия — это полный курс подготовки пилотов FPV-дронов. Теория, симулятор, сборка собственной рамы, настройка Betaflight, реальные полёты на закрытой площадке под руководством опытных инструкторов.", members: 2210, category: "Квадрокоптеры", avatarIcon: "Send", adminId: "u3", postIds: ["p2"], coverImage: photo(303), avatarImage: photo(403), contacts: { website: "https://fpv-academy.ru", telegram: "https://t.me/fpv_academy" }, allowSubmitPost: true },
-  { id: "g4", name: "Клуб разработчиков автопилотов", description: "Сообщество инженеров: ArduPilot, PX4, кастомные платы.", fullDescription: "Закрытый профессиональный клуб для инженеров и разработчиков систем автоматического управления БПЛА. Обмен опытом, совместные проекты, доступ к закрытым воркшопам и митапам.", members: 320, category: "Разработчики", avatarIcon: "Code2", adminId: "u8", postIds: [], coverImage: photo(304), avatarImage: photo(404), contacts: { telegram: "https://t.me/ardupilot_dev_ru" }, allowSubmitPost: false },
-  { id: "g5", name: "Магазин запчастей «Модель»", description: "Официальный канал магазина: новинки, акции, обзоры.", fullDescription: "«Модель» — крупнейший магазин запчастей для RC-техники в России. На нашем канале — анонсы поступлений, обзоры новинок, акции, спецпредложения для подписчиков и ответы на технические вопросы.", members: 1640, category: "Запчасти", avatarIcon: "Wrench", adminId: "u2", postIds: [], coverImage: photo(305), avatarImage: photo(405), contacts: { website: "https://model-shop.ru", phone: "+7 800 000-00-00", telegram: "https://t.me/model_shop" }, allowSubmitPost: false },
+  { id: "g1", name: "RC Авто Краснодар", description: "Клуб любителей RC-автомоделей: еженедельные заезды, обмен опытом, школа для новичков.", fullDescription: "Клуб RC-авто Краснодара объединяет более 400 моделистов. Мы проводим еженедельные тренировочные заезды на специально подготовленной трассе, помогаем новичкам с выбором первой модели, организуем городские чемпионаты и совместные закупки запчастей у проверенных поставщиков.", members: 412, category: "Автомодели", joined: true, avatarIcon: "Car", adminId: "u1", postIds: ["p1","p4"], coverImage: photo(301), avatarImage: photo(401), contacts: { website: "https://rc-krd.ru", phone: "+7 861 000-00-00" }, allowSubmitPost: true },
+  { id: "g2", name: "Школа авиамоделизма", description: "Кружок и школа для детей и взрослых. От первой модели до соревнований.", fullDescription: "Школа авиамоделизма работает с 1998 года. Курсы для детей от 10 лет и взрослых: сборка планеров, пилотажек, реактивных моделей. Опытные инструкторы, оборудованная мастерская, выезды на полётное поле.", members: 1180, category: "Самолёты", avatarIcon: "Plane", adminId: "u4", postIds: ["p3"], coverImage: photo(302), avatarImage: photo(402), contacts: { phone: "+7 383 000-00-00" }, allowSubmitPost: true },
+  { id: "g3", name: "FPV Академия", description: "Школа FPV-полётов и гонок. Симулятор, теория, реальные заезды.", fullDescription: "FPV Академия — это полный курс подготовки пилотов FPV-дронов. Теория, симулятор, сборка собственной рамы, настройка Betaflight, реальные полёты на закрытой площадке под руководством опытных инструкторов.", members: 2210, category: "Квадрокоптеры", avatarIcon: "Send", adminId: "u3", postIds: ["p2"], coverImage: photo(303), avatarImage: photo(403), contacts: { website: "https://fpv-academy.ru" }, allowSubmitPost: true },
+  { id: "g4", name: "Клуб разработчиков автопилотов", description: "Сообщество инженеров: ArduPilot, PX4, кастомные платы.", fullDescription: "Закрытый профессиональный клуб для инженеров и разработчиков систем автоматического управления БПЛА. Обмен опытом, совместные проекты, доступ к закрытым воркшопам и митапам.", members: 320, category: "Разработчики", avatarIcon: "Code2", adminId: "u8", postIds: [], coverImage: photo(304), avatarImage: photo(404), contacts: {}, allowSubmitPost: false },
+  { id: "g5", name: "Магазин запчастей «Модель»", description: "Официальный канал магазина: новинки, акции, обзоры.", fullDescription: "«Модель» — крупнейший магазин запчастей для RC-техники в России. На нашем канале — анонсы поступлений, обзоры новинок, акции, спецпредложения для подписчиков и ответы на технические вопросы.", members: 1640, category: "Запчасти", avatarIcon: "Wrench", adminId: "u2", postIds: [], coverImage: photo(305), avatarImage: photo(405), contacts: { website: "https://model-shop.ru", phone: "+7 800 000-00-00" }, allowSubmitPost: false },
   { id: "g6", name: "Кружок судомоделистов", description: "Клуб судомоделизма: катера, парусники, соревнования.", fullDescription: "Один из старейших кружков судомоделизма в России. Проводим занятия по постройке катеров и парусников, организуем региональные соревнования, помогаем с реставрацией исторических моделей.", members: 540, category: "Корабли", avatarIcon: "Ship", adminId: "u5", postIds: [], coverImage: photo(306), avatarImage: photo(406), contacts: { phone: "+7 343 000-00-00" }, allowSubmitPost: true },
-  { id: "g7", name: "DIY Электроника", description: "Сообщество DIY-инженеров: ESC, телеметрия, прошивки.", fullDescription: "Сообщество для тех, кто любит паять и проектировать электронику для RC-моделей. Совместные проекты, разбор схем, обзоры компонентов, помощь в отладке.", members: 890, category: "Электроника", avatarIcon: "Cpu", adminId: "u6", postIds: ["p5"], coverImage: photo(307), avatarImage: photo(407), contacts: { website: "https://diy-rc.ru", telegram: "https://t.me/diy_rc" }, allowSubmitPost: true },
-  { id: "g8", name: "Школа батарей", description: "Обучение работе с LiPo, Li-ion, NiMH: эксплуатация и безопасность.", fullDescription: "Образовательный канал по аккумуляторам: подбор, эксплуатация, безопасность, утилизация. Видеоуроки, чек-листы, обзоры зарядных устройств.", members: 670, category: "Аккумуляторы", avatarIcon: "BatteryCharging", adminId: "u2", postIds: [], coverImage: photo(308), avatarImage: photo(408), contacts: { telegram: "https://t.me/battery_school" }, allowSubmitPost: false },
+  { id: "g7", name: "DIY Электроника", description: "Сообщество DIY-инженеров: ESC, телеметрия, прошивки.", fullDescription: "Сообщество для тех, кто любит паять и проектировать электронику для RC-моделей. Совместные проекты, разбор схем, обзоры компонентов, помощь в отладке.", members: 890, category: "Электроника", avatarIcon: "Cpu", adminId: "u6", postIds: ["p5"], coverImage: photo(307), avatarImage: photo(407), contacts: { website: "https://diy-rc.ru" }, allowSubmitPost: true },
+  { id: "g8", name: "Школа батарей", description: "Обучение работе с LiPo, Li-ion, NiMH: эксплуатация и безопасность.", fullDescription: "Образовательный канал по аккумуляторам: подбор, эксплуатация, безопасность, утилизация. Видеоуроки, чек-листы, обзоры зарядных устройств.", members: 670, category: "Аккумуляторы", avatarIcon: "BatteryCharging", adminId: "u2", postIds: [], coverImage: photo(308), avatarImage: photo(408), contacts: {}, allowSubmitPost: false },
 ];
 
 const _ago = (minutes: number): string =>

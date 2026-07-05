@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare,
-  Paperclip, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
+  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
+  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff, ImagePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
@@ -16,15 +16,22 @@ import {
 import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
-  createConversation,
+  createConversation, uploadChatAttachment, sendAttachmentMessage,
+  hideMessageForMe, pinMessage as apiPinMessage,
 } from "@/lib/api/chat";
+import { isDemoMode } from "@/lib/demo-mode";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
+import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
+import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
+import { ForwardDialog } from "@/components/messenger/ForwardDialog";
+import { DialogContextMenu } from "@/components/messenger/DialogContextMenu";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
@@ -122,9 +129,15 @@ function MessageImage({ src }: { src: string }) {
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply,
+  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onReport,
 }: {
-  msg: Message; prev?: Message; allMessages: Message[]; onReply: (m: Message) => void;
+  msg: Message; prev?: Message; allMessages: Message[];
+  onReply: (m: Message) => void;
+  onCopy: (m: Message) => void;
+  onForward: (m: Message) => void;
+  onPin: (m: Message) => void;
+  onDelete: (m: Message) => void;
+  onReport: (m: Message) => void;
 }) {
   const meId = useStore((s) => s.currentUserId);
   const isMe = msg.authorId === meId;
@@ -132,6 +145,19 @@ function MessageBubble({
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
+  const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
+
+  const menuRef = useRef<MessageActionsMenuHandle>(null);
+  const touchTimer = useRef<number | null>(null);
+  const startLongPress = () => {
+    touchTimer.current = window.setTimeout(() => menuRef.current?.open(), 400);
+  };
+  const cancelLongPress = () => {
+    if (touchTimer.current) {
+      window.clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  };
 
   return (
     <motion.div
@@ -146,17 +172,27 @@ function MessageBubble({
           {isFirstInGroup && <ChatAvatar src={author.avatar} name={author.name} size={28} />}
         </div>
       )}
-      <div className="relative max-w-[70%]">
-        {!isMe && (
-          <button
-            onClick={() => onReply(msg)}
-            className="absolute -right-[36px] top-1/2 -translate-y-1/2 grid h-[28px] w-[28px] place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-            style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
-            aria-label="Ответить"
-          >
-            <CornerUpLeft size={14} />
-          </button>
-        )}
+      <div
+        className="relative max-w-[82%] sm:max-w-[70%]"
+        data-msg-id={msg.id}
+        onTouchStart={startLongPress}
+        onTouchEnd={cancelLongPress}
+        onTouchMove={cancelLongPress}
+      >
+        <div className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+          <MessageActionsMenu
+            ref={menuRef}
+            isMe={isMe}
+            pinned={Boolean(msg.pinned)}
+            align={isMe ? "right" : "left"}
+            onReply={() => onReply(msg)}
+            onCopy={() => onCopy(msg)}
+            onForward={() => onForward(msg)}
+            onPin={() => onPin(msg)}
+            onDelete={() => onDelete(msg)}
+            onReport={() => onReport(msg)}
+          />
+        </div>
         <div
           className="px-[14px] py-[10px]"
           style={{
@@ -165,6 +201,14 @@ function MessageBubble({
             borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
           }}
         >
+          {forwardedAuthor && (
+            <div
+              className="mb-[6px] text-[11px] font-semibold italic"
+              style={{ color: isMe ? "rgba(255,255,255,0.75)" : "var(--foreground-50)" }}
+            >
+              Переслано от {forwardedAuthor.name}
+            </div>
+          )}
           {reply && (
             <div
               className="mb-[6px] pl-[8px] text-[12px]"
@@ -178,6 +222,7 @@ function MessageBubble({
             </div>
           )}
           {msg.image && <MessageImage src={msg.image} />}
+          {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
             <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -201,6 +246,9 @@ function MessengerPage() {
   const dlgs = useStore(selectors.dialogsList);
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
+  const blockedUserIds = useStore((s) => s.blockedUserIds);
+  const dialogAdRefs = useStore((s) => s.dialogAdRefs);
+  const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
   const { chat } = Route.useSearch();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
@@ -231,7 +279,13 @@ function MessengerPage() {
   useEffect(() => {
     let alive = true;
     fetchConversations(meId)
-      .then((list) => { if (alive) setDialogs(list); })
+      .then((list) => {
+        if (!alive) return;
+        setDialogs(list);
+        list.forEach((d) => {
+          if (d.listing) actions.setDialogAd(d.id, d.listing);
+        });
+      })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
@@ -305,6 +359,14 @@ function MessengerPage() {
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
   const partner = active ? userById(active.userId) : null;
+  const activeAdRef = activeId ? dialogAdRefs[activeId] : undefined;
+
+  const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
+
+  const scrollToMessage = (id: string) => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${id}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -312,10 +374,17 @@ function MessengerPage() {
       const m = getMeta(d.id);
       return showArchived ? m.archived : !m.archived;
     });
-    if (!q) return base;
-    return base.filter((d) => {
-      const u = userById(d.userId);
-      return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+    const searched = !q
+      ? base
+      : base.filter((d) => {
+          const u = userById(d.userId);
+          return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+        });
+    if (showArchived) return searched;
+    return [...searched].sort((a, b) => {
+      const pa = a.pinned ? 1 : 0;
+      const pb = b.pinned ? 1 : 0;
+      return pb - pa;
     });
   }, [dlgs, query, dialogMetaMap, showArchived]);
 
@@ -358,9 +427,25 @@ function MessengerPage() {
     actions.markRead(id);
   };
 
+  const [dialogCtxMenu, setDialogCtxMenu] = useState<{ dialogId: string; point: { x: number; y: number } } | null>(null);
+  const dialogLongPressTimer = useRef<number | null>(null);
+  const suppressNextDialogClick = useRef(false);
+  const startDialogLongPress = (dialogId: string, x: number, y: number) => {
+    dialogLongPressTimer.current = window.setTimeout(() => {
+      suppressNextDialogClick.current = true;
+      setDialogCtxMenu({ dialogId, point: { x, y } });
+    }, 450);
+  };
+  const cancelDialogLongPress = () => {
+    if (dialogLongPressTimer.current) {
+      window.clearTimeout(dialogLongPressTimer.current);
+      dialogLongPressTimer.current = null;
+    }
+  };
+
   const send = async () => {
     if (!text.trim() || !active) return;
-    if (getMeta(active.id).blocked) {
+    if (isPartnerBlocked(active.userId)) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
@@ -389,7 +474,7 @@ function MessengerPage() {
 
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
-    if (getMeta(active.id).blocked) {
+    if (isPartnerBlocked(active.userId)) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
@@ -422,12 +507,91 @@ function MessengerPage() {
     }
   };
 
+  const handleAttachment = async (file: File, kind: AttachmentKind) => {
+    if (!active) return;
+    if (isPartnerBlocked(active.userId)) {
+      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      return;
+    }
+    const dialogId = active.id;
+    const url = URL.createObjectURL(file);
+    const replyId = replyTo?.id;
+    const tempId = `tmp${Date.now()}`;
+    const base: Message = {
+      id: tempId,
+      authorId: meId,
+      time: new Date().toISOString(),
+      text: "",
+      status: "sent",
+      replyTo: replyId,
+    };
+    const optimistic: Message =
+      kind === "image" ? { ...base, image: url } : { ...base, file: { name: file.name, size: file.size, kind, url } };
+    actions.addMessage(dialogId, optimistic);
+    setReplyTo(null);
+    if (isDemoMode()) {
+      toast("Вложение отправлено (демо)", { description: "Загрузка на сервер появится позже" });
+      return;
+    }
+    try {
+      const uploaded = await uploadChatAttachment(dialogId, file);
+      const saved = await sendAttachmentMessage(dialogId, uploaded.media_uuid, uploaded.type, replyId);
+      replaceMessage(dialogId, tempId, saved);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Не удалось отправить вложение");
+    }
+  };
 
+  const quickPhotoRef = useRef<HTMLInputElement>(null);
+  const handleQuickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) handleAttachment(file, "image");
+  };
+
+  const handleCopy = (m: Message) => {
+    const text = m.text || (m.file ? m.file.name : m.image ? "[изображение]" : "[вложение]");
+    navigator.clipboard.writeText(text).then(
+      () => toast.success("Скопировано"),
+      () => toast.error("Не удалось скопировать"),
+    );
+  };
+
+  const handlePinMessage = async (m: Message) => {
+    if (!active) return;
+    actions.pinMessage(active.id, m.id);
+    if (!isDemoMode()) {
+      try {
+        await apiPinMessage(active.id, m.id);
+      } catch {
+        toast.error("Не удалось закрепить сообщение");
+      }
+    }
+  };
+
+  const handleDeleteMessage = async (m: Message) => {
+    if (!active) return;
+    actions.deleteMessageForMe(active.id, m.id);
+    if (!isDemoMode()) {
+      try {
+        await hideMessageForMe(active.id, m.id);
+      } catch {
+        toast.error("Не удалось удалить сообщение");
+      }
+    }
+  };
+
+  const handleReportMessage = () => {
+    toast("Жалоба: будет доступно позже");
+  };
+
+  const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
 
   return (
     <AppLayout rightColumn={false}>
       <div
-        className="grid overflow-hidden h-[calc(100dvh-var(--mobile-header-h)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-120px)] lg:grid-cols-[320px_1fr]"
+        className="grid overflow-hidden h-[calc(100dvh-var(--mobile-header-h)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]"
         style={{
           background: "var(--background)",
           border: "1px solid var(--border)",
@@ -436,7 +600,7 @@ function MessengerPage() {
       >
         {/* Dialog List */}
         <aside
-          className={`flex min-h-0 flex-col md:flex ${mobileView === "list" ? "flex" : "hidden"}`}
+          className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "list" ? "flex" : "hidden"}`}
           style={{ background: "var(--background-elevated)", borderRight: "1px solid var(--border)" }}
         >
           <div className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]" style={{ background: "var(--background-elevated)", borderBottom: "1px solid var(--border)" }}>
@@ -528,8 +692,24 @@ function MessengerPage() {
                   return (
                     <motion.li key={d.id} variants={{ hidden: { opacity: 0, x: -16 }, visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } } }}>
                       <button
-                        onClick={() => handleSelect(d.id)}
-                        className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
+                        onClick={() => {
+                          if (suppressNextDialogClick.current) {
+                            suppressNextDialogClick.current = false;
+                            return;
+                          }
+                          handleSelect(d.id);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setDialogCtxMenu({ dialogId: d.id, point: { x: e.clientX, y: e.clientY } });
+                        }}
+                        onTouchStart={(e) => {
+                          const t = e.touches[0];
+                          startDialogLongPress(d.id, t.clientX, t.clientY);
+                        }}
+                        onTouchEnd={cancelDialogLongPress}
+                        onTouchMove={cancelDialogLongPress}
+                        className="group flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
                         style={{
                           background: isActive ? "var(--accent-soft)" : "transparent",
                           borderBottom: "1px solid var(--border)",
@@ -541,9 +721,10 @@ function MessengerPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             <span className="flex min-w-0 items-center gap-[6px] truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                              {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
                               <span className="truncate">{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
-                              {getMeta(d.id).blocked && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
+                              {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                             </span>
                             <TimeAgo iso={d.time} className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }} />
@@ -559,6 +740,21 @@ function MessengerPage() {
                             {d.unread}
                           </Badge>
                         )}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Действия с чатом"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            setDialogCtxMenu({ dialogId: d.id, point: { x: r.left, y: r.bottom } });
+                          }}
+                          className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                          style={{ color: "var(--foreground-50)" }}
+                        >
+                          <MoreHorizontal size={16} />
+                        </span>
 
                       </button>
                     </motion.li>
@@ -570,13 +766,14 @@ function MessengerPage() {
         </aside>
 
         {/* Chat Panel */}
-        <section className={`flex min-h-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`} style={{ background: "var(--background)" }}>
+        <section className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`} style={{ background: "var(--background)" }}>
           {!active ? (
             <EmptyChat />
           ) : (
             <>
               {/* Header */}
-              <header className="sticky top-0 z-10 flex items-center gap-[12px] px-[20px]" style={{ height: 60, background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+              <div className="sticky top-0 z-10 flex flex-col" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+              <header className="flex items-center gap-[12px] px-[12px] sm:px-[20px]" style={{ height: 60 }}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -603,21 +800,85 @@ function MessengerPage() {
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
-                  <LanguageSwitcher />
-                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} />
+                  <span className="hidden sm:block"><LanguageSwitcher /></span>
+                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
                 </div>
 
 
               </header>
+                {activeAdRef && (
+                  <Link
+                    to="/ads/$id"
+                    params={{ id: activeAdRef.id }}
+                    className="flex items-center gap-[10px] px-[12px] py-[8px] transition-colors hover:bg-[var(--background-surface)] sm:px-[20px]"
+                    style={{ borderTop: "1px solid var(--border)" }}
+                  >
+                    {activeAdRef.image ? (
+                      <img
+                        src={activeAdRef.image}
+                        alt=""
+                        className="h-[36px] w-[36px] shrink-0 rounded-[8px] object-cover"
+                      />
+                    ) : (
+                      <div className="h-[36px] w-[36px] shrink-0 rounded-[8px]" style={{ background: "var(--background-surface)" }} />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px]" style={{ color: "var(--foreground)" }}>{activeAdRef.title}</div>
+                      <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                        {activeAdRef.price.toLocaleString("ru")} ₽
+                      </div>
+                    </div>
+                  </Link>
+                )}
+              </div>
+
+              {pinnedMessage && (
+                <button
+                  onClick={() => scrollToMessage(pinnedMessage.id)}
+                  className="flex w-full items-center gap-[10px] border-b px-[20px] py-[8px] text-left"
+                  style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+                >
+                  <Pin size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                  <div className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : "Вложение")}
+                  </div>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      actions.pinMessage(active!.id, pinnedMessage.id);
+                    }}
+                    className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full"
+                    style={{ color: "var(--foreground-50)" }}
+                    aria-label="Открепить сообщение"
+                  >
+                    <X size={13} />
+                  </span>
+                </button>
+              )}
 
               {/* Messages */}
-              <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px]">
+              <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]">
                 {chatLoading ? (
                   <MessageSkeleton />
                 ) : (
-                  active.messages.map((m, i) => (
-                    <MessageBubble key={m.id} msg={m} prev={active.messages[i - 1]} allMessages={active.messages} onReply={setReplyTo} />
-                  ))
+                  active.messages
+                    .filter((m) => !m.deletedForMe)
+                    .map((m, i, arr) => (
+                      <MessageBubble
+                        key={m.id}
+                        msg={m}
+                        prev={arr[i - 1]}
+                        allMessages={active.messages}
+                        onReply={setReplyTo}
+                        onCopy={handleCopy}
+                        onForward={setForwardMsg}
+                        onPin={handlePinMessage}
+                        onDelete={handleDeleteMessage}
+                        onReport={handleReportMessage}
+                      />
+                    ))
                 )}
               </div>
 
@@ -663,13 +924,22 @@ function MessengerPage() {
                       border: "1px solid var(--border)",
                     }}
                   >
+                    <AttachmentMenu onPick={handleAttachment} />
+                    <input
+                      ref={quickPhotoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleQuickPhoto}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-[36px] w-[36px] shrink-0 rounded-full text-[var(--foreground-50)]"
-                      aria-label="Прикрепить"
+                      onClick={() => quickPhotoRef.current?.click()}
+                      className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[36px] sm:w-[36px]"
+                      aria-label="Быстрое фото"
                     >
-                      <Paperclip size={18} />
+                      <ImagePlus size={18} />
                     </Button>
                     <textarea
                       value={text}
@@ -695,7 +965,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[42px] w-[42px] shrink-0 rounded-full transition-transform active:scale-95"
+                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[42px] sm:w-[42px]"
                       aria-label="Отправить"
                     >
                       <Send size={18} />
@@ -711,6 +981,29 @@ function MessengerPage() {
         </section>
       </div>
       <CreateChatDialog open={createOpen} onClose={() => setCreateOpen(false)} onPick={handleCreateChat} />
+      <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
+      <DialogContextMenu
+        point={dialogCtxMenu?.point ?? null}
+        onClose={() => setDialogCtxMenu(null)}
+        pinned={Boolean(dlgs.find((x) => x.id === dialogCtxMenu?.dialogId)?.pinned)}
+        muted={Boolean(dialogCtxMenu && getMeta(dialogCtxMenu.dialogId).muted)}
+        onMarkUnread={() => dialogCtxMenu && actions.markUnread(dialogCtxMenu.dialogId)}
+        onTogglePin={() => {
+          if (!dialogCtxMenu) return;
+          const dlg = dlgs.find((x) => x.id === dialogCtxMenu.dialogId);
+          actions.pinDialog(dialogCtxMenu.dialogId, !dlg?.pinned);
+        }}
+        onToggleMute={() => {
+          if (!dialogCtxMenu) return;
+          const muted = getMeta(dialogCtxMenu.dialogId).muted;
+          actions.setDialogMeta(dialogCtxMenu.dialogId, muted ? { muted: false, mutedUntil: undefined } : { muted: true });
+        }}
+        onClearHistory={() => {
+          if (!dialogCtxMenu) return;
+          if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
+          actions.clearHistory(dialogCtxMenu.dialogId);
+        }}
+      />
     </AppLayout>
   );
 }

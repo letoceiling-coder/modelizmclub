@@ -4,7 +4,8 @@ import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoListings, demoMyListings, demoListing } from "@/lib/demo-data";
+import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing } from "@/lib/demo-data";
+import { categoryPlaceholder } from "@/lib/placeholder-image";
 
 interface ApiListingAuthor {
   id?: number;
@@ -108,12 +109,65 @@ export function mapListing(l: ApiListing): Ad {
   };
 }
 
-export async function fetchListings(query?: string): Promise<Ad[]> {
-  if (isDemoMode()) return demoListings(query);
+export interface CatalogParams {
+  q?: string;
+  cityId?: number;
+  cityName?: string;
+  categoryName?: string;
+  subcategoryName?: string;
+  priceMin?: number;
+  priceMax?: number;
+  conditions?: string[];
+  deliveries?: string[];
+  listingStatus?: string;
+  sort?: "new" | "cheap" | "expensive" | "popular";
+  withPhotoOnly?: boolean;
+}
+
+export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
+  if (isDemoMode()) return demoListingsFiltered(params);
   const res = await api<Paginated<ApiListing>>("/listings", {
-    query: { q: query || undefined, per_page: 50 },
+    query: {
+      q: params.q || undefined,
+      city_id: params.cityId || undefined,
+      price_min: params.priceMin || undefined,
+      price_max: params.priceMax || undefined,
+      has_media: params.withPhotoOnly ? 1 : undefined,
+      per_page: 50,
+      sort: params.sort || undefined,
+    },
   });
   return (res.data ?? []).map(mapListing);
+}
+
+export async function fetchFavoriteListings(): Promise<Ad[]> {
+  if (isDemoMode()) {
+    const ids = readDemoFavoriteIds();
+    return demoListingsFiltered({}).filter((a) => ids.includes(a.id));
+  }
+  const res = await api<Paginated<ApiListing>>("/users/me/favorites", {
+    query: { per_page: 100 },
+  });
+  return (res.data ?? []).map(mapListing);
+}
+
+export async function addFavoriteListing(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/listings/${uuid}/favorite`, { method: "POST" });
+}
+
+export async function removeFavoriteListing(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/listings/${uuid}/favorite`, { method: "DELETE" });
+}
+
+function readDemoFavoriteIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(window.localStorage.getItem("modelizm_favorite_ads") ?? "[]") as string[];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }[]> {
@@ -163,15 +217,18 @@ export interface CreateListingInput {
 
 export async function createListing(input: CreateListingInput): Promise<Ad> {
   if (isDemoMode()) {
+    const id = `demo-ad-${Date.now()}`;
+    const photos = (input.mediaIds ?? []).filter(Boolean);
+    const gallery = photos.length > 0 ? photos : [categoryPlaceholder(id)];
     const demoAd: Ad = {
-      id: `demo-ad-${Date.now()}`,
+      id,
       title: input.title,
       price: Math.round(input.priceCents / 100),
       category: "",
       subcategory: "",
       city: "Краснодар",
-      image: "https://picsum.photos/seed/demo-new-ad/1200/900",
-      gallery: ["https://picsum.photos/seed/demo-new-ad/1200/900"],
+      image: gallery[0],
+      gallery,
       description: input.description,
       delivery: input.deliveryMethods ?? [],
       status: "Продаю",
@@ -182,6 +239,7 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       createdAt: "только что",
       moderation: input.publish === false ? "moderation" : "published",
     };
+    demoAddListing(demoAd);
     return demoAd;
   }
   const res = await api<{ data: ApiListing }>("/listings", {

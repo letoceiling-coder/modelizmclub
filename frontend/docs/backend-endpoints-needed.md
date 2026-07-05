@@ -1,0 +1,306 @@
+# Backend Endpoints Needed
+
+> Автоматически формируется при аудите. Код не менять — фиксировать здесь.
+> Статусы: `Needed` (нет вообще) | `Existing` (есть, но не используется) | `Missing` (есть похожий, не тот)
+
+## Сводка для бэкенд-разработчика (2026-07-06)
+
+Ниже — приоритизированный список того, что реально отсутствует на бэкенде.
+Всё остальное в этом файле (№1, 7, 8, 13) либо уже существует, либо закрыто
+чисто на фронте и внимания бэкенда не требует.
+
+| Приоритет | № | Что | Endpoint | Заметка |
+|---|---|---|---|---|
+| 🔴 высокий | 5 | Вложение в чат (фото/видео/файл) | `POST /conversations/{id}/attachments` | Самый заметный пользователю пробел — сейчас только demo blob-URL |
+| 🔴 высокий | 11 | Диалог ↔ объявление (плашка в шапке чата) | `POST /conversations` принимает `listing_id`; `GET /conversations/{id}` возвращает его | Frontend-demo полностью готов (`dialogAdRefs`), ждёт только это поле |
+| 🟡 средний | 2 | Блокировка пользователя | `POST/DELETE /users/{id}/block` | Сейчас только в клиентском store |
+| 🟡 средний | 9 | Закрепление сообщения | `POST/DELETE /conversations/{id}/messages/{id}/pin` | Сейчас только в клиентском store |
+| 🟡 средний | 3 | Удаление своего сообщения ("у себя") | `DELETE /conversations/{id}/messages/{id}` (soft) | Сейчас только в клиентском store |
+| 🟢 низкий | 4 | Закрепление чата | `POST /conversations/{id}/pin` | Сейчас только в клиентском store |
+| 🟢 низкий | 10 | Пересылка сообщения | вероятно обычный `POST /conversations/{targetId}/messages` | Контракт нужно уточнить у бэкенда |
+| 🟢 низкий | 14 | Аватар профиля | `PATCH /users/me` поле `avatar_media_id` | Фронт уже шлёт это поле — нужно подтвердить, что бэк его принимает (или уточнить реальное имя) |
+
+**Уже работает, ничего не нужно:** №1 (каталог с фильтрами), №7 (media→listing
+цепочка), №13 (видимость баннера, поле `is_active` уже принимается).
+
+**Полностью на фронте, backend не нужен:** №6 (страница настроек — вне
+scope), №8 (i18n лендинга — сделано), №12 (demo-режим auth-гейтов).
+
+---
+
+## 1. Публичный каталог объявлений с фильтрами
+
+**Задача:** #18, #19, #21 + реализовано в CatalogPage (2026-07-04)
+**Endpoint:** `GET /listings`
+**Метод:** GET
+
+**Текущие query params (работают):**
+| Параметр | Тип | Описание |
+|---|---|---|
+| q | string? | Текстовый поиск |
+| per_page | number? | Размер страницы |
+
+**Нужно добавить на бэкенде:**
+| Параметр | Тип | Описание |
+|---|---|---|
+| city_id | number? | Фильтр по городу (city.id из модели Listing) |
+| sort | "new" / "price_asc" / "price_desc" / "popular"? | Сортировка |
+
+**Текущий статус frontend:** Реализован с client-side фильтрацией в demo-режиме (`demoListingsFiltered` в `src/lib/demo-data.ts`). В production `city_id` и `sort` передаются в query, но бэкенд их не обрабатывает.
+
+**Demo/mock fallback:** `demoListingsFiltered()` — полная клиентская фильтрация по всем полям CatalogParams.
+
+---
+
+## 2. Блокировка пользователя
+
+**Задача:** #15 (мессенджер blacklist), #17 (друзья block)  
+**Endpoint:** `POST /users/{userId}/block`  
+**Метод:** POST  
+**Payload:** `{}` (пустой)  
+**Response:** `{ "message": "ok" }`
+
+**Endpoint разблокировки:** `DELETE /users/{userId}/block`  
+**Статус:** `Needed` — нигде нет (`blockUser` в `social.ts` отсутствует).  
+**Demo/mock fallback (обновлено 2026-07-05):** `blockedUserIds: ID[]` в
+`lib/store.ts` (`actions.blockUser`/`unblockUser`, `selectors.isBlocked`) —
+единая user-level блокировка, используется и мессенджером (`ChatHeaderActions`,
+send-гейты в `messenger.tsx`), и страницей друзей (`friends.tsx`), и разделом
+"Заблокированные" в `/profile` (`BlockedUsersSection`). Симметрия
+("Б тоже не видит А") — только клиентская иллюзия в рамках одного
+demo-store; реальная двусторонняя блокировка требует серверного
+relationship-статуса, видимого обеим сторонам.
+
+---
+
+## 3. Удаление своего сообщения в мессенджере
+
+**Задача:** #15  
+**Endpoint:** `DELETE /conversations/{conversationId}/messages/{messageId}`  
+**Метод:** DELETE  
+**Response:** `{ "message": "ok" }`  
+**Статус:** `Needed` — в `chat.ts` нет функции удаления сообщения.  
+**Demo/mock fallback:** локальное удаление из store.
+
+**Уточнение (2026-07-05):** UI предлагает только "удалить у себя"
+(`deletedForMe` в `Message`, `lib/store.ts` → `deleteMessageForMe`). Опция
+"удалить у обоих" сознательно не реализована и не показывается в UI — для неё
+нет API.
+
+---
+
+## 4. Закрепление чата (pin conversation)
+
+**Задача:** #15  
+**Endpoint:** `POST /conversations/{conversationId}/pin`  
+**Метод:** POST  
+**Response:** `{ "pinned": true }`  
+**Статус:** `Needed`  
+**Demo/mock fallback:** `dialogMetaMap` можно расширить полем `pinned`.
+
+---
+
+## 5. Загрузка файла-вложения в мессенджере
+
+**Задача:** #14, #16  
+**Endpoint:** `POST /conversations/{conversationId}/attachments`  
+**Метод:** POST (multipart/form-data)  
+**Payload:** `file: File`  
+**Response:**
+```json
+{ "url": "https://...", "type": "image|file", "name": "...", "size": 12345 }
+```
+**Статус:** `Needed` — в `chat.ts` есть `uploadVoice`, но нет общего file-upload.  
+**Demo/mock fallback:** локальный URL через `URL.createObjectURL`.
+
+**Уточнение (2026-07-05):** нужен единый endpoint для фото/видео/файла —
+`type`/`kind` в response уже предусмотрен дизайном. Текущий demo-режим
+(`AttachmentMenu`/`handleAttachment` в `messenger.tsx`) создаёт превью через
+`URL.createObjectURL` без реальной загрузки; ограничение 20 МБ — client-side
+demo guard, не серверная валидация.
+
+---
+
+## 6. Страница «Настройки аккаунта» (будущее)
+
+**Задача:** App Shell — пункт «Настройки» в avatar-меню top bar (2026-07-04)
+**Роут:** `/settings` — **отсутствует**
+**Статус:** `Needed` — страницы/роута нет. По ТЗ App Shell роуты не трогаем и
+функционал не выдумываем, поэтому пункт «Настройки» в avatar-меню **опущен**.
+**Что нужно:** отдельная страница настроек аккаунта (профиль, приватность,
+уведомления, язык/тема на уровне аккаунта). Когда появится — добавить пункт
+«Настройки» в `UserMenu` между «Подписка» и «Выйти».
+**Demo/mock fallback:** нет (пункт просто отсутствует в меню).
+
+---
+
+## 7. Media → Listing цепочка (подтверждение)
+
+**Задача:** Catalog Premium Redesign — photo-flow (2026-07-04)
+**Endpoints:** `POST /media` (upload) и `POST /listings` (с `media_ids`)
+**Статус:** `Existing` — прод-цепочка уже реализована (`uploadMedia` → `createListing`
+с `media_ids`). Не меняли.
+**Demo/mock fallback:** demo `uploadMedia` возвращает blob-URL (`URL.createObjectURL`);
+demo `createListing` использует его как фото и добавляет объявление в demo-каталог
+(`demoAddListing`). Так загруженное фото доходит до карточки без реального backend.
+
+**Tech-debt (вне scope):** лента/посты используют `photo()` → `picsum.photos`
+(внешний CDN, не грузится на стенде). Каталог переведён на локальные SVG-заглушки;
+ленту — отдельной задачей.
+
+---
+
+## 8. Полный перевод лендинга (frontend TODO, не backend) — ЗАКРЫТО
+
+**Задача:** Landing Hero Fixes (2026-07-04) — переключатель языка убран с
+лендинга, т.к. страница не была переведена.
+**Статус:** `Done` (2026-07-05, раунд C) — весь лендинг обёрнут в
+`t("landing.…")`, добавлено поддерево `landing.*` в `ru/en/zh` locale-файлы,
+`LanguageSwitcher` возвращён в header лендинга (desktop + mobile). Backend не
+требовался — чисто frontend-задача.
+
+---
+
+## 9. Закрепление сообщения в чате
+
+**Задача:** Мессенджер — базовые функции (2026-07-05)
+**Endpoint:** `POST /conversations/{conversationId}/messages/{messageId}/pin`
+**Метод:** POST
+**Response:** `{ "pinned": true }`
+**Endpoint снятия:** `DELETE /conversations/{conversationId}/messages/{messageId}/pin`
+**Статус:** `Needed` — в `chat.ts` нет функции pin/unpin сообщения (запись №4
+покрывает только pin чата целиком, не сообщения).
+**Demo/mock fallback:** `actions.pinMessage(dialogId, messageId)` в
+`lib/store.ts` — одно закреплённое сообщение на диалог, хранится в поле
+`Message.pinned`.
+
+---
+
+## 10. Пересылка сообщения (forward)
+
+**Задача:** Мессенджер — базовые функции (2026-07-05)
+**Endpoint:** предположительно обычный `POST /conversations/{targetId}/messages`
+с доп. полем `forwarded_from_message_id` (или отдельный endpoint — уточнить у
+бэкенд-команды при реализации).
+**Статус:** `Needed` — в `chat.ts` нет функции пересылки.
+**Demo/mock fallback:** `ForwardDialog` (`src/components/messenger/ForwardDialog.tsx`)
+добавляет сообщение локально в выбранный диалог через `actions.addMessage`,
+с полем `Message.forwardedFrom` = id автора оригинала. Реальной доставки
+получателю нет — сообщение видно только у пересылающего локально.
+
+
+---
+
+## 11. Диалог, привязанный к объявлению (плашка объявления в шапке чата)
+
+**Задача:** Финальная приёмка A→B (2026-07-05) — сценарий «B пишет продавцу A
+по объявлению; в шапке чата видна плашка объявления».
+**Что нужно на бэкенде:** `POST /conversations` (создание диалога) должен
+принимать опциональный `listing_id`, а `GET /conversations/{id}` — возвращать
+привязанное объявление (id, заголовок, цена, превью). Тогда фронт покажет
+плашку объявления в шапке мессенджера.
+**Статус:** `Needed (frontend-demo реализован)` — плашка объявления в шапке
+чата теперь отображается в demo. Механика: session-only store-слайс
+`dialogAdRefs: Record<ID, DialogAdRef>` + `actions.setDialogAd` (`src/lib/store.ts`);
+кнопка «Написать» (`ads.$id.tsx` → `writeToSeller`) после `createConversation`
+прокидывает `{ id, title, price, image }` объявления в стор, а шапка
+мессенджера (`messenger.tsx`) рендерит плашку (миниатюра + заголовок + цена,
+клик → `/ads/$id`).
+**Ограничение:** `createConversation(peerId, meId)` (`src/lib/api/chat.ts`)
+по-прежнему не принимает listing-контекст, `Dialog` не хранит ссылку на
+объявление — привязка живёт только в клиентском сторе и теряется при
+hard-reload / повторном входе.
+**Что нужно для реального персиста:** `POST /conversations` должен принимать
+опциональный `listing_id`, а `GET /conversations/{id}` — возвращать
+привязанное объявление (id, заголовок, цену, превью). Тогда плашка
+восстанавливается после перезагрузки без клиентского слайса.
+
+---
+
+## 12. Демо-режим: auth-гейты и создание объявлений (frontend-заметка, не backend)
+
+**Задача:** Финальная приёмка (2026-07-05).
+**Статус:** `Frontend-only` — исправлено в этой приёмке, backend не требуется.
+**Контекст:** в demo-режиме `getToken()` возвращает null (реальной сессии нет,
+demo-пользователь инжектится без токена). Раньше это ломало auth-гейты:
+`writeToSeller` в `ads.$id.tsx` и `isAuthed` в `ads.index.tsx` редиректили на
+`/login`. Исправлено: гейты стали demo-aware (`!getToken() && !isDemoMode()` /
+`getToken() || isDemoMode()`). Также: `makeSeller` (`mock.ts`) теперь включает
+`numericId` (иначе «Написать» падало с «Не удалось открыть диалог»);
+`demoMyListings` включает созданные в сессии объявления; кнопка
+«К моим объявлениям» в success-модалке ведёт на `/my-ads`, а не в каталог.
+**Важно для прод-интеграции:** когда подключат реальную auth (не demo),
+`getToken()` вернёт настоящий токен, `isDemoMode()` будет false на прод-хосте,
+и гейты снова заработают штатно (редирект неавторизованных на /login).
+
+---
+
+## 13. Управление видимостью рекламного баннера (уточнение существующего API, не новый endpoint)
+
+**Задача:** Финальные штрихи (2026-07-05) — «крестик закрытия баннера
+убрать у обычного пользователя, управление видимостью — только из /admin».
+**Статус:** `Existing, уточнение` — `PATCH /admin/banners/{id}` уже принимает
+`is_active` (см. `updateAdminBanner` в `lib/api/admin.ts`, тип patch включал
+`is_active?: boolean` ещё до этой задачи). Backend-код не писали, ничего
+нового не требуется — только прокинули поле на фронтенде: `Banner.active`
+(`lib/mock.ts`), маппинг `active: b.is_active ?? true` в
+`fetchAdminBanners`, чекбокс «Показывать» в админке рядом с «Закрепить»
+(`admin.tsx`), фильтрация `b.active !== false` в `EventsHero.tsx` (лента) —
+клиентская подстраховка на случай, если публичный `/public/banners` ещё не
+фильтрует по `is_active` на сервере.
+**Просьба уточнить у бэкенд-команды:** действительно ли `GET /public/banners`
+уже исключает баннеры с `is_active=false` на уровне сервера (типичная
+практика для публичных listing-эндпоинтов) — если нет, это надо добавить
+там, чтобы toggle в /admin реально скрывал баннер у всех пользователей, а не
+только в demo-фильтрации на фронте.
+**Crestик закрытия у обычного пользователя** — убран полностью из
+`EventsHero.tsx` (кнопка и связанный dismissed-state удалены); теперь
+единственный способ скрыть баннер — снять галочку «Показывать» в /admin.
+
+---
+
+## 14. Обновление аватара профиля
+
+**Задача:** Премиум-доводка (2026-07-05) — смена фото профиля.
+**Endpoint:** `PATCH /users/me` с полем `avatar_media_id` (uuid из
+`POST /media`, purpose=avatar) для установки; `avatar_media_id: null` — сброс.
+**Статус:** `Existing?` — фронт уже шлёт это поле (`updateOwnProfile`).
+**Нужно уточнить у бэкенда:** принимает ли `PATCH /users/me` поле
+`avatar_media_id` (или оно называется иначе, напр. `avatar_id`/`avatar`).
+Если да — ничего не требуется; если нет — добавить.
+**Demo/mock fallback:** `uploadMedia("avatar")` в demo возвращает blob-URL,
+`setCurrentUser({...me, avatar: url})` обновляет аватар в сторе; сбрасывается
+на hard-reload (как весь demo-стейт).
+
+---
+
+## 15. Реальная серверная загрузка файлов/аватара (сводка, блок «D» бэклога)
+
+**Задача:** премиум-бэклог, пункт D — «реальная серверная загрузка вложений/
+аватара (сейчас только demo-blob)». Это НЕ новый endpoint, а свод текущего
+состояния: во всех местах, где пользователь прикладывает файл, в demo-режиме
+используется `URL.createObjectURL(file)` (blob-URL живёт только в текущей
+вкладке и теряется на hard-reload). Никакой frontend-работы здесь не требуется —
+прод-путь уже написан и включается автоматически, когда `isDemoMode()` false на
+прод-хосте. Пункт оставлен как doc-only: **backend-код не пишем.**
+
+**Точки загрузки во фронте и их прод-контракт:**
+
+| Точка | Компонент/функция | Demo сейчас | Прод-контракт (уже в коде) |
+|---|---|---|---|
+| Фото объявления | `uploadMedia(file,"listing")` → `createListing` | blob-URL | `POST /media` (purpose=listing) → `media_id` → `POST /listings` с `media_ids` (см. №7 — `Existing`) |
+| Аватар профиля | `uploadMedia(file,"avatar")` → `updateOwnProfile` | blob-URL | `POST /media` (purpose=avatar) → `PATCH /users/me` `avatar_media_id` (см. №14 — уточнить имя поля) |
+| Вложение в чате (Фото/Видео/Файл, скрепка) | messenger attachment-меню (`URL.createObjectURL`) | blob-URL, сообщение локально | `POST /conversations/{id}/attachments` (см. №5 — `Needed`, общего file-upload ещё нет) |
+| Голосовое в чате | `uploadVoice` (`chat.ts`) | — | уже есть (`Existing`) |
+
+**Что реально нужно от бэкенда для полного закрытия D:**
+1. Подтвердить/добавить `POST /conversations/{id}/attachments` (общий file-upload
+   для чата — единственный по-настоящему отсутствующий endpoint, см. №5).
+2. Подтвердить имя поля `avatar_media_id` в `PATCH /users/me` (см. №14).
+3. `POST /media` + `POST /listings` для фото объявлений уже работают (№7).
+
+**Вывод:** большая часть цепочки (media→listing, media→avatar) на бэке уже
+существует; единственный отсутствующий кусок — общий attachment-upload для
+мессенджера (№5). После его добавления demo-blob автоматически заменяется
+реальными URL на прод-хосте без изменений во фронте. Отдельной frontend-задачи
+по D нет.

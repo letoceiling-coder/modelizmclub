@@ -142,9 +142,28 @@ export async function updateOwnProfile(input: {
   display_name?: string;
   bio?: string;
   slug?: string;
+  avatar_media_id?: string | null;
 }): Promise<void> {
   if (isDemoMode()) return;
   await api("/users/me", { method: "PATCH", json: input });
+}
+
+export async function blockUser(userId: number, reason?: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/users/${userId}/block`, { method: "POST", json: reason ? { reason } : {} });
+}
+
+export async function unblockUser(userId: number): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/users/${userId}/block`, { method: "DELETE" });
+}
+
+export async function fetchBlockedUsers(): Promise<User[]> {
+  if (isDemoMode()) return [];
+  const res = await api<Paginated<ApiCompactUser>>("/users/me/blocks", {
+    query: { per_page: 100 },
+  });
+  return (res.data ?? []).map(mapCompactUser);
 }
 
 export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {

@@ -194,7 +194,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
         onPointerUp={onPointerUp}
         onPointerCancel={() => recording && stop(true)}
         onContextMenu={(e) => e.preventDefault()}
-        className="relative z-30 grid h-[42px] w-[42px] shrink-0 touch-none place-items-center rounded-full select-none"
+        className="relative z-30 grid h-[44px] w-[44px] shrink-0 touch-none place-items-center rounded-full select-none sm:h-[42px] sm:w-[42px]"
         style={{
           background: recording ? "var(--error, #e11d48)" : "var(--accent)",
           color: "white",

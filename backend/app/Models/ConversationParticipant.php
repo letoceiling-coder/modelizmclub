@@ -15,6 +15,7 @@ class ConversationParticipant extends Model
         'left_at',
         'last_read_message_id',
         'muted_until',
+        'pinned_at',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class ConversationParticipant extends Model
             'joined_at' => 'datetime',
             'left_at' => 'datetime',
             'muted_until' => 'datetime',
+            'pinned_at' => 'datetime',
         ];
     }
 

@@ -1,4 +1,4 @@
-import type { Dialog, Message, User } from "@/lib/mock";
+import type { Dialog, DialogAdRef, Message, User } from "@/lib/mock";
 import { registerUser, makeMockWaveform } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
@@ -19,6 +19,14 @@ interface ApiCompactUser {
   avatar?: { url?: string | null } | null;
 }
 
+export interface ApiListingCompact {
+  uuid: string;
+  title: string;
+  price_cents?: number;
+  image?: string | null;
+  preview?: string | null;
+}
+
 export interface ApiMessage {
   uuid: string;
   body?: string | null;
@@ -26,6 +34,7 @@ export interface ApiMessage {
   status?: string;
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
+  forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
   attachments?: Array<{ media?: { url?: string | null; mime_type?: string | null; duration?: number | null } | null }>;
   created_at: string;
 }
@@ -34,8 +43,12 @@ interface ApiConversation {
   uuid: string;
   type?: string;
   title?: string | null;
+  listing_id?: number | null;
+  listing?: ApiListingCompact | null;
+  is_pinned?: boolean;
+  pinned_message?: ApiMessage | null;
   last_message_at?: string | null;
-  participants?: Array<{ user?: ApiCompactUser | null; role?: string }>;
+  participants?: Array<{ user?: ApiCompactUser | null; role?: string; pinned_at?: string | null }>;
   last_message?: ApiMessage | null;
 }
 
@@ -44,9 +57,18 @@ interface Paginated<T> {
   meta?: { current_page?: number; last_page?: number; total?: number };
 }
 
+export interface ChatAttachmentUpload {
+  url: string;
+  type: "image" | "file";
+  name: string;
+  size: number;
+  media_uuid: string;
+}
+
 function registerCompact(u?: ApiCompactUser | null): User | null {
   if (!u?.uuid) return null;
   const user = mapApiUser({
+    id: u.id,
     uuid: u.uuid,
     name: u.display_name ?? undefined,
     profile: { display_name: u.display_name, slug: u.slug, avatar: u.avatar ?? null },
@@ -55,20 +77,32 @@ function registerCompact(u?: ApiCompactUser | null): User | null {
   return user;
 }
 
-export function mapMessage(m: ApiMessage): Message {
+export function mapListingCompact(l: ApiListingCompact): DialogAdRef {
+  return {
+    id: l.uuid,
+    title: l.title,
+    price: Math.round((l.price_cents ?? 0) / 100),
+    image: l.preview ?? l.image ?? undefined,
+  };
+}
+
+export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   registerCompact(m.author);
   const media = (m.attachments ?? []).map((a) => a.media).filter((x): x is NonNullable<typeof x> => Boolean(x?.url));
   const audio = media.find((x) => m.type === "voice" || (x.mime_type ?? "").startsWith("audio/"));
-  const image = media.find((x) => x !== audio)?.url ?? undefined;
+  const fileMedia = media.find((x) => x !== audio && !(x.mime_type ?? "").startsWith("image/"));
+  const imageMedia = media.find((x) => x !== audio && (x.mime_type ?? "").startsWith("image/"));
 
   const base: Message = {
     id: m.uuid,
     authorId: m.author?.uuid ?? "",
     time: m.created_at,
     text: m.body ?? "",
-    image,
+    image: imageMedia?.url ?? undefined,
     status: "read",
     replyTo: m.reply_to?.uuid,
+    pinned: pinnedUuid ? m.uuid === pinnedUuid : undefined,
+    forwardedFrom: m.forwarded_from?.author?.uuid,
   };
 
   if (audio?.url) {
@@ -76,6 +110,15 @@ export function mapMessage(m: ApiMessage): Message {
       duration: Math.max(1, Math.round(audio.duration ?? 1)),
       waveform: makeMockWaveform(seedFromId(m.uuid)),
       src: audio.url,
+    };
+  }
+
+  if (fileMedia?.url) {
+    base.file = {
+      name: fileMedia.url.split("/").pop() ?? "file",
+      size: 0,
+      kind: "file",
+      url: fileMedia.url,
     };
   }
 
@@ -87,14 +130,17 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
     .map((p) => p.user)
     .find((u) => u && u.uuid !== meUuid);
   const partner = registerCompact(other);
-  return {
+  const dialog: Dialog = {
     id: c.uuid,
     userId: partner?.id ?? "",
     lastMessage: c.last_message?.body ?? "",
     time: c.last_message_at ?? c.last_message?.created_at ?? "",
     unread: 0,
     messages: [],
+    pinned: Boolean(c.is_pinned),
+    listing: c.listing ? mapListingCompact(c.listing) : undefined,
   };
+  return dialog;
 }
 
 export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
@@ -105,13 +151,24 @@ export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
   return (res.data ?? []).map((c) => mapConversation(c, meUuid));
 }
 
+export async function fetchConversation(uuid: string, meUuid: string): Promise<Dialog> {
+  if (isDemoMode()) {
+    const found = demoConversations().find((d) => d.id === uuid);
+    if (found) return found;
+    throw new Error("Conversation not found");
+  }
+  const res = await api<{ data: ApiConversation }>(`/conversations/${uuid}`);
+  return mapConversation(res.data, meUuid);
+}
+
 export async function fetchMessages(uuid: string): Promise<Message[]> {
   if (isDemoMode()) return demoMessages(uuid);
+  const conv = await api<{ data: ApiConversation }>(`/conversations/${uuid}`);
+  const pinnedUuid = conv.data.pinned_message?.uuid ?? null;
   const res = await api<Paginated<ApiMessage>>(`/conversations/${uuid}/messages`, {
     query: { per_page: 50 },
   });
-  // API returns newest-first; the UI renders oldest-first.
-  return (res.data ?? []).map(mapMessage).reverse();
+  return (res.data ?? []).map((m) => mapMessage(m, pinnedUuid)).reverse();
 }
 
 export async function sendMessage(
@@ -163,16 +220,18 @@ export async function sendVoiceMessage(
     json: { type: "voice", media_uuids: [mediaUuid], reply_to_uuid: replyToUuid },
   });
   const msg = mapMessage(res.data);
-  // The API echoes the stored attachment URL/duration; ensure duration falls back to the recorded value.
   if (msg.voice && (!msg.voice.duration || msg.voice.duration < 1)) {
     msg.voice.duration = Math.max(1, Math.round(durationSec));
   }
   return msg;
 }
 
-export async function createConversation(userId: number, meUuid: string): Promise<Dialog> {
+export async function createConversation(
+  userId: number,
+  meUuid: string,
+  listingUuid?: string,
+): Promise<Dialog> {
   if (isDemoMode()) {
-    // Reuse an existing demo dialog with this peer when possible.
     const peerId = `u${userId}`;
     const existing = demoConversations().find((d) => d.userId === peerId);
     if (existing) return existing;
@@ -187,7 +246,85 @@ export async function createConversation(userId: number, meUuid: string): Promis
   }
   const res = await api<{ data: ApiConversation }>("/conversations", {
     method: "POST",
-    json: { user_id: userId },
+    json: { user_id: userId, listing_uuid: listingUuid },
   });
   return mapConversation(res.data, meUuid);
+}
+
+export async function uploadChatAttachment(
+  conversationUuid: string,
+  file: File,
+): Promise<ChatAttachmentUpload> {
+  const form = new FormData();
+  form.append("file", file);
+  return api<ChatAttachmentUpload>(`/conversations/${conversationUuid}/attachments`, {
+    method: "POST",
+    body: form,
+  });
+}
+
+export async function sendAttachmentMessage(
+  conversationUuid: string,
+  mediaUuid: string,
+  type: "image" | "file",
+  replyToUuid?: string,
+): Promise<Message> {
+  const res = await api<{ data: ApiMessage }>(`/conversations/${conversationUuid}/messages`, {
+    method: "POST",
+    json: {
+      type: type === "image" ? "image" : "file",
+      media_uuids: [mediaUuid],
+      reply_to_uuid: replyToUuid,
+    },
+  });
+  return mapMessage(res.data);
+}
+
+export async function hideMessageForMe(conversationUuid: string, messageUuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/conversations/${conversationUuid}/messages/${messageUuid}`, { method: "DELETE" });
+}
+
+export async function pinMessage(conversationUuid: string, messageUuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/conversations/${conversationUuid}/messages/${messageUuid}/pin`, { method: "POST" });
+}
+
+export async function unpinMessage(conversationUuid: string, messageUuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/conversations/${conversationUuid}/messages/${messageUuid}/pin`, { method: "DELETE" });
+}
+
+export async function pinConversation(conversationUuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/conversations/${conversationUuid}/pin`, { method: "POST" });
+}
+
+export async function unpinConversation(conversationUuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/conversations/${conversationUuid}/pin`, { method: "DELETE" });
+}
+
+export async function forwardMessage(
+  targetConversationUuid: string,
+  sourceMessageUuid: string,
+  body?: string,
+): Promise<Message> {
+  if (isDemoMode()) {
+    return {
+      id: `demo-fwd-${Date.now()}`,
+      authorId: "u1",
+      time: new Date().toISOString(),
+      text: body ?? "",
+      status: "sent",
+    };
+  }
+  const res = await api<{ data: ApiMessage }>(`/conversations/${targetConversationUuid}/messages`, {
+    method: "POST",
+    json: {
+      body: body ?? "",
+      forwarded_from_message_uuid: sourceMessageUuid,
+    },
+  });
+  return mapMessage(res.data);
 }

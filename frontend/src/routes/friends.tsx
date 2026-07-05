@@ -7,21 +7,24 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatRelativeTime, type User } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import {
   fetchFriends, fetchIncomingRequests, searchUsers,
   sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest,
+  blockUser,
   type IncomingRequest,
 } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
+import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FriendActionsMenu } from "@/components/friends/FriendActionsMenu";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: "Друзья — МоДелизМ" }] }),
@@ -51,6 +54,9 @@ function FriendsPage() {
   const navigateMessenger = useNavigate();
   const onlineSet = useOnlineSet();
   const isOnline = (u: User) => onlineSet.has(u.id) || !!u.online;
+  const blockedUserIds = useStore((s) => s.blockedUserIds);
+  const hiddenUserIds = useStore((s) => s.hiddenUserIds);
+  const isBlockedUser = (id: string) => blockedUserIds.includes(id);
 
   useEffect(() => {
     let active = true;
@@ -80,12 +86,14 @@ function FriendsPage() {
   const filteredUsers = useMemo(() => {
     return allUsers.filter((u) => {
       if (me && u.id === me.id) return false;
+      if (blockedUserIds.includes(u.id)) return false;
+      if (hiddenUserIds.includes(u.id)) return false;
       if (tab === "online" && !isOnline(u)) return false;
       const ql = q.toLowerCase();
       if (!ql) return true;
       return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
     });
-  }, [q, tab, allUsers, me]);
+  }, [q, tab, allUsers, me, blockedUserIds, hiddenUserIds]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: "Все", count: allUsers.length },
@@ -149,6 +157,40 @@ function FriendsPage() {
     } catch {
       toast.error("Не удалось открыть диалог");
     }
+  };
+
+  const viewProfile = (u: User) => {
+    navigateMessenger({ to: "/user/$id", params: { id: u.slug ?? u.id } });
+  };
+
+  const removeFriendVia = async (u: User) => {
+    if (!u.numericId) return;
+    try {
+      await removeFriend(u.numericId);
+      setFriends((fs) => fs.filter((f) => f.id !== u.id));
+      toast.success("Удалён из друзей");
+    } catch {
+      toast.error("Не удалось удалить из друзей");
+    }
+  };
+
+  const hideUserFromList = (u: User) => {
+    actions.hideUser(u.id);
+    toast.success("Скрыто из рекомендаций");
+  };
+
+  const reportUser = () => {
+    toast("Жалоба: будет доступно позже");
+  };
+
+  const blockUserVia = async (u: User) => {
+    if (!isDemoMode() && u.numericId) {
+      try { await blockUser(u.numericId); } catch { toast.error("Не удалось заблокировать"); return; }
+    }
+    actions.blockUser(u.id);
+    setFriends((fs) => fs.filter((f) => f.id !== u.id));
+    setRequests((rs) => rs.filter((r) => r.from.id !== u.id));
+    toast.success(`${u.name} заблокирован`, { description: "Пропал из друзей и списков — можно разблокировать в разделе «Заблокированные» в профиле" });
   };
 
   return (
@@ -227,14 +269,14 @@ function FriendsPage() {
             transition={{ duration: 0.2 }}
           >
             {loading ? (
-              <div className="grid gap-[12px] sm:grid-cols-2">
+              <div className="flex flex-col gap-[10px]">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Card
                     key={i}
-                    className="flex items-center gap-[12px] p-[16px] shadow-none"
+                    className="flex items-center gap-[16px] p-[20px] shadow-none"
                     style={{ borderColor: "var(--border)", borderRadius: 14 }}
                   >
-                    <Skeleton className="h-[48px] w-[48px] shrink-0 rounded-full" />
+                    <Skeleton className="h-[56px] w-[56px] shrink-0 rounded-full" />
                     <div className="flex-1 space-y-[8px]">
                       <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${40 + (i * 13) % 40}%` }} />
                       <Skeleton className="h-[10px] rounded-[6px]" style={{ width: `${30 + (i * 11) % 30}%` }} />
@@ -251,20 +293,20 @@ function FriendsPage() {
                   variant="compact"
                 />
               ) : (
-                <div className="grid gap-[12px] sm:grid-cols-2">
-                  {requests.map((r) => {
+                <div className="flex flex-col gap-[10px]">
+                  {requests.filter((r) => !isBlockedUser(r.from.id)).map((r) => {
                     const u = r.from;
                     return (
                       <Card
                         key={r.id}
-                        className="flex items-start gap-[12px] p-[16px] shadow-none"
+                        className="flex items-start gap-[14px] p-[20px] shadow-none"
                         style={{ borderColor: "var(--border)", borderRadius: 14 }}
                       >
                         <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="shrink-0">
-                          <Avatar className="h-[48px] w-[48px]">
+                          <Avatar className="h-[52px] w-[52px]">
                             <AvatarImage src={u.avatar} alt="" />
                             <AvatarFallback
-                              className="text-[13px] font-semibold"
+                              className="text-[14px] font-semibold"
                               style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                             >
                               {userInitials(u.name)}
@@ -275,7 +317,7 @@ function FriendsPage() {
                           <Link
                             to="/user/$id"
                             params={{ id: u.slug ?? u.id }}
-                            className="block truncate font-semibold text-[14px]"
+                            className="block truncate font-semibold text-[15px]"
                             style={{ color: "var(--foreground)" }}
                           >
                             {u.name}
@@ -286,24 +328,35 @@ function FriendsPage() {
                           <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
                             <Clock size={10} /> {formatRelativeTime(r.date)}
                           </p>
-                          <div className="mt-[10px] flex gap-[8px]">
+                          <div className="mt-[12px] flex gap-[8px]">
                             <Button
                               size="sm"
                               onClick={() => accept(r.id)}
-                              className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
+                              className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
                             >
-                              <Check size={12} /> Принять
+                              <Check size={13} /> Принять
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => decline(r.id)}
-                              className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
+                              className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
                             >
-                              <X size={12} /> Отклонить
+                              <X size={13} /> Отклонить
                             </Button>
                           </div>
                         </div>
+                        <FriendActionsMenu
+                          isFriend={false}
+                          onViewProfile={() => viewProfile(u)}
+                          onRemoveFriend={() => {}}
+                          onHide={() => hideUserFromList(u)}
+                          onReport={reportUser}
+                          onBlock={() => {
+                            blockUserVia(u);
+                            decline(r.id);
+                          }}
+                        />
                       </Card>
                     );
                   })}
@@ -323,7 +376,7 @@ function FriendsPage() {
                 variant="compact"
               />
             ) : (
-              <div className="grid gap-[12px] sm:grid-cols-2">
+              <div className="flex flex-col gap-[10px]">
                 {filteredUsers.map((u) => {
                   const isAdded = added.has(u.id);
                   const isPending = !isAdded && pending.has(u.id);
@@ -331,14 +384,14 @@ function FriendsPage() {
                   return (
                     <Card
                       key={u.id}
-                      className="flex gap-[12px] p-[16px] shadow-none"
+                      className="flex items-center gap-[16px] p-[20px] shadow-none"
                       style={{ borderColor: "var(--border)", borderRadius: 14 }}
                     >
                       <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="relative shrink-0">
-                        <Avatar className="h-[48px] w-[48px]">
+                        <Avatar className="h-[56px] w-[56px]">
                           <AvatarImage src={u.avatar} alt="" />
                           <AvatarFallback
-                            className="text-[13px] font-semibold"
+                            className="text-[15px] font-semibold"
                             style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                           >
                             {userInitials(u.name)}
@@ -346,7 +399,7 @@ function FriendsPage() {
                         </Avatar>
                         {isOnline(u) && (
                           <span
-                            className="absolute bottom-0 right-0 h-[12px] w-[12px] rounded-full"
+                            className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
                             style={{ background: "var(--success)", border: "2px solid var(--background)" }}
                           />
                         )}
@@ -355,7 +408,7 @@ function FriendsPage() {
                         <Link
                           to="/user/$id"
                           params={{ id: u.slug ?? u.id }}
-                          className="block truncate font-semibold text-[14px]"
+                          className="block truncate font-semibold text-[15px]"
                           style={{ color: "var(--foreground)" }}
                         >
                           {u.name}
@@ -364,29 +417,37 @@ function FriendsPage() {
                           <MapPin size={11} /> <span className="truncate">{u.city}</span>
                         </div>
                         <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
-                        <div className="mt-[10px] flex flex-wrap gap-[8px]">
-                          <Button
-                            size="sm"
-                            variant={isAdded || isPending ? "outline" : "default"}
-                            disabled={isPending}
-                            onClick={() => toggleFriend(u)}
-                            className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
-                          >
-                            {isAdded
-                              ? <><Check size={12} /> В друзьях</>
-                              : isPending
-                              ? <><Clock size={12} /> Заявка отправлена</>
-                              : <><UserPlus size={12} /> Добавить</>}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => writeTo(u)}
-                            className="h-[32px] rounded-[8px] px-[12px] text-[12px] gap-[4px]"
-                          >
-                            <MessageSquare size={12} /> Написать
-                          </Button>
-                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-[8px]">
+                        <Button
+                          size="sm"
+                          variant={isAdded || isPending ? "outline" : "default"}
+                          disabled={isPending}
+                          onClick={() => toggleFriend(u)}
+                          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
+                        >
+                          {isAdded
+                            ? <><Check size={13} /> В друзьях</>
+                            : isPending
+                            ? <><Clock size={13} /> Заявка отправлена</>
+                            : <><UserPlus size={13} /> Добавить</>}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => writeTo(u)}
+                          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
+                        >
+                          <MessageSquare size={13} /> Написать
+                        </Button>
+                        <FriendActionsMenu
+                          isFriend={isAdded}
+                          onViewProfile={() => viewProfile(u)}
+                          onRemoveFriend={() => removeFriendVia(u)}
+                          onHide={() => hideUserFromList(u)}
+                          onReport={reportUser}
+                          onBlock={() => blockUserVia(u)}
+                        />
                       </div>
                     </Card>
                   );

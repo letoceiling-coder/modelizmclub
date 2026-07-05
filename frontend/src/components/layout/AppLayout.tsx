@@ -1,15 +1,20 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { RightCategories } from "./RightCategories";
 import { BottomNav } from "./BottomNav";
 import { MobileHeader } from "./MobileHeader";
+import { DesktopTopBar } from "./DesktopTopBar";
+import { AppFooter } from "./AppFooter";
 
 interface Props {
   children: ReactNode;
   rightColumn?: ReactNode | false;
+  navCollapsed?: boolean;
+  footer?: boolean;
 }
 
-export function AppLayout({ children, rightColumn }: Props) {
+export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
@@ -18,6 +23,7 @@ export function AppLayout({ children, rightColumn }: Props) {
     // Mobile: normal document scroll (min-h, no overflow-hidden, no flex-col).
     <div className="min-h-[100dvh] overflow-x-clip bg-background lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden">
       <MobileHeader />
+      <DesktopTopBar />
       {/*
         Mobile: pt-4/pb/px-3 — normal flow with BottomNav clearance.
         Desktop: flex-1 fills remaining shell height; items-stretch makes all
@@ -27,14 +33,22 @@ export function AppLayout({ children, rightColumn }: Props) {
       */}
       <div
         className="
-          mx-auto flex w-full max-w-7xl items-start gap-6 px-3 pt-4
+          mx-auto flex w-full max-w-[var(--container-max)] items-start gap-6 px-3 pt-4
           pb-[calc(var(--bottom-nav-space)+8px)]
-          lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-6 lg:pb-0
+          lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0
         "
       >
-        <Sidebar />
+        <Sidebar collapsed={navCollapsed} />
         {/* Center column: the only scroll zone on desktop. */}
-        <main className="min-w-0 flex-1 lg:overflow-y-auto">{children}</main>
+        <main
+          className={cn(
+            "min-w-0 flex-1 lg:overflow-y-auto",
+            rightColumn === false && "lg:mr-[calc(-1*var(--container-pad))] lg:pr-[var(--container-pad)]",
+          )}
+        >
+          {children}
+          {footer && <AppFooter />}
+        </main>
         {rightColumn === false ? null : rightColumn ?? <RightCategories />}
       </div>
       <BottomNav />

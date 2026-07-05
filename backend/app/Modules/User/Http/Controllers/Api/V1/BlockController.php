@@ -19,7 +19,16 @@ class BlockController extends Controller
 
         $users->block($request->user(), $target, $request->validated('reason'));
 
-        return response()->json(['message' => 'Пользователь заблокирован.']);
+        return response()->json(['message' => 'ok']);
+    }
+
+    public function destroy(int $id, Request $request, UserService $users): JsonResponse
+    {
+        $target = $this->findTargetUser($id);
+
+        $users->unblock($request->user(), $target);
+
+        return response()->json(['message' => 'ok']);
     }
 
     public function index(Request $request, UserService $users): JsonResponse

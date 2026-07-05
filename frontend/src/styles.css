@@ -65,8 +65,8 @@
   --r-button: 12px;
   --radius: 0.75rem;
 
-  --container-max: 1280px;
-  --container-pad: 32px;
+  --container-max: 1560px;                    /* cap: контент не растягивается бесконечно на ultrawide */
+  --container-pad: clamp(24px, calc(7vw - 60px), 60px);  /* fluid поля ≈30/41/52px на 1280/1440/1600, без прыжков */
   --sidebar-w: 240px;
   --rightbar-w: 260px;
 
@@ -96,6 +96,7 @@
 
   /* ===== Mobile App Shell ===== */
   --mobile-header-h: 52px;       /* header content row (excl. safe-area) */
+  --desktop-topbar-h: 60px;      /* desktop top bar height (lg+, excl. mobile) */
   --bottom-nav-h: 60px;          /* bottom nav row (excl. safe-area) */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -294,10 +295,24 @@ html, body {
   }
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* Thin, Avito-style scrollbar — semi-transparent neutral thumb, transparent track. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--text-tertiary) 55%, transparent) transparent;
+}
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: var(--r-pill); }
-::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--text-tertiary) 55%, transparent);
+  border-radius: var(--r-pill);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--text-tertiary) 80%, transparent);
+  background-clip: padding-box;
+}
 
 ::selection { background: var(--accent-soft); color: var(--accent); }
 
