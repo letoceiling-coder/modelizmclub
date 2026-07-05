@@ -52,6 +52,11 @@
 **Статус:** `Needed` — в `chat.ts` нет функции удаления сообщения.  
 **Demo/mock fallback:** локальное удаление из store.
 
+**Уточнение (2026-07-05):** UI предлагает только "удалить у себя"
+(`deletedForMe` в `Message`, `lib/store.ts` → `deleteMessageForMe`). Опция
+"удалить у обоих" сознательно не реализована и не показывается в UI — для неё
+нет API.
+
 ---
 
 ## 4. Закрепление чата (pin conversation)
@@ -77,6 +82,12 @@
 ```
 **Статус:** `Needed` — в `chat.ts` есть `uploadVoice`, но нет общего file-upload.  
 **Demo/mock fallback:** локальный URL через `URL.createObjectURL`.
+
+**Уточнение (2026-07-05):** нужен единый endpoint для фото/видео/файла —
+`type`/`kind` в response уже предусмотрен дизайном. Текущий demo-режим
+(`AttachmentMenu`/`handleAttachment` в `messenger.tsx`) создаёт превью через
+`URL.createObjectURL` без реальной загрузки; ограничение 20 МБ — client-side
+demo guard, не серверная валидация.
 
 ---
 
@@ -120,4 +131,33 @@ demo `createListing` использует его как фото и добавл
 **Demo/mock fallback:** нет — до перевода лендинг остаётся русскоязычным,
 переключатель убран из его header (App Shell и другие страницы продолжают
 использовать `LanguageSwitcher` как есть).
+
+---
+
+## 9. Закрепление сообщения в чате
+
+**Задача:** Мессенджер — базовые функции (2026-07-05)
+**Endpoint:** `POST /conversations/{conversationId}/messages/{messageId}/pin`
+**Метод:** POST
+**Response:** `{ "pinned": true }`
+**Endpoint снятия:** `DELETE /conversations/{conversationId}/messages/{messageId}/pin`
+**Статус:** `Needed` — в `chat.ts` нет функции pin/unpin сообщения (запись №4
+покрывает только pin чата целиком, не сообщения).
+**Demo/mock fallback:** `actions.pinMessage(dialogId, messageId)` в
+`lib/store.ts` — одно закреплённое сообщение на диалог, хранится в поле
+`Message.pinned`.
+
+---
+
+## 10. Пересылка сообщения (forward)
+
+**Задача:** Мессенджер — базовые функции (2026-07-05)
+**Endpoint:** предположительно обычный `POST /conversations/{targetId}/messages`
+с доп. полем `forwarded_from_message_id` (или отдельный endpoint — уточнить у
+бэкенд-команды при реализации).
+**Статус:** `Needed` — в `chat.ts` нет функции пересылки.
+**Demo/mock fallback:** `ForwardDialog` (`src/components/messenger/ForwardDialog.tsx`)
+добавляет сообщение локально в выбранный диалог через `actions.addMessage`,
+с полем `Message.forwardedFrom` = id автора оригинала. Реальной доставки
+получателю нет — сообщение видно только у пересылающего локально.
 

@@ -854,7 +854,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[42px] w-[42px] shrink-0 rounded-full transition-transform active:scale-95"
+                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[42px] sm:w-[42px]"
                       aria-label="Отправить"
                     >
                       <Send size={18} />
