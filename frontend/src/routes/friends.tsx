@@ -189,7 +189,7 @@ function FriendsPage() {
   };
 
   return (
-    <AppLayout footer>
+    <AppLayout>
       <div className="space-y-[16px]">
         <header className="flex items-start justify-between gap-[12px]">
           <div>

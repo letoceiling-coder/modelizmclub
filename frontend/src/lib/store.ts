@@ -107,6 +107,7 @@ const emit = (): void => {
 type Action =
   | { type: "ADD_MESSAGE"; dialogId: ID; message: Message; incrementUnread?: boolean }
   | { type: "MARK_READ"; dialogId: ID }
+  | { type: "MARK_UNREAD"; dialogId: ID }
   | { type: "UPDATE_PROFILE"; userId: ID; data: Partial<User> }
   | { type: "SEND_FRIEND_REQUEST"; fromId: ID; toId: ID }
   | { type: "ACCEPT_FRIEND_REQUEST"; requestId: ID }
@@ -171,6 +172,11 @@ function reducer(s: AppState, a: Action): AppState {
       const d = s.dialogs[a.dialogId];
       if (!d || !d.unread) return s;
       return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, unread: 0 } } };
+    }
+    case "MARK_UNREAD": {
+      const d = s.dialogs[a.dialogId];
+      if (!d || d.unread) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, unread: 1 } } };
     }
     case "UPDATE_PROFILE": {
       const u = s.users[a.userId];
@@ -414,6 +420,7 @@ export function useStore<T>(selector: (s: AppState) => T): T {
 export const actions = {
   addMessage: (dialogId: ID, message: Message) => dispatch({ type: "ADD_MESSAGE", dialogId, message }),
   markRead: (dialogId: ID) => dispatch({ type: "MARK_READ", dialogId }),
+  markUnread: (dialogId: ID) => dispatch({ type: "MARK_UNREAD", dialogId }),
   updateProfile: (userId: ID, data: Partial<User>) => dispatch({ type: "UPDATE_PROFILE", userId, data }),
   sendFriendRequest: (fromId: ID, toId: ID) => dispatch({ type: "SEND_FRIEND_REQUEST", fromId, toId }),
   acceptFriendRequest: (requestId: ID) => dispatch({ type: "ACCEPT_FRIEND_REQUEST", requestId }),

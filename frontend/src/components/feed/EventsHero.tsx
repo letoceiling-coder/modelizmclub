@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, X, CalendarDays, Newspaper, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import { fetchBanners } from "@/lib/api/banners";
 
@@ -22,7 +22,6 @@ const KIND_LABEL: Record<NonNullable<Banner["kind"]>, { label: string; Icon: typ
 
 export function EventsHero() {
   const navigate = useNavigate();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [allBanners, setAllBanners] = useState<Banner[]>([]);
@@ -36,9 +35,11 @@ export function EventsHero() {
     return () => { active = false; };
   }, []);
 
+  // Видимость баннера управляется только из /admin (переключатель «Показывать»),
+  // обычный пользователь не может закрыть баннер вручную.
   const list = useMemo(
-    () => sortBanners(allBanners.filter((b) => !dismissed.has(b.id))).slice(0, 3),
-    [dismissed, allBanners],
+    () => sortBanners(allBanners.filter((b) => b.active !== false)).slice(0, 3),
+    [allBanners],
   );
 
   useEffect(() => {
@@ -72,13 +73,6 @@ export function EventsHero() {
     }
     setSignup(b);
   };
-  const dismiss = (id: string) =>
-    setDismissed((p) => {
-      const n = new Set(p);
-      n.add(id);
-      return n;
-    });
-
   return (
     <>
     <section
@@ -140,15 +134,6 @@ export function EventsHero() {
             </div>
           </motion.div>
         </AnimatePresence>
-
-        <button
-          onClick={() => dismiss(current.id)}
-          aria-label="Скрыть баннер"
-          className="absolute right-[10px] top-[10px] grid h-[28px] w-[28px] place-items-center rounded-full text-white"
-          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
-        >
-          <X className="h-[14px] w-[14px]" />
-        </button>
 
         {list.length > 1 && (
           <>

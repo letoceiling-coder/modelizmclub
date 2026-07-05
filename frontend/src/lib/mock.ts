@@ -146,6 +146,7 @@ export interface Banner {
   priority?: number;
   scheduleFrom?: string;
   scheduleTo?: string;
+  active?: boolean;
 }
 
 export interface Tariff {
