@@ -47,12 +47,7 @@ class ListingService
             ->when($filters['subcategory_id'] ?? null, fn ($q, $id) => $q->where('subcategory_id', $id))
             ->when($filters['city_id'] ?? null, fn ($q, $id) => $q->where('city_id', $id))
             ->when(! empty($filters['category_ids']), fn ($q) => $q->whereIn('category_id', (array) $filters['category_ids']))
-            ->when($filters['q'] ?? null, function ($q, $term): void {
-                $q->where(function ($q) use ($term): void {
-                    $q->where('title', 'ilike', "%{$term}%")
-                        ->orWhere('description', 'ilike', "%{$term}%");
-                });
-            })
+            ->when($filters['q'] ?? null, fn ($q, $term) => $this->applyTextSearch($q, (string) $term))
             ->when(isset($filters['price_min']), fn ($q) => $q->where('price_cents', '>=', (int) round(((float) $filters['price_min']) * 100)))
             ->when(isset($filters['price_max']), fn ($q) => $q->where('price_cents', '<=', (int) round(((float) $filters['price_max']) * 100)))
             ->when($filters['delivery_method'] ?? null, fn ($q, $method) => $q->whereJsonContains('delivery_methods', $method))
@@ -75,11 +70,26 @@ class ListingService
             ->with($this->relations())
             ->where('user_id', $user->id)
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->when($filters['q'] ?? null, fn ($q, $term) => $q->where('title', 'ilike', "%{$term}%"));
+            ->when($filters['q'] ?? null, fn ($q, $term) => $this->applyTextSearch($q, (string) $term, titleOnly: true));
 
         $this->applySort($query, $filters['sort'] ?? 'updated', includeOwnerSorts: true);
 
         return $query->paginate($perPage);
+    }
+
+    /**
+     * @param  Builder<Listing>  $query
+     */
+    private function applyTextSearch($query, string $term, bool $titleOnly = false): void
+    {
+        $operator = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+        $query->where(function ($q) use ($term, $operator, $titleOnly): void {
+            $q->where('title', $operator, "%{$term}%");
+            if (! $titleOnly) {
+                $q->orWhere('description', $operator, "%{$term}%");
+            }
+        });
     }
 
     /**
