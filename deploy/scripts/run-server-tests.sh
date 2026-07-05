@@ -18,6 +18,6 @@ if ! php -m | grep -qi 'pdo_sqlite'; then
 fi
 
 php artisan config:clear
-vendor/bin/phpunit "$@"
+php vendor/bin/phpunit "$@"
 
 echo "Server tests OK: $(date -Iseconds)"
