@@ -348,6 +348,13 @@ function MessengerPage() {
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
   const partner = active ? userById(active.userId) : null;
 
+  const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
+
+  const scrollToMessage = (id: string) => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${id}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = dlgs.filter((d) => {
@@ -705,6 +712,32 @@ function MessengerPage() {
 
 
               </header>
+
+              {pinnedMessage && (
+                <button
+                  onClick={() => scrollToMessage(pinnedMessage.id)}
+                  className="flex w-full items-center gap-[10px] border-b px-[20px] py-[8px] text-left"
+                  style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+                >
+                  <Pin size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                  <div className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : "Вложение")}
+                  </div>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      actions.pinMessage(active!.id, pinnedMessage.id);
+                    }}
+                    className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full"
+                    style={{ color: "var(--foreground-50)" }}
+                    aria-label="Открепить сообщение"
+                  >
+                    <X size={13} />
+                  </span>
+                </button>
+              )}
 
               {/* Messages */}
               <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px]">
