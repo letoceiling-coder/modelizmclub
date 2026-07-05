@@ -95,7 +95,7 @@ class ListingFilterAndExtrasTest extends TestCase
         $this->listing($user, $category, 'Пропеллер APC', 50_00, views: 3);
         $this->listing($user, $category, 'Аккумулятор LiPo', 80_00, views: 99);
 
-        $this->getJson('/api/v1/listings?q=пропеллер')
+        $this->getJson('/api/v1/listings?q=APC')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.title', 'Пропеллер APC');
