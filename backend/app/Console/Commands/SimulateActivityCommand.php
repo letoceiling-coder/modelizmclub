@@ -13,6 +13,8 @@ use App\Models\FriendRequest;
 use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\Message;
+use App\Models\PostMedia;
+use App\Support\DemoImageFactory;
 use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
@@ -28,8 +30,10 @@ use Modules\Feed\Services\CommentService;
 use Modules\Feed\Services\PostInteractionService;
 use Modules\Feed\Services\PostService;
 use Modules\Listing\Services\ListingService;
+use Modules\Media\Services\MediaUploadService;
 use Modules\User\Services\FriendService;
 use Modules\User\Services\UserService;
+use Illuminate\Support\Facades\File;
 
 /**
  * End-to-end activity simulation for production smoke testing.
@@ -47,11 +51,13 @@ use Modules\User\Services\UserService;
 class SimulateActivityCommand extends Command
 {
     protected $signature = 'app:simulate-activity
-        {--users=10 : Number of users to simulate}
+        {--users=12 : Number of users to simulate (10–15 recommended)}
+        {--listings=0 : Total listings to publish (0 = random 16–28)}
         {--fresh : Delete previously simulated accounts and their content before running}
-        {--password=password : Password assigned to every simulated user}';
+        {--password=password123 : Password assigned to every simulated user}
+        {--report= : Save a markdown report to this path (default: storage/app/simulation-reports)}';
 
-    protected $description = 'Simulate a full multi-user activity cycle on real data and print a report';
+    protected $description = 'Simulate realistic multi-user activity (register, listings with photos, chat, comments) and print a report';
 
     private const EMAIL_DOMAIN = 'sim.modelizmclub.ru';
 
@@ -69,6 +75,53 @@ class SimulateActivityCommand extends Command
         ['Алексей Зайцев', 'Танки СССР, интерьеры и полная расшивка.'],
         ['Наталья Лебедева', 'Авиация гражданская, лайнеры 1/144.'],
         ['Павел Соловьёв', 'Космос и ракеты, скретчбилд из подручного.'],
+        ['Виктор Кузнецов', 'RC-багги 1/8, двигатели и электроника.'],
+        ['Елена Фёдорова', 'Корабли и подводные лодки 1/350.'],
+        ['Артём Громов', 'Краски Vallejo, аэрограф и расходники.'],
+        ['Татьяна Белова', 'Декали и маски для авиации 1/72.'],
+        ['Михаил Козлов', 'Запчасти и конверсии для бронетехники.'],
+    ];
+
+    /** @var array<string, list<array{0:string,1:string,2:int}>> title, description, price_cents */
+    private const CATEGORY_LISTINGS = [
+        'kits' => [
+            ['Tamiya 1/35 T-34-76', 'Запечатанный набор Tamiya T-34-76. Литники без облоя, декаль на месте.', 420000],
+            ['Dragon 1/35 Panther Ausf.G', 'Набор Dragon Panther, коробка без вмятин. Не собирался.', 580000],
+            ['Airfix 1/72 Spitfire Mk.IX', 'Классика Airfix, все детали на месте. Отправка СДЭК.', 280000],
+        ],
+        'built' => [
+            ['Собранный IS-2 1/35', 'Полностью собран и покрашен IS-2. Расшивка, погодка, матовый лак.', 950000],
+            ['Модель корабля «Поларис» 1/144', 'Собранный парусник с такелажем. Стоит на подставке.', 1200000],
+        ],
+        'tools' => [
+            ['Аэрограф H&S Evolution', 'Двойного действия, комплект сопел 0.2/0.4. Рабочий, без люфтов.', 890000],
+            ['Набор пилок и напильников', '10 предметов для моделизма, б/у в хорошем состоянии.', 150000],
+        ],
+        'paints' => [
+            ['Vallejo Model Color набор 16 цветов', 'Почти полные баночки, хранились вертикально.', 320000],
+            ['AK Interactive weathering set', 'Набор масел и эффектов, открывался один раз.', 210000],
+        ],
+        'decals' => [
+            ['Декали Як-3 1/48 Eduard', 'Не использовались, лист целый.', 90000],
+            ['Маски для камуфляжа 1/35', 'Набор маски для танка, одноразовые.', 65000],
+        ],
+        'spare-parts' => [
+            ['Гусеницы для Tiger I 1/35', 'Металлические траки Friul, новые.', 240000],
+            ['Конверсия башни T-34', 'Резиновая конверсия, не установлена.', 180000],
+        ],
+        'literature' => [
+            ['Монография «Bf 109»', 'Книга с чертежами и фото, состояние отличное.', 120000],
+            ['Справочник по камуфляжам ВОВ', 'Справочник расцветок, твердый переплет.', 95000],
+        ],
+    ];
+
+    private const BUYER_CHAT = [
+        'Здравствуйте! Объявление ещё актуально?',
+        'Да, актуально. Можете забрать или отправлю.',
+        'Какая окончательная цена с доставкой?',
+        'СДЭК до вашего города — около 400 ₽, могу скинуть точнее.',
+        'Хорошо, беру. Когда сможете отправить?',
+        'Завтра после обеда отправлю, скину трек.',
     ];
 
     private const POST_TEMPLATES = [
@@ -119,6 +172,18 @@ class SimulateActivityCommand extends Command
         'Договорились, спасибо большое!',
     ];
 
+    /** @var array<int, array{name:string,email:string,uuid:string}> */
+    private array $reportUsers = [];
+
+    /** @var array<int, array{title:string,uuid:string,seller:string,price:int,category:string,has_photo:bool}> */
+    private array $reportListings = [];
+
+    private ?Community $reportCommunity = null;
+
+    private int $listingTarget = 0;
+
+    private bool $gdAvailable = false;
+
     public function handle(
         UserService $users,
         FriendService $friends,
@@ -128,19 +193,28 @@ class SimulateActivityCommand extends Command
         ListingService $listings,
         ChatService $chat,
         CommunityService $communities,
+        MediaUploadService $mediaUploads,
     ): int {
-        $count = max(1, (int) $this->option('users'));
+        $count = max(10, min(15, (int) $this->option('users')));
         $password = (string) $this->option('password');
+        $listingOpt = (int) $this->option('listings');
+        $this->listingTarget = $listingOpt > 0 ? max(16, min(28, $listingOpt)) : random_int(16, 28);
+        $this->gdAvailable = extension_loaded('gd');
+        $startedAt = now();
 
         if ($this->option('fresh')) {
             $this->cleanup();
         }
 
+        $this->info("Режим: {$count} пользователей, {$this->listingTarget} объявлений, фото: ".($this->gdAvailable ? 'да (GD)' : 'нет (GD отсутствует)'));
+
         $this->info('Подготовка справочных данных…');
         $postCategories = PostCategory::query()->where('is_active', true)->pluck('id')->all();
-        $listingCategories = ListingCategory::query()->where('is_active', true)->pluck('id')->all();
+        $listingCategories = ListingCategory::query()->where('is_active', true)->whereNull('parent_id')->get();
         $cityId = City::query()->value('id');
         $community = Community::query()->where('status', 'active')->orderByDesc('members_count')->first();
+        $this->reportCommunity = $community;
+        $postCategoryIds = $postCategories;
 
         if ($postCategories === []) {
             $this->error('Нет активных категорий постов — нечего публиковать. Запустите сидеры.');
@@ -169,8 +243,25 @@ class SimulateActivityCommand extends Command
                 'city_id' => $cityId,
             ], fn ($v) => $v !== null)));
 
-            $interestIds = collect($postCategories)->shuffle()->take(min(3, count($postCategories)))->values()->all();
+            $interestIds = collect($postCategoryIds)->shuffle()->take(min(3, count($postCategoryIds)))->values()->all();
             $this->step('interests.sync', fn () => $users->syncInterests($user, $interestIds));
+
+            if ($this->gdAvailable) {
+                $this->step('user.avatar', function () use ($user, $mediaUploads, $name, $users): void {
+                    $profile = $user->profile;
+                    if ($profile?->avatar_media_id) {
+                        return;
+                    }
+                    $media = DemoImageFactory::upload($user, $mediaUploads, "Avatar: {$name}", 'avatar');
+                    $users->updateProfile($user, ['avatar_media_id' => $media->uuid]);
+                });
+            }
+
+            $this->reportUsers[] = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'uuid' => $user->uuid,
+            ];
         }
 
         if ($created === []) {
@@ -190,7 +281,7 @@ class SimulateActivityCommand extends Command
                 $subject = self::SUBJECTS[($idx * 2 + $p) % count(self::SUBJECTS)];
 
                 $post = $this->step('post.create', fn () => $posts->create($author, [
-                    'category_id' => $postCategories[array_rand($postCategories)],
+                    'category_id' => $postCategoryIds[array_rand($postCategoryIds)],
                     'title' => sprintf($tpl[0], $subject),
                     'body' => sprintf($tpl[1], $subject),
                     'hashtags' => ['моделизм', Str::slug($subject, '')],
@@ -198,6 +289,21 @@ class SimulateActivityCommand extends Command
 
                 if (! $post) {
                     continue;
+                }
+
+                if ($this->gdAvailable) {
+                    $this->step('post.photo', function () use ($post, $author, $mediaUploads): void {
+                        if ($post->mediaItems()->exists()) {
+                            return;
+                        }
+                        $media = DemoImageFactory::upload($author, $mediaUploads, $post->title, 'post');
+                        PostMedia::query()->create([
+                            'post_id' => $post->id,
+                            'media_id' => $media->id,
+                            'sort_order' => 0,
+                            'type' => 'image',
+                        ]);
+                    });
                 }
 
                 $published = $this->step('post.publish', fn () => $posts->publish($post, $author));
@@ -243,33 +349,75 @@ class SimulateActivityCommand extends Command
             $this->step('post.repost', fn () => $interactions->repost($post, $reposter));
         }
 
-        // ---- Phase 4: listings + views -----------------------------------
-        if ($listingCategories !== []) {
-            $this->info('Публикация объявлений…');
+        // ---- Phase 4: listings + photos + views + favorites + buyer chat ----
+        if ($listingCategories->isNotEmpty()) {
+            $this->info("Публикация {$this->listingTarget} объявлений с фото по категориям…");
             /** @var array<int, Listing> $createdListings */
             $createdListings = [];
-            foreach ($created as $idx => $owner) {
-                $tpl = self::LISTING_TEMPLATES[$idx % count(self::LISTING_TEMPLATES)];
-                $subject = self::SUBJECTS[$idx % count(self::SUBJECTS)];
+            $categoryList = $listingCategories->values()->all();
+
+            for ($n = 0; $n < $this->listingTarget; $n++) {
+                $owner = $created[$n % count($created)];
+                /** @var ListingCategory $category */
+                $category = $categoryList[$n % count($categoryList)];
+                $payload = $this->listingPayloadForCategory($category);
+                $mediaUuid = null;
+
+                if ($this->gdAvailable) {
+                    $media = $this->step('listing.photo', fn () => DemoImageFactory::upload(
+                        $owner,
+                        $mediaUploads,
+                        $payload['title'].' · '.$category->name,
+                        'listing',
+                    ));
+                    $mediaUuid = $media?->uuid;
+                }
 
                 $listing = $this->step('listing.create', fn () => $listings->create($owner, [
-                    'category_id' => $listingCategories[array_rand($listingCategories)],
-                    'title' => sprintf($tpl[0], $subject),
-                    'description' => sprintf($tpl[1], $subject),
-                    'price_cents' => random_int(50, 800) * 100,
+                    'category_id' => $payload['category_id'],
+                    'title' => $payload['title'],
+                    'description' => $payload['description'],
+                    'price_cents' => $payload['price_cents'],
                     'city_id' => $cityId,
+                    'delivery_methods' => ['СДЭК', 'Самовывоз'],
+                    'media_ids' => $mediaUuid ? [$mediaUuid] : [],
                     'publish' => true,
                 ]));
 
                 if ($listing) {
                     $createdListings[] = $listing;
+                    $this->reportListings[] = [
+                        'title' => $listing->title,
+                        'uuid' => $listing->uuid,
+                        'seller' => $owner->email,
+                        'price' => (int) round($listing->price_cents / 100),
+                        'category' => $category->name,
+                        'has_photo' => (bool) $mediaUuid,
+                    ];
                 }
             }
 
             foreach ($createdListings as $listing) {
-                $viewers = collect($created)->reject(fn (User $u) => $u->id === $listing->user_id)->shuffle()->take(4);
+                $sellerId = $listing->user_id;
+                $viewers = collect($created)->reject(fn (User $u) => $u->id === $sellerId)->shuffle()->take(4);
                 foreach ($viewers as $viewer) {
                     $this->step('listing.view', fn () => $listings->recordView($listing, $viewer));
+                }
+
+                $buyer = collect($created)->first(fn (User $u) => $u->id !== $sellerId);
+                if ($buyer) {
+                    $this->step('listing.favorite', fn () => $listings->addFavorite($listing, $buyer));
+
+                    $seller = collect($created)->firstWhere('id', $sellerId);
+                    if ($seller) {
+                        $conversation = $this->step('chat.listing', fn () => $chat->findOrCreateDirect($buyer, $seller, $listing));
+                        if ($conversation instanceof Conversation) {
+                            foreach (self::BUYER_CHAT as $line => $text) {
+                                $speaker = $line % 2 === 0 ? $buyer : $seller;
+                                $this->step('chat.buyer', fn () => $chat->sendMessage($conversation, $speaker, $text));
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -308,7 +456,7 @@ class SimulateActivityCommand extends Command
             $poster = $created[0];
             $this->step('community.post', fn () => $posts->publish(
                 $posts->create($poster, [
-                    'category_id' => $postCategories[array_rand($postCategories)],
+                    'category_id' => $postCategoryIds[array_rand($postCategoryIds)],
                     'community_id' => $community->id,
                     'title' => 'Привет, '.$community->name.'!',
                     'body' => 'Только что вступил в сообщество. Покажу здесь свои текущие проекты, рад знакомству!',
@@ -342,8 +490,113 @@ class SimulateActivityCommand extends Command
         $this->renderResults();
         $this->renderReport($community);
         $this->renderCredentials($created, $password);
+        $reportPath = $this->saveMarkdownReport($startedAt, $password);
+
+        $this->newLine();
+        $this->info("Отчёт сохранён: {$reportPath}");
 
         return self::SUCCESS;
+    }
+
+    private function listingPayloadForCategory(ListingCategory $category): array
+    {
+        $slug = $category->slug ?: 'kits';
+        $catalog = self::CATEGORY_LISTINGS[$slug] ?? self::CATEGORY_LISTINGS['kits'];
+        $item = $catalog[array_rand($catalog)];
+
+        return [
+            'category_id' => $category->id,
+            'title' => $item[0],
+            'description' => $item[1],
+            'price_cents' => $item[2],
+        ];
+    }
+
+    private function saveMarkdownReport(\Illuminate\Support\Carbon $startedAt, string $password): string
+    {
+        $dir = $this->option('report') ?: storage_path('app/simulation-reports');
+        if (str_ends_with((string) $dir, '.md')) {
+            $path = (string) $dir;
+            File::ensureDirectoryExists(dirname($path));
+        } else {
+            File::ensureDirectoryExists($dir);
+            $path = rtrim((string) $dir, '/\\').'/activity-'.$startedAt->format('Y-m-d-His').'.md';
+        }
+
+        $ids = $this->simUserIds();
+        $lines = [
+            '# Отчёт симуляции активности ModelizmClub',
+            '',
+            '- **Дата:** '.$startedAt->toDateTimeString(),
+            '- **Завершено:** '.now()->toDateTimeString(),
+            '- **Пользователей:** '.count($this->reportUsers),
+            '- **Объявлений:** '.count($this->reportListings).' (цель: '.$this->listingTarget.')',
+            '- **Пароль всех аккаунтов:** `'.$password.'`',
+            '- **Домен email:** `@'.self::EMAIL_DOMAIN.'`',
+            '- **Данные не удаляются** (без флага `--fresh`)',
+            '',
+            '## Учётные записи',
+            '',
+            '| Имя | Email | UUID |',
+            '|---|---|---|',
+        ];
+
+        foreach ($this->reportUsers as $u) {
+            $lines[] = '| '.$u['name'].' | '.$u['email'].' | `'.$u['uuid'].'` |';
+        }
+
+        $lines[] = '';
+        $lines[] = '## Объявления';
+        $lines[] = '';
+        $lines[] = '| Категория | Название | Цена ₽ | Фото | Продавец | UUID |';
+        $lines[] = '|---|---|---:|---|---|---|';
+
+        foreach ($this->reportListings as $l) {
+            $lines[] = '| '.$l['category'].' | '.Str::limit($l['title'], 50).' | '.$l['price'].' | '.($l['has_photo'] ? 'да' : 'нет').' | '.$l['seller'].' | `'.$l['uuid'].'` |';
+        }
+
+        $lines[] = '';
+        $lines[] = '## Результаты действий';
+        $lines[] = '';
+        $lines[] = '| Действие | OK | Ошибки |';
+        $lines[] = '|---|---:|---:|';
+        ksort($this->results);
+        foreach ($this->results as $action => $r) {
+            $lines[] = '| '.$action.' | '.$r['ok'].' | '.$r['fail'].' |';
+        }
+
+        if ($this->reportCommunity) {
+            $lines[] = '';
+            $lines[] = '## Сообщество';
+            $lines[] = '';
+            $lines[] = '- **Название:** '.$this->reportCommunity->name;
+            $lines[] = '- **Участников после симуляции:** '.$this->reportCommunity->fresh()->members_count;
+        }
+
+        $lines[] = '';
+        $lines[] = '## Статистика в БД';
+        $lines[] = '';
+        if ($ids !== []) {
+            $postIds = Post::query()->whereIn('user_id', $ids)->pluck('id');
+            $lines[] = '- Постов опубликовано: '.Post::query()->whereIn('user_id', $ids)->where('status', 'published')->whereNull('repost_of_id')->count();
+            $lines[] = '- Комментариев к постам: '.Comment::query()->whereIn('commentable_id', $postIds)->where('commentable_type', Post::class)->count();
+            $lines[] = '- Объявлений: '.Listing::query()->whereIn('user_id', $ids)->count();
+            $lines[] = '- Сообщений в чатах: '.Message::query()->whereIn('user_id', $ids)->count();
+            $lines[] = '- Избранных объявлений: '.DB::table('listing_favorites')->whereIn('user_id', $ids)->count();
+        }
+
+        $lines[] = '';
+        $lines[] = '## Ручная проверка в интерфейсе';
+        $lines[] = '';
+        $lines[] = '1. Войти под любым `sim*@'.self::EMAIL_DOMAIN.'` / `'.$password.'`';
+        $lines[] = '2. Лента — посты с фото, комментарии и ответы';
+        $lines[] = '3. Объявления — каталог с фото по категориям';
+        $lines[] = '4. Мессенджер — переписка «покупатель ↔ продавец» с привязкой к объявлению';
+        $lines[] = '5. Сообщества — все sim-пользователи в клубе';
+
+        File::put($path, implode("\n", $lines));
+
+        return $path;
     }
 
     private function makeUser(string $email, string $name, string $password): User
