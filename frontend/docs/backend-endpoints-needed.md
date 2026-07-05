@@ -39,7 +39,14 @@
 
 **Endpoint разблокировки:** `DELETE /users/{userId}/block`  
 **Статус:** `Needed` — нигде нет (`blockUser` в `social.ts` отсутствует).  
-**Demo/mock fallback:** флаг `blocked` в `dialogMetaMap` уже есть в store — можно имитировать локально.
+**Demo/mock fallback (обновлено 2026-07-05):** `blockedUserIds: ID[]` в
+`lib/store.ts` (`actions.blockUser`/`unblockUser`, `selectors.isBlocked`) —
+единая user-level блокировка, используется и мессенджером (`ChatHeaderActions`,
+send-гейты в `messenger.tsx`), и страницей друзей (`friends.tsx`), и разделом
+"Заблокированные" в `/profile` (`BlockedUsersSection`). Симметрия
+("Б тоже не видит А") — только клиентская иллюзия в рамках одного
+demo-store; реальная двусторонняя блокировка требует серверного
+relationship-статуса, видимого обеим сторонам.
 
 ---
 
