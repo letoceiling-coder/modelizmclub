@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Search, Bell } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
@@ -50,7 +49,6 @@ export function DesktopTopBar() {
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />
-        <ThemeToggle />
         <Link
           to={ROUTES.notifications}
           aria-label={t("nav.notifications")}

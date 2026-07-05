@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { User, ClipboardList, Crown, LogOut } from "lucide-react";
+import { User, ClipboardList, Crown, LogOut, Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useStore, selectors } from "@/lib/store";
 import { signOut } from "@/lib/auth/session";
 import { ROUTES } from "@/lib/routes";
+import { useTheme } from "@/components/ThemeProvider";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -24,6 +25,8 @@ function initials(name: string): string {
 export function UserMenu() {
   const me = useStore(selectors.currentUser);
   const { t } = useTranslation();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,6 +91,14 @@ export function UserMenu() {
             <Link to={ROUTES.subscription} className="flex items-center gap-2">
               <Crown className="h-4 w-4" /> {t("nav.subscription")}
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={(e) => { e.preventDefault(); toggleTheme(); }}
+            className="flex items-center gap-2"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {isDark ? "Светлая тема" : "Тёмная тема"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={handleSignOut} className="flex items-center gap-2">
