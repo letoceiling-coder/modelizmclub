@@ -5,14 +5,16 @@ import { RightCategories } from "./RightCategories";
 import { BottomNav } from "./BottomNav";
 import { MobileHeader } from "./MobileHeader";
 import { DesktopTopBar } from "./DesktopTopBar";
+import { AppFooter } from "./AppFooter";
 
 interface Props {
   children: ReactNode;
   rightColumn?: ReactNode | false;
   navCollapsed?: boolean;
+  footer?: boolean;
 }
 
-export function AppLayout({ children, rightColumn, navCollapsed }: Props) {
+export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
@@ -45,6 +47,7 @@ export function AppLayout({ children, rightColumn, navCollapsed }: Props) {
           )}
         >
           {children}
+          {footer && <AppFooter />}
         </main>
         {rightColumn === false ? null : rightColumn ?? <RightCategories />}
       </div>
