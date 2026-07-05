@@ -163,6 +163,7 @@ export const zh: TranslationSchema = {
       theme: "主题",
       contacts: "联系方式",
       hours: "周一至周日，10:00–20:00（莫斯科时间）",
+      soon: "即将上线",
       cols: {
         brand: { title: "Modelizm", links: { about: "关于我们", company: "公司信息", partners: "合作伙伴", advertising: "广告投放" } },
         docs: { title: "文件", links: { rules: "用户协议", privacy: "隐私政策", compliance: "合规", consent: "个人数据处理" } },

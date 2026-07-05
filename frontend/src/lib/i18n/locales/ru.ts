@@ -161,6 +161,7 @@ export const ru = {
       theme: "Тема",
       contacts: "Контакты",
       hours: "Пн–Вс, 10:00–20:00 МСК",
+      soon: "Скоро",
       cols: {
         brand: { title: "МоДелизМ", links: { about: "О нас", company: "О компании", partners: "Партнёрам", advertising: "Размещение рекламы" } },
         docs: { title: "Документы", links: { rules: "Пользовательское соглашение", privacy: "Политика конфиденциальности", compliance: "Compliance", consent: "Обработка персональных данных" } },

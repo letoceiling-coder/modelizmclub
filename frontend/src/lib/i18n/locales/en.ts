@@ -163,6 +163,7 @@ export const en: TranslationSchema = {
       theme: "Theme",
       contacts: "Contacts",
       hours: "Mon–Sun, 10:00–20:00 MSK",
+      soon: "Soon",
       cols: {
         brand: { title: "Modelizm", links: { about: "About us", company: "Company", partners: "For partners", advertising: "Advertising" } },
         docs: { title: "Documents", links: { rules: "Terms of use", privacy: "Privacy policy", compliance: "Compliance", consent: "Personal data processing" } },
