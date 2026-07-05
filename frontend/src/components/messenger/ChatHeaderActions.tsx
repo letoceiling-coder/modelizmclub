@@ -26,6 +26,19 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
   const callBusy = (!!activeCall && activeCall.status !== "ended") || groupActive;
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canHover = typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
+
+  const cancelScheduledClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelScheduledClose();
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -142,7 +155,12 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
         <Phone size={19} />
       </button>
 
-      <div className="relative" ref={ref}>
+      <div
+        className="relative"
+        ref={ref}
+        onMouseEnter={() => { if (canHover) { cancelScheduledClose(); setOpen(true); } }}
+        onMouseLeave={() => { if (canHover) scheduleClose(); }}
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
