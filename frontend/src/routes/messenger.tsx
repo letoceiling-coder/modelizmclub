@@ -28,6 +28,7 @@ import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
+import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
@@ -828,6 +829,7 @@ function MessengerPage() {
         </section>
       </div>
       <CreateChatDialog open={createOpen} onClose={() => setCreateOpen(false)} onPick={handleCreateChat} />
+      <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
     </AppLayout>
   );
 }
