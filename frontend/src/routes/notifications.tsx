@@ -76,7 +76,7 @@ function NotificationsPage() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout footer>
       <div className="mx-auto w-full max-w-[640px] px-[8px] py-[16px]">
         <div className="mb-[16px] flex items-center justify-between">
           <div className="flex items-center gap-[10px]">
