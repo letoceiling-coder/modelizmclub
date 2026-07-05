@@ -19,30 +19,57 @@ interface Props {
   onReport: () => void;
 }
 
+const DESKTOP_MENU_WIDTH = 220;
+
 export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(function MessageActionsMenu(
   { isMe, pinned, align, onReply, onCopy, onForward, onPin, onDelete, onReport },
   ref,
 ) {
   const [open, setOpen] = useState(false);
+  const [desktopPos, setDesktopPos] = useState<{ top: number; left: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  useImperativeHandle(ref, () => ({ open: () => setOpen(true) }));
+  const computeDesktopPos = () => {
+    const btn = triggerRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const left = align === "right" ? r.right - DESKTOP_MENU_WIDTH : r.left;
+    setDesktopPos({ top: r.bottom + 6, left });
+  };
+
+  const openMenu = () => {
+    computeDesktopPos();
+    setOpen(true);
+  };
+
+  useImperativeHandle(ref, () => ({ open: openMenu }));
 
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (menuElRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    const onScrollOrResize = () => setOpen(false);
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
     return () => {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
     };
   }, [open]);
+
+  const menuElRef = useRef<HTMLDivElement>(null);
 
   const run = (fn: () => void) => () => {
     setOpen(false);
@@ -54,8 +81,9 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
     <>
     <div className="relative" ref={wrapRef}>
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         className={`grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100 sm:h-[28px] sm:w-[28px] ${open ? "!opacity-100" : ""}`}
         style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
         aria-label="Действия с сообщением"
@@ -63,18 +91,25 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
       >
         <MoreHorizontal size={16} />
       </button>
+    </div>
 
-      {!isMobile && (
+    {!isMobile &&
+      typeof document !== "undefined" &&
+      createPortal(
         <AnimatePresence>
-          {open && (
+          {open && desktopPos && (
             <motion.div
+              ref={menuElRef}
               role="menu"
               initial={{ opacity: 0, y: -6, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className={`absolute top-full z-[60] mt-[6px] w-[220px] overflow-hidden rounded-[12px] border ${align === "right" ? "right-0" : "left-0"}`}
+              className="fixed z-[100] overflow-hidden rounded-[12px] border"
               style={{
+                top: desktopPos.top,
+                left: desktopPos.left,
+                width: DESKTOP_MENU_WIDTH,
                 background: "var(--background-elevated)",
                 borderColor: "var(--border)",
                 boxShadow: "var(--shadow-float)",
@@ -92,9 +127,9 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
               />
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
       )}
-    </div>
 
     {isMobile &&
       typeof document !== "undefined" &&
