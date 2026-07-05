@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ads as mockAds } from "@/lib/mock";
 import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
@@ -101,7 +100,6 @@ function TopNav() {
         {/* right controls */}
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-1 md:flex">
-            <LanguageSwitcher />
             <ThemeToggle />
           </div>
           <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
@@ -152,9 +150,8 @@ function TopNav() {
                 ),
               )}
               <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2" style={{ background: "var(--background-surface)" }}>
-                <span className="text-sm" style={{ color: "var(--foreground-70)" }}>Тема и язык</span>
+                <span className="text-sm" style={{ color: "var(--foreground-70)" }}>Тема</span>
                 <span className="flex items-center gap-1">
-                  <LanguageSwitcher />
                   <ThemeToggle />
                 </span>
               </div>
