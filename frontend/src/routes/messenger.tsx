@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare,
-  Paperclip, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
+  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin,
+  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff, ImagePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
@@ -23,8 +23,12 @@ import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
+import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
+import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
+import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
@@ -122,9 +126,15 @@ function MessageImage({ src }: { src: string }) {
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply,
+  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onReport,
 }: {
-  msg: Message; prev?: Message; allMessages: Message[]; onReply: (m: Message) => void;
+  msg: Message; prev?: Message; allMessages: Message[];
+  onReply: (m: Message) => void;
+  onCopy: (m: Message) => void;
+  onForward: (m: Message) => void;
+  onPin: (m: Message) => void;
+  onDelete: (m: Message) => void;
+  onReport: (m: Message) => void;
 }) {
   const meId = useStore((s) => s.currentUserId);
   const isMe = msg.authorId === meId;
@@ -132,6 +142,19 @@ function MessageBubble({
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
+  const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
+
+  const menuRef = useRef<MessageActionsMenuHandle>(null);
+  const touchTimer = useRef<number | null>(null);
+  const startLongPress = () => {
+    touchTimer.current = window.setTimeout(() => menuRef.current?.open(), 400);
+  };
+  const cancelLongPress = () => {
+    if (touchTimer.current) {
+      window.clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  };
 
   return (
     <motion.div
@@ -146,17 +169,27 @@ function MessageBubble({
           {isFirstInGroup && <ChatAvatar src={author.avatar} name={author.name} size={28} />}
         </div>
       )}
-      <div className="relative max-w-[70%]">
-        {!isMe && (
-          <button
-            onClick={() => onReply(msg)}
-            className="absolute -right-[36px] top-1/2 -translate-y-1/2 grid h-[28px] w-[28px] place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-            style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
-            aria-label="Ответить"
-          >
-            <CornerUpLeft size={14} />
-          </button>
-        )}
+      <div
+        className="relative max-w-[70%]"
+        data-msg-id={msg.id}
+        onTouchStart={startLongPress}
+        onTouchEnd={cancelLongPress}
+        onTouchMove={cancelLongPress}
+      >
+        <div className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+          <MessageActionsMenu
+            ref={menuRef}
+            isMe={isMe}
+            pinned={Boolean(msg.pinned)}
+            align={isMe ? "right" : "left"}
+            onReply={() => onReply(msg)}
+            onCopy={() => onCopy(msg)}
+            onForward={() => onForward(msg)}
+            onPin={() => onPin(msg)}
+            onDelete={() => onDelete(msg)}
+            onReport={() => onReport(msg)}
+          />
+        </div>
         <div
           className="px-[14px] py-[10px]"
           style={{
@@ -165,6 +198,14 @@ function MessageBubble({
             borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
           }}
         >
+          {forwardedAuthor && (
+            <div
+              className="mb-[6px] text-[11px] font-semibold italic"
+              style={{ color: isMe ? "rgba(255,255,255,0.75)" : "var(--foreground-50)" }}
+            >
+              Переслано от {forwardedAuthor.name}
+            </div>
+          )}
           {reply && (
             <div
               className="mb-[6px] pl-[8px] text-[12px]"
@@ -178,6 +219,7 @@ function MessageBubble({
             </div>
           )}
           {msg.image && <MessageImage src={msg.image} />}
+          {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
             <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -306,16 +348,30 @@ function MessengerPage() {
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
   const partner = active ? userById(active.userId) : null;
 
+  const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
+
+  const scrollToMessage = (id: string) => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${id}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = dlgs.filter((d) => {
       const m = getMeta(d.id);
       return showArchived ? m.archived : !m.archived;
     });
-    if (!q) return base;
-    return base.filter((d) => {
-      const u = userById(d.userId);
-      return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+    const searched = !q
+      ? base
+      : base.filter((d) => {
+          const u = userById(d.userId);
+          return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+        });
+    if (showArchived) return searched;
+    return [...searched].sort((a, b) => {
+      const pa = a.pinned ? 1 : 0;
+      const pb = b.pinned ? 1 : 0;
+      return pb - pa;
     });
   }, [dlgs, query, dialogMetaMap, showArchived]);
 
@@ -422,7 +478,61 @@ function MessengerPage() {
     }
   };
 
+  const handleAttachment = (file: File, kind: AttachmentKind) => {
+    if (!active) return;
+    if (getMeta(active.id).blocked) {
+      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      return;
+    }
+    const dialogId = active.id;
+    const url = URL.createObjectURL(file);
+    const replyId = replyTo?.id;
+    const tempId = `tmp${Date.now()}`;
+    const base: Message = {
+      id: tempId,
+      authorId: meId,
+      time: new Date().toISOString(),
+      text: "",
+      status: "sent",
+      replyTo: replyId,
+    };
+    const optimistic: Message =
+      kind === "image" ? { ...base, image: url } : { ...base, file: { name: file.name, size: file.size, kind, url } };
+    actions.addMessage(dialogId, optimistic);
+    setReplyTo(null);
+    toast("Вложение отправлено (демо)", { description: "Загрузка на сервер появится позже" });
+  };
 
+  const quickPhotoRef = useRef<HTMLInputElement>(null);
+  const handleQuickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) handleAttachment(file, "image");
+  };
+
+  const handleCopy = (m: Message) => {
+    const text = m.text || (m.file ? m.file.name : m.image ? "[изображение]" : "[вложение]");
+    navigator.clipboard.writeText(text).then(
+      () => toast.success("Скопировано"),
+      () => toast.error("Не удалось скопировать"),
+    );
+  };
+
+  const handlePinMessage = (m: Message) => {
+    if (!active) return;
+    actions.pinMessage(active.id, m.id);
+  };
+
+  const handleDeleteMessage = (m: Message) => {
+    if (!active) return;
+    actions.deleteMessageForMe(active.id, m.id);
+  };
+
+  const handleReportMessage = () => {
+    toast("Жалоба: будет доступно позже");
+  };
+
+  const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
 
   return (
     <AppLayout rightColumn={false}>
@@ -541,6 +651,7 @@ function MessengerPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             <span className="flex min-w-0 items-center gap-[6px] truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                              {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
                               <span className="truncate">{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                               {getMeta(d.id).blocked && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
@@ -604,20 +715,59 @@ function MessengerPage() {
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
                   <LanguageSwitcher />
-                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} />
+                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
                 </div>
 
 
               </header>
+
+              {pinnedMessage && (
+                <button
+                  onClick={() => scrollToMessage(pinnedMessage.id)}
+                  className="flex w-full items-center gap-[10px] border-b px-[20px] py-[8px] text-left"
+                  style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+                >
+                  <Pin size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                  <div className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : "Вложение")}
+                  </div>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      actions.pinMessage(active!.id, pinnedMessage.id);
+                    }}
+                    className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full"
+                    style={{ color: "var(--foreground-50)" }}
+                    aria-label="Открепить сообщение"
+                  >
+                    <X size={13} />
+                  </span>
+                </button>
+              )}
 
               {/* Messages */}
               <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px]">
                 {chatLoading ? (
                   <MessageSkeleton />
                 ) : (
-                  active.messages.map((m, i) => (
-                    <MessageBubble key={m.id} msg={m} prev={active.messages[i - 1]} allMessages={active.messages} onReply={setReplyTo} />
-                  ))
+                  active.messages
+                    .filter((m) => !m.deletedForMe)
+                    .map((m, i, arr) => (
+                      <MessageBubble
+                        key={m.id}
+                        msg={m}
+                        prev={arr[i - 1]}
+                        allMessages={active.messages}
+                        onReply={setReplyTo}
+                        onCopy={handleCopy}
+                        onForward={setForwardMsg}
+                        onPin={handlePinMessage}
+                        onDelete={handleDeleteMessage}
+                        onReport={handleReportMessage}
+                      />
+                    ))
                 )}
               </div>
 
@@ -663,13 +813,22 @@ function MessengerPage() {
                       border: "1px solid var(--border)",
                     }}
                   >
+                    <AttachmentMenu onPick={handleAttachment} />
+                    <input
+                      ref={quickPhotoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleQuickPhoto}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-[36px] w-[36px] shrink-0 rounded-full text-[var(--foreground-50)]"
-                      aria-label="Прикрепить"
+                      onClick={() => quickPhotoRef.current?.click()}
+                      className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[36px] sm:w-[36px]"
+                      aria-label="Быстрое фото"
                     >
-                      <Paperclip size={18} />
+                      <ImagePlus size={18} />
                     </Button>
                     <textarea
                       value={text}
@@ -695,7 +854,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[42px] w-[42px] shrink-0 rounded-full transition-transform active:scale-95"
+                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[42px] sm:w-[42px]"
                       aria-label="Отправить"
                     >
                       <Send size={18} />
@@ -711,6 +870,7 @@ function MessengerPage() {
         </section>
       </div>
       <CreateChatDialog open={createOpen} onClose={() => setCreateOpen(false)} onPick={handleCreateChat} />
+      <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
     </AppLayout>
   );
 }

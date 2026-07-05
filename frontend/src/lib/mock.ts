@@ -165,6 +165,13 @@ export interface VoiceMessage {
   src?: string; // playable audio URL for real voice notes
 }
 
+export interface MessageFile {
+  name: string;
+  size: number; // bytes
+  kind: "video" | "file";
+  url: string; // blob: URL (demo) or real URL
+}
+
 export interface Message {
   id: ID;
   authorId: ID;
@@ -174,6 +181,10 @@ export interface Message {
   replyTo?: ID;
   image?: string;
   voice?: VoiceMessage;
+  file?: MessageFile;
+  pinned?: boolean;
+  deletedForMe?: boolean;
+  forwardedFrom?: ID;
 }
 
 export const VOICE_TRANSCRIPTS: string[] = [
@@ -205,6 +216,7 @@ export interface Dialog {
   time: string;
   unread?: number;
   messages: Message[];
+  pinned?: boolean;
 }
 
 const avatar = (seed: string) =>

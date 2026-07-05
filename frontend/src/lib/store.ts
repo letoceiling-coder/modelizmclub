@@ -119,7 +119,11 @@ type Action =
   | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
   | { type: "SET_CURRENT_USER"; user: User }
   | { type: "SET_DIALOGS"; dialogs: Dialog[] }
-  | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] };
+  | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] }
+  | { type: "PIN_MESSAGE"; dialogId: ID; messageId: ID }
+  | { type: "DELETE_MESSAGE_FOR_ME"; dialogId: ID; messageId: ID }
+  | { type: "PIN_DIALOG"; dialogId: ID; pinned: boolean }
+  | { type: "CLEAR_HISTORY"; dialogId: ID };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -318,6 +322,35 @@ function reducer(s: AppState, a: Action): AppState {
         },
       };
     }
+    case "PIN_MESSAGE": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      const target = d.messages.find((m) => m.id === a.messageId);
+      const nextPinned = !target?.pinned;
+      const messages = d.messages.map((m) => ({
+        ...m,
+        pinned: m.id === a.messageId ? nextPinned : false,
+      }));
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages } } };
+    }
+    case "DELETE_MESSAGE_FOR_ME": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      const messages = d.messages.map((m) =>
+        m.id === a.messageId ? { ...m, deletedForMe: true } : m,
+      );
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages } } };
+    }
+    case "PIN_DIALOG": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, pinned: a.pinned } } };
+    }
+    case "CLEAR_HISTORY": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages: [] } } };
+    }
     default:
       return s;
   }
@@ -359,6 +392,10 @@ export const actions = {
   savePost: (postId: ID, save: boolean) => dispatch({ type: "SAVE_POST", postId, save }),
   addComment: (postId: ID, comment: Comment) => dispatch({ type: "ADD_COMMENT", postId, comment }),
   setDialogMeta: (dialogId: ID, patch: Partial<DialogMeta>) => dispatch({ type: "SET_DIALOG_META", dialogId, patch }),
+  pinMessage: (dialogId: ID, messageId: ID) => dispatch({ type: "PIN_MESSAGE", dialogId, messageId }),
+  deleteMessageForMe: (dialogId: ID, messageId: ID) => dispatch({ type: "DELETE_MESSAGE_FOR_ME", dialogId, messageId }),
+  pinDialog: (dialogId: ID, pinned: boolean) => dispatch({ type: "PIN_DIALOG", dialogId, pinned }),
+  clearHistory: (dialogId: ID) => dispatch({ type: "CLEAR_HISTORY", dialogId }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 
