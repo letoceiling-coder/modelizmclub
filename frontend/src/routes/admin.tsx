@@ -1481,6 +1481,7 @@ function MonetizationSection() {
             text: b.text,
             starts_at: b.scheduleFrom || null,
             ends_at: b.scheduleTo || null,
+            is_active: b.active ?? true,
           }),
         ),
       );
@@ -1578,7 +1579,7 @@ function MonetizationSection() {
               </div>
 
               <div
-                className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr_auto]"
+                className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr_auto_auto]"
                 style={{ gap: "10px", marginTop: "12px", alignItems: "end" }}
               >
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -1621,6 +1622,15 @@ function MonetizationSection() {
                     style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
                   />
                   <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Закрепить</span>
+                </label>
+                <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={b.active ?? true}
+                    onChange={(e) => updateBanner(b.id, { active: e.target.checked })}
+                    style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+                  />
+                  <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать</span>
                 </label>
               </div>
             </div>
