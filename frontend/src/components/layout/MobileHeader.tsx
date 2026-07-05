@@ -25,6 +25,7 @@ const LANGS: { code: Locale; native: string; flag: string }[] = [
  * bottom action sheet for the secondary actions (channels, theme, language).
  */
 export function MobileHeader() {
+  const { t } = useTranslation();
   const unread = useUnreadNotifications();
 
   return (
@@ -42,7 +43,7 @@ export function MobileHeader() {
         className="flex items-center justify-between gap-2 px-4"
         style={{ height: "var(--mobile-header-h)" }}
       >
-        <Link to="/feed" className="inline-flex min-w-0 items-center" aria-label="На главную">
+        <Link to="/feed" className="inline-flex min-w-0 items-center" aria-label={t("pages.homeLink")}>
           <Logo size={34} />
         </Link>
 

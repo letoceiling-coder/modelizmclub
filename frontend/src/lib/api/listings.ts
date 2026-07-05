@@ -122,6 +122,7 @@ export interface CatalogParams {
   listingStatus?: string;
   sort?: "new" | "cheap" | "expensive" | "popular";
   withPhotoOnly?: boolean;
+  perPage?: number;
 }
 
 export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
@@ -133,11 +134,15 @@ export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
       price_min: params.priceMin || undefined,
       price_max: params.priceMax || undefined,
       has_media: params.withPhotoOnly ? 1 : undefined,
-      per_page: 50,
+      per_page: params.perPage ?? 50,
       sort: params.sort || undefined,
     },
   });
   return (res.data ?? []).map(mapListing);
+}
+
+export async function fetchPopularListings(limit = 10): Promise<Ad[]> {
+  return fetchListings({ sort: "popular", perPage: limit });
 }
 
 export async function fetchFavoriteListings(): Promise<Ad[]> {

@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Services;
 
+use App\Enums\ListingStatus;
 use App\Models\City;
 use App\Models\CommunityCategory;
 use App\Models\ListingCategory;
@@ -100,6 +101,12 @@ class CatalogService
     /** @return list<array<string, mixed>> */
     private function categoryTree($query, bool $includeListingPrice = false): array
     {
+        if ($includeListingPrice) {
+            $query = $query->withCount([
+                'listings as listings_count' => fn ($q) => $q->where('status', ListingStatus::Published),
+            ]);
+        }
+
         /** @var Collection<int, Model> $flat */
         $flat = $query
             ->where('is_active', true)
@@ -124,8 +131,11 @@ class CatalogService
             'sort_order' => $item->sort_order,
         ];
 
-        if ($includeListingPrice && isset($item->listing_price_cents)) {
-            $node['listing_price_cents'] = $item->listing_price_cents;
+        if ($includeListingPrice) {
+            if (isset($item->listing_price_cents)) {
+                $node['listing_price_cents'] = $item->listing_price_cents;
+            }
+            $node['listings_count'] = (int) ($item->listings_count ?? 0);
         }
 
         return $node;

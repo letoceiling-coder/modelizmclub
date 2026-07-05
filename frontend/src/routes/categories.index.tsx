@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CategoryCard } from "@/components/CategoryCard";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -10,19 +11,17 @@ export const Route = createFileRoute("/categories/")({
 });
 
 function CategoriesPage() {
+  const { t } = useTranslation();
   const categories = usePostCategories();
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-5">
         <header>
-          <h1 className="font-display text-2xl font-bold">Категории</h1>
-          <p
-            className="mt-[2px] font-display text-[15px] font-semibold"
-            style={{ color: "var(--accent)" }}
-          >
-            Найди своих
+          <h1 className="font-display text-2xl font-bold">{t("pages.categories.title")}</h1>
+          <p className="mt-[2px] font-display text-[15px] font-semibold" style={{ color: "var(--accent)" }}>
+            {t("pages.categories.accent")}
           </p>
-          <p className="mt-[4px] text-sm text-muted-foreground">Выберите интересующее вас направление</p>
+          <p className="mt-[4px] text-sm text-muted-foreground">{t("pages.categories.subtitle")}</p>
         </header>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -32,9 +31,9 @@ function CategoriesPage() {
         {/* 3D showcase strip */}
         <section className="space-y-3 pt-2">
           <div className="flex items-end justify-between">
-            <h2 className="font-display text-lg font-bold">Популярные модели</h2>
+            <h2 className="font-display text-lg font-bold">{t("pages.categories.popularModels")}</h2>
             <span className="text-xs" style={{ color: "var(--foreground-50)" }}>
-              {showcaseImages.length} моделей
+              {t("pages.categories.modelsCount", { count: showcaseImages.length })}
             </span>
           </div>
           <div className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2 pb-2">

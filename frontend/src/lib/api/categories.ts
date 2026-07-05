@@ -9,16 +9,18 @@ interface ApiCategoryNode {
   slug?: string;
   icon?: string | null;
   depth?: number;
+  listings_count?: number;
   children?: ApiCategoryNode[];
 }
 
-function mapCategory(node: ApiCategoryNode): Category {
+function mapCategory(node: ApiCategoryNode, includeListingsCount = false): Category {
   return {
     id: String(node.id),
     name: node.name,
     description: "",
     icon: node.icon || "Boxes",
-    members: 0,
+    members: includeListingsCount ? (node.listings_count ?? 0) : 0,
+    listingsCount: node.listings_count,
     subcategories: (node.children ?? []).map((c) => ({
       id: String(c.id),
       name: c.name,
@@ -38,7 +40,7 @@ export async function fetchPostCategories(): Promise<Category[]> {
     return categories;
   }
   const res = await api<{ data: ApiCategoryNode[] }>("/categories/posts");
-  const categories = (res.data ?? []).map(mapCategory);
+  const categories = (res.data ?? []).map((n) => mapCategory(n));
   const byName = new Map<string, number>();
   const walk = (nodes: ApiCategoryNode[]) => {
     for (const n of nodes) {
@@ -64,6 +66,6 @@ export async function fetchListingCategories(): Promise<Category[]> {
     return listingCache;
   }
   const res = await api<{ data: ApiCategoryNode[] }>("/categories/listings");
-  listingCache = (res.data ?? []).map(mapCategory);
+  listingCache = (res.data ?? []).map((n) => mapCategory(n, true));
   return listingCache;
 }

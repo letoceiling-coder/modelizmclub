@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/favorites")({
 });
 
 function FavoritesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +40,10 @@ function FavoritesPage() {
       <div className="space-y-[16px] pb-[24px]">
         <header>
           <h1 className="font-display text-[22px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>
-            Избранное
+            {t("pages.favorites.title")}
           </h1>
           <p className="mt-[1px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            Объявления, которые вы отметили сердечком
+            {t("pages.favorites.subtitle")}
           </p>
         </header>
 
@@ -54,10 +56,10 @@ function FavoritesPage() {
         ) : favorites.length === 0 ? (
           <EmptyState
             icon={Heart}
-            title="В избранном пусто"
-            description="Добавляйте объявления сердечком в каталоге — они появятся здесь."
+            title={t("pages.favorites.emptyTitle")}
+            description={t("pages.favorites.emptyDesc")}
           >
-            <Button onClick={() => navigate({ to: "/ads" })}>В каталог</Button>
+            <Button onClick={() => navigate({ to: "/ads" })}>{t("pages.favorites.toCatalog")}</Button>
           </EmptyState>
         ) : (
           <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">

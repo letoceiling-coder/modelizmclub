@@ -107,6 +107,7 @@ export interface Category {
   description: string;
   icon: string; // lucide icon name
   members: number;
+  listingsCount?: number;
   subcategories: { id: ID; name: string }[];
 }
 

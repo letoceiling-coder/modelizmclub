@@ -6,6 +6,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -21,27 +22,26 @@ import { bindCallAudioUnlock } from "@/lib/callAudio";
 const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){var h=new Date().getHours();t=(h>=19||h<7)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}})();`;
 
 function NotFoundComponent() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 font-display text-xl font-semibold">Страница не найдена</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Возможно, она была перемещена или удалена. Проверьте URL или вернитесь на главную.
-        </p>
+        <h2 className="mt-4 font-display text-xl font-semibold">{t("errors.notFound")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("errors.notFoundDesc")}</p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <a href="/feed" className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
-            На главную
+            {t("errors.goHome")}
           </a>
           <button
             type="button"
             onClick={() => { if (typeof window !== "undefined") window.history.back(); }}
             className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
-            Назад
+            {t("errors.goBack")}
           </button>
           <a href="/diag" className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted">
-            Карта роутов
+            {t("errors.routeMap")}
           </a>
         </div>
       </div>
@@ -50,15 +50,16 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const { t } = useTranslation();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="font-display text-xl font-semibold">Что-то пошло не так</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Попробуйте обновить страницу.</p>
-        <button onClick={reset} className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">Повторить</button>
+        <h1 className="font-display text-xl font-semibold">{t("errors.boundaryTitle")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("errors.boundaryDesc")}</p>
+        <button onClick={reset} className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">{t("errors.retry")}</button>
       </div>
     </div>
   );

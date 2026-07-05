@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const { redirect: redirectTo } = Route.useSearch();
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ function LoginPage() {
       const user = await login(email, password);
       resetSessionCache();
       setCurrentUser(user);
-      toast.success("Вход выполнен");
+      toast.success(t("authPages.loginSuccess"));
       const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
       nav({ to: target as "/feed" });
     } catch (err) {
@@ -43,9 +45,9 @@ function LoginPage() {
       const msg =
         err instanceof ApiError
           ? err.status === 401 || err.status === 422
-            ? "Неверный email или пароль"
+            ? t("authPages.loginInvalid")
             : err.message
-          : "Не удалось войти. Попробуйте позже";
+          : t("authPages.loginFailed");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -66,46 +68,46 @@ function LoginPage() {
             maxWidth: 460,
           }}
         >
-          С возвращением
+          {t("authPages.loginTitle")}
         </h2>
         <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
-          Входите и продолжайте общаться с сообществом моделистов.
+          {t("authPages.loginSubtitle")}
         </p>
       </div>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
-        «Моделизм — это жизнь, остальное детали»
+        {t("authPages.loginQuote")}
       </div>
     </>
   );
 
   return (
     <AuthShell
-      title="Вход"
-      subtitle="С возвращением в МоДелизМ"
+      title={t("auth.login")}
+      subtitle={t("authPages.loginTitle")}
       leftContent={leftContent}
       footer={
         <>
-          Ещё нет аккаунта?{" "}
+          {t("authPages.noAccount")}{" "}
           <Link to="/register" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Зарегистрироваться
+            {t("authPages.registerLink")}
           </Link>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-[12px]">
-        <Input required name="email" type="email" placeholder="Email или телефон" error={fieldError} />
-        <Input required name="password" type="password" placeholder="Пароль" error={fieldError} />
+        <Input required name="email" type="email" placeholder={t("auth.email")} error={fieldError} />
+        <Input required name="password" type="password" placeholder={t("auth.password")} error={fieldError} />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
             <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} />
-            Запомнить меня
+            {t("authPages.rememberMe")}
           </label>
           <Link to="/recover" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Забыли пароль?
+            {t("auth.forgot")}
           </Link>
         </div>
         <Button type="submit" disabled={loading} className="w-full" style={{ marginTop: 8 }}>
-          {loading ? "Входим…" : "Войти"}
+          {loading ? t("common.loading") : t("auth.login")}
         </Button>
       </form>
       <Link
