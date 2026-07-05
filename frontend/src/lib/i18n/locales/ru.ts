@@ -38,6 +38,7 @@ export const ru = {
     categories: "Категории",
     admin: "Админка",
     myAds: "Мои объявления",
+    favorites: "Избранное",
   },
   auth: {
     login: "Войти",

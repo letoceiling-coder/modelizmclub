@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
@@ -49,6 +49,14 @@ export function DesktopTopBar() {
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />
+        <Link
+          to={ROUTES.favorites}
+          aria-label="Избранное"
+          className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          <Heart size={20} />
+        </Link>
         <Link
           to={ROUTES.notifications}
           aria-label={t("nav.notifications")}

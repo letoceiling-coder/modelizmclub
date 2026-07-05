@@ -1,12 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart } from "lucide-react";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 interface Item {
-  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/communities" | "/channels" | "/messenger" | "/friends";
+  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/channels" | "/messenger" | "/friends";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -18,6 +18,7 @@ const items: Item[] = [
   { to: ROUTES.ads,          labelKey: "nav.catalog",  icon: Megaphone,     section: "ads" },
   { to: ROUTES.adCreate,     labelKey: "nav.adCreate", icon: Plus,          section: "ad-create" },
   { to: ROUTES.myAds,        labelKey: "nav.myAds",    icon: ClipboardList, section: "my-ads", authOnly: true },
+  { to: ROUTES.favorites,    labelKey: "nav.favorites", icon: Heart,        section: "favorites", authOnly: true },
   { to: ROUTES.communities,  labelKey: "nav.communities", icon: Users2,     section: "communities" },
   { to: ROUTES.channels,     labelKey: "nav.channels", icon: Radio,         section: "channels" },
   { to: ROUTES.messenger,    labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },

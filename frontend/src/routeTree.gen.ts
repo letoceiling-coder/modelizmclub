@@ -24,6 +24,7 @@ import { Route as LandingRouteImport } from './routes/landing'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as DiagRouteImport } from './routes/diag'
 import { Route as CommunitiesRouteImport } from './routes/communities'
 import { Route as CategoriesRouteImport } from './routes/categories'
@@ -121,6 +122,11 @@ const FriendsRoute = FriendsRouteImport.update({
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiagRoute = DiagRouteImport.update({
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/diag': typeof DiagRoute
+  '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
   '/help': typeof HelpRoute
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/diag': typeof DiagRoute
+  '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
   '/help': typeof HelpRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/diag': typeof DiagRoute
+  '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
   '/friends': typeof FriendsRoute
   '/help': typeof HelpRoute
@@ -366,6 +375,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/communities'
     | '/diag'
+    | '/favorites'
     | '/feed'
     | '/friends'
     | '/help'
@@ -403,6 +413,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/diag'
+    | '/favorites'
     | '/feed'
     | '/friends'
     | '/help'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/communities'
     | '/diag'
+    | '/favorites'
     | '/feed'
     | '/friends'
     | '/help'
@@ -483,6 +495,7 @@ export interface RootRouteChildren {
   CategoriesRoute: typeof CategoriesRouteWithChildren
   CommunitiesRoute: typeof CommunitiesRouteWithChildren
   DiagRoute: typeof DiagRoute
+  FavoritesRoute: typeof FavoritesRoute
   FeedRoute: typeof FeedRoute
   FriendsRoute: typeof FriendsRoute
   HelpRoute: typeof HelpRoute
@@ -611,6 +624,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/diag': {
@@ -851,6 +871,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriesRoute: CategoriesRouteWithChildren,
   CommunitiesRoute: CommunitiesRouteWithChildren,
   DiagRoute: DiagRoute,
+  FavoritesRoute: FavoritesRoute,
   FeedRoute: FeedRoute,
   FriendsRoute: FriendsRoute,
   HelpRoute: HelpRoute,
