@@ -58,7 +58,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         <a
           href="https://modelizm23.ru"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted"
         >
           <span className="flex items-center gap-3">
@@ -113,7 +113,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           <a
             href="https://modelizm23.ru"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             title={t("nav.market")}
             aria-label={t("nav.market")}
             className="grid h-10 w-10 place-items-center rounded-lg transition-colors hover:bg-muted"
