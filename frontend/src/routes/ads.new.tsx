@@ -293,6 +293,34 @@ function StepData({
 
   return (
     <section className="space-y-[16px]">
+      {form.photos.length > 0 && (
+        <Block title="Фотографии">
+          <div className="flex gap-[8px] overflow-x-auto pb-[2px] [scrollbar-width:thin]">
+            {form.photos.map((src, i) => (
+              <div key={i} className="relative shrink-0">
+                <img
+                  src={src}
+                  alt=""
+                  className="h-[64px] w-[64px] rounded-[10px] object-cover"
+                  style={{ border: "1px solid var(--border)" }}
+                />
+                {i === 0 && (
+                  <span
+                    className="absolute left-[4px] top-[4px] rounded-[4px] px-[4px] py-[1px] text-[9px] font-semibold"
+                    style={{ background: "var(--accent)", color: "#fff" }}
+                  >
+                    Главное
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            Изменить фото можно на шаге «Фото».
+          </p>
+        </Block>
+      )}
+
       <Block title="Тип объявления">
         <div className="grid gap-[10px] sm:grid-cols-3">
           <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
@@ -384,7 +412,7 @@ function StepData({
               onBlur={() => touch("contact")}
               error={contactErr}
               className="h-11"
-              placeholder="+7 999 000-00-00 или @telegram"
+              placeholder="+7 999 000-00-00"
             />
           </Field>
         </div>
