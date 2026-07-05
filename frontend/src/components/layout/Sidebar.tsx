@@ -16,7 +16,7 @@ interface Item {
 const items: Item[] = [
   { to: ROUTES.feed,         labelKey: "nav.feed",     icon: Newspaper,     section: "feed" },
   { to: ROUTES.ads,          labelKey: "nav.catalog",  icon: Megaphone,     section: "ads" },
-  { to: ROUTES.adCreate,     labelKey: "nav.adCreate", icon: Plus,          section: "ads" },
+  { to: ROUTES.adCreate,     labelKey: "nav.adCreate", icon: Plus,          section: "ad-create" },
   { to: ROUTES.myAds,        labelKey: "nav.myAds",    icon: ClipboardList, section: "my-ads", authOnly: true },
   { to: ROUTES.communities,  labelKey: "nav.communities", icon: Users2,     section: "communities" },
   { to: ROUTES.channels,     labelKey: "nav.channels", icon: Radio,         section: "channels" },
