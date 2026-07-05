@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare,
+  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin,
   Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff, ImagePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -25,6 +25,7 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
+import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
@@ -124,9 +125,15 @@ function MessageImage({ src }: { src: string }) {
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply,
+  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onReport,
 }: {
-  msg: Message; prev?: Message; allMessages: Message[]; onReply: (m: Message) => void;
+  msg: Message; prev?: Message; allMessages: Message[];
+  onReply: (m: Message) => void;
+  onCopy: (m: Message) => void;
+  onForward: (m: Message) => void;
+  onPin: (m: Message) => void;
+  onDelete: (m: Message) => void;
+  onReport: (m: Message) => void;
 }) {
   const meId = useStore((s) => s.currentUserId);
   const isMe = msg.authorId === meId;
@@ -134,6 +141,19 @@ function MessageBubble({
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
+  const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
+
+  const menuRef = useRef<MessageActionsMenuHandle>(null);
+  const touchTimer = useRef<number | null>(null);
+  const startLongPress = () => {
+    touchTimer.current = window.setTimeout(() => menuRef.current?.open(), 400);
+  };
+  const cancelLongPress = () => {
+    if (touchTimer.current) {
+      window.clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  };
 
   return (
     <motion.div
@@ -148,17 +168,27 @@ function MessageBubble({
           {isFirstInGroup && <ChatAvatar src={author.avatar} name={author.name} size={28} />}
         </div>
       )}
-      <div className="relative max-w-[70%]">
-        {!isMe && (
-          <button
-            onClick={() => onReply(msg)}
-            className="absolute -right-[36px] top-1/2 -translate-y-1/2 grid h-[28px] w-[28px] place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-            style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
-            aria-label="Ответить"
-          >
-            <CornerUpLeft size={14} />
-          </button>
-        )}
+      <div
+        className="relative max-w-[70%]"
+        data-msg-id={msg.id}
+        onTouchStart={startLongPress}
+        onTouchEnd={cancelLongPress}
+        onTouchMove={cancelLongPress}
+      >
+        <div className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+          <MessageActionsMenu
+            ref={menuRef}
+            isMe={isMe}
+            pinned={Boolean(msg.pinned)}
+            align={isMe ? "right" : "left"}
+            onReply={() => onReply(msg)}
+            onCopy={() => onCopy(msg)}
+            onForward={() => onForward(msg)}
+            onPin={() => onPin(msg)}
+            onDelete={() => onDelete(msg)}
+            onReport={() => onReport(msg)}
+          />
+        </div>
         <div
           className="px-[14px] py-[10px]"
           style={{
@@ -167,6 +197,14 @@ function MessageBubble({
             borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
           }}
         >
+          {forwardedAuthor && (
+            <div
+              className="mb-[6px] text-[11px] font-semibold italic"
+              style={{ color: isMe ? "rgba(255,255,255,0.75)" : "var(--foreground-50)" }}
+            >
+              Переслано от {forwardedAuthor.name}
+            </div>
+          )}
           {reply && (
             <div
               className="mb-[6px] pl-[8px] text-[12px]"
@@ -457,6 +495,30 @@ function MessengerPage() {
     if (file) handleAttachment(file, "image");
   };
 
+  const handleCopy = (m: Message) => {
+    const text = m.text || (m.file ? m.file.name : m.image ? "[изображение]" : "[вложение]");
+    navigator.clipboard.writeText(text).then(
+      () => toast.success("Скопировано"),
+      () => toast.error("Не удалось скопировать"),
+    );
+  };
+
+  const handlePinMessage = (m: Message) => {
+    if (!active) return;
+    actions.pinMessage(active.id, m.id);
+  };
+
+  const handleDeleteMessage = (m: Message) => {
+    if (!active) return;
+    actions.deleteMessageForMe(active.id, m.id);
+  };
+
+  const handleReportMessage = () => {
+    toast("Жалоба: будет доступно позже");
+  };
+
+  const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
+
   return (
     <AppLayout rightColumn={false}>
       <div
@@ -648,9 +710,22 @@ function MessengerPage() {
                 {chatLoading ? (
                   <MessageSkeleton />
                 ) : (
-                  active.messages.map((m, i) => (
-                    <MessageBubble key={m.id} msg={m} prev={active.messages[i - 1]} allMessages={active.messages} onReply={setReplyTo} />
-                  ))
+                  active.messages
+                    .filter((m) => !m.deletedForMe)
+                    .map((m, i, arr) => (
+                      <MessageBubble
+                        key={m.id}
+                        msg={m}
+                        prev={arr[i - 1]}
+                        allMessages={active.messages}
+                        onReply={setReplyTo}
+                        onCopy={handleCopy}
+                        onForward={setForwardMsg}
+                        onPin={handlePinMessage}
+                        onDelete={handleDeleteMessage}
+                        onReport={handleReportMessage}
+                      />
+                    ))
                 )}
               </div>
 
