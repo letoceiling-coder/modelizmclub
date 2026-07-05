@@ -204,14 +204,14 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
 }
 
 export function demoMyListings(): { ad: Ad; status: AdStatusKey }[] {
-  return mockAds
+  const toStatus = (ad: Ad): AdStatusKey =>
+    (ad.moderation === "moderation" ? "moderation" : "active") as AdStatusKey;
+  // Свежесозданные в сессии объявления (demoUserListings) — тоже «мои», сверху.
+  const created = demoUserListings.map((ad) => ({ ad, status: toStatus(ad) }));
+  const seeded = mockAds
     .filter((a) => a.authorId === DEMO_USER.id)
-    .map((ad) => ({
-      ad,
-      status: (ad.moderation === "moderation"
-        ? "moderation"
-        : "active") as AdStatusKey,
-    }));
+    .map((ad) => ({ ad, status: toStatus(ad) }));
+  return [...created, ...seeded];
 }
 
 export function demoListing(id: ID): Ad | null {
