@@ -23,6 +23,9 @@ export const Route = createFileRoute("/ads/")({
       { name: "description", content: "Каталог объявлений: RC авто, самолёты, квадрокоптеры, корабли. Купить и продать модели и запчасти." },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   component: CatalogPage,
 });
 
@@ -63,11 +66,16 @@ function buildParams(
 
 function CatalogPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const isAuthed = !!getToken() || isDemoMode();
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(search.q ?? "");
+
+  useEffect(() => {
+    setQ(search.q ?? "");
+  }, [search.q]);
   const [sort, setSort] = useState<SortKey>("new");
   const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);

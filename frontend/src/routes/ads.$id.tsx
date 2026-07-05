@@ -14,7 +14,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, selectors } from "@/lib/store";
+import { useStore, selectors, actions } from "@/lib/store";
 import { createConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -38,7 +38,7 @@ function AdDetailPage() {
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
-  const [saved, setSaved] = useState(false);
+  const saved = useStore(selectors.isAdFavorite(id));
 
   useEffect(() => {
     let alive = true;
@@ -160,10 +160,8 @@ function AdDetailPage() {
   };
 
   const toggleSave = () => {
-    setSaved((v) => {
-      toast.success(v ? "Убрано из избранного" : "В избранное");
-      return !v;
-    });
+    actions.toggleFavoriteAd(id);
+    toast.success(saved ? "Убрано из избранного" : "В избранное");
   };
 
   const hasDelivery = ad.delivery.length > 0;

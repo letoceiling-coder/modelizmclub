@@ -40,6 +40,7 @@ export const en: TranslationSchema = {
     categories: "Categories",
     admin: "Admin",
     myAds: "My Listings",
+    favorites: "Favorites",
   },
   auth: {
     login: "Sign in",

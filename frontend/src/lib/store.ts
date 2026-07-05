@@ -61,6 +61,7 @@ export interface AppState {
   friendships: Friendship[];
   blockedUserIds: ID[];
   hiddenUserIds: ID[];
+  favoriteAdIds: ID[];
   currentUserId: ID;
 }
 
@@ -81,6 +82,7 @@ export function createInitialState(): AppState {
     friendships: [],
     blockedUserIds: [],
     hiddenUserIds: [],
+    favoriteAdIds: [],
     currentUserId: GUEST_USER.id,
   };
 }
@@ -131,7 +133,8 @@ type Action =
   | { type: "CLEAR_HISTORY"; dialogId: ID }
   | { type: "BLOCK_USER"; userId: ID }
   | { type: "UNBLOCK_USER"; userId: ID }
-  | { type: "HIDE_USER"; userId: ID };
+  | { type: "HIDE_USER"; userId: ID }
+  | { type: "TOGGLE_FAVORITE_AD"; adId: ID };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -395,6 +398,13 @@ function reducer(s: AppState, a: Action): AppState {
           ? s.hiddenUserIds
           : [...s.hiddenUserIds, a.userId],
       };
+    case "TOGGLE_FAVORITE_AD":
+      return {
+        ...s,
+        favoriteAdIds: s.favoriteAdIds.includes(a.adId)
+          ? s.favoriteAdIds.filter((id) => id !== a.adId)
+          : [...s.favoriteAdIds, a.adId],
+      };
     default:
       return s;
   }
@@ -444,6 +454,7 @@ export const actions = {
   blockUser: (userId: ID) => dispatch({ type: "BLOCK_USER", userId }),
   unblockUser: (userId: ID) => dispatch({ type: "UNBLOCK_USER", userId }),
   hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
+  toggleFavoriteAd: (adId: ID) => dispatch({ type: "TOGGLE_FAVORITE_AD", adId }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 
@@ -536,4 +547,5 @@ export const selectors = {
   dialogMeta: (dialogId: ID) => (s: AppState): DialogMeta =>
     s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
   isBlocked: (userId: ID) => (s: AppState): boolean => s.blockedUserIds.includes(userId),
+  isAdFavorite: (adId: ID) => (s: AppState): boolean => s.favoriteAdIds.includes(adId),
 };

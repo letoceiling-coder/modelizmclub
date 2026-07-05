@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router";
-import { Search, Bell } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Search, Bell, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
@@ -10,6 +11,8 @@ import { ROUTES } from "@/lib/routes";
 export function DesktopTopBar() {
   const unread = useUnreadNotifications();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState("");
 
   return (
     <header
@@ -25,7 +28,6 @@ export function DesktopTopBar() {
         <Logo size={36} />
       </Link>
 
-      {/* presentational search — no submit logic (see spec) */}
       <div className="relative min-w-0 max-w-[420px] flex-1">
         <Search
           size={16}
@@ -35,6 +37,14 @@ export function DesktopTopBar() {
         <input
           type="search"
           placeholder={t("common.search")}
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const v = searchValue.trim();
+              void navigate({ to: "/ads", search: v ? { q: v } : {} });
+            }
+          }}
           className="w-full text-[14px] outline-none transition-colors"
           style={{
             background: "var(--background-elevated)",
@@ -49,6 +59,14 @@ export function DesktopTopBar() {
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />
+        <Link
+          to={ROUTES.favorites}
+          aria-label="Избранное"
+          className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          <Heart size={20} />
+        </Link>
         <Link
           to={ROUTES.notifications}
           aria-label={t("nav.notifications")}

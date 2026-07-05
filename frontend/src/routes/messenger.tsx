@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin,
+  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
   Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff, ImagePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -674,7 +674,7 @@ function MessengerPage() {
                         }}
                         onTouchEnd={cancelDialogLongPress}
                         onTouchMove={cancelDialogLongPress}
-                        className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
+                        className="group flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
                         style={{
                           background: isActive ? "var(--accent-soft)" : "transparent",
                           borderBottom: "1px solid var(--border)",
@@ -705,6 +705,21 @@ function MessengerPage() {
                             {d.unread}
                           </Badge>
                         )}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Действия с чатом"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            setDialogCtxMenu({ dialogId: d.id, point: { x: r.left, y: r.bottom } });
+                          }}
+                          className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                          style={{ color: "var(--foreground-50)" }}
+                        >
+                          <MoreHorizontal size={16} />
+                        </span>
 
                       </button>
                     </motion.li>
