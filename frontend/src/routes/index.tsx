@@ -221,10 +221,11 @@ function Hero() {
             <source src={HERO_VIDEO} type="video/mp4" />
           </video>
         )}
-        {/* dark overlay — no white fade at the bottom, blends into --background */}
+        {/* dark overlay — fixed dark color at the bottom, independent of theme
+            (var(--background) turned white in light theme and washed out the video) */}
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, var(--background) 100%)" }}
+          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)" }}
         />
       </div>
 
