@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ads as mockAds } from "@/lib/mock";
 import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
+import { SOCIAL_LINKS } from "@/lib/footer-links";
 
 const HERO_VIDEO = "/videos/herovideo.mp4";
 
@@ -771,9 +772,24 @@ function Footer() {
           <ul className="mt-4 flex flex-col gap-2.5 text-sm" style={{ color: "var(--foreground-50)" }}>
             <li><a href="mailto:support@modelizmclub.ru" style={{ color: "inherit" }}>support@modelizmclub.ru</a></li>
             <li><a href="tel:+78000000000" style={{ color: "inherit" }}>8 800 000-00-00</a></li>
-            <li><a href="https://t.me/modelizm" target="_blank" rel="noreferrer" style={{ color: "inherit" }}>Telegram: @modelizm</a></li>
             <li>Пн–Вс, 10:00–20:00 МСК</li>
           </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {SOCIAL_LINKS.map((s) => (
+              <span
+                key={s.label}
+                title="Скоро"
+                className="inline-flex items-center rounded-[var(--r-pill)] px-[10px] py-[4px] text-[11px] font-semibold"
+                style={{
+                  background: "var(--background-surface)",
+                  color: "var(--foreground-50)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                {s.label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
