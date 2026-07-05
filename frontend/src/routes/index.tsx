@@ -109,11 +109,11 @@ function TopNav() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >{t("landing.nav.login")}</Link>
-          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
+          <Link to={enter.register} className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-3 py-2 text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:px-4 sm:text-sm"
             style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
           >
             {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
-            <ArrowRight size={15} />
+            <ArrowRight size={15} className="shrink-0" />
           </Link>
 
           <button
@@ -169,10 +169,23 @@ function Hero() {
   const navigate = useNavigate();
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
+  // Weak-network guard: the hero video is ~6 MB. On small screens, Save-Data,
+  // or slow connections we skip it entirely and show the lightweight poster —
+  // critical for regional mobile users. Only load video on capable connections.
+  const [allowVideo, setAllowVideo] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const saveData = conn?.saveData === true;
+    const slow = !!conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType);
+    const bigScreen = window.matchMedia("(min-width: 768px)").matches;
+    setAllowVideo(bigScreen && !saveData && !slow);
   }, []);
 
   const fadeUp = {
@@ -185,7 +198,7 @@ function Hero() {
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
       {/* background media */}
       <div className="absolute inset-0 z-0">
-        {videoError ? (
+        {videoError || !allowVideo ? (
           <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
         ) : (
           <video
@@ -194,6 +207,7 @@ function Hero() {
             muted
             loop
             playsInline
+            preload="none"
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
@@ -247,12 +261,14 @@ function Hero() {
 
               <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
+                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
                   <Search size={18} /> {t("landing.hero.ctaBrowse")}
                 </button>
                 <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
+                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
@@ -292,23 +308,16 @@ function Hero() {
 
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 16, fontWeight: 700,
+  borderRadius: "var(--r-pill)",
+  background: "var(--accent)", color: "var(--accent-foreground)", fontWeight: 700,
   border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
 };
 const ctaGhost: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 16, fontWeight: 700,
+  borderRadius: "var(--r-pill)",
+  background: "rgba(255,255,255,0.08)", color: "#fff", fontWeight: 700,
   border: "2px solid rgba(255,255,255,0.28)", cursor: "pointer", backdropFilter: "blur(8px)", transition: "background 180ms",
 };
-const ctaText: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", justifyContent: "center",
-  height: 54, padding: "0 20px", borderRadius: "var(--r-pill)",
-  background: "transparent", color: "#fff", fontSize: 16, fontWeight: 600,
-  border: "none", cursor: "pointer",
-};
-
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
 const QUICK: { icon: typeof Newspaper; to: string; key: "ads" | "feed" | "communities" | "channels" | "messenger" | "events" }[] = [
