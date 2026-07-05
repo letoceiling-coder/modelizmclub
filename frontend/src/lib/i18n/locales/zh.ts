@@ -82,7 +82,7 @@ export const zh: TranslationSchema = {
       },
     },
     quick: {
-      eyebrow: "一站式平台",
+      eyebrow: "为模型爱好者打造的生态",
       title: "Modelizm 有什么",
       subtitle: "六大工具，覆盖模型爱好者的日常需求——从购买一个零件到参加比赛。",
       open: "打开",

@@ -82,7 +82,7 @@ export const en: TranslationSchema = {
       },
     },
     quick: {
-      eyebrow: "All in one place",
+      eyebrow: "An ecosystem for modelers",
       title: "What's inside Modelizm",
       subtitle: "Six tools that cover a modeler's everyday needs — from buying a single part to joining a race.",
       open: "Open",

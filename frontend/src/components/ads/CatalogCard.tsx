@@ -33,6 +33,7 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
           src={src}
           alt={ad.title}
           loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           onError={() => {
             const ph = categoryPlaceholder(ad.id, ad.category);

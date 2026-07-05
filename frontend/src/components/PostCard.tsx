@@ -78,6 +78,7 @@ function PostMedia({ src, alt }: { src: string; alt: string }) {
         src={src}
         alt={alt}
         loading="lazy"
+        decoding="async"
         className="h-full w-full object-cover"
         onError={() => setErr(true)}
       />
