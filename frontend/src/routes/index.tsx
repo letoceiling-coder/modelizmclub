@@ -7,10 +7,8 @@ import {
   MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays,
   Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ads as mockAds } from "@/lib/mock";
 import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
@@ -58,16 +56,15 @@ function LandingPage() {
 
 /* ===================== TopNav (sticky) ===================== */
 
-const NAV_LINKS: { to: string; key: "ads" | "communities" | "channels" | "how" | "subscription" }[] = [
-  { to: "/ads", key: "ads" },
-  { to: "/communities", key: "communities" },
-  { to: "/channels", key: "channels" },
-  { to: "#how", key: "how" },
-  { to: "/subscription", key: "subscription" },
+const NAV_LINKS: { to: string; label: string }[] = [
+  { to: "/ads", label: "Объявления" },
+  { to: "/communities", label: "Сообщества" },
+  { to: "/channels", label: "Каналы" },
+  { to: "#how", label: "Как работает" },
+  { to: "/subscription", label: "Подписка" },
 ];
 
 function TopNav() {
-  const { t } = useTranslation();
   const enter = useEnter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -88,38 +85,36 @@ function TopNav() {
         <nav className="hidden items-center gap-6 lg:flex">
           {NAV_LINKS.map((l) =>
             l.to.startsWith("#") ? (
-              <a key={l.key} href={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              <a key={l.label} href={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{t("landing.nav." + l.key)}</a>
+              >{l.label}</a>
             ) : (
-              <Link key={l.key} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              <Link key={l.label} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{t("landing.nav." + l.key)}</Link>
+              >{l.label}</Link>
             ),
           )}
         </nav>
 
         {/* right controls */}
         <div className="flex items-center gap-2">
-          {/* LanguageSwitcher lives in the mobile menu sheet; shown inline on lg+ only */}
-          <span className="hidden lg:block"><LanguageSwitcher /></span>
           <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
             style={{ color: "var(--foreground-70)" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >{t("landing.nav.login")}</Link>
-          <Link to={enter.register} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
+          >Войти</Link>
+          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
             style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
           >
-            {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
-            <ArrowRight size={15} className="hidden shrink-0 sm:block" />
+            {enter.demo ? "Открыть демо" : "Создать аккаунт"}
+            <ArrowRight size={15} />
           </Link>
 
           <button
             type="button"
-            aria-label={t("landing.nav.menu")}
+            aria-label="Меню"
             onClick={() => setMenuOpen((v) => !v)}
             className="grid h-[40px] w-[40px] place-items-center rounded-full lg:hidden"
             style={{ border: "1px solid var(--border)", background: "var(--background-surface)" }}
@@ -144,16 +139,13 @@ function TopNav() {
             style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
           >
             <div className="flex flex-col gap-1 px-4 py-3">
-              <div className="px-1 pb-1"><LanguageSwitcher /></div>
               {NAV_LINKS.map((l) =>
                 l.to.startsWith("#") ? (
-                  <a key={l.key} href={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.nav." + l.key)}</a>
+                  <a key={l.label} href={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
                 ) : (
-                  <Link key={l.key} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.nav." + l.key)}</Link>
+                  <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
                 ),
               )}
-              <div className="my-1 h-px" style={{ background: "var(--border)" }} />
-              <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
             </div>
           </motion.div>
         )}
@@ -167,28 +159,14 @@ const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
 /* ===================== Hero (video-first, blue accent) ===================== */
 
 function Hero() {
-  const { t } = useTranslation();
   const enter = useEnter();
   const navigate = useNavigate();
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
-  // Weak-network guard: the hero video is ~6 MB. On small screens, Save-Data,
-  // or slow connections we skip it entirely and show the lightweight poster —
-  // critical for regional mobile users. Only load video on capable connections.
-  const [allowVideo, setAllowVideo] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
     return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-    const saveData = conn?.saveData === true;
-    const slow = !!conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType);
-    const bigScreen = window.matchMedia("(min-width: 768px)").matches;
-    setAllowVideo(bigScreen && !saveData && !slow);
   }, []);
 
   const fadeUp = {
@@ -201,7 +179,7 @@ function Hero() {
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
       {/* background media */}
       <div className="absolute inset-0 z-0">
-        {videoError || !allowVideo ? (
+        {videoError ? (
           <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
         ) : (
           <video
@@ -210,7 +188,6 @@ function Hero() {
             muted
             loop
             playsInline
-            preload="none"
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
@@ -243,7 +220,7 @@ function Hero() {
                   textShadow: "0 4px 30px rgba(0,0,0,0.45)",
                 }}
               >
-                {t("landing.hero.brand")}
+                МоДелизМ
               </motion.h1>
 
               <motion.p
@@ -251,7 +228,7 @@ function Hero() {
                 className="mt-4"
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.4vw, 26px)", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}
               >
-                {t("landing.hero.tagline")}
+                Маркетплейс, лента и сообщество для моделистов
               </motion.p>
 
               <motion.p
@@ -259,36 +236,35 @@ function Hero() {
                 className="mt-4"
                 style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "rgba(235,238,248,0.86)", maxWidth: 560, lineHeight: 1.55 }}
               >
-                {t("landing.hero.subtitle")}
+                Покупайте модели и запчасти, публикуйте сборки, находите клубы и
+                общайтесь с моделистами по всей России.
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
-                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
-                  <Search size={18} /> {t("landing.hero.ctaBrowse")}
+                  <Search size={18} /> Смотреть объявления
                 </button>
                 <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
-                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
-                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} />
+                  {enter.demo ? "Открыть демо" : "Создать аккаунт"} <ArrowRight size={18} />
                 </button>
               </motion.div>
 
               {/* stats */}
               <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
                 {[
-                  { n: "1 200+", key: "modelers" as const },
-                  { n: "45+", key: "communities" as const },
-                  { n: "8", key: "categories" as const },
+                  { n: "1 200+", l: "моделистов" },
+                  { n: "45+", l: "сообществ" },
+                  { n: "8", l: "категорий" },
                 ].map((s) => (
-                  <div key={s.key}>
+                  <div key={s.l}>
                     <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "#fff", letterSpacing: "-0.02em" }}>{s.n}</div>
-                    <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("landing.hero.stats." + s.key)}</div>
+                    <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.l}</div>
                   </div>
                 ))}
               </motion.div>
@@ -299,7 +275,7 @@ function Hero() {
 
       {/* scroll hint */}
       <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex" style={{ color: "rgba(235,238,248,0.6)" }}>
-        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.12em" }}>{t("landing.hero.scroll")}</span>
+        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Листайте</span>
         <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
           <ChevronDown size={20} />
         </motion.div>
@@ -311,39 +287,45 @@ function Hero() {
 
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  borderRadius: "var(--r-pill)",
-  background: "var(--accent)", color: "var(--accent-foreground)", fontWeight: 700,
+  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
+  background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 16, fontWeight: 700,
   border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
 };
 const ctaGhost: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  borderRadius: "var(--r-pill)",
-  background: "rgba(255,255,255,0.08)", color: "#fff", fontWeight: 700,
+  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
+  background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 16, fontWeight: 700,
   border: "2px solid rgba(255,255,255,0.28)", cursor: "pointer", backdropFilter: "blur(8px)", transition: "background 180ms",
 };
+const ctaText: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  height: 54, padding: "0 20px", borderRadius: "var(--r-pill)",
+  background: "transparent", color: "#fff", fontSize: 16, fontWeight: 600,
+  border: "none", cursor: "pointer",
+};
+
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
-const QUICK: { icon: typeof Newspaper; to: string; key: "ads" | "feed" | "communities" | "channels" | "messenger" | "events" }[] = [
-  { icon: Megaphone, to: "/ads", key: "ads" },
-  { icon: Newspaper, to: "/feed", key: "feed" },
-  { icon: Users2, to: "/communities", key: "communities" },
-  { icon: Radio, to: "/channels", key: "channels" },
-  { icon: MessageSquare, to: "/messenger", key: "messenger" },
-  { icon: CalendarDays, to: "/feed", key: "events" },
+const QUICK: { icon: typeof Newspaper; title: string; desc: string; to: string }[] = [
+  { icon: Megaphone, title: "Объявления", desc: "Покупка и продажа моделей, запчастей и техники как на Авито.", to: "/ads" },
+  { icon: Newspaper, title: "Лента публикаций", desc: "Проекты, сборки, фото и видео других моделистов.", to: "/feed" },
+  { icon: Users2, title: "Сообщества", desc: "Клубы по интересам: RC, авиа, суда, электроника.", to: "/communities" },
+  { icon: Radio, title: "Каналы", desc: "Официальные каналы брендов, магазинов и экспертов.", to: "/channels" },
+  { icon: MessageSquare, title: "Мессенджер", desc: "Личные и групповые чаты внутри платформы.", to: "/messenger" },
+  { icon: CalendarDays, title: "Мероприятия", desc: "Гонки, встречи, заезды, выставки и клубные события моделистов.", to: "/feed" },
 ];
 
 function QuickSections() {
-  const { t } = useTranslation();
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.quick.eyebrow")}</Eyebrow>
-      <Title>{t("landing.quick.title")}</Title>
+      <Eyebrow>Всё в одном месте</Eyebrow>
+      <Title>Что есть в МоДелизМ</Title>
       <p className="mt-3 max-w-[560px]" style={mutedP}>
-        {t("landing.quick.subtitle")}
+        Шесть инструментов, которые закрывают повседневные задачи моделиста — от покупки детали до участия в гонках.
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {QUICK.map(({ icon: Icon, to, key }) => (
-          <Link key={key} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
+        {QUICK.map(({ icon: Icon, title, desc, to }) => (
+          <Link key={title} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
@@ -351,10 +333,10 @@ function QuickSections() {
             <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
               <Icon size={22} />
             </div>
-            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t("landing.quick.items." + key + ".title")}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t("landing.quick.items." + key + ".desc")}</p>
+            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{title}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{desc}</p>
             <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
-              {t("landing.quick.open")} <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+              Открыть <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
             </span>
           </Link>
         ))}
@@ -369,18 +351,17 @@ const CONDITION_COLOR = (c?: string) =>
   c === "Новое" ? "var(--success)" : "var(--foreground-50)";
 
 function PopularListings() {
-  const { t } = useTranslation();
   const items = mockAds.slice(0, 10);
   return (
     <Section bg="var(--background)">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <Eyebrow>{t("landing.listings.eyebrow")}</Eyebrow>
-          <Title>{t("landing.listings.title")}</Title>
+          <Eyebrow>Маркетплейс</Eyebrow>
+          <Title>Популярные объявления</Title>
         </div>
         <Link to="/ads" className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
-        >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
+        >Все объявления <ArrowRight size={15} /></Link>
       </div>
 
       {/* mobile: horizontal scroll (no page overflow); desktop: dense 4-up grid,
@@ -396,14 +377,13 @@ function PopularListings() {
       <div className="mt-6 text-center sm:hidden">
         <Link to="/ads" className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
-        >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
+        >Все объявления <ArrowRight size={15} /></Link>
       </div>
     </Section>
   );
 }
 
 function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
-  const { t } = useTranslation();
   const [fav, setFav] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(0);
@@ -446,7 +426,7 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2" style={{ color: "var(--foreground-30)" }}>
             <ImageOff size={28} />
-            <span style={{ fontSize: 11, color: "var(--foreground-30)" }}>{t("landing.listings.photoSoon")}</span>
+            <span style={{ fontSize: 11, color: "var(--foreground-30)" }}>Фото скоро</span>
           </div>
         )}
         {canHover && (
@@ -460,7 +440,7 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
 
       {/* favorite */}
       <button
-        aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
+        aria-label={fav ? "Убрать из избранного" : "В избранное"}
         onClick={() => setFav((v) => !v)}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
@@ -471,7 +451,7 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
       {/* three-dots menu */}
       <div className="absolute left-3 top-3">
         <button
-          aria-label={t("landing.card.adMenu")}
+          aria-label="Меню объявления"
           onClick={() => setMenuOpen((v) => !v)}
           className="grid place-items-center"
           style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: "var(--foreground-50)" }}
@@ -482,11 +462,11 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
           <div className="absolute left-0 top-[38px] z-20 min-w-[170px] overflow-hidden rounded-[12px] py-1"
             style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", boxShadow: "var(--shadow-modal)" }}
           >
-            {(["hide", "notInterested", "report"] as const).map((k) => (
-              <button key={k} onClick={() => setMenuOpen(false)}
+            {["Скрыть", "Не интересно", "Пожаловаться"].map((label) => (
+              <button key={label} onClick={() => setMenuOpen(false)}
                 className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}
-              >{t("landing.card." + k)}</button>
+              >{label}</button>
             ))}
           </div>
         )}
@@ -511,37 +491,36 @@ function LandingListingCard({ ad }: { ad: (typeof mockAds)[number] }) {
 
 /* ===================== Categories ===================== */
 
-const CATEGORIES: { icon: typeof Car; key: "aviation" | "cars" | "ships" | "railways" | "engines" | "radio" | "parts" | "tools"; count: string }[] = [
-  { icon: Plane, key: "aviation", count: "180+" },
-  { icon: Car, key: "cars", count: "320+" },
-  { icon: Ship, key: "ships", count: "95+" },
-  { icon: TrainFront, key: "railways", count: "60+" },
-  { icon: Cpu, key: "engines", count: "140+" },
-  { icon: Radio, key: "radio", count: "110+" },
-  { icon: Package, key: "parts", count: "500+" },
-  { icon: Wrench, key: "tools", count: "130+" },
+const CATEGORIES: { icon: typeof Car; name: string; count: string }[] = [
+  { icon: Plane, name: "Авиация", count: "180+" },
+  { icon: Car, name: "Автомодели", count: "320+" },
+  { icon: Ship, name: "Судомодели", count: "95+" },
+  { icon: TrainFront, name: "Железные дороги", count: "60+" },
+  { icon: Cpu, name: "Двигатели", count: "140+" },
+  { icon: Radio, name: "Аппаратура", count: "110+" },
+  { icon: Package, name: "Запчасти", count: "500+" },
+  { icon: Wrench, name: "Инструменты", count: "130+" },
 ];
 
 function CategoriesSection() {
-  const { t } = useTranslation();
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.categories.eyebrow")}</Eyebrow>
-      <Title>{t("landing.categories.title")}</Title>
+      <Eyebrow>Категории</Eyebrow>
+      <Title>Всё, что движется и летает</Title>
       <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {CATEGORIES.map(({ icon: Icon, key, count }) => (
-          <Link key={key} to="/ads" className="group flex items-center gap-[10px] p-3 transition-all hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+        {CATEGORIES.map(({ icon: Icon, name, count }) => (
+          <Link key={name} to="/ads" className="group flex items-center gap-3 p-4 transition-all hover:-translate-y-0.5"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
           >
-            <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)] sm:h-[42px] sm:w-[42px]"
-              style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-              <Icon size={19} />
+            <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)]"
+              style={{ width: 42, height: 42, borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
+              <Icon size={20} />
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] font-semibold leading-tight sm:text-sm" style={{ color: "var(--foreground)" }}>{t("landing.categories.items." + key)}</div>
-              <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
+              <div className="truncate text-sm font-semibold" style={{ color: "var(--foreground)" }}>{name}</div>
+              <div className="text-xs" style={{ color: "var(--foreground-50)" }}>{count} объявлений</div>
             </div>
           </Link>
         ))}
@@ -552,18 +531,17 @@ function CategoriesSection() {
 
 /* ===================== 3 steps timeline ===================== */
 
-const STEPS: { icon: typeof Compass; key: "direction" | "find" | "share" }[] = [
-  { icon: Compass, key: "direction" },
-  { icon: Search, key: "find" },
-  { icon: Users2, key: "share" },
+const STEPS: { icon: typeof Compass; title: string; desc: string }[] = [
+  { icon: Compass, title: "Выберите направление", desc: "Авиация, авто, суда, железные дороги — отметьте, что вам близко." },
+  { icon: Search, title: "Найдите модель или деталь", desc: "Объявления, проверенные продавцы, избранное и безопасная сделка." },
+  { icon: Users2, title: "Общайтесь и показывайте сборки", desc: "Лента, сообщества и мессенджер — весь моделизм в одном месте." },
 ];
 
 function StepsTimeline() {
-  const { t } = useTranslation();
   return (
     <Section bg="var(--background)" id="how">
-      <Eyebrow>{t("landing.steps.eyebrow")}</Eyebrow>
-      <Title>{t("landing.steps.title")}</Title>
+      <Eyebrow>Как это работает</Eyebrow>
+      <Title>Три шага до сообщества</Title>
 
       <div className="relative mt-12">
         {/* connecting line (desktop) */}
@@ -573,9 +551,9 @@ function StepsTimeline() {
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}
           className="grid gap-8 md:grid-cols-3 md:gap-6"
         >
-          {STEPS.map(({ icon: Icon, key }, i) => (
+          {STEPS.map(({ icon: Icon, title, desc }, i) => (
             <motion.li
-              key={key}
+              key={title}
               variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }}
               className="relative flex flex-col"
             >
@@ -589,8 +567,8 @@ function StepsTimeline() {
                   </span>
                 </div>
               </div>
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--foreground)", letterSpacing: "-0.01em" }}>{t("landing.steps.items." + key + ".title")}</h3>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)", maxWidth: 320 }}>{t("landing.steps.items." + key + ".desc")}</p>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--foreground)", letterSpacing: "-0.01em" }}>{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)", maxWidth: 320 }}>{desc}</p>
             </motion.li>
           ))}
         </motion.ol>
@@ -601,35 +579,34 @@ function StepsTimeline() {
 
 /* ===================== Pricing ===================== */
 
-const PLANS: { key: "start" | "month" | "year"; accent?: boolean }[] = [
-  { key: "start" },
-  { key: "month", accent: true },
-  { key: "year" },
+const PLANS: { name: string; price: string; period: string; features: string[]; accent?: boolean }[] = [
+  { name: "Старт", price: "0 ₽", period: "пробный период", features: ["Лента и чаты", "Просмотр объявлений", "До 3 объявлений"] },
+  { name: "Месяц", price: "от 99 ₽", period: "в месяц", features: ["Все возможности", "Безлимитные публикации", "Приоритет в ленте"], accent: true },
+  { name: "Год", price: "от 990 ₽", period: "в год · выгодно", features: ["Экономия до 30%", "Бесплатные объявления", "Приоритетная поддержка"] },
 ];
 
 function PricingSection() {
-  const { t } = useTranslation();
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.pricing.eyebrow")}</Eyebrow>
-      <Title>{t("landing.pricing.title")}</Title>
-      <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
+      <Eyebrow>Тарифы</Eyebrow>
+      <Title>Простая подписка</Title>
+      <p className="mt-3 max-w-[540px]" style={mutedP}>Базовые возможности бесплатны. Подписка снимает ограничения.</p>
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {PLANS.map((p) => (
-          <div key={p.key} className="relative flex flex-col p-7"
+          <div key={p.name} className="relative flex flex-col p-7"
             style={{ ...cardStyle, borderColor: p.accent ? "var(--border-accent)" : "var(--border)", boxShadow: p.accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)" }}
           >
             {p.accent && (
               <span className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("landing.pricing.recommended")}</span>
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>Рекомендуем</span>
             )}
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t("landing.pricing.plans." + p.key + ".name")}</div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{p.name}</div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("landing.pricing.plans." + p.key + ".price")}</span>
-              <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("landing.pricing.plans." + p.key + ".period")}</span>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{p.price}</span>
+              <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{p.period}</span>
             </div>
             <ul className="mt-5 space-y-2.5">
-              {(t("landing.pricing.plans." + p.key + ".features", { returnObjects: true }) as string[]).map((f) => (
+              {p.features.map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm" style={{ color: "var(--foreground-70)" }}>
                   <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} /><span>{f}</span>
                 </li>
@@ -638,7 +615,7 @@ function PricingSection() {
             <div className="flex-1" />
             <Link to="/subscription" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
               style={p.accent ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)" }}
-            >{t("landing.pricing.more")} <ArrowRight size={15} /></Link>
+            >Подробнее <ArrowRight size={15} /></Link>
           </div>
         ))}
       </div>
@@ -648,27 +625,26 @@ function PricingSection() {
 
 /* ===================== Why choose (value cards) ===================== */
 
-const VALUES: { icon: typeof Sparkles; key: "focus" | "community" | "allInOne" | "direct" }[] = [
-  { icon: Sparkles, key: "focus" },
-  { icon: Users2, key: "community" },
-  { icon: Boxes, key: "allInOne" },
-  { icon: MessageSquare, key: "direct" },
+const VALUES: { icon: typeof Sparkles; title: string; desc: string }[] = [
+  { icon: Sparkles, title: "Только моделизм", desc: "Никакого шума — лента и объявления строго по теме." },
+  { icon: Users2, title: "Живое сообщество", desc: "Клубы, эксперты и продавцы с рейтингом и историей сделок." },
+  { icon: Boxes, title: "Всё в одном месте", desc: "Купить, продать, обсудить и договориться — без внешних сервисов." },
+  { icon: MessageSquare, title: "Прямое общение", desc: "Встроенный мессенджер с продавцами и клубами." },
 ];
 
 function WhyChoose() {
-  const { t } = useTranslation();
   return (
     <Section bg="var(--background)">
-      <Eyebrow>{t("landing.values.eyebrow")}</Eyebrow>
-      <Title>{t("landing.values.title")}</Title>
+      <Eyebrow>Почему МоДелизМ</Eyebrow>
+      <Title>Почему моделисты выбирают нас</Title>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {VALUES.map(({ icon: Icon, key }) => (
-          <div key={key} className="flex flex-col p-6" style={cardStyle}>
+        {VALUES.map(({ icon: Icon, title, desc }) => (
+          <div key={title} className="flex flex-col p-6" style={cardStyle}>
             <div className="grid place-items-center" style={{ width: 44, height: 44, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
               <Icon size={20} />
             </div>
-            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{t("landing.values.items." + key + ".title")}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t("landing.values.items." + key + ".desc")}</p>
+            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{title}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{desc}</p>
           </div>
         ))}
       </div>
@@ -678,16 +654,22 @@ function WhyChoose() {
 
 /* ===================== FAQ ===================== */
 
+const FAQ: { q: string; a: string }[] = [
+  { q: "Нужно ли регистрироваться, чтобы смотреть?", a: "Нет. Объявления, сообщества и каналы можно смотреть без регистрации. Аккаунт нужен, чтобы публиковать и писать сообщения." },
+  { q: "Сколько стоит участие?", a: "Базовое использование бесплатно. Подписка от 99 ₽ в месяц снимает ограничения и открывает расширенные возможности." },
+  { q: "Как разместить объявление?", a: "После входа откройте раздел «Объявления» и нажмите «Создать». Заполните форму — модерация занимает до суток." },
+  { q: "Можно ли пользоваться с телефона?", a: "Да. Интерфейс адаптирован под мобильные — отдельное приложение не требуется." },
+  { q: "Какие категории есть?", a: "Авиация, автомодели, судомодели, железные дороги, двигатели, аппаратура, запчасти и инструменты." },
+];
+
 function FaqSection() {
-  const { t } = useTranslation();
-  const items = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
   const [open, setOpen] = useState<number | null>(0);
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.faq.eyebrow")}</Eyebrow>
-      <Title>{t("landing.faq.title")}</Title>
+      <Eyebrow>Вопросы</Eyebrow>
+      <Title>Часто спрашивают</Title>
       <div className="mx-auto mt-9 max-w-[820px] space-y-2.5">
-        {items.map((item, i) => {
+        {FAQ.map((item, i) => {
           const isOpen = open === i;
           return (
             <div key={item.q} style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
@@ -716,63 +698,62 @@ function FaqSection() {
 
 /* ===================== Footer ===================== */
 
-const FOOTER_COLS: { key: "brand" | "docs" | "support"; links: { to: string; labelKey: string }[] }[] = [
+const FOOTER_COLS: { title: string; links: { label: string; to: string }[] }[] = [
   {
-    key: "brand",
+    title: "МоДелизМ",
     links: [
-      { to: "/info/about", labelKey: "about" },
-      { to: "/info/company", labelKey: "company" },
-      { to: "/info/partners", labelKey: "partners" },
-      { to: "/info/advertising", labelKey: "advertising" },
+      { label: "О нас", to: "/info/about" },
+      { label: "О компании", to: "/info/company" },
+      { label: "Партнёрам", to: "/info/partners" },
+      { label: "Размещение рекламы", to: "/info/advertising" },
     ],
   },
   {
-    key: "docs",
+    title: "Документы",
     links: [
-      { to: "/legal/rules", labelKey: "rules" },
-      { to: "/legal/privacy", labelKey: "privacy" },
-      { to: "/info/compliance", labelKey: "compliance" },
-      { to: "/info/consent", labelKey: "consent" },
+      { label: "Пользовательское соглашение", to: "/legal/rules" },
+      { label: "Политика конфиденциальности", to: "/legal/privacy" },
+      { label: "Compliance", to: "/info/compliance" },
+      { label: "Обработка персональных данных", to: "/info/consent" },
     ],
   },
   {
-    key: "support",
+    title: "Поддержка",
     links: [
-      { to: "/help", labelKey: "faq" },
-      { to: "/info/support", labelKey: "support" },
-      { to: "/info/feedback", labelKey: "feedback" },
-      { to: "/info/feedback", labelKey: "contact" },
+      { label: "Ответы на вопросы", to: "/help" },
+      { label: "Служба поддержки", to: "/info/support" },
+      { label: "Оставить отзыв", to: "/info/feedback" },
+      { label: "Обратная связь", to: "/info/feedback" },
     ],
   },
 ];
 
 function Footer() {
-  const { t } = useTranslation();
   return (
     <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
       <div className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8" style={{ maxWidth: 1240 }}>
         <div>
           <Logo size={30} />
           <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-            {t("landing.footer.tagline")}
+            Маркетплейс, лента и сообщество для моделистов. Моделизм — это жизнь, остальное детали.
           </p>
-          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {t("landing.hero.brand")}</p>
+          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} МоДелизМ</p>
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs" style={{ color: "var(--foreground-50)" }}>{t("landing.footer.theme")}</span>
+            <span className="text-xs" style={{ color: "var(--foreground-50)" }}>Тема</span>
             <ThemeToggle size={32} />
           </div>
         </div>
 
         {FOOTER_COLS.map((col) => (
-          <div key={col.key}>
-            <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t("landing.footer.cols." + col.key + ".title")}</div>
+          <div key={col.title}>
+            <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{col.title}</div>
             <ul className="mt-4 flex flex-col gap-2.5">
               {col.links.map((l) => (
-                <li key={l.labelKey}>
+                <li key={l.label}>
                   <Link to={l.to} className="text-sm transition-colors" style={{ color: "var(--foreground-50)" }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
-                  >{t("landing.footer.cols." + col.key + ".links." + l.labelKey)}</Link>
+                  >{l.label}</Link>
                 </li>
               ))}
             </ul>
@@ -781,17 +762,17 @@ function Footer() {
 
         {/* contacts */}
         <div>
-          <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t("landing.footer.contacts")}</div>
+          <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Контакты</div>
           <ul className="mt-4 flex flex-col gap-2.5 text-sm" style={{ color: "var(--foreground-50)" }}>
             <li><a href="mailto:support@modelizmclub.ru" style={{ color: "inherit" }}>support@modelizmclub.ru</a></li>
             <li><a href="tel:+78000000000" style={{ color: "inherit" }}>8 800 000-00-00</a></li>
-            <li>{t("landing.footer.hours")}</li>
+            <li>Пн–Вс, 10:00–20:00 МСК</li>
           </ul>
           <div className="mt-3 flex flex-wrap gap-2">
             {SOCIAL_LINKS.map((s) => (
               <span
                 key={s.label}
-                title={t("landing.footer.soon")}
+                title="Скоро"
                 className="inline-flex items-center rounded-[var(--r-pill)] px-[10px] py-[4px] text-[11px] font-semibold"
                 style={{
                   background: "var(--background-surface)",

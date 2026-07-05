@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown,
+  PanelRightClose, PanelRightOpen, ChevronRight,
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Hash,
 } from "lucide-react";
 import * as Icons from "lucide-react";
@@ -84,7 +84,6 @@ function SkeletonRows({ n }: { n: number }) {
 }
 
 export function FeedRightRail() {
-  const [openId, setOpenId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(COLLAPSE_KEY) === "1";
@@ -141,67 +140,29 @@ export function FeedRightRail() {
           <ul className="p-[6px]">
             {topCategories.map((c) => {
               const online = onlineFor(c);
-              const open = openId === c.id;
-              const hasSubs = c.subcategories.length > 0;
               return (
                 <li key={c.id}>
-                  <div className="flex items-stretch">
-                    <Link
-                      to="/categories/$id"
-                      params={{ id: c.id }}
-                      className={`flex flex-1 items-center gap-[10px] py-[8px] pl-[10px] transition-colors hover:bg-[var(--background-surface)] ${hasSubs ? "rounded-l-[10px] pr-[4px]" : "rounded-[10px] pr-[10px]"}`}
+                  <Link
+                    to="/categories/$id"
+                    params={{ id: c.id }}
+                    className="flex items-center gap-[10px] rounded-[10px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
+                  >
+                    <span
+                      className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
+                      style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                     >
-                      <span
-                        className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
-                        style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-                      >
-                        <CategoryIcon name={c.icon} className="h-[14px] w-[14px]" />
+                      <CategoryIcon name={c.icon} className="h-[14px] w-[14px]" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
+                        {c.name}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
-                          {c.name}
-                        </span>
-                        <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                          {online} онлайн
-                        </span>
+                      <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                        <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
+                        {online} онлайн
                       </span>
-                    </Link>
-                    {hasSubs && (
-                      <button
-                        type="button"
-                        onClick={() => setOpenId(open ? null : c.id)}
-                        aria-label={open ? "Свернуть подкатегории" : "Развернуть подкатегории"}
-                        aria-expanded={open}
-                        className="grid w-[28px] shrink-0 place-items-center rounded-r-[10px] transition-colors hover:bg-[var(--background-surface)]"
-                      >
-                        <ChevronDown
-                          className={`h-[14px] w-[14px] transition-transform ${open ? "rotate-180" : ""}`}
-                          style={{ color: "var(--foreground-50)" }}
-                        />
-                      </button>
-                    )}
-                  </div>
-
-                  {open && hasSubs && (
-                    <ul
-                      className="mb-[4px] ml-[36px] mt-[2px] space-y-[1px] border-l pl-[10px]"
-                      style={{ borderColor: "var(--border)" }}
-                    >
-                      {c.subcategories.map((s) => (
-                        <li key={s.id}>
-                          <Link
-                            to="/categories/$id/$subId"
-                            params={{ id: c.id, subId: s.id }}
-                            className="block rounded-[6px] px-[8px] py-[5px] text-[12.5px] transition-colors hover:bg-[var(--background-surface)]"
-                            style={{ color: "var(--foreground-70)" }}
-                          >
-                            {s.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                    </span>
+                  </Link>
                 </li>
               );
             })}
