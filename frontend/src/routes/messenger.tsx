@@ -29,6 +29,7 @@ import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
+import { DialogContextMenu } from "@/components/messenger/DialogContextMenu";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
@@ -416,6 +417,22 @@ function MessengerPage() {
     actions.markRead(id);
   };
 
+  const [dialogCtxMenu, setDialogCtxMenu] = useState<{ dialogId: string; point: { x: number; y: number } } | null>(null);
+  const dialogLongPressTimer = useRef<number | null>(null);
+  const suppressNextDialogClick = useRef(false);
+  const startDialogLongPress = (dialogId: string, x: number, y: number) => {
+    dialogLongPressTimer.current = window.setTimeout(() => {
+      suppressNextDialogClick.current = true;
+      setDialogCtxMenu({ dialogId, point: { x, y } });
+    }, 450);
+  };
+  const cancelDialogLongPress = () => {
+    if (dialogLongPressTimer.current) {
+      window.clearTimeout(dialogLongPressTimer.current);
+      dialogLongPressTimer.current = null;
+    }
+  };
+
   const send = async () => {
     if (!text.trim() || !active) return;
     if (isPartnerBlocked(active.userId)) {
@@ -640,7 +657,23 @@ function MessengerPage() {
                   return (
                     <motion.li key={d.id} variants={{ hidden: { opacity: 0, x: -16 }, visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } } }}>
                       <button
-                        onClick={() => handleSelect(d.id)}
+                        onClick={() => {
+                          if (suppressNextDialogClick.current) {
+                            suppressNextDialogClick.current = false;
+                            return;
+                          }
+                          handleSelect(d.id);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setDialogCtxMenu({ dialogId: d.id, point: { x: e.clientX, y: e.clientY } });
+                        }}
+                        onTouchStart={(e) => {
+                          const t = e.touches[0];
+                          startDialogLongPress(d.id, t.clientX, t.clientY);
+                        }}
+                        onTouchEnd={cancelDialogLongPress}
+                        onTouchMove={cancelDialogLongPress}
                         className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
                         style={{
                           background: isActive ? "var(--accent-soft)" : "transparent",
@@ -873,6 +906,28 @@ function MessengerPage() {
       </div>
       <CreateChatDialog open={createOpen} onClose={() => setCreateOpen(false)} onPick={handleCreateChat} />
       <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
+      <DialogContextMenu
+        point={dialogCtxMenu?.point ?? null}
+        onClose={() => setDialogCtxMenu(null)}
+        pinned={Boolean(dlgs.find((x) => x.id === dialogCtxMenu?.dialogId)?.pinned)}
+        muted={Boolean(dialogCtxMenu && getMeta(dialogCtxMenu.dialogId).muted)}
+        onMarkUnread={() => dialogCtxMenu && actions.markUnread(dialogCtxMenu.dialogId)}
+        onTogglePin={() => {
+          if (!dialogCtxMenu) return;
+          const dlg = dlgs.find((x) => x.id === dialogCtxMenu.dialogId);
+          actions.pinDialog(dialogCtxMenu.dialogId, !dlg?.pinned);
+        }}
+        onToggleMute={() => {
+          if (!dialogCtxMenu) return;
+          const muted = getMeta(dialogCtxMenu.dialogId).muted;
+          actions.setDialogMeta(dialogCtxMenu.dialogId, muted ? { muted: false, mutedUntil: undefined } : { muted: true });
+        }}
+        onClearHistory={() => {
+          if (!dialogCtxMenu) return;
+          if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
+          actions.clearHistory(dialogCtxMenu.dialogId);
+        }}
+      />
     </AppLayout>
   );
 }
