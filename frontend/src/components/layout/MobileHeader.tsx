@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, MoreHorizontal, Radio, Sun, Moon, Check, Languages } from "lucide-react";
+import { Bell, Search, MoreHorizontal, Radio, Sun, Moon, Check, Languages, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
@@ -47,9 +47,23 @@ export function MobileHeader() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-1">
-          <HeaderIconButton aria-label="Поиск">
+          <Link
+            to="/ads"
+            aria-label="Поиск"
+            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+            style={{ color: "var(--foreground-70)" }}
+          >
             <Search size={20} />
-          </HeaderIconButton>
+          </Link>
+
+          <Link
+            to="/favorites"
+            aria-label="Избранное"
+            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+            style={{ color: "var(--foreground-70)" }}
+          >
+            <Heart size={20} />
+          </Link>
 
           <Link
             to="/notifications"
@@ -81,18 +95,6 @@ export function MobileHeader() {
         </div>
       </div>
     </header>
-  );
-}
-
-function HeaderIconButton({ children, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...rest}
-      className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-      style={{ color: "var(--foreground-70)" }}
-    >
-      {children}
-    </button>
   );
 }
 

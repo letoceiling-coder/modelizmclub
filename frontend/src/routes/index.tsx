@@ -103,7 +103,8 @@ function TopNav() {
 
         {/* right controls */}
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
+          {/* LanguageSwitcher lives in the mobile menu sheet; shown inline on lg+ only */}
+          <span className="hidden lg:block"><LanguageSwitcher /></span>
           <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
             style={{ color: "var(--foreground-70)" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
@@ -151,6 +152,8 @@ function TopNav() {
                   <Link key={l.key} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.nav." + l.key)}</Link>
                 ),
               )}
+              <div className="my-1 h-px" style={{ background: "var(--border)" }} />
+              <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
             </div>
           </motion.div>
         )}
@@ -527,18 +530,18 @@ function CategoriesSection() {
       <Title>{t("landing.categories.title")}</Title>
       <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {CATEGORIES.map(({ icon: Icon, key, count }) => (
-          <Link key={key} to="/ads" className="group flex items-center gap-3 p-4 transition-all hover:-translate-y-0.5"
+          <Link key={key} to="/ads" className="group flex items-center gap-[10px] p-3 transition-all hover:-translate-y-0.5 sm:gap-3 sm:p-4"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
           >
-            <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)]"
-              style={{ width: 42, height: 42, borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-              <Icon size={20} />
+            <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)] sm:h-[42px] sm:w-[42px]"
+              style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
+              <Icon size={19} />
             </div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t("landing.categories.items." + key)}</div>
-              <div className="text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
+              <div className="text-[13px] font-semibold leading-tight sm:text-sm" style={{ color: "var(--foreground)" }}>{t("landing.categories.items." + key)}</div>
+              <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
             </div>
           </Link>
         ))}

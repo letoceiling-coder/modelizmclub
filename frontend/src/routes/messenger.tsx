@@ -567,7 +567,7 @@ function MessengerPage() {
       >
         {/* Dialog List */}
         <aside
-          className={`flex min-h-0 flex-col md:flex ${mobileView === "list" ? "flex" : "hidden"}`}
+          className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "list" ? "flex" : "hidden"}`}
           style={{ background: "var(--background-elevated)", borderRight: "1px solid var(--border)" }}
         >
           <div className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]" style={{ background: "var(--background-elevated)", borderBottom: "1px solid var(--border)" }}>
