@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Search, Send } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchFaq } from "@/lib/api/content";
@@ -335,59 +335,6 @@ function HelpPage() {
               Отправить
             </button>
           </form>
-        </div>
-
-        {/* Telegram */}
-        <div
-          style={{
-            marginTop: "24px",
-            background: "var(--background-elevated)",
-            borderRadius: "var(--r-card)",
-            padding: "20px",
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              background: "var(--accent-soft)",
-              padding: "10px",
-              borderRadius: "var(--r-pill)",
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            <Send size={24} style={{ color: "var(--accent)" }} />
-          </div>
-          <div style={{ flex: 1, minWidth: "180px" }}>
-            <div style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>Чат-поддержка в Telegram</div>
-            <div style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Ответ в течение 15 минут в рабочее время</div>
-          </div>
-          <a
-            href="https://t.me/modelizm_forum_support"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              height: "40px",
-              padding: "0 20px",
-              background: "#0088CC",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "13px",
-              borderRadius: "var(--r-button)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              transition: "background 200ms ease",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#006699")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#0088CC")}
-          >
-            <Send size={14} />
-            Написать в Telegram
-          </a>
         </div>
       </div>
     </AppLayout>

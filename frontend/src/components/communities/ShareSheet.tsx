@@ -1,5 +1,5 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Link2, Send, Share2, Users } from "lucide-react";
+import { Link2, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -28,15 +28,6 @@ export function ShareSheet({ open, onOpenChange, url, title }: Props) {
       onClick: () => {
         if (typeof navigator !== "undefined") navigator.clipboard?.writeText(url);
         toast.success("Ссылка скопирована");
-        onOpenChange(false);
-      },
-    },
-    {
-      key: "tg",
-      label: "Telegram",
-      icon: Send,
-      onClick: () => {
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`, "_blank", "noopener,noreferrer");
         onOpenChange(false);
       },
     },
