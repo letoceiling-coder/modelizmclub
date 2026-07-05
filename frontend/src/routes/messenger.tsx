@@ -361,10 +361,17 @@ function MessengerPage() {
       const m = getMeta(d.id);
       return showArchived ? m.archived : !m.archived;
     });
-    if (!q) return base;
-    return base.filter((d) => {
-      const u = userById(d.userId);
-      return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+    const searched = !q
+      ? base
+      : base.filter((d) => {
+          const u = userById(d.userId);
+          return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+        });
+    if (showArchived) return searched;
+    return [...searched].sort((a, b) => {
+      const pa = a.pinned ? 1 : 0;
+      const pb = b.pinned ? 1 : 0;
+      return pb - pa;
     });
   }, [dlgs, query, dialogMetaMap, showArchived]);
 
@@ -644,6 +651,7 @@ function MessengerPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             <span className="flex min-w-0 items-center gap-[6px] truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                              {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
                               <span className="truncate">{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                               {getMeta(d.id).blocked && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
