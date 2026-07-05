@@ -1,15 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, ChevronDown, Play, Pause, Volume2, VolumeX, Plus, Check,
+  ArrowRight, ChevronDown, Plus, Check,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
   MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays,
   Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ads as mockAds } from "@/lib/mock";
 import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
@@ -78,7 +77,7 @@ function TopNav() {
     >
       <div className="mx-auto flex h-[64px] max-w-[1240px] items-center justify-between gap-4 px-4 md:px-8">
         <Link to="/" className="shrink-0">
-          <Logo size={28} />
+          <Logo size={40} />
         </Link>
 
         {/* desktop nav */}
@@ -101,7 +100,6 @@ function TopNav() {
         {/* right controls */}
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-1 md:flex">
-            <LanguageSwitcher />
             <ThemeToggle />
           </div>
           <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
@@ -152,9 +150,8 @@ function TopNav() {
                 ),
               )}
               <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2" style={{ background: "var(--background-surface)" }}>
-                <span className="text-sm" style={{ color: "var(--foreground-70)" }}>Тема и язык</span>
+                <span className="text-sm" style={{ color: "var(--foreground-70)" }}>Тема</span>
                 <span className="flex items-center gap-1">
-                  <LanguageSwitcher />
                   <ThemeToggle />
                 </span>
               </div>
@@ -173,30 +170,13 @@ const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
 function Hero() {
   const enter = useEnter();
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoError, setVideoError] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
     return () => clearTimeout(t);
   }, []);
-
-  function togglePlay() {
-    const v = videoRef.current;
-    if (!v) return;
-    if (isPlaying) v.pause();
-    else void v.play().catch(() => {});
-    setIsPlaying(!isPlaying);
-  }
-  function toggleMute() {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !isMuted;
-    setIsMuted(!isMuted);
-  }
 
   const fadeUp = {
     hidden: { opacity: 0, y: 22 },
@@ -212,7 +192,6 @@ function Hero() {
           <img src={cover} alt="Сборка RC-моделей" className="h-full w-full object-cover" />
         ) : (
           <video
-            ref={videoRef}
             poster={cover}
             autoPlay
             muted
@@ -224,24 +203,14 @@ function Hero() {
             <source src={HERO_VIDEO} type="video/mp4" />
           </video>
         )}
-        {/* dark overlay — no white fade at the bottom, blends into --background */}
+        {/* dark overlay — fixed dark color at the bottom, independent of theme
+            (var(--background) turned white in light theme and washed out the video) */}
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, var(--background) 100%)" }}
+          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)" }}
         />
       </div>
 
-      {/* video controls */}
-      {!videoError && (
-        <div className="absolute bottom-6 right-6 z-20 hidden gap-2 sm:flex">
-          <HeroCtrl onClick={togglePlay} label={isPlaying ? "Пауза" : "Играть"}>
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </HeroCtrl>
-          <HeroCtrl onClick={toggleMute} label={isMuted ? "Звук" : "Без звука"}>
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </HeroCtrl>
-        </div>
-      )}
 
       {/* content */}
       <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
@@ -324,13 +293,6 @@ function Hero() {
   );
 }
 
-function HeroCtrl({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} aria-label={label} className="grid place-items-center"
-      style={{ width: 40, height: 40, borderRadius: "var(--r-pill)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.16)", color: "#fff", backdropFilter: "blur(8px)" }}
-    >{children}</button>
-  );
-}
 
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
