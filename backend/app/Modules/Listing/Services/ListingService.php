@@ -82,12 +82,22 @@ class ListingService
      */
     private function applyTextSearch($query, string $term, bool $titleOnly = false): void
     {
-        $operator = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        if ($query->getConnection()->getDriverName() === 'pgsql') {
+            $query->where(function ($q) use ($term, $titleOnly): void {
+                $q->where('title', 'ilike', "%{$term}%");
+                if (! $titleOnly) {
+                    $q->orWhere('description', 'ilike', "%{$term}%");
+                }
+            });
 
-        $query->where(function ($q) use ($term, $operator, $titleOnly): void {
-            $q->where('title', $operator, "%{$term}%");
+            return;
+        }
+
+        $needle = '%'.mb_strtolower($term).'%';
+        $query->where(function ($q) use ($needle, $titleOnly): void {
+            $q->whereRaw('LOWER(title) LIKE ?', [$needle]);
             if (! $titleOnly) {
-                $q->orWhere('description', $operator, "%{$term}%");
+                $q->orWhereRaw('LOWER(description) LIKE ?', [$needle]);
             }
         });
     }
