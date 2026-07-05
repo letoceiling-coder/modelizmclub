@@ -12,13 +12,8 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import type { Category } from "@/lib/mock";
+import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-
-function onlineFor(c: Category): number {
-  const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  const base = Math.max(3, Math.round(c.members * 0.012));
-  return base + (seed % 17);
-}
 
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon =

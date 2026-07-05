@@ -5,14 +5,8 @@ import { ChevronDown, MessageCircle, PanelRightClose, PanelRightOpen } from "luc
 const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
 import * as Icons from "lucide-react";
 import type { Category } from "@/lib/mock";
+import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-
-// Детерминированный «онлайн» по id категории — без бэка, но стабильно от рендера к рендеру.
-function onlineFor(c: Category): number {
-  const seed = c.id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-  const base = Math.max(3, Math.round(c.members * 0.012));
-  return base + (seed % 17);
-}
 
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon =
