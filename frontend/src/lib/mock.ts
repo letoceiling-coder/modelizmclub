@@ -318,7 +318,7 @@ const gal = (seeds: number[], category: string) => seeds.map((s) => categoryPlac
 
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
-  return { id: u.id, name: u.name, avatar: u.avatar, rating, deals, since };
+  return { id: u.id, numericId: u.numericId, name: u.name, avatar: u.avatar, rating, deals, since };
 };
 
 const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]; sellerStats: [number, number, string] }> = [

@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { getToken } from "@/lib/api/client";
+import { isDemoMode } from "@/lib/demo-mode";
 import type { Ad } from "@/lib/mock";
 
 export const Route = createFileRoute("/ads/")({
@@ -62,7 +63,7 @@ function buildParams(
 
 function CatalogPage() {
   const navigate = useNavigate();
-  const isAuthed = !!getToken();
+  const isAuthed = !!getToken() || isDemoMode();
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
