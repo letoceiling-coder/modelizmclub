@@ -707,7 +707,7 @@ function MessengerPage() {
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
                   <LanguageSwitcher />
-                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} />
+                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
                 </div>
 
 

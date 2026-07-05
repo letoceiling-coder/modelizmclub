@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users } from "lucide-react";
+import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users, Pin, PinOff, Trash2, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { calls, useCalls } from "@/lib/calls";
@@ -12,10 +12,11 @@ interface Props {
   partnerId: string;
   partnerName: string;
   dialogId?: string;
+  pinned?: boolean;
   onSearch?: () => void;
 }
 
-export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }: Props) {
+export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, onSearch }: Props) {
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -79,6 +80,31 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
       actions.setDialogMeta(dialogId, { archived: true });
       toast.success("Чат заархивирован", { description: "Чат перемещён в архив. Вы можете найти его в списке архивированных." });
     }
+  };
+
+  const togglePin = () => {
+    close();
+    if (!dialogId) return;
+    if (pinned) {
+      actions.pinDialog(dialogId, false);
+      toast.success("Чат откреплён");
+    } else {
+      actions.pinDialog(dialogId, true);
+      toast.success("Чат закреплён", { description: "Теперь он вверху списка" });
+    }
+  };
+
+  const clearHistory = () => {
+    close();
+    if (!dialogId) return;
+    if (!window.confirm(`Очистить историю переписки с ${partnerName}? Это действие нельзя отменить.`)) return;
+    actions.clearHistory(dialogId);
+    toast.success("История очищена");
+  };
+
+  const reportUser = () => {
+    close();
+    toast("Жалоба: будет доступно позже");
   };
 
   const toggleBlock = () => {
@@ -158,6 +184,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
               />
               {onSearch && <Item icon={Search} label="Поиск в чате" onClick={() => { close(); onSearch(); }} />}
               <Item
+                icon={pinned ? PinOff : Pin}
+                label={pinned ? "Открепить чат" : "Закрепить чат"}
+                onClick={togglePin}
+              />
+              <Item
                 icon={meta.muted ? Bell : BellOff}
                 label={meta.muted ? "Включить уведомления" : "Отключить уведомления"}
                 onClick={toggleMute}
@@ -167,6 +198,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
                 label={meta.archived ? "Вернуть из архива" : "Архивировать"}
                 onClick={toggleArchive}
               />
+              <Item icon={Trash2} label="Очистить историю" onClick={clearHistory} />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
                 icon={meta.blocked ? ShieldOff : Ban}
@@ -174,6 +206,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, onSearch }
                 onClick={toggleBlock}
                 danger={!meta.blocked}
               />
+              <Item icon={Flag} label="Пожаловаться" onClick={reportUser} danger />
             </motion.div>
           )}
         </AnimatePresence>
