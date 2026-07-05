@@ -173,7 +173,7 @@ export function ProfileView({
 
 
   return (
-    <AppLayout>
+    <AppLayout footer>
       <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
         {/* Cover */}
         <div className="relative">

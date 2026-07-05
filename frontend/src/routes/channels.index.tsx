@@ -51,7 +51,7 @@ function ChannelsPage() {
   }, [all, tab, q]);
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div className="space-y-5">
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="min-w-0">

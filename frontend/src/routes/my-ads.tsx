@@ -156,7 +156,7 @@ function MyAdsPage() {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-[20px]">
         {/* Header */}
         <header className="flex flex-wrap items-end justify-between gap-[12px]">
