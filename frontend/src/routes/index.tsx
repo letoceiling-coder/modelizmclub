@@ -109,11 +109,11 @@ function TopNav() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >{t("landing.nav.login")}</Link>
-          <Link to={enter.register} className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-3 py-2 text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:px-4 sm:text-sm"
+          <Link to={enter.register} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
             style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
           >
             {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
-            <ArrowRight size={15} className="shrink-0" />
+            <ArrowRight size={15} className="hidden shrink-0 sm:block" />
           </Link>
 
           <button

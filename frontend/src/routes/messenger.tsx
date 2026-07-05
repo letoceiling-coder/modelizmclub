@@ -171,7 +171,7 @@ function MessageBubble({
         </div>
       )}
       <div
-        className="relative max-w-[70%]"
+        className="relative max-w-[82%] sm:max-w-[70%]"
         data-msg-id={msg.id}
         onTouchStart={startLongPress}
         onTouchEnd={cancelLongPress}
@@ -733,14 +733,14 @@ function MessengerPage() {
         </aside>
 
         {/* Chat Panel */}
-        <section className={`flex min-h-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`} style={{ background: "var(--background)" }}>
+        <section className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`} style={{ background: "var(--background)" }}>
           {!active ? (
             <EmptyChat />
           ) : (
             <>
               {/* Header */}
               <div className="sticky top-0 z-10 flex flex-col" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-              <header className="flex items-center gap-[12px] px-[20px]" style={{ height: 60 }}>
+              <header className="flex items-center gap-[12px] px-[12px] sm:px-[20px]" style={{ height: 60 }}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -767,7 +767,7 @@ function MessengerPage() {
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
-                  <LanguageSwitcher />
+                  <span className="hidden sm:block"><LanguageSwitcher /></span>
                   <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
                 </div>
 
@@ -777,7 +777,7 @@ function MessengerPage() {
                   <Link
                     to="/ads/$id"
                     params={{ id: activeAdRef.id }}
-                    className="flex items-center gap-[10px] px-[20px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
+                    className="flex items-center gap-[10px] px-[12px] py-[8px] transition-colors hover:bg-[var(--background-surface)] sm:px-[20px]"
                     style={{ borderTop: "1px solid var(--border)" }}
                   >
                     {activeAdRef.image ? (
@@ -826,7 +826,7 @@ function MessengerPage() {
               )}
 
               {/* Messages */}
-              <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px]">
+              <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]">
                 {chatLoading ? (
                   <MessageSkeleton />
                 ) : (

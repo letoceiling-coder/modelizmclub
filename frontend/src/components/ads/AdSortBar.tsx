@@ -22,9 +22,10 @@ interface Props {
 
 export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, filterCount = 0 }: Props) {
   return (
-    <div className="flex flex-col gap-[12px]">
-      <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+    <div className="flex flex-col gap-[10px]">
+      {/* Row 1 — search + compact filter button (icon-only on mobile, Avito-style) */}
+      <div className="flex items-center gap-[8px]">
+        <div className="relative min-w-0 flex-1">
           <Search
             size={16}
             className="pointer-events-none absolute left-[14px] top-1/2 -translate-y-1/2"
@@ -51,7 +52,8 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
         <button
           type="button"
           onClick={onOpenFilters}
-          className="inline-flex items-center justify-center gap-[8px] px-[16px] text-[14px] font-medium xl:hidden"
+          aria-label="Фильтры"
+          className="relative inline-flex w-[44px] shrink-0 items-center justify-center gap-[8px] px-0 text-[14px] font-medium sm:w-auto sm:px-[16px] xl:hidden"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",
@@ -60,41 +62,42 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
             height: 44,
           }}
         >
-          <SlidersHorizontal size={16} /> Фильтры
+          <SlidersHorizontal size={18} />
+          <span className="hidden sm:inline">Фильтры</span>
           {filterCount > 0 && (
             <span
-              className="grid min-w-[20px] place-items-center rounded-full px-[6px] text-[11px] font-bold"
-              style={{ height: 20, background: "var(--accent)", color: "var(--accent-foreground)" }}
+              className="absolute -right-[6px] -top-[6px] grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold sm:static sm:min-w-[20px] sm:px-[6px] sm:text-[11px]"
+              style={{ height: 18, background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "0 0 0 2px var(--background)" }}
             >
               {filterCount}
             </span>
           )}
         </button>
-
-        <div className="flex items-center gap-[8px]">
-          <select
-            value={sort}
-            onChange={(e) => onSort(e.target.value as SortKey)}
-            className="cursor-pointer text-[13px] font-medium outline-none"
-            style={{
-              background: "var(--background-elevated)",
-              color: "var(--foreground)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-button)",
-              height: 44,
-              padding: "0 14px",
-            }}
-          >
-            {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
-              <option key={k} value={k}>{SORT_LABEL[k]}</option>
-            ))}
-          </select>
-
-        </div>
       </div>
 
-      <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-        Найдено: <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
+      {/* Row 2 — result count (left) + sort (right) */}
+      <div className="flex items-center justify-between gap-[8px]">
+        <div className="min-w-0 truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          Найдено: <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => onSort(e.target.value as SortKey)}
+          aria-label="Сортировка"
+          className="shrink-0 cursor-pointer text-[13px] font-medium outline-none"
+          style={{
+            background: "var(--background-elevated)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-button)",
+            height: 36,
+            padding: "0 10px",
+          }}
+        >
+          {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+            <option key={k} value={k}>{SORT_LABEL[k]}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
