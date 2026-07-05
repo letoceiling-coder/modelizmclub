@@ -18,6 +18,7 @@ import { fetchFeed } from "@/lib/api/feed";
 import { fetchPostCategories, categoryIdByName } from "@/lib/api/categories";
 import { fetchBanners } from "@/lib/api/banners";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
+import { FeedRightRail } from "@/components/feed/FeedRightRail";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -166,7 +167,7 @@ function FeedPage() {
   const slice = filtered.slice(0, visible);
 
   return (
-    <AppLayout footer>
+    <AppLayout footer rightColumn={<FeedRightRail />}>
       <div className="space-y-[16px]">
         <EventsHero />
 
