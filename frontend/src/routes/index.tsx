@@ -7,8 +7,10 @@ import {
   MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays,
   Car, Plane, Ship, TrainFront, Cpu, Wrench, Package, Boxes,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { ads as mockAds } from "@/lib/mock";
 import { isDemoMode } from "@/lib/demo-mode";
 import cover from "@/assets/cover-modelizm.jpg";
@@ -56,15 +58,16 @@ function LandingPage() {
 
 /* ===================== TopNav (sticky) ===================== */
 
-const NAV_LINKS: { to: string; label: string }[] = [
-  { to: "/ads", label: "Объявления" },
-  { to: "/communities", label: "Сообщества" },
-  { to: "/channels", label: "Каналы" },
-  { to: "#how", label: "Как работает" },
-  { to: "/subscription", label: "Подписка" },
+const NAV_LINKS: { to: string; key: "ads" | "communities" | "channels" | "how" | "subscription" }[] = [
+  { to: "/ads", key: "ads" },
+  { to: "/communities", key: "communities" },
+  { to: "/channels", key: "channels" },
+  { to: "#how", key: "how" },
+  { to: "/subscription", key: "subscription" },
 ];
 
 function TopNav() {
+  const { t } = useTranslation();
   const enter = useEnter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -85,36 +88,37 @@ function TopNav() {
         <nav className="hidden items-center gap-6 lg:flex">
           {NAV_LINKS.map((l) =>
             l.to.startsWith("#") ? (
-              <a key={l.label} href={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              <a key={l.key} href={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{l.label}</a>
+              >{t("landing.nav." + l.key)}</a>
             ) : (
-              <Link key={l.label} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              <Link key={l.key} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{l.label}</Link>
+              >{t("landing.nav." + l.key)}</Link>
             ),
           )}
         </nav>
 
         {/* right controls */}
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
             style={{ color: "var(--foreground-70)" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >Войти</Link>
+          >{t("landing.nav.login")}</Link>
           <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
             style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
           >
-            {enter.demo ? "Открыть демо" : "Создать аккаунт"}
+            {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
             <ArrowRight size={15} />
           </Link>
 
           <button
             type="button"
-            aria-label="Меню"
+            aria-label={t("landing.nav.menu")}
             onClick={() => setMenuOpen((v) => !v)}
             className="grid h-[40px] w-[40px] place-items-center rounded-full lg:hidden"
             style={{ border: "1px solid var(--border)", background: "var(--background-surface)" }}
@@ -139,11 +143,12 @@ function TopNav() {
             style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
           >
             <div className="flex flex-col gap-1 px-4 py-3">
+              <div className="px-1 pb-1"><LanguageSwitcher /></div>
               {NAV_LINKS.map((l) =>
                 l.to.startsWith("#") ? (
-                  <a key={l.label} href={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
+                  <a key={l.key} href={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.nav." + l.key)}</a>
                 ) : (
-                  <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
+                  <Link key={l.key} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.nav." + l.key)}</Link>
                 ),
               )}
             </div>
@@ -159,6 +164,7 @@ const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
 /* ===================== Hero (video-first, blue accent) ===================== */
 
 function Hero() {
+  const { t } = useTranslation();
   const enter = useEnter();
   const navigate = useNavigate();
   const [videoError, setVideoError] = useState(false);
@@ -220,7 +226,7 @@ function Hero() {
                   textShadow: "0 4px 30px rgba(0,0,0,0.45)",
                 }}
               >
-                МоДелизМ
+                {t("landing.hero.brand")}
               </motion.h1>
 
               <motion.p
@@ -228,7 +234,7 @@ function Hero() {
                 className="mt-4"
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.4vw, 26px)", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}
               >
-                Маркетплейс, лента и сообщество для моделистов
+                {t("landing.hero.tagline")}
               </motion.p>
 
               <motion.p
@@ -236,8 +242,7 @@ function Hero() {
                 className="mt-4"
                 style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "rgba(235,238,248,0.86)", maxWidth: 560, lineHeight: 1.55 }}
               >
-                Покупайте модели и запчасти, публикуйте сборки, находите клубы и
-                общайтесь с моделистами по всей России.
+                {t("landing.hero.subtitle")}
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -245,26 +250,26 @@ function Hero() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
-                  <Search size={18} /> Смотреть объявления
+                  <Search size={18} /> {t("landing.hero.ctaBrowse")}
                 </button>
                 <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
-                  {enter.demo ? "Открыть демо" : "Создать аккаунт"} <ArrowRight size={18} />
+                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} />
                 </button>
               </motion.div>
 
               {/* stats */}
               <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
                 {[
-                  { n: "1 200+", l: "моделистов" },
-                  { n: "45+", l: "сообществ" },
-                  { n: "8", l: "категорий" },
+                  { n: "1 200+", key: "modelers" as const },
+                  { n: "45+", key: "communities" as const },
+                  { n: "8", key: "categories" as const },
                 ].map((s) => (
-                  <div key={s.l}>
+                  <div key={s.key}>
                     <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "#fff", letterSpacing: "-0.02em" }}>{s.n}</div>
-                    <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.l}</div>
+                    <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("landing.hero.stats." + s.key)}</div>
                   </div>
                 ))}
               </motion.div>
@@ -275,7 +280,7 @@ function Hero() {
 
       {/* scroll hint */}
       <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex" style={{ color: "rgba(235,238,248,0.6)" }}>
-        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Листайте</span>
+        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.12em" }}>{t("landing.hero.scroll")}</span>
         <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
           <ChevronDown size={20} />
         </motion.div>
