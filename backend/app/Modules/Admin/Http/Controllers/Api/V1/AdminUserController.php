@@ -2,6 +2,8 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\SwaggerFixtures;
@@ -80,6 +82,8 @@ class AdminUserController extends Controller
             throw new NotFoundHttpException('Пользователь не найден.');
         }
 
+        $this->guardLastAdmin($request, $user);
+
         $old = $user->only(['email', 'name', 'role', 'status']);
         $user->fill($request->validated());
         $user->save();
@@ -98,9 +102,40 @@ class AdminUserController extends Controller
             throw new NotFoundHttpException('Пользователь не найден.');
         }
 
+        if ($user->role === UserRole::Admin && $this->otherActiveAdminsCount($user) === 0) {
+            abort(422, 'Нельзя удалить последнего суперадмина.');
+        }
+
         $user->delete();
         $audit->log(request()->user(), 'admin.users.delete', $user, $user->only(['email', 'uuid']), null, request());
 
         return response()->json(['data' => ['message' => 'Пользователь удалён.']]);
+    }
+
+    /**
+     * Prevents demoting or blocking the last remaining active superadmin,
+     * which would otherwise lock everyone out of the admin panel.
+     */
+    private function guardLastAdmin(UpdateAdminUserRequest $request, User $user): void
+    {
+        if ($user->role !== UserRole::Admin) {
+            return;
+        }
+
+        $losesAdminRole = $request->filled('role') && $request->string('role')->toString() !== UserRole::Admin->value;
+        $becomesInactive = $request->filled('status') && $request->string('status')->toString() !== UserStatus::Active->value;
+
+        if (($losesAdminRole || $becomesInactive) && $this->otherActiveAdminsCount($user) === 0) {
+            abort(422, 'Нельзя снять последнего суперадмина.');
+        }
+    }
+
+    private function otherActiveAdminsCount(User $user): int
+    {
+        return User::query()
+            ->where('role', UserRole::Admin)
+            ->where('status', UserStatus::Active)
+            ->where('id', '!=', $user->id)
+            ->count();
     }
 }

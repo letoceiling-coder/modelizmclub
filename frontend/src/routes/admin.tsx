@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useStore, selectors, getState } from "@/lib/store";
+import { ensureSession } from "@/lib/auth/session";
 import type { Tariff, PromoCode, Banner } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
@@ -33,8 +35,8 @@ import {
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
+    const { requireAdmin } = await import("@/lib/auth/requireAdmin");
+    await requireAdmin(location);
   },
   component: AdminPage,
 });
@@ -59,7 +61,75 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
 ];
 
 function AdminPage() {
+  const navigate = useNavigate();
+  const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [section, setSection] = useState<Section>("dashboard");
+
+  // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
+  // F5 it resolves during SSR (where there is no token) and does not re-run on
+  // hydration, so access must also be enforced here on every client mount.
+  //   - not authenticated  -> redirect to the login page
+  //   - authenticated, not superadmin -> render a 403 screen (no redirect)
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const ok = await ensureSession();
+      if (!alive) return;
+      if (!ok) {
+        navigate({ to: "/login", search: { redirect: "/admin" } });
+        return;
+      }
+      setAccess(selectors.currentUser(getState()).isAdmin ? "granted" : "forbidden");
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [navigate]);
+
+  if (access === "checking") {
+    return (
+      <div
+        className="min-h-screen grid place-items-center"
+        style={{ background: "var(--background)", color: "var(--foreground-50)", fontSize: "13px" }}
+      >
+        Проверка доступа…
+      </div>
+    );
+  }
+
+  if (access === "forbidden") {
+    return (
+      <div
+        className="min-h-screen grid place-items-center"
+        style={{ background: "var(--background)", padding: "24px" }}
+      >
+        <div style={{ textAlign: "center", maxWidth: "420px" }}>
+          <div style={{ fontSize: "64px", fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>403</div>
+          <h1 style={{ marginTop: "16px", fontSize: "20px", fontWeight: 700, color: "var(--foreground)" }}>
+            Доступ запрещён
+          </h1>
+          <p style={{ marginTop: "8px", fontSize: "14px", color: "var(--foreground-70)" }}>
+            Админ-панель доступна только суперадминистраторам.
+          </p>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-[6px]"
+            style={{
+              marginTop: "20px",
+              fontSize: "13px",
+              fontWeight: 500,
+              padding: "8px 16px",
+              borderRadius: "var(--r-card-sm)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground-70)",
+            }}
+          >
+            <Home size={14} />На главную
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -707,16 +777,44 @@ function Dashboard() {
 }
 
 /* ============ USERS ============ */
+const ROLE_OPTIONS: { value: AdminUserRow["role"]; label: string }[] = [
+  { value: "user", label: "Пользователь" },
+  { value: "subscriber", label: "Подписчик" },
+  { value: "moderator", label: "Модератор" },
+  { value: "admin", label: "Суперадмин" },
+];
+
 function UsersSection() {
+  const me = useStore(selectors.currentUser);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"all" | AdminUserRow["role"]>("all");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     fetchAdminUsers({ role }).then((list) => active && setUsers(list)).catch(() => {});
     return () => { active = false; };
   }, [role]);
+
+  const changeRole = async (uuid: string, newRole: AdminUserRow["role"]) => {
+    const target = users.find((u) => u.uuid === uuid);
+    if (!target || target.role === newRole) return;
+    if (me.id === uuid) {
+      toast.error("Нельзя изменить собственную роль");
+      return;
+    }
+    setSavingRole(uuid);
+    try {
+      await updateAdminUser(uuid, { role: newRole });
+      setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, role: newRole } : u)));
+      toast.success(newRole === "admin" ? "Назначен суперадмином" : "Роль обновлена");
+    } catch {
+      toast.error("Не удалось изменить роль");
+    } finally {
+      setSavingRole(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -742,7 +840,7 @@ function UsersSection() {
 
   const roleBadge = (r: AdminUserRow["role"]) => {
     const map: Record<AdminUserRow["role"], { bg: string; c: string; l: string }> = {
-      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: "Админ" },
+      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: "Суперадмин" },
       moderator: { bg: "var(--info-soft)", c: "var(--info)", l: "Модератор" },
       subscriber: { bg: "var(--success-soft)", c: "var(--success)", l: "Подписчик" },
       user: { bg: "var(--background-surface)", c: "var(--foreground-50)", l: "Польз." },
@@ -774,8 +872,9 @@ function UsersSection() {
         >
           <option value="all">Все роли</option>
           <option value="user">Пользователь</option>
+          <option value="subscriber">Подписчик</option>
           <option value="moderator">Модератор</option>
-          <option value="admin">Администратор</option>
+          <option value="admin">Суперадмин</option>
         </select>
       </div>
 
@@ -805,7 +904,32 @@ function UsersSection() {
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.email}</td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.city || "—"}</td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.role === "subscriber" ? "Подписка" : "—"}</td>
-                  <td style={{ padding: "10px 16px" }}>{roleBadge(u.role)}</td>
+                  <td style={{ padding: "10px 16px" }}>
+                    <div className="flex flex-col" style={{ gap: "6px" }}>
+                      {roleBadge(u.role)}
+                      <select
+                        value={u.role}
+                        disabled={me.id === u.uuid || savingRole === u.uuid}
+                        onChange={(e) => changeRole(u.uuid, e.target.value as AdminUserRow["role"])}
+                        className="outline-none"
+                        title={me.id === u.uuid ? "Нельзя изменить собственную роль" : "Изменить роль"}
+                        style={{
+                          fontSize: "12px",
+                          height: "28px",
+                          padding: "0 8px",
+                          borderRadius: "var(--r-card-sm)",
+                          border: "1px solid var(--border)",
+                          background: "var(--background-surface)",
+                          color: "var(--foreground-70)",
+                          opacity: me.id === u.uuid ? 0.5 : 1,
+                        }}
+                      >
+                        {ROLE_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </td>
                   <td style={{ padding: "10px 16px" }}>
                     <StatusBadge variant={u.status === "active" ? "published" : "rejected"}>
                       {u.status === "active" ? "Активен" : u.status === "blocked" ? "Заблокирован" : "Ожидает"}

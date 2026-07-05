@@ -85,6 +85,11 @@ export function createInitialState(): AppState {
 let state: AppState = createInitialState();
 const listeners = new Set<() => void>();
 const getSnapshot = (): AppState => state;
+
+/** Read the current state outside of React (e.g. route guards). */
+export function getState(): AppState {
+  return state;
+}
 const subscribe = (l: () => void): (() => void) => {
   listeners.add(l);
   return () => {

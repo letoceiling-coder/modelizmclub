@@ -4,6 +4,7 @@ namespace Modules\Feed\Services;
 
 use App\Enums\ContentStatus;
 use App\Models\Comment;
+use App\Models\CommentReaction;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -78,6 +79,53 @@ class CommentService
         $post->increment('comments_count');
 
         return $comment->load(['author.profile.avatar']);
+    }
+
+    public function findByUuid(string $uuid): Comment
+    {
+        $comment = Comment::query()->where('uuid', $uuid)->first();
+
+        if (! $comment) {
+            throw new NotFoundHttpException('Комментарий не найден.');
+        }
+
+        return $comment;
+    }
+
+    public function react(Comment $comment, User $user, string $type = 'like'): Comment
+    {
+        if ($comment->status !== 'published') {
+            throw ValidationException::withMessages([
+                'comment' => ['Реакции доступны только для опубликованных комментариев.'],
+            ]);
+        }
+
+        $reaction = CommentReaction::query()->firstOrCreate(
+            ['comment_id' => $comment->id, 'user_id' => $user->id],
+            ['type' => $type],
+        );
+
+        if ($reaction->wasRecentlyCreated) {
+            $comment->increment('reactions_count');
+        } elseif ($reaction->type !== $type) {
+            $reaction->update(['type' => $type]);
+        }
+
+        return $comment->fresh();
+    }
+
+    public function removeReaction(Comment $comment, User $user): Comment
+    {
+        $deleted = CommentReaction::query()
+            ->where('comment_id', $comment->id)
+            ->where('user_id', $user->id)
+            ->delete();
+
+        if ($deleted && $comment->reactions_count > 0) {
+            $comment->decrement('reactions_count');
+        }
+
+        return $comment->fresh();
     }
 
     public function thread(string $uuid): Collection
