@@ -26,7 +26,7 @@ export const DOCS_LINKS: FooterLink[] = [
 ];
 
 // href: null — no confirmed real account. Rendered as a disabled/TODO chip,
-// never a live link (no Telegram anywhere; MAX/VK unconfirmed).
+// never a live link (MAX/VK unconfirmed; no other social links anywhere).
 export const SOCIAL_LINKS: FooterSocial[] = [
   { label: "MAX", href: null },
   { label: "VK", href: null },

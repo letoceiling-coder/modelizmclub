@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useStore, selectors } from "@/lib/store";
 import { createConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({
@@ -68,7 +69,7 @@ function AdDetailPage() {
   }, [id]);
 
   const writeToSeller = async () => {
-    if (!getToken()) {
+    if (!getToken() && !isDemoMode()) {
       toast.info("Войдите, чтобы написать продавцу");
       navigate({ to: "/login" });
       return;
