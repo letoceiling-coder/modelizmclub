@@ -175,7 +175,7 @@ function CommunitiesPage() {
   const hasQuery = debounced.trim().length > 0;
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div className="space-y-[20px]">
         <header>
           <h1

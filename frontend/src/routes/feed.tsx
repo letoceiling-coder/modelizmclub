@@ -166,7 +166,7 @@ function FeedPage() {
   const slice = filtered.slice(0, visible);
 
   return (
-    <AppLayout>
+    <AppLayout footer>
       <div className="space-y-[16px]">
         <EventsHero />
 

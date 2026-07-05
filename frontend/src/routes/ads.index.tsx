@@ -102,7 +102,7 @@ function CatalogPage() {
   const hasAnyFilter = activeFilterCount > 0 || q;
 
   return (
-    <AppLayout rightColumn={false} navCollapsed>
+    <AppLayout rightColumn={false} navCollapsed footer>
       <div className="space-y-[16px] pb-[24px]">
         {/* Header */}
         <div className="flex items-start justify-between gap-[12px]">

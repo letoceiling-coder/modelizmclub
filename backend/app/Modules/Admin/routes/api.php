@@ -20,7 +20,9 @@ use Modules\Admin\Http\Controllers\Api\V1\ApproveModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexModerationQueueController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexReportsController;
 use Modules\Admin\Http\Controllers\Api\V1\RejectModerationController;
+use Modules\Admin\Http\Controllers\Api\V1\ResolveReportController;
 use Modules\Admin\Http\Controllers\Api\V1\RevisionModerationController;
+use Modules\Admin\Http\Controllers\Api\V1\ShowReportController;
 
 Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
     Route::middleware('role:moderator,admin')->group(function (): void {
@@ -29,6 +31,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('moderation/{type}/{id}/reject', RejectModerationController::class);
         Route::post('moderation/{type}/{id}/revision', RevisionModerationController::class);
         Route::get('reports', IndexReportsController::class);
+        Route::get('reports/{id}', ShowReportController::class)->whereNumber('id');
+        Route::patch('reports/{id}', ResolveReportController::class)->whereNumber('id');
 
         Route::get('feedback', [AdminFeedbackController::class, 'index']);
         Route::patch('feedback/{id}', [AdminFeedbackController::class, 'update'])->whereNumber('id');

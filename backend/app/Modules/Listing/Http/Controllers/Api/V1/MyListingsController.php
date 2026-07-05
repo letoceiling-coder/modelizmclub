@@ -12,7 +12,11 @@ class MyListingsController extends Controller
 {
     public function __invoke(Request $request, ListingService $listings): JsonResponse
     {
-        $paginator = $listings->myListings($request->user(), $request->integer('per_page', 20));
+        $paginator = $listings->myListings($request->user(), [
+            'status' => $request->string('status')->toString() ?: null,
+            'q' => $request->string('q')->toString() ?: null,
+            'sort' => $request->string('sort')->toString() ?: 'updated',
+        ], min($request->integer('per_page', 20), 50));
 
         return ListingResource::collection($paginator)->response();
     }

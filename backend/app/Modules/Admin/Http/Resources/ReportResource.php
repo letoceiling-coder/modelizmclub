@@ -22,6 +22,10 @@ class ReportResource extends JsonResource
                 'uuid' => $this->reporter?->uuid,
                 'email' => $this->reporter?->email,
             ]),
+            'resolver' => $this->whenLoaded('resolver', fn () => $this->resolver ? [
+                'uuid' => $this->resolver->uuid,
+                'email' => $this->resolver->email,
+            ] : null),
             'created_at' => $this->created_at?->toIso8601String(),
             'resolved_at' => $this->resolved_at?->toIso8601String(),
         ];

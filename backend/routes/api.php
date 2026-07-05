@@ -18,5 +18,6 @@ Route::prefix('v1')->group(function (): void {
     require base_path('app/Modules/Chat/routes/api.php');
     require base_path('app/Modules/Listing/routes/api.php');
     require base_path('app/Modules/PublicContent/routes/api.php');
+    require base_path('app/Modules/Report/routes/api.php');
     require base_path('app/Modules/Admin/routes/api.php');
 });
