@@ -85,6 +85,14 @@ function AdDetailPage() {
     }
     try {
       const dialog = await createConversation(sellerId, me.id);
+      if (ad) {
+        actions.setDialogAd(dialog.id, {
+          id: ad.id,
+          title: ad.title,
+          price: ad.price,
+          image: ad.gallery?.[0] ?? ad.image,
+        });
+      }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
       toast.error("Не удалось открыть диалог");

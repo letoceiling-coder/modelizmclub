@@ -245,6 +245,7 @@ function MessengerPage() {
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
+  const dialogAdRefs = useStore((s) => s.dialogAdRefs);
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
   const { chat } = Route.useSearch();
@@ -350,6 +351,7 @@ function MessengerPage() {
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
   const partner = active ? userById(active.userId) : null;
+  const activeAdRef = activeId ? dialogAdRefs[activeId] : undefined;
 
   const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
 
@@ -737,7 +739,8 @@ function MessengerPage() {
           ) : (
             <>
               {/* Header */}
-              <header className="sticky top-0 z-10 flex items-center gap-[12px] px-[20px]" style={{ height: 60, background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+              <div className="sticky top-0 z-10 flex flex-col" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+              <header className="flex items-center gap-[12px] px-[20px]" style={{ height: 60 }}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -770,6 +773,31 @@ function MessengerPage() {
 
 
               </header>
+                {activeAdRef && (
+                  <Link
+                    to="/ads/$id"
+                    params={{ id: activeAdRef.id }}
+                    className="flex items-center gap-[10px] px-[20px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
+                    style={{ borderTop: "1px solid var(--border)" }}
+                  >
+                    {activeAdRef.image ? (
+                      <img
+                        src={activeAdRef.image}
+                        alt=""
+                        className="h-[36px] w-[36px] shrink-0 rounded-[8px] object-cover"
+                      />
+                    ) : (
+                      <div className="h-[36px] w-[36px] shrink-0 rounded-[8px]" style={{ background: "var(--background-surface)" }} />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px]" style={{ color: "var(--foreground)" }}>{activeAdRef.title}</div>
+                      <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                        {activeAdRef.price.toLocaleString("ru")} ₽
+                      </div>
+                    </div>
+                  </Link>
+                )}
+              </div>
 
               {pinnedMessage && (
                 <button
