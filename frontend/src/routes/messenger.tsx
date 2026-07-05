@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare,
-  Paperclip, Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
+  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff, ImagePlus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
@@ -23,6 +23,8 @@ import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
+import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
@@ -178,6 +180,7 @@ function MessageBubble({
             </div>
           )}
           {msg.image && <MessageImage src={msg.image} />}
+          {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
             <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -422,7 +425,37 @@ function MessengerPage() {
     }
   };
 
+  const handleAttachment = (file: File, kind: AttachmentKind) => {
+    if (!active) return;
+    if (getMeta(active.id).blocked) {
+      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      return;
+    }
+    const dialogId = active.id;
+    const url = URL.createObjectURL(file);
+    const replyId = replyTo?.id;
+    const tempId = `tmp${Date.now()}`;
+    const base: Message = {
+      id: tempId,
+      authorId: meId,
+      time: new Date().toISOString(),
+      text: "",
+      status: "sent",
+      replyTo: replyId,
+    };
+    const optimistic: Message =
+      kind === "image" ? { ...base, image: url } : { ...base, file: { name: file.name, size: file.size, kind, url } };
+    actions.addMessage(dialogId, optimistic);
+    setReplyTo(null);
+    toast("Вложение отправлено (демо)", { description: "Загрузка на сервер появится позже" });
+  };
 
+  const quickPhotoRef = useRef<HTMLInputElement>(null);
+  const handleQuickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) handleAttachment(file, "image");
+  };
 
   return (
     <AppLayout rightColumn={false}>
@@ -663,13 +696,22 @@ function MessengerPage() {
                       border: "1px solid var(--border)",
                     }}
                   >
+                    <AttachmentMenu onPick={handleAttachment} />
+                    <input
+                      ref={quickPhotoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleQuickPhoto}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-[36px] w-[36px] shrink-0 rounded-full text-[var(--foreground-50)]"
-                      aria-label="Прикрепить"
+                      onClick={() => quickPhotoRef.current?.click()}
+                      className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[36px] sm:w-[36px]"
+                      aria-label="Быстрое фото"
                     >
-                      <Paperclip size={18} />
+                      <ImagePlus size={18} />
                     </Button>
                     <textarea
                       value={text}
