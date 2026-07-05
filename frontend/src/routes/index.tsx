@@ -78,7 +78,7 @@ function TopNav() {
     >
       <div className="mx-auto flex h-[64px] max-w-[1240px] items-center justify-between gap-4 px-4 md:px-8">
         <Link to="/" className="shrink-0">
-          <Logo size={28} />
+          <Logo size={40} />
         </Link>
 
         {/* desktop nav */}
