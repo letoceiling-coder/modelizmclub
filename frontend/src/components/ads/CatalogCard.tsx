@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
+import { toast } from "sonner";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { cn } from "@/lib/utils";
+import { useStore, actions, selectors } from "@/lib/store";
 
 export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
-  const [fav, setFav] = useState(false);
+  const fav = useStore(selectors.isAdFavorite(ad.id));
   const initial = ad.gallery?.[0] ?? ad.image ?? "";
   const [src, setSrc] = useState(initial);
 
@@ -42,7 +44,8 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
           onClick={(e) => {
             e.preventDefault();
-            setFav((v) => !v);
+            actions.toggleFavoriteAd(ad.id);
+            toast.success(fav ? "Убрано из избранного" : "В избранное");
           }}
           className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full"
           style={{
