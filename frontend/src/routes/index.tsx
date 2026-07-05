@@ -100,9 +100,6 @@ function TopNav() {
 
         {/* right controls */}
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-1 md:flex">
-            <ThemeToggle />
-          </div>
           <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
             style={{ color: "var(--foreground-70)" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
@@ -115,7 +112,6 @@ function TopNav() {
             <ArrowRight size={15} />
           </Link>
 
-          {/* mobile: theme + menu */}
           <button
             type="button"
             aria-label="Меню"
@@ -150,12 +146,6 @@ function TopNav() {
                   <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
                 ),
               )}
-              <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2" style={{ background: "var(--background-surface)" }}>
-                <span className="text-sm" style={{ color: "var(--foreground-70)" }}>Тема</span>
-                <span className="flex items-center gap-1">
-                  <ThemeToggle />
-                </span>
-              </div>
             </div>
           </motion.div>
         )}
@@ -748,6 +738,10 @@ function Footer() {
             Маркетплейс, лента и сообщество для моделистов. Моделизм — это жизнь, остальное детали.
           </p>
           <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} МоДелизМ</p>
+          <div className="mt-4 flex items-center gap-2">
+            <span className="text-xs" style={{ color: "var(--foreground-50)" }}>Тема</span>
+            <ThemeToggle size={32} />
+          </div>
         </div>
 
         {FOOTER_COLS.map((col) => (
