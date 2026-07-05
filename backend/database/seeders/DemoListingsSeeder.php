@@ -39,9 +39,10 @@ class DemoListingsSeeder extends Seeder
             $city = City::query()->where('slug', $item['city'])->first();
 
             Listing::query()->updateOrCreate(
-                ['user_id' => $author->id, 'slug' => $slug],
+                ['uuid' => sprintf('00000000-0000-4000-8000-0000000002%02d', $i + 1)],
                 [
-                    'uuid' => sprintf('00000000-0000-4000-8000-0000000002%02d', $i + 1),
+                    'user_id' => $author->id,
+                    'slug' => $slug,
                     'category_id' => $category->id,
                     'title' => $item['title'],
                     'description' => 'Демо-объявление для production. '.$item['title'],
