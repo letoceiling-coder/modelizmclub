@@ -59,6 +59,8 @@ export interface AppState {
   communityMemberships: Record<ID, ID[]>; // userId -> communityIds
   friendRequests: FriendRequest[];
   friendships: Friendship[];
+  blockedUserIds: ID[];
+  hiddenUserIds: ID[];
   currentUserId: ID;
 }
 
@@ -77,6 +79,8 @@ export function createInitialState(): AppState {
     communityMemberships: {},
     friendRequests: [],
     friendships: [],
+    blockedUserIds: [],
+    hiddenUserIds: [],
     currentUserId: GUEST_USER.id,
   };
 }
@@ -123,7 +127,10 @@ type Action =
   | { type: "PIN_MESSAGE"; dialogId: ID; messageId: ID }
   | { type: "DELETE_MESSAGE_FOR_ME"; dialogId: ID; messageId: ID }
   | { type: "PIN_DIALOG"; dialogId: ID; pinned: boolean }
-  | { type: "CLEAR_HISTORY"; dialogId: ID };
+  | { type: "CLEAR_HISTORY"; dialogId: ID }
+  | { type: "BLOCK_USER"; userId: ID }
+  | { type: "UNBLOCK_USER"; userId: ID }
+  | { type: "HIDE_USER"; userId: ID };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -351,6 +358,37 @@ function reducer(s: AppState, a: Action): AppState {
       if (!d) return s;
       return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages: [] } } };
     }
+    case "BLOCK_USER": {
+      if (s.blockedUserIds.includes(a.userId)) return s;
+      const meId = s.currentUserId;
+      return {
+        ...s,
+        blockedUserIds: [...s.blockedUserIds, a.userId],
+        friendships: s.friendships.filter(
+          (f) =>
+            !(
+              (f.userId1 === meId && f.userId2 === a.userId) ||
+              (f.userId1 === a.userId && f.userId2 === meId)
+            ),
+        ),
+        friendRequests: s.friendRequests.filter(
+          (r) =>
+            !(
+              (r.fromId === meId && r.toId === a.userId) ||
+              (r.fromId === a.userId && r.toId === meId)
+            ),
+        ),
+      };
+    }
+    case "UNBLOCK_USER":
+      return { ...s, blockedUserIds: s.blockedUserIds.filter((id) => id !== a.userId) };
+    case "HIDE_USER":
+      return {
+        ...s,
+        hiddenUserIds: s.hiddenUserIds.includes(a.userId)
+          ? s.hiddenUserIds
+          : [...s.hiddenUserIds, a.userId],
+      };
     default:
       return s;
   }
@@ -396,6 +434,9 @@ export const actions = {
   deleteMessageForMe: (dialogId: ID, messageId: ID) => dispatch({ type: "DELETE_MESSAGE_FOR_ME", dialogId, messageId }),
   pinDialog: (dialogId: ID, pinned: boolean) => dispatch({ type: "PIN_DIALOG", dialogId, pinned }),
   clearHistory: (dialogId: ID) => dispatch({ type: "CLEAR_HISTORY", dialogId }),
+  blockUser: (userId: ID) => dispatch({ type: "BLOCK_USER", userId }),
+  unblockUser: (userId: ID) => dispatch({ type: "UNBLOCK_USER", userId }),
+  hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 
@@ -487,4 +528,5 @@ export const selectors = {
   },
   dialogMeta: (dialogId: ID) => (s: AppState): DialogMeta =>
     s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
+  isBlocked: (userId: ID) => (s: AppState): boolean => s.blockedUserIds.includes(userId),
 };

@@ -243,6 +243,8 @@ function MessengerPage() {
   const dlgs = useStore(selectors.dialogsList);
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
+  const blockedUserIds = useStore((s) => s.blockedUserIds);
+  const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
   const { chat } = Route.useSearch();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
@@ -416,7 +418,7 @@ function MessengerPage() {
 
   const send = async () => {
     if (!text.trim() || !active) return;
-    if (getMeta(active.id).blocked) {
+    if (isPartnerBlocked(active.userId)) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
@@ -445,7 +447,7 @@ function MessengerPage() {
 
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
-    if (getMeta(active.id).blocked) {
+    if (isPartnerBlocked(active.userId)) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
@@ -480,7 +482,7 @@ function MessengerPage() {
 
   const handleAttachment = (file: File, kind: AttachmentKind) => {
     if (!active) return;
-    if (getMeta(active.id).blocked) {
+    if (isPartnerBlocked(active.userId)) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
@@ -654,7 +656,7 @@ function MessengerPage() {
                               {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
                               <span className="truncate">{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
-                              {getMeta(d.id).blocked && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
+                              {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                             </span>
                             <TimeAgo iso={d.time} className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }} />

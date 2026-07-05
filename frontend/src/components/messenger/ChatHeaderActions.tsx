@@ -18,6 +18,7 @@ interface Props {
 
 export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, onSearch }: Props) {
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
+  const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeCall = useCalls((s) => s.active);
@@ -109,13 +110,12 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
 
   const toggleBlock = () => {
     close();
-    if (!dialogId) return;
-    if (meta.blocked) {
-      actions.setDialogMeta(dialogId, { blocked: false });
+    if (blocked) {
+      actions.unblockUser(partnerId);
       toast.success(`${partnerName} разблокирован`, { description: "Вы снова можете обмениваться сообщениями" });
     } else {
-      actions.setDialogMeta(dialogId, { blocked: true });
-      toast.success(`${partnerName} заблокирован`, { description: "Вы больше не будете получать сообщения от этого пользователя" });
+      actions.blockUser(partnerId);
+      toast.success(`${partnerName} заблокирован`, { description: "Вы больше не будете получать сообщения от этого пользователя, он исчез из ваших друзей" });
     }
   };
 
@@ -128,7 +128,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
             toast("Звонок уже идёт");
             return;
           }
-          if (meta.blocked) {
+          if (blocked) {
             toast.error("Пользователь заблокирован", { description: "Разблокируйте, чтобы позвонить" });
             return;
           }
@@ -201,10 +201,10 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
               <Item icon={Trash2} label="Очистить историю" onClick={clearHistory} />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
-                icon={meta.blocked ? ShieldOff : Ban}
-                label={meta.blocked ? "Разблокировать" : "Заблокировать"}
+                icon={blocked ? ShieldOff : Ban}
+                label={blocked ? "Разблокировать" : "Заблокировать"}
                 onClick={toggleBlock}
-                danger={!meta.blocked}
+                danger={!blocked}
               />
               <Item icon={Flag} label="Пожаловаться" onClick={reportUser} danger />
             </motion.div>
