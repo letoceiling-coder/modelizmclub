@@ -226,7 +226,7 @@ function NewAdPage() {
         onClose={() => { setSuccess(false); navigate({ to: "/ads" }); }}
         onView={newId ? () => { setSuccess(false); navigate({ to: "/ads/$id", params: { id: newId } }); } : undefined}
         onCreateAnother={resetWizard}
-        onGoToList={() => { setSuccess(false); navigate({ to: "/ads" }); }}
+        onGoToList={() => { setSuccess(false); navigate({ to: "/my-ads" }); }}
       />
     </AppLayout>
   );
