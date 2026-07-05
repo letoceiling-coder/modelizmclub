@@ -9,9 +9,53 @@ interface Props {
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** Custom left-column content (register/login). Falls back to the brand
+   *  block below when omitted — keeps recover/reset-password/verify-email
+   *  visually unchanged. */
+  leftContent?: ReactNode;
 }
 
-export function AuthShell({ title, subtitle, children, footer }: Props) {
+function DefaultLeftContent() {
+  return (
+    <>
+      <Logo size={40} />
+      <div>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--fs-xs)",
+            letterSpacing: "0.12em",
+            color: "rgba(255,255,255,0.7)",
+            textTransform: "uppercase",
+          }}
+        >
+          МоДелизМ · v2.1
+        </div>
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 44,
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.05,
+            marginTop: 16,
+            maxWidth: 460,
+          }}
+        >
+          Сообщество моделистов
+        </h2>
+        <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
+          Сборки, обсуждения, объявления и тематические чаты — для тех, для кого моделизм это жизнь.
+        </p>
+      </div>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
+        «Моделизм — это жизнь, остальное детали»
+      </div>
+    </>
+  );
+}
+
+export function AuthShell({ title, subtitle, children, footer, leftContent }: Props) {
   return (
     <div
       className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]"
@@ -28,39 +72,7 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
           }}
         />
         <div className="relative flex h-full flex-col justify-between p-[40px]" style={{ color: "#fff" }}>
-          <Logo size={40} />
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--fs-xs)",
-                letterSpacing: "0.12em",
-                color: "rgba(255,255,255,0.7)",
-                textTransform: "uppercase",
-              }}
-            >
-              МоДелизМ · v2.1
-            </div>
-            <h2
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 44,
-                fontWeight: 800,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.05,
-                marginTop: 16,
-                maxWidth: 460,
-              }}
-            >
-              Сообщество моделистов
-            </h2>
-            <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
-              Сборки, обсуждения, объявления и тематические чаты — для тех, для кого моделизм это жизнь.
-            </p>
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
-            «Моделизм — это жизнь, остальное детали»
-          </div>
+          {leftContent ?? <DefaultLeftContent />}
         </div>
       </div>
 
@@ -75,9 +87,9 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
         </div>
         <div className="flex flex-1 flex-col justify-center px-[24px] pb-[40px] sm:px-[48px]">
           <div className="mx-auto w-full" style={{ maxWidth: 400 }}>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em" }}>{title}</h1>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.15 }}>{title}</h1>
             {subtitle && (
-              <p style={{ color: "var(--foreground-70)", marginTop: 8, fontSize: "var(--fs-sm)" }}>{subtitle}</p>
+              <p style={{ color: "var(--foreground-70)", marginTop: 10, fontSize: "var(--fs-sm)" }}>{subtitle}</p>
             )}
             <div className="mt-[32px]">{children}</div>
             {footer && (

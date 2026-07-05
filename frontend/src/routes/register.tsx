@@ -1,8 +1,11 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
-import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
+import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/Logo";
 import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 
@@ -19,9 +22,11 @@ function RegisterPage() {
   const { ref } = useSearch({ from: "/register" });
   const [agree, setAgree] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [fieldError, setFieldError] = useState(false);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFieldError(false);
     if (!agree) return toast.error("Подтвердите согласие с правилами");
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
@@ -29,6 +34,7 @@ function RegisterPage() {
     const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
     if (password !== passwordConfirmation) {
+      setFieldError(true);
       return toast.error("Пароли не совпадают");
     }
     setLoading(true);
@@ -37,6 +43,7 @@ function RegisterPage() {
       toast.success("Аккаунт создан. Введите код из письма");
       nav({ to: "/verify-email", search: { email } });
     } catch (err) {
+      setFieldError(true);
       const msg =
         err instanceof ApiError
           ? err.errors
@@ -49,10 +56,55 @@ function RegisterPage() {
     }
   };
 
+  const leftContent = (
+    <>
+      <Logo size={40} />
+      <div className="flex flex-col gap-[20px]">
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 44,
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.15,
+            maxWidth: 460,
+          }}
+        >
+          Присоединяйтесь к сообществу моделистов
+        </h2>
+        <p style={{ color: "rgba(255,255,255,0.75)", maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
+          Создайте аккаунт за минуту — и получите доступ к каталогу
+          объявлений, тематическим сообществам и личному профилю моделиста.
+        </p>
+        <div className="flex flex-col gap-[14px]">
+          {[
+            { icon: Megaphone, text: "Объявления без комиссии" },
+            { icon: Users2, text: "Сообщества по интересам" },
+            { icon: UserCircle, text: "Личный профиль моделиста" },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-[12px]">
+              <div
+                className="grid shrink-0 place-items-center rounded-full"
+                style={{ width: 36, height: 36, background: "var(--accent)", color: "#fff" }}
+              >
+                <Icon size={18} />
+              </div>
+              <span style={{ fontSize: "var(--fs-sm)", color: "rgba(255,255,255,0.9)" }}>{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
+        «Моделизм — это жизнь, остальное детали»
+      </div>
+    </>
+  );
+
   return (
     <AuthShell
       title="Создать аккаунт"
       subtitle="Несколько секунд — и вы внутри сообщества"
+      leftContent={leftContent}
       footer={
         <>
           Уже есть аккаунт?{" "}
@@ -89,10 +141,10 @@ function RegisterPage() {
         </div>
       )}
       <form onSubmit={submit} className="space-y-[12px]">
-        <input required name="name" placeholder="Имя и фамилия" style={inputStyle} />
-        <input required name="email" type="email" placeholder="Email" style={inputStyle} />
-        <input required name="password" type="password" placeholder="Пароль (от 8 символов)" minLength={8} style={inputStyle} />
-        <input required name="password_confirmation" type="password" placeholder="Повторите пароль" minLength={8} style={inputStyle} />
+        <Input required name="name" placeholder="Имя и фамилия" />
+        <Input required name="email" type="email" placeholder="Email" />
+        <Input required name="password" type="password" placeholder="Пароль (от 8 символов)" minLength={8} error={fieldError} />
+        <Input required name="password_confirmation" type="password" placeholder="Повторите пароль" minLength={8} error={fieldError} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
@@ -101,9 +153,9 @@ function RegisterPage() {
             <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>политику</Link> обработки данных
           </span>
         </label>
-        <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 16, opacity: loading ? 0.7 : 1 }}>
+        <Button type="submit" disabled={loading} className="w-full" style={{ marginTop: 16 }}>
           {loading ? "Создаём…" : "Создать аккаунт"}
-        </button>
+        </Button>
       </form>
       <div className="mt-[24px] flex items-center gap-[12px]" style={{ color: "var(--foreground-50)", fontSize: "var(--fs-xs)" }}>
         <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
