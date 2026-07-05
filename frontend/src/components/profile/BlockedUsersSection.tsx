@@ -1,27 +1,24 @@
 import { Ban, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { userById } from "@/lib/mock";
-import { useStore, selectors, actions } from "@/lib/store";
+import { useStore, actions } from "@/lib/store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 
 export function BlockedUsersSection() {
-  const dialogMetaMap = useStore((s) => s.dialogMeta);
-  const dialogs = useStore(selectors.dialogsList);
+  const blockedUserIds = useStore((s) => s.blockedUserIds);
 
-  const blocked = dialogs.filter((d) => dialogMetaMap[d.id]?.blocked);
-
-  if (blocked.length === 0) {
+  if (blockedUserIds.length === 0) {
     return <EmptyState icon={Ban} title="Никто не заблокирован" variant="compact" />;
   }
 
   return (
     <div className="flex flex-col gap-[8px]">
-      {blocked.map((d) => {
-        const u = userById(d.userId);
+      {blockedUserIds.map((id) => {
+        const u = userById(id);
         return (
           <div
-            key={d.id}
+            key={id}
             className="flex items-center gap-[12px] rounded-[12px] border px-[14px] py-[10px]"
             style={{ borderColor: "var(--border)" }}
           >
@@ -33,7 +30,7 @@ export function BlockedUsersSection() {
               variant="outline"
               size="sm"
               onClick={() => {
-                actions.setDialogMeta(d.id, { blocked: false });
+                actions.unblockUser(id);
                 toast.success(`${u.name} разблокирован`);
               }}
             >
