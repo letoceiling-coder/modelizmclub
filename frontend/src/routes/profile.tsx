@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bell, BadgeCheck, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
+  Bell, BadgeCheck, Ban, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,6 +13,7 @@ import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
 import { toast } from "sonner";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
+import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { fetchMyListings } from "@/lib/api/listings";
 import { fetchCommunities } from "@/lib/api/communities";
@@ -93,13 +94,14 @@ function ProfilePage() {
   );
 }
 
-type TabKey = "posts" | "ads" | "communities" | "invited" | "about";
+type TabKey = "posts" | "ads" | "communities" | "invited" | "blocked" | "about";
 
 const TABS_BASE: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
   { key: "posts", label: "Публикации", Icon: FileText },
   { key: "ads", label: "Объявления", Icon: Tag },
   { key: "communities", label: "Сообщества", Icon: Users },
   { key: "invited", label: "Приглашённые", Icon: UserPlus, ownOnly: true },
+  { key: "blocked", label: "Заблокированные", Icon: Ban, ownOnly: true },
   { key: "about", label: "О себе", Icon: UserIcon },
 ];
 
@@ -428,6 +430,7 @@ export function ProfileView({
                 )
               )}
               {tab === "invited" && isOwn && <InvitedFriendsSection />}
+              {tab === "blocked" && isOwn && <BlockedUsersSection />}
               {tab === "about" && (
                 <div className="max-w-[600px]">
                   {user.bio ? (
