@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
@@ -26,10 +26,12 @@ import {
   fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
   broadcastNotification,
   fetchAdminFeedback, updateAdminFeedbackStatus,
+  fetchAdminDeliveryStats, fetchAdminShipments, updateAdminShipment,
   type AdminUserRow, type AuditEntry, type ModerationItem,
   type AdminCategory, type CategoryKind, type AdminSetting,
   type AdminPostRow, type AdminListingRow,
   type FeedbackRow, type FeedbackStatus,
+  type AdminDeliveryStats, type AdminShipmentRow,
 } from "@/lib/api/admin";
 
 export const Route = createFileRoute("/admin")({
@@ -42,7 +44,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 type Section =
-  | "dashboard" | "users" | "content" | "ads" | "moderation"
+  | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
   | "monetization" | "categories" | "notifications" | "analytics" | "design" | "feedback" | "settings";
 
 const navItems: { id: Section; label: string; icon: typeof Users }[] = [
@@ -50,6 +52,7 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "users", label: "Пользователи", icon: Users },
   { id: "content", label: "Контент", icon: Newspaper },
   { id: "ads", label: "Объявления", icon: Megaphone },
+  { id: "delivery", label: "Доставки", icon: Truck },
   { id: "moderation", label: "Модерация", icon: ShieldCheck },
   { id: "monetization", label: "Монетизация", icon: DollarSign },
   { id: "categories", label: "Категории", icon: FolderTree },
@@ -318,6 +321,7 @@ function SectionView({ section }: { section: Section }) {
   if (section === "users") return <UsersSection />;
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
+  if (section === "delivery") return <DeliverySection />;
   if (section === "moderation") return <ModerationSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "categories") return <CategoriesSection />;
@@ -1201,6 +1205,244 @@ function AdsSection() {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============ DELIVERY ============ */
+const SHIPMENT_STATUS_META: Record<string, { label: string; variant: "default" | "success" | "warning" | "danger" | "info" }> = {
+  draft: { label: "Черновик", variant: "default" },
+  quoted: { label: "Рассчитано", variant: "info" },
+  awaiting_seller: { label: "Ждёт продавца", variant: "warning" },
+  creating: { label: "Создание", variant: "info" },
+  created: { label: "Создано", variant: "info" },
+  accepted: { label: "Принято", variant: "info" },
+  in_transit: { label: "В пути", variant: "info" },
+  at_pickup: { label: "В ПВЗ", variant: "warning" },
+  delivered: { label: "Доставлено", variant: "success" },
+  cancelled: { label: "Отменено", variant: "default" },
+  error: { label: "Ошибка", variant: "danger" },
+};
+
+const PROVIDER_LABELS: Record<string, string> = {
+  cdek: "СДЭК",
+  yandex: "Яндекс",
+};
+
+function DeliverySection() {
+  const [stats, setStats] = useState<AdminDeliveryStats | null>(null);
+  const [status, setStatus] = useState("all");
+  const [provider, setProvider] = useState("all");
+  const [rows, setRows] = useState<AdminShipmentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<AdminShipmentRow | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchAdminDeliveryStats()
+      .then((d) => active && setStats(d))
+      .catch(() => active && toast.error("Не удалось загрузить статистику доставки"));
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchAdminShipments({ status, provider })
+      .then((list) => active && setRows(list))
+      .catch(() => active && toast.error("Не удалось загрузить отправления"))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [status, provider]);
+
+  const openRow = (row: AdminShipmentRow) => {
+    setSelected(row);
+    setNoteDraft(row.adminNote ?? "");
+  };
+
+  const saveNote = async () => {
+    if (!selected) return;
+    setSavingNote(true);
+    try {
+      const updated = await updateAdminShipment(selected.uuid, { admin_note: noteDraft.trim() || null });
+      setRows((list) => list.map((r) => (r.uuid === updated.uuid ? updated : r)));
+      setSelected(updated);
+      toast.success("Заметка сохранена");
+    } catch {
+      toast.error("Не удалось сохранить заметку");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const statCards = [
+    { v: String(stats?.shipmentsTotal ?? 0), l: "Отправлений", icon: Truck },
+    {
+      v: `${Math.round((stats?.deliveryRevenueCents ?? 0) / 100).toLocaleString("ru")} ₽`,
+      l: "Сумма доставки",
+      icon: DollarSign,
+    },
+    { v: String(stats?.errorsLast7d ?? 0), l: "Ошибок за 7 дней", icon: AlertCircle, warn: (stats?.errorsLast7d ?? 0) > 0 },
+    {
+      v: stats?.avgDeliveryDays != null ? `${stats.avgDeliveryDays} дн.` : "—",
+      l: "Средний срок",
+      icon: BarChart3,
+    },
+  ];
+
+  return (
+    <div>
+      <H>Доставки (СДЭК / Яндекс)</H>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: "12px", marginBottom: "20px" }}>
+        {statCards.map((s, i) => (
+          <div key={i} style={{ ...card, padding: "16px" }}>
+            <div
+              style={{
+                width: "36px", height: "36px", borderRadius: "var(--r-pill)",
+                background: s.warn ? "var(--warning-soft)" : "var(--accent-soft)",
+                display: "grid", placeItems: "center", marginBottom: "12px",
+              }}
+            >
+              <s.icon size={18} style={{ color: s.warn ? "var(--warning)" : "var(--accent)" }} />
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "24px", color: "var(--foreground)" }}>{s.v}</div>
+            <div style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "4px" }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {stats && Object.keys(stats.shipmentsByProvider).length > 0 && (
+        <div style={{ ...card, padding: "16px", marginBottom: "16px", fontSize: "13px", color: "var(--foreground-70)" }}>
+          По провайдерам:{" "}
+          {Object.entries(stats.shipmentsByProvider).map(([p, n]) => (
+            <span key={p} style={{ marginRight: "12px" }}>
+              <strong style={{ color: "var(--foreground)" }}>{PROVIDER_LABELS[p] ?? p}</strong>: {n}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap" style={{ gap: "12px" }}>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
+          <option value="all">Все статусы</option>
+          {Object.entries(SHIPMENT_STATUS_META).map(([k, m]) => (
+            <option key={k} value={k}>{m.label}</option>
+          ))}
+        </select>
+        <select value={provider} onChange={(e) => setProvider(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
+          <option value="all">Все провайдеры</option>
+          <option value="cdek">СДЭК</option>
+          <option value="yandex">Яндекс</option>
+        </select>
+      </div>
+
+      <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table className="w-full" style={{ fontSize: "13px", minWidth: "860px" }}>
+            <thead>
+              <tr style={{ background: "var(--background-surface)" }}>
+                {["Объявление", "Провайдер", "Статус", "Трек", "Стоимость", "Создано", ""].map((h) => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)" }}>
+                    <Truck size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
+                    Отправлений пока нет
+                  </td>
+                </tr>
+              ) : rows.map((row) => {
+                const meta = SHIPMENT_STATUS_META[row.status] ?? { label: row.status, variant: "default" as const };
+                return (
+                  <tr key={row.uuid} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500, maxWidth: "220px" }}>{row.listingTitle}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{PROVIDER_LABELS[row.provider] ?? row.provider}</td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", fontFamily: "var(--font-mono)", fontSize: "12px" }}>
+                      {row.trackingNumber ?? row.externalId ?? "—"}
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 600 }}>
+                      {row.deliveryCostCents != null ? `${Math.round(row.deliveryCostCents / 100).toLocaleString("ru")} ₽` : "—"}
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-50)", fontSize: "12px" }}>
+                      {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : "—"}
+                    </td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <button type="button" onClick={() => openRow(row)} style={{ ...primaryBtn, height: "32px", fontSize: "12px" }}>
+                        Детали
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {selected && (
+        <div
+          style={{
+            ...card,
+            marginTop: "16px",
+            padding: "20px",
+            borderColor: "var(--accent)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h3 style={{ fontWeight: 700, fontSize: "16px", color: "var(--foreground)" }}>{selected.listingTitle}</h3>
+              <p style={{ marginTop: "4px", fontSize: "12px", color: "var(--foreground-50)" }}>UUID: {selected.uuid}</p>
+            </div>
+            <button type="button" onClick={() => setSelected(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>Закрыть</button>
+          </div>
+
+          <div className="grid md:grid-cols-2" style={{ gap: "12px", marginTop: "16px", fontSize: "13px" }}>
+            <div><span style={{ color: "var(--foreground-50)" }}>Провайдер:</span> {PROVIDER_LABELS[selected.provider] ?? selected.provider}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>Статус:</span> {SHIPMENT_STATUS_META[selected.status]?.label ?? selected.status}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>Трек:</span> {selected.trackingNumber ?? "—"}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>External ID:</span> {selected.externalId ?? "—"}</div>
+          </div>
+
+          {selected.errorMessage && (
+            <div style={{ marginTop: "12px", padding: "12px", borderRadius: "var(--r-card-sm)", background: "var(--danger-soft)", color: "var(--danger)", fontSize: "13px" }}>
+              {selected.errorMessage}
+            </div>
+          )}
+
+          <div style={{ marginTop: "16px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--foreground-50)", marginBottom: "6px" }}>
+              Заметка администратора
+            </label>
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              rows={3}
+              className="w-full outline-none resize-y"
+              style={{
+                ...inputStyle,
+                height: "auto",
+                minHeight: "80px",
+                padding: "10px 14px",
+              }}
+              placeholder="Внутренняя заметка по отправлению…"
+            />
+            <button type="button" disabled={savingNote} onClick={() => void saveNote()} style={{ ...primaryBtn, marginTop: "8px" }}>
+              {savingNote ? "Сохранение…" : "Сохранить заметку"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

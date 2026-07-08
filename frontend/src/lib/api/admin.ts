@@ -587,3 +587,102 @@ export async function fetchAdminFeedback(status?: FeedbackStatus): Promise<Feedb
 export async function updateAdminFeedbackStatus(id: number, status: FeedbackStatus): Promise<void> {
   await api(`/admin/feedback/${id}`, { method: "PATCH", json: { status } });
 }
+
+// ---- Delivery (СДЭК / Яндекс) ----
+export interface AdminDeliveryStats {
+  shipmentsTotal: number;
+  shipmentsByProvider: Record<string, number>;
+  shipmentsByStatus: Record<string, number>;
+  deliveryRevenueCents: number;
+  avgDeliveryDays: number | null;
+  errorsLast7d: number;
+}
+
+interface ApiAdminDeliveryStats {
+  shipments_total?: number;
+  shipments_by_provider?: Record<string, number>;
+  shipments_by_status?: Record<string, number>;
+  delivery_revenue_cents?: number;
+  avg_delivery_days?: number | null;
+  errors_last_7d?: number;
+}
+
+export async function fetchAdminDeliveryStats(): Promise<AdminDeliveryStats> {
+  const res = await api<{ data: ApiAdminDeliveryStats }>("/admin/delivery/stats");
+  const d = res.data ?? {};
+  return {
+    shipmentsTotal: d.shipments_total ?? 0,
+    shipmentsByProvider: d.shipments_by_provider ?? {},
+    shipmentsByStatus: d.shipments_by_status ?? {},
+    deliveryRevenueCents: d.delivery_revenue_cents ?? 0,
+    avgDeliveryDays: d.avg_delivery_days ?? null,
+    errorsLast7d: d.errors_last_7d ?? 0,
+  };
+}
+
+export interface AdminShipmentRow {
+  uuid: string;
+  provider: string;
+  status: string;
+  trackingNumber: string | null;
+  deliveryCostCents: number | null;
+  listingTitle: string;
+  externalId: string | null;
+  errorMessage: string | null;
+  adminNote: string | null;
+  createdAt: string;
+}
+
+interface ApiAdminShipment {
+  uuid: string;
+  provider?: string;
+  status?: string;
+  tracking_number?: string | null;
+  delivery_cost_cents?: number | null;
+  external_id?: string | null;
+  error_message?: string | null;
+  admin_note?: string | null;
+  created_at?: string | null;
+  listing?: { title?: string | null } | null;
+}
+
+function mapAdminShipment(s: ApiAdminShipment): AdminShipmentRow {
+  return {
+    uuid: s.uuid,
+    provider: s.provider ?? "",
+    status: s.status ?? "",
+    trackingNumber: s.tracking_number ?? null,
+    deliveryCostCents: s.delivery_cost_cents ?? null,
+    listingTitle: s.listing?.title ?? "—",
+    externalId: s.external_id ?? null,
+    errorMessage: s.error_message ?? null,
+    adminNote: s.admin_note ?? null,
+    createdAt: s.created_at ?? "",
+  };
+}
+
+export async function fetchAdminShipments(opts: {
+  status?: string;
+  provider?: string;
+  perPage?: number;
+} = {}): Promise<AdminShipmentRow[]> {
+  const res = await api<Paginated<ApiAdminShipment>>("/admin/delivery/shipments", {
+    query: {
+      per_page: opts.perPage ?? 50,
+      ...(opts.status && opts.status !== "all" ? { status: opts.status } : {}),
+      ...(opts.provider && opts.provider !== "all" ? { provider: opts.provider } : {}),
+    },
+  });
+  return (res.data ?? []).map(mapAdminShipment);
+}
+
+export async function updateAdminShipment(
+  uuid: string,
+  patch: { admin_note?: string | null; status?: string },
+): Promise<AdminShipmentRow> {
+  const res = await api<{ data: ApiAdminShipment }>(`/admin/delivery/shipments/${uuid}`, {
+    method: "PATCH",
+    json: patch,
+  });
+  return mapAdminShipment(res.data);
+}
