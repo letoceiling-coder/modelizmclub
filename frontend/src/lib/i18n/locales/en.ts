@@ -44,6 +44,7 @@ export const en: TranslationSchema = {
   },
   auth: {
     login: "Sign in",
+    cabinet: "Dashboard",
     register: "Create account",
     logout: "Sign out",
     email: "Email",
@@ -65,6 +66,7 @@ export const en: TranslationSchema = {
       how: "How it works",
       subscription: "Subscription",
       login: "Sign in",
+      cabinet: "Dashboard",
       register: "Create account",
       demo: "Open demo",
       menu: "Menu",

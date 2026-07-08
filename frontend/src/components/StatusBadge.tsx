@@ -1,6 +1,17 @@
 import { cn } from "@/lib/utils";
 
-type Variant = "moderation" | "published" | "rejected" | "sell" | "buy" | "trade" | "default";
+type Variant =
+  | "moderation"
+  | "published"
+  | "rejected"
+  | "sell"
+  | "buy"
+  | "trade"
+  | "default"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
 
 const styles: Record<Variant, string> = {
   moderation: "bg-warning/15 text-warning-foreground border-warning/30",
@@ -10,6 +21,10 @@ const styles: Record<Variant, string> = {
   buy: "bg-slate-100 text-slate-800 border-slate-300",
   trade: "bg-amber-50 text-amber-800 border-amber-300",
   default: "bg-muted text-muted-foreground border-border",
+  success: "bg-success/15 text-success border-success/30",
+  warning: "bg-warning/15 text-warning-foreground border-warning/30",
+  danger: "bg-destructive/10 text-destructive border-destructive/30",
+  info: "bg-info/15 text-info border-info/30",
 };
 
 export function StatusBadge({ children, variant = "default", className }: { children: React.ReactNode; variant?: Variant; className?: string }) {

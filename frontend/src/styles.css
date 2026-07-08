@@ -33,6 +33,8 @@
   --color-success-foreground: #ffffff;
   --color-warning: var(--warning);
   --color-warning-foreground: #ffffff;
+  --color-info: var(--info);
+  --color-info-foreground: #ffffff;
   --color-commercial: var(--accent-commercial);
   --color-commercial-foreground: #ffffff;
 

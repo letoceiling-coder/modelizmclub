@@ -44,6 +44,7 @@ export const zh: TranslationSchema = {
   },
   auth: {
     login: "登录",
+    cabinet: "工作台",
     register: "创建账户",
     logout: "退出",
     email: "邮箱",
@@ -65,6 +66,7 @@ export const zh: TranslationSchema = {
       how: "如何运作",
       subscription: "订阅",
       login: "登录",
+      cabinet: "工作台",
       register: "创建账户",
       demo: "打开演示",
       menu: "菜单",
