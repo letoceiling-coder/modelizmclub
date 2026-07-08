@@ -44,8 +44,8 @@ class CdekDeliveryAdapter implements DeliveryCarrierContract
 
     public function quote(array $source, array $destination, array $parcel): array
     {
-        $fromCode = (int) ($source['city_code'] ?? $source['meta']['city_code'] ?? 0);
-        $toCode = (int) ($destination['city_code'] ?? $destination['meta']['city_code'] ?? 0);
+        $fromCode = $this->resolveCityCode($source);
+        $toCode = $this->resolveCityCode($destination);
 
         if ($fromCode === 0 || $toCode === 0) {
             throw new RuntimeException('CDEK quote requires city_code on source and destination points.');
@@ -159,6 +159,19 @@ class CdekDeliveryAdapter implements DeliveryCarrierContract
             'tracking_number' => isset($entity['cdek_number']) ? (string) $entity['cdek_number'] : $shipment->tracking_number,
             'raw' => $raw,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $point
+     */
+    private function resolveCityCode(array $point): int
+    {
+        return (int) (
+            $point['city_code']
+            ?? ($point['meta']['city_code'] ?? null)
+            ?? ($point['address']['city_code'] ?? null)
+            ?? 0
+        );
     }
 
     public function mapProviderStatus(string $status): ?ShipmentStatus

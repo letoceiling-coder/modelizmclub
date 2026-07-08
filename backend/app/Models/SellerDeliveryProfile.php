@@ -46,13 +46,19 @@ class SellerDeliveryProfile extends Model
 
     public function toPointSnapshot(): array
     {
-        return [
+        $cityCode = $this->meta['city_code']
+            ?? $this->address['city_code']
+            ?? null;
+
+        return array_filter([
             'provider' => $this->provider->value,
             'point_type' => $this->point_type->value,
             'external_point_id' => $this->external_point_id,
             'label' => $this->label,
             'address' => $this->address,
             'city_id' => $this->city_id,
-        ];
+            'city_code' => $cityCode,
+            'meta' => $this->meta,
+        ], fn ($value) => $value !== null);
     }
 }
