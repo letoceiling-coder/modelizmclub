@@ -201,29 +201,85 @@ Authorization: Bearer {token}
 
 Подробный план: [DELIVERY-IMPLEMENTATION-PLAN.md](./DELIVERY-IMPLEMENTATION-PLAN.md).
 
-### Webhooks (без auth, без rate limit)
+### Webhooks и отслеживание статусов
+
+Наши endpoint'ы (без auth, без rate limit):
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| POST | `/webhooks/cdek/order-status` | Статусы заказов СДЭК (`ORDER_STATUS`) |
-| POST | `/webhooks/yandex/delivery-status` | Статусы заказов Яндекс Доставки |
+| POST | `/webhooks/cdek/order-status` | Push от СДЭК (`ORDER_STATUS`) |
+| POST | `/webhooks/yandex/delivery-status` | Push от Яндекс (если провайдер шлёт callback) |
 
-Production URL для регистрации у провайдеров:
+Production URL:
 
-| Провайдер | Callback URL |
-|-----------|--------------|
+| Провайдер | URL |
+|-----------|-----|
 | СДЭК | `https://modelizmclub.ru/api/v1/webhooks/cdek/order-status` |
 | Яндекс | `https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status` |
 
-**СДЭК:** в [lk.cdek.ru/integration](https://lk.cdek.ru/integration) нет UI для webhook — регистрация только через API [`POST /v2/webhooks`](https://apidoc.cdek.ru/#tag/webhook/operation/createWebhook) с `type: ORDER_STATUS`. Скрипт на сервере:
+---
+
+#### СДЭК — регистрация через API (в ЛК нет UI)
+
+В [lk.cdek.ru/integration](https://lk.cdek.ru/integration) **нет поля для webhook**. Подписка только через API:
+
+- Документация: [apidoc.cdek.ru — createWebhook](https://apidoc.cdek.ru/#tag/webhook/operation/createWebhook)
+- Метод: `POST https://api.cdek.ru/v2/webhooks`
+- Тело: `{ "type": "ORDER_STATUS", "url": "https://modelizmclub.ru/api/v1/webhooks/cdek/order-status" }`
+- Авторизация: `Authorization: Bearer <token>` (OAuth client_credentials)
+
+Скрипт на сервере (идempotent):
 
 ```bash
 cd backend && php scripts/register-cdek-webhook.php
 ```
 
-**Яндекс:** URL передаётся в ЛК → **Интеграции** или менеджеру при подключении API.
+Проверка списка: `GET https://api.cdek.ru/v2/webhooks`.  
+**Статус:** зарегистрировано (`ORDER_STATUS`, UUID подписки в CDEK).
 
-Ответ при неизвестном shipment: `202 { "message": "ignored" }`.
+---
+
+#### Яндекс — «Доставка по России» (наш backend)
+
+Мы используем **Platform API** (`b2b-authproxy.taxi.yandex.net`): `offers/create`, `request/info`, ПВЗ.
+
+- Документация: [API по России — введение](https://yandex.ru/support/delivery-profile/ru/api/other-day/)
+- Доступ: [Как получить доступ](https://yandex.ru/support/delivery-profile/ru/api/other-day/access) → ЛК → **Интеграция** → **Получить токен** (только Bearer-токен, **без webhook**)
+- Статусы: [Статусная модель](https://yandex.ru/support/delivery-profile/ru/api/other-day/status-model)
+- Опрос: `GET /api/b2b/platform/request/info?request_id=...`
+
+В документации Platform API **нет глобального webhook** и нет поля `callback_url` в [`offers/create`](https://yandex.com/support/delivery-profile/ru/api/other-day/ref/3.-Osnovnye-zaprosy/apib2bplatformofferscreate-post). Отслеживание — **polling**:
+
+```bash
+php artisan delivery:sync-statuses   # cron каждые 5–15 мин
+```
+
+Endpoint `/webhooks/yandex/delivery-status` готов на случай будущих push-уведомлений от менеджера/поддержки Яндекс.
+
+---
+
+#### Яндекс — Экспресс API (business.taxi.yandex.ru, не наш случай)
+
+Кабинет [business.taxi.yandex.ru](https://business.taxi.yandex.ru/profile/settings) → **Интеграция по API** → только **токен** и **документация**. Webhook в настройках профиля **нет**.
+
+Callback задаётся **в каждой заявке** при `claims/create`:
+
+- Документация: [claims/create — callback_properties](https://yandex.ru/support/delivery-profile/ru/api/express/openapi/IntegrationV2ClaimsCreate)
+
+```json
+{
+  "callback_properties": {
+    "callback_url": "https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status?"
+  }
+}
+```
+
+Важно: URL **обязан заканчиваться на `?` или `&`** — Яндекс дописывает `updated_ts=...&claim_id=...` конкатенацией.  
+Яндекс ожидает ответ **HTTP 200**; для надёжности всё равно нужен polling `claims/info`.
+
+---
+
+Ответ нашего API при неизвестном shipment: `202 { "message": "ignored" }`.
 
 ### Справочники (публичные прокси)
 
