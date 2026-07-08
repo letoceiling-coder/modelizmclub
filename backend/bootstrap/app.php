@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserRole;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,4 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
         });
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('delivery:sync-statuses --limit=100')
+            ->everyFiveMinutes()
+            ->withoutOverlapping(10)
+            ->runInBackground();
     })->create();

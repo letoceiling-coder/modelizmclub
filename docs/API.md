@@ -371,13 +371,27 @@ Flow: `POST /shipments` → `POST …/quote` → (опц.) `POST …/request-sel
 | GET | `/admin/delivery/shipments/{uuid}` | R | Детали отправления |
 | PATCH | `/admin/delivery/shipments/{uuid}` | U | Ручная правка (статус, заметки админа) |
 
-### Cron (fallback polling)
+### Cron / Scheduler (гарантия без пропусков)
+
+Двухуровневая схема:
+
+1. **Push (webhook):** СДЭК шлёт `ORDER_STATUS` на `/webhooks/cdek/order-status` (зарегистрировано). При неполном payload контроллер сам дёргает API провайдера.
+2. **Polling (fallback):** каждые **5 минут** — все активные shipments без финального статуса.
+
+Установка на сервере:
 
 ```bash
-php artisan delivery:sync-statuses
+bash deploy/scripts/setup-delivery-scheduler.sh
 ```
 
-Рекомендуется в crontab/supervisor на случай пропущенных webhook.
+Вручную:
+
+```bash
+php artisan delivery:sync-statuses --limit=100
+php artisan schedule:list   # delivery:sync-statuses … every five minutes
+```
+
+Crontab: `* * * * * php artisan schedule:run` (см. скрипт выше).
 
 ---
 

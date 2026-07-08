@@ -37,9 +37,15 @@ class CdekOrderStatusWebhookController extends Controller
             return response()->json(['message' => 'ignored'], 202);
         }
 
+        if (! is_string($status) || $status === '') {
+            $shipments->syncStatus($shipment);
+
+            return response()->json(['message' => 'ok', 'synced' => true]);
+        }
+
         $shipments->applyWebhookUpdate(
             $shipment,
-            is_string($status) ? $status : null,
+            $status,
             $cdekNumber !== null ? (string) $cdekNumber : null,
             $payload,
         );

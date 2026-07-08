@@ -157,9 +157,10 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
         }
 
         $raw = $this->yandex->getRequestInfo(['request_id' => $shipment->external_id]);
+        $status = data_get($raw, 'state.status') ?? $raw['status'] ?? null;
 
         return [
-            'external_status' => isset($raw['status']) ? (string) $raw['status'] : null,
+            'external_status' => is_string($status) ? $status : null,
             'tracking_number' => isset($raw['tracking_number']) ? (string) $raw['tracking_number'] : $shipment->tracking_number,
             'raw' => $raw,
         ];
@@ -167,14 +168,23 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
 
     public function mapProviderStatus(string $status): ?ShipmentStatus
     {
-        return match (strtolower($status)) {
-            'created', 'validated' => ShipmentStatus::Created,
-            'accepted', 'sorting_center_at' => ShipmentStatus::Accepted,
-            'delivery_at', 'delivery_transit' => ShipmentStatus::InTransit,
-            'ready_for_pickup', 'pickup_point_at' => ShipmentStatus::AtPickup,
-            'delivered', 'delivered_to_receiver' => ShipmentStatus::Delivered,
-            'cancelled', 'returned' => ShipmentStatus::Cancelled,
-            'failed', 'error' => ShipmentStatus::Error,
+        $normalized = strtoupper($status);
+
+        return match ($normalized) {
+            'CREATED', 'VALIDATED', 'DRAFT', 'DELIVERY_PROCESSING_STARTED',
+            'DELIVERY_TRACK_RECIEVED', 'SORTING_CENTER_TRACK_LOADED' => ShipmentStatus::Created,
+            'ACCEPTED', 'SORTING_CENTER_AT_START', 'SORTING_CENTER_LOADED',
+            'SORTING_CENTER_PROCESSING_STARTED', 'SORTING_CENTER_TRACK_RECEIVED',
+            'SORTING_CENTER_PREPARED' => ShipmentStatus::Accepted,
+            'SORTING_CENTER_TRANSMITTED', 'DELIVERY_LOADED', 'DELIVERY_AT_START',
+            'DELIVERY_AT_START_SORT', 'DELIVERY_TRANSPORTATION', 'DELIVERY_TRANSPORTATION_RECIPIENT',
+            'DELIVERY_AT', 'DELIVERY_TRANSIT' => ShipmentStatus::InTransit,
+            'DELIVERY_ARRIVED_PICKUP_POINT', 'READY_FOR_PICKUP', 'PICKUP_POINT_AT',
+            'CONFIRMATION_CODE_RECEIVED', 'RETURN_READY_FOR_PICKUP' => ShipmentStatus::AtPickup,
+            'DELIVERY_DELIVERED', 'DELIVERED', 'DELIVERED_TO_RECEIVER',
+            'DELIVERY_TRANSMITTED_TO_RECIPIENT', 'PARTICULARLY_DELIVERED' => ShipmentStatus::Delivered,
+            'CANCELLED', 'RETURNED', 'VALIDATING_ERROR' => ShipmentStatus::Cancelled,
+            'FAILED', 'ERROR', 'DELIVERY_ATTEMPT_FAILED' => ShipmentStatus::Error,
             default => null,
         };
     }
