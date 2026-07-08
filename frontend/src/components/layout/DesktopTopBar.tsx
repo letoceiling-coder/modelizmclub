@@ -1,15 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Search, Bell, Heart } from "lucide-react";
+import { Search, Bell, Heart, MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
+import { useStore } from "@/lib/store";
 import { ROUTES } from "@/lib/routes";
 
 export function DesktopTopBar() {
   const unread = useUnreadNotifications();
+  const favCount = useStore((s) => s.favoriteAdIds.length);
+  const unreadMessages = useStore((s) =>
+    Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
+  );
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
@@ -62,10 +67,25 @@ export function DesktopTopBar() {
         <Link
           to={ROUTES.favorites}
           aria-label="Избранное"
-          className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+          className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-70)" }}
         >
           <Heart size={20} />
+          {favCount > 0 && (
+            <span
+              className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+              style={{
+                height: 15,
+                fontSize: 9,
+                fontWeight: 700,
+                color: "#fff",
+                background: "var(--accent)",
+                boxShadow: "0 0 0 2px var(--background)",
+              }}
+            >
+              {favCount > 9 ? "9+" : favCount}
+            </span>
+          )}
         </Link>
         <Link
           to={ROUTES.notifications}
@@ -87,6 +107,29 @@ export function DesktopTopBar() {
               }}
             >
               {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Link>
+        <Link
+          to={ROUTES.messenger}
+          aria-label="Сообщения"
+          className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          <MessageSquare size={20} />
+          {unreadMessages > 0 && (
+            <span
+              className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+              style={{
+                height: 15,
+                fontSize: 9,
+                fontWeight: 700,
+                color: "#fff",
+                background: "var(--accent)",
+                boxShadow: "0 0 0 2px var(--background)",
+              }}
+            >
+              {unreadMessages > 9 ? "9+" : unreadMessages}
             </span>
           )}
         </Link>
