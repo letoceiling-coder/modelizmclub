@@ -11,6 +11,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.9",
+        "antistress-store/cdek-sdk-v2": "^1.6",
         "league/flysystem-aws-s3-v3": "3.0",
         "spatie/laravel-permission": "^6.10"
     },

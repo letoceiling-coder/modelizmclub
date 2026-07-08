@@ -1,6 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryStatsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminAuditLogController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
@@ -65,6 +69,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('notifications', AdminNotificationController::class);
 
         Route::get('audit-logs', AdminAuditLogController::class);
+
+        Route::prefix('delivery')->group(function (): void {
+            Route::get('stats', AdminDeliveryStatsController::class);
+            Route::get('shipments', AdminIndexShipmentsController::class);
+            Route::get('shipments/{shipment}', AdminShowShipmentController::class);
+            Route::patch('shipments/{shipment}', AdminUpdateShipmentController::class);
+        });
+
         Route::get('settings', [AdminSettingsController::class, 'index']);
         Route::patch('settings', [AdminSettingsController::class, 'update']);
     });

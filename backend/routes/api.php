@@ -19,5 +19,6 @@ Route::prefix('v1')->group(function (): void {
     require base_path('app/Modules/Listing/routes/api.php');
     require base_path('app/Modules/PublicContent/routes/api.php');
     require base_path('app/Modules/Report/routes/api.php');
+    require base_path('app/Modules/Delivery/routes/api.php');
     require base_path('app/Modules/Admin/routes/api.php');
 });

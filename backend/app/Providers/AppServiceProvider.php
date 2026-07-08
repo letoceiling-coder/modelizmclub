@@ -23,6 +23,13 @@ use Modules\Billing\Services\PaymentRecorder;
 use Modules\Billing\Services\StubPaymentGateway;
 use Modules\Billing\Services\VtbPaymentGateway;
 use Modules\Billing\Services\YooKassaPaymentGateway;
+use Modules\Delivery\Contracts\CdekGateway;
+use Modules\Delivery\Contracts\YandexGateway;
+use Modules\Delivery\Services\CdekApiExtension;
+use Modules\Delivery\Services\CdekClientFactory;
+use Modules\Delivery\Services\CdekService;
+use Modules\Delivery\Services\CdekTokenCache;
+use Modules\Delivery\Services\YandexDeliveryService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -44,6 +51,13 @@ class AppServiceProvider extends ServiceProvider
             PaymentGateway::class,
             PaymentGatewayManager::class,
         );
+
+        $this->app->singleton(CdekTokenCache::class);
+        $this->app->singleton(CdekApiExtension::class);
+        $this->app->singleton(CdekClientFactory::class);
+        $this->app->bind(CdekGateway::class, CdekService::class);
+        $this->app->singleton(YandexDeliveryService::class);
+        $this->app->bind(YandexGateway::class, YandexDeliveryService::class);
     }
 
     /**
@@ -75,7 +89,7 @@ class AppServiceProvider extends ServiceProvider
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.
         RateLimiter::for('api', function (Request $request) {
-            if ($request->is('api/v1/media/*') || $request->is('api/v1/payments/webhooks/*') || $request->is('api/v1/health')) {
+            if ($request->is('api/v1/media/*') || $request->is('api/v1/payments/webhooks/*') || $request->is('api/v1/webhooks/*') || $request->is('api/v1/health')) {
                 return Limit::none();
             }
 
