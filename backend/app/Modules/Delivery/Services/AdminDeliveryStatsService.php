@@ -34,21 +34,48 @@ class AdminDeliveryStatsService
             ->where('updated_at', '>=', now()->subDays(7))
             ->count();
 
-        $avgDays = Shipment::query()
-            ->where('status', ShipmentStatus::Delivered->value)
-            ->whereNotNull('created_at_provider')
-            ->whereNotNull('delivered_at')
-            ->selectRaw('avg(extract(epoch from (delivered_at - created_at_provider)) / 86400) as avg_days')
-            ->value('avg_days');
+        $avgDays = $this->averageDeliveryDays();
 
         return [
             'shipments_total' => Shipment::query()->count(),
             'shipments_by_provider' => $byProvider,
             'shipments_by_status' => $byStatus,
             'delivery_revenue_cents' => $revenue,
-            'avg_delivery_days' => $avgDays !== null ? round((float) $avgDays, 2) : null,
+            'avg_delivery_days' => $avgDays,
             'errors_last_7d' => $errorsLast7d,
         ];
+    }
+
+    private function averageDeliveryDays(): ?float
+    {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $avgDays = Shipment::query()
+                ->where('status', ShipmentStatus::Delivered->value)
+                ->whereNotNull('created_at_provider')
+                ->whereNotNull('delivered_at')
+                ->selectRaw('avg(extract(epoch from (delivered_at - created_at_provider)) / 86400) as avg_days')
+                ->value('avg_days');
+
+            return $avgDays !== null ? round((float) $avgDays, 2) : null;
+        }
+
+        $rows = Shipment::query()
+            ->where('status', ShipmentStatus::Delivered->value)
+            ->whereNotNull('created_at_provider')
+            ->whereNotNull('delivered_at')
+            ->get(['created_at_provider', 'delivered_at']);
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $totalDays = $rows->sum(
+            fn (Shipment $shipment): float => $shipment->created_at_provider->diffInSeconds($shipment->delivered_at) / 86400,
+        );
+
+        return round($totalDays / $rows->count(), 2);
     }
 
     /**
