@@ -239,47 +239,35 @@ cd backend && php scripts/register-cdek-webhook.php
 
 ---
 
-#### Яндекс — «Доставка по России» (наш backend)
+#### Яндекс — callback при создании заявки (не глобально, не polling)
 
-Мы используем **Platform API** (`b2b-authproxy.taxi.yandex.net`): `offers/create`, `request/info`, ПВЗ.
-
-- Документация: [API по России — введение](https://yandex.ru/support/delivery-profile/ru/api/other-day/)
-- Доступ: [Как получить доступ](https://yandex.ru/support/delivery-profile/ru/api/other-day/access) → ЛК → **Интеграция** → **Получить токен** (только Bearer-токен, **без webhook**)
-- Статусы: [Статусная модель](https://yandex.ru/support/delivery-profile/ru/api/other-day/status-model)
-- Опрос: `GET /api/b2b/platform/request/info?request_id=...`
-
-В документации Platform API **нет глобального webhook** и нет поля `callback_url` в [`offers/create`](https://yandex.com/support/delivery-profile/ru/api/other-day/ref/3.-Osnovnye-zaprosy/apib2bplatformofferscreate-post). Отслеживание — **polling**:
-
-```bash
-php artisan delivery:sync-statuses   # cron каждые 5–15 мин
-```
-
-Endpoint `/webhooks/yandex/delivery-status` готов на случай будущих push-уведомлений от менеджера/поддержки Яндекс.
-
----
-
-#### Яндекс — Экспресс API (business.taxi.yandex.ru, не наш случай)
-
-Кабинет [business.taxi.yandex.ru](https://business.taxi.yandex.ru/profile/settings) → **Интеграция по API** → только **токен** и **документация**. Webhook в настройках профиля **нет**.
-
-Callback задаётся **в каждой заявке** при `claims/create`:
-
-- Документация: [claims/create — callback_properties](https://yandex.ru/support/delivery-profile/ru/api/express/openapi/IntegrationV2ClaimsCreate)
+Webhook **не регистрируется** в ЛК. URL передаётся **в body каждой заявки**:
 
 ```json
-{
-  "callback_properties": {
-    "callback_url": "https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status?"
-  }
+"callback_properties": {
+  "callback_url": "https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status?"
 }
 ```
 
-Важно: URL **обязан заканчиваться на `?` или `&`** — Яндекс дописывает `updated_ts=...&claim_id=...` конкатенацией.  
-Яндекс ожидает ответ **HTTP 200**; для надёжности всё равно нужен polling `claims/info`.
+- Документация: [claims/create — callback_properties](https://yandex.ru/support/delivery-profile/ru/api/express/openapi/IntegrationV2ClaimsCreate)
+- Env: `YANDEX_DELIVERY_CALLBACK_URL` (должен заканчиваться на `?` или `&`)
+- Backend: `callback_properties` добавляется в `offers/create` при `POST …/shipments/{uuid}/confirm`
+- Flow Platform API: `offers/create` → `offers/confirm` → `request_id` сохраняется как `external_id`
+
+Яндекс шлёт POST на URL с query: `?updated_ts=...&claim_id=...`. Endpoint отвечает **200 OK**, затем запрашивает актуальный статус через `request/info`.
+
+Токен: ЛК → [Интеграция](https://yandex.ru/support/delivery-profile/ru/api/other-day/access) → **Получить токен**.
 
 ---
 
-Ответ нашего API при неизвестном shipment: `202 { "message": "ignored" }`.
+Ответ webhook: **200 OK** (`ignored` если shipment не найден).
+
+### Ручная синхронизация (без cron)
+
+```bash
+POST /api/v1/shipments/{uuid}/sync   # участник сделки
+php artisan delivery:sync-statuses   # только вручную / отладка
+```
 
 ### Справочники (публичные прокси)
 
@@ -370,28 +358,6 @@ Flow: `POST /shipments` → `POST …/quote` → (опц.) `POST …/request-sel
 | GET | `/admin/delivery/shipments` | R | Список (`status`, `provider`, `per_page`) |
 | GET | `/admin/delivery/shipments/{uuid}` | R | Детали отправления |
 | PATCH | `/admin/delivery/shipments/{uuid}` | U | Ручная правка (статус, заметки админа) |
-
-### Cron / Scheduler (гарантия без пропусков)
-
-Двухуровневая схема:
-
-1. **Push (webhook):** СДЭК шлёт `ORDER_STATUS` на `/webhooks/cdek/order-status` (зарегистрировано). При неполном payload контроллер сам дёргает API провайдера.
-2. **Polling (fallback):** каждые **5 минут** — все активные shipments без финального статуса.
-
-Установка на сервере:
-
-```bash
-bash deploy/scripts/setup-delivery-scheduler.sh
-```
-
-Вручную:
-
-```bash
-php artisan delivery:sync-statuses --limit=100
-php artisan schedule:list   # delivery:sync-statuses … every five minutes
-```
-
-Crontab: `* * * * * php artisan schedule:run` (см. скрипт выше).
 
 ---
 

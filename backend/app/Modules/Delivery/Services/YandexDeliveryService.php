@@ -30,6 +30,11 @@ class YandexDeliveryService implements YandexGateway
         return $this->request('POST', '/api/b2b/platform/offers/create', $body);
     }
 
+    public function confirmOffer(array $body): array
+    {
+        return $this->request('POST', '/api/b2b/platform/offers/confirm', $body);
+    }
+
     public function getRequestInfo(array $query): array
     {
         return $this->request('GET', '/api/b2b/platform/request/info', [], $query);

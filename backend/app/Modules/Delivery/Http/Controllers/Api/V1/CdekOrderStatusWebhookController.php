@@ -34,13 +34,13 @@ class CdekOrderStatusWebhookController extends Controller
             ->first();
 
         if ($shipment === null) {
-            return response()->json(['message' => 'ignored'], 202);
+            return response()->json(['message' => 'ignored'], 200);
         }
 
         if (! is_string($status) || $status === '') {
             $shipments->syncStatus($shipment);
 
-            return response()->json(['message' => 'ok', 'synced' => true]);
+            return response()->json(['message' => 'ok', 'synced' => true], 200);
         }
 
         $shipments->applyWebhookUpdate(
@@ -50,6 +50,6 @@ class CdekOrderStatusWebhookController extends Controller
             $payload,
         );
 
-        return response()->json(['message' => 'ok']);
+        return response()->json(['message' => 'ok'], 200);
     }
 }

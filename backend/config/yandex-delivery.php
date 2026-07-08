@@ -10,4 +10,14 @@ return [
 
     'timeout' => (float) env('YANDEX_DELIVERY_TIMEOUT', 15.0),
 
+    /*
+    | Callback URL for status push notifications (per-order, not global).
+    | Must end with ? or & — Yandex appends updated_ts=...&claim_id=...
+    | @see https://yandex.ru/support/delivery-profile/ru/api/express/openapi/IntegrationV2ClaimsCreate
+    */
+    'callback_url' => env(
+        'YANDEX_DELIVERY_CALLBACK_URL',
+        'https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status?',
+    ),
+
 ];

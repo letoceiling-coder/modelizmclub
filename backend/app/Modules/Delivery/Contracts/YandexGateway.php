@@ -29,6 +29,12 @@ interface YandexGateway
     public function createOffer(array $body): array;
 
     /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    public function confirmOffer(array $body): array;
+
+    /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */

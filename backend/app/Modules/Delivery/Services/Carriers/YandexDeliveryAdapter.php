@@ -140,14 +140,50 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
             ],
         ];
 
-        $raw = $this->yandex->createOffer($payload);
+        $callbackUrl = $this->callbackUrl();
+        if ($callbackUrl !== null) {
+            $payload['callback_properties'] = ['callback_url' => $callbackUrl];
+        }
+
+        $createRaw = $this->yandex->createOffer($payload);
+        $offerId = data_get($createRaw, 'offers.0.offer_id') ?? $createRaw['offer_id'] ?? null;
+
+        if ($offerId === null) {
+            throw new RuntimeException('Yandex offers/create returned no offer_id.');
+        }
+
+        $confirmRaw = $this->yandex->confirmOffer(['offer_id' => (string) $offerId]);
+        $requestId = $confirmRaw['request_id'] ?? null;
+
+        if ($requestId === null) {
+            throw new RuntimeException('Yandex offers/confirm returned no request_id.');
+        }
 
         return [
-            'external_id' => isset($raw['request_id']) ? (string) $raw['request_id'] : ($raw['offer_id'] ?? null),
-            'tracking_number' => isset($raw['tracking_number']) ? (string) $raw['tracking_number'] : null,
-            'external_status' => isset($raw['status']) ? (string) $raw['status'] : null,
-            'raw' => $raw,
+            'external_id' => (string) $requestId,
+            'tracking_number' => isset($confirmRaw['tracking_number']) ? (string) $confirmRaw['tracking_number'] : null,
+            'external_status' => data_get($confirmRaw, 'state.status') ?? ($confirmRaw['status'] ?? null),
+            'raw' => ['create' => $createRaw, 'confirm' => $confirmRaw],
         ];
+    }
+
+    private function callbackUrl(): ?string
+    {
+        if (! config('yandex-delivery.enabled')) {
+            return null;
+        }
+
+        $url = trim((string) config('yandex-delivery.callback_url', ''));
+
+        if ($url === '') {
+            return null;
+        }
+
+        if (! str_ends_with($url, '?') && ! str_ends_with($url, '&')) {
+            $url .= '?';
+        }
+
+        return $url;
     }
 
     public function fetchStatus(Shipment $shipment): array
