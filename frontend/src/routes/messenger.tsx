@@ -28,7 +28,6 @@ import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import { DialogContextMenu } from "@/components/messenger/DialogContextMenu";
@@ -800,7 +799,6 @@ function MessengerPage() {
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
-                  <span className="hidden sm:block"><LanguageSwitcher /></span>
                   <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
                 </div>
 

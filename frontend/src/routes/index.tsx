@@ -116,11 +116,11 @@ function TopNav() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >{t("landing.nav.login")}</Link>
-          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
+          <Link to={enter.register} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
             style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
           >
             {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
-            <ArrowRight size={15} />
+            <ArrowRight size={15} className="hidden shrink-0 sm:block" />
           </Link>
 
           <button
@@ -150,6 +150,7 @@ function TopNav() {
             style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
           >
             <div className="flex flex-col gap-1 px-4 py-3">
+              <div className="px-1 pb-1 sm:hidden"><LanguageSwitcher /></div>
               {navLinks.map((l) =>
                 l.kind === "hash" ? (
                   <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
@@ -157,6 +158,8 @@ function TopNav() {
                   <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
                 ),
               )}
+              <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
+              <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
             </div>
           </motion.div>
         )}
@@ -176,6 +179,10 @@ function Hero() {
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
   const [stats, setStats] = useState({ users: 0, communities: 0, listing_categories: 0 });
+  // Weak-network guard: the hero video is ~6 MB. On small screens, Save-Data,
+  // or slow connections we skip it entirely and show the lightweight poster —
+  // critical for regional mobile users. Only load video on capable connections.
+  const [allowVideo, setAllowVideo] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
@@ -190,6 +197,15 @@ function Hero() {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const saveData = conn?.saveData === true;
+    const slow = !!conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType);
+    const bigScreen = window.matchMedia("(min-width: 768px)").matches;
+    setAllowVideo(bigScreen && !saveData && !slow);
+  }, []);
+
   const fadeUp = {
     hidden: { opacity: 0, y: 22 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
@@ -200,7 +216,7 @@ function Hero() {
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
       {/* background media */}
       <div className="absolute inset-0 z-0">
-        {videoError ? (
+        {videoError || !allowVideo ? (
           <img src={cover} alt={t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
         ) : (
           <video
@@ -209,6 +225,7 @@ function Hero() {
             muted
             loop
             playsInline
+            preload="none"
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
@@ -262,16 +279,18 @@ function Hero() {
 
               <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
+                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
                   <Search size={18} /> {t("landing.hero.ctaBrowse")}
                 </button>
                 <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
+                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
-                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} />
+                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} className="hidden shrink-0 sm:block" />
                 </button>
               </motion.div>
 
@@ -306,14 +325,14 @@ function Hero() {
 
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 16, fontWeight: 700,
+  borderRadius: "var(--r-pill)",
+  background: "var(--accent)", color: "var(--accent-foreground)", fontWeight: 700,
   border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
 };
 const ctaGhost: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 16, fontWeight: 700,
+  borderRadius: "var(--r-pill)",
+  background: "rgba(255,255,255,0.08)", color: "#fff", fontWeight: 700,
   border: "2px solid rgba(255,255,255,0.28)", cursor: "pointer", backdropFilter: "blur(8px)", transition: "background 180ms",
 };
 const ctaText: React.CSSProperties = {
@@ -563,18 +582,18 @@ function CategoriesSection() {
             const Icon = resolveLucideIcon(cat.icon);
             const count = cat.listingsCount ?? cat.members ?? 0;
             return (
-              <Link key={cat.id} to="/ads" className="group flex items-center gap-3 p-4 transition-all hover:-translate-y-0.5"
+              <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition-all hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
               >
-                <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)]"
-                  style={{ width: 42, height: 42, borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-                  <Icon size={20} />
+                <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)] sm:h-[42px] sm:w-[42px]"
+                  style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
+                  <Icon size={19} />
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold" style={{ color: "var(--foreground)" }}>{cat.name}</div>
-                  <div className="text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
+                  <div className="break-words text-[13px] font-semibold leading-tight sm:text-sm" style={{ color: "var(--foreground)" }}>{cat.name}</div>
+                  <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
                 </div>
               </Link>
             );
