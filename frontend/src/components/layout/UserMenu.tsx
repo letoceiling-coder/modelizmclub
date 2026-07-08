@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { User, ClipboardList, Crown, LogOut, Sun, Moon } from "lucide-react";
+import { User, ClipboardList, Crown, LogOut, Sun, Moon, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -92,6 +92,13 @@ export function UserMenu() {
               <Crown className="h-4 w-4" /> {t("nav.subscription")}
             </Link>
           </DropdownMenuItem>
+          {me.isAdmin && (
+            <DropdownMenuItem asChild>
+              <Link to={ROUTES.admin} className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> {t("nav.admin")}
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={(e) => { e.preventDefault(); toggleTheme(); }}

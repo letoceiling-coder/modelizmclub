@@ -62,6 +62,7 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
 
 function AdminPage() {
   const navigate = useNavigate();
+  const me = useStore(selectors.currentUser);
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [section, setSection] = useState<Section>("dashboard");
 
@@ -109,23 +110,46 @@ function AdminPage() {
             Доступ запрещён
           </h1>
           <p style={{ marginTop: "8px", fontSize: "14px", color: "var(--foreground-70)" }}>
-            Админ-панель доступна только суперадминистраторам.
+            Админ-панель доступна только суперадминистраторам (роль <code>admin</code>).
           </p>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-[6px]"
-            style={{
-              marginTop: "20px",
-              fontSize: "13px",
-              fontWeight: 500,
-              padding: "8px 16px",
-              borderRadius: "var(--r-card-sm)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground-70)",
-            }}
-          >
-            <Home size={14} />На главную
-          </Link>
+          {me.id !== "guest" && (
+            <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-50)" }}>
+              Вы вошли как <strong style={{ color: "var(--foreground-70)" }}>{me.name}</strong>.
+              У вашего аккаунта нет роли суперадмина — обратитесь к действующему администратору
+              или войдите под другим аккаунтом.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center justify-center gap-2" style={{ marginTop: "20px" }}>
+            <Link
+              to="/login"
+              search={{ redirect: "/admin" }}
+              className="inline-flex items-center gap-[6px]"
+              style={{
+                fontSize: "13px",
+                fontWeight: 500,
+                padding: "8px 16px",
+                borderRadius: "var(--r-card-sm)",
+                background: "var(--accent)",
+                color: "var(--accent-foreground)",
+              }}
+            >
+              Войти другим аккаунтом
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-[6px]"
+              style={{
+                fontSize: "13px",
+                fontWeight: 500,
+                padding: "8px 16px",
+                borderRadius: "var(--r-card-sm)",
+                border: "1px solid var(--border)",
+                color: "var(--foreground-70)",
+              }}
+            >
+              <Home size={14} />На главную
+            </Link>
+          </div>
         </div>
       </div>
     );

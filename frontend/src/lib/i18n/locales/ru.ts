@@ -42,6 +42,7 @@ export const ru = {
   },
   auth: {
     login: "Войти",
+    cabinet: "Кабинет",
     register: "Создать аккаунт",
     logout: "Выйти",
     email: "Email",
@@ -63,6 +64,7 @@ export const ru = {
       how: "Как работает",
       subscription: "Подписка",
       login: "Войти",
+      cabinet: "Кабинет",
       register: "Создать аккаунт",
       demo: "Открыть демо",
       menu: "Меню",

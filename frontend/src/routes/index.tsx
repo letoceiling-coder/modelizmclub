@@ -11,6 +11,8 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { isDemoMode } from "@/lib/demo-mode";
+import { ensureSession } from "@/lib/auth/session";
+import { GUEST_USER, selectors, useStore } from "@/lib/store";
 import { fetchPopularListings } from "@/lib/api/listings";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
@@ -64,7 +66,15 @@ function LandingPage() {
 function TopNav() {
   const { t } = useTranslation();
   const enter = useEnter();
+  const me = useStore(selectors.currentUser);
+  const [sessionReady, setSessionReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    void ensureSession().finally(() => setSessionReady(true));
+  }, []);
+
+  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
   const navLinks: Array<
     | { kind: "route"; to: "/ads" | "/communities" | "/channels" | "/subscription"; label: string }
     | { kind: "hash"; href: "#how"; label: string }
@@ -111,17 +121,43 @@ function TopNav() {
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
-          <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
-            style={{ color: "var(--foreground-70)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >{t("landing.nav.login")}</Link>
-          <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
-            style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
-          >
-            {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
-            <ArrowRight size={15} />
-          </Link>
+          {loggedIn ? (
+            <>
+              {me.isAdmin && (
+                <Link
+                  to="/admin"
+                  className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
+                  style={{ color: "var(--foreground-70)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  {t("nav.admin")}
+                </Link>
+              )}
+              <Link
+                to="/feed"
+                className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
+              >
+                {t("landing.nav.cabinet")}
+                <ArrowRight size={15} />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
+                style={{ color: "var(--foreground-70)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >{t("landing.nav.login")}</Link>
+              <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
+              >
+                {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
+                <ArrowRight size={15} />
+              </Link>
+            </>
+          )}
 
           <button
             type="button"
