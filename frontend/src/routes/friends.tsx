@@ -96,7 +96,7 @@ function FriendsPage() {
   }, [q, tab, allUsers, me, blockedUserIds, hiddenUserIds]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: "Все", count: allUsers.length },
+    { key: "all", label: "Люди", count: allUsers.length },
     { key: "online", label: "Онлайн", count: allUsers.filter((u) => isOnline(u)).length },
     { key: "requests", label: "Заявки", count: requests.length },
   ];

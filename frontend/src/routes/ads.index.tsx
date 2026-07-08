@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
@@ -94,8 +94,23 @@ function CatalogPage() {
     }
   }, [q, filters, sort]);
 
+  // Debounced: `load` changes identity on every keystroke into text filters
+  // (search query, city — CitySelect's own dropdown-suggestion debounce fires
+  // separately and doesn't cover this). Without this, the whole grid
+  // re-fetches and re-renders (loading skeleton flash) on every letter typed.
+  // The very first load (mount) skips the debounce so the page doesn't sit
+  // blank for 350ms before showing the loading skeleton.
+  const isFirstLoad = useRef(true);
   useEffect(() => {
-    void load();
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      void load();
+      return;
+    }
+    const timer = setTimeout(() => {
+      void load();
+    }, 350);
+    return () => clearTimeout(timer);
   }, [load]);
 
   function resetFilters() {

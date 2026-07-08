@@ -32,9 +32,10 @@ function LoginPage() {
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
+    const remember = form.get("remember") === "on";
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, remember);
       resetSessionCache();
       setCurrentUser(user);
       toast.success(t("authPages.loginSuccess"));
@@ -94,12 +95,12 @@ function LoginPage() {
         </>
       }
     >
-      <form onSubmit={submit} className="space-y-[12px]">
-        <Input required name="email" type="email" placeholder={t("auth.email")} error={fieldError} />
-        <Input required name="password" type="password" placeholder={t("auth.password")} error={fieldError} />
+      <form onSubmit={submit} className="space-y-[12px]" autoComplete="on">
+        <Input required name="email" type="email" autoComplete="email" placeholder={t("auth.email")} error={fieldError} />
+        <Input required name="password" type="password" autoComplete="current-password" placeholder={t("auth.password")} error={fieldError} />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} />
+            <input type="checkbox" name="remember" defaultChecked style={{ accentColor: "var(--accent)" }} />
             {t("authPages.rememberMe")}
           </label>
           <Link to="/recover" style={{ color: "var(--accent)", fontWeight: 600 }}>

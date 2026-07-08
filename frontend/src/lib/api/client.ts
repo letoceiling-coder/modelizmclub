@@ -15,17 +15,33 @@ export type Locale = "ru" | "en" | "zh";
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage.getItem(TOKEN_KEY);
+    return window.localStorage.getItem(TOKEN_KEY) ?? window.sessionStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
 }
 
-export function setToken(token: string | null): void {
+/**
+ * Persists the auth token. `remember` decides where: `true` (default) writes
+ * to localStorage (survives browser restarts — "Запомнить меня" checked),
+ * `false` writes to sessionStorage only (cleared when the tab/browser closes).
+ * Always clears the other store so a stale copy can't resurrect the session.
+ */
+export function setToken(token: string | null, remember = true): void {
   if (typeof window === "undefined") return;
   try {
-    if (token) window.localStorage.setItem(TOKEN_KEY, token);
-    else window.localStorage.removeItem(TOKEN_KEY);
+    if (token) {
+      if (remember) {
+        window.localStorage.setItem(TOKEN_KEY, token);
+        window.sessionStorage.removeItem(TOKEN_KEY);
+      } else {
+        window.sessionStorage.setItem(TOKEN_KEY, token);
+        window.localStorage.removeItem(TOKEN_KEY);
+      }
+    } else {
+      window.localStorage.removeItem(TOKEN_KEY);
+      window.sessionStorage.removeItem(TOKEN_KEY);
+    }
   } catch {
     /* ignore */
   }

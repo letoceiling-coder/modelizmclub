@@ -50,13 +50,17 @@ interface AuthResponse {
   meta?: { token?: string; token_type?: string };
 }
 
-export async function login(email: string, password: string): Promise<User> {
+// `remember` is client-only — the backend /auth/login contract has no such
+// field (confirmed against docs/openapi/openapi.json LoginRequest). It only
+// decides where the token is persisted: localStorage (survives browser
+// restarts) vs sessionStorage (cleared when the tab/browser closes).
+export async function login(email: string, password: string, remember = true): Promise<User> {
   const res = await api<AuthResponse>("/auth/login", {
     method: "POST",
     auth: false,
     json: { email, password },
   });
-  if (res.meta?.token) setToken(res.meta.token);
+  if (res.meta?.token) setToken(res.meta.token, remember);
   return mapApiUser(res.data);
 }
 
