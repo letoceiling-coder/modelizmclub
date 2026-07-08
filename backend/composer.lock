@@ -4,8 +4,68 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "057fca554bfd66363bc6cbd27036332c",
+    "content-hash": "9d314d5b761e747d51ab61f66a33dc6b",
     "packages": [
+        {
+            "name": "antistress-store/cdek-sdk-v2",
+            "version": "v1.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AntistressStore/cdek-sdk-v2.git",
+                "reference": "9c93ae870da7519a3016148714501aa865170f17"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AntistressStore/cdek-sdk-v2/zipball/9c93ae870da7519a3016148714501aa865170f17",
+                "reference": "9c93ae870da7519a3016148714501aa865170f17",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "guzzlehttp/guzzle": ">=7.3",
+                "php": ">=7.2.5"
+            },
+            "require-dev": {
+                "php-parallel-lint/php-parallel-lint": "^1.4",
+                "phpunit/phpunit": "^6||^7||^8|^9.5.10|^10.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "AntistressStore\\CdekSDK2\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Sergey Gusev",
+                    "email": "head@antistress.store",
+                    "homepage": "https://antistress.store",
+                    "role": "Creator"
+                }
+            ],
+            "description": "PHP SDK для API v2.0 от сервиса интеграции компании СДЭК",
+            "homepage": "https://antistress.store",
+            "keywords": [
+                "cdek",
+                "cdek api v2",
+                "cdek sdk",
+                "cdek интеграция",
+                "delivery",
+                "v2.0",
+                "СДЭК",
+                "служба доставки"
+            ],
+            "support": {
+                "docs": "https://github.com/AntistressStore/cdek-sdk-v2/blob/master/README.md",
+                "issues": "https://github.com/AntistressStore/cdek-sdk-v2/issues",
+                "source": "https://github.com/AntistressStore/cdek-sdk-v2/tree/v1.6"
+            },
+            "time": "2026-04-07T22:56:53+00:00"
+        },
         {
             "name": "aws/aws-crt-php",
             "version": "v1.2.7",
