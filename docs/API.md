@@ -1,6 +1,8 @@
 # ModelizmClub API v1
 
-> Базовый URL: `https://dev.modelizmclub.ru/api/v1`  
+> Базовый URL (production): `https://modelizmclub.ru/api/v1`  
+> Альтернативно: `https://api.modelizmclub.ru/api/v1`  
+> Dev: `https://dev.modelizmclub.ru/api/v1`  
 > Формат: JSON (`Accept: application/json`)  
 > Авторизация: Laravel Sanctum — заголовок `Authorization: Bearer {token}`
 
@@ -8,7 +10,7 @@
 
 | Ресурс | URL |
 |--------|-----|
-| Интерактивная документация (Scramble) | [https://dev.modelizmclub.ru/docs/api](https://dev.modelizmclub.ru/docs/api) |
+| Интерактивная документация (Scramble) | [dev.modelizmclub.ru/docs/api](https://dev.modelizmclub.ru/docs/api), [api.modelizmclub.ru/docs/api](https://api.modelizmclub.ru/docs/api) |
 | JSON-спецификация (репозиторий) | [openapi/openapi.json](./openapi/openapi.json) |
 
 Обновление спецификации после изменений API:
@@ -191,6 +193,138 @@ Authorization: Bearer {token}
 
 ---
 
+## Delivery — доставка СДЭК / Яндекс
+
+Интеграция доставки для сделок по объявлениям: продавец настраивает точку отправки, покупатель выбирает ПВЗ получения, система рассчитывает стоимость и создаёт заказ у провайдера.
+
+Провайдеры: `cdek` (СДЭК), `yandex` (Яндекс Доставка). В объявлении должны быть указаны соответствующие значения в `delivery_methods`: `'СДЭК'`, `'Яндекс Доставка'`.
+
+Подробный план: [DELIVERY-IMPLEMENTATION-PLAN.md](./DELIVERY-IMPLEMENTATION-PLAN.md).
+
+### Webhooks (без auth, без rate limit)
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| POST | `/webhooks/cdek/order-status` | Статусы заказов СДЭК (`ORDER_STATUS`) |
+| POST | `/webhooks/yandex/delivery-status` | Статусы заказов Яндекс Доставки |
+
+Production URL для регистрации у провайдеров:
+
+| Провайдер | Callback URL |
+|-----------|--------------|
+| СДЭК | `https://modelizmclub.ru/api/v1/webhooks/cdek/order-status` |
+| Яндекс | `https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status` |
+
+**СДЭК:** в [lk.cdek.ru/integration](https://lk.cdek.ru/integration) нет UI для webhook — регистрация только через API [`POST /v2/webhooks`](https://apidoc.cdek.ru/#tag/webhook/operation/createWebhook) с `type: ORDER_STATUS`. Скрипт на сервере:
+
+```bash
+cd backend && php scripts/register-cdek-webhook.php
+```
+
+**Яндекс:** URL передаётся в ЛК → **Интеграции** или менеджеру при подключении API.
+
+Ответ при неизвестном shipment: `202 { "message": "ignored" }`.
+
+### Справочники (публичные прокси)
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| GET | `/delivery/cdek/pickup-points` | — | ПВЗ СДЭК (`city_code`, `type`) |
+| GET | `/delivery/cdek/cities` | — | Города СДЭК (`q`, `country_codes`) |
+| POST | `/delivery/cdek/quote` | — | Калькулятор СДЭК (без создания shipment) |
+| GET | `/delivery/yandex/pickup-points` | — | ПВЗ Яндекс (`geo_id`) |
+| POST | `/delivery/yandex/location/detect` | — | Определение geo_id по адресу/координатам |
+| POST | `/delivery/yandex/quote` | — | Калькулятор Яндекс (без создания shipment) |
+
+### Профиль отправки продавца (`/users/me/delivery-profile`)
+
+| Метод | Путь | Auth | CRUD | Описание |
+|-------|------|------|------|----------|
+| GET | `/users/me/delivery-profile` | ✓ | R | Список точек отправки |
+| POST | `/users/me/delivery-profile` | ✓ | C | Добавить склад/ПВЗ |
+| PATCH | `/users/me/delivery-profile/{id}` | ✓ | U | Обновить (label, is_default…) |
+| DELETE | `/users/me/delivery-profile/{id}` | ✓ | D | Деактивировать точку |
+
+```http
+POST /api/v1/users/me/delivery-profile
+Authorization: Bearer {token}
+
+{
+  "provider": "cdek",
+  "point_type": "pickup_point",
+  "external_point_id": "MSK1",
+  "label": "ПВЗ Москва",
+  "address": { "city_code": 44 },
+  "is_default": true
+}
+```
+
+Для Яндекс `external_point_id` — `platform_station_id` из `pickup-points/list` (точка с `available_for_dropoff: true`).
+
+### Shipments — отправления (`/shipments`)
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| GET | `/shipments` | ✓ | Список (`role=seller\|buyer`, `status`, `provider`, `per_page`) |
+| POST | `/shipments` | ✓ | Создать черновик |
+| GET | `/shipments/{uuid}` | ✓ | Детали + события |
+| PATCH | `/shipments/{uuid}` | ✓ | Изменить черновик (buyer: destination; seller: `seller_point_id`) |
+| POST | `/shipments/{uuid}/quote` | ✓ | Рассчитать стоимость |
+| POST | `/shipments/{uuid}/request-seller` | ✓ | Покупатель запрашивает подтверждение продавца |
+| POST | `/shipments/{uuid}/confirm` | ✓ | Продавец создаёт заказ у провайдера |
+| POST | `/shipments/{uuid}/cancel` | ✓ | Отмена (участник сделки) |
+| POST | `/shipments/{uuid}/sync` | ✓ | Принудительная синхронизация статуса с API провайдера |
+
+### Жизненный цикл shipment
+
+```
+draft → quote → awaiting_seller → creating → created
+  → accepted → in_transit → at_pickup → delivered
+```
+
+Также: `cancelled`, `error` (ошибка при создании у провайдера).
+
+### Пример создания shipment
+
+```http
+POST /api/v1/shipments
+Authorization: Bearer {token}
+
+{
+  "listing_uuid": "{listing-uuid}",
+  "conversation_uuid": "{optional-chat-uuid}",
+  "provider": "cdek",
+  "destination_point": {
+    "external_point_id": "SPB1",
+    "label": "ПВЗ СПб",
+    "city_code": 137
+  },
+  "weight_kg": 0.5,
+  "dimensions_cm": { "length": 20, "width": 15, "height": 10 }
+}
+```
+
+Flow: `POST /shipments` → `POST …/quote` → (опц.) `POST …/request-seller` → `POST …/confirm` (продавец).
+
+### Admin — Delivery (`/admin/delivery`, role: admin)
+
+| Метод | Путь | CRUD | Описание |
+|-------|------|------|----------|
+| GET | `/admin/delivery/stats` | R | KPI: кол-во отправлений, выручка, средний срок доставки |
+| GET | `/admin/delivery/shipments` | R | Список (`status`, `provider`, `per_page`) |
+| GET | `/admin/delivery/shipments/{uuid}` | R | Детали отправления |
+| PATCH | `/admin/delivery/shipments/{uuid}` | U | Ручная правка (статус, заметки админа) |
+
+### Cron (fallback polling)
+
+```bash
+php artisan delivery:sync-statuses
+```
+
+Рекомендуется в crontab/supervisor на случай пропущенных webhook.
+
+---
+
 ## Billing (`/plans`, `/payments`, `/subscription`)
 
 | Метод | Путь | Auth | Описание |
@@ -271,6 +405,8 @@ Authorization: Bearer {token}
 | GET/POST | `/admin/banners` | R/C | Рекламные баннеры |
 | GET/PATCH/DELETE | `/admin/banners/{id}` | R/U/D | |
 | GET | `/admin/audit-logs` | R | Журнал действий |
+| GET | `/admin/delivery/stats` | R | Статистика доставки |
+| GET/PATCH | `/admin/delivery/shipments` | R/U | Отправления (см. Delivery) |
 | GET/PATCH | `/admin/settings` | R/U | Системные настройки |
 
 ---
@@ -321,6 +457,8 @@ bash ../deploy/scripts/reset-demo-user.sh
 | `FEED_AUTO_PUBLISH` | `true` на dev — автопубликация после модерации |
 | `FEED_MAX_COMMENT_DEPTH` | Макс. глубина вложенности комментариев (по умолчанию 5) |
 | `API_VERSION` | Версия в OpenAPI |
+| `CDEK_ENABLED`, `CDEK_ACCOUNT`, `CDEK_SECURE`, `CDEK_TEST` | Интеграция СДЭК |
+| `YANDEX_DELIVERY_ENABLED`, `YANDEX_DELIVERY_TOKEN` | Интеграция Яндекс Доставки |
 
 ---
 
@@ -349,6 +487,7 @@ bash deploy/scripts/verify-api-crud.sh   # полный CRUD-проход (user 
 | Listings (CRUD, фильтры, избранное, ИИ-подсказка) | ✅ |
 | Chat, Billing (тарифы, платежи, подписка) | ✅ |
 | Reports (жалобы) + реакции на комментарии | ✅ |
+| Delivery (СДЭК, Яндекс, shipments, webhooks, admin stats) | ✅ |
 | Public landing API | ✅ |
 
 Подробный план схемы БД: [PLAN-DB-API.md](./PLAN-DB-API.md).
