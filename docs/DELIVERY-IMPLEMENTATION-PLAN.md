@@ -377,8 +377,8 @@ cd backend && php artisan scramble:export
 ```
 
 Ручная регистрация webhook в ЛК СДЭК/Яндекс:
-- `https://dev.modelizmclub.ru/api/v1/webhooks/cdek/order-status`
-- `https://dev.modelizmclub.ru/api/v1/webhooks/yandex/delivery-status`
+- `https://modelizmclub.ru/api/v1/webhooks/cdek/order-status`
+- `https://modelizmclub.ru/api/v1/webhooks/yandex/delivery-status`
 
 ---
 

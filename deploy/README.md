@@ -55,8 +55,9 @@ bash /var/www/modelizmclub/deploy/scripts/deploy-frontend.sh
 
 | URL | Назначение |
 |-----|------------|
-| https://modelizmclub.ru | production frontend (SSR, :3000) |
-| https://dev.modelizmclub.ru | Laravel API + Swagger |
+| https://modelizmclub.ru | production frontend (SSR, :3000) + API at `/api/v1` |
+| https://api.modelizmclub.ru | Laravel API (same backend as modelizmclub.ru/api) |
+| https://dev.modelizmclub.ru | Laravel API + Swagger (dev) |
 
 `frontend/.env.production` → `VITE_API_BASE_URL=https://dev.modelizmclub.ru/api/v1`
 
