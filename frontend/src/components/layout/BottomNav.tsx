@@ -1,11 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
+import { Newspaper, Users2, MessageSquare, Megaphone, User, Clapperboard } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
 import { useStore } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 type Item = {
-  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
+  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/reviews";
   label: string;
   icon: typeof Newspaper;
   section: string;
@@ -17,12 +17,16 @@ const ALL_ITEMS: Item[] = [
   { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
   { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
   { to: "/profile", label: "Профиль", icon: User, section: "profile" },
+  { to: "/reviews", label: "Обзоры", icon: Clapperboard, section: "reviews" },
 ];
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
-  const ITEMS = ALL_ITEMS.filter((i) => i.to !== "/communities" || communitiesEnabled);
+  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+  const ITEMS = ALL_ITEMS.filter(
+    (i) => (i.to !== "/communities" || communitiesEnabled) && (i.to !== "/reviews" || reviewsEnabled),
+  );
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useStore((s) =>
@@ -41,8 +45,8 @@ export function BottomNav() {
       }}
     >
       <ul
-        className="grid grid-cols-5 items-stretch"
-        style={{ height: "var(--bottom-nav-h)" }}
+        className="grid items-stretch"
+        style={{ height: "var(--bottom-nav-h)", gridTemplateColumns: `repeat(${ITEMS.length}, 1fr)` }}
       >
         {ITEMS.map((it) => (
           <NavTab

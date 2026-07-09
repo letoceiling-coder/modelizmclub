@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, MoreHorizontal, Radio, Sun, Moon, Check, Languages, Heart, Clapperboard } from "lucide-react";
+import { Bell, Search, Menu, Radio, Sun, Moon, Check, Languages, Heart, Clapperboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
@@ -116,7 +116,7 @@ function MoreMenu() {
           className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-70)" }}
         >
-          <MoreHorizontal size={20} />
+          <Menu size={20} />
         </button>
       </DrawerTrigger>
 
