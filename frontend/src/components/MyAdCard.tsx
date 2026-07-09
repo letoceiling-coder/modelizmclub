@@ -50,16 +50,24 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
             </Button>
 
             {menuOpen && (
-              <div
-                className="absolute right-0 top-[36px] z-20 flex flex-col py-[6px]"
-                style={{
-                  minWidth: 180,
-                  background: "var(--background-elevated)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-card-sm)",
-                  boxShadow: "var(--shadow-float)",
-                }}
-              >
+              <>
+                {/* Backdrop scrim — dims the page while the menu is open, matching
+                    the app's other sheets/menus; tap anywhere to dismiss. */}
+                <div
+                  className="fixed inset-0 z-[15]"
+                  style={{ background: "rgba(0,0,0,0.4)" }}
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div
+                  className="absolute right-0 top-[36px] z-20 flex flex-col py-[6px]"
+                  style={{
+                    minWidth: 180,
+                    background: "var(--background-elevated)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--r-card-sm)",
+                    boxShadow: "var(--shadow-float)",
+                  }}
+                >
                 <MenuItem to="/ads/$id" params={{ id: ad.id }} icon={<Pencil size={14} />} label="Редактировать" />
                 {archived ? (
                   <MenuItem
@@ -82,7 +90,8 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
                   label="Удалить"
                   color="var(--error)"
                 />
-              </div>
+                </div>
+              </>
             )}
           </div>
         }

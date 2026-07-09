@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bell, BadgeCheck, Ban, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
+  Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
   Camera, Trash2,
 } from "lucide-react";
@@ -261,6 +261,9 @@ export function ProfileView({
                 <Button
                   type="button"
                   variant="outline"
+                  size="icon"
+                  title="Написать сообщение"
+                  aria-label="Написать сообщение"
                   onClick={async () => {
                     if (onWrite) { await onWrite(); return; }
                     if (!user.numericId || !currentUser?.id) {
@@ -274,9 +277,9 @@ export function ProfileView({
                       toast.error("Не удалось открыть диалог");
                     }
                   }}
-                  className="h-[40px] flex-1 rounded-[10px] md:flex-none"
+                  className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
                 >
-                  <MessageSquare size={14} /> Написать
+                  <Mail size={16} />
                 </Button>
 
                 <Button
@@ -491,9 +494,9 @@ export function ProfileView({
 
 function Counter({ label, value, divider }: { label: string; value: number; divider?: boolean }) {
   return (
-    <div className="px-[16px] py-[20px] text-center md:px-[24px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
-      <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>{value}</div>
-      <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
+    <div className="px-[16px] py-[12px] text-center md:px-[24px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
+      <div className="font-display text-[18px] font-bold leading-none" style={{ color: "var(--foreground)" }}>{value}</div>
+      <div className="mt-[3px] text-[11px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
     </div>
   );
 }
