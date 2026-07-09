@@ -77,7 +77,7 @@ function WatchPage() {
     });
     if (!viewedRef.current) {
       viewedRef.current = true;
-      void incrementVideoView(id);
+      void incrementVideoView(id).catch(() => {});
     }
   };
 
