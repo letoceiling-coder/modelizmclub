@@ -42,6 +42,7 @@ export const en: TranslationSchema = {
     myAds: "My Listings",
     favorites: "Favorites",
     reviews: "Reviews",
+    settings: "Settings",
   },
   auth: {
     login: "Sign in",

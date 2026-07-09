@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, Menu, Radio, Sun, Moon, Check, Languages, Heart, Clapperboard } from "lucide-react";
+import { Bell, Search, Menu, Radio, Sun, Moon, Check, Languages, Heart, Clapperboard, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
@@ -149,6 +149,17 @@ function MoreMenu() {
               <span className="text-[15px] font-medium">Обзоры</span>
             </Link>
           )}
+
+          {/* Settings */}
+          <Link
+            to="/settings"
+            onClick={() => setOpen(false)}
+            className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]"
+            style={{ color: "var(--foreground)" }}
+          >
+            <Settings size={20} style={{ color: "var(--foreground-70)" }} />
+            <span className="text-[15px] font-medium">Настройки</span>
+          </Link>
 
           {/* Theme */}
           <button

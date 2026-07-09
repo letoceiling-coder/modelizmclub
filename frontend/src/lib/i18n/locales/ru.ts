@@ -40,6 +40,7 @@ export const ru = {
     myAds: "Мои объявления",
     favorites: "Избранное",
     reviews: "Обзоры",
+    settings: "Настройки",
   },
   auth: {
     login: "Войти",

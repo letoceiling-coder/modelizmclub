@@ -1,13 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart, Clapperboard } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart, Clapperboard, Settings } from "lucide-react";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 interface Item {
-  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends";
+  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -25,6 +25,7 @@ const ALL_ITEMS: Item[] = [
   { to: ROUTES.channels,     labelKey: "nav.channels", icon: Radio,         section: "channels" },
   { to: ROUTES.messenger,    labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.friends,      labelKey: "nav.friends",  icon: UserPlus,      section: "friends" },
+  { to: ROUTES.settings,     labelKey: "nav.settings", icon: Settings,      section: "settings", authOnly: true },
 ];
 
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
