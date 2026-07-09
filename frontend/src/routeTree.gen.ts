@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as SubscriptionRouteImport } from './routes/subscription'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RecoverRouteImport } from './routes/recover'
@@ -32,6 +33,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
@@ -57,6 +59,11 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const SubscriptionRoute = SubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -164,6 +171,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReviewsRoute,
+} as any)
 const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -267,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/reviews': typeof ReviewsRouteWithChildren
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
@@ -283,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
+  '/reviews/': typeof ReviewsIndexRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
@@ -320,6 +334,7 @@ export interface FileRoutesByTo {
   '/categories': typeof CategoriesIndexRoute
   '/channels': typeof ChannelsIndexRoute
   '/communities': typeof CommunitiesIndexRoute
+  '/reviews': typeof ReviewsIndexRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/categories/$id': typeof CategoriesIdIndexRoute
 }
@@ -346,6 +361,7 @@ export interface FileRoutesById {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/reviews': typeof ReviewsRouteWithChildren
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
@@ -362,6 +378,7 @@ export interface FileRoutesById {
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
+  '/reviews/': typeof ReviewsIndexRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
@@ -389,6 +406,7 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/reset-password'
+    | '/reviews'
     | '/subscription'
     | '/verify-email'
     | '/admin/design-system'
@@ -405,6 +423,7 @@ export interface FileRouteTypes {
     | '/categories/'
     | '/channels/'
     | '/communities/'
+    | '/reviews/'
     | '/categories/$id/$subId'
     | '/categories/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -442,6 +461,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/channels'
     | '/communities'
+    | '/reviews'
     | '/categories/$id/$subId'
     | '/categories/$id'
   id:
@@ -467,6 +487,7 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/reset-password'
+    | '/reviews'
     | '/subscription'
     | '/verify-email'
     | '/admin/design-system'
@@ -483,6 +504,7 @@ export interface FileRouteTypes {
     | '/categories/'
     | '/channels/'
     | '/communities/'
+    | '/reviews/'
     | '/categories/$id/$subId'
     | '/categories/$id/'
   fileRoutesById: FileRoutesById
@@ -509,6 +531,7 @@ export interface RootRouteChildren {
   RecoverRoute: typeof RecoverRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ReviewsRoute: typeof ReviewsRouteWithChildren
   SubscriptionRoute: typeof SubscriptionRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ChannelIdRoute: typeof ChannelIdRoute
@@ -533,6 +556,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/subscription'
       preLoaderRoute: typeof SubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -681,6 +711,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/reviews/': {
+      id: '/reviews/'
+      path: '/'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof ReviewsIndexRouteImport
+      parentRoute: typeof ReviewsRoute
     }
     '/communities/': {
       id: '/communities/'
@@ -863,6 +900,17 @@ const CommunitiesRouteWithChildren = CommunitiesRoute._addFileChildren(
   CommunitiesRouteChildren,
 )
 
+interface ReviewsRouteChildren {
+  ReviewsIndexRoute: typeof ReviewsIndexRoute
+}
+
+const ReviewsRouteChildren: ReviewsRouteChildren = {
+  ReviewsIndexRoute: ReviewsIndexRoute,
+}
+
+const ReviewsRouteWithChildren =
+  ReviewsRoute._addFileChildren(ReviewsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -885,6 +933,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecoverRoute: RecoverRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ReviewsRoute: ReviewsRouteWithChildren,
   SubscriptionRoute: SubscriptionRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ChannelIdRoute: ChannelIdRoute,

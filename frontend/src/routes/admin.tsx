@@ -1991,6 +1991,7 @@ function SettingsSection() {
   }, [settings]);
 
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
 
   return (
     <div>
@@ -2013,6 +2014,15 @@ function SettingsSection() {
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Сообщества»</span>
+        </label>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
+          <input
+            type="checkbox"
+            checked={reviewsEnabled}
+            onChange={(e) => setFeatureFlag("reviewsEnabled", e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Обзоры»</span>
         </label>
       </div>
 

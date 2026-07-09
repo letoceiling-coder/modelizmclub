@@ -16,10 +16,12 @@ import { useSyncExternalStore } from "react";
 
 export interface FeatureFlags {
   communitiesEnabled: boolean;
+  reviewsEnabled: boolean;
 }
 
 const DEFAULTS: FeatureFlags = {
   communitiesEnabled: false,
+  reviewsEnabled: false,
 };
 
 const LS_KEY = "modelizm_feature_flags";

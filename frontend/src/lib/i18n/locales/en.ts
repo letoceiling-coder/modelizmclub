@@ -41,6 +41,7 @@ export const en: TranslationSchema = {
     admin: "Admin",
     myAds: "My Listings",
     favorites: "Favorites",
+    reviews: "Reviews",
   },
   auth: {
     login: "Sign in",

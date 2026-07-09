@@ -41,6 +41,7 @@ export const zh: TranslationSchema = {
     admin: "管理",
     myAds: "我的广告",
     favorites: "收藏",
+    reviews: "评测",
   },
   auth: {
     login: "登录",

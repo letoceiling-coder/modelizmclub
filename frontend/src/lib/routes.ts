@@ -25,6 +25,9 @@ export const ROUTES = {
   channels: "/channels",
   channel: (id: string) => `/channel/${id}` as const,
   notifications: "/notifications",
+  reviews: "/reviews",
+  review: (id: string) => `/reviews/${id}` as const,
+  reviewUpload: "/reviews/upload",
 } as const;
 
 // Maps sidebar section ids to URL prefixes that should highlight it.
@@ -36,6 +39,8 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   // совпадение, поэтому /ads/new матчится как отдельная секция, а не как /ads.
   "ad-create": ["/ads/new"],
   ads: ["/ads"],
+  "review-upload": ["/reviews/upload"],
+  reviews: ["/reviews"],
   "my-ads": ["/my-ads"],
   favorites: ["/favorites"],
   messenger: ["/messenger"],

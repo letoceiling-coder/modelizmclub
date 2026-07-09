@@ -39,6 +39,7 @@ export const ru = {
     admin: "Админка",
     myAds: "Мои объявления",
     favorites: "Избранное",
+    reviews: "Обзоры",
   },
   auth: {
     login: "Войти",
