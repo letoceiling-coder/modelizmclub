@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PRICING_PLANS, PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
+import { subscriptionEndDate } from "@/lib/subscription";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
@@ -36,10 +37,6 @@ const FREE_LEFT = 3;
 const SUB_TOTAL_DAYS = 365;
 const SUB_DAYS_LEFT = 287;
 const SUB_PLAN_NAME = "Год";
-function subscriptionEndDate(): string {
-  const end = new Date(Date.now() + SUB_DAYS_LEFT * 86400000);
-  return end.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-}
 function daysWord(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;

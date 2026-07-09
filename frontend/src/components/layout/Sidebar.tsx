@@ -5,6 +5,7 @@ import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { subscriptionEndDate } from "@/lib/subscription";
 
 interface Item {
   to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
@@ -83,10 +84,13 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       {/* Compact subscription status — управление только на /subscription */}
       <Link
         to={ROUTES.subscription}
-        className="mt-4 flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-xs transition-colors hover:bg-muted"
+        className="mt-4 flex items-start gap-2 rounded-xl border bg-card px-3 py-2 text-xs transition-colors hover:bg-muted"
       >
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--success, #22c55e)" }} />
-        <span className="font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
+        <span className="mt-[3px] inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--success, #22c55e)" }} />
+        <span className="min-w-0">
+          <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
+          <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>до {subscriptionEndDate()}</span>
+        </span>
       </Link>
 
       <div className="mt-2">
