@@ -42,6 +42,94 @@ function userInitials(name: string): string {
   return (parts[0]?.[0] ?? "").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
 }
 
+function FriendCard({
+  user, isAdded, isPending, online,
+  onToggleFriend, onWriteTo, onViewProfile, onRemoveFriend, onHide, onReport, onBlock,
+}: {
+  user: User;
+  isAdded: boolean;
+  isPending: boolean;
+  online: boolean;
+  onToggleFriend: () => void;
+  onWriteTo: () => void;
+  onViewProfile: () => void;
+  onRemoveFriend: () => void;
+  onHide: () => void;
+  onReport: () => void;
+  onBlock: () => void;
+}) {
+  const interests = user.interests.split(",").slice(0, 3).join(", ");
+  return (
+    <Card
+      className="flex items-center gap-[16px] p-[20px] shadow-none"
+      style={{ borderColor: "var(--border)", borderRadius: 14 }}
+    >
+      <Link to="/user/$id" params={{ id: user.slug ?? user.id }} className="relative shrink-0">
+        <Avatar className="h-[56px] w-[56px]">
+          <AvatarImage src={user.avatar} alt="" />
+          <AvatarFallback
+            className="text-[15px] font-semibold"
+            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+          >
+            {userInitials(user.name)}
+          </AvatarFallback>
+        </Avatar>
+        {online && (
+          <span
+            className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
+            style={{ background: "var(--success)", border: "2px solid var(--background)" }}
+          />
+        )}
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link
+          to="/user/$id"
+          params={{ id: user.slug ?? user.id }}
+          className="block truncate font-semibold text-[15px]"
+          style={{ color: "var(--foreground)" }}
+        >
+          {user.name}
+        </Link>
+        <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          <MapPin size={11} /> <span className="truncate">{user.city}</span>
+        </div>
+        <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
+      </div>
+      <div className="flex shrink-0 items-center gap-[8px]">
+        <Button
+          size="sm"
+          variant={isAdded || isPending ? "outline" : "default"}
+          disabled={isPending}
+          onClick={onToggleFriend}
+          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
+        >
+          {isAdded
+            ? <><Check size={13} /> В друзьях</>
+            : isPending
+            ? <><Clock size={13} /> Заявка отправлена</>
+            : <><UserPlus size={13} /> Добавить</>}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onWriteTo}
+          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
+        >
+          <MessageSquare size={13} /> Написать
+        </Button>
+        <FriendActionsMenu
+          isFriend={isAdded}
+          onViewProfile={onViewProfile}
+          onRemoveFriend={onRemoveFriend}
+          onHide={onHide}
+          onReport={onReport}
+          onBlock={onBlock}
+        />
+      </div>
+    </Card>
+  );
+}
+
 function FriendsPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
@@ -380,76 +468,21 @@ function FriendsPage() {
                 {filteredUsers.map((u) => {
                   const isAdded = added.has(u.id);
                   const isPending = !isAdded && pending.has(u.id);
-                  const interests = u.interests.split(",").slice(0, 3).join(", ");
                   return (
-                    <Card
+                    <FriendCard
                       key={u.id}
-                      className="flex items-center gap-[16px] p-[20px] shadow-none"
-                      style={{ borderColor: "var(--border)", borderRadius: 14 }}
-                    >
-                      <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="relative shrink-0">
-                        <Avatar className="h-[56px] w-[56px]">
-                          <AvatarImage src={u.avatar} alt="" />
-                          <AvatarFallback
-                            className="text-[15px] font-semibold"
-                            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                          >
-                            {userInitials(u.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {isOnline(u) && (
-                          <span
-                            className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
-                            style={{ background: "var(--success)", border: "2px solid var(--background)" }}
-                          />
-                        )}
-                      </Link>
-                      <div className="min-w-0 flex-1">
-                        <Link
-                          to="/user/$id"
-                          params={{ id: u.slug ?? u.id }}
-                          className="block truncate font-semibold text-[15px]"
-                          style={{ color: "var(--foreground)" }}
-                        >
-                          {u.name}
-                        </Link>
-                        <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                          <MapPin size={11} /> <span className="truncate">{u.city}</span>
-                        </div>
-                        <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-[8px]">
-                        <Button
-                          size="sm"
-                          variant={isAdded || isPending ? "outline" : "default"}
-                          disabled={isPending}
-                          onClick={() => toggleFriend(u)}
-                          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
-                        >
-                          {isAdded
-                            ? <><Check size={13} /> В друзьях</>
-                            : isPending
-                            ? <><Clock size={13} /> Заявка отправлена</>
-                            : <><UserPlus size={13} /> Добавить</>}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => writeTo(u)}
-                          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
-                        >
-                          <MessageSquare size={13} /> Написать
-                        </Button>
-                        <FriendActionsMenu
-                          isFriend={isAdded}
-                          onViewProfile={() => viewProfile(u)}
-                          onRemoveFriend={() => removeFriendVia(u)}
-                          onHide={() => hideUserFromList(u)}
-                          onReport={reportUser}
-                          onBlock={() => blockUserVia(u)}
-                        />
-                      </div>
-                    </Card>
+                      user={u}
+                      isAdded={isAdded}
+                      isPending={isPending}
+                      online={isOnline(u)}
+                      onToggleFriend={() => toggleFriend(u)}
+                      onWriteTo={() => writeTo(u)}
+                      onViewProfile={() => viewProfile(u)}
+                      onRemoveFriend={() => removeFriendVia(u)}
+                      onHide={() => hideUserFromList(u)}
+                      onReport={reportUser}
+                      onBlock={() => blockUserVia(u)}
+                    />
                   );
                 })}
               </div>
