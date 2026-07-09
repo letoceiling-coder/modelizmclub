@@ -930,3 +930,24 @@ Optionally `POST /me/view-history` `{ "id", "kind" }` to record a view server-si
 ### 24.8 Обложка профиля
 `PATCH /users/me` already exists; extend it to accept `cover_media_id: string | null` (alongside the existing `avatar_media_id`). `MediaPurpose` gains `"cover"` for `POST /media` uploads.
 - Frontend: `profile.tsx` CoverImage upload → `uploadMedia(file, "cover")` + `updateOwnProfile({ cover_media_id })`.
+
+### 24.9 Email-подтверждение статуса + повторная отправка
+`email_verified: boolean` on the user resource (`GET /users/me` / wherever the current user payload is returned).
+`POST /account/resend-verification-email` → 202, no body. Rate-limited server-side (not a frontend concern).
+- Auth: required.
+- Frontend: `settings.account.tsx` Email card currently shows the real address (already returned by the backend, previously dropped by `mapApiUser` — now carried through) with a "Отправить письмо повторно" button that is a pure demo toast (`Письмо отправлено (демо)`). No verified/unverified status is rendered client-side today, specifically because no `email_verified` field exists to render honestly.
+
+### 24.10 Телефон пользователя
+See #18 for the full write-up (field missing from `RegisterRequest`/`UpdateProfileRequest`, `PhoneInput` component already built and ready). The `settings.account.tsx` Телефон card is a second, independent frontend touch-point for the same missing field — currently `localStorage` (`modelizm_account_extra`), not connected to any endpoint. Once #18 is resolved, this card should switch to reading/writing the real field via `updateOwnProfile`, same as the eventual `register.tsx` fix.
+
+### 24.11 Соцсети пользователя
+`vk_url`, `telegram_url`, `website_url` (all optional strings) on `PATCH /users/me` / the profile resource.
+- Auth: required for writes; public-readable on `GET /users/{id}` if these should show on a public profile (product decision, not specified here).
+- Frontend: `settings.account.tsx` Соцсети card, currently `localStorage` (`modelizm_account_extra`), no format validation beyond trim.
+
+### 24.12 Двухфакторная аутентификация — не реализовано, только placeholder
+`POST /account/2fa/setup` (returns a QR/secret), `POST /account/2fa/verify` (confirms a code), `POST /account/2fa/disable`.
+- Frontend currently ships **only an inert UI placeholder** (a disabled row with a "Скоро" badge, no click handler) — deliberately not an interactive/functional setup flow, to avoid presenting protection that doesn't exist. No client-side 2FA logic exists to wire up; this would be new frontend work, not a connect-the-existing-UI task like the others in this entry.
+
+### 24.13 Привязка способов оплаты — explicitly not simulated
+No saved-payment-method / card-binding UI exists anywhere in the frontend, and none was added as part of the Настройки work. `components/PaymentModal.tsx` is an existing, unused, self-labelled prototype stub for one-shot checkout ("В production будет подключена оплата через ЮKassa или Т-Банк. Сейчас это заглушка для прототипа.") — it is not a saved-methods vault and has no importers. A real payment-method feature requires a PCI-scope decision (tokenized vault via a provider, most likely ЮKassa или Т-Банк per the existing stub's own note) that is out of scope for frontend-only work. No endpoint shape is proposed here since the provider integration approach isn't decided.
