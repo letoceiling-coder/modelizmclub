@@ -1,23 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown,
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Hash,
-} from "lucide-react";
+import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, Hash } from "lucide-react";
 import * as Icons from "lucide-react";
-import type { Community, User } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { onlineFor } from "@/lib/category-online";
-import { fetchCommunities } from "@/lib/api/communities";
-import { searchUsers } from "@/lib/api/social";
-import { useStore } from "@/lib/store";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const COLLAPSE_KEY = "modelizm:feedrail:collapsed";
-
-const COMMUNITY_ICON_MAP: Record<string, typeof Car> = {
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging,
-};
 
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon =
@@ -67,22 +55,6 @@ function CardHeader({ title, to, onCollapse }: { title: string; to: string; onCo
   );
 }
 
-function SkeletonRows({ n }: { n: number }) {
-  return (
-    <div className="space-y-[10px] p-[10px]">
-      {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="flex items-center gap-[10px]">
-          <Skeleton className="h-[30px] w-[30px] shrink-0 rounded-[8px]" />
-          <div className="flex-1 space-y-[6px]">
-            <Skeleton className="h-[10px] rounded-[6px]" style={{ width: `${55 + (i * 13) % 30}%` }} />
-            <Skeleton className="h-[9px] rounded-[6px]" style={{ width: `${35 + (i * 11) % 25}%` }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function FeedRightRail() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -96,21 +68,6 @@ export function FeedRightRail() {
   }, [collapsed]);
 
   const categories = usePostCategories();
-  const blockedUserIds = useStore((s) => s.blockedUserIds);
-
-  const [communities, setCommunities] = useState<Community[] | null>(null);
-  const [people, setPeople] = useState<User[] | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetchCommunities()
-      .then((cs) => { if (alive) setCommunities(cs.filter((c) => !c.joined).slice(0, 3)); })
-      .catch(() => { if (alive) setCommunities([]); });
-    searchUsers("")
-      .then((us) => { if (alive) setPeople(us.slice(0, 6)); })
-      .catch(() => { if (alive) setPeople([]); });
-    return () => { alive = false; };
-  }, []);
 
   if (collapsed) {
     return (
@@ -129,7 +86,6 @@ export function FeedRightRail() {
   }
 
   const topCategories = categories.slice(0, 5);
-  const suggestedPeople = (people ?? []).filter((u) => !blockedUserIds.includes(u.id)).slice(0, 3);
 
   return (
     <aside className="hidden xl:block w-64 shrink-0">
@@ -207,84 +163,6 @@ export function FeedRightRail() {
             })}
           </ul>
         </RailCard>
-
-        {/* Card 2 — Сообщества для вас */}
-        {communities === null ? (
-          <RailCard>
-            <CardHeader title="Сообщества" to="/communities" />
-            <SkeletonRows n={3} />
-          </RailCard>
-        ) : communities.length > 0 ? (
-          <RailCard>
-            <CardHeader title="Сообщества" to="/communities" />
-            <ul className="p-[6px]">
-              {communities.map((c) => {
-                const Icon = COMMUNITY_ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
-                return (
-                  <li key={c.id}>
-                    <Link
-                      to="/communities/$id"
-                      params={{ id: c.id }}
-                      className="flex items-center gap-[10px] rounded-[10px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
-                    >
-                      <span
-                        className="grid h-[30px] w-[30px] shrink-0 place-items-center overflow-hidden rounded-[8px]"
-                        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                      >
-                        {c.avatarImage ? (
-                          <img src={c.avatarImage} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <Icon className="h-[15px] w-[15px]" />
-                        )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
-                          {c.name}
-                        </span>
-                        <span className="mt-[1px] block text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                          {c.members.toLocaleString("ru")} участников
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </RailCard>
-        ) : null}
-
-        {/* Card 3 — Возможные друзья */}
-        {people === null ? (
-          <RailCard>
-            <CardHeader title="Возможные друзья" to="/friends" />
-            <SkeletonRows n={3} />
-          </RailCard>
-        ) : suggestedPeople.length > 0 ? (
-          <RailCard>
-            <CardHeader title="Возможные друзья" to="/friends" />
-            <ul className="p-[6px]">
-              {suggestedPeople.map((u) => (
-                <li key={u.id}>
-                  <Link
-                    to="/user/$id"
-                    params={{ id: u.slug ?? u.id }}
-                    className="flex items-center gap-[10px] rounded-[10px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
-                  >
-                    <img src={u.avatar} alt="" className="h-[30px] w-[30px] shrink-0 rounded-full object-cover" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
-                        {u.name}
-                      </span>
-                      <span className="mt-[1px] block truncate text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                        {u.city}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </RailCard>
-        ) : null}
 
       </div>
     </aside>

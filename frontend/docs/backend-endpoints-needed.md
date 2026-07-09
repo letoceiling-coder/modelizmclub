@@ -385,6 +385,18 @@ site-wide флагов, например `GET /public/feature-flags` →
 для самого админа (который, будучи авторизован, и так может прочитать
 `/admin/settings` напрямую).
 
+**Текущее временное решение (demo/до появления backend):** тоггл
+«Показывать раздел "Сообщества"» добавлен в `/admin` → Настройки →
+Feature flags (демо). Хранит значение в `localStorage`
+(`frontend/src/lib/config/featureFlags.ts`, ключ
+`modelizm_feature_flags`), читается через хук `useFeatureFlag()` в
+Sidebar/BottomNav/лендинге. **Ограничение:** значение не синхронизируется
+между устройствами/браузерами — только client-side per-browser. Когда
+появится `GET /public/feature-flags`, `useFeatureFlag` нужно переключить
+на чтение из него (с локальным кэшем/фоллбэком на localStorage для
+офлайн-режима), а сам admin-тоггл — писать через `PATCH /admin/settings`
+вместо localStorage.
+
 **Текущее frontend-решение (временное, задокументировано в коде):**
 `src/lib/config/featureFlags.ts` — захардкоженная константа
 `FEATURE_FLAGS.communitiesEnabled = false`. Используется в `Sidebar.tsx`,

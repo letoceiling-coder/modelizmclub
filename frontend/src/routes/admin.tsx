@@ -11,6 +11,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, selectors, getState } from "@/lib/store";
+import { useFeatureFlag, setFeatureFlag } from "@/lib/config/featureFlags";
 import { ensureSession } from "@/lib/auth/session";
 import type { Tariff, PromoCode, Banner } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
@@ -1989,9 +1990,32 @@ function SettingsSection() {
     return Array.from(map.entries());
   }, [settings]);
 
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+
   return (
     <div>
       <H>Настройки</H>
+
+      {/* Client-only feature flags — see backend-endpoints-needed.md #17 for
+          the persistent server-side version once it exists. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Feature flags (демо)
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Хранятся локально в браузере (localStorage), не синхронизируются между устройствами.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
+          <input
+            type="checkbox"
+            checked={communitiesEnabled}
+            onChange={(e) => setFeatureFlag("communitiesEnabled", e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Сообщества»</span>
+        </label>
+      </div>
+
       <div style={{ ...card, padding: "24px", maxWidth: "640px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "16px" }}>
           Системные настройки платформы

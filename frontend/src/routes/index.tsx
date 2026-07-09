@@ -15,7 +15,7 @@ import { fetchPopularListings } from "@/lib/api/listings";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
-import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { PRICING_PLANS, PRICING_FEATURES } from "@/lib/config/pricing";
 import type { Ad, Category } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
@@ -357,6 +357,7 @@ const QUICK_KEYS = [
 
 function QuickSections() {
   const { t } = useTranslation();
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   return (
     <Section bg="var(--background-surface)">
       <Eyebrow>{t("landing.quick.eyebrow")}</Eyebrow>
@@ -365,7 +366,7 @@ function QuickSections() {
         {t("landing.quick.subtitle")}
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {QUICK_KEYS.filter((q) => q.key !== "communities" || FEATURE_FLAGS.communitiesEnabled).map(({ icon: Icon, key, to }) => (
+        {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
           <Link key={key} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}

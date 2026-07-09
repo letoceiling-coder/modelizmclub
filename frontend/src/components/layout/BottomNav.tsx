@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
 import { useStore } from "@/lib/store";
-import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
@@ -18,11 +18,11 @@ const ALL_ITEMS: Item[] = [
   { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
   { to: "/profile", label: "Профиль", icon: User, section: "profile" },
 ];
-const ITEMS: Item[] = ALL_ITEMS.filter((i) => i.to !== "/communities" || FEATURE_FLAGS.communitiesEnabled);
-
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const ITEMS = ALL_ITEMS.filter((i) => i.to !== "/communities" || communitiesEnabled);
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useStore((s) =>

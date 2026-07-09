@@ -5,7 +5,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import appCss from "../styles.css?url";
@@ -15,7 +15,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
 import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
-import { I18nProvider } from "@/components/I18nProvider";
+import { I18nProvider, useLocaleFade } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 
@@ -108,8 +108,50 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Toasts render shifted down by roughly their own height from where their
+ * `bottom` offset says they should sit — measured live (Playwright, mobile
+ * AND desktop), reproducible on every mount, independent of the offset
+ * value's source (plain number or calc()). Root cause not isolated (Sonner's
+ * own `--y`/`data-mounted` CSS resolves to the correct translateY(0) when
+ * queried directly, yet the rendered bounding box disagrees) — rather than
+ * block on further Sonner/Chromium internals archaeology, both the mobile
+ * and desktop bottom offsets below are padded by this amount so toasts
+ * clear the fixed BottomNav (mobile) / viewport bottom (desktop) regardless.
+ */
+const TOAST_SHIFT_BUFFER = 70;
+
+/**
+ * Resolves `--bottom-nav-space` (bottom-nav height + safe-area-inset-bottom)
+ * to a real pixel number for Sonner's `mobileOffset.bottom` — Sonner's
+ * positioning math does `parseInt()` on offset values, which silently fails
+ * on a raw `calc(var(...))` string, so this must be a plain number.
+ */
+function useMobileToastOffset(): number {
+  const [offset, setOffset] = useState(76 + TOAST_SHIFT_BUFFER); // SSR/pre-mount fallback: 60px nav + 16px margin
+  useEffect(() => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;height:var(--bottom-nav-space)";
+    document.body.appendChild(probe);
+    const px = probe.getBoundingClientRect().height;
+    document.body.removeChild(probe);
+    if (px > 0) setOffset(px + 16 + TOAST_SHIFT_BUFFER);
+  }, []);
+  return offset;
+}
+
+function FadingOutlet() {
+  const fading = useLocaleFade();
+  return (
+    <div style={{ opacity: fading ? 0 : 1, transition: "opacity 160ms ease" }}>
+      <Outlet />
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const mobileToastOffset = useMobileToastOffset();
   useEffect(() => {
     bindCallAudioUnlock();
     void restoreSession();
@@ -118,20 +160,22 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <ThemeProvider>
-          <Outlet />
+          <FadingOutlet />
           <CallScreen />
           <GroupCallScreen />
           <GroupCallInviteDialog />
-          {/* Desktop: small top offset. Mobile: clear the sticky header +
-              notch so toasts never cover the mobile navigation. */}
+          {/* Bottom-right: clear of the sticky header on all viewports.
+              Mobile offset clears the fixed BottomNav + safe-area so toasts
+              never sit under it (see useMobileToastOffset for why this must
+              be a plain number, not a CSS calc() string). */}
           {/* No richColors: keep toasts in the site's UI Kit style
               (elevated surface + colored left border), not Sonner's
               filled green/red boxes that looked like foreign Laravel flashes. */}
           <Toaster
-            position="top-center"
+            position="bottom-right"
             closeButton
-            offset={{ top: 16 }}
-            mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)" }}
+            offset={{ bottom: 16 + TOAST_SHIFT_BUFFER, right: 16 }}
+            mobileOffset={{ bottom: mobileToastOffset, right: 16, left: 16 }}
           />
         </ThemeProvider>
       </I18nProvider>

@@ -16,7 +16,7 @@ import {
 import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
-  createConversation, uploadChatAttachment, sendAttachmentMessage,
+  uploadChatAttachment, sendAttachmentMessage,
   hideMessageForMe, pinMessage as apiPinMessage,
 } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -28,7 +28,6 @@ import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
-import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import { DialogContextMenu } from "@/components/messenger/DialogContextMenu";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
@@ -272,7 +271,6 @@ function MessengerPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
-  const [createOpen, setCreateOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
@@ -412,28 +410,6 @@ function MessengerPage() {
     () => dlgs.filter((d) => { const m = getMeta(d.id); return m.archived && !m.deletedLocally; }).length,
     [dlgs, dialogMetaMap]
   );
-
-  const handleCreateChat = async (userId: string) => {
-    const partner = userById(userId);
-    if (!partner.numericId) {
-      toast.error("Не удалось открыть диалог");
-      return;
-    }
-    try {
-      const dialog = await createConversation(partner.numericId, meId);
-      const list = await fetchConversations(meId);
-      setDialogs(list);
-      setCreateOpen(false);
-      setActiveId(dialog.id);
-      setMobileView("chat");
-      setShowArchived(false);
-      actions.markRead(dialog.id);
-      toast.success("Чат открыт", { description: "Можете начать переписку прямо сейчас" });
-    } catch {
-      toast.error("Не удалось открыть диалог");
-    }
-  };
-
 
   useEffect(() => {
     if (!scrollRef.current || chatLoading) return;
@@ -646,16 +622,6 @@ function MessengerPage() {
                   aria-label="Поиск диалога"
                 />
               </div>
-              <Button
-                type="button"
-                size="icon"
-                onClick={() => setCreateOpen(true)}
-                aria-label="Новый чат"
-                title="Новый чат"
-                className="shrink-0 rounded-[10px]"
-              >
-                <Plus size={18} />
-              </Button>
             </div>
             <div className="flex items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {([
@@ -1017,7 +983,6 @@ function MessengerPage() {
           )}
         </section>
       </div>
-      <CreateChatDialog open={createOpen} onClose={() => setCreateOpen(false)} onPick={handleCreateChat} />
       <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
       <DialogContextMenu
         point={dialogCtxMenu?.point ?? null}

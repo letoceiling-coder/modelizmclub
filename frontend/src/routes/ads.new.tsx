@@ -9,7 +9,6 @@ import { searchCities } from "@/lib/api/cities";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing } from "@/lib/api/listings";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
-import { SuccessModal } from "@/components/ads/wizard/SuccessModal";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
@@ -21,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ChevronLeft, ChevronRight, Tag, ShoppingCart,
-  ArrowLeftRight, MapPin, Truck, CreditCard,
+  ArrowLeftRight, MapPin, Truck, CreditCard, RefreshCw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/ads/new")({
@@ -73,8 +72,6 @@ function NewAdPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
-  const [success, setSuccess] = useState(false);
-  const [newId, setNewId] = useState<string | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
@@ -104,17 +101,6 @@ function NewAdPage() {
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const resetWizard = () => {
-    setForm(initial);
-    setStep(1);
-    setTouched(new Set());
-    setNewId(null);
-    setSuccess(false);
-    if (cats[0]) {
-      setForm((f) => ({ ...f, categoryId: cats[0].id, subcategoryId: cats[0].subcategories[0]?.id ?? "" }));
-    }
-  };
-
   const submit = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -141,12 +127,11 @@ function NewAdPage() {
         mediaIds,
         publish: true,
       });
-      setNewId(ad.id);
-      setSuccess(true);
+      toast.success("Объявление опубликовано");
+      void navigate({ to: "/my-ads" });
     } catch {
       setSubmitError(true);
       toast.error("Не удалось опубликовать объявление");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -215,19 +200,13 @@ function NewAdPage() {
               disabled={submitting}
               className="h-11 rounded-[var(--r-button)]"
             >
-              <CreditCard size={16} /> {submitting ? "Публикуем…" : "Оплатить 20 ₽ и опубликовать"}
+              {submitting ? <RefreshCw size={16} className="animate-spin" /> : <CreditCard size={16} />}
+              {submitting ? "Публикуется…" : "Оплатить 20 ₽ и опубликовать"}
             </Button>
           )}
         </div>
       </div>
 
-      <SuccessModal
-        open={success}
-        onClose={() => { setSuccess(false); navigate({ to: "/ads" }); }}
-        onView={newId ? () => { setSuccess(false); navigate({ to: "/ads/$id", params: { id: newId } }); } : undefined}
-        onCreateAnother={resetWizard}
-        onGoToList={() => { setSuccess(false); navigate({ to: "/my-ads" }); }}
-      />
     </AppLayout>
   );
 }

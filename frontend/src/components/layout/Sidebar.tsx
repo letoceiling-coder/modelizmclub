@@ -4,7 +4,7 @@ import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, Clipboard
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
-import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 interface Item {
   to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/channels" | "/messenger" | "/friends";
@@ -14,7 +14,7 @@ interface Item {
   authOnly?: boolean;
 }
 
-const items: Item[] = [
+const ALL_ITEMS: Item[] = [
   { to: ROUTES.feed,         labelKey: "nav.feed",     icon: Newspaper,     section: "feed" },
   { to: ROUTES.ads,          labelKey: "nav.catalog",  icon: Megaphone,     section: "ads" },
   { to: ROUTES.adCreate,     labelKey: "nav.adCreate", icon: Plus,          section: "ad-create" },
@@ -24,7 +24,7 @@ const items: Item[] = [
   { to: ROUTES.channels,     labelKey: "nav.channels", icon: Radio,         section: "channels" },
   { to: ROUTES.messenger,    labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.friends,      labelKey: "nav.friends",  icon: UserPlus,      section: "friends" },
-].filter((i) => i.to !== ROUTES.communities || FEATURE_FLAGS.communitiesEnabled);
+];
 
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -32,6 +32,8 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const me = useStore(selectors.currentUser);
   const { t } = useTranslation();
   const isGuest = me.id === "guest";
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const items = ALL_ITEMS.filter((i) => i.to !== ROUTES.communities || communitiesEnabled);
 
   const fullInner = (
     <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
