@@ -876,3 +876,57 @@ image-flow):
   перезагрузку страницы (не персистентный в demo-хранилище), новые
   комментарии синтезируются в рамках сессии (`createVideoComment` в
   demo-ветке возвращает объект локально, не сохраняя его на бэкенде).
+
+---
+
+## 24. Настройки (Personal Cabinet) — аккаунт, уведомления, кошелёк, реквизиты, рейтинг, история
+
+Frontend added a `/settings/*` personal cabinet with working demo UI (localStorage / static mock). The following endpoints are needed to make each section real. All require an authenticated session (Bearer token) unless noted.
+
+### 24.1 Смена пароля
+`POST /account/change-password`
+- Auth: required
+- Body: `{ "current_password": string, "new_password": string }`
+- Response 200: `{ "ok": true }`; 422 on wrong current password / weak new password.
+- Frontend: `settings.account.tsx` submitPassword (currently toast-stub).
+
+### 24.2 Смена email (со подтверждением)
+`POST /account/change-email`
+- Auth: required
+- Body: `{ "new_email": string }`
+- Response 202: `{ "pending": true }` — triggers a verification email; email changes only after the user confirms via the emailed link (`POST /account/confirm-email` or a tokened GET).
+- Frontend: `settings.account.tsx` submitEmail (currently toast-stub).
+
+### 24.3 Настройки уведомлений
+`GET /account/notification-preferences` → `{ "friend_requests": bool, "comments": bool, "likes": bool, "messages": bool, "subscription_posts": bool }`
+`PUT /account/notification-preferences` with the same shape → 200.
+- Auth: required. Also drives real delivery gating (push/email) server-side.
+- Frontend: `settings.notifications.tsx` + `lib/settings-prefs.ts` (currently localStorage `modelizm_notif_prefs`).
+
+### 24.4 Кошелёк
+`GET /wallet` → `{ "balance": number, "currency": "RUB" }`
+`GET /wallet/transactions?per_page=N` → `{ "data": [{ "id": string, "type": "in"|"out", "amount": number, "title": string, "date": ISO8601 }] }`
+- Auth: required.
+- Frontend: `settings.wallet.tsx` (currently `mockWalletBalance` / `mockWalletOperations`). Top-up/withdraw actions are a later scope.
+
+### 24.5 Реквизиты для документов сделок
+`GET /account/requisites` → `{ "full_name": string, "inn": string, "phone": string, "address": string }`
+`PUT /account/requisites` with the same shape → 200.
+- Auth: required. No payment validation in current scope.
+- Frontend: `settings.requisites.tsx` + `lib/settings-prefs.ts` (currently localStorage `modelizm_requisites`).
+
+### 24.6 Рейтинг и отзывы
+`GET /users/{id}/rating` → `{ "average": number, "count": number }`
+`GET /users/{id}/reviews?per_page=N` → `{ "data": [{ "id": string, "author": {...}, "rating": number, "text": string, "date": ISO8601 }] }`
+- Auth: reviews are public-readable for a given profile; the owner sees their own aggregate in settings.
+- Frontend: `settings.rating.tsx` (currently `mockMyRating` / `mockMyReviews`).
+
+### 24.7 История просмотров (server-side personalization)
+`GET /me/view-history?per_page=N` → `{ "data": [{ "id": string, "kind": "ad"|"profile"|"review", "title": string, "thumb": string|null, "viewed_at": ISO8601 }] }`
+Optionally `POST /me/view-history` `{ "id", "kind" }` to record a view server-side (currently recorded client-side via `lib/view-history.ts` on `/ads/$id` and `/reviews/$id` only).
+- Auth: required.
+- Frontend: `settings.history.tsx` (currently localStorage `modelizm_view_history`).
+
+### 24.8 Обложка профиля
+`PATCH /users/me` already exists; extend it to accept `cover_media_id: string | null` (alongside the existing `avatar_media_id`). `MediaPurpose` gains `"cover"` for `POST /media` uploads.
+- Frontend: `profile.tsx` CoverImage upload → `uploadMedia(file, "cover")` + `updateOwnProfile({ cover_media_id })`.
