@@ -196,6 +196,17 @@ export async function fetchListing(uuid: string): Promise<Ad> {
   return mapListing(res.data);
 }
 
+export async function revealSellerPhone(adId: string): Promise<string> {
+  if (isDemoMode()) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const ad = demoListing(adId);
+    if (!ad?.seller?.phone) throw new Error("no phone");
+    return ad.seller.phone;
+  }
+  const res = await api<{ data: { phone: string } }>(`/listings/${adId}/reveal-phone`, { method: "POST" });
+  return res.data.phone;
+}
+
 export async function publishListing(uuid: string): Promise<void> {
   if (isDemoMode()) return;
   await api(`/listings/${uuid}/publish`, { method: "POST" });

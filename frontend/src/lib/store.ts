@@ -76,6 +76,11 @@ export interface AppState {
    *  it earlier would race the fetch-on-mount overwrite (fetchMessages replaces
    *  the whole message array, wiping anything added before it resolves). */
   pendingDialogMessages: Record<ID, string>;
+  /** Revealed seller phone numbers, keyed by ad id. In-memory only — not
+   *  persisted to localStorage. Resets on hard reload by design: a fresh
+   *  page load should never have the number already available, matching
+   *  the click-to-reveal anti-scraping intent (see backend-endpoints-needed.md #22). */
+  revealedPhones: Record<ID, string>;
   currentUserId: ID;
 }
 
@@ -112,6 +117,7 @@ export function createInitialState(): AppState {
     favoriteAdIds: readPersistedFavorites(),
     dialogAdRefs: {},
     pendingDialogMessages: {},
+    revealedPhones: {},
     currentUserId: GUEST_USER.id,
   };
 }
@@ -179,7 +185,8 @@ type Action =
   | { type: "TOGGLE_FAVORITE_AD"; adId: ID }
   | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef }
   | { type: "QUEUE_PENDING_MESSAGE"; dialogId: ID; text: string }
-  | { type: "CLEAR_PENDING_MESSAGE"; dialogId: ID };
+  | { type: "CLEAR_PENDING_MESSAGE"; dialogId: ID }
+  | { type: "SET_REVEALED_PHONE"; adId: ID; phone: string };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -459,6 +466,8 @@ function reducer(s: AppState, a: Action): AppState {
       delete next[a.dialogId];
       return { ...s, pendingDialogMessages: next };
     }
+    case "SET_REVEALED_PHONE":
+      return { ...s, revealedPhones: { ...s.revealedPhones, [a.adId]: a.phone } };
     default:
       return s;
   }
@@ -512,6 +521,7 @@ export const actions = {
   setDialogAd: (dialogId: ID, ref: DialogAdRef) => dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
   queuePendingMessage: (dialogId: ID, text: string) => dispatch({ type: "QUEUE_PENDING_MESSAGE", dialogId, text }),
   clearPendingMessage: (dialogId: ID) => dispatch({ type: "CLEAR_PENDING_MESSAGE", dialogId }),
+  setRevealedPhone: (adId: ID, phone: string) => dispatch({ type: "SET_REVEALED_PHONE", adId, phone }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 
