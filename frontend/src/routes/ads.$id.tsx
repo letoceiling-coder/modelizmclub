@@ -20,6 +20,7 @@ import { useStore, selectors, actions } from "@/lib/store";
 import { createConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { recordView } from "@/lib/view-history";
 
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({
@@ -50,6 +51,7 @@ function AdDetailPage() {
         if (!alive) return;
         setAd(a);
         setState("ok");
+        recordView({ id: a.id, kind: "ad", title: a.title, thumb: a.image });
         fetchListings()
           .then((list) =>
             setSimilar(

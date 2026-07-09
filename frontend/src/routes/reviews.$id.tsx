@@ -14,6 +14,7 @@ import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { recordView } from "@/lib/view-history";
 
 /** Avatar with initials fallback — mirrors PostCard.AuthorAvatar */
 function AuthorAvatar({ src, name }: { src: string; name: string }) {
@@ -79,6 +80,7 @@ function WatchPage() {
         if (!alive) return;
         setVideo(v);
         setState("ok");
+        recordView({ id: v.id, kind: "review", title: v.title, thumb: v.posterUrl });
         setLiked(Boolean(v.isLiked));
         setLikeCount(v.likes);
         fetchVideoComments(v.id).then((cs) => { if (alive) setComments(cs); }).catch(() => {});
