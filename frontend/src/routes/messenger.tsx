@@ -11,7 +11,7 @@ import type { Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
   setDialogs, setDialogMessages, replaceMessage, upsertMessage,
-  GUEST_USER,
+  GUEST_USER, getState,
 } from "@/lib/store";
 import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
@@ -338,7 +338,20 @@ function MessengerPage() {
     let alive = true;
     setChatLoading(true);
     fetchMessages(activeId)
-      .then((msgs) => { if (alive) setDialogMessages(activeId, msgs); })
+      .then(async (msgs) => {
+        if (!alive) return;
+        setDialogMessages(activeId, msgs);
+        const pending = getState().pendingDialogMessages[activeId];
+        if (pending) {
+          actions.clearPendingMessage(activeId);
+          try {
+            const saved = await apiSendMessage(activeId, pending);
+            actions.addMessage(activeId, saved);
+          } catch {
+            /* delivery-choice message is best-effort; conversation itself already exists */
+          }
+        }
+      })
       .catch(() => {})
       .finally(() => { if (alive) setChatLoading(false); });
     return () => { alive = false; };

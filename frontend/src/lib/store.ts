@@ -71,6 +71,11 @@ export interface AppState {
   hiddenUserIds: ID[];
   favoriteAdIds: ID[];
   dialogAdRefs: Record<ID, DialogAdRef>;
+  /** Delivery-choice text queued from ads.$id.tsx, flushed by messenger.tsx
+   *  once its own initial fetchMessages for that dialog has resolved — sending
+   *  it earlier would race the fetch-on-mount overwrite (fetchMessages replaces
+   *  the whole message array, wiping anything added before it resolves). */
+  pendingDialogMessages: Record<ID, string>;
   currentUserId: ID;
 }
 
@@ -106,6 +111,7 @@ export function createInitialState(): AppState {
     hiddenUserIds: [],
     favoriteAdIds: readPersistedFavorites(),
     dialogAdRefs: {},
+    pendingDialogMessages: {},
     currentUserId: GUEST_USER.id,
   };
 }
@@ -171,7 +177,9 @@ type Action =
   | { type: "UNBLOCK_USER"; userId: ID }
   | { type: "HIDE_USER"; userId: ID }
   | { type: "TOGGLE_FAVORITE_AD"; adId: ID }
-  | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef };
+  | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef }
+  | { type: "QUEUE_PENDING_MESSAGE"; dialogId: ID; text: string }
+  | { type: "CLEAR_PENDING_MESSAGE"; dialogId: ID };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -444,6 +452,13 @@ function reducer(s: AppState, a: Action): AppState {
       };
     case "SET_DIALOG_AD":
       return { ...s, dialogAdRefs: { ...s.dialogAdRefs, [a.dialogId]: a.ref } };
+    case "QUEUE_PENDING_MESSAGE":
+      return { ...s, pendingDialogMessages: { ...s.pendingDialogMessages, [a.dialogId]: a.text } };
+    case "CLEAR_PENDING_MESSAGE": {
+      const next = { ...s.pendingDialogMessages };
+      delete next[a.dialogId];
+      return { ...s, pendingDialogMessages: next };
+    }
     default:
       return s;
   }
@@ -495,6 +510,8 @@ export const actions = {
   hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
   toggleFavoriteAd: (adId: ID) => dispatch({ type: "TOGGLE_FAVORITE_AD", adId }),
   setDialogAd: (dialogId: ID, ref: DialogAdRef) => dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
+  queuePendingMessage: (dialogId: ID, text: string) => dispatch({ type: "QUEUE_PENDING_MESSAGE", dialogId, text }),
+  clearPendingMessage: (dialogId: ID) => dispatch({ type: "CLEAR_PENDING_MESSAGE", dialogId }),
   setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 

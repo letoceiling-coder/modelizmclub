@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, selectors, actions } from "@/lib/store";
-import { createConversation, sendMessage } from "@/lib/api/chat";
+import { createConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 
@@ -98,8 +98,7 @@ function AdDetailPage() {
         });
       }
       if (deliveryChoice) {
-        const message = await sendMessage(dialog.id, `📦 Способ получения: ${deliveryChoice}`);
-        actions.addMessage(dialog.id, message);
+        actions.queuePendingMessage(dialog.id, `📦 Способ получения: ${deliveryChoice}`);
       }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
