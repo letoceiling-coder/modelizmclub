@@ -68,10 +68,12 @@ export async function fetchVideos(params: VideoListParams = {}): Promise<Video[]
     if (params.featured) return demoFeaturedVideos();
     return demoVideos(params.q, params.categorySlug);
   }
+  // "all" is a UI sentinel for the "Все" tab — never send it as a real filter.
+  const categorySlug = params.categorySlug && params.categorySlug !== "all" ? params.categorySlug : undefined;
   const res = await api<Paginated<ApiVideo>>("/videos", {
     query: {
       q: params.q || undefined,
-      category: params.categorySlug || undefined,
+      category: categorySlug,
       featured: params.featured ? 1 : undefined,
       sort: "new",
       per_page: 50,
