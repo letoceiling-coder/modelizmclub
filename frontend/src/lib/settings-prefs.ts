@@ -55,3 +55,29 @@ export function setRequisites(r: Requisites): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(REQUISITES_KEY, JSON.stringify(r));
 }
+
+export interface AccountExtra {
+  phone: string;
+  vk: string;
+  telegram: string;
+  website: string;
+}
+
+const ACCOUNT_EXTRA_KEY = "modelizm_account_extra";
+const ACCOUNT_EXTRA_DEFAULTS: AccountExtra = { phone: "", vk: "", telegram: "", website: "" };
+
+export function getAccountExtra(): AccountExtra {
+  if (typeof window === "undefined") return ACCOUNT_EXTRA_DEFAULTS;
+  try {
+    const raw = window.localStorage.getItem(ACCOUNT_EXTRA_KEY);
+    if (!raw) return ACCOUNT_EXTRA_DEFAULTS;
+    return { ...ACCOUNT_EXTRA_DEFAULTS, ...JSON.parse(raw) };
+  } catch {
+    return ACCOUNT_EXTRA_DEFAULTS;
+  }
+}
+
+export function setAccountExtra(v: AccountExtra): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ACCOUNT_EXTRA_KEY, JSON.stringify(v));
+}
