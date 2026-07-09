@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PRICING_PLANS, PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
-import { subscriptionEndDate } from "@/lib/subscription";
+import { subscriptionEndDate, SUB_DAYS_LEFT } from "@/lib/subscription";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
@@ -32,10 +32,10 @@ const FEATURES = PRICING_FEATURES;
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
 
-// Demo subscription state — single source of truth for the countdown.
+// Demo subscription state. SUB_DAYS_LEFT is imported from lib/subscription
+// (single source of truth shared with the sidebar end-date).
 // On the real backend this comes from the user's active subscription record.
 const SUB_TOTAL_DAYS = 365;
-const SUB_DAYS_LEFT = 287;
 const SUB_PLAN_NAME = "Год";
 function daysWord(n: number): string {
   const mod10 = n % 10;
