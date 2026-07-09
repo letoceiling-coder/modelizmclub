@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight, ChevronDown, Plus, Check,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
-  MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays, Boxes,
+  MapPin, Search, Compass, ImageOff, CalendarDays,
+  Target, HeartHandshake, LayoutGrid, Send,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -649,7 +650,7 @@ function PricingSection() {
         {PRICING_PLANS.map((plan) => {
           const accent = Boolean(plan.best);
           return (
-            <div key={plan.id} className="relative flex flex-col p-7" style={{ ...cardStyle, borderColor: accent ? "var(--border-accent)" : "var(--border)", boxShadow: accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)" }}>
+            <div key={plan.id} className="relative flex flex-col p-7" style={{ ...cardStyle, borderColor: accent ? "var(--border-accent)" : "var(--border)", boxShadow: accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)", background: accent ? "color-mix(in oklab, var(--accent) 6%, var(--background-elevated))" : (cardStyle as { background?: string }).background }}>
               {accent && <span className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("landing.pricing.recommended")}</span>}
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{plan.name}</div>
               <div className="mt-3 flex items-baseline gap-2">
@@ -657,7 +658,7 @@ function PricingSection() {
                 <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{plan.period}</span>
               </div>
               {plan.savings && (
-                <div className="mt-1 text-[12px] font-medium" style={{ color: "var(--accent)" }}>{plan.savings}</div>
+                <span className="mt-2 inline-flex w-fit rounded-full px-[10px] py-[3px] text-[11px] font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{plan.savings}</span>
               )}
               <ul className="mt-5 space-y-2.5">
                 {PRICING_FEATURES.map((f) => (
@@ -679,7 +680,9 @@ function PricingSection() {
 }
 
 const VALUE_KEYS = ["focus", "community", "allInOne", "direct"] as const;
-const VALUE_ICONS = [Sparkles, Users2, Boxes, MessageSquare] as const;
+// Distinct, topical icons per value (P1d.17): niche focus, community,
+// everything-in-one, direct deals — instead of near-generic repeats.
+const VALUE_ICONS = [Target, HeartHandshake, LayoutGrid, Send] as const;
 
 function WhyChoose() {
   const { t } = useTranslation();
