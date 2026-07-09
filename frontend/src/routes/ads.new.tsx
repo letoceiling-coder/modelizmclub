@@ -285,7 +285,7 @@ function StepData({
     <section className="space-y-[16px]" onFocusCapture={keepFieldVisible}>
       {form.photos.length > 0 && (
         <Block title="Фотографии">
-          <div className="flex gap-[8px] overflow-x-auto pb-[2px] [scrollbar-width:thin]">
+          <div className="flex gap-[8px] overflow-x-auto pb-[2px] no-scrollbar">
             {form.photos.map((src, i) => (
               <div key={i} className="relative shrink-0">
                 <img

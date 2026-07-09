@@ -316,6 +316,21 @@ html, body {
 
 ::selection { background: var(--accent-soft); color: var(--accent); }
 
+/* Hide the scroll indicator on intentionally-scrollable rows/rails
+   (horizontal chip / category / filter rows, friend strips, etc.) while
+   keeping scrolling fully functional. Single source of truth — replaces the
+   ad-hoc inline [scrollbar-width:none] / [&::-webkit-scrollbar]:hidden patches
+   that were scattered across components. */
+.no-scrollbar {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* legacy Edge/IE */
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;                  /* Chrome/Safari */
+}
+
 /* Shimmer — Framer Motion driven skeleton loading */
 @keyframes shimmer-move {
   0% { transform: translateX(-100%); }

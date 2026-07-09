@@ -63,8 +63,7 @@ export function CategoryChips({ value, onChange }: CategoryChipsProps) {
       )}
       <div
         ref={scrollRef}
-        className="flex gap-[8px] overflow-x-auto pb-[4px]"
-        style={{ scrollbarWidth: "none" }}
+        className="flex gap-[8px] overflow-x-auto pb-[4px] no-scrollbar"
       >
         {all.map((cat) => {
           const active = value === cat.name;

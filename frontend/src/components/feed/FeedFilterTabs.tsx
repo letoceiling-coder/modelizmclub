@@ -23,7 +23,7 @@ export function FeedFilterTabs({ value, onChange }: Props) {
         borderColor: "var(--border)",
       }}
     >
-      <div className="flex gap-[4px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-[4px] overflow-x-auto no-scrollbar">
         {items.map((it) => {
           const active = value === it.id;
           return (

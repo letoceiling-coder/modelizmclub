@@ -79,7 +79,7 @@ export function ListingPreviewCard({ title, price, images, status, category, sub
       </div>
 
       {rest.length > 0 && (
-        <div className="flex gap-[6px] overflow-x-auto px-[14px] pt-[12px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-[6px] overflow-x-auto px-[14px] pt-[12px] no-scrollbar">
           {rest.map((src, i) => (
             <PreviewImg
               key={`${src}-${i}`}

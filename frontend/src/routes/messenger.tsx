@@ -638,7 +638,7 @@ function MessengerPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center gap-[6px] overflow-x-auto no-scrollbar">
               {([
                 { key: "chats-active" as const, label: "Активные" },
                 { key: "channels" as const, label: "Каналы" },

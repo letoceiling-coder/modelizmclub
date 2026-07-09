@@ -785,7 +785,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
       {/* Attachment previews */}
       {pendingAttachments.length > 0 && (
         <div
-          className="flex gap-[8px] overflow-x-auto border-t px-[12px] py-[10px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-[8px] overflow-x-auto border-t px-[12px] py-[10px] no-scrollbar"
           style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
         >
           {pendingAttachments.map((src) => (

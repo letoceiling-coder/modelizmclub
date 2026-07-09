@@ -18,7 +18,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       // Scrollable row, hidden scrollbar
-      "flex w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      "flex w-full overflow-x-auto no-scrollbar",
       // Persistent bottom border — active trigger overlaps it with accent color
       "border-b border-[var(--border)] bg-transparent",
       className,

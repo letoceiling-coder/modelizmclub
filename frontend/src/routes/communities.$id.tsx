@@ -556,7 +556,7 @@ function CommunityDetailPage() {
         </Card>
 
         {/* Tabs */}
-        <nav role="tablist" className="flex items-center gap-[2px] overflow-x-auto" style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}>
+        <nav role="tablist" className="flex items-center gap-[2px] overflow-x-auto no-scrollbar" style={{ borderBottom: "1px solid var(--border)" }}>
           {TABS.map((t) => {
             const active = tab === t.key;
             const count =

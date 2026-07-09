@@ -44,7 +44,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   );
 
   const fullInner = (
-    <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
+    <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4 no-scrollbar">
       <nav className="space-y-0.5">
         {items.map(({ to, labelKey, icon: Icon, section, authOnly }) => {
           if (authOnly && isGuest) return null;

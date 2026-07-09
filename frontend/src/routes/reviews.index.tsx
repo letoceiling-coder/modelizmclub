@@ -66,7 +66,7 @@ function ReviewsPage() {
         />
 
         {/* category tabs — Все first, then alphabetical */}
-        <div className="-mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] pb-[4px] sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] pb-[4px] sm:mx-0 sm:px-0 no-scrollbar">
           {tabs.map((c) => {
             const active = activeCat === c.slug;
             return (

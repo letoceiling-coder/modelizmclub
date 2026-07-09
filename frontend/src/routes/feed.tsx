@@ -178,7 +178,7 @@ function FeedPage() {
         <FeedFilterTabs value={filter} onChange={setFilter} />
 
         {filter === "categories" && (
-          <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0">
+          <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] no-scrollbar lg:mx-0 lg:px-0">
             {categories.map((c) => {
               const active = activeCategory === c.name;
               return (

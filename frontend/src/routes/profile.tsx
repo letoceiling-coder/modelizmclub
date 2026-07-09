@@ -343,7 +343,7 @@ export function ProfileView({
                 ) : (
                   <div className="space-y-[16px]">
                     {isOwn && (
-                      <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] no-scrollbar">
                         {AD_STATUS_FILTERS.map((f) => {
                           const count = f.key === "all" ? userAdsWithStatus.length : userAdsWithStatus.filter((x) => x.status === f.key).length;
                           const active = adFilter === f.key;

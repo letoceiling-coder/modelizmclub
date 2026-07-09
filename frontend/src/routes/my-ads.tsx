@@ -179,7 +179,7 @@ function MyAdsPage() {
         </header>
 
         {/* Stats — compact (Avito-style) */}
-        <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 no-scrollbar">
           <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
           <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
           <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />

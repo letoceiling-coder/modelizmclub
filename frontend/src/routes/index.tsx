@@ -421,8 +421,7 @@ function PopularListings() {
         >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
       </div>
 
-      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-5"
-        style={{ scrollbarWidth: "none" }}
+      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-5"
       >
         {loading ? (
           <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.listings.loading")}</p>
