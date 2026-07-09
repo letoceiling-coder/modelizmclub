@@ -183,6 +183,24 @@ function FriendsPage() {
     });
   }, [q, tab, allUsers, me, blockedUserIds, hiddenUserIds]);
 
+  const added = useMemo(() => new Set(friends.map((f) => f.id)), [friends]);
+
+  const connected = useMemo(() => {
+    return allUsers
+      .filter((u) => added.has(u.id))
+      .filter((u) => {
+        if (blockedUserIds.includes(u.id) || hiddenUserIds.includes(u.id)) return false;
+        const ql = q.toLowerCase();
+        if (!ql) return true;
+        return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
+      })
+      .sort((a, b) => Number(isOnline(b)) - Number(isOnline(a)));
+  }, [allUsers, added, blockedUserIds, hiddenUserIds, q, onlineSet]);
+
+  const recommended = useMemo(() => {
+    return filteredUsers.filter((u) => !added.has(u.id));
+  }, [filteredUsers, added]);
+
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: "Люди", count: allUsers.length },
     { key: "online", label: "Онлайн", count: allUsers.filter((u) => isOnline(u)).length },
@@ -213,8 +231,6 @@ function FriendsPage() {
       toast.error("Не удалось отклонить заявку");
     }
   };
-  const added = new Set(friends.map((f) => f.id));
-
   const toggleFriend = async (u: User) => {
     if (!u.numericId) {
       toast.error("Не удалось определить пользователя");
@@ -450,41 +466,95 @@ function FriendsPage() {
                   })}
                 </div>
               )
-            ) : filteredUsers.length === 0 ? (
+            ) : tab === "online" ? (
+              filteredUsers.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="Никто не в сети"
+                  description="Загляните позже — онлайн-участники появятся здесь"
+                  variant="compact"
+                />
+              ) : (
+                <div className="flex flex-col gap-[10px]">
+                  {filteredUsers.map((u) => {
+                    const isAdded = added.has(u.id);
+                    const isPending = !isAdded && pending.has(u.id);
+                    return (
+                      <FriendCard
+                        key={u.id}
+                        user={u}
+                        isAdded={isAdded}
+                        isPending={isPending}
+                        online={isOnline(u)}
+                        onToggleFriend={() => toggleFriend(u)}
+                        onWriteTo={() => writeTo(u)}
+                        onViewProfile={() => viewProfile(u)}
+                        onRemoveFriend={() => removeFriendVia(u)}
+                        onHide={() => hideUserFromList(u)}
+                        onReport={reportUser}
+                        onBlock={() => blockUserVia(u)}
+                      />
+                    );
+                  })}
+                </div>
+              )
+            ) : connected.length === 0 && recommended.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title={q ? "Никого не найдено" : tab === "online" ? "Никто не в сети" : "Список пуст"}
-                description={
-                  q
-                    ? "Попробуйте изменить запрос"
-                    : tab === "online"
-                    ? "Загляните позже — онлайн-участники появятся здесь"
-                    : "Найдите интересных участников сообщества"
-                }
+                title={q ? "Никого не найдено" : "Список пуст"}
+                description={q ? "Попробуйте изменить запрос" : "Найдите интересных участников сообщества"}
                 variant="compact"
               />
             ) : (
-              <div className="flex flex-col gap-[10px]">
-                {filteredUsers.map((u) => {
-                  const isAdded = added.has(u.id);
-                  const isPending = !isAdded && pending.has(u.id);
-                  return (
-                    <FriendCard
-                      key={u.id}
-                      user={u}
-                      isAdded={isAdded}
-                      isPending={isPending}
-                      online={isOnline(u)}
-                      onToggleFriend={() => toggleFriend(u)}
-                      onWriteTo={() => writeTo(u)}
-                      onViewProfile={() => viewProfile(u)}
-                      onRemoveFriend={() => removeFriendVia(u)}
-                      onHide={() => hideUserFromList(u)}
-                      onReport={reportUser}
-                      onBlock={() => blockUserVia(u)}
-                    />
-                  );
-                })}
+              <div className="flex flex-col gap-[24px]">
+                {connected.length > 0 && (
+                  <div className="flex flex-col gap-[10px]">
+                    <div className="flex items-center gap-[6px] px-[2px]">
+                      <h2 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Мои друзья</h2>
+                      <span className="text-[13px] font-semibold" style={{ color: "var(--foreground-50)" }}>{connected.length}</span>
+                    </div>
+                    {connected.map((u) => (
+                      <FriendCard
+                        key={u.id}
+                        user={u}
+                        isAdded={true}
+                        isPending={false}
+                        online={isOnline(u)}
+                        onToggleFriend={() => toggleFriend(u)}
+                        onWriteTo={() => writeTo(u)}
+                        onViewProfile={() => viewProfile(u)}
+                        onRemoveFriend={() => removeFriendVia(u)}
+                        onHide={() => hideUserFromList(u)}
+                        onReport={reportUser}
+                        onBlock={() => blockUserVia(u)}
+                      />
+                    ))}
+                  </div>
+                )}
+                {recommended.length > 0 && (
+                  <div className="flex flex-col gap-[10px]">
+                    <h2 className="px-[2px] text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Рекомендации</h2>
+                    {recommended.map((u) => {
+                      const isPending = pending.has(u.id);
+                      return (
+                        <FriendCard
+                          key={u.id}
+                          user={u}
+                          isAdded={false}
+                          isPending={isPending}
+                          online={isOnline(u)}
+                          onToggleFriend={() => toggleFriend(u)}
+                          onWriteTo={() => writeTo(u)}
+                          onViewProfile={() => viewProfile(u)}
+                          onRemoveFriend={() => removeFriendVia(u)}
+                          onHide={() => hideUserFromList(u)}
+                          onReport={reportUser}
+                          onBlock={() => blockUserVia(u)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
