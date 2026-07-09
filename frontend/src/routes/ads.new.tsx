@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -270,8 +271,18 @@ function StepData({
   const cityErr = touched.has("city") && !form.city.trim();
   const contactErr = touched.has("contact") && !form.contact.trim();
 
+  // Keep the focused field clear of the mobile soft keyboard + the fixed
+  // wizard footer: on focus, centre the field in the viewport. Delayed so the
+  // keyboard has begun animating before we measure/scroll.
+  const keepFieldVisible = (e: React.FocusEvent<HTMLElement>) => {
+    const t = e.target;
+    if (t instanceof HTMLElement && t.matches("input, textarea, select")) {
+      setTimeout(() => t.scrollIntoView({ block: "center", behavior: "smooth" }), 120);
+    }
+  };
+
   return (
-    <section className="space-y-[16px]">
+    <section className="space-y-[16px]" onFocusCapture={keepFieldVisible}>
       {form.photos.length > 0 && (
         <Block title="Фотографии">
           <div className="flex gap-[8px] overflow-x-auto pb-[2px] [scrollbar-width:thin]">
@@ -384,14 +395,13 @@ function StepData({
               />
             </div>
           </Field>
-          <Field label="Контакт" required error={contactErr ? "Укажите контакт" : undefined}>
-            <Input
-              value={form.contact}
-              onChange={(e) => set("contact", e.target.value)}
+          <Field label="Контакт" required error={contactErr ? "Укажите телефон" : undefined}>
+            <PhoneInput
+              defaultValue={form.contact}
+              onValueChange={(v) => set("contact", v)}
               onBlur={() => touch("contact")}
               error={contactErr}
               className="h-11"
-              placeholder="+7 999 000-00-00"
             />
           </Field>
         </div>
