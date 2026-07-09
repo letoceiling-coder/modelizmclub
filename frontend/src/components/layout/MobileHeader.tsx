@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, MoreHorizontal, Radio, Sun, Moon, Check, Languages, Heart } from "lucide-react";
+import { Bell, Search, MoreHorizontal, Radio, Sun, Moon, Check, Languages, Heart, Clapperboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { useTheme } from "@/components/ThemeProvider";
 import { setLocale, type Locale } from "@/lib/i18n";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 import {
   Drawer,
   DrawerContent,
@@ -105,6 +106,7 @@ function MoreMenu() {
   const { i18n } = useTranslation();
   const lang = (i18n.language as Locale) || "ru";
   const isDark = theme === "dark";
+  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
 
   return (
     <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
@@ -134,6 +136,19 @@ function MoreMenu() {
             <Radio size={20} style={{ color: "var(--foreground-70)" }} />
             <span className="text-[15px] font-medium">Каналы</span>
           </Link>
+
+          {/* Reviews — Sidebar-only section, mirrored here for mobile reachability */}
+          {reviewsEnabled && (
+            <Link
+              to="/reviews"
+              onClick={() => setOpen(false)}
+              className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]"
+              style={{ color: "var(--foreground)" }}
+            >
+              <Clapperboard size={20} style={{ color: "var(--foreground-70)" }} />
+              <span className="text-[15px] font-medium">Обзоры</span>
+            </Link>
+          )}
 
           {/* Theme */}
           <button
