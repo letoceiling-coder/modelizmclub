@@ -182,7 +182,7 @@ export function ProfileView({
       <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
         {/* Cover */}
         <div className="relative">
-          <CoverImage src={user.coverImage} />
+          <CoverImage src={user.coverImage} editable={isOwn} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]" style={{ background: "linear-gradient(to bottom, transparent, color-mix(in oklab, var(--background) 85%, transparent))" }} />
         </div>
 
@@ -773,25 +773,58 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
   );
 }
 
-/** Cover image with a gradient fallback for empty/broken URLs. */
-function CoverImage({ src }: { src?: string }) {
+/** Cover image with a gradient fallback for empty/broken URLs. Owner can upload. */
+function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   const [broken, setBroken] = useState(false);
+  const currentUser = useStore(selectors.currentUser);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const showImg = Boolean(src && src.trim()) && !broken;
-  if (!showImg) {
-    return (
-      <div
-        className="w-full"
-        style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
-      />
-    );
-  }
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const media = await uploadMedia(file, "cover");
+      const url = media.url ?? "";
+      setCurrentUser({ ...currentUser, coverImage: url });
+      void updateOwnProfile({ cover_media_id: media.uuid });
+      toast.success("Обложка обновлена");
+    } catch {
+      toast.error("Не удалось загрузить обложку");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <img
-      src={src}
-      alt=""
-      className="w-full object-cover"
-      style={{ height: "clamp(120px, 22vw, 220px)" }}
-      onError={() => setBroken(true)}
-    />
+    <div className="group relative">
+      {showImg ? (
+        <img src={src} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} onError={() => setBroken(true)} />
+      ) : (
+        <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+      )}
+      {editable && (
+        <>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+          <button
+            type="button"
+            aria-label="Изменить обложку"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
+          >
+            <Camera size={14} /> Обложка
+          </button>
+        </>
+      )}
+    </div>
   );
 }

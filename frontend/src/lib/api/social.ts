@@ -143,6 +143,7 @@ export async function updateOwnProfile(input: {
   bio?: string;
   slug?: string;
   avatar_media_id?: string | null;
+  cover_media_id?: string | null;
 }): Promise<void> {
   if (isDemoMode()) return;
   await api("/users/me", { method: "PATCH", json: input });
