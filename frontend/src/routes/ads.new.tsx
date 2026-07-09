@@ -13,6 +13,7 @@ import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
+import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +35,6 @@ export const Route = createFileRoute("/ads/new")({
 
 type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
-const DELIVERIES = ["СДЭК", "Почта России", "Яндекс Доставка", "Ozon", "Wildberries"];
 const MAX_PHOTOS = 10;
 const STEPS = ["Фото", "Данные", "Превью"];
 
@@ -397,13 +397,13 @@ function StepData({
         </div>
         <Field label="Способы доставки">
           <div className="flex flex-wrap gap-[8px]">
-            {DELIVERIES.map((d) => (
+            {DELIVERY_METHODS.map((m) => (
               <Checkbox
-                key={d}
-                checked={form.deliveries.includes(d)}
-                onChange={() => set("deliveries", form.deliveries.includes(d)
-                  ? form.deliveries.filter((x) => x !== d) : [...form.deliveries, d])}
-                label={d}
+                key={m.id}
+                checked={form.deliveries.includes(m.label)}
+                onChange={() => set("deliveries", form.deliveries.includes(m.label)
+                  ? form.deliveries.filter((x) => x !== m.label) : [...form.deliveries, m.label])}
+                label={m.label}
               />
             ))}
           </div>

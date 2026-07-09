@@ -4,10 +4,10 @@ import { type AdCondition } from "@/lib/mock";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { CitySelect } from "@/components/ads/CitySelect";
+import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
-const DELIVERIES = ["СДЭК", "Почта России", "Яндекс Доставка", "Ozon", "Wildberries"];
 
 export interface FiltersState {
   category: string;            // "Все" | category name
@@ -118,8 +118,8 @@ function Body({ value, onChange, onReset }: Props) {
 
       <Group title="Доставка">
         <div className="flex flex-wrap gap-[6px]">
-          {DELIVERIES.map((d) => (
-            <Checkbox key={d} checked={value.deliveries.includes(d)} onChange={() => toggle("deliveries", d)} label={d} />
+          {DELIVERY_METHODS.map((m) => (
+            <Checkbox key={m.id} checked={value.deliveries.includes(m.label)} onChange={() => toggle("deliveries", m.label)} label={m.label} />
           ))}
         </div>
       </Group>
