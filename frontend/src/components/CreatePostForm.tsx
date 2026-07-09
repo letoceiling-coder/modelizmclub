@@ -3,6 +3,7 @@ import { ImagePlus, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
 const MAX_PHOTOS = 5;
@@ -110,13 +111,13 @@ export function CreatePostForm({
       />
 
       {showEmoji && (
-        <div className="mt-2 flex flex-wrap gap-1.5 rounded-lg border bg-background p-2">
+        <div className="mt-2 grid grid-cols-6 gap-1 rounded-lg border bg-background p-2">
           {QUICK_EMOJI.map((e) => (
             <button
               key={e}
               type="button"
               onClick={() => insertEmoji(e)}
-              className="rounded-md px-1.5 py-1 text-lg leading-none hover:bg-muted"
+              className="grid aspect-square place-items-center rounded-md text-[20px] leading-none transition-colors hover:bg-muted"
             >
               {e}
             </button>
@@ -125,25 +126,23 @@ export function CreatePostForm({
       )}
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <select
+        <NativeSelect
+          aria-label="Категория"
           value={catId}
-          onChange={(e) => {
-            setCatId(e.target.value);
-            const c = categories.find((cc) => cc.id === e.target.value)!;
+          onChange={(v) => {
+            setCatId(v);
+            const c = categories.find((cc) => cc.id === v)!;
             setSubId(c.subcategories[0]?.id ?? "");
           }}
-          className="rounded-lg border bg-background px-3 py-2 text-xs"
-        >
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select
+          options={categories.map((c) => ({ label: c.name, value: c.id }))}
+        />
+        <NativeSelect
+          aria-label="Подкатегория"
           value={subId}
-          onChange={(e) => setSubId(e.target.value)}
+          onChange={setSubId}
           disabled={!cat || cat.subcategories.length === 0}
-          className="rounded-lg border bg-background px-3 py-2 text-xs disabled:opacity-50"
-        >
-          {(cat?.subcategories ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
+          options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
+        />
       </div>
 
       {photos.length > 0 && (
@@ -162,7 +161,7 @@ export function CreatePostForm({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex items-center gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -173,24 +172,27 @@ export function CreatePostForm({
         />
         <button
           type="button"
+          aria-label={`Добавить фото (${photos.length}/${MAX_PHOTOS})`}
           onClick={() => fileRef.current?.click()}
           disabled={photos.length >= MAX_PHOTOS}
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[13px] text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
         >
-          <ImagePlus className="h-3.5 w-3.5" /> Фото {photos.length}/{MAX_PHOTOS}
+          <ImagePlus className="h-4 w-4" /> {photos.length}/{MAX_PHOTOS}
         </button>
         <button
           type="button"
+          aria-label="Эмодзи"
           onClick={() => setShowEmoji((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[13px] transition-colors hover:bg-muted"
+          style={{ color: showEmoji ? "var(--accent)" : "var(--foreground-70)" }}
         >
-          <Smile className="h-3.5 w-3.5" /> Эмоции
+          <Smile className="h-4 w-4" />
         </button>
         <button
           onClick={submit}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+          className="ml-auto inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-6 text-[14px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >
-          <Send className="h-3.5 w-3.5" /> Опубликовать
+          <Send className="h-4 w-4" /> Опубликовать
         </button>
       </div>
     </div>

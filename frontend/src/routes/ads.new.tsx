@@ -17,6 +17,7 @@ import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -512,17 +513,3 @@ function Field({ label, children, required, error }: { label: string; children: 
   );
 }
 
-type SelOpt = string | { label: string; value: string };
-function NativeSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: SelOpt[] }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-11 w-full cursor-pointer rounded-[var(--r-input)] border border-[var(--border)] bg-[var(--background-input)] px-3 text-[14px] text-[var(--foreground)] shadow-sm outline-none transition-colors focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)]"
-    >
-      {options.map((o) => typeof o === "string"
-        ? <option key={o} value={o}>{o}</option>
-        : <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
-}
