@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import type { Ad } from "@/lib/mock";
@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
 import { isDemoMode } from "@/lib/demo-mode";
+import { getToken } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useStore, actions, selectors } from "@/lib/store";
 
@@ -14,6 +15,7 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
   const initial = ad.gallery?.[0] ?? ad.image ?? "";
   const [src, setSrc] = useState(initial);
+  const navigate = useNavigate();
 
   return (
     <Card
@@ -47,6 +49,11 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
           onClick={async (e) => {
             e.preventDefault();
+            if (!getToken() && !isDemoMode()) {
+              toast.info("Войдите, чтобы добавить в избранное");
+              navigate({ to: "/login" });
+              return;
+            }
             const next = !fav;
             actions.toggleFavoriteAd(ad.id);
             if (!isDemoMode()) {

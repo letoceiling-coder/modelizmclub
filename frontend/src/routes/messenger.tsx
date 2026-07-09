@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -43,6 +43,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 export const Route = createFileRoute("/messenger")({
@@ -106,6 +107,7 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
 
 function MessageImage({ src }: { src: string }) {
   const [broken, setBroken] = useState(false);
+  const [open, setOpen] = useState(false);
   if (broken) {
     return (
       <div
@@ -117,13 +119,23 @@ function MessageImage({ src }: { src: string }) {
     );
   }
   return (
-    <img
-      src={src}
-      alt=""
-      className="mb-[6px] max-h-[320px] w-full object-cover"
-      style={{ borderRadius: "12px", maxWidth: 280 }}
-      onError={() => setBroken(true)}
-    />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Открыть фото на весь экран"
+        className="mb-[6px] block cursor-zoom-in p-0"
+      >
+        <img
+          src={src}
+          alt=""
+          className="max-h-[320px] w-full object-cover"
+          style={{ borderRadius: "12px", maxWidth: 280 }}
+          onError={() => setBroken(true)}
+        />
+      </button>
+      {open && <ImageLightbox src={src} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -250,6 +262,7 @@ function MessengerPage() {
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
   const { chat } = Route.useSearch();
+  const navigate = useNavigate();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [text, setText] = useState("");
@@ -265,15 +278,22 @@ function MessengerPage() {
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
 
 
-  // Respond to ?chat= search-param changes (e.g. "Написать" from another page)
+  // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
+  // Deps include `dlgs`, whose reference changes on every store dispatch
+  // (useStore's snapshot memo), not just when dialogs actually change — so
+  // this can re-fire for unrelated updates while `chat` is still set to a
+  // dialog the user just deleted (deselectDialog's navigate() clearing the
+  // URL is async and can lose the race). Guard against re-selecting a
+  // dialog that's been locally deleted.
   useEffect(() => {
     if (!chat) return;
     const dlg = dlgs.find((d) => d.id === chat);
     if (!dlg) return;
+    if (dialogMetaMap[chat]?.deletedLocally) return;
     setActiveId(chat);
     setMobileView("chat");
     if (dlg.unread) actions.markRead(chat);
-  }, [chat, dlgs]);
+  }, [chat, dlgs, dialogMetaMap]);
 
   useEffect(() => {
     let alive = true;
@@ -371,6 +391,7 @@ function MessengerPage() {
     const q = query.trim().toLowerCase();
     const base = dlgs.filter((d) => {
       const m = getMeta(d.id);
+      if (m.deletedLocally) return false;
       return showArchived ? m.archived : !m.archived;
     });
     const searched = !q
@@ -388,7 +409,7 @@ function MessengerPage() {
   }, [dlgs, query, dialogMetaMap, showArchived]);
 
   const archivedCount = useMemo(
-    () => dlgs.filter((d) => getMeta(d.id).archived).length,
+    () => dlgs.filter((d) => { const m = getMeta(d.id); return m.archived && !m.deletedLocally; }).length,
     [dlgs, dialogMetaMap]
   );
 
@@ -424,6 +445,18 @@ function MessengerPage() {
     setMobileView("chat");
     setReplyTo(null);
     actions.markRead(id);
+  };
+
+  // Used after "Удалить чат". Also clears the ?chat= search param when it
+  // points at the deleted dialog — otherwise the sync-from-URL effect above
+  // (deps: [chat, dlgs]) re-fires on the next store dispatch (dlgs gets a new
+  // array reference from useStore's snapshot memo on every dispatch, even
+  // when the dialogs themselves didn't change) and silently re-selects the
+  // just-deleted dialog right back.
+  const deselectDialog = (id: string) => {
+    setActiveId(null);
+    setMobileView("list");
+    if (chat === id) void navigate({ to: "/messenger", search: {} });
   };
 
   const [dialogCtxMenu, setDialogCtxMenu] = useState<{ dialogId: string; point: { x: number; y: number } } | null>(null);
@@ -799,7 +832,13 @@ function MessengerPage() {
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
-                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
+                  <ChatHeaderActions
+                    partnerId={partner!.id}
+                    partnerName={partner!.name}
+                    dialogId={active.id}
+                    pinned={Boolean(active.pinned)}
+                    onDeleted={() => deselectDialog(active.id)}
+                  />
                 </div>
 
 
@@ -1000,6 +1039,12 @@ function MessengerPage() {
           if (!dialogCtxMenu) return;
           if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
           actions.clearHistory(dialogCtxMenu.dialogId);
+        }}
+        onDeleteChat={() => {
+          if (!dialogCtxMenu) return;
+          if (!window.confirm("Удалить чат? Переписка исчезнет из списка.")) return;
+          actions.setDialogMeta(dialogCtxMenu.dialogId, { deletedLocally: true });
+          if (activeId === dialogCtxMenu.dialogId) deselectDialog(dialogCtxMenu.dialogId);
         }}
       />
     </AppLayout>

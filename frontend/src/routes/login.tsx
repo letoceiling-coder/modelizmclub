@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { login } from "@/lib/api/auth";
@@ -97,7 +98,7 @@ function LoginPage() {
     >
       <form onSubmit={submit} className="space-y-[12px]" autoComplete="on">
         <Input required name="email" type="email" autoComplete="email" placeholder={t("auth.email")} error={fieldError} />
-        <Input required name="password" type="password" autoComplete="current-password" placeholder={t("auth.password")} error={fieldError} />
+        <PasswordInput required name="password" autoComplete="current-password" placeholder={t("auth.password")} error={fieldError} />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
             <input type="checkbox" name="remember" defaultChecked style={{ accentColor: "var(--accent)" }} />

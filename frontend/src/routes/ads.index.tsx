@@ -31,6 +31,10 @@ export const Route = createFileRoute("/ads/")({
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 
+// Fetched in batches via per_page/page instead of all at once — keeps the
+// initial catalog payload light (perf, especially on weak mobile networks).
+const PAGE_SIZE = 24;
+
 function countActiveFilters(f: FiltersState): number {
   let n = 0;
   if (f.category !== "Все") n++;
@@ -71,6 +75,9 @@ function CatalogPage() {
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState(search.q ?? "");
 
   useEffect(() => {
@@ -86,13 +93,32 @@ function CatalogPage() {
     setLoadState("loading");
     try {
       const params = buildParams(q, filters, sort);
-      const result = await fetchListings(params);
+      const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: 1 });
       setAds(result);
+      setPage(1);
+      setHasMore(result.length === PAGE_SIZE);
       setLoadState("ok");
     } catch {
       setLoadState("error");
     }
   }, [q, filters, sort]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const params = buildParams(q, filters, sort);
+      const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: nextPage });
+      setAds((prev) => [...prev, ...result]);
+      setPage(nextPage);
+      setHasMore(result.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page, q, filters, sort]);
 
   // Debounced: `load` changes identity on every keystroke into text filters
   // (search query, city — CitySelect's own dropdown-suggestion debounce fires
@@ -296,11 +322,26 @@ function CatalogPage() {
             )}
 
             {loadState === "ok" && ads.length > 0 && (
-              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                {ads.map((ad) => (
-                  <CatalogCard key={ad.id} ad={ad} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+                  {ads.map((ad) => (
+                    <CatalogCard key={ad.id} ad={ad} />
+                  ))}
+                </div>
+                {hasMore && (
+                  <div className="mt-[16px] flex justify-center">
+                    <Button variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
+                      {loadingMore ? (
+                        <>
+                          <RefreshCw size={14} className="mr-[6px] animate-spin" /> Загружаем…
+                        </>
+                      ) : (
+                        "Показать ещё"
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

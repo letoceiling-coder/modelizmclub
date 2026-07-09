@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
 import { useStore } from "@/lib/store";
+import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
@@ -10,13 +11,14 @@ type Item = {
   section: string;
 };
 
-const ITEMS: Item[] = [
+const ALL_ITEMS: Item[] = [
   { to: "/feed", label: "Лента", icon: Newspaper, section: "feed" },
   { to: "/communities", label: "Сообщества", icon: Users2, section: "communities" },
   { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
   { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
   { to: "/profile", label: "Профиль", icon: User, section: "profile" },
 ];
+const ITEMS: Item[] = ALL_ITEMS.filter((i) => i.to !== "/communities" || FEATURE_FLAGS.communitiesEnabled);
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

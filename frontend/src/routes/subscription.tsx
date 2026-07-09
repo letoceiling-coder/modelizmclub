@@ -5,6 +5,7 @@ import { Check, Gift, Zap, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
+import { PRICING_PLANS, PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
@@ -24,29 +25,8 @@ const stagger: Variants = {
   visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
 };
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  savings?: string;
-  best?: boolean;
-}
-
-const PLANS: Plan[] = [
-  { id: "month", name: "Месяц", price: 99, period: "месяц" },
-  { id: "half", name: "Полгода", price: 499, period: "6 месяцев", savings: "Выгода 95 ₽", best: true },
-  { id: "year", name: "Год", price: 799, period: "12 месяцев", savings: "Выгода 389 ₽" },
-];
-
-const FEATURES = [
-  "Доступ ко всем каналам и сообществам",
-  "Размещение объявлений без ограничений",
-  "Сообщения и звонки внутри платформы",
-  "Публикации постов в ленте",
-  "Голосовые сообщения с транскрибацией",
-  "Поддержка приоритетом",
-];
+const PLANS = PRICING_PLANS;
+const FEATURES = PRICING_FEATURES;
 
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
@@ -344,7 +324,7 @@ function SubscriptionPage() {
   );
 }
 
-function PlanCard({ plan }: { plan: Plan }) {
+function PlanCard({ plan }: { plan: PricingPlan }) {
   const best = !!plan.best;
   return (
     <motion.article

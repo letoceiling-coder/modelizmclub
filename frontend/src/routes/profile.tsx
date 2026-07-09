@@ -22,6 +22,7 @@ import { fetchFeed } from "@/lib/api/feed";
 import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { uploadMedia } from "@/lib/api/media";
+import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -589,7 +590,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
             <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="h-11" />
           </Field>
           <Field label="Город">
-            <Input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="Город" className="h-11" />
+            <CitySelect value={draft.city} onChange={(name) => setDraft({ ...draft, city: name })} placeholder="Город" />
           </Field>
           <Field label="О себе">
             <Textarea

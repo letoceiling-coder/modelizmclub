@@ -200,6 +200,14 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
   else if (params.sort === "popular") result = [...result].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
   // "new" — default order (mockAds already sorted newest first)
 
+  // Pagination — mirrors the real API's per_page/page contract so "load more"
+  // behaves the same in demo mode as in prod.
+  if (params.perPage) {
+    const page = params.page && params.page > 1 ? params.page : 1;
+    const start = (page - 1) * params.perPage;
+    result = result.slice(start, start + params.perPage);
+  }
+
   return result;
 }
 

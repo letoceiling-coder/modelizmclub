@@ -4,6 +4,7 @@ import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, Clipboard
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
 
 interface Item {
   to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/channels" | "/messenger" | "/friends";
@@ -23,7 +24,7 @@ const items: Item[] = [
   { to: ROUTES.channels,     labelKey: "nav.channels", icon: Radio,         section: "channels" },
   { to: ROUTES.messenger,    labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.friends,      labelKey: "nav.friends",  icon: UserPlus,      section: "friends" },
-];
+].filter((i) => i.to !== ROUTES.communities || FEATURE_FLAGS.communitiesEnabled);
 
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

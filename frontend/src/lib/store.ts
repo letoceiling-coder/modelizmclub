@@ -47,6 +47,13 @@ export interface DialogMeta {
   muted: boolean;
   blocked: boolean;
   mutedUntil?: string;
+  /** "Удалить чат" — hides the dialog from every tab (unlike "archived", which
+   *  still shows under the Архив tab). No backend DELETE /conversations/{uuid}
+   *  endpoint exists (see backend-endpoints-needed.md), so this is local-only:
+   *  same session-scoped durability as `clearHistory` already has — not
+   *  persisted to localStorage, resets on reload. Not a regression, matches
+   *  the rest of this store's existing behavior. */
+  deletedLocally?: boolean;
 }
 
 export interface AppState {

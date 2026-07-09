@@ -18,9 +18,11 @@ interface Props {
   dialogId?: string;
   pinned?: boolean;
   onSearch?: () => void;
+  /** Called after "Удалить чат" — parent should deselect this dialog. */
+  onDeleted?: () => void;
 }
 
-export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, onSearch }: Props) {
+export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, onSearch, onDeleted }: Props) {
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
   const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
@@ -124,6 +126,18 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
     if (!window.confirm(`Очистить историю переписки с ${partnerName}? Это действие нельзя отменить.`)) return;
     actions.clearHistory(dialogId);
     toast.success("История очищена");
+  };
+
+  // Local-only: no DELETE /conversations/{uuid} on the backend (see
+  // backend-endpoints-needed.md), so this hides the dialog from every tab
+  // for the current session rather than truly deleting it server-side.
+  const deleteChat = () => {
+    close();
+    if (!dialogId) return;
+    if (!window.confirm(`Удалить чат с ${partnerName}? Переписка исчезнет из списка.`)) return;
+    actions.setDialogMeta(dialogId, { deletedLocally: true });
+    toast.success("Чат удалён");
+    onDeleted?.();
   };
 
   const reportUser = () => {
@@ -235,6 +249,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
                 onClick={toggleArchive}
               />
               <Item icon={Trash2} label="Очистить историю" onClick={clearHistory} />
+              <Item icon={Trash2} label="Удалить чат" onClick={deleteChat} danger />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
                 icon={blocked ? ShieldOff : Ban}

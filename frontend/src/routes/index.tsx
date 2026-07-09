@@ -15,6 +15,8 @@ import { fetchPopularListings } from "@/lib/api/listings";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
+import { PRICING_PLANS, PRICING_FEATURES } from "@/lib/config/pricing";
 import type { Ad, Category } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
 import { SOCIAL_LINKS } from "@/lib/footer-links";
@@ -363,7 +365,7 @@ function QuickSections() {
         {t("landing.quick.subtitle")}
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {QUICK_KEYS.map(({ icon: Icon, key, to }) => (
+        {QUICK_KEYS.filter((q) => q.key !== "communities" || FEATURE_FLAGS.communitiesEnabled).map(({ icon: Icon, key, to }) => (
           <Link key={key} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
@@ -636,8 +638,6 @@ function StepsTimeline() {
   );
 }
 
-const PLAN_KEYS = ["start", "month", "year"] as const;
-
 function PricingSection() {
   const { t } = useTranslation();
   return (
@@ -646,19 +646,21 @@ function PricingSection() {
       <Title>{t("landing.pricing.title")}</Title>
       <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
       <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {PLAN_KEYS.map((key) => {
-          const accent = key === "month";
-          const plan = t(`landing.pricing.plans.${key}`, { returnObjects: true }) as { name: string; price: string; period: string; features: string[] };
+        {PRICING_PLANS.map((plan) => {
+          const accent = Boolean(plan.best);
           return (
-            <div key={key} className="relative flex flex-col p-7" style={{ ...cardStyle, borderColor: accent ? "var(--border-accent)" : "var(--border)", boxShadow: accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)" }}>
+            <div key={plan.id} className="relative flex flex-col p-7" style={{ ...cardStyle, borderColor: accent ? "var(--border-accent)" : "var(--border)", boxShadow: accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)" }}>
               {accent && <span className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("landing.pricing.recommended")}</span>}
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{plan.name}</div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{plan.price}</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{plan.price} ₽</span>
                 <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{plan.period}</span>
               </div>
+              {plan.savings && (
+                <div className="mt-1 text-[12px] font-medium" style={{ color: "var(--accent)" }}>{plan.savings}</div>
+              )}
               <ul className="mt-5 space-y-2.5">
-                {plan.features.map((f) => (
+                {PRICING_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm" style={{ color: "var(--foreground-70)" }}>
                     <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} /><span>{f}</span>
                   </li>

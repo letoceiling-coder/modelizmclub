@@ -168,6 +168,11 @@ function AdDetailPage() {
   };
 
   const toggleSave = async () => {
+    if (!getToken() && !isDemoMode()) {
+      toast.info("Войдите, чтобы добавить в избранное");
+      navigate({ to: "/login" });
+      return;
+    }
     actions.toggleFavoriteAd(id);
     if (!isDemoMode()) {
       try {
