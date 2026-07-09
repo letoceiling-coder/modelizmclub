@@ -83,10 +83,6 @@ function AdDetailPage() {
       toast.error("Не удалось открыть диалог с продавцом");
       return;
     }
-    if (me.numericId === sellerId) {
-      toast.info("Это ваше объявление");
-      return;
-    }
     try {
       const dialog = await createConversation(sellerId, me.id, ad.id);
       if (ad) {
@@ -110,6 +106,10 @@ function AdDetailPage() {
     if (!getToken() && !isDemoMode()) {
       toast.info("Войдите, чтобы написать продавцу");
       navigate({ to: "/login" });
+      return;
+    }
+    if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
+      toast.info("Это ваше объявление");
       return;
     }
     if (availableDeliveryMethods.length > 0) {
@@ -320,7 +320,6 @@ function AdDetailPage() {
 
       <DeliveryChoiceSheet
         open={deliveryPickerOpen}
-        onClose={() => setDeliveryPickerOpen(false)}
         methods={availableDeliveryMethods}
         onConfirm={(choice) => {
           setDeliveryPickerOpen(false);

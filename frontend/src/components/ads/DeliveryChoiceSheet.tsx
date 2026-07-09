@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Truck, MapPin } from "lucide-react";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Button } from "@/components/ui/button";
 import { SELF_PICKUP_LABEL } from "@/lib/config/deliveryMethods";
@@ -9,8 +9,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DeliveryChoiceSheetProps {
   open: boolean;
-  onClose: () => void;
   methods: string[];
+  /** Called on both "Продолжить" (choice = selected label) and any dismissal
+   *  (backdrop/Escape/close, choice = null) — there is no separate "cancel
+   *  without proceeding" path; dismissing still opens the conversation, just
+   *  without a delivery-method message. */
   onConfirm: (choice: string | null) => void;
 }
 
@@ -32,7 +35,7 @@ function Body({ methods, selected, onSelect }: { methods: string[]; selected: st
   );
 }
 
-export function DeliveryChoiceSheet({ open, onClose, methods, onConfirm }: DeliveryChoiceSheetProps) {
+export function DeliveryChoiceSheet({ open, methods, onConfirm }: DeliveryChoiceSheetProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -58,6 +61,7 @@ export function DeliveryChoiceSheet({ open, onClose, methods, onConfirm }: Deliv
         <DrawerContent className="pb-[calc(var(--safe-bottom)+16px)]">
           <div className="px-4 pt-2">
             <DrawerTitle className="text-base">Способ получения</DrawerTitle>
+            <DrawerDescription className="sr-only">Выберите способ доставки или самовывоз</DrawerDescription>
           </div>
           <div className="px-4 pb-4 pt-3">
             {body}
@@ -72,6 +76,7 @@ export function DeliveryChoiceSheet({ open, onClose, methods, onConfirm }: Deliv
     <Dialog open={open} onOpenChange={(o) => { if (!o) skip(); }}>
       <DialogContent className="max-w-[440px]">
         <DialogTitle>Способ получения</DialogTitle>
+        <DialogDescription className="sr-only">Выберите способ доставки или самовывоз</DialogDescription>
         {body}
         {confirmButton}
       </DialogContent>
