@@ -98,7 +98,8 @@ function AdDetailPage() {
         });
       }
       if (deliveryChoice) {
-        await sendMessage(dialog.id, `📦 Способ получения: ${deliveryChoice}`);
+        const message = await sendMessage(dialog.id, `📦 Способ получения: ${deliveryChoice}`);
+        actions.addMessage(dialog.id, message);
       }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
