@@ -76,6 +76,10 @@ export interface AdSeller {
   rating: number;
   deals: number;
   since: string;
+  /** Demo-only for now — no backend field exists yet (see
+   *  backend-endpoints-needed.md #22). Populated by makeSeller() below;
+   *  undefined for any seller not in SELLER_PHONES. */
+  phone?: string;
 }
 
 export interface Ad {
@@ -332,9 +336,20 @@ export const posts: Post[] = [
 
 const gal = (seeds: number[], category: string) => seeds.map((s) => categoryPlaceholder(`mz-ad${s}`, category));
 
+const SELLER_PHONES: Record<string, string> = {
+  u1: "+7 901 234-56-01",
+  u2: "+7 901 234-56-02",
+  u3: "+7 901 234-56-03",
+  u4: "+7 901 234-56-04",
+  u5: "+7 901 234-56-05",
+  u6: "+7 901 234-56-06",
+  u7: "+7 901 234-56-07",
+  u8: "+7 901 234-56-08",
+};
+
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
-  return { id: u.id, numericId: u.numericId, name: u.name, avatar: u.avatar, rating, deals, since };
+  return { id: u.id, numericId: u.numericId, name: u.name, avatar: u.avatar, rating, deals, since, phone: SELLER_PHONES[u.id] };
 };
 
 const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]; sellerStats: [number, number, string] }> = [
