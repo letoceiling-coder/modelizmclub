@@ -123,7 +123,7 @@ export async function bookmarkPost(uuid: string, on: boolean): Promise<void> {
   await api(`/posts/${uuid}/bookmark`, { method: on ? "POST" : "DELETE" });
 }
 
-interface ApiComment {
+export interface ApiComment {
   uuid: string;
   body?: string | null;
   author?: ApiPostAuthor | null;
@@ -133,7 +133,7 @@ interface ApiComment {
   created_at?: string;
 }
 
-function mapComment(c: ApiComment): Comment {
+export function mapComment(c: ApiComment): Comment {
   const author = registerAuthor(c.author);
   return {
     id: c.uuid,

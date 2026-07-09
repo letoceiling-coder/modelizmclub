@@ -1,6 +1,7 @@
 import type { Video, VideoCategory, Comment } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { mapComment, type ApiComment } from "./feed";
 import {
   demoVideos,
   demoVideo,
@@ -168,8 +169,8 @@ export async function reactToVideo(uuid: string, on: boolean): Promise<void> {
 
 export async function fetchVideoComments(uuid: string): Promise<Comment[]> {
   if (isDemoMode()) return demoVideoComments(uuid);
-  const res = await api<Paginated<Comment>>(`/videos/${uuid}/comments`);
-  return res.data ?? [];
+  const res = await api<Paginated<ApiComment>>(`/videos/${uuid}/comments`);
+  return (res.data ?? []).map(mapComment);
 }
 
 export async function createVideoComment(
@@ -187,11 +188,11 @@ export async function createVideoComment(
       replies: [],
     };
   }
-  const res = await api<{ data: Comment }>(`/videos/${uuid}/comments`, {
+  const res = await api<{ data: ApiComment }>(`/videos/${uuid}/comments`, {
     method: "POST",
     json: { body, parent_uuid: parentUuid },
   });
-  return res.data;
+  return mapComment(res.data);
 }
 
 // ── Admin management ──────────────────────────────────────────────────────

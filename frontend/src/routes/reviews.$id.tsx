@@ -110,6 +110,8 @@ function WatchPage() {
       } else {
         setComments((prev) => [c, ...prev]);
       }
+    }).catch(() => {
+      toast.error("Не удалось отправить комментарий");
     });
   };
 
