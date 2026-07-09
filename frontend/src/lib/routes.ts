@@ -28,6 +28,7 @@ export const ROUTES = {
   reviews: "/reviews",
   review: (id: string) => `/reviews/${id}` as const,
   reviewUpload: "/reviews/upload",
+  settings: "/settings",
 } as const;
 
 // Maps sidebar section ids to URL prefixes that should highlight it.
@@ -50,6 +51,7 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   help: ["/help"],
   admin: ["/admin"],
   notifications: ["/notifications"],
+  settings: ["/settings"],
 };
 
 export function getActiveSection(pathname: string): string | null {
