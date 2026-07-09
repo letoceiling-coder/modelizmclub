@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Play, Eye, SearchX, RefreshCw } from "lucide-react";
+import { ChevronLeft, Play, Eye, SearchX, RefreshCw, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
-import type { Video } from "@/lib/mock";
-import { fetchVideo, fetchVideos, incrementVideoView } from "@/lib/api/reviews";
+import type { Video, Comment } from "@/lib/mock";
+import { fetchVideo, fetchVideos, incrementVideoView, reactToVideo, fetchVideoComments, createVideoComment } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
+import { CommentSection } from "@/components/feed/CommentSection";
+import { VideoActionsMenu } from "@/components/reviews/VideoActionsMenu";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getToken, ApiError } from "@/lib/api/client";
@@ -31,6 +33,10 @@ function WatchPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewedRef = useRef(false);
 
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [comments, setComments] = useState<Comment[]>([]);
+
   useEffect(() => {
     // Reuse the landing's connection gate — only affects passive/ambient loading.
     if (typeof window === "undefined") return;
@@ -49,6 +55,9 @@ function WatchPage() {
         if (!alive) return;
         setVideo(v);
         setState("ok");
+        setLiked(Boolean(v.isLiked));
+        setLikeCount(v.likes);
+        fetchVideoComments(v.id).then((cs) => { if (alive) setComments(cs); }).catch(() => {});
         fetchVideos({ categorySlug: undefined })
           .then((list) => { if (alive) setRelated(list.filter((x) => x.id !== v.id).slice(0, 8)); })
           .catch(() => {});
@@ -79,6 +88,29 @@ function WatchPage() {
       viewedRef.current = true;
       void incrementVideoView(id).catch(() => {});
     }
+  };
+
+  const toggleLike = () => {
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((n) => n + (next ? 1 : -1));
+    reactToVideo(id, next).catch(() => {
+      setLiked(!next);
+      setLikeCount((n) => n + (next ? -1 : 1));
+      toast.error("Не удалось поставить лайк");
+    });
+  };
+
+  const addComment = (text: string, parentId?: string) => {
+    void createVideoComment(id, text, parentId).then((c) => {
+      if (parentId) {
+        setComments((prev) =>
+          prev.map((p) => (p.id === parentId ? { ...p, replies: [...(p.replies ?? []), c] } : p)),
+        );
+      } else {
+        setComments((prev) => [c, ...prev]);
+      }
+    });
   };
 
   if (state === "loading") {
@@ -182,7 +214,31 @@ function WatchPage() {
           )}
         </div>
 
-        {/* SOCIAL BLOCK SLOT — Task 7 inserts the like button + comments here */}
+        <div className="flex items-center gap-[8px] border-y py-[12px]" style={{ borderColor: "var(--border)" }}>
+          <button
+            type="button"
+            onClick={toggleLike}
+            aria-pressed={liked}
+            className="inline-flex items-center gap-[6px] rounded-full px-[14px] py-[8px] text-[13px] font-medium transition-colors"
+            style={{
+              background: liked ? "var(--accent-soft)" : "var(--background-surface)",
+              color: liked ? "var(--accent)" : "var(--foreground-70)",
+              border: `1px solid ${liked ? "var(--border-accent)" : "var(--border)"}`,
+            }}
+          >
+            <Heart size={15} fill={liked ? "currentColor" : "none"} /> {likeCount}
+          </button>
+          <div className="ml-auto">
+            <VideoActionsMenu videoId={video.id} />
+          </div>
+        </div>
+
+        <section className="space-y-[12px]">
+          <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+            Комментарии
+          </h2>
+          <CommentSection comments={comments} onAdd={addComment} />
+        </section>
 
         {/* related videos */}
         {related.length > 0 && (
