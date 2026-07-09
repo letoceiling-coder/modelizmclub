@@ -104,7 +104,7 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
         </Button>
         {phoneRevealState === "revealed" && revealedPhone ? (
           <Button asChild variant="outline" size="lg" className="w-full rounded-[var(--r-button)]">
-            <a href={`tel:${revealedPhone.replace(/\s|-/g, "")}`}>
+            <a href={`tel:${revealedPhone.replace(/[^\d+]/g, "")}`}>
               <Phone size={16} /> {revealedPhone}
             </a>
           </Button>
