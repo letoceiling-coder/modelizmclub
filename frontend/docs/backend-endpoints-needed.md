@@ -781,9 +781,9 @@ image-flow):
 2. **`GET /admin/moderation`** должен уметь возвращать элементы очереди с
    `moderatable_type: "videos"` вперемешку с существующими типами (или
    через фильтр `?type=videos` — как уже работает для `posts`/`communities`).
-3. Честь эндпоинты `POST /admin/moderation/videos/{id}/approve`,
+3. Поддержать эндпоинты `POST /admin/moderation/videos/{id}/approve`,
    `POST /admin/moderation/videos/{id}/reject`,
-   `POST /admin/moderation/videos/{id}/revise` — с теми же request/response
+   `POST /admin/moderation/videos/{id}/revision` — с теми же request/response
    формами, что уже приняты для `posts`/`communities` (тело/ответ уже
    задокументированы в соответствующих более ранних записях этого файла —
    для видео повторить один в один, меняя только `{type}` в пути на
