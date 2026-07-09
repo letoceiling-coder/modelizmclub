@@ -765,3 +765,20 @@ export const promoCodes: PromoCode[] = [
   { id: "pr2", code: "MODELIZM", discount: 15, usedCount: 128, limit: 500, expiresAt: "2026-09-30", status: "active" },
   { id: "pr3", code: "HALFPRICE", discount: 50, usedCount: 5, limit: 20, expiresAt: "2026-03-01", status: "expired" },
 ];
+
+export interface WalletOperation {
+  id: string;
+  type: "in" | "out";
+  amount: number;
+  title: string;
+  date: string;
+}
+
+export const mockWalletBalance = 4250;
+
+export const mockWalletOperations: WalletOperation[] = [
+  { id: "w1", type: "in", amount: 1500, title: "Пополнение баланса", date: "2026-07-06T12:00:00Z" },
+  { id: "w2", type: "out", amount: 490, title: "Продвижение объявления", date: "2026-07-05T09:30:00Z" },
+  { id: "w3", type: "in", amount: 3200, title: "Продажа: RC багги HB Racing", date: "2026-07-02T16:45:00Z" },
+  { id: "w4", type: "out", amount: 160, title: "Комиссия сервиса", date: "2026-07-02T16:45:00Z" },
+];
