@@ -40,6 +40,7 @@ export function mapApiUser(u: ApiUser): User {
     city: u.profile?.city?.name ?? "",
     interests,
     avatar: u.profile?.avatar?.url ?? avatarFallback(name),
+    email: u.email ?? undefined,
     bio: u.profile?.bio ?? undefined,
     isAdmin: u.role === "admin",
   };

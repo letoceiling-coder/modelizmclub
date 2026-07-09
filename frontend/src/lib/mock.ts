@@ -11,6 +11,7 @@ export interface User {
   city: string;
   interests: string;
   avatar: string;
+  email?: string;
   subscription?: "Тестовый" | "Месяц" | "Полгода" | "Год" | null;
   bio?: string;
   status?: string;

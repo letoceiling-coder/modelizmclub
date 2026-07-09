@@ -54,6 +54,7 @@ export const DEMO_USER: User = {
     "https://api.dicebear.com/7.x/initials/svg?seed=" +
     encodeURIComponent("Алексей Крылов") +
     "&backgroundColor=627fff,3f4fbf,1976d2",
+  email: "alexey.krylov@modelizmclub.ru",
   subscription: "Год",
   bio: "Пилот RC-авиации и багги 1:8. Строю, летаю, гоняю. Собираю сообщество моделистов Краснодара.",
   status: "Основатель · МоДелизМ Pro",
