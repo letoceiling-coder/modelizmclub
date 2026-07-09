@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
-import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
+import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, revealSellerPhone } from "@/lib/api/listings";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds } from "@/components/ads/SimilarAds";
@@ -76,6 +76,27 @@ function AdDetailPage() {
     () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
     [ad],
   );
+
+  const revealedPhone = useStore((s) => s.revealedPhones[id]) ?? null;
+  const [phoneLoading, setPhoneLoading] = useState(false);
+
+  const revealPhone = async () => {
+    if (!getToken() && !isDemoMode()) {
+      toast.info("Войдите, чтобы посмотреть номер");
+      navigate({ to: "/login" });
+      return;
+    }
+    if (revealedPhone || phoneLoading) return;
+    setPhoneLoading(true);
+    try {
+      const phone = await revealSellerPhone(id);
+      actions.setRevealedPhone(id, phone);
+    } catch {
+      toast.error("Не удалось получить номер");
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
 
   const proceedToConversation = async (deliveryChoice: string | null) => {
     const sellerId = ad?.seller?.numericId;
@@ -244,6 +265,9 @@ function AdDetailPage() {
               onWrite={writeToSeller}
               onToggleSave={toggleSave}
               onShare={share}
+              phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
+              revealedPhone={revealedPhone}
+              onRevealPhone={() => void revealPhone()}
             />
           </div>
         </div>
