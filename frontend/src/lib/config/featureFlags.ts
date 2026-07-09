@@ -21,7 +21,7 @@ export interface FeatureFlags {
 
 const DEFAULTS: FeatureFlags = {
   communitiesEnabled: false,
-  reviewsEnabled: false,
+  reviewsEnabled: true,
 };
 
 const LS_KEY = "modelizm_feature_flags";
