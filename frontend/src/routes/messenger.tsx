@@ -343,12 +343,13 @@ function MessengerPage() {
         setDialogMessages(activeId, msgs);
         const pending = getState().pendingDialogMessages[activeId];
         if (pending) {
-          actions.clearPendingMessage(activeId);
           try {
             const saved = await apiSendMessage(activeId, pending);
             actions.addMessage(activeId, saved);
           } catch {
             /* delivery-choice message is best-effort; conversation itself already exists */
+          } finally {
+            actions.clearPendingMessage(activeId);
           }
         }
       })
@@ -363,6 +364,7 @@ function MessengerPage() {
     const id = activeId;
     const tick = () => {
       if (isEchoConnected()) return;
+      if (getState().pendingDialogMessages[id]) return; // avoid clobbering while the delivery-choice flush (other effect) is in flight
       fetchMessages(id)
         .then((msgs) => setDialogMessages(id, msgs))
         .catch(() => {});
