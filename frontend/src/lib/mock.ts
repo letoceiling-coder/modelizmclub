@@ -782,3 +782,20 @@ export const mockWalletOperations: WalletOperation[] = [
   { id: "w3", type: "in", amount: 3200, title: "Продажа: RC багги HB Racing", date: "2026-07-02T16:45:00Z" },
   { id: "w4", type: "out", amount: 160, title: "Комиссия сервиса", date: "2026-07-02T16:45:00Z" },
 ];
+
+export interface MyReview {
+  id: string;
+  author: string;
+  avatar: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+
+export const mockMyRating = { average: 4.8, count: 27 };
+
+export const mockMyReviews: MyReview[] = [
+  { id: "r1", author: "Сергей ДВС", avatar: avatar("Сергей ДВС"), rating: 5, text: "Отличная сделка, багги в идеале. Всё честно, рекомендую!", date: "2026-07-04T10:00:00Z" },
+  { id: "r2", author: "Михаил Квадро", avatar: avatar("Михаил Квадро"), rating: 5, text: "Быстро ответил, помог с настройкой. Спасибо!", date: "2026-06-28T14:20:00Z" },
+  { id: "r3", author: "Дмитрий Моделист", avatar: avatar("Дмитрий Моделист"), rating: 4, text: "Хороший продавец, доставка чуть задержалась, но товар соответствует.", date: "2026-06-20T09:15:00Z" },
+];
