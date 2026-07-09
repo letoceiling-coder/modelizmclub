@@ -18,6 +18,8 @@ import {
   registerUser,
   adById,
   communityById,
+  mockVideos,
+  mockVideoCategories,
   type User,
   type Post,
   type Ad,
@@ -27,6 +29,9 @@ import {
   type Category,
   type Banner,
   type ID,
+  type Comment,
+  type Video,
+  type VideoCategory,
 } from "@/lib/mock";
 import {
   setCurrentUser,
@@ -598,4 +603,58 @@ export function demoFaq(): DemoFaqCategory[] {
 
 export function demoStats(): { firstHundred: { taken: number; total: number } } {
   return { firstHundred: firstHundredStats };
+}
+
+// ── reviews / videos ─────────────────────────────────────────────────────────
+const videoViewOverrides = new Map<ID, number>();
+const sessionVideos: Video[] = []; // videos uploaded during this demo session
+
+function allDemoVideos(): Video[] {
+  return [...sessionVideos, ...mockVideos].map((v) => ({
+    ...v,
+    views: v.views + (videoViewOverrides.get(v.id) ?? 0),
+  }));
+}
+
+export function demoVideoCategories(): VideoCategory[] {
+  return mockVideoCategories;
+}
+
+export function demoVideos(query?: string, categorySlug?: string): Video[] {
+  let list = allDemoVideos();
+  if (categorySlug && categorySlug !== "all") {
+    const cat = mockVideoCategories.find((c) => c.slug === categorySlug);
+    if (cat) list = list.filter((v) => v.categoryId === cat.id);
+  }
+  if (query) {
+    const q = query.toLowerCase();
+    const catName = (id: ID) => mockVideoCategories.find((c) => c.id === id)?.name.toLowerCase() ?? "";
+    list = list.filter(
+      (v) =>
+        v.title.toLowerCase().includes(q) ||
+        v.tags.some((t) => t.toLowerCase().includes(q)) ||
+        catName(v.categoryId).includes(q),
+    );
+  }
+  return list.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)); // newest first
+}
+
+export function demoVideo(id: ID): Video | null {
+  return allDemoVideos().find((v) => v.id === id) ?? null;
+}
+
+export function demoFeaturedVideos(): Video[] {
+  return allDemoVideos().filter((v) => v.isFeatured).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+export function demoIncrementVideoView(id: ID): void {
+  videoViewOverrides.set(id, (videoViewOverrides.get(id) ?? 0) + 1);
+}
+
+export function demoVideoComments(id: ID): Comment[] {
+  return allDemoVideos().find((v) => v.id === id)?.commentList ?? [];
+}
+
+export function demoAddVideo(v: Video): void {
+  sessionVideos.unshift(v);
 }

@@ -41,6 +41,33 @@ export interface Comment {
   replies?: Comment[];
 }
 
+export interface VideoCategory {
+  id: ID;
+  name: string;
+  slug: string;
+}
+
+export interface Video {
+  id: ID;                    // uuid
+  title: string;
+  description: string;
+  categoryId: ID;            // -> VideoCategory.id
+  posterUrl: string;
+  videoUrl: string;
+  durationSeconds: number;
+  views: number;             // passive watch counter, separate from likes/comments
+  isFeatured: boolean;       // hero-carousel curation
+  tags: string[];
+  publishedAt: string;       // ISO date, newest-first sort key
+  uploaderId: ID;
+  status: "processing" | "published";
+  // Social fields — mirror the relevant Post interaction fields. Likes + comments only.
+  likes: number;
+  comments: number;
+  isLiked?: boolean;
+  commentList?: Comment[];   // the SAME Comment type, reused unchanged
+}
+
 export interface Post {
   id: ID;
   authorId: ID;
@@ -420,6 +447,39 @@ export const communities: Community[] = [
   { id: "g6", name: "Кружок судомоделистов", description: "Клуб судомоделизма: катера, парусники, соревнования.", fullDescription: "Один из старейших кружков судомоделизма в России. Проводим занятия по постройке катеров и парусников, организуем региональные соревнования, помогаем с реставрацией исторических моделей.", members: 540, category: "Корабли", avatarIcon: "Ship", adminId: "u5", postIds: [], coverImage: photo(306), avatarImage: photo(406), contacts: { phone: "+7 343 000-00-00" }, allowSubmitPost: true },
   { id: "g7", name: "DIY Электроника", description: "Сообщество DIY-инженеров: ESC, телеметрия, прошивки.", fullDescription: "Сообщество для тех, кто любит паять и проектировать электронику для RC-моделей. Совместные проекты, разбор схем, обзоры компонентов, помощь в отладке.", members: 890, category: "Электроника", avatarIcon: "Cpu", adminId: "u6", postIds: ["p5"], coverImage: photo(307), avatarImage: photo(407), contacts: { website: "https://diy-rc.ru" }, allowSubmitPost: true },
   { id: "g8", name: "Школа батарей", description: "Обучение работе с LiPo, Li-ion, NiMH: эксплуатация и безопасность.", fullDescription: "Образовательный канал по аккумуляторам: подбор, эксплуатация, безопасность, утилизация. Видеоуроки, чек-листы, обзоры зарядных устройств.", members: 670, category: "Аккумуляторы", avatarIcon: "BatteryCharging", adminId: "u2", postIds: [], coverImage: photo(308), avatarImage: photo(408), contacts: {}, allowSubmitPost: false },
+];
+
+export const mockVideoCategories: VideoCategory[] = [
+  { id: "vc-avia",   name: "Авиация",          slug: "aviaciya" },
+  { id: "vc-auto",   name: "Автомодели",       slug: "avtomodeli" },
+  { id: "vc-kvadro", name: "Квадрокоптеры",    slug: "kvadrokoptery" },
+  { id: "vc-korabli",name: "Корабли",          slug: "korabli" },
+  { id: "vc-radio",  name: "Радиоаппаратура",  slug: "radioapparatura" },
+  { id: "vc-elektro",name: "Электроника",      slug: "elektronika" },
+];
+
+const DEMO_VIDEO_SRC = "/videos/demo-review-sample.mp4"; // bundled in Task 3
+
+// Deterministic seeded catalog. All videoUrl point at the one bundled sample.
+// publishedAt staggered (newest first is visibly meaningful). Several featured.
+export const mockVideos: Video[] = [
+  { id: "v1", title: "Первый полёт FPV-крыла: настройка и тримминг", description: "Полный разбор сборки и первого запуска FPV-крыла, настройка аппаратуры и полётного контроллера.", categoryId: "vc-avia", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 754, views: 12480, isFeatured: true, tags: ["FPV", "крыло", "настройка"], publishedAt: "2026-07-08T10:00:00Z", uploaderId: "u1", status: "published", likes: 342, comments: 2, commentList: [
+    cmt("vc1", "u2", "1 ч назад", "Отличная настройка тримминга! Какой приёмник используешь?", 4),
+    cmt("vc2", "u3", "40 мин назад", "Давно искал такой разбор, спасибо!", 1),
+  ] },
+  { id: "v2", title: "Багги 1:8 ДВС — обкатка нового мотора Picco", description: "Обкатываем свежий мотор, замеряем температуру, подбираем иглы карбюратора.", categoryId: "vc-auto", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 1263, views: 8320, isFeatured: true, tags: ["багги", "ДВС", "обкатка"], publishedAt: "2026-07-07T14:30:00Z", uploaderId: "u2", status: "published", likes: 210, comments: 1, commentList: [
+    cmt("vc3", "u4", "2 ч назад", "Какие иглы в итоге подошли лучше?", 2),
+  ] },
+  { id: "v3", title: "Квадрокоптер 5\" фристайл — сборка с нуля", description: "Собираем фристайл-квадрик, паяем, прошиваем Betaflight.", categoryId: "vc-kvadro", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 2105, views: 21050, isFeatured: true, tags: ["квадрокоптер", "фристайл", "Betaflight"], publishedAt: "2026-07-06T09:15:00Z", uploaderId: "u3", status: "published", likes: 560, comments: 3, commentList: [
+    cmt("vc4", "u5", "5 ч назад", "Какие настройки PID использовал в итоге?", 6),
+    cmt("vc5", "u6", "3 ч назад", "Крутая сборка, повторю себе такую же", 2),
+    cmt("vc6", "u7", "1 ч назад", "А рама какая? Ссылку скинь", 0),
+  ] },
+  { id: "v4", title: "RC-катер из стеклопластика — первый спуск на воду", description: "Ходовые испытания самодельного катера на пруду.", categoryId: "vc-korabli", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 489, views: 5410, isFeatured: false, tags: ["катер", "стеклопластик"], publishedAt: "2026-07-05T18:00:00Z", uploaderId: "u5", status: "published", likes: 98, comments: 0 },
+  { id: "v5", title: "Обзор аппаратуры RadioMaster TX16S MKII", description: "Разбираем флагманский пульт, прошивка EdgeTX, модуль ELRS.", categoryId: "vc-radio", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 933, views: 15600, isFeatured: false, tags: ["аппаратура", "EdgeTX", "ELRS"], publishedAt: "2026-07-04T11:00:00Z", uploaderId: "u4", status: "published", likes: 401, comments: 1 },
+  { id: "v6", title: "Пайка ESC и настройка регулятора Hobbywing", description: "Аккуратная пайка силовых проводов и калибровка регулятора.", categoryId: "vc-elektro", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 671, views: 7230, isFeatured: false, tags: ["ESC", "пайка", "Hobbywing"], publishedAt: "2026-07-03T16:45:00Z", uploaderId: "u7", status: "published", likes: 156, comments: 0 },
+  { id: "v7", title: "Пилотаж на самолёте 3D — базовые фигуры", description: "Учимся крутить харрикейн и торк-роллы на пилотажке.", categoryId: "vc-avia", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 1420, views: 9840, isFeatured: false, tags: ["самолёт", "3D", "пилотаж"], publishedAt: "2026-07-02T12:20:00Z", uploaderId: "u8", status: "published", likes: 233, comments: 0 },
+  { id: "v8", title: "Тюнинг подвески туринга 1:10", description: "Настройка развала, клиренса и жёсткости для асфальта.", categoryId: "vc-auto", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 812, views: 6120, isFeatured: false, tags: ["туринг", "подвеска", "тюнинг"], publishedAt: "2026-07-01T08:00:00Z", uploaderId: "u4", status: "published", likes: 187, comments: 0 },
 ];
 
 const _ago = (minutes: number): string =>
