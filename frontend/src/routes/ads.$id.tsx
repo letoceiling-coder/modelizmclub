@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
 import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
@@ -7,6 +7,8 @@ import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds } from "@/components/ads/SimilarAds";
 import { AdActionPanel } from "@/components/ads/AdActionPanel";
+import { DeliveryChoiceSheet } from "@/components/ads/DeliveryChoiceSheet";
+import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { AdDetailSkeleton } from "@/components/ads/AdDetailSkeleton";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, selectors, actions } from "@/lib/store";
-import { createConversation } from "@/lib/api/chat";
+import { createConversation, sendMessage } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 
@@ -68,12 +70,14 @@ function AdDetailPage() {
     };
   }, [id]);
 
-  const writeToSeller = async () => {
-    if (!getToken() && !isDemoMode()) {
-      toast.info("Войдите, чтобы написать продавцу");
-      navigate({ to: "/login" });
-      return;
-    }
+  const [deliveryPickerOpen, setDeliveryPickerOpen] = useState(false);
+
+  const availableDeliveryMethods = useMemo(
+    () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
+    [ad],
+  );
+
+  const proceedToConversation = async (deliveryChoice: string | null) => {
     const sellerId = ad?.seller?.numericId;
     if (!sellerId || !me) {
       toast.error("Не удалось открыть диалог с продавцом");
@@ -93,10 +97,26 @@ function AdDetailPage() {
           image: ad.gallery?.[0] ?? ad.image,
         });
       }
+      if (deliveryChoice) {
+        await sendMessage(dialog.id, `📦 Способ получения: ${deliveryChoice}`);
+      }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
       toast.error("Не удалось открыть диалог");
     }
+  };
+
+  const writeToSeller = async () => {
+    if (!getToken() && !isDemoMode()) {
+      toast.info("Войдите, чтобы написать продавцу");
+      navigate({ to: "/login" });
+      return;
+    }
+    if (availableDeliveryMethods.length > 0) {
+      setDeliveryPickerOpen(true);
+      return;
+    }
+    await proceedToConversation(null);
   };
 
   if (state === "loading") {
@@ -297,6 +317,16 @@ function AdDetailPage() {
 
         <SimilarAds items={similar} />
       </div>
+
+      <DeliveryChoiceSheet
+        open={deliveryPickerOpen}
+        onClose={() => setDeliveryPickerOpen(false)}
+        methods={availableDeliveryMethods}
+        onConfirm={(choice) => {
+          setDeliveryPickerOpen(false);
+          void proceedToConversation(choice);
+        }}
+      />
     </AppLayout>
   );
 }
