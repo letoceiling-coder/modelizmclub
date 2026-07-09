@@ -12,9 +12,13 @@ interface Props {
   rightColumn?: ReactNode | false;
   navCollapsed?: boolean;
   footer?: boolean;
+  /** Replaces the default app <Sidebar> — e.g. a takeover nav for a
+   *  sub-section (Настройки) so two left-column navs never show at once.
+   *  Omit for the default Sidebar; pass `false` to render no left column. */
+  sidebar?: ReactNode | false;
 }
 
-export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props) {
+export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar }: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
@@ -38,7 +42,7 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props
           lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0
         "
       >
-        <Sidebar collapsed={navCollapsed} />
+        {sidebar === false ? null : sidebar ?? <Sidebar collapsed={navCollapsed} />}
         {/* Center column: the only scroll zone on desktop. */}
         <main
           className={cn(
