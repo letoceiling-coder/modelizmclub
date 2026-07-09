@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart, Clapperboard, Settings } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart, Clapperboard, Settings, Crown } from "lucide-react";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
@@ -84,9 +84,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       {/* Compact subscription status — управление только на /subscription */}
       <Link
         to={ROUTES.subscription}
-        className="mt-4 flex items-start gap-2 rounded-xl border bg-card px-3 py-2 text-xs transition-colors hover:bg-muted"
+        className="mt-4 flex items-center gap-[10px] rounded-xl px-3 py-[10px] text-xs transition-colors hover:bg-muted"
+        style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
       >
-        <span className="mt-[3px] inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--success, #22c55e)" }} />
+        <Crown size={16} className="shrink-0" style={{ color: "var(--foreground-50)" }} />
         <span className="min-w-0">
           <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
           <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>до {subscriptionEndDate()}</span>

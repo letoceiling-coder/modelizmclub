@@ -201,6 +201,15 @@ function FriendsPage() {
     return filteredUsers.filter((u) => !added.has(u.id));
   }, [filteredUsers, added]);
 
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const findFriends = () => {
+    setTab("all");
+    setTimeout(() => {
+      searchWrapRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      searchWrapRef.current?.querySelector("input")?.focus();
+    }, 60);
+  };
+
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: "Люди", count: allUsers.length },
     { key: "online", label: "Онлайн", count: allUsers.filter((u) => isOnline(u)).length },
@@ -305,14 +314,25 @@ function FriendsPage() {
             <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
             <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
           </div>
-          <Button
-            type="button"
-            onClick={() => groupCalls.openPicker("start")}
-            className="shrink-0 rounded-[10px] gap-[6px]"
-            size="sm"
-          >
-            <Users size={16} /> Групповой звонок
-          </Button>
+          <div className="flex shrink-0 items-center gap-[8px]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={findFriends}
+              className="rounded-[10px] gap-[6px]"
+              size="sm"
+            >
+              <UserPlus size={16} /> Найти друзей
+            </Button>
+            <Button
+              type="button"
+              onClick={() => groupCalls.openPicker("start")}
+              className="rounded-[10px] gap-[6px]"
+              size="sm"
+            >
+              <Users size={16} /> Групповой звонок
+            </Button>
+          </div>
         </header>
 
         {/* Tabs */}
@@ -356,12 +376,14 @@ function FriendsPage() {
         </div>
 
         {tab !== "requests" && (
-          <SearchInput
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onClear={() => setQ("")}
-            placeholder="Поиск по имени, интересам"
-          />
+          <div ref={searchWrapRef}>
+            <SearchInput
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onClear={() => setQ("")}
+              placeholder="Поиск по имени, интересам"
+            />
+          </div>
         )}
 
         <AnimatePresence mode="wait">
