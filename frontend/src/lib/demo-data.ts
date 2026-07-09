@@ -658,3 +658,15 @@ export function demoVideoComments(id: ID): Comment[] {
 export function demoAddVideo(v: Video): void {
   sessionVideos.unshift(v);
 }
+
+export function demoDeleteVideo(id: ID): void {
+  const si = sessionVideos.findIndex((v) => v.id === id);
+  if (si >= 0) { sessionVideos.splice(si, 1); return; }
+  const mi = mockVideos.findIndex((v) => v.id === id);
+  if (mi >= 0) mockVideos.splice(mi, 1);
+}
+
+export function demoSetVideoFeatured(id: ID, on: boolean): void {
+  const v = [...sessionVideos, ...mockVideos].find((x) => x.id === id);
+  if (v) v.isFeatured = on;
+}

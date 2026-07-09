@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Clapperboard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, selectors, getState } from "@/lib/store";
 import { useFeatureFlag, setFeatureFlag } from "@/lib/config/featureFlags";
 import { ensureSession } from "@/lib/auth/session";
-import type { Tariff, PromoCode, Banner } from "@/lib/mock";
+import type { Tariff, PromoCode, Banner, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
   fetchDashboard, fetchAuditLogs, fetchAdminUsers, updateAdminUser,
@@ -32,6 +32,7 @@ import {
   type AdminPostRow, type AdminListingRow,
   type FeedbackRow, type FeedbackStatus,
 } from "@/lib/api/admin";
+import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/admin")({
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation"
-  | "monetization" | "categories" | "notifications" | "analytics" | "design" | "feedback" | "settings";
+  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings";
 
 const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -54,6 +55,7 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "moderation", label: "Модерация", icon: ShieldCheck },
   { id: "monetization", label: "Монетизация", icon: DollarSign },
   { id: "categories", label: "Категории", icon: FolderTree },
+  { id: "reviews", label: "Обзоры", icon: Clapperboard },
   { id: "notifications", label: "Уведомления", icon: Bell },
   { id: "analytics", label: "Аналитика", icon: BarChart3 },
   { id: "feedback", label: "Обращения", icon: Inbox },
@@ -298,6 +300,7 @@ function SectionView({ section }: { section: Section }) {
   if (section === "moderation") return <ModerationSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "categories") return <CategoriesSection />;
+  if (section === "reviews") return <ReviewsSection />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
   if (section === "feedback") return <FeedbackSection />;
@@ -1926,6 +1929,58 @@ function AnalyticsSection() {
             </div>
           </motion.div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============ REVIEWS (videos) ============ */
+function ReviewsSection() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    fetchVideos({})
+      .then(setVideos)
+      .catch(() => toast.error("Не удалось загрузить обзоры"))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+
+  const toggleFeatured = async (id: string, on: boolean) => {
+    setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, isFeatured: on } : v)));
+    try { await setVideoFeatured(id, on); } catch { toast.error("Не удалось обновить"); load(); }
+  };
+  const remove = async (id: string) => {
+    if (!window.confirm("Удалить обзор?")) return;
+    setVideos((prev) => prev.filter((v) => v.id !== id));
+    try { await deleteVideo(id); toast.success("Обзор удалён"); } catch { toast.error("Не удалось удалить"); load(); }
+  };
+
+  return (
+    <div>
+      <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>+ Загрузить обзор</Link>}>Обзоры</H>
+      <div style={{ ...card, padding: "16px" }}>
+        {loading ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+        ) : videos.length === 0 ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Обзоров пока нет</p>
+        ) : (
+          <div className="flex flex-col gap-[8px]">
+            {videos.map((v) => (
+              <div key={v.id} className="flex items-center gap-[12px] py-[8px]" style={{ borderBottom: "1px solid var(--border)" }}>
+                <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: "var(--foreground)" }}>{v.title}</span>
+                <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{v.views.toLocaleString("ru")} просм.</span>
+                <label className="flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                  <input type="checkbox" checked={v.isFeatured} onChange={(e) => toggleFeatured(v.id, e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+                  Промо
+                </label>
+                <button type="button" onClick={() => remove(v.id)} className="text-[12px]" style={{ color: "var(--danger)" }}>Удалить</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

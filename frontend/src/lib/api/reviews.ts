@@ -9,6 +9,8 @@ import {
   demoIncrementVideoView,
   demoVideoComments,
   demoAddVideo,
+  demoDeleteVideo,
+  demoSetVideoFeatured,
 } from "@/lib/demo-data";
 
 interface Paginated<T> {
@@ -190,4 +192,16 @@ export async function createVideoComment(
     json: { body, parent_uuid: parentUuid },
   });
   return res.data;
+}
+
+// ── Admin management ──────────────────────────────────────────────────────
+
+export async function deleteVideo(id: string): Promise<void> {
+  if (isDemoMode()) { demoDeleteVideo(id); return; }
+  await api(`/videos/${id}`, { method: "DELETE" });
+}
+
+export async function setVideoFeatured(id: string, on: boolean): Promise<void> {
+  if (isDemoMode()) { demoSetVideoFeatured(id, on); return; }
+  await api(`/videos/${id}`, { method: "PATCH", json: { is_featured: on } });
 }
