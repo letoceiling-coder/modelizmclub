@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, Menu, Radio, Check, Languages, Heart, Clapperboard, Settings } from "lucide-react";
+import { Bell, Search, Menu, Check, Languages, Heart, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { setLocale, type Locale } from "@/lib/i18n";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { useStore, selectors } from "@/lib/store";
+import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
 import {
   Drawer,
   DrawerContent,
@@ -104,6 +107,44 @@ function MoreMenu() {
   const { i18n } = useTranslation();
   const lang = (i18n.language as Locale) || "ru";
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const isGuest = useStore(selectors.currentUser).id === "guest";
+
+  // Dev-time guarantee that every section is reachable on mobile (no-op in prod).
+  useEffect(() => { assertMobileNavCoverage(); }, []);
+
+  const flags = { reviewsEnabled, communitiesEnabled } as const;
+  const visible = MOBILE_MENU_SECTIONS.filter(
+    (s) => (!s.authOnly || !isGuest) && (!s.flag || flags[s.flag]),
+  );
+  const content = visible.filter((s) => s.group === "content");
+  const account = visible.filter((s) => s.group === "account");
+
+  const rowClass =
+    "flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]";
+
+  const renderRow = (s: (typeof MOBILE_MENU_SECTIONS)[number]) => {
+    const Icon = s.icon;
+    const inner = (
+      <>
+        <Icon size={20} style={{ color: "var(--foreground-70)" }} />
+        <span className="flex-1 text-[15px] font-medium">{s.label}</span>
+        {s.href && <ExternalLink size={15} style={{ color: "var(--foreground-50)" }} />}
+      </>
+    );
+    if (s.href) {
+      return (
+        <a key={s.key} href={s.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={rowClass} style={{ color: "var(--foreground)" }}>
+          {inner}
+        </a>
+      );
+    }
+    return (
+      <Link key={s.key} to={s.to!} onClick={() => setOpen(false)} className={rowClass} style={{ color: "var(--foreground)" }}>
+        {inner}
+      </Link>
+    );
+  };
 
   return (
     <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
@@ -122,44 +163,18 @@ function MoreMenu() {
           <DrawerTitle className="text-base">Меню</DrawerTitle>
         </div>
 
-        <div className="mt-2 flex flex-col px-2 pb-1">
-          {/* Channels */}
-          <Link
-            to="/channels"
-            onClick={() => setOpen(false)}
-            className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground)" }}
-          >
-            <Radio size={20} style={{ color: "var(--foreground-70)" }} />
-            <span className="text-[15px] font-medium">Каналы</span>
-          </Link>
+        <div className="mt-2 flex max-h-[70dvh] flex-col overflow-y-auto px-2 pb-1">
+          {content.map(renderRow)}
 
-          {/* Reviews — Sidebar-only section, mirrored here for mobile reachability */}
-          {reviewsEnabled && (
-            <Link
-              to="/reviews"
-              onClick={() => setOpen(false)}
-              className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]"
-              style={{ color: "var(--foreground)" }}
-            >
-              <Clapperboard size={20} style={{ color: "var(--foreground-70)" }} />
-              <span className="text-[15px] font-medium">Обзоры</span>
-            </Link>
-          )}
-
-          {/* Settings */}
-          <Link
-            to="/settings"
-            onClick={() => setOpen(false)}
-            className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground)" }}
-          >
-            <Settings size={20} style={{ color: "var(--foreground-70)" }} />
-            <span className="text-[15px] font-medium">Настройки</span>
-          </Link>
+          <div className="my-1 h-px" style={{ background: "var(--border)" }} />
+          {account.map(renderRow)}
+          {/* Feedback is a dialog, not a route — lives in the account group. */}
+          <div onClick={() => setOpen(false)}>
+            <FeedbackMenuRow />
+          </div>
 
           {/* Language */}
-          <div className="mt-2 px-3 pb-1 pt-2">
+          <div className="mt-1 px-3 pb-1 pt-2">
             <span
               className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide"
               style={{ color: "var(--foreground-50)" }}
@@ -186,5 +201,14 @@ function MoreMenu() {
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/** Feedback dialog styled as a menu row (matches the min-h-[52px] rows above). */
+function FeedbackMenuRow() {
+  return (
+    <div className="[&_button]:min-h-[52px] [&_button]:gap-3 [&_button]:rounded-[var(--r-card-sm)] [&_button]:px-3 [&_button]:py-0 [&_button]:text-[15px] [&_svg]:h-5 [&_svg]:w-5 [&_svg]:text-[var(--foreground-70)]">
+      <FeedbackDialog />
+    </div>
   );
 }
