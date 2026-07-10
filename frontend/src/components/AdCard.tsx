@@ -131,7 +131,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               initial={likeBump ? { scale: 0.8 } : false}
               animate={likeBump ? { scale: [0.8, 1.1, 1] } : { scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="absolute right-[10px] top-[10px] grid h-[32px] w-[32px] place-items-center"
+              className="absolute right-[10px] top-[10px] grid h-[32px] w-[32px] place-items-center before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
               style={{
                 background: "rgba(0,0,0,0.35)",
                 borderRadius: "var(--r-pill)",

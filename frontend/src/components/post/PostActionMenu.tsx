@@ -77,7 +77,7 @@ export function PostActionMenu({ postId, saved, title, text }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)]"
+        className="relative grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)] before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
         style={{ color: "var(--foreground-70)" }}
         aria-label="Меню действий"
         aria-expanded={open}

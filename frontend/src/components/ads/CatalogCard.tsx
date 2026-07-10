@@ -68,7 +68,7 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
             }
             toast.success(next ? "В избранное" : "Убрано из избранного");
           }}
-          className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full"
+          className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
           style={{
             background: "color-mix(in oklab, var(--background) 78%, transparent)",
             backdropFilter: "blur(6px)",
