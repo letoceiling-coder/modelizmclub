@@ -90,7 +90,7 @@ function ChannelsPage() {
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className="shrink-0 text-[13px] font-medium transition-all"
+                className="shrink-0 text-[13px] font-medium transition"
                 style={{
                   flex: 1,
                   minWidth: 100,

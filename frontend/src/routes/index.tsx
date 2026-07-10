@@ -374,7 +374,7 @@ function QuickSections() {
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
-          <Link key={key} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
+          <Link key={key} to={to} className="group flex flex-col p-6 transition hover:-translate-y-1"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
@@ -591,7 +591,7 @@ function CategoriesSection() {
             const Icon = resolveLucideIcon(cat.icon);
             const count = cat.listingsCount ?? cat.members ?? 0;
             return (
-              <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition-all hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+              <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}

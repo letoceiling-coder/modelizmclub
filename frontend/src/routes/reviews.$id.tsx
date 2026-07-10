@@ -146,6 +146,15 @@ function WatchPage() {
       <AppLayout rightColumn={false}>
         <div className="mx-auto max-w-[900px] py-[40px]">
           <div className="w-full animate-pulse" style={{ aspectRatio: "16 / 9", background: "var(--background-surface)", borderRadius: "var(--r-card)" }} />
+          <div className="mt-[20px] animate-pulse space-y-[12px]">
+            <div style={{ height: 24, width: "70%", background: "var(--background-surface)", borderRadius: "var(--r-input)" }} />
+            <div className="flex items-center gap-[12px]">
+              <div style={{ height: 40, width: 40, background: "var(--background-surface)", borderRadius: "var(--r-pill)" }} />
+              <div style={{ height: 16, width: 140, background: "var(--background-surface)", borderRadius: "var(--r-input)" }} />
+            </div>
+            <div style={{ height: 14, width: "100%", background: "var(--background-surface)", borderRadius: "var(--r-input)" }} />
+            <div style={{ height: 14, width: "85%", background: "var(--background-surface)", borderRadius: "var(--r-input)" }} />
+          </div>
         </div>
       </AppLayout>
     );

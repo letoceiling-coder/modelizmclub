@@ -60,22 +60,19 @@ function ProfilePage() {
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [friendsCount, setFriendsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     if (!currentUser?.id) return;
-    fetchMyListings()
-      .then((list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) }))))
-      .catch(() => {});
-    fetchCommunities()
-      .then((cs) => active && setMyCommunities(cs.filter((c) => c.joined)))
-      .catch(() => {});
-    fetchFeed({ perPage: 50 })
-      .then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id)))
-      .catch(() => {});
-    fetchFriends()
-      .then((fr) => active && setFriendsCount(fr.length))
-      .catch(() => {});
+    setLoading(true);
+    const settle = Promise.allSettled([
+      fetchMyListings().then((list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) })))),
+      fetchCommunities().then((cs) => active && setMyCommunities(cs.filter((c) => c.joined))),
+      fetchFeed({ perPage: 50 }).then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id))),
+      fetchFriends().then((fr) => active && setFriendsCount(fr.length)),
+    ]);
+    settle.finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [currentUser?.id]);
 
@@ -92,6 +89,7 @@ function ProfilePage() {
       postsOverride={myPosts}
       adsOverride={myAds}
       communitiesOverride={myCommunities}
+      loading={loading}
       onSaveProfile={saveProfile}
     />
   );
@@ -135,6 +133,8 @@ export interface ProfileViewProps {
   postsOverride?: Post[];
   adsOverride?: { ad: Ad; status: AdStatus }[];
   communitiesOverride?: Community[];
+  /** First-load flag for own profile — shows a content skeleton instead of a false-empty flash. */
+  loading?: boolean;
   isFriendInitial?: boolean;
   isFollowingInitial?: boolean;
   onToggleFriend?: (next: boolean) => void | Promise<void>;
@@ -144,7 +144,7 @@ export interface ProfileViewProps {
 }
 
 export function ProfileView({
-  user, isOwn, stats, postsOverride, adsOverride, communitiesOverride,
+  user, isOwn, stats, postsOverride, adsOverride, communitiesOverride, loading = false,
   isFriendInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile,
 }: ProfileViewProps) {
   const [tab, setTab] = useState<TabKey>("posts");
@@ -330,11 +330,13 @@ export function ProfileView({
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               {tab === "posts" && (
+                loading ? <ProfileTabSkeleton /> :
                 userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
                   <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
                 )
               )}
               {tab === "ads" && (
+                loading ? <ProfileTabSkeleton /> :
                 userAds.length === 0 ? (
                   <EmptyTab text="Нет объявлений">
                     {isOwn && (
@@ -410,6 +412,7 @@ export function ProfileView({
                 )
               )}
               {tab === "communities" && (
+                loading ? <ProfileTabSkeleton /> :
                 userCommunities.length === 0 ? <EmptyTab text="Не состоит в сообществах" /> : (
                   <div className="grid gap-[12px] md:grid-cols-2">
                     {userCommunities.map((c) => {
@@ -552,6 +555,22 @@ function EmptyTab({ text, children }: { text: string; children?: React.ReactNode
     <EmptyState variant="compact" title={text}>
       {children}
     </EmptyState>
+  );
+}
+
+/** First-load placeholder for profile tab content — avoids a false-empty flash
+ *  before the async posts/ads/communities fetches resolve. */
+function ProfileTabSkeleton() {
+  return (
+    <div className="space-y-[16px]">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse"
+          style={{ height: 120, background: "var(--background-surface)", borderRadius: "var(--r-card)" }}
+        />
+      ))}
+    </div>
   );
 }
 

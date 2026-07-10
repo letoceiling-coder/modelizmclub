@@ -10,7 +10,7 @@ import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
-import { EmptyFeedState } from "@/components/feed/EmptyFeedState";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { CreatePostPayload } from "@/components/CreatePostForm";
 import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
@@ -205,37 +205,31 @@ function FeedPage() {
             Array.from({ length: 3 }).map((_, i) => <PostCardSkeleton key={i} />)
           ) : slice.length === 0 ? (
             filter === "following" ? (
-              <EmptyFeedState
+              <EmptyState
                 icon={UserPlus}
                 title="Здесь пока пусто"
                 description="Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте."
-                ctaLabel="Найти авторов"
-                onCta={() => setFilter("all")}
+                action={{ label: "Найти авторов", onClick: () => setFilter("all") }}
               />
             ) : filter === "categories" && !activeCategory ? (
-              <EmptyFeedState
+              <EmptyState
                 icon={Compass}
                 title="Выберите категорию"
                 description="Отфильтруйте ленту по интересующему вас направлению моделизма."
               />
             ) : filter === "saved" ? (
-              <EmptyFeedState
+              <EmptyState
                 icon={Bookmark}
                 title="Нет сохранённых публикаций"
                 description="Нажмите на иконку закладки у понравившейся публикации."
-                ctaLabel="Вернуться в ленту"
-                onCta={() => setFilter("all")}
+                action={{ label: "Вернуться в ленту", onClick: () => setFilter("all") }}
               />
             ) : (
-              <EmptyFeedState
+              <EmptyState
                 icon={Newspaper}
                 title="Публикаций не найдено"
                 description="В этой категории пока никто ничего не опубликовал."
-                ctaLabel="Показать все"
-                onCta={() => {
-                  setFilter("all");
-                  setActiveCategory(null);
-                }}
+                action={{ label: "Показать все", onClick: () => { setFilter("all"); setActiveCategory(null); } }}
               />
             )
           ) : (

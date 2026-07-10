@@ -166,7 +166,7 @@ export function EventsHero() {
                 key={b.id}
                 aria-label={`Перейти к баннеру ${i + 1}`}
                 onClick={() => setIndex(i)}
-                className="rounded-full transition-all"
+                className="rounded-full transition"
                 style={{
                   width: active ? 20 : 6,
                   height: 6,

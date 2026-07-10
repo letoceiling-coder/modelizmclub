@@ -196,7 +196,7 @@ function ChannelPage() {
                 <button
                   key={k}
                   onClick={() => setTab(k)}
-                  className="flex-1 text-[13px] font-medium transition-all"
+                  className="flex-1 text-[13px] font-medium transition"
                   style={{
                     padding: "9px 14px",
                     borderRadius: 9,
