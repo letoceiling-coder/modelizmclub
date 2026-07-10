@@ -236,6 +236,11 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
     nf.unshift(mf);
     set("files", nf);
   };
+  const reorder = (newPhotos: string[]) => {
+    const newFiles = newPhotos.map((url) => form.files[form.photos.indexOf(url)]);
+    set("photos", newPhotos);
+    set("files", newFiles);
+  };
 
   return (
     <section className="space-y-[16px]">
@@ -250,6 +255,7 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
           onAdd={addPhoto}
           onRemove={remove}
           onMakeMain={makeMain}
+          onReorder={reorder}
         />
       </Card>
     </section>

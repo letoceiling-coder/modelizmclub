@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { ImagePlus, X, Star, ImageOff } from "lucide-react";
 
 interface Props {
@@ -8,10 +8,11 @@ interface Props {
   onAdd: (files: File[]) => void;
   onRemove: (index: number) => void;
   onMakeMain: (index: number) => void;
+  onReorder: (newPhotos: string[]) => void;
 }
 
-/** Single preview tile with a broken-image fallback (revoked/failed blob URL
- *  never shows the browser's default broken-image glyph). */
+/** Single preview tile — a draggable Reorder.Item with a broken-image fallback
+ *  (revoked/failed blob URL never shows the browser's default broken glyph). */
 function PreviewTile({
   src,
   index,
@@ -27,25 +28,31 @@ function PreviewTile({
   const isMain = index === 0;
 
   return (
-    <motion.div
-      layout={false}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.18 }}
-      className="group relative overflow-hidden"
+    <Reorder.Item
+      value={src}
+      className="relative shrink-0 cursor-grab overflow-hidden active:cursor-grabbing"
       style={{
-        aspectRatio: "1 / 1",
+        width: 104,
+        height: 104,
+        touchAction: "none",
         background: "var(--background-surface)",
         border: `2px solid ${isMain ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
       }}
+      whileDrag={{ scale: 1.05, zIndex: 10, boxShadow: "var(--shadow-float)" }}
     >
       {broken ? (
         <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
           <ImageOff size={22} />
         </div>
       ) : (
-        <img src={src} alt="" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          className="pointer-events-none h-full w-full object-cover"
+          onError={() => setBroken(true)}
+        />
       )}
 
       {isMain && (
@@ -57,11 +64,12 @@ function PreviewTile({
         </span>
       )}
 
-      <div className="absolute right-[6px] top-[6px] flex gap-[4px] opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+      <div className="absolute right-[6px] top-[6px] flex gap-[4px]">
         {!isMain && (
           <button
             type="button"
             onClick={() => onMakeMain(index)}
+            onPointerDownCapture={(e) => e.stopPropagation()}
             title="Сделать главным"
             aria-label="Сделать главным фото"
             className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -73,6 +81,7 @@ function PreviewTile({
         <button
           type="button"
           onClick={() => onRemove(index)}
+          onPointerDownCapture={(e) => e.stopPropagation()}
           title="Удалить"
           aria-label="Удалить фото"
           className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -81,11 +90,11 @@ function PreviewTile({
           <X size={12} />
         </button>
       </div>
-    </motion.div>
+    </Reorder.Item>
   );
 }
 
-export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain }: Props) {
+export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onReorder }: Props) {
   const full = photos.length >= max;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,11 +131,22 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain }: Pr
       </label>
 
       {photos.length > 0 && (
-        <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 md:grid-cols-4">
-          {photos.map((src, i) => (
-            <PreviewTile key={src} src={src} index={i} onRemove={onRemove} onMakeMain={onMakeMain} />
-          ))}
-        </div>
+        <>
+          <Reorder.Group
+            as="div"
+            axis="x"
+            values={photos}
+            onReorder={onReorder}
+            className="flex gap-[12px] overflow-x-auto no-scrollbar py-[2px]"
+          >
+            {photos.map((src, i) => (
+              <PreviewTile key={src} src={src} index={i} onRemove={onRemove} onMakeMain={onMakeMain} />
+            ))}
+          </Reorder.Group>
+          <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            Перетащите фото, чтобы изменить порядок. Первое — главное в карточке.
+          </p>
+        </>
       )}
     </div>
   );
