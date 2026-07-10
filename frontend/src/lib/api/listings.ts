@@ -121,7 +121,6 @@ export interface CatalogParams {
   deliveries?: string[];
   listingStatus?: string;
   sort?: "new" | "cheap" | "expensive" | "popular";
-  withPhotoOnly?: boolean;
   perPage?: number;
   /** 1-based page number, for "load more" pagination. Defaults to 1. */
   page?: number;
@@ -135,7 +134,6 @@ export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
       city_id: params.cityId || undefined,
       price_min: params.priceMin || undefined,
       price_max: params.priceMax || undefined,
-      has_media: params.withPhotoOnly ? 1 : undefined,
       per_page: params.perPage ?? 50,
       page: params.page && params.page > 1 ? params.page : undefined,
       sort: params.sort || undefined,

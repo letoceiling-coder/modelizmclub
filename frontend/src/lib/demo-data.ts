@@ -197,9 +197,6 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
     result = result.filter((a) => a.status === params.listingStatus);
   }
 
-  if (params.withPhotoOnly) {
-    result = result.filter((a) => a.image || (a.gallery && a.gallery.length > 0));
-  }
 
   if (params.sort === "cheap") result = [...result].sort((a, b) => a.price - b.price);
   else if (params.sort === "expensive") result = [...result].sort((a, b) => b.price - a.price);

@@ -5,7 +5,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
-import { CategoryChips } from "@/components/ads/CategoryChips";
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
@@ -43,7 +42,6 @@ function countActiveFilters(f: FiltersState): number {
   if (f.conditions.length) n++;
   if (f.priceMin > 0) n++;
   if (f.priceMax < 100000) n++;
-  if (f.withPhotoOnly) n++;
   return n;
 }
 
@@ -63,7 +61,6 @@ function buildParams(
     conditions: filters.conditions.length ? filters.conditions : undefined,
     deliveries: filters.deliveries.length ? filters.deliveries : undefined,
     listingStatus: filters.status !== "Все" ? filters.status : undefined,
-    withPhotoOnly: filters.withPhotoOnly || undefined,
     sort,
   };
 }
@@ -145,10 +142,6 @@ function CatalogPage() {
     setSort("new");
   }
 
-  function handleCategoryChip(name: string) {
-    setFilters((prev) => ({ ...prev, category: name, subcategory: "Все" }));
-  }
-
   const hasAnyFilter = activeFilterCount > 0 || q;
 
   return (
@@ -203,12 +196,6 @@ function CatalogPage() {
             </Link>
           )}
         </div>
-
-        {/* Category chips */}
-        <CategoryChips
-          value={filters.category}
-          onChange={handleCategoryChip}
-        />
 
         {/* Content — persistent filter panel (xl+) + grid; drawer on <xl */}
         <div className="flex gap-[20px]">
