@@ -140,7 +140,7 @@ function FeedPage() {
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
   const addPost = (p: CreatePostPayload) => {
-    setPosts([
+    setPosts((cur) => [
       {
         id: `np${Date.now()}`,
         authorId: me.id,
@@ -160,7 +160,7 @@ function FeedPage() {
         isFollowing: true,
         commentList: [],
       },
-      ...posts,
+      ...cur,
     ]);
   };
 

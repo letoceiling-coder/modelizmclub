@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Send, Smile, X } from "lucide-react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { ImagePlus, Smile, X, ChevronDown } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
-import { NativeSelect } from "@/components/ui/native-select";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
 const MAX_PHOTOS = 5;
@@ -17,15 +16,48 @@ export interface CreatePostPayload {
   photos: string[];
 }
 
-export function CreatePostForm({
-  onCreate,
-  compact,
-  intent,
+export interface CreatePostFormHandle {
+  /** Validates + creates the post. Returns true on success (caller closes). */
+  submit: () => boolean;
+}
+
+/** Compact chromed <select> chip for the composer toolbar — quieter and
+ *  auto-width, unlike the full-width NativeSelect used in forms. */
+function ChipSelect({
+  value, onChange, options, disabled, ariaLabel,
 }: {
-  onCreate?: (p: CreatePostPayload) => void;
-  compact?: boolean;
-  intent?: PostIntent;
+  value: string;
+  onChange: (v: string) => void;
+  options: { label: string; value: string }[];
+  disabled?: boolean;
+  ariaLabel: string;
 }) {
+  return (
+    <div className="relative min-w-0">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        className="h-[36px] max-w-[42vw] cursor-pointer appearance-none truncate rounded-[var(--r-pill)] border border-[var(--border)] bg-[var(--background-surface)] pl-[12px] pr-[26px] text-[13px] font-medium text-[var(--foreground)] outline-none transition-colors focus-visible:border-[var(--accent)] disabled:opacity-40"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown
+        size={14}
+        className="pointer-events-none absolute right-[8px] top-1/2 -translate-y-1/2"
+        style={{ color: "var(--foreground-50)" }}
+      />
+    </div>
+  );
+}
+
+export const CreatePostForm = forwardRef<CreatePostFormHandle, {
+  onCreate?: (p: CreatePostPayload) => void;
+  intent?: PostIntent;
+}>(function CreatePostForm({ onCreate, intent }, ref) {
   const categories = usePostCategories();
   const me = useStore(selectors.currentUser);
   const [title, setTitle] = useState("");
@@ -44,6 +76,8 @@ export function CreatePostForm({
     }
   }, [categories, catId]);
 
+  // Trigger intents: photo opens the gallery, emoji opens the emoji row.
+  // "place" is intentionally gone (it only inserted a 📍 emoji).
   useEffect(() => {
     if (!intent) return;
     if (intent === "photo") {
@@ -53,11 +87,6 @@ export function CreatePostForm({
     if (intent === "emoji") {
       setShowEmoji(true);
       textRef.current?.focus();
-    }
-    if (intent === "place") {
-      setText((cur) => (cur.includes("📍") ? cur : `${cur}${cur ? "\n" : ""}📍 `));
-      const t = setTimeout(() => textRef.current?.focus(), 50);
-      return () => clearTimeout(t);
     }
   }, [intent]);
 
@@ -78,123 +107,118 @@ export function CreatePostForm({
 
   const removePhoto = (i: number) => setPhotos((p) => p.filter((_, idx) => idx !== i));
 
-  const submit = () => {
-    if (!title.trim()) return toast.error("Введите заголовок");
-    if (!text.trim()) return toast.error("Введите текст публикации");
-    if (!cat) return toast.error("Выберите категорию");
+  const submit = (): boolean => {
+    if (!title.trim()) { toast.error("Введите заголовок"); return false; }
+    if (!text.trim()) { toast.error("Введите текст публикации"); return false; }
+    if (!cat) { toast.error("Выберите категорию"); return false; }
     onCreate?.({ title, text, category: cat.name, subcategory: sub?.name, photos });
     toast.success("Публикация отправлена на модерацию");
-    setTitle("");
-    setText("");
-    setPhotos([]);
+    return true;
   };
 
+  useImperativeHandle(ref, () => ({ submit }));
+
   return (
-    <div className={`border bg-card ${compact ? "rounded-none border-0" : "rounded-xl"} p-4`}>
-      <div className="flex items-center gap-3">
-        <img src={me.avatar} alt="" className="h-10 w-10 rounded-full" />
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Заголовок публикации"
-          className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm font-medium outline-none focus:border-primary"
-        />
-      </div>
-
-      <textarea
-        ref={textRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Что нового в проекте? Поделитесь опытом, фото и деталями сборки…"
-        rows={3}
-        className="mt-3 w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-      />
-
-      {showEmoji && (
-        <div className="mt-2 grid grid-cols-6 gap-1 rounded-lg border bg-background p-2">
-          {QUICK_EMOJI.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={() => insertEmoji(e)}
-              className="grid aspect-square place-items-center rounded-md text-[20px] leading-none transition-colors hover:bg-muted"
-            >
-              {e}
-            </button>
-          ))}
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Writing surface — the star of the sheet */}
+      <div className="flex min-h-0 flex-1 flex-col gap-[10px] overflow-y-auto px-[16px] pt-[14px]">
+        <div className="flex items-start gap-[12px]">
+          <img src={me.avatar} alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Заголовок"
+            className="min-w-0 flex-1 bg-transparent pt-[6px] text-[16px] font-semibold outline-none placeholder:font-medium"
+            style={{ color: "var(--foreground)" }}
+          />
         </div>
-      )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <NativeSelect
-          aria-label="Категория"
-          value={catId}
-          onChange={(v) => {
-            setCatId(v);
-            const c = categories.find((cc) => cc.id === v)!;
-            setSubId(c.subcategories[0]?.id ?? "");
-          }}
-          options={categories.map((c) => ({ label: c.name, value: c.id }))}
+        <textarea
+          ref={textRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Напишите что-нибудь о проекте — опыт, детали сборки, фото…"
+          className="min-h-[160px] w-full flex-1 resize-none bg-transparent text-[15px] leading-relaxed outline-none"
+          style={{ color: "var(--foreground)" }}
         />
-        <NativeSelect
-          aria-label="Подкатегория"
-          value={subId}
-          onChange={setSubId}
-          disabled={!cat || cat.subcategories.length === 0}
-          options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
-        />
-      </div>
 
-      {photos.length > 0 && (
-        <div className="mt-3 grid grid-cols-5 gap-2">
-          {photos.map((src, i) => (
-            <div key={i} className="relative aspect-square overflow-hidden rounded-lg border">
-              <img src={src} alt="" className="h-full w-full object-cover" />
+        {showEmoji && (
+          <div className="grid grid-cols-6 gap-[4px] rounded-[var(--r-card-sm)] border p-[8px]" style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}>
+            {QUICK_EMOJI.map((e) => (
               <button
-                onClick={() => removePhoto(i)}
-                className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                key={e}
+                type="button"
+                onClick={() => insertEmoji(e)}
+                className="grid aspect-square place-items-center rounded-[var(--r-card-sm)] text-[20px] leading-none transition-colors hover:bg-[var(--background-surface-hover)]"
               >
-                <X className="h-3 w-3" />
+                {e}
               </button>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      <div className="mt-4 flex items-center gap-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(e) => addPhotos(e.target.files)}
-        />
+        {photos.length > 0 && (
+          <div className="flex gap-[8px] overflow-x-auto pb-[4px] no-scrollbar">
+            {photos.map((src, i) => (
+              <div key={i} className="relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-[var(--r-card-sm)] border" style={{ borderColor: "var(--border)" }}>
+                <img src={src} alt="" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  aria-label="Убрать фото"
+                  onClick={() => removePhoto(i)}
+                  className="absolute right-[4px] top-[4px] grid h-[20px] w-[20px] place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                >
+                  <X className="h-[12px] w-[12px]" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Compact toolbar — one quiet line above the keyboard */}
+      <div className="flex items-center gap-[6px] border-t px-[10px] py-[8px]" style={{ borderColor: "var(--border)" }}>
+        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => addPhotos(e.target.files)} />
         <button
           type="button"
           aria-label={`Добавить фото (${photos.length}/${MAX_PHOTOS})`}
           onClick={() => fileRef.current?.click()}
           disabled={photos.length >= MAX_PHOTOS}
-          className="inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[13px] text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-40"
+          style={{ color: "var(--foreground-70)" }}
         >
-          <ImagePlus className="h-4 w-4" /> {photos.length}/{MAX_PHOTOS}
+          <ImagePlus className="h-[20px] w-[20px]" />
         </button>
         <button
           type="button"
           aria-label="Эмодзи"
           onClick={() => setShowEmoji((v) => !v)}
-          className="inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[13px] transition-colors hover:bg-muted"
+          className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: showEmoji ? "var(--accent)" : "var(--foreground-70)" }}
         >
-          <Smile className="h-4 w-4" />
+          <Smile className="h-[20px] w-[20px]" />
         </button>
-        <button
-          onClick={submit}
-          className="ml-auto inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-6 text-[14px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <Send className="h-4 w-4" /> Опубликовать
-        </button>
+
+        <div className="ml-auto flex min-w-0 items-center gap-[6px]">
+          <ChipSelect
+            ariaLabel="Категория"
+            value={catId}
+            onChange={(v) => {
+              setCatId(v);
+              const c = categories.find((cc) => cc.id === v)!;
+              setSubId(c.subcategories[0]?.id ?? "");
+            }}
+            options={categories.map((c) => ({ label: c.name, value: c.id }))}
+          />
+          <ChipSelect
+            ariaLabel="Подкатегория"
+            value={subId}
+            onChange={setSubId}
+            disabled={!cat || cat.subcategories.length === 0}
+            options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
+          />
+        </div>
       </div>
     </div>
   );
-}
+});

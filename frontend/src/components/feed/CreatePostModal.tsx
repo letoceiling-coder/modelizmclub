@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { CreatePostForm, type CreatePostPayload } from "@/components/CreatePostForm";
+import { CreatePostForm, type CreatePostPayload, type CreatePostFormHandle } from "@/components/CreatePostForm";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
+  const formRef = useRef<CreatePostFormHandle>(null);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -42,38 +43,40 @@ export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
             exit={{ y: 40, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[20px] sm:max-w-[600px] sm:rounded-[16px]"
+            className="flex h-[88vh] w-full flex-col overflow-hidden rounded-t-[20px] sm:h-auto sm:max-h-[92vh] sm:max-w-[600px] sm:rounded-[16px]"
             style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
           >
             <header
-              className="flex items-center justify-between border-b px-[18px] py-[14px]"
+              className="flex items-center justify-between gap-[12px] border-b px-[12px] py-[10px]"
               style={{ borderColor: "var(--border)" }}
             >
+              <button
+                onClick={onClose}
+                aria-label="Закрыть"
+                className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+                style={{ color: "var(--foreground-70)" }}
+              >
+                <X className="h-[20px] w-[20px]" />
+              </button>
               <h2
-                className="text-[16px] font-semibold"
+                className="min-w-0 flex-1 truncate text-center text-[16px] font-semibold"
                 style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
               >
                 Новая публикация
               </h2>
               <button
-                onClick={onClose}
-                aria-label="Закрыть"
-                className="grid h-[32px] w-[32px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-                style={{ color: "var(--foreground-70)" }}
+                onClick={() => { if (formRef.current?.submit()) onClose(); }}
+                className="shrink-0 rounded-[var(--r-pill)] px-[16px] py-[8px] text-[14px] font-semibold transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
-                <X className="h-[18px] w-[18px]" />
+                Опубл.
               </button>
             </header>
-            <div className="overflow-y-auto">
-              <CreatePostForm
-                compact
-                intent={open ? intent : undefined}
-                onCreate={(p) => {
-                  onCreate(p);
-                  onClose();
-                }}
-              />
-            </div>
+            <CreatePostForm
+              ref={formRef}
+              intent={open ? intent : undefined}
+              onCreate={onCreate}
+            />
           </motion.div>
         </motion.div>
       )}
