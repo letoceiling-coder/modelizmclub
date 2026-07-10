@@ -34,11 +34,20 @@ Same component, same single feature list. The segmented switcher may sit centere
 
 ## Components & state
 
-- `SubscriptionPage` owns `const [termId, setTermId] = useState<PricingPlan["id"]>(defaultTermId)`, where `defaultTermId = PRICING_PLANS.find(p => p.best)?.id ?? PRICING_PLANS[0].id`.
-- `TermSwitcher({ plans, value, onChange })` — segmented control. `role="radiogroup"`; each segment `role="radio"` `aria-checked`. Renders `plan.name` + best marker.
-- `TermDetail({ plan })` — price / period / savings pill / CTA (`payClick(plan.name)`).
-- `PlanFeatures()` — renders `PRICING_FEATURES` as a ✓ list (no columns).
-- Delete: `PlanCard` component, the `md:grid-cols-3` plan grid, and the "Что входит" 3-column matrix (`FEATURES.map` over `gridTemplateColumns: … 56px 56px 56px`). `FEATURES` local const collapses to the shared `PRICING_FEATURES`.
+One **shared component** drives both `/subscription` and the landing `PricingSection`, so there is a single tariff style across the site.
+
+- **`PlanTermSelector`** — new, `src/components/subscription/PlanTermSelector.tsx`. Owns the selected-term state and renders the switcher + detail + shared feature list. The CTA is supplied by the parent via a render prop, because the two surfaces need different CTAs (a `payClick` button vs a router `Link`).
+  ```tsx
+  interface PlanTermSelectorProps {
+    /** CTA rendered under the price; receives the currently selected plan. */
+    renderCta: (plan: PricingPlan) => React.ReactNode;
+    className?: string;
+  }
+  ```
+  - Internal state: `const [termId, setTermId] = useState<PricingPlan["id"]>(defaultTermId)`, where `defaultTermId = PRICING_PLANS.find(p => p.best)?.id ?? PRICING_PLANS[0].id`.
+  - Internal `TermSwitcher` (segmented control, `role="radiogroup"`, each segment `role="radio"` `aria-checked`, renders `plan.name` + best marker), `TermDetail` (price / period / savings pill, then the `renderCta(selected)` slot), and `PlanFeatures` (the 6 `PRICING_FEATURES` as a ✓ list, shown once).
+- **`/subscription`** uses `<PlanTermSelector renderCta={(p) => <button onClick={() => payClick(p.name)}>Оформить подписку</button>} />` in place of the `md:grid-cols-3` `PlanCard` grid. Delete: `PlanCard`, the plan grid, and the "Что входит" 3-column matrix (`FEATURES.map` over `gridTemplateColumns: … 56px 56px 56px`); the standalone "Что входит" section is now the component's feature list. The local `FEATURES` const collapses to shared `PRICING_FEATURES`.
+- **Landing `PricingSection`** ([routes/index.tsx](../../../src/routes/index.tsx)) uses `<PlanTermSelector renderCta={() => <Link to="/subscription">{t("landing.pricing.more")} <ArrowRight/></Link>} />` in place of the `md:grid-cols-3` cards. This also removes the current **3× duplication** of the full feature list (one per card). The section's Eyebrow/Title/subtitle (i18n) stay; the feature list inside the component is Russian-only (matching `PRICING_FEATURES`, as today).
 
 ## Data
 
@@ -47,20 +56,19 @@ Reuse `PRICING_PLANS` and `PRICING_FEATURES` unchanged (single source of truth, 
 ## Out of scope / non-goals
 
 - **No per-tier feature differentiation** — tiers remain feature-identical (product decision unchanged).
-- **No payment/backend work** — CTA keeps the existing `payClick` behavior.
-- **Landing `PricingSection`** ([routes/index.tsx](../../../src/routes/index.tsx)) is not changed here. It already reads from `PRICING_PLANS`; porting the same switcher there is a possible follow-up, not part of this spec.
+- **No payment/backend work** — the `/subscription` CTA keeps the existing `payClick` behavior; the landing CTA keeps linking to `/subscription`.
 - **No animation.** The "assembling model / airplane" idea is recorded as a **future task** (see below), explicitly not implemented now.
 
 ## Future work (recorded, not in scope)
 
 - Animated "assembling model / airplane" flourish on the subscription page — separate future task.
-- Optionally reuse `TermSwitcher` in the landing `PricingSection` for consistency.
 
 ## Testing
 
-No unit-test framework — `npx tsc --noEmit` clean + live Playwright at 360/390/430 then desktop:
+No unit-test framework — `npx tsc --noEmit` clean + live Playwright at 360/390/430 then desktop, on **both** `/subscription` and the landing (`/`) pricing section:
 - Both overflow probes empty at all three mobile widths; page does not scroll horizontally.
 - Segments fit 3-up at 360px; recommended (Полгода) preselected.
-- Tapping a segment updates the price/period/savings/CTA target; CTA fires `payClick` with the selected plan name.
-- Feature list shows all 6 items once; no 3-column matrix remains anywhere.
-- Active-subscription card, free counter, one-time 99 ₽ block, invite block still render unchanged.
+- Tapping a segment updates the price/period/savings; on `/subscription` the CTA fires `payClick` with the selected plan name; on the landing the CTA links to `/subscription`.
+- Feature list shows all 6 items once (no 3-column matrix on `/subscription`; no per-card feature duplication on the landing).
+- `/subscription`: active-subscription card, free counter, one-time 99 ₽ block, invite block still render unchanged. Landing: Eyebrow/Title/subtitle unchanged.
+- Both surfaces render the identical `PlanTermSelector`, confirming one consistent tariff style site-wide.
