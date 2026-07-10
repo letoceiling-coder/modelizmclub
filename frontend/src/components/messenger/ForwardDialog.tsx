@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { forwardMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { Message } from "@/lib/mock";

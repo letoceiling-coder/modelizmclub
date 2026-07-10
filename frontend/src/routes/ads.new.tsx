@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { type AdCondition, type Category } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";

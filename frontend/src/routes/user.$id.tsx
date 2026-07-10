@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { ProfileView } from "./profile";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/user/$id")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),

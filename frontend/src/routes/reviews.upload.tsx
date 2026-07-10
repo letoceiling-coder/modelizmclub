@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { VideoCategory } from "@/lib/mock";
 import { fetchVideoCategories, uploadVideo } from "@/lib/api/reviews";

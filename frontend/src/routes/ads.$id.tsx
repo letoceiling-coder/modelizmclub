@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
 import { createConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";

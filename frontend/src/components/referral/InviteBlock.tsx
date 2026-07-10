@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   getReferralLink,
   REFERRAL_MAX_BONUS,

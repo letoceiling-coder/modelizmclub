@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff, SwitchCamera, Volume2, VolumeX } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
 import { GUEST_USER, useStore, selectors } from "@/lib/store";
 

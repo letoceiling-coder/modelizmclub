@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users, Pin, PinOff, Trash2, Flag } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { userById } from "@/lib/mock";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { pinConversation, unpinConversation } from "@/lib/api/chat";

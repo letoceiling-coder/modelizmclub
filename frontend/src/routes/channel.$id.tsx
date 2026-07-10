@@ -8,7 +8,7 @@ import {
   POST_KIND_LABEL,
   type Channel, type ChannelPost, type PostStatus, type PostKind,
 } from "@/lib/channels";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";

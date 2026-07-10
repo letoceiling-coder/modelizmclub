@@ -18,7 +18,7 @@ import {
 } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";

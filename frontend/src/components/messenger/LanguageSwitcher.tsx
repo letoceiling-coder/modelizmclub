@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Languages, Check } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 
 import { setLocale, type Locale } from "@/lib/i18n";

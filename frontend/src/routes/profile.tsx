@@ -12,7 +12,7 @@ import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
 import type { AdStatusKey } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
 import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
 import { LogoutButton } from "@/components/auth/LogoutButton";

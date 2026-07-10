@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
