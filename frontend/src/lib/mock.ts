@@ -496,6 +496,7 @@ export const dialogs: Dialog[] = [
       { id: "d1m4", authorId: "u2", time: _ago(110), text: "С этим мотором главное — игла холостого хода. Выставь зазор 0.7 мм, потом крути низ по температуре.", status: "read" },
       { id: "d1m5", authorId: "u1", time: _ago(100), text: "А свечу какую посоветуешь?", status: "read" },
       { id: "d1m6", authorId: "u2", time: _ago(90), text: "OS A5 средняя. На нитро 25% — идеально. У меня на такой же связке температура головы 105-115°C.", status: "read" },
+      { id: "d1m6b", authorId: "u2", time: _ago(88), text: "", status: "read", voice: { duration: 13, waveform: makeMockWaveform(6142), transcript: "И ещё: после прогрева проверь компрессию рукой — если поршень легко проходит верхнюю точку, значит гильза подсела, пора менять." } },
       { id: "d1m7", authorId: "u1", time: _ago(15), text: "Спасибо, попробую! А можешь скинуть свою схему настройки?", status: "read" },
       { id: "d1m8", authorId: "u2", time: _ago(5), text: "Да, конечно! Скину схему вечером", status: "delivered", replyTo: "d1m7" },
     ],

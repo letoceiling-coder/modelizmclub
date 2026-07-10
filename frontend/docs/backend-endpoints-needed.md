@@ -951,3 +951,20 @@ See #18 for the full write-up (field missing from `RegisterRequest`/`UpdateProfi
 
 ### 24.13 Привязка способов оплаты — explicitly not simulated
 No saved-payment-method / card-binding UI exists anywhere in the frontend, and none was added as part of the Настройки work. `components/PaymentModal.tsx` is an existing, unused, self-labelled prototype stub for one-shot checkout ("В production будет подключена оплата через ЮKassa или Т-Банк. Сейчас это заглушка для прототипа.") — it is not a saved-methods vault and has no importers. A real payment-method feature requires a PCI-scope decision (tokenized vault via a provider, most likely ЮKassa или Т-Банк per the existing stub's own note) that is out of scope for frontend-only work. No endpoint shape is proposed here since the provider integration approach isn't decided.
+
+## 25. Транскрибация голосовых сообщений (speech-to-text)
+
+Лендинг рекламирует «Голосовые сообщения с транскрибацией» (Pro). Фронтенд
+показывает только UI раскрытия (тоггл «Показать текст» под голосовым сообщением)
+плюс честное состояние «Расшифровка недоступна»; распознавание речи на клиенте
+НЕ выполняется и не имитируется.
+
+`POST /media/{uuid}/transcribe` (или `GET /media/{uuid}/transcript`)
+- Auth: required (гейт по Pro-подписке в соответствии с обещанием на лендинге).
+- Ответ 200: `{ "text": string, "lang"?: string }`. Допустима асинхронная
+  обработка — вернуть 202 + job id, либо заполнять поле `transcript` в payload
+  голосового сообщения по готовности.
+- Frontend: `VoiceBubble.tsx` уже читает `voice.transcript`; как только эндпоинт
+  появится, «Показать текст» на сообщении без расшифровки будет вызывать его и
+  рендерить возвращённый текст. Выбор STT-провайдера (например, Whisper /
+  Yandex SpeechKit) — backend/infra-решение, здесь не предлагается.
