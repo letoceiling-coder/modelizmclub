@@ -61,6 +61,10 @@ export interface AccountExtra {
   vk: string;
   telegram: string;
   website: string;
+  /** Locally-changed email (demo). Undefined → fall back to the account email. */
+  email?: string;
+  /** false right after a local email change → shows "Не подтверждён". */
+  emailVerified?: boolean;
 }
 
 const ACCOUNT_EXTRA_KEY = "modelizm_account_extra";

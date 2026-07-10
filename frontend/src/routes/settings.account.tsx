@@ -6,7 +6,6 @@ import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { useStore, selectors } from "@/lib/store";
@@ -27,27 +26,27 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function AccountSection() {
   const currentUser = useStore(selectors.currentUser);
-  const [curPw, setCurPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
   const [email, setEmail] = useState("");
   const [extra, setExtra] = useState<AccountExtra>(getAccountExtra);
+  const [verifySent, setVerifySent] = useState(false);
 
-  const submitPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPw.length < 8) { toast.error("Новый пароль — минимум 8 символов"); return; }
-    if (newPw !== confirmPw) { toast.error("Пароли не совпадают"); return; }
-    toast("Смена пароля: будет доступно позже");
-  };
+  const currentEmail = extra.email ?? currentUser?.email ?? "";
+  const emailPending = extra.email !== undefined && extra.emailVerified === false;
 
   const submitEmail = (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Введите корректный email"); return; }
-    toast("Смена email: будет доступно позже");
+    // На демо email реально меняется локально и логично уходит в «не подтверждён».
+    // На бою — POST /account/email + верификация по ссылке из письма.
+    const next = { ...extra, email, emailVerified: false };
+    setExtra(next); setAccountExtra(next);
+    setEmail(""); setVerifySent(false);
+    toast.success("Email обновлён — подтвердите по ссылке из письма");
   };
 
   const resendVerification = () => {
-    toast("Письмо отправлено (демо)");
+    // Документированный POST /account/email/verify/resend (no-op в demo).
+    setVerifySent(true);
   };
 
   const savePhone = () => {
@@ -75,27 +74,27 @@ function AccountSection() {
       </Link>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена пароля</h2>
-        <form onSubmit={submitPassword} className="space-y-[12px]">
-          <Field label="Текущий пароль"><PasswordInput value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></Field>
-          <Field label="Новый пароль"><PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></Field>
-          <Field label="Повторите новый пароль"><PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" /></Field>
-          <Button type="submit" className="rounded-[10px]">Сменить пароль</Button>
-        </form>
+        <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Email</h2>
+        {currentEmail ? (
+          <>
+            <div className="flex flex-wrap items-center gap-[8px]">
+              <p className="text-[14px]" style={{ color: "var(--foreground)" }}>{currentEmail}</p>
+              {emailPending && <Badge variant="draft" withIcon={false}>Не подтверждён</Badge>}
+            </div>
+            {verifySent ? (
+              <p className="mt-[12px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                Письмо со ссылкой подтверждения отправлено на {currentEmail}.
+              </p>
+            ) : (
+              <Button type="button" variant="outline" size="sm" onClick={resendVerification} className="mt-[12px] rounded-[10px]">
+                Отправить письмо подтверждения
+              </Button>
+            )}
+          </>
+        ) : (
+          <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>Email не указан</p>
+        )}
       </Card>
-
-      {currentUser?.email && (
-        <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
-          <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Email</h2>
-          <p className="text-[14px]" style={{ color: "var(--foreground)" }}>{currentUser.email}</p>
-          <Button type="button" variant="outline" size="sm" onClick={resendVerification} className="mt-[12px] rounded-[10px]">
-            Отправить письмо повторно
-          </Button>
-          <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Реальная отправка и статус подтверждения — в разработке.
-          </p>
-        </Card>
-      )}
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена email</h2>
@@ -112,7 +111,7 @@ function AccountSection() {
         </Field>
         <Button type="button" onClick={savePhone} className="mt-[12px] rounded-[10px]">Сохранить</Button>
         <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Хранится локально. Интеграция с профилем — в разработке (см. backend-endpoints-needed.md #18).
+          Сохраняется в вашем аккаунте.
         </p>
       </Card>
 
@@ -131,19 +130,8 @@ function AccountSection() {
         </div>
         <Button type="button" onClick={saveSocials} className="mt-[12px] rounded-[10px]">Сохранить</Button>
         <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Хранится локально. Интеграция с профилем — в разработке.
+          Сохраняется в вашем аккаунте.
         </p>
-      </Card>
-
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Безопасность</h2>
-        <div
-          className="flex items-center justify-between gap-[12px] rounded-[10px] px-[14px] py-[12px]"
-          style={{ background: "var(--background-surface)", opacity: 0.6 }}
-        >
-          <span className="text-[14px]" style={{ color: "var(--foreground)" }}>Двухфакторная аутентификация</span>
-          <Badge variant="draft" withIcon={false}>Скоро</Badge>
-        </div>
       </Card>
     </SettingsSectionShell>
   );

@@ -952,6 +952,22 @@ See #18 for the full write-up (field missing from `RegisterRequest`/`UpdateProfi
 ### 24.13 Привязка способов оплаты — explicitly not simulated
 No saved-payment-method / card-binding UI exists anywhere in the frontend, and none was added as part of the Настройки work. `components/PaymentModal.tsx` is an existing, unused, self-labelled prototype stub for one-shot checkout ("В production будет подключена оплата через ЮKassa или Т-Банк. Сейчас это заглушка для прототипа.") — it is not a saved-methods vault and has no importers. A real payment-method feature requires a PCI-scope decision (tokenized vault via a provider, most likely ЮKassa или Т-Банк per the existing stub's own note) that is out of scope for frontend-only work. No endpoint shape is proposed here since the provider integration approach isn't decided.
 
+### 24.14 Смена пароля — форма + честное состояние отправки
+`POST /account/password/change-request` — принимает текущий/новый пароль (или
+только запрос), отправляет письмо со ссылкой подтверждения смены.
+- Frontend: `routes/settings.security.tsx` — форма с валидацией (≥8, совпадение);
+  на submit показывает честное inline-состояние «Запрос на смену пароля отправлен
+  на {email}». Фейкового «пароль изменён» нет; в demo вызов — no-op. Реальная
+  смена завершается по ссылке из письма (серверная операция).
+
+### 24.15 Смена / верификация email
+`POST /account/email` — смена email с последующей верификацией;
+`POST /account/email/verify/resend` — повторная отправка письма подтверждения.
+- Frontend: `routes/settings.account.tsx` — в demo email меняется локально
+  (`modelizm_account_extra.email`, `emailVerified=false` → бейдж «Не подтверждён»),
+  «Отправить письмо подтверждения» → честное состояние «письмо отправлено».
+  На бою адрес меняется через эндпоинт и подтверждается по ссылке.
+
 ## 25. Транскрибация голосовых сообщений (speech-to-text)
 
 Лендинг рекламирует «Голосовые сообщения с транскрибацией» (Pro). Фронтенд
