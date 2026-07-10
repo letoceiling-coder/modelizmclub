@@ -209,7 +209,7 @@ function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoC
           <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
             <span className="font-semibold" style={{ color: "var(--foreground)" }}>{e.attendees}</span> идут
           </span>
-          <Button onClick={() => onSignup(e)} size="sm" className="gap-[6px] rounded-[10px]">
+          <Button onClick={() => onSignup(e)} size="sm" className="gap-[6px]">
             <CalendarDays size={14} /> Записаться
           </Button>
         </div>
@@ -437,7 +437,7 @@ function CommunityDetailPage() {
       <AppLayout rightColumn={false}>
         <div className="py-[40px]">
           <EmptyState icon={Users} title="Сообщество не найдено" description="Возможно, оно было удалено или ссылка некорректна">
-            <Button asChild className="rounded-[10px] px-[20px]">
+            <Button asChild className=" px-[20px]">
               <Link to="/communities">Все сообщества</Link>
             </Button>
           </EmptyState>
@@ -656,7 +656,7 @@ function CommunityDetailPage() {
 
         {/* Back link */}
         <div className="pb-[8px]">
-          <Button asChild variant="ghost" className="gap-[6px] rounded-[10px] text-[13px]">
+          <Button asChild variant="ghost" className="gap-[6px] text-[13px]">
             <Link to="/communities"><ArrowLeft size={14} /> Все сообщества</Link>
           </Button>
         </div>

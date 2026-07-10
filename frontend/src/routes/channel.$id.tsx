@@ -32,7 +32,7 @@ function NotFoundView() {
           title="Канал не найден"
           description="Возможно, он был удалён или ссылка некорректна"
         >
-          <Button asChild className="rounded-[10px] px-[20px]">
+          <Button asChild className=" px-[20px]">
             <Link to="/channels">Все каналы</Link>
           </Button>
         </EmptyState>

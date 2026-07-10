@@ -340,7 +340,7 @@ export function ProfileView({
                 userAds.length === 0 ? (
                   <EmptyTab text="Нет объявлений">
                     {isOwn && (
-                      <Button asChild className="mt-[16px] rounded-[10px]">
+                      <Button asChild className="mt-[16px]">
                         <Link to="/ads/new"><Plus size={14} /> Создать объявление</Link>
                       </Button>
                     )}
@@ -644,7 +644,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
                 placeholder="Добавить интерес"
                 className="h-11 flex-1"
               />
-              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0 rounded-[10px]">
+              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0">
                 <Plus size={18} />
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, ShieldCheck, Tag, Phone, RefreshCw } from "lucide-react";
+import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, ShieldCheck, Tag, Phone } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -113,14 +113,10 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
             variant="outline"
             size="lg"
             onClick={onRevealPhone}
-            disabled={phoneRevealState === "loading"}
+            loading={phoneRevealState === "loading"}
             className="w-full rounded-[var(--r-button)]"
           >
-            {phoneRevealState === "loading" ? (
-              <>
-                <RefreshCw size={16} className="animate-spin" /> Загрузка…
-              </>
-            ) : (
+            {phoneRevealState === "loading" ? "Загрузка…" : (
               <>
                 <Phone size={16} /> Позвонить продавцу
               </>

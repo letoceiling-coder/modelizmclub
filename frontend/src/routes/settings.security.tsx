@@ -64,7 +64,7 @@ function SecuritySection() {
             <Field label="Текущий пароль"><PasswordInput value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></Field>
             <Field label="Новый пароль"><PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></Field>
             <Field label="Повторите новый пароль"><PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" /></Field>
-            <Button type="submit" className="rounded-[10px]">Сменить пароль</Button>
+            <Button type="submit">Сменить пароль</Button>
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
               Для подтверждения смены мы отправим ссылку на ваш email.
             </p>

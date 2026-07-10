@@ -42,7 +42,7 @@ function RequisitesSection() {
           <Field label="ИНН (необязательно)"><Input value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" inputMode="numeric" /></Field>
           <Field label="Телефон"><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+7 900 000-00-00" inputMode="tel" /></Field>
           <Field label="Адрес"><Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" /></Field>
-          <Button type="submit" className="rounded-[10px]">Сохранить</Button>
+          <Button type="submit">Сохранить</Button>
         </form>
       </Card>
     </SettingsSectionShell>

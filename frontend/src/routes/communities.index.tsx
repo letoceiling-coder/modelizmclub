@@ -109,7 +109,7 @@ function CommunityCard({ c }: { c: Community }) {
               активны сегодня
             </span>
           </div>
-          <Button asChild size="sm" className="rounded-[10px] gap-[6px]">
+          <Button asChild size="sm" className=" gap-[6px]">
             <Link to="/communities/$id" params={{ id: c.id }}>
               Перейти <ArrowRight size={14} />
             </Link>

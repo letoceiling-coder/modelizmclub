@@ -503,12 +503,12 @@ function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: ()
   return (
     <EmptyState icon={Inbox} title={c.title} description={c.desc}>
       {dirty && (
-        <Button type="button" variant="outline" size="sm" onClick={onReset} className="rounded-[10px]">
+        <Button type="button" variant="outline" size="sm" onClick={onReset}>
           <RotateCcw size={13} /> Сбросить фильтры
         </Button>
       )}
       {tab === "active" && (
-        <Button type="button" size="sm" onClick={onCreate} className="rounded-[10px]">
+        <Button type="button" size="sm" onClick={onCreate}>
           <Plus size={14} /> Разместить объявление
         </Button>
       )}

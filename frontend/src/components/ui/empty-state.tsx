@@ -91,7 +91,7 @@ export function EmptyState({
       {(action || secondaryAction || children) && (
         <div className="mt-[4px] flex flex-wrap items-center justify-center gap-[8px]">
           {action && (
-            <Button onClick={action.onClick} className="rounded-[10px] px-[20px]">
+            <Button onClick={action.onClick} className=" px-[20px]">
               {action.label}
             </Button>
           )}

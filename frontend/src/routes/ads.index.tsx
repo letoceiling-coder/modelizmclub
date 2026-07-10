@@ -317,14 +317,8 @@ function CatalogPage() {
                 </div>
                 {hasMore && (
                   <div className="mt-[16px] flex justify-center">
-                    <Button variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
-                      {loadingMore ? (
-                        <>
-                          <RefreshCw size={14} className="mr-[6px] animate-spin" /> Загружаем…
-                        </>
-                      ) : (
-                        "Показать ещё"
-                      )}
+                    <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
+                      {loadingMore ? "Загружаем…" : "Показать ещё"}
                     </Button>
                   </div>
                 )}

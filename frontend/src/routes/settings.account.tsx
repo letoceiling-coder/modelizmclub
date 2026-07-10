@@ -86,7 +86,7 @@ function AccountSection() {
                 Письмо со ссылкой подтверждения отправлено на {currentEmail}.
               </p>
             ) : (
-              <Button type="button" variant="outline" size="sm" onClick={resendVerification} className="mt-[12px] rounded-[10px]">
+              <Button type="button" variant="outline" size="sm" onClick={resendVerification} className="mt-[12px]">
                 Отправить письмо подтверждения
               </Button>
             )}
@@ -100,7 +100,7 @@ function AccountSection() {
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена email</h2>
         <form onSubmit={submitEmail} className="space-y-[12px]">
           <Field label="Новый email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" /></Field>
-          <Button type="submit" className="rounded-[10px]">Изменить email</Button>
+          <Button type="submit">Изменить email</Button>
         </form>
       </Card>
 
@@ -109,7 +109,7 @@ function AccountSection() {
         <Field label="Номер телефона">
           <PhoneInput defaultValue={extra.phone} onValueChange={(v) => setExtra((e) => ({ ...e, phone: v }))} />
         </Field>
-        <Button type="button" onClick={savePhone} className="mt-[12px] rounded-[10px]">Сохранить</Button>
+        <Button type="button" onClick={savePhone} className="mt-[12px]">Сохранить</Button>
         <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
           Сохраняется в вашем аккаунте.
         </p>
@@ -128,7 +128,7 @@ function AccountSection() {
             <Input value={extra.website} onChange={(e) => setExtra((x) => ({ ...x, website: e.target.value }))} placeholder="https://example.com" />
           </Field>
         </div>
-        <Button type="button" onClick={saveSocials} className="mt-[12px] rounded-[10px]">Сохранить</Button>
+        <Button type="button" onClick={saveSocials} className="mt-[12px]">Сохранить</Button>
         <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
           Сохраняется в вашем аккаунте.
         </p>
