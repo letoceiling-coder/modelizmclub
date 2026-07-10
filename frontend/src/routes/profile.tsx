@@ -309,7 +309,7 @@ export function ProfileView({
 
 
         {/* Counters */}
-        <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+        <div className="grid grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
           <Counter label="Публикаций" value={stats?.publications ?? userPosts.length} divider />
           <Counter label="Объявлений" value={stats?.ads ?? userAds.length} divider />
           <Counter label="Друзей" value={friendsCountDerived} divider />
@@ -494,9 +494,9 @@ export function ProfileView({
 
 function Counter({ label, value, divider }: { label: string; value: number; divider?: boolean }) {
   return (
-    <div className="px-[16px] py-[12px] text-center md:px-[24px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
-      <div className="font-display text-[18px] font-bold leading-none" style={{ color: "var(--foreground)" }}>{value}</div>
-      <div className="mt-[3px] text-[11px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
+    <div className="min-w-0 px-[6px] py-[10px] text-center md:px-[24px] md:py-[12px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
+      <div className="font-display text-[16px] font-bold leading-none md:text-[18px]" style={{ color: "var(--foreground)" }}>{value}</div>
+      <div className="mt-[3px] truncate text-[10px] md:text-[11px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
     </div>
   );
 }

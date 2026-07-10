@@ -60,7 +60,7 @@ export function AttachmentMenu({ onPick }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[36px] sm:w-[36px]"
+        className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px]"
         style={{ color: "var(--foreground-50)" }}
         aria-label="Прикрепить"
         aria-expanded={open}

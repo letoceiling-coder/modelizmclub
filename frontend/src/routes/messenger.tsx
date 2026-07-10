@@ -939,33 +939,36 @@ function MessengerPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <div className="relative flex items-end gap-[8px] px-[12px] py-[10px]" style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
+                {/* Composer: attach · photo · input · mic/send — one optical
+                    line (items-end), equal 44px tap targets, equal gaps. Attach
+                    controls live outside the pill so the row reads as one set. */}
+                <div className="relative flex items-end gap-[4px] px-[8px] py-[8px]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
+                  <AttachmentMenu onPick={handleAttachment} />
+                  <input
+                    ref={quickPhotoRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleQuickPhoto}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => quickPhotoRef.current?.click()}
+                    className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[40px] sm:w-[40px]"
+                    aria-label="Быстрое фото"
+                  >
+                    <ImagePlus size={18} />
+                  </Button>
                   <div
-                    className="flex min-w-0 flex-1 items-end gap-[4px] pl-[6px] pr-[4px]"
+                    className="flex min-w-0 flex-1 items-center px-[14px]"
                     style={{
-                      minHeight: 42,
+                      minHeight: 44,
                       background: "var(--background-surface)",
                       borderRadius: 22,
                       border: "1px solid var(--border)",
                     }}
                   >
-                    <AttachmentMenu onPick={handleAttachment} />
-                    <input
-                      ref={quickPhotoRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleQuickPhoto}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => quickPhotoRef.current?.click()}
-                      className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[36px] sm:w-[36px]"
-                      aria-label="Быстрое фото"
-                    >
-                      <ImagePlus size={18} />
-                    </Button>
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
@@ -979,8 +982,8 @@ function MessengerPage() {
                       rows={1}
                       className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
-                        minHeight: 36, maxHeight: 120,
-                        padding: "9px 4px",
+                        minHeight: 24, maxHeight: 120,
+                        padding: "0",
                         color: "var(--foreground)",
                         lineHeight: 1.35,
                       }}
@@ -990,7 +993,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[42px] sm:w-[42px]"
+                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px]"
                       aria-label="Отправить"
                     >
                       <Send size={18} />
