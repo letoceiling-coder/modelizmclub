@@ -520,6 +520,10 @@ function MessengerPage() {
     };
     actions.addMessage(dialogId, optimistic);
     setReplyTo(null);
+    // Demo mode has no media backend — the optimistic message already carries a
+    // playable blob URL + waveform + duration, so it IS the final message. Skip
+    // the upload/send (which would 404 against no backend) and keep the blob.
+    if (isDemoMode()) return;
     try {
       const { uuid } = await uploadVoice(blob, durationSec);
       const saved = await apiSendVoiceMessage(dialogId, uuid, durationSec, replyId);
