@@ -461,7 +461,7 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
 
   return (
     <div
-      className="relative flex min-w-[200px] shrink-0 snap-start flex-col overflow-hidden sm:min-w-0"
+      className="relative flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col overflow-hidden sm:w-auto sm:max-w-none"
       style={cardStyle}
       onMouseLeave={() => { setMenuOpen(false); setHovIdx(0); }}
     >
