@@ -42,6 +42,7 @@ import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
 import { Route as SettingsWalletRouteImport } from './routes/settings.wallet'
+import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SettingsRequisitesRouteImport } from './routes/settings.requisites'
 import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
@@ -226,6 +227,11 @@ const SettingsWalletRoute = SettingsWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsRequisitesRoute = SettingsRequisitesRouteImport.update({
   id: '/requisites',
   path: '/requisites',
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
@@ -406,6 +413,7 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads': typeof AdsIndexRoute
@@ -460,6 +468,7 @@ export interface FileRoutesById {
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/rating'
     | '/settings/requisites'
+    | '/settings/security'
     | '/settings/wallet'
     | '/user/$id'
     | '/ads/'
@@ -562,6 +572,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/rating'
     | '/settings/requisites'
+    | '/settings/security'
     | '/settings/wallet'
     | '/user/$id'
     | '/ads'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/rating'
     | '/settings/requisites'
+    | '/settings/security'
     | '/settings/wallet'
     | '/user/$id'
     | '/ads/'
@@ -894,6 +906,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsWalletRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/requisites': {
       id: '/settings/requisites'
       path: '/requisites'
@@ -1110,6 +1129,7 @@ interface SettingsRouteChildren {
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsRatingRoute: typeof SettingsRatingRoute
   SettingsRequisitesRoute: typeof SettingsRequisitesRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
   SettingsWalletRoute: typeof SettingsWalletRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
@@ -1120,6 +1140,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsRatingRoute: SettingsRatingRoute,
   SettingsRequisitesRoute: SettingsRequisitesRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
   SettingsWalletRoute: SettingsWalletRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
