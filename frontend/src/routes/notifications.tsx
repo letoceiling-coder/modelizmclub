@@ -86,7 +86,7 @@ function NotificationsPage() {
             {unread > 0 && (
               <span
                 className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[6px] text-[11px] font-bold"
-                style={{ background: "var(--accent)", color: "white", borderRadius: 999 }}
+                style={{ background: "var(--accent)", color: "white", borderRadius: "var(--r-pill)" }}
               >
                 {unread}
               </span>

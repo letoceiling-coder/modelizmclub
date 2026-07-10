@@ -64,7 +64,7 @@ function ChannelPage() {
           <Skeleton className="h-[52px] w-full rounded-[12px]" />
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-[96px] w-full rounded-[14px]" />
+              <Skeleton key={i} className="h-[96px] w-full rounded-[var(--r-card)]" />
             ))}
           </div>
         </div>
@@ -240,7 +240,7 @@ function ChannelPage() {
             {channel.isOwner && <Composer channelSlug={channel.slug} onPosted={reloadPosts} />}
 
             {list.length === 0 ? (
-              <div className="grid place-items-center gap-2 py-12 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
+              <div className="grid place-items-center gap-2 py-12 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}>
                 <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>В этом канале пока нет постов</div>
               </div>
             ) : (
@@ -305,7 +305,7 @@ function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
       style={{
         background: "var(--background)",
         border: "1px solid var(--border)",
-        borderRadius: 14,
+        borderRadius: "var(--r-card)",
         opacity: post.status === "rejected" ? 0.7 : 1,
       }}
     >
@@ -391,7 +391,7 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
   return (
     <section
       className="p-4"
-      style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
+      style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
@@ -495,7 +495,7 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
       {/* description */}
       <section
         className="p-4 sm:p-5"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
+        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
       >
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
           Описание
@@ -516,7 +516,7 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
       {/* owner card */}
       <section
         className="p-4"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
+        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
       >
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
           Владелец
@@ -554,7 +554,7 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
       {/* rules */}
       <section
         className="p-4"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14 }}
+        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
       >
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
           Правила публикаций

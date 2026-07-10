@@ -52,7 +52,7 @@ export function FirstHundredBanner() {
                 gap: "6px",
                 padding: "6px 12px",
                 background: "rgba(31, 19, 0, 0.18)",
-                borderRadius: 999,
+                borderRadius: "var(--r-pill)",
                 fontSize: "12px",
                 fontWeight: 700,
                 letterSpacing: "0.04em",
@@ -68,7 +68,7 @@ export function FirstHundredBanner() {
                 padding: "6px 12px",
                 background: "#1F1300",
                 color: "#FCD34D",
-                borderRadius: 999,
+                borderRadius: "var(--r-pill)",
                 fontSize: "12px",
                 fontWeight: 700,
               }}
@@ -106,7 +106,7 @@ export function FirstHundredBanner() {
             <div
               style={{
                 height: "12px",
-                borderRadius: 999,
+                borderRadius: "var(--r-pill)",
                 background: "rgba(31, 19, 0, 0.18)",
                 overflow: "hidden",
               }}
@@ -115,7 +115,7 @@ export function FirstHundredBanner() {
                 style={{
                   width: `${pct}%`,
                   height: "100%",
-                  borderRadius: 999,
+                  borderRadius: "var(--r-pill)",
                   background: "linear-gradient(90deg, #1F1300 0%, #7C2D12 100%)",
                   transition: "width 0.4s ease",
                 }}

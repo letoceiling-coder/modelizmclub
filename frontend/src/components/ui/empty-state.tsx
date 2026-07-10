@@ -39,7 +39,7 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center",
-        !isBare && "rounded-[14px] border border-dashed",
+        !isBare && "rounded-[var(--r-card)] border border-dashed",
         isCompact ? "gap-[8px] px-[16px] py-[32px]" : "gap-[12px] px-[24px] py-[56px]",
         className,
       )}

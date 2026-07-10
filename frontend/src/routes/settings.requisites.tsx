@@ -36,7 +36,7 @@ function RequisitesSection() {
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
         Данные хранятся локально. Интеграция с документами сделок — в разработке.
       </p>
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <form onSubmit={save} className="space-y-[12px]">
           <Field label="Полное имя (ФИО)"><Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" /></Field>
           <Field label="ИНН (необязательно)"><Input value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" inputMode="numeric" /></Field>

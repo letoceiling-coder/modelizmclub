@@ -37,7 +37,7 @@ export function FindYourPeopleSheet() {
         <SheetTrigger asChild>
           <button
             type="button"
-            className="flex w-full items-center gap-[12px] rounded-[14px] border px-[14px] py-[12px] text-left transition-colors hover:bg-[var(--background-surface)]"
+            className="flex w-full items-center gap-[12px] rounded-[var(--r-card)] border px-[14px] py-[12px] text-left transition-colors hover:bg-[var(--background-surface)]"
             style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
           >
             <span

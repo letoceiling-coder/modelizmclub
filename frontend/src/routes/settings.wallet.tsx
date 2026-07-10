@@ -11,7 +11,7 @@ export const Route = createFileRoute("/settings/wallet")({
 function WalletSection() {
   return (
     <SettingsSectionShell title="Кошелёк">
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14, background: "var(--background-surface)" }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
         <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Демо-баланс</div>
         <div className="mt-[4px] font-display text-[32px] font-bold" style={{ color: "var(--foreground)" }}>
           {mockWalletBalance.toLocaleString("ru-RU")} ₽
@@ -19,7 +19,7 @@ function WalletSection() {
       </Card>
 
       <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>История операций</h2>
-      <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         {mockWalletOperations.map((op) => (
           <div key={op.id} className="flex items-center gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
             <span className="grid h-[36px] w-[36px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: op.type === "in" ? "var(--success)" : "var(--foreground-50)" }}>

@@ -27,7 +27,7 @@ function initials(name: string): string {
 function RatingSection() {
   return (
     <SettingsSectionShell title="Рейтинг и отзывы">
-      <Card className="flex items-center gap-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14, background: "var(--background-surface)" }}>
+      <Card className="flex items-center gap-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
         <div className="font-display text-[40px] font-bold leading-none" style={{ color: "var(--foreground)" }}>{mockMyRating.average.toFixed(1)}</div>
         <div>
           <Stars value={mockMyRating.average} size={18} />
@@ -37,7 +37,7 @@ function RatingSection() {
 
       <div className="flex flex-col gap-[10px]">
         {mockMyReviews.map((r) => (
-          <Card key={r.id} className="flex items-start gap-[12px] p-[16px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+          <Card key={r.id} className="flex items-start gap-[12px] p-[16px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
             <Avatar className="h-[40px] w-[40px] shrink-0">
               <AvatarImage src={r.avatar} alt="" />
               <AvatarFallback className="text-[13px] font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{initials(r.author)}</AvatarFallback>

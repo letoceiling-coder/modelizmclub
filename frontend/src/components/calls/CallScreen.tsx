@@ -116,7 +116,7 @@ function VideoLayer() {
         style={{ background: "#000", zIndex: 0 }}
       />
       <div
-        className="absolute right-4 z-[2] overflow-hidden rounded-[14px]"
+        className="absolute right-4 z-[2] overflow-hidden rounded-[var(--r-card)]"
         style={{ top: "max(56px, env(safe-area-inset-top))", width: 110, height: 150, border: "2px solid rgba(255,255,255,0.6)", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
       >
         <video ref={localRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ background: "#111", transform: "scaleX(-1)" }} />
@@ -239,7 +239,7 @@ function CallControls() {
               onClick={() => calls.decline()}
               aria-label="Отклонить"
               className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
-              style={{ background: "var(--error, #ef4444)", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
+              style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
             >
               <PhoneOff size={28} />
             </button>
@@ -308,7 +308,7 @@ function CallControls() {
         disabled={ended}
         aria-label="Завершить звонок"
         className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
-        style={{ background: "var(--error, #ef4444)", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)", opacity: ended ? 0.6 : 1 }}
+        style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)", opacity: ended ? 0.6 : 1 }}
       >
         <PhoneOff size={28} />
       </button>

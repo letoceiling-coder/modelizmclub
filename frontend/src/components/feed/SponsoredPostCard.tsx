@@ -163,5 +163,5 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
 function gradientStops(token: string): string {
   if (token.includes("slate")) return "#334155, #0f172a";
   if (token.includes("red-700") && token.includes("slate")) return "#991b1b, #0f172a";
-  return "#dc2626, #7f1d1d";
+  return "var(--danger), #7f1d1d";
 }

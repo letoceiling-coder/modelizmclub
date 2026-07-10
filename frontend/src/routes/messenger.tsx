@@ -670,7 +670,7 @@ function MessengerPage() {
                     }}
                     className="inline-flex shrink-0 items-center text-[12px] font-semibold transition-colors"
                     style={{
-                      height: 28, padding: "0 12px", borderRadius: 999,
+                      height: 28, padding: "0 12px", borderRadius: "var(--r-pill)",
                       background: isActive ? "var(--accent-soft)" : "transparent",
                       color: isActive ? "var(--accent)" : "var(--foreground-50)",
                       border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
@@ -1119,7 +1119,7 @@ function ChannelsList({ query }: { query: string }) {
               {subscribed && (
                 <span
                   className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: 999 }}
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}
                 >
                   <Check size={11} /> Подписан
                 </span>

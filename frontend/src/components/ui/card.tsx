@@ -18,7 +18,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         "border text-card-foreground",
         airy
           ? "rounded-[var(--r-card-sm)] border-[var(--neutral-200)] bg-white shadow-[var(--shadow-card-airy)]"
-          : "rounded-xl bg-card shadow",
+          : "rounded-[var(--r-card)] bg-card shadow",
         className,
       )}
       {...props}

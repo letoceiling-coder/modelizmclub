@@ -30,7 +30,7 @@ function NotificationsSettings() {
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
         Настройки применяются на этом устройстве. Реальная доставка — в разработке.
       </p>
-      <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         {ROWS.map(({ key, label }) => (
           <div key={key} className="flex items-center justify-between gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
             <span className="text-[15px]" style={{ color: "var(--foreground)" }}>{label}</span>

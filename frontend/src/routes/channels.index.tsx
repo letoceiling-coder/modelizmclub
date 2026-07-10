@@ -151,7 +151,7 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
         to="/channel/$id"
         params={{ id: c.id }}
         className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-[var(--background-surface)]"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 14, display: "flex" }}
+        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)", display: "flex" }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
           <div

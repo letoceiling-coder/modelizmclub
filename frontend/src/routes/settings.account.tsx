@@ -73,7 +73,7 @@ function AccountSection() {
         <ChevronRight size={18} style={{ color: "var(--foreground-30)" }} />
       </Link>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Email</h2>
         {currentEmail ? (
           <>
@@ -96,7 +96,7 @@ function AccountSection() {
         )}
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена email</h2>
         <form onSubmit={submitEmail} className="space-y-[12px]">
           <Field label="Новый email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" /></Field>
@@ -104,7 +104,7 @@ function AccountSection() {
         </form>
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Телефон</h2>
         <Field label="Номер телефона">
           <PhoneInput defaultValue={extra.phone} onValueChange={(v) => setExtra((e) => ({ ...e, phone: v }))} />
@@ -115,7 +115,7 @@ function AccountSection() {
         </p>
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Соцсети</h2>
         <div className="space-y-[12px]">
           <Field label="VK">

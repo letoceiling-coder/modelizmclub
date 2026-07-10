@@ -358,7 +358,7 @@ export function ProfileView({
                               style={{
                                 height: 32,
                                 padding: "0 14px",
-                                borderRadius: 999,
+                                borderRadius: "var(--r-pill)",
                                 background: active ? "var(--accent)" : "var(--background-surface)",
                                 color: active ? "#fff" : "var(--foreground-70)",
                                 fontWeight: active ? 600 : 500,
@@ -371,7 +371,7 @@ export function ProfileView({
                                   fontSize: 11,
                                   fontWeight: 700,
                                   padding: "1px 7px",
-                                  borderRadius: 999,
+                                  borderRadius: "var(--r-pill)",
                                   background: active ? "rgba(255,255,255,0.22)" : "var(--background)",
                                   color: active ? "#fff" : "var(--foreground-50)",
                                 }}
@@ -415,7 +415,7 @@ export function ProfileView({
                     {userCommunities.map((c) => {
                       const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
                       return (
-                        <Card key={c.id} className="rounded-[14px] transition-colors hover:border-[var(--border-strong)]">
+                        <Card key={c.id} className="rounded-[var(--r-card)] transition-colors hover:border-[var(--border-strong)]">
                           <Link
                             to="/communities/$id"
                             params={{ id: c.id }}

@@ -12,7 +12,7 @@ interface Props {
 
 /**
  * UI Kit 2.0 selectable card. Active state is always the blue accent
- * (#627FFF) — never commercial-orange. Keyboard-focusable with a visible ring;
+ * (var(--accent)) — never commercial-orange. Keyboard-focusable with a visible ring;
  * min height comfortably above the 44px tap target.
  */
 export function RadioCard({ selected, onClick, icon: Icon, title, description, className }: Props) {

@@ -62,7 +62,7 @@ function CommunityCard({ c }: { c: Community }) {
         {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
-          style={{ background: "var(--background)", border: "3px solid var(--background)", borderRadius: 14 }}
+          style={{ background: "var(--background)", border: "3px solid var(--background)", borderRadius: "var(--r-card)" }}
         >
           {showAvatar ? (
             <img
@@ -215,7 +215,7 @@ function CommunitiesPage() {
                   style={{
                     background: active ? "var(--accent-soft)" : "var(--background-surface)",
                     color: active ? "var(--accent)" : "var(--foreground-50)",
-                    borderRadius: 999,
+                    borderRadius: "var(--r-pill)",
                   }}
                 >
                   {t.count}

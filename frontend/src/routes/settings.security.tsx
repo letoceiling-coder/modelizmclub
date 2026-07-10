@@ -44,7 +44,7 @@ function SecuritySection() {
 
   return (
     <SettingsSectionShell title="Безопасность">
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена пароля</h2>
         {sent ? (
           <div className="flex items-start gap-[10px] rounded-[10px] p-[14px]" style={{ background: "var(--accent-soft)" }}>
@@ -72,7 +72,7 @@ function SecuritySection() {
         )}
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: 14 }}>
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Заблокированные пользователи</h2>
         <BlockedUsersSection />
       </Card>

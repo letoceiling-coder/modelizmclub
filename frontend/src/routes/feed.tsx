@@ -185,7 +185,7 @@ function FeedPage() {
                 <button
                   key={c.id}
                   onClick={() => setActiveCategory(active ? null : c.name)}
-                  className="shrink-0 rounded-[999px] border px-[14px] py-[6px] text-[13px] transition-colors"
+                  className="shrink-0 rounded-[var(--r-pill)] border px-[14px] py-[6px] text-[13px] transition-colors"
                   style={{
                     background: active ? "var(--accent)" : "var(--background-elevated)",
                     color: active ? "#fff" : "var(--foreground)",

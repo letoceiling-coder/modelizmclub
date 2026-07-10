@@ -11,7 +11,7 @@ export function CreatePostTrigger({ onOpen }: Props) {
   const me = useStore(selectors.currentUser);
   return (
     <div
-      className="rounded-[14px] border p-[14px]"
+      className="rounded-[var(--r-card)] border p-[14px]"
       style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
       <div className="flex items-center gap-[12px]">

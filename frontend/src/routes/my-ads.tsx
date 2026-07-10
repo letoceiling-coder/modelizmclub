@@ -254,7 +254,7 @@ function MyAdsPage() {
                 type="button"
                 onClick={() => setQuery("")}
                 className="absolute right-[8px] top-1/2 grid h-[24px] w-[24px] -translate-y-1/2 place-items-center"
-                style={{ color: "var(--foreground-50)", borderRadius: 999 }}
+                style={{ color: "var(--foreground-50)", borderRadius: "var(--r-pill)" }}
                 aria-label="Очистить"
               >
                 <X size={14} />

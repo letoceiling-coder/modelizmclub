@@ -71,7 +71,7 @@ function CategoryRoomsPage() {
         <Breadcrumbs items={[{ label: "Категории", to: "/categories" }, { label: c.name }]} />
         {/* Header */}
         <header
-          className="rounded-[14px] border p-[16px]"
+          className="rounded-[var(--r-card)] border p-[16px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div className="flex items-center gap-[10px]">
@@ -104,7 +104,7 @@ function CategoryRoomsPage() {
 
         {/* Search */}
         <div
-          className="rounded-[14px] border px-[14px] py-[10px]"
+          className="rounded-[var(--r-card)] border px-[14px] py-[10px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div
@@ -136,7 +136,7 @@ function CategoryRoomsPage() {
 
         {/* Rooms */}
         <section
-          className="overflow-hidden rounded-[14px] border"
+          className="overflow-hidden rounded-[var(--r-card)] border"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div

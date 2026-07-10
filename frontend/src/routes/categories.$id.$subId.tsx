@@ -255,7 +255,7 @@ function SubcategoryRoomPage() {
         />
       </div>
       <div
-        className="flex h-[calc(100vh-200px)] flex-col overflow-hidden rounded-[14px] border lg:h-[calc(100vh-136px)]"
+        className="flex h-[calc(100vh-200px)] flex-col overflow-hidden rounded-[var(--r-card)] border lg:h-[calc(100vh-136px)]"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         {/* Room header */}
@@ -412,7 +412,7 @@ function TabBtn({
       {label}
       {typeof badge === "number" && (
         <span
-          className="ml-[2px] inline-flex min-w-[18px] items-center justify-center rounded-[999px] px-[6px] py-[1px] text-[10.5px]"
+          className="ml-[2px] inline-flex min-w-[18px] items-center justify-center rounded-[var(--r-pill)] px-[6px] py-[1px] text-[10.5px]"
           style={{
             background: active ? "var(--accent)" : "var(--background-surface)",
             color: active ? "#fff" : "var(--foreground-70)",

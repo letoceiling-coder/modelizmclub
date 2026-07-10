@@ -536,7 +536,7 @@ function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: 
         <span style={{ padding: "8px 14px", borderRadius: 10, background: preset.primary, color: preset.foreground, fontSize: 13, fontWeight: 600 }}>
           Кнопка
         </span>
-        <span style={{ padding: "3px 10px", borderRadius: 999, background: preset.primary, color: preset.foreground, fontSize: 11, fontWeight: 700 }}>
+        <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: preset.primary, color: preset.foreground, fontSize: 11, fontWeight: 700 }}>
           PRO
         </span>
         <span style={{ padding: "6px 12px", borderRadius: 8, background: preset.soft, color: preset.primary, fontSize: 12, fontWeight: 600 }}>
@@ -663,7 +663,7 @@ function PreviewArea() {
 }
 
 function Badge({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
-  return <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: bg, color: fg }}>{children}</span>;
+  return <span style={{ padding: "4px 10px", borderRadius: "var(--r-pill)", fontSize: 11, fontWeight: 600, background: bg, color: fg }}>{children}</span>;
 }
 function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: string; text: string }) {
   return (
@@ -2291,7 +2291,7 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                     fontSize: "11px",
                     fontWeight: 600,
                     padding: "3px 8px",
-                    borderRadius: 999,
+                    borderRadius: "var(--r-pill)",
                     background: p.status === "active" ? "var(--success-soft, rgba(34,197,94,0.12))" : "var(--background-surface)",
                     color: p.status === "active" ? "var(--success, #16a34a)" : "var(--foreground-50)",
                   }}>

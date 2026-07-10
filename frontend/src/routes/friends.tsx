@@ -62,7 +62,7 @@ function FriendCard({
   return (
     <Card
       className="flex flex-col gap-[12px] p-[16px] shadow-none sm:flex-row sm:items-center sm:gap-[16px] sm:p-[20px]"
-      style={{ borderColor: "var(--border)", borderRadius: 14 }}
+      style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
     >
       {/* Identity (avatar + text) — its own full-width row on mobile so the
           text never collapses under the action buttons; beside them on desktop. */}
@@ -364,7 +364,7 @@ function FriendsPage() {
                     style={{
                       background: active ? "var(--accent-soft)" : "var(--background-surface)",
                       color: active ? "var(--accent)" : "var(--foreground-50)",
-                      borderRadius: 999,
+                      borderRadius: "var(--r-pill)",
                     }}
                   >
                     {t.count}
@@ -406,7 +406,7 @@ function FriendsPage() {
                   <Card
                     key={i}
                     className="flex items-center gap-[16px] p-[20px] shadow-none"
-                    style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                    style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
                   >
                     <Skeleton className="h-[56px] w-[56px] shrink-0 rounded-full" />
                     <div className="flex-1 space-y-[8px]">
@@ -432,7 +432,7 @@ function FriendsPage() {
                       <Card
                         key={r.id}
                         className="flex items-start gap-[14px] p-[20px] shadow-none"
-                        style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
                       >
                         <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="shrink-0">
                           <Avatar className="h-[52px] w-[52px]">

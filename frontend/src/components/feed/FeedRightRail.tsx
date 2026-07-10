@@ -17,7 +17,7 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 function RailCard({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="overflow-hidden rounded-[14px] border"
+      className="overflow-hidden rounded-[var(--r-card)] border"
       style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
       {children}
