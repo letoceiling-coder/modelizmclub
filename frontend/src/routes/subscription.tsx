@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
-import { Check, Gift, Zap, CalendarClock } from "lucide-react";
+import { Gift, Zap, CalendarClock } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
-import { PRICING_PLANS, PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
+import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { subscriptionEndDate, SUB_DAYS_LEFT } from "@/lib/subscription";
 
 export const Route = createFileRoute("/subscription")({
@@ -21,13 +21,6 @@ const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
-const stagger: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
-};
-
-const PLANS = PRICING_PLANS;
-const FEATURES = PRICING_FEATURES;
 
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
@@ -182,17 +175,21 @@ function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Plans */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="mt-[24px] grid grid-cols-1 gap-[16px] md:grid-cols-3"
-        >
-          {PLANS.map((p) => (
-            <PlanCard key={p.id} plan={p} />
-          ))}
-        </motion.div>
+        {/* Plans — one shared feature set, choose the term */}
+        <div className="mx-auto mt-[24px] max-w-[420px]">
+          <PlanTermSelector
+            renderCta={(plan) => (
+              <button
+                type="button"
+                onClick={() => payClick(plan.name)}
+                className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              >
+                Оформить подписку
+              </button>
+            )}
+          />
+        </div>
 
         {/* One-time placement */}
         <div className="mt-[32px]">
@@ -250,70 +247,6 @@ function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Comparison */}
-        <section className="mt-[40px]">
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
-              fontSize: "var(--fs-h3)",
-              color: "var(--foreground)",
-            }}
-          >
-            Что входит
-          </h2>
-          <p style={{ marginTop: 6, fontSize: 13, color: "var(--foreground-50)" }}>
-            Набор возможностей одинаковый для всех тарифов — отличается только срок.
-          </p>
-
-          <div
-            className="mt-[16px] overflow-hidden"
-            style={{
-              background: "var(--background-elevated)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-card)",
-            }}
-          >
-            {/* Table head */}
-            <div
-              className="grid items-center text-[12px] uppercase"
-              style={{
-                gridTemplateColumns: "minmax(0,1fr) 56px 56px 56px",
-                padding: "12px 16px",
-                background: "var(--background-surface)",
-                color: "var(--foreground-50)",
-                letterSpacing: 1,
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              <div>Возможность</div>
-              <div className="text-center">Мес</div>
-              <div className="text-center">6 мес</div>
-              <div className="text-center">Год</div>
-            </div>
-            {FEATURES.map((f, i) => (
-              <div
-                key={f}
-                className="grid items-center"
-                style={{
-                  gridTemplateColumns: "minmax(0,1fr) 56px 56px 56px",
-                  padding: "14px 16px",
-                  borderTop: i === 0 ? "none" : "1px solid var(--border)",
-                  fontSize: 13,
-                  color: "var(--foreground)",
-                }}
-              >
-                <div>{f}</div>
-                {[0, 1, 2].map((c) => (
-                  <div key={c} className="flex justify-center">
-                    <Check size={16} style={{ color: "var(--success)" }} />
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-
         <InviteBlock />
       </div>
 
@@ -321,99 +254,3 @@ function SubscriptionPage() {
   );
 }
 
-function PlanCard({ plan }: { plan: PricingPlan }) {
-  const best = !!plan.best;
-  return (
-    <motion.article
-      variants={fadeInUp}
-      className="relative flex flex-col"
-      style={{
-        background: best
-          ? "linear-gradient(135deg, var(--accent-soft) 0%, var(--background-elevated) 60%)"
-          : "var(--background-elevated)",
-        border: best ? "2px solid var(--accent)" : "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
-        padding: "24px 20px",
-      }}
-    >
-      {best && (
-        <span
-          className="absolute uppercase"
-          style={{
-            top: 14,
-            right: 14,
-            background: "var(--accent)",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 10,
-            letterSpacing: 1,
-            padding: "4px 10px",
-            borderRadius: "var(--r-tag)",
-          }}
-        >
-          Лучший выбор
-        </span>
-      )}
-      <h3
-        style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 700,
-          fontSize: 18,
-          color: best ? "var(--accent)" : "var(--foreground)",
-        }}
-      >
-        {plan.name}
-      </h3>
-      <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 800,
-            fontSize: 36,
-            color: best ? "var(--accent)" : "var(--foreground)",
-          }}
-        >
-          {plan.price} ₽
-        </span>
-        <span style={{ fontSize: 13, color: "var(--foreground-50)" }}>/ {plan.period}</span>
-      </div>
-      {plan.savings && (
-        <span
-          className="mt-[6px] inline-block"
-          style={{
-            width: "fit-content",
-            background: "var(--success-soft)",
-            color: "var(--success)",
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "2px 8px",
-            borderRadius: "var(--r-tag)",
-          }}
-        >
-          {plan.savings}
-        </span>
-      )}
-
-      <div style={{ flex: 1 }} />
-
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={() => payClick(plan.name)}
-        className="mt-[20px] w-full transition-colors"
-        style={{
-          height: 48,
-          background: "var(--accent)",
-          color: "#fff",
-          fontWeight: 700,
-          fontSize: 15,
-          borderRadius: "var(--r-button)",
-          boxShadow: best ? "var(--shadow-glow-accent)" : "none",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
-      >
-        Оплатить
-      </motion.button>
-    </motion.article>
-  );
-}

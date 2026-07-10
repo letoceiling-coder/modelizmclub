@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowRight, ChevronDown, Plus, Check,
+  ArrowRight, ChevronDown, Plus,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
   MapPin, Search, Compass, ImageOff, CalendarDays,
   Target, HeartHandshake, LayoutGrid, Send,
@@ -18,7 +18,7 @@ import { fetchListingCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
-import { PRICING_PLANS, PRICING_FEATURES } from "@/lib/config/pricing";
+import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import type { Ad, Category } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
 import { SOCIAL_LINKS } from "@/lib/footer-links";
@@ -652,34 +652,18 @@ function PricingSection() {
       <Eyebrow>{t("landing.pricing.eyebrow")}</Eyebrow>
       <Title>{t("landing.pricing.title")}</Title>
       <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {PRICING_PLANS.map((plan) => {
-          const accent = Boolean(plan.best);
-          return (
-            <div key={plan.id} className="relative flex flex-col p-7" style={{ ...cardStyle, borderColor: accent ? "var(--border-accent)" : "var(--border)", boxShadow: accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)", background: accent ? "color-mix(in oklab, var(--accent) 6%, var(--background-elevated))" : (cardStyle as { background?: string }).background }}>
-              {accent && <span className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("landing.pricing.recommended")}</span>}
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{plan.name}</div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{plan.price} ₽</span>
-                <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{plan.period}</span>
-              </div>
-              {plan.savings && (
-                <span className="mt-2 inline-flex w-fit rounded-full px-[10px] py-[3px] text-[11px] font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{plan.savings}</span>
-              )}
-              <ul className="mt-5 space-y-2.5">
-                {PRICING_FEATURES.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm" style={{ color: "var(--foreground-70)" }}>
-                    <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} /><span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex-1" />
-              <Link to="/subscription" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
-                style={accent ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)" }}
-              >{t("landing.pricing.more")} <ArrowRight size={15} /></Link>
-            </div>
-          );
-        })}
+      <div className="mx-auto mt-10 max-w-[420px]">
+        <PlanTermSelector
+          renderCta={() => (
+            <Link
+              to="/subscription"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+            >
+              {t("landing.pricing.more")} <ArrowRight size={15} />
+            </Link>
+          )}
+        />
       </div>
     </Section>
   );
