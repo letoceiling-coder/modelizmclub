@@ -61,41 +61,45 @@ function FriendCard({
   const interests = user.interests.split(",").slice(0, 3).join(", ");
   return (
     <Card
-      className="flex items-center gap-[16px] p-[20px] shadow-none"
+      className="flex flex-col gap-[12px] p-[16px] shadow-none sm:flex-row sm:items-center sm:gap-[16px] sm:p-[20px]"
       style={{ borderColor: "var(--border)", borderRadius: 14 }}
     >
-      <Link to="/user/$id" params={{ id: user.slug ?? user.id }} className="relative shrink-0">
-        <Avatar className="h-[56px] w-[56px]">
-          <AvatarImage src={user.avatar} alt="" />
-          <AvatarFallback
-            className="text-[15px] font-semibold"
-            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-          >
-            {userInitials(user.name)}
-          </AvatarFallback>
-        </Avatar>
-        {online && (
-          <span
-            className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
-            style={{ background: "var(--success)", border: "2px solid var(--background)" }}
-          />
-        )}
-      </Link>
-      <div className="min-w-0 flex-1">
-        <Link
-          to="/user/$id"
-          params={{ id: user.slug ?? user.id }}
-          className="block truncate font-semibold text-[15px]"
-          style={{ color: "var(--foreground)" }}
-        >
-          {user.name}
+      {/* Identity (avatar + text) — its own full-width row on mobile so the
+          text never collapses under the action buttons; beside them on desktop. */}
+      <div className="flex min-w-0 items-center gap-[12px] sm:flex-1 sm:gap-[16px]">
+        <Link to="/user/$id" params={{ id: user.slug ?? user.id }} className="relative shrink-0">
+          <Avatar className="h-[56px] w-[56px]">
+            <AvatarImage src={user.avatar} alt="" />
+            <AvatarFallback
+              className="text-[15px] font-semibold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              {userInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          {online && (
+            <span
+              className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
+              style={{ background: "var(--success)", border: "2px solid var(--background)" }}
+            />
+          )}
         </Link>
-        <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          <MapPin size={11} /> <span className="truncate">{user.city}</span>
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/user/$id"
+            params={{ id: user.slug ?? user.id }}
+            className="block truncate font-semibold text-[15px]"
+            style={{ color: "var(--foreground)" }}
+          >
+            {user.name}
+          </Link>
+          <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            <MapPin size={11} /> <span className="truncate">{user.city}</span>
+          </div>
+          <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
         </div>
-        <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
       </div>
-      <div className="flex shrink-0 items-center gap-[8px]">
+      <div className="flex w-full flex-wrap items-center gap-[8px] sm:w-auto sm:flex-nowrap sm:shrink-0">
         <Button
           size="sm"
           variant={isAdded || isPending ? "outline" : "default"}
@@ -309,17 +313,19 @@ function FriendsPage() {
   return (
     <AppLayout>
       <div className="space-y-[16px]">
-        <header className="flex items-start justify-between gap-[12px]">
+        <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
             <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
           </div>
-          <div className="flex shrink-0 items-center gap-[8px]">
+          {/* Full-width split on mobile so "Групповой звонок" never runs off the
+              right edge; natural row on desktop. */}
+          <div className="flex w-full items-center gap-[8px] sm:w-auto sm:shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={findFriends}
-              className="rounded-[10px] gap-[6px]"
+              className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
               size="sm"
             >
               <UserPlus size={16} /> Найти друзей
@@ -327,7 +333,7 @@ function FriendsPage() {
             <Button
               type="button"
               onClick={() => groupCalls.openPicker("start")}
-              className="rounded-[10px] gap-[6px]"
+              className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
               size="sm"
             >
               <Users size={16} /> Групповой звонок
@@ -454,7 +460,7 @@ function FriendsPage() {
                           <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
                             <Clock size={10} /> {formatRelativeTime(r.date)}
                           </p>
-                          <div className="mt-[12px] flex gap-[8px]">
+                          <div className="mt-[12px] flex flex-wrap gap-[8px]">
                             <Button
                               size="sm"
                               onClick={() => accept(r.id)}

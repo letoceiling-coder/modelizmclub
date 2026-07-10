@@ -189,7 +189,10 @@ function MessageBubble({
         onTouchEnd={cancelLongPress}
         onTouchMove={cancelLongPress}
       >
-        <div className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+        {/* Hover affordance is desktop-only: on mobile the same menu opens via
+            long-press → portal bottom-sheet, so this off-bubble trigger would
+            only push the row past the viewport (horizontal overflow). */}
+        <div className={`absolute top-1/2 hidden -translate-y-1/2 sm:block ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
           <MessageActionsMenu
             ref={menuRef}
             isMe={isMe}
@@ -235,7 +238,7 @@ function MessageBubble({
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
-            <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
               {msg.text}
             </div>
           )}
@@ -938,7 +941,7 @@ function MessengerPage() {
                 </AnimatePresence>
                 <div className="relative flex items-end gap-[8px] px-[12px] py-[10px]" style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
                   <div
-                    className="flex flex-1 items-end gap-[4px] pl-[6px] pr-[4px]"
+                    className="flex min-w-0 flex-1 items-end gap-[4px] pl-[6px] pr-[4px]"
                     style={{
                       minHeight: 42,
                       background: "var(--background-surface)",
@@ -974,7 +977,7 @@ function MessengerPage() {
                       }}
                       placeholder="Сообщение..."
                       rows={1}
-                      className="flex-1 resize-none bg-transparent text-[14px] outline-none"
+                      className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
                         minHeight: 36, maxHeight: 120,
                         padding: "9px 4px",
