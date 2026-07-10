@@ -1,11 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Newspaper, Users2, MessageSquare, Megaphone, User, Clapperboard } from "lucide-react";
+import { Newspaper, Users2, MessageSquare, Megaphone, User, UserPlus } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
 import { useStore } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 type Item = {
-  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/reviews";
+  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
   label: string;
   icon: typeof Newspaper;
   section: string;
@@ -17,16 +17,15 @@ const ALL_ITEMS: Item[] = [
   { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
   { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
   { to: "/profile", label: "Профиль", icon: User, section: "profile" },
-  { to: "/reviews", label: "Обзоры", icon: Clapperboard, section: "reviews" },
+  { to: "/friends", label: "Друзья", icon: UserPlus, section: "friends" },
 ];
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
-  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
-  const ITEMS = ALL_ITEMS.filter(
-    (i) => (i.to !== "/communities" || communitiesEnabled) && (i.to !== "/reviews" || reviewsEnabled),
-  );
+  // Обзоры (reviews) lives in the mobile "…" menu, not the tab bar; Друзья
+  // takes the tab-bar slot. Only communities remains flag-gated here.
+  const ITEMS = ALL_ITEMS.filter((i) => i.to !== "/communities" || communitiesEnabled);
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useStore((s) =>

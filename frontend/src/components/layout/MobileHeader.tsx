@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, Menu, Radio, Sun, Moon, Check, Languages, Heart, Clapperboard, Settings } from "lucide-react";
+import { Bell, Search, Menu, Radio, Check, Languages, Heart, Clapperboard, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
-import { useTheme } from "@/components/ThemeProvider";
 import { setLocale, type Locale } from "@/lib/i18n";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import {
@@ -102,10 +101,8 @@ export function MobileHeader() {
 
 function MoreMenu() {
   const [open, setOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
   const { i18n } = useTranslation();
   const lang = (i18n.language as Locale) || "ru";
-  const isDark = theme === "dark";
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
 
   return (
@@ -160,23 +157,6 @@ function MoreMenu() {
             <Settings size={20} style={{ color: "var(--foreground-70)" }} />
             <span className="text-[15px] font-medium">Настройки</span>
           </Link>
-
-          {/* Theme */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 text-left transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground)" }}
-          >
-            {isDark ? (
-              <Sun size={20} style={{ color: "var(--foreground-70)" }} />
-            ) : (
-              <Moon size={20} style={{ color: "var(--foreground-70)" }} />
-            )}
-            <span className="text-[15px] font-medium">
-              {isDark ? "Светлая тема" : "Тёмная тема"}
-            </span>
-          </button>
 
           {/* Language */}
           <div className="mt-2 px-3 pb-1 pt-2">
