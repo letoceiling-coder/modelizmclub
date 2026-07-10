@@ -705,12 +705,12 @@ function MessengerPage() {
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
-              <motion.ul initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}>
+              <ul>
                 {filtered.map((d) => {
                   const u = userById(d.userId);
                   const isActive = d.id === activeId;
                   return (
-                    <motion.li key={d.id} variants={{ hidden: { opacity: 0, x: -16 }, visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } } }}>
+                    <li key={d.id}>
                       <button
                         onClick={() => {
                           if (suppressNextDialogClick.current) {
@@ -777,10 +777,10 @@ function MessengerPage() {
                         </span>
 
                       </button>
-                    </motion.li>
+                    </li>
                   );
                 })}
-              </motion.ul>
+              </ul>
             )}
           </div>
         </aside>
