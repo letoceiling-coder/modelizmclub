@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { CreatePostForm, type CreatePostPayload, type CreatePostFormHandle } from "@/components/CreatePostForm";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
@@ -11,8 +10,29 @@ interface Props {
   onCreate: (p: CreatePostPayload) => void;
 }
 
+const EXIT_MS = 200;
+
 export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
   const formRef = useRef<CreatePostFormHandle>(null);
+  // Plain CSS transition instead of framer-motion's AnimatePresence: that
+  // component's exit-sequencing on this tree was taking 1.2-1.4s to actually
+  // unmount (proven by A/B — removing it dropped close time to ~55ms), likely
+  // an AnimatePresence exit-detection edge case with this tree shape. mounted
+  // controls presence; visible drives the CSS transition class.
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(open);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const raf = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setVisible(false);
+    const t = window.setTimeout(() => setMounted(false), EXIT_MS);
+    return () => window.clearTimeout(t);
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -25,61 +45,58 @@ export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
     };
   }, [open, onClose]);
 
+  if (!mounted) return null;
+
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-          style={{ background: "rgba(0,0,0,0.55)" }}
-          onClick={onClose}
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center transition-opacity sm:items-center"
+      style={{ background: "rgba(0,0,0,0.55)", transitionDuration: `${EXIT_MS}ms`, opacity: visible ? 1 : 0 }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex h-[88vh] w-full flex-col overflow-hidden rounded-t-[20px] transition-[transform,opacity] sm:h-auto sm:max-h-[92vh] sm:max-w-[600px] sm:rounded-[16px]"
+        style={{
+          background: "var(--background-elevated)",
+          border: "1px solid var(--border)",
+          transitionDuration: `${EXIT_MS + 50}ms`,
+          transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+          transform: visible ? "translateY(0) scale(1)" : "translateY(40px) scale(0.98)",
+          opacity: visible ? 1 : 0,
+        }}
+      >
+        <header
+          className="flex items-center justify-between gap-[12px] border-b px-[12px] py-[10px]"
+          style={{ borderColor: "var(--border)" }}
         >
-          <motion.div
-            initial={{ y: 40, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 40, opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            onClick={(e) => e.stopPropagation()}
-            className="flex h-[88vh] w-full flex-col overflow-hidden rounded-t-[20px] sm:h-auto sm:max-h-[92vh] sm:max-w-[600px] sm:rounded-[16px]"
-            style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
+          <button
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+            style={{ color: "var(--foreground-70)" }}
           >
-            <header
-              className="flex items-center justify-between gap-[12px] border-b px-[12px] py-[10px]"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <button
-                onClick={onClose}
-                aria-label="Закрыть"
-                className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-                style={{ color: "var(--foreground-70)" }}
-              >
-                <X className="h-[20px] w-[20px]" />
-              </button>
-              <h2
-                className="min-w-0 flex-1 truncate text-center text-[16px] font-semibold"
-                style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-              >
-                Новая публикация
-              </h2>
-              <button
-                onClick={() => { if (formRef.current?.submit()) onClose(); }}
-                className="shrink-0 rounded-[var(--r-pill)] px-[16px] py-[8px] text-[14px] font-semibold transition-opacity hover:opacity-90"
-                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-              >
-                Опубл.
-              </button>
-            </header>
-            <CreatePostForm
-              ref={formRef}
-              intent={open ? intent : undefined}
-              onCreate={onCreate}
-            />
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <X className="h-[20px] w-[20px]" />
+          </button>
+          <h2
+            className="min-w-0 flex-1 truncate text-center text-[16px] font-semibold"
+            style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
+          >
+            Новая публикация
+          </h2>
+          <button
+            onClick={() => formRef.current?.submit()}
+            className="shrink-0 rounded-[var(--r-pill)] px-[16px] py-[8px] text-[14px] font-semibold transition-opacity hover:opacity-90"
+            style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+          >
+            Опубл.
+          </button>
+        </header>
+        <CreatePostForm
+          ref={formRef}
+          intent={open ? intent : undefined}
+          onCreate={onCreate}
+        />
+      </div>
+    </div>
   );
 }

@@ -140,6 +140,7 @@ function FeedPage() {
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
   const addPost = (p: CreatePostPayload) => {
+    setComposerOpen(false);
     setPosts((cur) => [
       {
         id: `np${Date.now()}`,
