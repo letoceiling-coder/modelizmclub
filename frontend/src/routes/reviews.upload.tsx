@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getState, selectors } from "@/lib/store";
 import { ensureSession } from "@/lib/auth/session";
-import { RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/reviews/upload")({
   head: () => ({ meta: [{ title: "Загрузить обзор — МоДелизМ" }] }),
@@ -108,8 +107,8 @@ function UploadPage() {
           <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>Показывать в карусели «Рекомендованное»</span>
         </label>
 
-        <Button onClick={submit} disabled={!valid || submitting} size="lg" className="rounded-[var(--r-button)]">
-          {submitting ? <><RefreshCw size={16} className="animate-spin" /> Публикуется…</> : "Опубликовать обзор"}
+        <Button onClick={submit} disabled={!valid} loading={submitting} size="lg" className="rounded-[var(--r-button)]">
+          {submitting ? "Публикуется…" : "Опубликовать обзор"}
         </Button>
       </div>
     </AppLayout>

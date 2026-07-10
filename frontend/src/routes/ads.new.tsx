@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ChevronLeft, ChevronRight, Tag, ShoppingCart,
-  ArrowLeftRight, MapPin, Truck, CreditCard, RefreshCw,
+  ArrowLeftRight, MapPin, Truck, CreditCard,
 } from "lucide-react";
 
 export const Route = createFileRoute("/ads/new")({
@@ -199,10 +199,10 @@ function NewAdPage() {
           ) : (
             <Button
               onClick={submit}
-              disabled={submitting}
+              loading={submitting}
               className="h-11 rounded-[var(--r-button)]"
             >
-              {submitting ? <RefreshCw size={16} className="animate-spin" /> : <CreditCard size={16} />}
+              {!submitting && <CreditCard size={16} />}
               {submitting ? "Публикуется…" : "Оплатить 20 ₽ и опубликовать"}
             </Button>
           )}
