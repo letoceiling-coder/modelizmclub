@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
+import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher";
+import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchPopularListings } from "@/lib/api/listings";
 import { fetchListingCategories } from "@/lib/api/categories";
@@ -65,18 +66,13 @@ function LandingPage() {
 /* ===================== TopNav (sticky) ===================== */
 
 function TopNav() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const enter = useEnter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const navLinks: Array<
-    | { kind: "route"; to: "/ads" | "/communities" | "/channels" | "/subscription"; label: string }
-    | { kind: "hash"; href: "#how"; label: string }
-  > = [
-    { kind: "route", to: "/ads", label: t("landing.nav.ads") },
-    { kind: "route", to: "/communities", label: t("landing.nav.communities") },
-    { kind: "route", to: "/channels", label: t("landing.nav.channels") },
-    { kind: "hash", href: "#how", label: t("landing.nav.how") },
-    { kind: "route", to: "/subscription", label: t("landing.nav.subscription") },
+  const navLinks: Array<{ to: "/ads" | "/communities" | "/channels"; label: string }> = [
+    { to: "/ads", label: t("landing.nav.ads") },
+    { to: "/communities", label: t("landing.nav.communities") },
+    { to: "/channels", label: t("landing.nav.channels") },
   ];
 
   return (
@@ -94,19 +90,12 @@ function TopNav() {
 
         {/* desktop nav */}
         <nav className="hidden items-center gap-6 lg:flex">
-          {navLinks.map((l) =>
-            l.kind === "hash" ? (
-              <a key={l.label} href={l.href} className="text-sm font-medium transition-colors" style={navLinkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{l.label}</a>
-            ) : (
-              <Link key={l.label} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{l.label}</Link>
-            ),
-          )}
+          {navLinks.map((l) => (
+            <Link key={l.label} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
+            >{l.label}</Link>
+          ))}
         </nav>
 
         {/* right controls */}
@@ -153,16 +142,33 @@ function TopNav() {
             style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
           >
             <div className="flex flex-col gap-1 px-4 py-3">
-              <div className="px-1 pb-1 sm:hidden"><LanguageSwitcher /></div>
-              {navLinks.map((l) =>
-                l.kind === "hash" ? (
-                  <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
-                ) : (
-                  <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
-                ),
-              )}
+              {navLinks.map((l) => (
+                <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
+              ))}
               <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
               <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
+              {/* language — quiet inline chips, at the bottom (mobile only; sm+ has it in the header) */}
+              <div className="mt-1 flex items-center gap-1.5 px-3 pt-1 sm:hidden">
+                {LANGS.map((l) => {
+                  const active = i18n.language === l.code;
+                  return (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => { setLocale(l.code); setMenuOpen(false); }}
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium"
+                      style={{
+                        background: active ? "var(--background-surface)" : "transparent",
+                        color: active ? "var(--foreground)" : "var(--foreground-60)",
+                        border: `1px solid ${active ? "var(--border-strong)" : "var(--border)"}`,
+                      }}
+                    >
+                      <span style={{ fontSize: 13 }}>{l.flag}</span>
+                      {l.code.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}
