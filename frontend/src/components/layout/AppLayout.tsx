@@ -16,9 +16,13 @@ interface Props {
    *  sub-section (Настройки) so two left-column navs never show at once.
    *  Omit for the default Sidebar; pass `false` to render no left column. */
   sidebar?: ReactNode | false;
+  /** Suppresses the mobile app-chrome header (logo/search/favorites/bell/
+   *  burger) — for sections with their own full-width contextual header
+   *  (e.g. messenger, Avito-style). Desktop's DesktopTopBar is unaffected. */
+  hideMobileHeader?: boolean;
 }
 
-export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar }: Props) {
+export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar, hideMobileHeader }: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
@@ -26,7 +30,11 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar
     // Only <main> scrolls — sidebar and right rail are fixed-height columns.
     // Mobile: normal document scroll (min-h, no overflow-hidden, no flex-col).
     <div className="min-h-[100dvh] overflow-x-clip bg-background lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden">
-      <MobileHeader />
+      {hideMobileHeader ? (
+        <div className="lg:hidden" style={{ height: "var(--safe-top)" }} />
+      ) : (
+        <MobileHeader />
+      )}
       <DesktopTopBar />
       {/*
         Mobile: pt-4/pb/px-3 — normal flow with BottomNav clearance.
