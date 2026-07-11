@@ -645,7 +645,7 @@ function MessengerPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-[6px] overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-[16px] overflow-x-auto no-scrollbar" style={{ borderBottom: "1px solid var(--border)" }}>
               {([
                 { key: "chats-active" as const, label: "Активные" },
                 { key: "channels" as const, label: "Каналы" },
@@ -668,12 +668,12 @@ function MessengerPage() {
                         setShowArchived(t.key === "chats-archive");
                       }
                     }}
-                    className="inline-flex shrink-0 items-center text-[12px] font-semibold transition-colors"
+                    className="shrink-0 text-[13px] transition-colors"
                     style={{
-                      height: 28, padding: "0 12px", borderRadius: "var(--r-pill)",
-                      background: isActive ? "var(--accent-soft)" : "transparent",
+                      height: 32,
+                      fontWeight: isActive ? 600 : 500,
                       color: isActive ? "var(--accent)" : "var(--foreground-50)",
-                      border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
+                      borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
                     {t.label}
