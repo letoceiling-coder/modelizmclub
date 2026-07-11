@@ -267,8 +267,12 @@ export interface DialogAdRef {
   image?: string;
 }
 
+// Evenly-weighted palette (same "600" saturation/lightness class per color)
+// so initials avatars read as one consistent set — the previous palette
+// (one saturated red + three grays) skewed heavily toward red by DiceBear's
+// hash distribution (5 of 8 demo users landed on the same red).
 const avatar = (seed: string) =>
-  `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
+  `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=4f46e5,059669,d97706,dc2626,7c3aed,0891b2,db2777,65a30d`;
 
 const photo = (id: number) =>
   `https://picsum.photos/seed/modelizm${id}/800/600`;
