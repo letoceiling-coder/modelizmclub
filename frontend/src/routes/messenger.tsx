@@ -709,6 +709,8 @@ function MessengerPage() {
                 {filtered.map((d) => {
                   const u = userById(d.userId);
                   const isActive = d.id === activeId;
+                  const isUnread = !!d.unread && !getMeta(d.id).muted;
+                  const adRef = dialogAdRefs[d.id];
                   return (
                     <li key={d.id}>
                       <button
@@ -747,9 +749,28 @@ function MessengerPage() {
                               {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                             </span>
-                            <TimeAgo iso={d.time} className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }} />
+                            <TimeAgo
+                              iso={d.time}
+                              className="shrink-0 font-mono text-[11px]"
+                              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)", fontWeight: isUnread ? 700 : 400 }}
+                            />
                           </div>
-                          <div className="truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage}</div>
+                          <div
+                            className="truncate text-[13px]"
+                            style={{ color: isUnread ? "var(--foreground)" : "var(--foreground-50)", fontWeight: isUnread ? 600 : 400 }}
+                          >
+                            {d.lastMessage}
+                          </div>
+                          {adRef && (
+                            <div className="mt-[4px] flex items-center gap-[6px]">
+                              {adRef.image ? (
+                                <img src={adRef.image} alt="" className="h-[18px] w-[18px] shrink-0 rounded-[4px] object-cover" />
+                              ) : (
+                                <div className="h-[18px] w-[18px] shrink-0 rounded-[4px]" style={{ background: "var(--background-surface)" }} />
+                              )}
+                              <span className="truncate text-[11px]" style={{ color: "var(--foreground-50)" }}>{adRef.title}</span>
+                            </div>
+                          )}
                         </div>
                         {!!d.unread && !getMeta(d.id).muted && (
                           <Badge
