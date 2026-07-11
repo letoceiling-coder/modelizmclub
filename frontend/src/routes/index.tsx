@@ -387,7 +387,7 @@ function QuickSections() {
         {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
           <Link key={key} to={to} className="group flex flex-col p-6 transition hover:-translate-y-1"
             style={cardStyle}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
           >
             <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
@@ -604,10 +604,10 @@ function CategoriesSection() {
             return (
               <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
               >
-                <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)] sm:h-[42px] sm:w-[42px]"
+                <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
                   style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
                   <Icon size={19} />
                 </div>
@@ -800,7 +800,7 @@ function Footer() {
               {FOOTER_LINK_KEYS[colKey].map((linkKey) => (
                 <li key={linkKey}>
                   <Link to={FOOTER_LINK_TO[linkKey]} className="text-sm transition-colors" style={{ color: "var(--foreground-50)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--neutral-700)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
                   >{t(`landing.footer.cols.${colKey}.links.${linkKey}`)}</Link>
                 </li>
