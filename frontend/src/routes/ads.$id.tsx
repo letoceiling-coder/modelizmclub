@@ -223,11 +223,12 @@ function AdDetailPage() {
         else await addFavoriteListing(id);
       } catch {
         actions.toggleFavoriteAd(id);
-        toast.error("Не удалось обновить избранное");
+        toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
         return;
       }
     }
-    toast.success(saved ? "Убрано из избранного" : "В избранное");
+    // Fixed id: rapid taps replace the previous toast instead of stacking.
+    toast.success(saved ? "Убрано из избранного" : "В избранное", { id: "favorite-toggle" });
   };
 
   const hasDelivery = ad.delivery.length > 0;

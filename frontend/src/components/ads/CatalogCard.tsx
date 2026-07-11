@@ -62,11 +62,13 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
                 else await removeFavoriteListing(ad.id);
               } catch {
                 actions.toggleFavoriteAd(ad.id);
-                toast.error("Не удалось обновить избранное");
+                toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
                 return;
               }
             }
-            toast.success(next ? "В избранное" : "Убрано из избранного");
+            // Fixed id: rapid taps (small icon, easy to double-tap) replace
+            // the previous toast instead of stacking a pile of duplicates.
+            toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
           }}
           className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
           style={{
