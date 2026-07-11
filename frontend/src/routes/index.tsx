@@ -22,6 +22,7 @@ import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import type { Ad, Category } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
 import { SOCIAL_LINKS } from "@/lib/footer-links";
+import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 
 const HERO_VIDEO = "/videos/herovideo.mp4";
 
@@ -246,10 +247,16 @@ function Hero() {
           </video>
         )}
         {/* dark overlay — fixed dark color at the bottom, independent of theme
-            (var(--background) turned white in light theme and washed out the video) */}
+            (var(--background) turned white in light theme and washed out the video).
+            Blueprint grid layered on top (first background = topmost) as the
+            brand's one decorative motif — modelism assembly drawings, not
+            generic SaaS decor. */}
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)" }}
+          style={{
+            backgroundImage: `${blueprintGridOnDark}, linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)`,
+            backgroundSize: `${blueprintGridSize}, auto`,
+          }}
         />
       </div>
 
@@ -826,7 +833,18 @@ function Footer() {
 
 function Section({ children, bg, id }: { children: React.ReactNode; bg: string; id?: string }) {
   return (
-    <section id={id} style={{ background: bg, padding: "72px 0" }}>
+    <section
+      id={id}
+      style={{
+        // Blueprint grid over the flat section color — background-color is
+        // always the bottommost layer, so the pattern just needs its own
+        // background-image on top. Same brand motif as the hero.
+        backgroundColor: bg,
+        backgroundImage: blueprintGridOnLight,
+        backgroundSize: blueprintGridSize,
+        padding: "72px 0",
+      }}
+    >
       <div className="mx-auto max-w-[1240px] px-4 md:px-8">{children}</div>
     </section>
   );

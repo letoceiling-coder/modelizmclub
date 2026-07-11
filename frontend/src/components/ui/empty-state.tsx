@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -45,7 +46,14 @@ export function EmptyState({
       )}
       style={
         !isBare
-          ? { background: "var(--background-elevated)", borderColor: "var(--border-strong)" }
+          ? {
+              backgroundColor: "var(--background-elevated)",
+              // Blueprint grid — same brand motif as the hero, kept subtle
+              // behind the icon/text (backgrounds never intercept clicks).
+              backgroundImage: blueprintGridOnLight,
+              backgroundSize: blueprintGridSize,
+              borderColor: "var(--border-strong)",
+            }
           : undefined
       }
     >
