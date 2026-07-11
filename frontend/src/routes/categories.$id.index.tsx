@@ -8,7 +8,7 @@ import type { Category } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 
 export const Route = createFileRoute("/categories/$id/")({
-  head: () => ({ meta: [{ title: "Категория — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: "Направление — МоДелизМ" }] }),
   component: CategoryRoomsPage,
 });
 
@@ -55,7 +55,7 @@ function CategoryRoomsPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0 ? "Загрузка…" : "Категория не найдена."}
+          {categories.length === 0 ? "Загрузка…" : "Направление не найдено."}
         </p>
       </AppLayout>
     );
@@ -68,7 +68,7 @@ function CategoryRoomsPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[14px]">
-        <Breadcrumbs items={[{ label: "Категории", to: "/categories" }, { label: c.name }]} />
+        <Breadcrumbs items={[{ label: "Направления", to: "/categories" }, { label: c.name }]} />
         {/* Header */}
         <header
           className="rounded-[var(--r-card)] border p-[16px]"

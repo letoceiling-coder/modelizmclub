@@ -35,7 +35,7 @@ export const ru = {
     subscription: "Подписка",
     help: "Помощь",
     market: "Маркет",
-    categories: "Категории",
+    categories: "Направления",
     admin: "Админка",
     myAds: "Мои объявления",
     favorites: "Избранное",
@@ -230,7 +230,7 @@ export const ru = {
       toCatalog: "В каталог",
     },
     categories: {
-      title: "Категории",
+      title: "Направления",
       accent: "Найди своих",
       subtitle: "Выберите интересующее вас направление",
       popularModels: "Популярные модели",

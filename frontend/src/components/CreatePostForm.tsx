@@ -170,11 +170,11 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
 
           <div className="flex flex-col gap-[8px]">
             <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
-              Категория и масштаб
+              Направление и масштаб
             </span>
             <div className="flex items-center gap-[8px]">
               <ChipSelect
-                ariaLabel="Категория"
+                ariaLabel="Направление"
                 value={catId}
                 onChange={(v) => {
                   setCatId(v);

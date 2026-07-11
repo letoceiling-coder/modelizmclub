@@ -91,9 +91,9 @@ export function FeedRightRail() {
     <aside className="hidden xl:block w-64 shrink-0">
       <div className="flex h-full flex-col gap-[12px] overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
 
-        {/* Card 1 — Категории */}
+        {/* Card 1 — Направления */}
         <RailCard>
-          <CardHeader title="Категории" to="/categories" onCollapse={() => setCollapsed(true)} />
+          <CardHeader title="Направления" to="/categories" onCollapse={() => setCollapsed(true)} />
           <ul className="p-[6px]">
             {topCategories.map((c) => {
               const online = onlineFor(c);

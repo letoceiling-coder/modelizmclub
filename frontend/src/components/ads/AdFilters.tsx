@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, RotateCcw, ChevronDown } from "lucide-react";
-import { type AdCondition } from "@/lib/mock";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
-const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
+// Filter buckets stay coarse (new/used) even though a listing's own
+// `condition` is more granular ("Б/у — отлично" etc, see ads.new.tsx) —
+// buyers filter broadly, sellers describe precisely.
+const CONDITIONS = ["Новое", "Б/у"] as const;
 
 export interface FiltersState {
   category: string;            // "Все" | category name
@@ -16,7 +18,7 @@ export interface FiltersState {
   status: string;              // "Все" | "Продаю" | "Куплю" | "Обменяю"
   city: string;                // free text
   cityId?: number;
-  conditions: AdCondition[];
+  conditions: string[];
   deliveries: string[];
   priceMin: number;
   priceMax: number;

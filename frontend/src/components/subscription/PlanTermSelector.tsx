@@ -23,11 +23,17 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
 
   return (
     <div className={className}>
-      {/* Segmented term switcher — names only, 3-up, fits 360px */}
+      {/* Segmented term switcher — names only, 3-up, fits 360px.
+          pt-[11px] reserves room above the pills for the "best plan" badge,
+          which used to sit half-clipped on the button's own top edge and
+          blend into the active (accent-filled) button — low contrast and
+          visually merged with the fill. It now floats fully above its own
+          button with an opaque background, legible regardless of which term
+          is selected. */}
       <div
         role="radiogroup"
         aria-label="Срок подписки"
-        className="grid grid-cols-3 gap-[4px] rounded-[var(--r-pill)] p-[4px]"
+        className="grid grid-cols-3 gap-[4px] rounded-[var(--r-pill)] p-[4px] pt-[15px]"
         style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
       >
         {PRICING_PLANS.map((p) => {
@@ -48,11 +54,15 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
               {p.name}
               {p.best && (
                 <span
-                  className="absolute -top-[7px] right-[6px] rounded-full px-[6px] py-[1px] text-[9px] font-bold uppercase"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                  className="absolute -top-[15px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-[8px] py-[2px] text-[9px] font-bold uppercase tracking-wide"
+                  style={{
+                    background: "var(--accent)",
+                    color: "var(--accent-foreground)",
+                    boxShadow: "0 0 0 3px var(--background)",
+                  }}
                   aria-hidden
                 >
-                  ★
+                  ★ Выгодно
                 </span>
               )}
             </button>

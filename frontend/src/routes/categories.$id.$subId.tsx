@@ -248,7 +248,7 @@ function SubcategoryRoomPage() {
       <div className="mb-[10px]">
         <Breadcrumbs
           items={[
-            { label: "Категории", to: "/categories" },
+            { label: "Направления", to: "/categories" },
             { label: c.name, to: "/categories/$id", params: { id: c.id } },
             { label: sub.name },
           ]}

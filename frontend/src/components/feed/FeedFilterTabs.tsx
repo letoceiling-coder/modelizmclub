@@ -12,7 +12,7 @@ interface Props {
 const items: { id: FeedFilter; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "following", label: "Подписки" },
-  { id: "categories", label: "Категории" },
+  { id: "categories", label: "Направления" },
   { id: "saved", label: "Сохранённое" },
 ];
 
