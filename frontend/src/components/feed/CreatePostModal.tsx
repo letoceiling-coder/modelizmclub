@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
-import { CreatePostForm, type CreatePostPayload, type CreatePostFormHandle } from "@/components/CreatePostForm";
+import { useEffect, useState } from "react";
+import { CreatePostForm, type CreatePostPayload } from "@/components/CreatePostForm";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
 const EXIT_MS = 200;
 
 export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
-  const formRef = useRef<CreatePostFormHandle>(null);
   // Plain CSS transition instead of framer-motion's AnimatePresence: that
   // component's exit-sequencing on this tree was taking 1.2-1.4s to actually
   // unmount (proven by A/B — removing it dropped close time to ~55ms), likely
@@ -69,36 +67,10 @@ export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
           opacity: visible ? 1 : 0,
         }}
       >
-        <header
-          className="flex items-center justify-between gap-[12px] border-b px-[12px] py-[10px]"
-          style={{ borderColor: "var(--border)" }}
-        >
-          <button
-            onClick={onClose}
-            aria-label="Закрыть"
-            className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <X className="h-[20px] w-[20px]" />
-          </button>
-          <h2
-            className="min-w-0 flex-1 truncate text-center text-[16px] font-semibold"
-            style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-          >
-            Новая публикация
-          </h2>
-          <button
-            onClick={() => formRef.current?.submit()}
-            className="shrink-0 rounded-[var(--r-pill)] px-[16px] py-[8px] text-[14px] font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-          >
-            Опубл.
-          </button>
-        </header>
         <CreatePostForm
-          ref={formRef}
           intent={open ? intent : undefined}
           onCreate={onCreate}
+          onClose={onClose}
         />
       </div>
     </div>

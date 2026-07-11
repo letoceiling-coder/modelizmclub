@@ -146,6 +146,13 @@ export function CommentSection({ comments, onAdd }: Props) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
+          onFocus={(e) => {
+            // Keyboard covers the input when comments open near the page
+            // bottom. Wait for the on-screen keyboard to animate in, then
+            // centre the field in the (now shorter) viewport.
+            const el = e.currentTarget;
+            setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+          }}
           placeholder="Написать комментарий…"
           className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[14px] outline-none"
           style={{

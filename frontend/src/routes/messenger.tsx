@@ -619,9 +619,13 @@ function MessengerPage() {
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
 
   return (
-    <AppLayout rightColumn={false} hideMobileHeader>
+    <AppLayout rightColumn={false} hideMobileHeader hideBottomNav={mobileView === "chat"}>
       <div
-        className="grid overflow-hidden h-[calc(100dvh-var(--safe-top)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]"
+        className={`grid overflow-hidden ${
+          mobileView === "chat"
+            ? "h-[calc(100dvh-var(--safe-top)-var(--safe-bottom)-24px)]"
+            : "h-[calc(100dvh-var(--safe-top)-var(--bottom-nav-space)-28px)]"
+        } md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]`}
         style={{
           background: "var(--background)",
           border: "1px solid var(--border)",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2, ImageOff } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
@@ -101,6 +101,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const [reposted, setReposted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const commentsRef = useRef<HTMLDivElement>(null);
 
   const [likes, setLikes] = useState(post.likes);
   const [saves, setSaves] = useState(post.saves ?? 0);
@@ -115,6 +116,17 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
       .then(setCommentList)
       .catch(() => {});
   }, [commentsOpen, commentsLoaded, post.id]);
+
+  // When comments open, bring the input (top of the section) into view — a
+  // post tapped near the bottom of the feed would otherwise open its comments
+  // off-screen. Waits out the expand animation before measuring.
+  useEffect(() => {
+    if (!commentsOpen) return;
+    const t = setTimeout(() => {
+      commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 280);
+    return () => clearTimeout(t);
+  }, [commentsOpen]);
 
   const isLong = post.text.length > 220;
   const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
@@ -366,7 +378,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <CommentSection comments={commentList} onAdd={addComment} />
+              <div ref={commentsRef}>
+                <CommentSection comments={commentList} onAdd={addComment} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

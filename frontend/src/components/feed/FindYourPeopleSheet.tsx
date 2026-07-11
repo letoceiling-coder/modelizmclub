@@ -66,10 +66,14 @@ export function FindYourPeopleSheet() {
 
         <SheetContent
           side="bottom"
-          className="h-[88vh] rounded-t-[18px] p-0"
+          className="flex h-[88dvh] flex-col rounded-t-[18px] p-0 data-[state=open]:duration-300 data-[state=closed]:duration-200"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
-          <SheetHeader className="border-b px-[16px] py-[14px] text-left" style={{ borderColor: "var(--border)" }}>
+          {/* Grabber — signals the sheet is swipe-dismissable (native feel). */}
+          <div className="flex shrink-0 justify-center pt-[8px] pb-[2px]">
+            <span className="h-[4px] w-[36px] rounded-full" style={{ background: "var(--border)" }} />
+          </div>
+          <SheetHeader className="shrink-0 border-b px-[16px] pb-[14px] pt-[8px] text-left" style={{ borderColor: "var(--border)" }}>
             <SheetTitle className="flex items-center gap-[8px] text-[15px]">
               <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
               Найди своих
@@ -79,7 +83,7 @@ export function FindYourPeopleSheet() {
             </SheetDescription>
           </SheetHeader>
 
-          <ul className="h-[calc(88vh-74px)] overflow-y-auto p-[8px]">
+          <ul className="min-h-0 flex-1 overflow-y-auto p-[8px]">
             {categories.map((c) => {
               const expanded = openId === c.id;
               const online = onlineFor(c);
