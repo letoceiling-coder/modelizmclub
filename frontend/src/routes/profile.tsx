@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
@@ -506,17 +506,32 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
 
 function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
+  const reduce = useReducedMotion();
   const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
 
   useEffect(() => {
     const el = refs.current[tab];
-    if (el) setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
-  }, [tab]);
+    const box = scrollRef.current;
+    if (el) {
+      setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
+      // Keep the active tab centred — the strip overflows on mobile (6 tabs),
+      // so a tab near the end would otherwise stay clipped. Set scrollLeft on
+      // the strip directly (scrollIntoView can hijack the vertical page scroll).
+      // Under reduced motion Chrome silently drops smooth scrolls, so fall
+      // back to an instant jump.
+      if (box) {
+        const target = el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2;
+        box.scrollTo({ left: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
+      }
+    }
+  }, [tab, reduce]);
 
   return (
     <div
-      className="sticky top-0 z-10 overflow-x-auto"
+      ref={scrollRef}
+      className="sticky top-0 z-10 overflow-x-auto no-scrollbar"
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
       {/* min-w-max lets the scroll container measure total content width */}
@@ -528,9 +543,9 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
               key={key}
               ref={(el) => { refs.current[key] = el; }}
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap font-display transition-colors duration-200"
+              className="inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap px-[14px] font-display transition-colors duration-200 md:px-[20px]"
               style={{
-                height: 48, padding: "0 20px", fontSize: 14,
+                height: 48, fontSize: 14,
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--accent)" : "var(--foreground-50)",
               }}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight, ChevronDown, Plus,
@@ -187,6 +187,10 @@ function Hero() {
   const navigate = useNavigate();
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
+  // Respect "reduce motion": the hero entrance runs on mount, and under
+  // reduced motion the variant never reaches "visible" — leaving the whole
+  // above-the-fold hero (title/CTA/stats) invisible. Start it visible instead.
+  const reduce = useReducedMotion();
   const [stats, setStats] = useState({ users: 0, communities: 0, listing_categories: 0 });
   // Weak-network guard: the hero video is ~6 MB. On small screens, Save-Data,
   // or slow connections we skip it entirely and show the lightweight poster —
@@ -254,7 +258,7 @@ function Hero() {
       <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
         <AnimatePresence>
           {ready && (
-            <motion.div variants={stagger} initial="hidden" animate="visible" className="w-full max-w-[720px] py-20">
+            <motion.div variants={stagger} initial={reduce ? "visible" : "hidden"} animate="visible" className="w-full max-w-[720px] py-20">
               <motion.h1
                 variants={fadeUp}
                 style={{
