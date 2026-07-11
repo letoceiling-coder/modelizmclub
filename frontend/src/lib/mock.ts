@@ -296,7 +296,12 @@ export const friendRequests: FriendRequest[] = [
 
 export const me: User = users[0];
 
+// Sorted alphabetically (ru collation) — this order drives the display order
+// everywhere categories are listed (feed right rail, /categories, "Найди
+// своих" sheet, post composer). Existing ids/subcategory names are unchanged
+// so posts/ads that reference a category or subcategory by name still match.
 export const categories: Category[] = [
+  { id: "c11", name: "3D-печать", description: "3D-принтеры, модели, материалы", icon: "Printer", members: 610, subcategories: [{ id: "s1", name: "Принтеры" }, { id: "s2", name: "Пластик и материалы" }] },
   {
     id: "c1", name: "Автомодели", description: "RC авто всех масштабов", icon: "Car", members: 2840,
     subcategories: [
@@ -310,15 +315,24 @@ export const categories: Category[] = [
       { id: "s8", name: "Запчасти" },
     ],
   },
-  { id: "c2", name: "Самолёты", description: "Авиамодели и планеры", icon: "Plane", members: 1920, subcategories: [{ id: "s1", name: "Планеры" }, { id: "s2", name: "Пилотажки" }] },
-  { id: "c3", name: "Корабли", description: "Катера и судомодели", icon: "Ship", members: 740, subcategories: [{ id: "s1", name: "Катера" }, { id: "s2", name: "Парусники" }] },
-  { id: "c4", name: "Квадрокоптеры", description: "FPV, дроны, мультироторы", icon: "Send", members: 3180, subcategories: [{ id: "s1", name: "FPV" }, { id: "s2", name: "Съёмочные" }] },
-  { id: "c5", name: "Электроника", description: "Платы, датчики, DIY", icon: "Cpu", members: 1450, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Датчики" }] },
   { id: "c6", name: "Аккумуляторы", description: "LiPo, Li-ion, NiMH", icon: "BatteryCharging", members: 890, subcategories: [{ id: "s1", name: "LiPo" }, { id: "s2", name: "Li-ion" }] },
-  { id: "c7", name: "Радиоаппаратура", description: "Пульты, приёмники", icon: "Radio", members: 1120, subcategories: [{ id: "s1", name: "Пульты" }, { id: "s2", name: "Приёмники" }] },
-  { id: "c8", name: "Электросамокаты", description: "Самокаты и моды", icon: "Zap", members: 980, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Моды" }] },
-  { id: "c9", name: "Разработчики", description: "Прошивки, автопилоты", icon: "Code2", members: 540, subcategories: [{ id: "s1", name: "Автопилоты" }, { id: "s2", name: "Прошивки" }] },
+  { id: "c12", name: "Военная техника", description: "Танки, БТР, военные модели", icon: "Shield", members: 860, subcategories: [{ id: "s1", name: "Танки" }, { id: "s2", name: "БТР и техника" }] },
+  { id: "c13", name: "Железные дороги", description: "Масштабные ж/д модели и макеты", icon: "TrainFront", members: 430, subcategories: [{ id: "s1", name: "Локомотивы" }, { id: "s2", name: "Макеты" }] },
   { id: "c10", name: "Запчасти", description: "Детали и комплектующие", icon: "Wrench", members: 2210, subcategories: [{ id: "s1", name: "Шасси" }, { id: "s2", name: "Моторы" }] },
+  { id: "c14", name: "Инструменты", description: "Станки, инструмент для мастерской", icon: "Hammer", members: 720, subcategories: [{ id: "s1", name: "Ручной инструмент" }, { id: "s2", name: "Станки" }] },
+  { id: "c4", name: "Квадрокоптеры", description: "FPV, дроны, мультироторы", icon: "Send", members: 3180, subcategories: [{ id: "s1", name: "FPV" }, { id: "s2", name: "Съёмочные" }] },
+  { id: "c3", name: "Корабли", description: "Катера и судомодели", icon: "Ship", members: 740, subcategories: [{ id: "s1", name: "Катера" }, { id: "s2", name: "Парусники" }] },
+  { id: "c15", name: "Мотоциклы", description: "RC мотоциклы и мотомодели", icon: "Bike", members: 390, subcategories: [{ id: "s1", name: "Модели" }, { id: "s2", name: "Запчасти" }] },
+  { id: "c16", name: "Оптика и камеры", description: "Экшн-камеры, объективы, FPV-оптика", icon: "Camera", members: 560, subcategories: [{ id: "s1", name: "Экшн-камеры" }, { id: "s2", name: "Объективы" }] },
+  { id: "c7", name: "Радиоаппаратура", description: "Пульты, приёмники", icon: "Radio", members: 1120, subcategories: [{ id: "s1", name: "Пульты" }, { id: "s2", name: "Приёмники" }] },
+  { id: "c9", name: "Разработчики", description: "Прошивки, автопилоты", icon: "Code2", members: 540, subcategories: [{ id: "s1", name: "Автопилоты" }, { id: "s2", name: "Прошивки" }] },
+  { id: "c17", name: "Ракетомоделизм", description: "Модельные ракеты и двигатели", icon: "Rocket", members: 310, subcategories: [{ id: "s1", name: "Ракеты" }, { id: "s2", name: "Двигатели" }] },
+  { id: "c18", name: "Робототехника", description: "Роботы, конструкторы, наборы", icon: "Bot", members: 480, subcategories: [{ id: "s1", name: "Конструкторы" }, { id: "s2", name: "Комплектующие" }] },
+  { id: "c2", name: "Самолёты", description: "Авиамодели и планеры", icon: "Plane", members: 1920, subcategories: [{ id: "s1", name: "Планеры" }, { id: "s2", name: "Пилотажки" }] },
+  { id: "c19", name: "Спецтехника", description: "RC-модели строительной техники", icon: "Truck", members: 340, subcategories: [{ id: "s1", name: "Модели" }, { id: "s2", name: "Гидравлика" }] },
+  { id: "c20", name: "Стендовые модели", description: "Сборные пластиковые модели", icon: "Blocks", members: 970, subcategories: [{ id: "s1", name: "Военная техника" }, { id: "s2", name: "Гражданская техника" }] },
+  { id: "c5", name: "Электроника", description: "Платы, датчики, DIY", icon: "Cpu", members: 1450, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Датчики" }] },
+  { id: "c8", name: "Электросамокаты", description: "Самокаты и моды", icon: "Zap", members: 980, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Моды" }] },
 ];
 
 

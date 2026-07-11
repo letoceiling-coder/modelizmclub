@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { formatRelativeTime, type User } from "@/lib/mock";
 import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
@@ -392,14 +393,13 @@ function FriendsPage() {
           </div>
         )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab + String(loading)}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2 }}
-          >
+        <ReducedMotionSwitch
+          switchKey={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2 }}
+        >
             {loading ? (
               <div className="flex flex-col gap-[10px]">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -585,8 +585,7 @@ function FriendsPage() {
                 )}
               </div>
             )}
-          </motion.div>
-        </AnimatePresence>
+        </ReducedMotionSwitch>
       </div>
     </AppLayout>
   );

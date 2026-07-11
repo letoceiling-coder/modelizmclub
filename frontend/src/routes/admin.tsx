@@ -7,6 +7,7 @@ import {
   Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Clapperboard,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -240,17 +241,15 @@ function AdminPage() {
             </select>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={section}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <SectionView section={section} />
-            </motion.div>
-          </AnimatePresence>
+          <ReducedMotionSwitch
+            switchKey={section}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SectionView section={section} />
+          </ReducedMotionSwitch>
         </main>
       </div>
     </div>

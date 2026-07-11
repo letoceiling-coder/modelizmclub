@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
@@ -156,19 +156,17 @@ function NewAdPage() {
 
         <StepIndicator current={step} labels={STEPS} />
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} touched={touched} touch={touch} />}
-            {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
-          </motion.div>
-        </AnimatePresence>
+        <ReducedMotionSwitch
+          switchKey={step}
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {step === 1 && <StepPhotos form={form} set={set} />}
+          {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} touched={touched} touch={touch} />}
+          {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
+        </ReducedMotionSwitch>
       </div>
 
       {/* Sticky footer — lifted above the mobile BottomNav so the submit CTA is never covered */}

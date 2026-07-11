@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type Ad } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
 import { fetchMyListings, publishListing, archiveListing, deleteListing } from "@/lib/api/listings";
@@ -393,14 +394,12 @@ function MyAdsPage() {
           )}
         </AnimatePresence>
 
-        {/* List */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className="flex flex-col gap-[12px] pb-[120px] md:pb-[40px]"
-          >
+        <ReducedMotionSwitch
+          switchKey={tab}
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+          className="flex flex-col gap-[12px] pb-[120px] md:pb-[40px]"
+        >
             {visible.length === 0 ? (
               <EmptyTab tab={tab} onCreate={handleCreate} dirty={filtersDirty} onReset={resetFilters} />
             ) : (
@@ -417,8 +416,7 @@ function MyAdsPage() {
                 />
               ))
             )}
-          </motion.div>
-        </AnimatePresence>
+        </ReducedMotionSwitch>
       </div>
 
       {/* Mobile FAB — positioned above BottomNav (z-40) */}

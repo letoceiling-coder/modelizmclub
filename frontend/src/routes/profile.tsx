@@ -7,6 +7,7 @@ import {
   Camera, Trash2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import type { User, Post, Ad, Community } from "@/lib/mock";
 import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
 import type { AdStatusKey } from "@/lib/store";
@@ -321,14 +322,13 @@ export function ProfileView({
 
         {/* Tab content */}
         <div className="px-[16px] py-[24px] md:px-[32px]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tab}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
+          <ReducedMotionSwitch
+            switchKey={tab}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
               {tab === "posts" && (
                 loading ? <ProfileTabSkeleton /> :
                 userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
@@ -463,8 +463,7 @@ export function ProfileView({
                   )}
                 </div>
               )}
-            </motion.div>
-          </AnimatePresence>
+          </ReducedMotionSwitch>
         </div>
       </div>
 
