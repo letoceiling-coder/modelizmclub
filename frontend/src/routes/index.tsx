@@ -605,7 +605,18 @@ function CategoriesSection() {
                   <Icon size={19} />
                 </div>
                 <div className="min-w-0">
-                  <div className="break-words text-[13px] font-semibold leading-tight sm:text-sm" style={{ color: "var(--foreground)" }}>{cat.name}</div>
+                  {/* hyphens:auto (with lang=ru on <html>) lets long single-word
+                      names like "Радиоаппаратура"/"Робототехника" break at a
+                      real syllable with a hyphen instead of an ugly mid-word
+                      split — break-words alone forced a raw character-level
+                      break with no hyphen. */}
+                  <div
+                    className="text-[13px] font-semibold leading-tight sm:text-sm"
+                    style={{ color: "var(--foreground)", hyphens: "auto", overflowWrap: "break-word" }}
+                    lang="ru"
+                  >
+                    {cat.name}
+                  </div>
                   <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
                 </div>
               </Link>
@@ -621,13 +632,19 @@ function CategoriesSection() {
 
 function StepsTimeline() {
   const { t } = useTranslation();
+  // Same reduced-motion issue as the hero: framer-motion doesn't reliably
+  // resolve a whileInView transition to its end state under reduced motion
+  // (observed stuck mid-fade, e.g. opacity ~0.26). Start at the "visible"
+  // variant directly so the content is correct even if the scroll-triggered
+  // animation never completes.
+  const reduce = useReducedMotion();
   return (
     <Section bg="var(--background)" id="how">
       <Eyebrow>{t("landing.steps.eyebrow")}</Eyebrow>
       <Title>{t("landing.steps.title")}</Title>
       <div className="relative mt-12">
         <div aria-hidden className="absolute left-0 right-0 top-[26px] hidden md:block" style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)" }} />
-        <motion.ol variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3 md:gap-6">
+        <motion.ol variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }} initial={reduce ? "visible" : "hidden"} whileInView="visible" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3 md:gap-6">
           {STEP_KEYS.map((key, i) => {
             const Icon = STEP_ICONS[i];
             return (

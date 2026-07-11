@@ -388,21 +388,25 @@ export function ProfileView({
                     {filteredUserAds.length === 0 ? (
                       <EmptyTab text="Нет объявлений с этим статусом" />
                     ) : (
-                      <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-2 gap-[10px] sm:gap-[16px] lg:grid-cols-3">
                         {filteredUserAds.map(({ ad, status }) => {
                           const badge = AD_STATUS_BADGE[status];
                           const cardState: "default" | "moderation" | "rejected" =
                             status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
                           return (
-                            <div key={ad.id} className="relative" style={{ opacity: status === "archived" ? 0.65 : 1 }}>
-                              <AdCard ad={ad} state={cardState} />
-                              <Badge
-                                variant={badge.variant}
-                                withIcon={false}
-                                className="absolute right-[12px] top-[12px] z-[2] rounded-full"
-                              >
-                                {badge.label}
-                              </Badge>
+                            <div key={ad.id} style={{ opacity: status === "archived" ? 0.65 : 1 }}>
+                              {/* Normal-flow badge above the card, not overlaid on the image:
+                                  AdCard's own top-left status pill (Продаю/Куплю/Обменяю) plus
+                                  an overlaid moderation badge don't both fit at 2-up mobile
+                                  width. AdCard's own bottom banner already covers moderation/
+                                  rejected ("На проверке"/"Отклонено"), so this only needs to
+                                  add information for active/archived. */}
+                              {cardState === "default" && (
+                                <Badge variant={badge.variant} withIcon={false} className="mb-[6px] rounded-full">
+                                  {badge.label}
+                                </Badge>
+                              )}
+                              <AdCard ad={ad} state={cardState} compact />
                             </div>
                           );
                         })}

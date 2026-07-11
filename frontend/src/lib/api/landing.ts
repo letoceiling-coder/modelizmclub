@@ -1,5 +1,6 @@
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { categories } from "@/lib/mock";
 
 export interface LandingStats {
   users: number;
@@ -7,16 +8,16 @@ export interface LandingStats {
   listing_categories: number;
 }
 
-const DEMO_STATS: LandingStats = {
-  users: 1200,
-  communities: 45,
-  listing_categories: 8,
-};
+/** listing_categories is derived from the categories list — a hardcoded
+ *  count here previously drifted (stuck at 8 after the list grew to 20). */
+function demoStats(): LandingStats {
+  return { users: 1200, communities: 45, listing_categories: categories.length };
+}
 
 export async function fetchLandingStats(): Promise<LandingStats> {
-  if (isDemoMode()) return DEMO_STATS;
+  if (isDemoMode()) return demoStats();
   const res = await api<{ data: LandingStats }>("/public/landing-stats");
-  return res.data ?? DEMO_STATS;
+  return res.data ?? demoStats();
 }
 
 /** Format platform stat for hero badges, e.g. 1200 → "1 200+" */
