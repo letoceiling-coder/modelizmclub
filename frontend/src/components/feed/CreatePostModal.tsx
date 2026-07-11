@@ -25,8 +25,12 @@ export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
   useEffect(() => {
     if (open) {
       setMounted(true);
-      const raf = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(raf);
+      // A short setTimeout instead of requestAnimationFrame: rAF timing proved
+      // unreliable for this one-shot "flip to visible next tick" trigger
+      // (needed so the browser paints the closed state before transitioning),
+      // while setTimeout fires deterministically.
+      const t = window.setTimeout(() => setVisible(true), 10);
+      return () => window.clearTimeout(t);
     }
     setVisible(false);
     const t = window.setTimeout(() => setMounted(false), EXIT_MS);
@@ -55,7 +59,7 @@ export function CreatePostModal({ open, intent, onClose, onCreate }: Props) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex h-[88vh] w-full flex-col overflow-hidden rounded-t-[20px] transition-[transform,opacity] sm:h-auto sm:max-h-[92vh] sm:max-w-[600px] sm:rounded-[16px]"
+        className="flex h-[85dvh] max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-[20px] transition-[transform,opacity] sm:h-auto sm:max-h-[92dvh] sm:max-w-[600px] sm:rounded-[16px]"
         style={{
           background: "var(--background-elevated)",
           border: "1px solid var(--border)",

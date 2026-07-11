@@ -177,7 +177,10 @@ export const CreatePostForm = forwardRef<CreatePostFormHandle, {
       </div>
 
       {/* Compact toolbar — one quiet line above the keyboard */}
-      <div className="flex items-center gap-[6px] border-t px-[10px] py-[8px]" style={{ borderColor: "var(--border)" }}>
+      <div
+        className="flex shrink-0 items-center gap-[6px] border-t px-[10px] pt-[8px]"
+        style={{ borderColor: "var(--border)", paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+      >
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => addPhotos(e.target.files)} />
         <button
           type="button"
