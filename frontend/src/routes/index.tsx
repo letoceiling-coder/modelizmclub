@@ -272,7 +272,7 @@ function Hero() {
                   fontFamily: "var(--font-display)",
                   fontSize: "clamp(44px, 8vw, 92px)",
                   lineHeight: 0.98,
-                  letterSpacing: "-0.03em",
+                  letterSpacing: "-0.035em",
                   fontWeight: 800,
                   color: "#ffffff",
                   textShadow: "0 4px 30px rgba(0,0,0,0.45)",
@@ -321,7 +321,7 @@ function Hero() {
                   { n: String(stats.listing_categories || 0), l: t("landing.hero.stats.categories") },
                 ].map((s) => (
                   <div key={s.l}>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "#fff", letterSpacing: "-0.02em" }}>{s.n}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "#fff", letterSpacing: "-0.025em" }}>{s.n}</div>
                     <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.l}</div>
                   </div>
                 ))}
@@ -858,7 +858,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 function Title({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mt-3" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(26px, 3.6vw, 42px)", letterSpacing: "-0.025em", lineHeight: 1.1, color: "var(--foreground)" }}>{children}</h2>
+    <h2 className="mt-3" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(26px, 3.6vw, 42px)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "var(--foreground)" }}>{children}</h2>
   );
 }
 

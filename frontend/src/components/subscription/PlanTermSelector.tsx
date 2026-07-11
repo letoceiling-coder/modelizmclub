@@ -73,7 +73,7 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
       {/* Selected-term detail */}
       <div className="mt-[20px] text-center">
         <div className="flex items-baseline justify-center gap-[8px]">
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 40, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 40, letterSpacing: "-0.025em", color: "var(--foreground)" }}>
             {selected.price} ₽
           </span>
           <span className="text-[14px]" style={{ color: "var(--foreground-50)" }}>/ {selected.period}</span>
