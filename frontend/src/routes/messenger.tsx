@@ -776,7 +776,7 @@ function MessengerPage() {
                           <Badge
                             variant="default"
                             withIcon={false}
-                            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[6px] py-0 text-[11px] leading-none"
+                            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[6px] py-0 text-[11px] leading-none tabular-nums"
                           >
                             {d.unread}
                           </Badge>

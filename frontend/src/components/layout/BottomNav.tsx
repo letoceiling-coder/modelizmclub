@@ -73,7 +73,7 @@ function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: n
           <Icon size={22} strokeWidth={active ? 2.4 : 2} />
           {badge > 0 && (
             <span
-              className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+              className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
               style={{
                 height: 15,
                 fontSize: 9,

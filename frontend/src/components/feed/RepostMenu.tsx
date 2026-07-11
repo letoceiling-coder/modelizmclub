@@ -113,7 +113,7 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
         aria-expanded={open}
       >
         <Repeat2 className="h-[16px] w-[16px]" />
-        {count > 0 && <span>{count}</span>}
+        {count > 0 && <span className="tabular-nums">{count}</span>}
       </button>
 
       <AnimatePresence>

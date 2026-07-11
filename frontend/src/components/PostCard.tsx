@@ -305,6 +305,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={likes}
+                className="tabular-nums"
                 initial={{ y: 6, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -6, opacity: 0 }}
@@ -323,7 +324,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             aria-label="Комментарии"
           >
             <MessageCircle className="h-[16px] w-[16px]" />
-            <span>{commentsCount}</span>
+            <span className="tabular-nums">{commentsCount}</span>
           </button>
 
           {/* Repost */}
@@ -342,7 +343,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             >
               <Bookmark className="h-[16px] w-[16px]" fill={saved ? "currentColor" : "none"} />
             </motion.span>
-            {saves > 0 && <span>{saves}</span>}
+            {saves > 0 && <span className="tabular-nums">{saves}</span>}
           </button>
 
           {/* Views — desktop only */}
@@ -351,7 +352,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             style={{ color: "var(--foreground-50)" }}
           >
             <Eye className="h-[14px] w-[14px]" />
-            <span>{post.views?.toLocaleString("ru-RU") ?? 0}</span>
+            <span className="tabular-nums">{post.views?.toLocaleString("ru-RU") ?? 0}</span>
           </div>
         </footer>
 

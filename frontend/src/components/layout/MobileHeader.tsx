@@ -79,7 +79,7 @@ export function MobileHeader() {
               <Bell size={20} />
               {unread > 0 && (
                 <span
-                  className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+                  className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
                   style={{
                     height: 15,
                     fontSize: 9,

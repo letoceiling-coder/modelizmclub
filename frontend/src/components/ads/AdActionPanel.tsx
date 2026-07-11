@@ -76,11 +76,11 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
             {ad.city}
           </span>
         )}
-        <span className="inline-flex items-center gap-[6px]">
+        <span className="inline-flex items-center gap-[6px] tabular-nums">
           <Eye size={14} className="shrink-0" />
           {ad.views ?? 0}
         </span>
-        <span className="inline-flex items-center gap-[6px]">
+        <span className="inline-flex items-center gap-[6px] tabular-nums">
           <Heart size={14} className="shrink-0" />
           {ad.likes ?? 0}
         </span>
