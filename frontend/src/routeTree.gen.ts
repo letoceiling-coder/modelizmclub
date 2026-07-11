@@ -47,6 +47,7 @@ import { Route as SettingsRequisitesRouteImport } from './routes/settings.requis
 import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
 import { Route as SettingsAccountRouteImport } from './routes/settings.account'
 import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
 import { Route as ReviewsIdRouteImport } from './routes/reviews.$id'
@@ -252,6 +253,11 @@ const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsAccountRoute = SettingsAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -361,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/reviews/$id': typeof ReviewsIdRoute
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/rating': typeof SettingsRatingRoute
@@ -409,6 +416,7 @@ export interface FileRoutesByTo {
   '/reviews/$id': typeof ReviewsIdRoute
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/rating': typeof SettingsRatingRoute
@@ -464,6 +472,7 @@ export interface FileRoutesById {
   '/reviews/$id': typeof ReviewsIdRoute
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/rating': typeof SettingsRatingRoute
@@ -520,6 +529,7 @@ export interface FileRouteTypes {
     | '/reviews/$id'
     | '/reviews/upload'
     | '/settings/account'
+    | '/settings/appearance'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/rating'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/reviews/$id'
     | '/reviews/upload'
     | '/settings/account'
+    | '/settings/appearance'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/rating'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/reviews/$id'
     | '/reviews/upload'
     | '/settings/account'
+    | '/settings/appearance'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/rating'
@@ -941,6 +953,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsHistoryRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/account': {
       id: '/settings/account'
       path: '/account'
@@ -1125,6 +1144,7 @@ const ReviewsRouteWithChildren =
 
 interface SettingsRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
+  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsRatingRoute: typeof SettingsRatingRoute
@@ -1136,6 +1156,7 @@ interface SettingsRouteChildren {
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountRoute: SettingsAccountRoute,
+  SettingsAppearanceRoute: SettingsAppearanceRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsRatingRoute: SettingsRatingRoute,

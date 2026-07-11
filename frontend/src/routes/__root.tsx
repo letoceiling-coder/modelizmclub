@@ -19,7 +19,11 @@ import { I18nProvider, useLocaleFade } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){var h=new Date().getHours();t=(h>=19||h<7)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}})();`;
+// Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
+// "theme" key holds the resolved value from the old binary toggle). "system"
+// or unset resolves via prefers-color-scheme — matches ThemeProvider's
+// runtime logic so there's no flash-of-wrong-theme on first paint.
+const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('theme-preference');var t;if(p==='dark'||p==='light'){t=p;}else{var legacy=localStorage.getItem('theme');if((legacy==='dark'||legacy==='light')&&p!=='system'){t=legacy;}else{t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}})();`;
 
 function NotFoundComponent() {
   const { t } = useTranslation();
