@@ -54,11 +54,16 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
               {p.name}
               {p.best && (
                 <span
-                  className="absolute -top-[15px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-[8px] py-[2px] text-[9px] font-bold uppercase tracking-wide"
+                  className="absolute -top-[15px] left-1/2 z-10 whitespace-nowrap rounded-full px-[8px] py-[2px] text-[9px] font-bold uppercase tracking-wide"
                   style={{
                     background: "var(--accent)",
                     color: "var(--accent-foreground)",
                     boxShadow: "0 0 0 3px var(--background)",
+                    // Micro-asymmetry, second and last of the site's 1-2
+                    // deliberate accents (see WhyChoose's first card): a
+                    // slight sticker-style tilt on this one floating badge,
+                    // not the underlying term-selector control itself.
+                    transform: "translateX(-50%) rotate(-3deg)",
                   }}
                   aria-hidden
                 >

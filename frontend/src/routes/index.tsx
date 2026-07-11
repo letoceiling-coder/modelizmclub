@@ -712,7 +712,18 @@ function WhyChoose() {
         {VALUE_KEYS.map((key, i) => {
           const Icon = VALUE_ICONS[i];
           return (
-            <div key={key} className="flex flex-col p-6" style={cardStyle}>
+            <div
+              key={key}
+              className="flex flex-col p-6"
+              style={
+                // Micro-asymmetry, deliberately singular: only the first of
+                // these four cards breaks the grid's perfect alignment — a
+                // living accent, not a site-wide pattern (per the brief:
+                // "1-2 accents, not a style"). Marketing content only, well
+                // clear of catalog/cards/cart/forms/admin.
+                i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle
+              }
+            >
               <div className="grid place-items-center" style={{ width: 44, height: 44, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
                 <Icon size={20} />
               </div>
