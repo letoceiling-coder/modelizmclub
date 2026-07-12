@@ -151,3 +151,25 @@ export async function logout(): Promise<void> {
   }
   setToken(null);
 }
+
+/**
+ * Change password while staying logged in (authenticated, in-place — not the
+ * email-reset flow). Throws ApiError(422) with `errors` on wrong current
+ * password / weak new password. Backend endpoint documented in
+ * docs/backend-endpoints-needed.md (POST /account/change-password).
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api("/account/change-password", {
+    method: "POST",
+    json: { current_password: currentPassword, new_password: newPassword },
+  });
+}
+
+/**
+ * Revoke every OTHER session/token, keeping the current one valid (so the
+ * user is NOT logged out here). Backend endpoint documented in
+ * docs/backend-endpoints-needed.md (POST /auth/logout-others).
+ */
+export async function logoutOtherDevices(): Promise<void> {
+  await api("/auth/logout-others", { method: "POST" });
+}

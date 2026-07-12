@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "@/lib/toast";
-import { CheckCircle2 } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
-import { useStore, selectors } from "@/lib/store";
-import { getAccountExtra } from "@/lib/settings-prefs";
+import { isDemoMode } from "@/lib/demo-mode";
+import { changePassword, logoutOtherDevices } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/settings/security")({
   component: SecuritySection,
@@ -24,52 +25,79 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function SecuritySection() {
-  const currentUser = useStore(selectors.currentUser);
-  const email = getAccountExtra().email ?? currentUser?.email ?? "ваш email";
   const [curPw, setCurPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [sent, setSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const submitPassword = (e: React.FormEvent) => {
+  // Authenticated in-place password change — current → new, no email round
+  // trip, no logout. Demo hosts have no auth backend, so there we say so
+  // honestly rather than faking "пароль изменён".
+  const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!curPw) { toast.error("Введите текущий пароль"); return; }
     if (newPw.length < 8) { toast.error("Новый пароль — минимум 8 символов"); return; }
     if (newPw !== confirmPw) { toast.error("Пароли не совпадают"); return; }
-    // Смена пароля подтверждается по ссылке из письма (серверная операция).
-    // Фронт вызывает документированный POST /account/password/change-request
-    // (no-op в demo). Никакого фейкового «пароль изменён».
-    setSent(true);
-    setCurPw(""); setNewPw(""); setConfirmPw("");
+    if (isDemoMode()) { toast("В демо-режиме смена пароля недоступна"); return; }
+
+    setSaving(true);
+    try {
+      await changePassword(curPw, newPw);
+      toast.success("Пароль изменён");
+      setCurPw(""); setNewPw(""); setConfirmPw("");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        const firstMessage = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
+        toast.error(firstMessage ?? "Проверьте текущий пароль");
+      } else {
+        toast.error("Не удалось изменить пароль");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const logoutOthers = async () => {
+    if (isDemoMode()) { toast("В демо-режиме недоступно"); return; }
+    setLoggingOut(true);
+    try {
+      await logoutOtherDevices();
+      toast.success("Вы вышли на всех других устройствах");
+    } catch {
+      toast.error("Не удалось завершить другие сеансы");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
     <SettingsSectionShell title="Безопасность">
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена пароля</h2>
-        {sent ? (
-          <div className="flex items-start gap-[10px] rounded-[10px] p-[14px]" style={{ background: "var(--accent-soft)" }}>
-            <CheckCircle2 size={18} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <div className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>Запрос на смену пароля отправлен</div>
-              <div className="mt-[2px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-                Перейдите по ссылке из письма на {email}, чтобы задать новый пароль.
-              </div>
-              <button type="button" onClick={() => setSent(false)} className="mt-[8px] text-[13px] font-medium" style={{ color: "var(--accent)" }}>
-                Отправить ещё раз
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={submitPassword} className="space-y-[12px]">
-            <Field label="Текущий пароль"><PasswordInput value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></Field>
-            <Field label="Новый пароль"><PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></Field>
-            <Field label="Повторите новый пароль"><PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" /></Field>
-            <Button type="submit">Сменить пароль</Button>
-            <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Для подтверждения смены мы отправим ссылку на ваш email.
-            </p>
-          </form>
-        )}
+        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена пароля</h2>
+        <p className="mb-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+          Введите текущий и новый пароль — смена происходит сразу, без выхода из аккаунта.
+        </p>
+        <form onSubmit={submitPassword} className="space-y-[12px]">
+          <Field label="Текущий пароль"><PasswordInput value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></Field>
+          <Field label="Новый пароль"><PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></Field>
+          <Field label="Повторите новый пароль"><PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" /></Field>
+          <Button type="submit" disabled={saving} className="gap-[8px]">
+            {saving && <Loader2 size={16} className="animate-spin" />}
+            Сменить пароль
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Активные сеансы</h2>
+        <p className="mb-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+          Если вы входили с чужого устройства — завершите все сеансы, кроме текущего. Здесь вы останетесь в системе.
+        </p>
+        <Button variant="outline" onClick={logoutOthers} disabled={loggingOut} className="gap-[8px]">
+          {loggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+          Выйти на других устройствах
+        </Button>
       </Card>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
