@@ -49,7 +49,7 @@ LOGIN=$(curl -sS -X POST "${API}/auth/login" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
   -d '{"email":"demo@modelizmclub.ru","password":"password123"}')
-TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('token',''))" 2>/dev/null || true)
+TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true)
 if [[ -z "$TOKEN" ]]; then
   echo "WARN: demo login failed, seeding demo user..."
   bash "$(dirname "$0")/reset-demo-user.sh"
@@ -57,7 +57,7 @@ if [[ -z "$TOKEN" ]]; then
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json' \
     -d '{"email":"demo@modelizmclub.ru","password":"password123"}')
-  TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('token',''))" 2>/dev/null || true)
+  TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true)
 fi
 if [[ -z "$TOKEN" ]]; then
   echo "FATAL: cannot obtain auth token"
@@ -110,7 +110,7 @@ ADMIN_LOGIN=$(curl -sS -X POST "${API}/auth/login" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
   -d '{"email":"admin@modelizmclub.ru","password":"password123"}')
-ADMIN_TOKEN=$(echo "$ADMIN_LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('token',''))" 2>/dev/null || true)
+ADMIN_TOKEN=$(echo "$ADMIN_LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true)
 if [[ -n "$ADMIN_TOKEN" && -n "$USER_ID" ]]; then
   OLD_TOKEN="$TOKEN"
   TOKEN="$ADMIN_TOKEN"
