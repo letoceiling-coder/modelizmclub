@@ -48,6 +48,7 @@ import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
 import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.payment-methods'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
+import { Route as SettingsDashboardRouteImport } from './routes/settings.dashboard'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
 import { Route as SettingsAccountRouteImport } from './routes/settings.account'
 import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
@@ -259,6 +260,11 @@ const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsDashboardRoute = SettingsDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
   id: '/appearance',
   path: '/appearance',
@@ -374,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/dashboard': typeof SettingsDashboardRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
@@ -424,6 +431,7 @@ export interface FileRoutesByTo {
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/dashboard': typeof SettingsDashboardRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
@@ -481,6 +489,7 @@ export interface FileRoutesById {
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/dashboard': typeof SettingsDashboardRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/reviews/upload'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/dashboard'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/payment-methods'
@@ -589,6 +599,7 @@ export interface FileRouteTypes {
     | '/reviews/upload'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/dashboard'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/payment-methods'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/reviews/upload'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/dashboard'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/payment-methods'
@@ -972,6 +984,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsHistoryRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/dashboard': {
+      id: '/settings/dashboard'
+      path: '/dashboard'
+      fullPath: '/settings/dashboard'
+      preLoaderRoute: typeof SettingsDashboardRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/appearance': {
       id: '/settings/appearance'
       path: '/appearance'
@@ -1164,6 +1183,7 @@ const ReviewsRouteWithChildren =
 interface SettingsRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsDashboardRoute: typeof SettingsDashboardRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsPaymentMethodsRoute: typeof SettingsPaymentMethodsRoute
@@ -1177,6 +1197,7 @@ interface SettingsRouteChildren {
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountRoute: SettingsAccountRoute,
   SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsDashboardRoute: SettingsDashboardRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsPaymentMethodsRoute: SettingsPaymentMethodsRoute,
