@@ -95,7 +95,7 @@ export const en: TranslationSchema = {
         communities: { title: "Communities", desc: "Interest clubs: RC, aircraft, ships, electronics." },
         channels: { title: "Channels", desc: "Official channels of brands, shops and experts." },
         messenger: { title: "Messenger", desc: "Private and group chats inside the platform." },
-        events: { title: "Events", desc: "Races, meetups, runs, expos and club gatherings for modelers." },
+        reviews: { title: "Reviews", desc: "Video reviews of models, builds, and gear from the community." },
       },
     },
     listings: {
@@ -112,14 +112,6 @@ export const en: TranslationSchema = {
       countSuffix: "listings",
       loading: "Loading directions…",
       empty: "Directions coming soon",
-    },
-    reviews: {
-      eyebrow: "Reviews",
-      title: "Latest reviews",
-      subtitle: "Video reviews of models, builds, and gear from the community.",
-      all: "All reviews",
-      comingSoon: "Coming soon",
-      loading: "Loading reviews…",
     },
     steps: {
       eyebrow: "How it works",

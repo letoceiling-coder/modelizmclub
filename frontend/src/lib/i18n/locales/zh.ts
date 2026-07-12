@@ -95,7 +95,7 @@ export const zh: TranslationSchema = {
         communities: { title: "社区", desc: "兴趣俱乐部：遥控、航空、船舶、电子。" },
         channels: { title: "频道", desc: "品牌、商店和专家的官方频道。" },
         messenger: { title: "消息", desc: "平台内的私聊和群聊。" },
-        events: { title: "活动", desc: "比赛、聚会、试跑、展览和俱乐部活动。" },
+        reviews: { title: "评测", desc: "来自社区成员的模型、装配和器材视频测评。" },
       },
     },
     listings: {
@@ -112,14 +112,6 @@ export const zh: TranslationSchema = {
       countSuffix: "条广告",
       loading: "正在加载方向…",
       empty: "方向即将上线",
-    },
-    reviews: {
-      eyebrow: "评测",
-      title: "最新测评",
-      subtitle: "来自社区成员的模型、装配和器材视频测评。",
-      all: "全部测评",
-      comingSoon: "敬请期待",
-      loading: "正在加载测评…",
     },
     steps: {
       eyebrow: "如何运作",
