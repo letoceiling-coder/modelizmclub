@@ -81,7 +81,7 @@ export const en: TranslationSchema = {
       stats: {
         modelers: "modelers",
         communities: "communities",
-        categories: "categories",
+        categories: "directions",
       },
     },
     quick: {
@@ -107,11 +107,11 @@ export const en: TranslationSchema = {
       empty: "No published listings yet",
     },
     categories: {
-      eyebrow: "Categories",
+      eyebrow: "Directions",
       title: "Everything that moves and flies",
       countSuffix: "listings",
-      loading: "Loading categories…",
-      empty: "Categories coming soon",
+      loading: "Loading directions…",
+      empty: "Directions coming soon",
     },
     reviews: {
       eyebrow: "Reviews",
@@ -160,7 +160,7 @@ export const en: TranslationSchema = {
         { q: "How much does it cost?", a: "Basic use is free. A subscription from about 99 ₽ a month lifts the limits and unlocks advanced features." },
         { q: "How do I post a listing?", a: "After signing in, open the Listings section and click Create. Fill in the form — moderation takes up to a day." },
         { q: "Can I use it on a phone?", a: "Yes. The interface is mobile-friendly — no separate app required." },
-        { q: "What categories are there?", a: "Categories are managed automatically — see the current list in the listings catalog." },
+        { q: "What directions are there?", a: "Directions are managed automatically — see the current list in the listings catalog." },
       ],
     },
     footer: {

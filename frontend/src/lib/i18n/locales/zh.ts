@@ -81,7 +81,7 @@ export const zh: TranslationSchema = {
       stats: {
         modelers: "模型爱好者",
         communities: "社区",
-        categories: "分类",
+        categories: "方向",
       },
     },
     quick: {
@@ -107,11 +107,11 @@ export const zh: TranslationSchema = {
       empty: "暂无已发布的广告",
     },
     categories: {
-      eyebrow: "分类",
+      eyebrow: "方向",
       title: "一切会动会飞的",
       countSuffix: "条广告",
-      loading: "正在加载分类…",
-      empty: "分类即将上线",
+      loading: "正在加载方向…",
+      empty: "方向即将上线",
     },
     reviews: {
       eyebrow: "评测",
@@ -160,7 +160,7 @@ export const zh: TranslationSchema = {
         { q: "参与需要多少钱？", a: "基础使用免费。每月约 99 ₽ 起的订阅可解除限制并解锁高级功能。" },
         { q: "如何发布广告？", a: "登录后打开「广告」板块并点击「创建」。填写表单——审核最多需要一天。" },
         { q: "可以用手机使用吗？", a: "可以。界面已适配移动端——无需单独的应用。" },
-        { q: "有哪些分类？", a: "分类自动维护——请在广告目录中查看最新列表。" },
+        { q: "有哪些方向？", a: "方向自动维护——请在广告目录中查看最新列表。" },
       ],
     },
     footer: {

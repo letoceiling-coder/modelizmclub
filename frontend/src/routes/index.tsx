@@ -14,7 +14,7 @@ import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher
 import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchPopularListings } from "@/lib/api/listings";
-import { fetchListingCategories } from "@/lib/api/categories";
+import { fetchPostCategories } from "@/lib/api/categories";
 import { fetchVideos } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
 import type { Video } from "@/lib/mock";
@@ -675,7 +675,13 @@ function CategoriesSection() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetchListingCategories()
+    // Single source of truth: fetchPostCategories() is the same call (and
+    // same module-level cache) FeedRightRail uses on /feed for its
+    // "Направления" list — so the landing and /feed are guaranteed to show
+    // identical names/order, not two independently-fetched lists that can
+    // drift apart (fetchListingCategories hits a different backend endpoint,
+    // /categories/listings vs /categories/posts, with its own cache).
+    fetchPostCategories()
       .then((list) => { if (alive) setCategories(list); })
       .catch(() => { if (alive) setCategories([]); })
       .finally(() => { if (alive) setLoading(false); });

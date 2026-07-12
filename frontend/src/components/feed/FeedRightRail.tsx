@@ -85,17 +85,19 @@ export function FeedRightRail() {
     );
   }
 
-  const topCategories = categories.slice(0, 5);
-
   return (
     <aside className="hidden xl:block w-64 shrink-0">
       <div className="flex h-full flex-col gap-[12px] overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
 
-        {/* Card 1 — Направления */}
+        {/* Card 1 — Направления. Shows every direction (not a top-N
+            subset) — this list must match the landing's "Направления"
+            section 1:1, both by name/order and by data source
+            (usePostCategories -> fetchPostCategories, same module-level
+            cache the landing now reads from too). */}
         <RailCard>
           <CardHeader title="Направления" to="/categories" onCollapse={() => setCollapsed(true)} />
           <ul className="p-[6px]">
-            {topCategories.map((c) => {
+            {categories.map((c) => {
               const online = onlineFor(c);
               const open = openId === c.id;
               const hasSubs = c.subcategories.length > 0;
