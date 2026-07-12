@@ -26,7 +26,9 @@ function ReviewsPage() {
 
   // categories: "Все" first, then alphabetical
   const tabs = useMemo(() => {
-    const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    const sorted = [...categories].sort((a, b) =>
+      (a.name ?? "").localeCompare(b.name ?? "", "ru"),
+    );
     return [{ id: ALL, name: "Все", slug: ALL }, ...sorted];
   }, [categories]);
 

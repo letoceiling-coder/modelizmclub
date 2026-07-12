@@ -85,10 +85,26 @@ export async function fetchVideos(params: VideoListParams = {}): Promise<Video[]
   return (res.data ?? []).map(mapVideo);
 }
 
+interface ApiVideoCategory {
+  id: string;
+  slug: string;
+  title?: string;
+  name?: string;
+  sort_order?: number;
+}
+
+function mapVideoCategory(c: ApiVideoCategory): VideoCategory {
+  return {
+    id: c.id,
+    slug: c.slug,
+    name: c.name ?? c.title ?? c.slug,
+  };
+}
+
 export async function fetchVideoCategories(): Promise<VideoCategory[]> {
   if (isDemoMode()) return demoVideoCategories();
-  const res = await api<Paginated<VideoCategory>>("/videos/categories");
-  return res.data ?? [];
+  const res = await api<Paginated<ApiVideoCategory>>("/videos/categories");
+  return (res.data ?? []).map(mapVideoCategory);
 }
 
 export async function fetchVideo(id: string): Promise<Video> {
