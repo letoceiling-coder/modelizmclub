@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -95,7 +95,7 @@ function OnboardingPage() {
                 {active && (
                   <div
                     className="absolute right-[16px] top-[16px] inline-flex items-center justify-center"
-                    style={{ width: 24, height: 24, borderRadius: 999, background: "var(--accent)", color: "#fff" }}
+                    style={{ width: 24, height: 24, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "#fff" }}
                   >
                     <Check size={14} />
                   </div>

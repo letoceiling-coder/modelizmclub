@@ -17,6 +17,7 @@ interface Props {
   onTogglePin: () => void;
   onToggleMute: () => void;
   onClearHistory: () => void;
+  onDeleteChat: () => void;
 }
 
 const MENU_WIDTH = 230;
@@ -31,6 +32,7 @@ export function DialogContextMenu({
   onTogglePin,
   onToggleMute,
   onClearHistory,
+  onDeleteChat,
 }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const open = Boolean(point);
@@ -101,6 +103,7 @@ export function DialogContextMenu({
             onClick={run(onToggleMute)}
           />
           <Item icon={Trash2} label="Очистить историю" onClick={run(onClearHistory)} danger />
+          <Item icon={Trash2} label="Удалить чат" onClick={run(onDeleteChat)} danger />
         </motion.div>
       )}
     </AnimatePresence>,

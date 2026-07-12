@@ -49,7 +49,7 @@ export function RightCategories() {
       {/* h-full: parent <aside> is stretched to 100dvh by AppLayout's items-stretch.
            flex-col lets the header be fixed-height and the ul scroll freely. */}
       <div
-        className="flex h-full flex-col overflow-hidden rounded-[14px] border"
+        className="flex h-full flex-col overflow-hidden rounded-[var(--r-card)] border"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
       >
         <div className="border-b px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>

@@ -104,21 +104,21 @@ function DesignSystemPage() {
           <h3 className="mb-3 text-sm font-semibold text-[var(--foreground-70)]">Нейтральная шкала</h3>
           <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-8">
             <Swatch name="Neutral 900" hex="#0F1519" varName="--neutral-900" />
-            <Swatch name="Neutral 700" hex="#5A6778" varName="--neutral-700" />
-            <Swatch name="Neutral 600" hex="#5B6878" varName="--neutral-600" />
-            <Swatch name="Neutral 400" hex="#8C99AD" varName="--neutral-400" />
-            <Swatch name="Neutral 300" hex="#A8B2C2" varName="--neutral-300" />
-            <Swatch name="Neutral 200" hex="#E0E5ED" varName="--neutral-200" />
-            <Swatch name="Neutral 100" hex="#E9EDF2" varName="--neutral-100" />
-            <Swatch name="Neutral 50" hex="#F8F9FC" varName="--neutral-50" />
+            <Swatch name="Neutral 700" hex="var(--neutral-700)" varName="--neutral-700" />
+            <Swatch name="Neutral 600" hex="var(--neutral-600)" varName="--neutral-600" />
+            <Swatch name="Neutral 400" hex="var(--neutral-400)" varName="--neutral-400" />
+            <Swatch name="Neutral 300" hex="var(--neutral-300)" varName="--neutral-300" />
+            <Swatch name="Neutral 200" hex="var(--neutral-200)" varName="--neutral-200" />
+            <Swatch name="Neutral 100" hex="var(--neutral-100)" varName="--neutral-100" />
+            <Swatch name="Neutral 50" hex="var(--neutral-50)" varName="--neutral-50" />
           </div>
 
           <h3 className="mb-3 text-sm font-semibold text-[var(--foreground-70)]">Акценты</h3>
           <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Swatch name="Primary accent" hex="#627FFF" varName="--accent" />
+            <Swatch name="Primary accent" hex="var(--accent)" varName="--accent" />
             <Swatch name="Primary hover" hex="#4F66E8" varName="--accent-hover" />
-            <Swatch name="Commercial accent" hex="#F26C05" varName="--accent-commercial" />
-            <Swatch name="Commercial hover" hex="#FA4F02" varName="--accent-commercial-hover" />
+            <Swatch name="Commercial accent" hex="var(--accent-commercial)" varName="--accent-commercial" />
+            <Swatch name="Commercial hover" hex="var(--accent-commercial-hover)" varName="--accent-commercial-hover" />
           </div>
 
           <h3 className="mb-3 text-sm font-semibold text-[var(--foreground-70)]">Семантика</h3>

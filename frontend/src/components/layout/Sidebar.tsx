@@ -1,28 +1,32 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ShoppingBag, ExternalLink, Heart, Clapperboard, Settings, Crown } from "lucide-react";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { subscriptionEndDate } from "@/lib/subscription";
 
 interface Item {
-  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/channels" | "/messenger" | "/friends";
+  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
   authOnly?: boolean;
 }
 
-const items: Item[] = [
+const ALL_ITEMS: Item[] = [
   { to: ROUTES.feed,         labelKey: "nav.feed",     icon: Newspaper,     section: "feed" },
   { to: ROUTES.ads,          labelKey: "nav.catalog",  icon: Megaphone,     section: "ads" },
   { to: ROUTES.adCreate,     labelKey: "nav.adCreate", icon: Plus,          section: "ad-create" },
   { to: ROUTES.myAds,        labelKey: "nav.myAds",    icon: ClipboardList, section: "my-ads", authOnly: true },
   { to: ROUTES.favorites,    labelKey: "nav.favorites", icon: Heart,        section: "favorites", authOnly: true },
   { to: ROUTES.communities,  labelKey: "nav.communities", icon: Users2,     section: "communities" },
+  { to: ROUTES.reviews,      labelKey: "nav.reviews", icon: Clapperboard, section: "reviews" },
   { to: ROUTES.channels,     labelKey: "nav.channels", icon: Radio,         section: "channels" },
   { to: ROUTES.messenger,    labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.friends,      labelKey: "nav.friends",  icon: UserPlus,      section: "friends" },
+  { to: ROUTES.settings,     labelKey: "nav.settings", icon: Settings,      section: "settings", authOnly: true },
 ];
 
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
@@ -31,9 +35,16 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const me = useStore(selectors.currentUser);
   const { t } = useTranslation();
   const isGuest = me.id === "guest";
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+  const items = ALL_ITEMS.filter(
+    (i) =>
+      (i.to !== ROUTES.communities || communitiesEnabled) &&
+      (i.to !== ROUTES.reviews || reviewsEnabled),
+  );
 
   const fullInner = (
-    <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4" style={{ scrollbarWidth: "none" }}>
+    <div className="h-full space-y-1 overflow-y-auto overflow-x-hidden py-4 no-scrollbar">
       <nav className="space-y-0.5">
         {items.map(({ to, labelKey, icon: Icon, section, authOnly }) => {
           if (authOnly && isGuest) return null;
@@ -73,10 +84,14 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       {/* Compact subscription status — управление только на /subscription */}
       <Link
         to={ROUTES.subscription}
-        className="mt-4 flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-xs transition-colors hover:bg-muted"
+        className="mt-4 flex items-center gap-[10px] rounded-xl px-3 py-[10px] text-xs transition-colors hover:bg-muted"
+        style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
       >
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--success, #22c55e)" }} />
-        <span className="font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
+        <Crown size={16} className="shrink-0" style={{ color: "var(--foreground-50)" }} />
+        <span className="min-w-0">
+          <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
+          <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>до {subscriptionEndDate()}</span>
+        </span>
       </Link>
 
       <div className="mt-2">

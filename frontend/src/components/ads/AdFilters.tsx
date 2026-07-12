@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, RotateCcw } from "lucide-react";
-import { type AdCondition } from "@/lib/mock";
+import { X, RotateCcw, ChevronDown } from "lucide-react";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { CitySelect } from "@/components/ads/CitySelect";
+import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
-const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
-const DELIVERIES = ["СДЭК", "Почта России", "Яндекс Доставка", "Ozon", "Wildberries"];
+// Filter buckets stay coarse (new/used) even though a listing's own
+// `condition` is more granular ("Б/у — отлично" etc, see ads.new.tsx) —
+// buyers filter broadly, sellers describe precisely.
+const CONDITIONS = ["Новое", "Б/у"] as const;
 
 export interface FiltersState {
   category: string;            // "Все" | category name
@@ -15,11 +18,10 @@ export interface FiltersState {
   status: string;              // "Все" | "Продаю" | "Куплю" | "Обменяю"
   city: string;                // free text
   cityId?: number;
-  conditions: AdCondition[];
+  conditions: string[];
   deliveries: string[];
   priceMin: number;
   priceMax: number;
-  withPhotoOnly: boolean;
 }
 
 export const DEFAULT_FILTERS: FiltersState = {
@@ -32,7 +34,6 @@ export const DEFAULT_FILTERS: FiltersState = {
   deliveries: [],
   priceMin: 0,
   priceMax: 100000,
-  withPhotoOnly: false,
 };
 
 interface Props {
@@ -49,9 +50,18 @@ function Body({ value, onChange, onReset }: Props) {
     const arr = value[k] as string[];
     set(k, (arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item]) as FiltersState[K]);
   };
+  const [conditionsOpen, setConditionsOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-[20px]">
+      <Group title="Категория">
+        <Select
+          value={value.category}
+          onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
+          options={["Все", ...categories.map((c) => c.name)]}
+        />
+      </Group>
+
       {cat && (
         <Group title="Подкатегория">
           <Select
@@ -108,23 +118,44 @@ function Body({ value, onChange, onReset }: Props) {
         />
       </Group>
 
-      <Group title="Состояние">
-        <div className="flex flex-wrap gap-[6px]">
-          {CONDITIONS.map((c) => (
-            <Checkbox key={c} checked={value.conditions.includes(c)} onChange={() => toggle("conditions", c)} label={c} />
-          ))}
-        </div>
-      </Group>
+      <div className="flex flex-col gap-[10px]">
+        <button
+          type="button"
+          onClick={() => setConditionsOpen((v) => !v)}
+          aria-expanded={conditionsOpen}
+          className="flex items-center justify-between"
+          style={{
+            background: "var(--background-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-input)",
+            height: 40,
+            padding: "0 12px",
+          }}
+        >
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+            Состояние{value.conditions.length > 0 ? ` · ${value.conditions.length}` : ""}
+          </span>
+          <ChevronDown
+            size={16}
+            style={{ color: "var(--foreground-50)", transform: conditionsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+          />
+        </button>
+        {conditionsOpen && (
+          <div className="flex flex-wrap gap-[6px] pl-[2px]">
+            {CONDITIONS.map((c) => (
+              <Checkbox key={c} checked={value.conditions.includes(c)} onChange={() => toggle("conditions", c)} label={c} />
+            ))}
+          </div>
+        )}
+      </div>
 
       <Group title="Доставка">
         <div className="flex flex-wrap gap-[6px]">
-          {DELIVERIES.map((d) => (
-            <Checkbox key={d} checked={value.deliveries.includes(d)} onChange={() => toggle("deliveries", d)} label={d} />
+          {DELIVERY_METHODS.map((m) => (
+            <Checkbox key={m.id} checked={value.deliveries.includes(m.label)} onChange={() => toggle("deliveries", m.label)} label={m.label} />
           ))}
         </div>
       </Group>
-
-      <Checkbox checked={value.withPhotoOnly} onChange={(v) => set("withPhotoOnly", v)} label="Только с фото" />
 
       <button
         type="button"

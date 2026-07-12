@@ -41,6 +41,8 @@ export const en: TranslationSchema = {
     admin: "Admin",
     myAds: "My Listings",
     favorites: "Favorites",
+    reviews: "Reviews",
+    settings: "Settings",
   },
   auth: {
     login: "Sign in",
@@ -81,7 +83,7 @@ export const en: TranslationSchema = {
       stats: {
         modelers: "modelers",
         communities: "communities",
-        categories: "categories",
+        categories: "directions",
       },
     },
     quick: {
@@ -95,7 +97,7 @@ export const en: TranslationSchema = {
         communities: { title: "Communities", desc: "Interest clubs: RC, aircraft, ships, electronics." },
         channels: { title: "Channels", desc: "Official channels of brands, shops and experts." },
         messenger: { title: "Messenger", desc: "Private and group chats inside the platform." },
-        events: { title: "Events", desc: "Races, meetups, runs, expos and club gatherings for modelers." },
+        reviews: { title: "Reviews", desc: "Video reviews of models, builds, and gear from the community." },
       },
     },
     listings: {
@@ -105,13 +107,14 @@ export const en: TranslationSchema = {
       photoSoon: "Photo soon",
       loading: "Loading listings…",
       empty: "No published listings yet",
+      postCta: "Post a listing",
     },
     categories: {
-      eyebrow: "Categories",
+      eyebrow: "Directions",
       title: "Everything that moves and flies",
       countSuffix: "listings",
-      loading: "Loading categories…",
-      empty: "Categories coming soon",
+      loading: "Loading directions…",
+      empty: "Directions coming soon",
     },
     steps: {
       eyebrow: "How it works",
@@ -152,7 +155,7 @@ export const en: TranslationSchema = {
         { q: "How much does it cost?", a: "Basic use is free. A subscription from about 99 ₽ a month lifts the limits and unlocks advanced features." },
         { q: "How do I post a listing?", a: "After signing in, open the Listings section and click Create. Fill in the form — moderation takes up to a day." },
         { q: "Can I use it on a phone?", a: "Yes. The interface is mobile-friendly — no separate app required." },
-        { q: "What categories are there?", a: "Categories are managed automatically — see the current list in the listings catalog." },
+        { q: "What directions are there?", a: "Directions are managed automatically — see the current list in the listings catalog." },
       ],
     },
     footer: {

@@ -1,25 +1,30 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowRight, ChevronDown, Plus, Check,
+  ArrowRight, ChevronDown, Plus,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
-  MapPin, Search, Compass, Sparkles, ImageOff, CalendarDays, Boxes,
+  MapPin, Search, Compass, ImageOff, Clapperboard,
+  Target, HeartHandshake, LayoutGrid, Send,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
+import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher";
+import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { GUEST_USER, selectors, useStore } from "@/lib/store";
 import { fetchPopularListings } from "@/lib/api/listings";
-import { fetchListingCategories } from "@/lib/api/categories";
+import { fetchPostCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import type { Ad, Category } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
 import { SOCIAL_LINKS } from "@/lib/footer-links";
+import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 
 const HERO_VIDEO = "/videos/herovideo.mp4";
 
@@ -64,7 +69,7 @@ function LandingPage() {
 /* ===================== TopNav (sticky) ===================== */
 
 function TopNav() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const enter = useEnter();
   const me = useStore(selectors.currentUser);
   const [sessionReady, setSessionReady] = useState(false);
@@ -136,11 +141,11 @@ function TopNav() {
               )}
               <Link
                 to="/feed"
-                className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
+                className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
               >
                 {t("landing.nav.cabinet")}
-                <ArrowRight size={15} />
+                <ArrowRight size={15} className="hidden shrink-0 sm:block" />
               </Link>
             </>
           ) : (
@@ -150,11 +155,11 @@ function TopNav() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >{t("landing.nav.login")}</Link>
-              <Link to={enter.register} className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
+              <Link to={enter.register} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
               >
                 {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
-                <ArrowRight size={15} />
+                <ArrowRight size={15} className="hidden shrink-0 sm:block" />
               </Link>
             </>
           )}
@@ -193,6 +198,30 @@ function TopNav() {
                   <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
                 ),
               )}
+              <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
+              <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
+              {/* language — quiet inline chips, at the bottom (mobile only; sm+ has it in the header) */}
+              <div className="mt-1 flex items-center gap-1.5 px-3 pt-1 sm:hidden">
+                {LANGS.map((l) => {
+                  const active = i18n.language === l.code;
+                  return (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => { setLocale(l.code); setMenuOpen(false); }}
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium"
+                      style={{
+                        background: active ? "var(--background-surface)" : "transparent",
+                        color: active ? "var(--foreground)" : "var(--foreground-60)",
+                        border: `1px solid ${active ? "var(--border-strong)" : "var(--border)"}`,
+                      }}
+                    >
+                      <span style={{ fontSize: 13 }}>{l.flag}</span>
+                      {l.code.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}
@@ -211,7 +240,15 @@ function Hero() {
   const navigate = useNavigate();
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
+  // Respect "reduce motion": the hero entrance runs on mount, and under
+  // reduced motion the variant never reaches "visible" — leaving the whole
+  // above-the-fold hero (title/CTA/stats) invisible. Start it visible instead.
+  const reduce = useReducedMotion();
   const [stats, setStats] = useState({ users: 0, communities: 0, listing_categories: 0 });
+  // Weak-network guard: the hero video is ~6 MB. On small screens, Save-Data,
+  // or slow connections we skip it entirely and show the lightweight poster —
+  // critical for regional mobile users. Only load video on capable connections.
+  const [allowVideo, setAllowVideo] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
@@ -226,6 +263,15 @@ function Hero() {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const saveData = conn?.saveData === true;
+    const slow = !!conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType);
+    const bigScreen = window.matchMedia("(min-width: 768px)").matches;
+    setAllowVideo(bigScreen && !saveData && !slow);
+  }, []);
+
   const fadeUp = {
     hidden: { opacity: 0, y: 22 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
@@ -236,7 +282,7 @@ function Hero() {
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
       {/* background media */}
       <div className="absolute inset-0 z-0">
-        {videoError ? (
+        {videoError || !allowVideo ? (
           <img src={cover} alt={t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
         ) : (
           <video
@@ -245,6 +291,7 @@ function Hero() {
             muted
             loop
             playsInline
+            preload="none"
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
@@ -252,10 +299,16 @@ function Hero() {
           </video>
         )}
         {/* dark overlay — fixed dark color at the bottom, independent of theme
-            (var(--background) turned white in light theme and washed out the video) */}
+            (var(--background) turned white in light theme and washed out the video).
+            Blueprint grid layered on top (first background = topmost) as the
+            brand's one decorative motif — modelism assembly drawings, not
+            generic SaaS decor. */}
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)" }}
+          style={{
+            backgroundImage: `${blueprintGridOnDark}, linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)`,
+            backgroundSize: `${blueprintGridSize}, auto`,
+          }}
         />
       </div>
 
@@ -264,14 +317,14 @@ function Hero() {
       <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
         <AnimatePresence>
           {ready && (
-            <motion.div variants={stagger} initial="hidden" animate="visible" className="w-full max-w-[720px] py-20">
+            <motion.div variants={stagger} initial={reduce ? "visible" : "hidden"} animate="visible" className="w-full max-w-[720px] py-20">
               <motion.h1
                 variants={fadeUp}
                 style={{
                   fontFamily: "var(--font-display)",
                   fontSize: "clamp(44px, 8vw, 92px)",
                   lineHeight: 0.98,
-                  letterSpacing: "-0.03em",
+                  letterSpacing: "-0.035em",
                   fontWeight: 800,
                   color: "#ffffff",
                   textShadow: "0 4px 30px rgba(0,0,0,0.45)",
@@ -298,16 +351,18 @@ function Hero() {
 
               <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
+                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
                   <Search size={18} /> {t("landing.hero.ctaBrowse")}
                 </button>
                 <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
+                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
-                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} />
+                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} className="hidden shrink-0 sm:block" />
                 </button>
               </motion.div>
 
@@ -318,7 +373,7 @@ function Hero() {
                   { n: String(stats.listing_categories || 0), l: t("landing.hero.stats.categories") },
                 ].map((s) => (
                   <div key={s.l}>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "#fff", letterSpacing: "-0.02em" }}>{s.n}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "#fff", letterSpacing: "-0.025em" }}>{s.n}</div>
                     <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.l}</div>
                   </div>
                 ))}
@@ -342,14 +397,14 @@ function Hero() {
 
 const ctaPrimary: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 16, fontWeight: 700,
+  borderRadius: "var(--r-pill)",
+  background: "var(--accent)", color: "var(--accent-foreground)", fontWeight: 700,
   border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
 };
 const ctaGhost: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  height: 54, padding: "0 28px", borderRadius: "var(--r-pill)",
-  background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 16, fontWeight: 700,
+  borderRadius: "var(--r-pill)",
+  background: "rgba(255,255,255,0.08)", color: "#fff", fontWeight: 700,
   border: "2px solid rgba(255,255,255,0.28)", cursor: "pointer", backdropFilter: "blur(8px)", transition: "background 180ms",
 };
 const ctaText: React.CSSProperties = {
@@ -367,11 +422,12 @@ const QUICK_KEYS = [
   { icon: Users2, key: "communities", to: "/communities" },
   { icon: Radio, key: "channels", to: "/channels" },
   { icon: MessageSquare, key: "messenger", to: "/messenger" },
-  { icon: CalendarDays, key: "events", to: "/feed" },
+  { icon: Clapperboard, key: "reviews", to: "/reviews" },
 ] as const;
 
 function QuickSections() {
   const { t } = useTranslation();
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   return (
     <Section bg="var(--background-surface)">
       <Eyebrow>{t("landing.quick.eyebrow")}</Eyebrow>
@@ -380,10 +436,10 @@ function QuickSections() {
         {t("landing.quick.subtitle")}
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {QUICK_KEYS.map(({ icon: Icon, key, to }) => (
-          <Link key={key} to={to} className="group flex flex-col p-6 transition-all hover:-translate-y-1"
+        {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
+          <Link key={key} to={to} className="group flex flex-col p-6 transition hover:-translate-y-1"
             style={cardStyle}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
           >
             <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
@@ -406,6 +462,14 @@ function QuickSections() {
 const CONDITION_COLOR = (c?: string) =>
   c === "Новое" ? "var(--success)" : "var(--foreground-50)";
 
+/* Landing "Популярные объявления" always shows exactly this many cards, so the
+ * grid never renders a short/ragged final row. 12 divides evenly into the grid's
+ * column counts at every breakpoint (3 / 4 / 6), so all rows are full.
+ * We fetch up to 12 real listings ("popular" is already a global selection —
+ * no direction/date narrowing to widen); if the whole catalog has fewer than 12,
+ * the remaining slots are backfilled with a "Разместить объявление" CTA card. */
+const POPULAR_SLOTS = 12;
+
 function PopularListings() {
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState<Ad[]>([]);
@@ -414,14 +478,15 @@ function PopularListings() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetchPopularListings(10)
-      .then((list) => { if (alive) setItems(list); })
+    fetchPopularListings(POPULAR_SLOTS)
+      .then((list) => { if (alive) setItems(list.slice(0, POPULAR_SLOTS)); })
       .catch(() => { if (alive) setItems([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
 
   const priceLocale = i18n.language === "ru" ? "ru-RU" : i18n.language === "zh" ? "zh-CN" : "en-US";
+  const placeholderCount = Math.max(0, POPULAR_SLOTS - items.length);
 
   return (
     <Section bg="var(--background)">
@@ -435,17 +500,19 @@ function PopularListings() {
         >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
       </div>
 
-      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-5"
-        style={{ scrollbarWidth: "none" }}
+      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-6"
       >
         {loading ? (
           <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.listings.loading")}</p>
-        ) : items.length === 0 ? (
-          <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.listings.empty")}</p>
         ) : (
-          items.map((ad) => (
-            <LandingListingCard key={ad.id} ad={ad} priceLocale={priceLocale} />
-          ))
+          <>
+            {items.map((ad) => (
+              <LandingListingCard key={ad.id} ad={ad} priceLocale={priceLocale} />
+            ))}
+            {Array.from({ length: placeholderCount }).map((_, i) => (
+              <ListingCtaPlaceholder key={`listing-cta-${i}`} label={t("landing.listings.postCta")} />
+            ))}
+          </>
         )}
       </div>
 
@@ -455,6 +522,25 @@ function PopularListings() {
         >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
       </div>
     </Section>
+  );
+}
+
+/** Backfill card for the popular-listings grid: a real, tappable CTA to post an
+ *  ad, shown when the catalog has fewer than POPULAR_SLOTS listings. Keeps the
+ *  grid always full (never a ragged final row) while staying honest — it's an
+ *  action, not a fake listing. */
+function ListingCtaPlaceholder({ label }: { label: string }) {
+  return (
+    <Link
+      to="/ads/new"
+      className="group flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col items-center justify-center gap-2 overflow-hidden p-6 text-center transition hover:-translate-y-1 sm:w-auto sm:max-w-none"
+      style={{ ...cardStyle, borderStyle: "dashed" }}
+    >
+      <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+        <Plus size={22} />
+      </div>
+      <span className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>{label}</span>
+    </Link>
   );
 }
 
@@ -475,7 +561,7 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
 
   return (
     <div
-      className="relative flex min-w-[200px] shrink-0 snap-start flex-col overflow-hidden sm:min-w-0"
+      className="relative flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col overflow-hidden sm:w-auto sm:max-w-none"
       style={cardStyle}
       onMouseLeave={() => { setMenuOpen(false); setHovIdx(0); }}
     >
@@ -578,7 +664,13 @@ function CategoriesSection() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetchListingCategories()
+    // Single source of truth: fetchPostCategories() is the same call (and
+    // same module-level cache) FeedRightRail uses on /feed for its
+    // "Направления" list — so the landing and /feed are guaranteed to show
+    // identical names/order, not two independently-fetched lists that can
+    // drift apart (fetchListingCategories hits a different backend endpoint,
+    // /categories/listings vs /categories/posts, with its own cache).
+    fetchPostCategories()
       .then((list) => { if (alive) setCategories(list); })
       .catch(() => { if (alive) setCategories([]); })
       .finally(() => { if (alive) setLoading(false); });
@@ -599,18 +691,29 @@ function CategoriesSection() {
             const Icon = resolveLucideIcon(cat.icon);
             const count = cat.listingsCount ?? cat.members ?? 0;
             return (
-              <Link key={cat.id} to="/ads" className="group flex items-center gap-3 p-4 transition-all hover:-translate-y-0.5"
+              <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
               >
-                <div className="grid shrink-0 place-items-center transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)]"
-                  style={{ width: 42, height: 42, borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-                  <Icon size={20} />
+                <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
+                  style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
+                  <Icon size={19} />
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold" style={{ color: "var(--foreground)" }}>{cat.name}</div>
-                  <div className="text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
+                  {/* hyphens:auto (with lang=ru on <html>) lets long single-word
+                      names like "Радиоаппаратура"/"Робототехника" break at a
+                      real syllable with a hyphen instead of an ugly mid-word
+                      split — break-words alone forced a raw character-level
+                      break with no hyphen. */}
+                  <div
+                    className="text-[13px] font-semibold leading-tight sm:text-sm"
+                    style={{ color: "var(--foreground)", hyphens: "auto", overflowWrap: "break-word" }}
+                    lang="ru"
+                  >
+                    {cat.name}
+                  </div>
+                  <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
                 </div>
               </Link>
             );
@@ -625,13 +728,19 @@ function CategoriesSection() {
 
 function StepsTimeline() {
   const { t } = useTranslation();
+  // Same reduced-motion issue as the hero: framer-motion doesn't reliably
+  // resolve a whileInView transition to its end state under reduced motion
+  // (observed stuck mid-fade, e.g. opacity ~0.26). Start at the "visible"
+  // variant directly so the content is correct even if the scroll-triggered
+  // animation never completes.
+  const reduce = useReducedMotion();
   return (
     <Section bg="var(--background)" id="how">
       <Eyebrow>{t("landing.steps.eyebrow")}</Eyebrow>
       <Title>{t("landing.steps.title")}</Title>
       <div className="relative mt-12">
         <div aria-hidden className="absolute left-0 right-0 top-[26px] hidden md:block" style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)" }} />
-        <motion.ol variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3 md:gap-6">
+        <motion.ol variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }} initial={reduce ? "visible" : "hidden"} whileInView="visible" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3 md:gap-6">
           {STEP_KEYS.map((key, i) => {
             const Icon = STEP_ICONS[i];
             return (
@@ -653,8 +762,6 @@ function StepsTimeline() {
   );
 }
 
-const PLAN_KEYS = ["start", "month", "year"] as const;
-
 function PricingSection() {
   const { t } = useTranslation();
   return (
@@ -662,39 +769,30 @@ function PricingSection() {
       <Eyebrow>{t("landing.pricing.eyebrow")}</Eyebrow>
       <Title>{t("landing.pricing.title")}</Title>
       <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {PLAN_KEYS.map((key) => {
-          const accent = key === "month";
-          const plan = t(`landing.pricing.plans.${key}`, { returnObjects: true }) as { name: string; price: string; period: string; features: string[] };
-          return (
-            <div key={key} className="relative flex flex-col p-7" style={{ ...cardStyle, borderColor: accent ? "var(--border-accent)" : "var(--border)", boxShadow: accent ? "var(--shadow-card-hover)" : "var(--shadow-xs)" }}>
-              {accent && <span className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("landing.pricing.recommended")}</span>}
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{plan.name}</div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "var(--foreground)", letterSpacing: "-0.02em" }}>{plan.price}</span>
-                <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{plan.period}</span>
-              </div>
-              <ul className="mt-5 space-y-2.5">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm" style={{ color: "var(--foreground-70)" }}>
-                    <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} /><span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex-1" />
-              <Link to="/subscription" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
-                style={accent ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)" }}
-              >{t("landing.pricing.more")} <ArrowRight size={15} /></Link>
-            </div>
-          );
-        })}
+      {/* Mobile keeps the narrow single-card width (max-w-[420px]); desktop
+          widens to fit PlanTermSelector's 3-column open-cards layout
+          (~230px card x3 + 16px gaps x2). */}
+      <div className="mx-auto mt-10 max-w-[420px] md:max-w-[760px]">
+        <PlanTermSelector
+          renderCta={() => (
+            <Link
+              to="/subscription"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+            >
+              {t("landing.pricing.more")} <ArrowRight size={15} />
+            </Link>
+          )}
+        />
       </div>
     </Section>
   );
 }
 
 const VALUE_KEYS = ["focus", "community", "allInOne", "direct"] as const;
-const VALUE_ICONS = [Sparkles, Users2, Boxes, MessageSquare] as const;
+// Distinct, topical icons per value (P1d.17): niche focus, community,
+// everything-in-one, direct deals — instead of near-generic repeats.
+const VALUE_ICONS = [Target, HeartHandshake, LayoutGrid, Send] as const;
 
 function WhyChoose() {
   const { t } = useTranslation();
@@ -706,7 +804,18 @@ function WhyChoose() {
         {VALUE_KEYS.map((key, i) => {
           const Icon = VALUE_ICONS[i];
           return (
-            <div key={key} className="flex flex-col p-6" style={cardStyle}>
+            <div
+              key={key}
+              className="flex flex-col p-6"
+              style={
+                // Micro-asymmetry, deliberately singular: only the first of
+                // these four cards breaks the grid's perfect alignment — a
+                // living accent, not a site-wide pattern (per the brief:
+                // "1-2 accents, not a style"). Marketing content only, well
+                // clear of catalog/cards/cart/forms/admin.
+                i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle
+              }
+            >
               <div className="grid place-items-center" style={{ width: 44, height: 44, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
                 <Icon size={20} />
               </div>
@@ -794,7 +903,7 @@ function Footer() {
               {FOOTER_LINK_KEYS[colKey].map((linkKey) => (
                 <li key={linkKey}>
                   <Link to={FOOTER_LINK_TO[linkKey]} className="text-sm transition-colors" style={{ color: "var(--foreground-50)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--neutral-700)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
                   >{t(`landing.footer.cols.${colKey}.links.${linkKey}`)}</Link>
                 </li>
@@ -827,7 +936,18 @@ function Footer() {
 
 function Section({ children, bg, id }: { children: React.ReactNode; bg: string; id?: string }) {
   return (
-    <section id={id} style={{ background: bg, padding: "72px 0" }}>
+    <section
+      id={id}
+      style={{
+        // Blueprint grid over the flat section color — background-color is
+        // always the bottommost layer, so the pattern just needs its own
+        // background-image on top. Same brand motif as the hero.
+        backgroundColor: bg,
+        backgroundImage: blueprintGridOnLight,
+        backgroundSize: blueprintGridSize,
+        padding: "72px 0",
+      }}
+    >
       <div className="mx-auto max-w-[1240px] px-4 md:px-8">{children}</div>
     </section>
   );
@@ -841,7 +961,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 function Title({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mt-3" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(26px, 3.6vw, 42px)", letterSpacing: "-0.025em", lineHeight: 1.1, color: "var(--foreground)" }}>{children}</h2>
+    <h2 className="mt-3" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(26px, 3.6vw, 42px)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "var(--foreground)" }}>{children}</h2>
   );
 }
 

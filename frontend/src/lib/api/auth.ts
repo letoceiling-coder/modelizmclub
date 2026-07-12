@@ -40,6 +40,7 @@ export function mapApiUser(u: ApiUser): User {
     city: u.profile?.city?.name ?? "",
     interests,
     avatar: u.profile?.avatar?.url ?? avatarFallback(name),
+    email: u.email ?? undefined,
     bio: u.profile?.bio ?? undefined,
     isAdmin: u.role === "admin",
   };
@@ -50,13 +51,17 @@ interface AuthResponse {
   meta?: { token?: string; token_type?: string };
 }
 
-export async function login(email: string, password: string): Promise<User> {
+// `remember` is client-only — the backend /auth/login contract has no such
+// field (confirmed against docs/openapi/openapi.json LoginRequest). It only
+// decides where the token is persisted: localStorage (survives browser
+// restarts) vs sessionStorage (cleared when the tab/browser closes).
+export async function login(email: string, password: string, remember = true): Promise<User> {
   const res = await api<AuthResponse>("/auth/login", {
     method: "POST",
     auth: false,
     json: { email, password },
   });
-  if (res.meta?.token) setToken(res.meta.token);
+  if (res.meta?.token) setToken(res.meta.token, remember);
   return mapApiUser(res.data);
 }
 
@@ -145,4 +150,26 @@ export async function logout(): Promise<void> {
     // ignore — token cleared locally regardless
   }
   setToken(null);
+}
+
+/**
+ * Change password while staying logged in (authenticated, in-place — not the
+ * email-reset flow). Throws ApiError(422) with `errors` on wrong current
+ * password / weak new password. Backend endpoint documented in
+ * docs/backend-endpoints-needed.md (POST /account/change-password).
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api("/account/change-password", {
+    method: "POST",
+    json: { current_password: currentPassword, new_password: newPassword },
+  });
+}
+
+/**
+ * Revoke every OTHER session/token, keeping the current one valid (so the
+ * user is NOT logged out here). Backend endpoint documented in
+ * docs/backend-endpoints-needed.md (POST /auth/logout-others).
+ */
+export async function logoutOtherDevices(): Promise<void> {
+  await api("/auth/logout-others", { method: "POST" });
 }

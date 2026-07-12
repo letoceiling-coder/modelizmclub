@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { formatRelativeTime, type User } from "@/lib/mock";
 import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
@@ -18,7 +19,7 @@ import {
 } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -40,6 +41,98 @@ type Tab = "all" | "online" | "requests";
 function userInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return (parts[0]?.[0] ?? "").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+}
+
+function FriendCard({
+  user, isAdded, isPending, online,
+  onToggleFriend, onWriteTo, onViewProfile, onRemoveFriend, onHide, onReport, onBlock,
+}: {
+  user: User;
+  isAdded: boolean;
+  isPending: boolean;
+  online: boolean;
+  onToggleFriend: () => void;
+  onWriteTo: () => void;
+  onViewProfile: () => void;
+  onRemoveFriend: () => void;
+  onHide: () => void;
+  onReport: () => void;
+  onBlock: () => void;
+}) {
+  const interests = user.interests.split(",").slice(0, 3).join(", ");
+  return (
+    <Card
+      className="flex flex-col gap-[12px] p-[16px] shadow-none sm:flex-row sm:items-center sm:gap-[16px] sm:p-[20px]"
+      style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+    >
+      {/* Identity (avatar + text) — its own full-width row on mobile so the
+          text never collapses under the action buttons; beside them on desktop. */}
+      <div className="flex min-w-0 items-center gap-[12px] sm:flex-1 sm:gap-[16px]">
+        <Link to="/user/$id" params={{ id: user.slug ?? user.id }} className="relative shrink-0">
+          <Avatar className="h-[56px] w-[56px]">
+            <AvatarImage src={user.avatar} alt="" />
+            <AvatarFallback
+              className="text-[15px] font-semibold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              {userInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          {online && (
+            <span
+              className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
+              style={{ background: "var(--success)", border: "2px solid var(--background)" }}
+            />
+          )}
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link
+            to="/user/$id"
+            params={{ id: user.slug ?? user.id }}
+            className="block truncate font-semibold text-[15px]"
+            style={{ color: "var(--foreground)" }}
+          >
+            {user.name}
+          </Link>
+          <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            <MapPin size={11} /> <span className="truncate">{user.city}</span>
+          </div>
+          <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
+        </div>
+      </div>
+      <div className="flex w-full flex-wrap items-center gap-[8px] sm:w-auto sm:flex-nowrap sm:shrink-0">
+        <Button
+          size="sm"
+          variant={isAdded || isPending ? "outline" : "default"}
+          disabled={isPending}
+          onClick={onToggleFriend}
+          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
+        >
+          {isAdded
+            ? <><Check size={13} /> В друзьях</>
+            : isPending
+            ? <><Clock size={13} /> Заявка отправлена</>
+            : <><UserPlus size={13} /> Добавить</>}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onWriteTo}
+          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
+        >
+          <MessageSquare size={13} /> Написать
+        </Button>
+        <FriendActionsMenu
+          isFriend={isAdded}
+          onViewProfile={onViewProfile}
+          onRemoveFriend={onRemoveFriend}
+          onHide={onHide}
+          onReport={onReport}
+          onBlock={onBlock}
+        />
+      </div>
+    </Card>
+  );
 }
 
 function FriendsPage() {
@@ -95,8 +188,35 @@ function FriendsPage() {
     });
   }, [q, tab, allUsers, me, blockedUserIds, hiddenUserIds]);
 
+  const added = useMemo(() => new Set(friends.map((f) => f.id)), [friends]);
+
+  const connected = useMemo(() => {
+    return allUsers
+      .filter((u) => added.has(u.id))
+      .filter((u) => {
+        if (blockedUserIds.includes(u.id) || hiddenUserIds.includes(u.id)) return false;
+        const ql = q.toLowerCase();
+        if (!ql) return true;
+        return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
+      })
+      .sort((a, b) => Number(isOnline(b)) - Number(isOnline(a)));
+  }, [allUsers, added, blockedUserIds, hiddenUserIds, q, onlineSet]);
+
+  const recommended = useMemo(() => {
+    return filteredUsers.filter((u) => !added.has(u.id));
+  }, [filteredUsers, added]);
+
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const findFriends = () => {
+    setTab("all");
+    setTimeout(() => {
+      searchWrapRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      searchWrapRef.current?.querySelector("input")?.focus();
+    }, 60);
+  };
+
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: "Все", count: allUsers.length },
+    { key: "all", label: "Люди", count: allUsers.length },
     { key: "online", label: "Онлайн", count: allUsers.filter((u) => isOnline(u)).length },
     { key: "requests", label: "Заявки", count: requests.length },
   ];
@@ -125,8 +245,6 @@ function FriendsPage() {
       toast.error("Не удалось отклонить заявку");
     }
   };
-  const added = new Set(friends.map((f) => f.id));
-
   const toggleFriend = async (u: User) => {
     if (!u.numericId) {
       toast.error("Не удалось определить пользователя");
@@ -196,19 +314,32 @@ function FriendsPage() {
   return (
     <AppLayout>
       <div className="space-y-[16px]">
-        <header className="flex items-start justify-between gap-[12px]">
+        <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
             <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
           </div>
-          <Button
-            type="button"
-            onClick={() => groupCalls.openPicker("start")}
-            className="shrink-0 rounded-[10px] gap-[6px]"
-            size="sm"
-          >
-            <Users size={16} /> Групповой звонок
-          </Button>
+          {/* Full-width split on mobile so "Групповой звонок" never runs off the
+              right edge; natural row on desktop. */}
+          <div className="flex w-full items-center gap-[8px] sm:w-auto sm:shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={findFriends}
+              className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
+              size="sm"
+            >
+              <UserPlus size={16} /> Найти друзей
+            </Button>
+            <Button
+              type="button"
+              onClick={() => groupCalls.openPicker("start")}
+              className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
+              size="sm"
+            >
+              <Users size={16} /> Групповой звонок
+            </Button>
+          </div>
         </header>
 
         {/* Tabs */}
@@ -234,7 +365,7 @@ function FriendsPage() {
                     style={{
                       background: active ? "var(--accent-soft)" : "var(--background-surface)",
                       color: active ? "var(--accent)" : "var(--foreground-50)",
-                      borderRadius: 999,
+                      borderRadius: "var(--r-pill)",
                     }}
                   >
                     {t.count}
@@ -252,29 +383,30 @@ function FriendsPage() {
         </div>
 
         {tab !== "requests" && (
-          <SearchInput
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onClear={() => setQ("")}
-            placeholder="Поиск по имени, интересам"
-          />
+          <div ref={searchWrapRef}>
+            <SearchInput
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onClear={() => setQ("")}
+              placeholder="Поиск по имени, интересам"
+            />
+          </div>
         )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab + String(loading)}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2 }}
-          >
+        <ReducedMotionSwitch
+          switchKey={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2 }}
+        >
             {loading ? (
               <div className="flex flex-col gap-[10px]">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Card
                     key={i}
                     className="flex items-center gap-[16px] p-[20px] shadow-none"
-                    style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                    style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
                   >
                     <Skeleton className="h-[56px] w-[56px] shrink-0 rounded-full" />
                     <div className="flex-1 space-y-[8px]">
@@ -300,7 +432,7 @@ function FriendsPage() {
                       <Card
                         key={r.id}
                         className="flex items-start gap-[14px] p-[20px] shadow-none"
-                        style={{ borderColor: "var(--border)", borderRadius: 14 }}
+                        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
                       >
                         <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="shrink-0">
                           <Avatar className="h-[52px] w-[52px]">
@@ -328,7 +460,7 @@ function FriendsPage() {
                           <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
                             <Clock size={10} /> {formatRelativeTime(r.date)}
                           </p>
-                          <div className="mt-[12px] flex gap-[8px]">
+                          <div className="mt-[12px] flex flex-wrap gap-[8px]">
                             <Button
                               size="sm"
                               onClick={() => accept(r.id)}
@@ -362,100 +494,98 @@ function FriendsPage() {
                   })}
                 </div>
               )
-            ) : filteredUsers.length === 0 ? (
+            ) : tab === "online" ? (
+              filteredUsers.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="Никто не в сети"
+                  description="Загляните позже — онлайн-участники появятся здесь"
+                  variant="compact"
+                />
+              ) : (
+                <div className="flex flex-col gap-[10px]">
+                  {filteredUsers.map((u) => {
+                    const isAdded = added.has(u.id);
+                    const isPending = !isAdded && pending.has(u.id);
+                    return (
+                      <FriendCard
+                        key={u.id}
+                        user={u}
+                        isAdded={isAdded}
+                        isPending={isPending}
+                        online={isOnline(u)}
+                        onToggleFriend={() => toggleFriend(u)}
+                        onWriteTo={() => writeTo(u)}
+                        onViewProfile={() => viewProfile(u)}
+                        onRemoveFriend={() => removeFriendVia(u)}
+                        onHide={() => hideUserFromList(u)}
+                        onReport={reportUser}
+                        onBlock={() => blockUserVia(u)}
+                      />
+                    );
+                  })}
+                </div>
+              )
+            ) : connected.length === 0 && recommended.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title={q ? "Никого не найдено" : tab === "online" ? "Никто не в сети" : "Список пуст"}
-                description={
-                  q
-                    ? "Попробуйте изменить запрос"
-                    : tab === "online"
-                    ? "Загляните позже — онлайн-участники появятся здесь"
-                    : "Найдите интересных участников сообщества"
-                }
+                title={q ? "Никого не найдено" : "Список пуст"}
+                description={q ? "Попробуйте изменить запрос" : "Найдите интересных участников сообщества"}
                 variant="compact"
               />
             ) : (
-              <div className="flex flex-col gap-[10px]">
-                {filteredUsers.map((u) => {
-                  const isAdded = added.has(u.id);
-                  const isPending = !isAdded && pending.has(u.id);
-                  const interests = u.interests.split(",").slice(0, 3).join(", ");
-                  return (
-                    <Card
-                      key={u.id}
-                      className="flex items-center gap-[16px] p-[20px] shadow-none"
-                      style={{ borderColor: "var(--border)", borderRadius: 14 }}
-                    >
-                      <Link to="/user/$id" params={{ id: u.slug ?? u.id }} className="relative shrink-0">
-                        <Avatar className="h-[56px] w-[56px]">
-                          <AvatarImage src={u.avatar} alt="" />
-                          <AvatarFallback
-                            className="text-[15px] font-semibold"
-                            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                          >
-                            {userInitials(u.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {isOnline(u) && (
-                          <span
-                            className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full"
-                            style={{ background: "var(--success)", border: "2px solid var(--background)" }}
-                          />
-                        )}
-                      </Link>
-                      <div className="min-w-0 flex-1">
-                        <Link
-                          to="/user/$id"
-                          params={{ id: u.slug ?? u.id }}
-                          className="block truncate font-semibold text-[15px]"
-                          style={{ color: "var(--foreground)" }}
-                        >
-                          {u.name}
-                        </Link>
-                        <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                          <MapPin size={11} /> <span className="truncate">{u.city}</span>
-                        </div>
-                        <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-[8px]">
-                        <Button
-                          size="sm"
-                          variant={isAdded || isPending ? "outline" : "default"}
-                          disabled={isPending}
-                          onClick={() => toggleFriend(u)}
-                          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
-                        >
-                          {isAdded
-                            ? <><Check size={13} /> В друзьях</>
-                            : isPending
-                            ? <><Clock size={13} /> Заявка отправлена</>
-                            : <><UserPlus size={13} /> Добавить</>}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => writeTo(u)}
-                          className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
-                        >
-                          <MessageSquare size={13} /> Написать
-                        </Button>
-                        <FriendActionsMenu
-                          isFriend={isAdded}
+              <div className="flex flex-col gap-[24px]">
+                {connected.length > 0 && (
+                  <div className="flex flex-col gap-[10px]">
+                    <div className="flex items-center gap-[6px] px-[2px]">
+                      <h2 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Мои друзья</h2>
+                      <span className="text-[13px] font-semibold" style={{ color: "var(--foreground-50)" }}>{connected.length}</span>
+                    </div>
+                    {connected.map((u) => (
+                      <FriendCard
+                        key={u.id}
+                        user={u}
+                        isAdded={true}
+                        isPending={false}
+                        online={isOnline(u)}
+                        onToggleFriend={() => toggleFriend(u)}
+                        onWriteTo={() => writeTo(u)}
+                        onViewProfile={() => viewProfile(u)}
+                        onRemoveFriend={() => removeFriendVia(u)}
+                        onHide={() => hideUserFromList(u)}
+                        onReport={reportUser}
+                        onBlock={() => blockUserVia(u)}
+                      />
+                    ))}
+                  </div>
+                )}
+                {recommended.length > 0 && (
+                  <div className="flex flex-col gap-[10px]">
+                    <h2 className="px-[2px] text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Рекомендации</h2>
+                    {recommended.map((u) => {
+                      const isPending = pending.has(u.id);
+                      return (
+                        <FriendCard
+                          key={u.id}
+                          user={u}
+                          isAdded={false}
+                          isPending={isPending}
+                          online={isOnline(u)}
+                          onToggleFriend={() => toggleFriend(u)}
+                          onWriteTo={() => writeTo(u)}
                           onViewProfile={() => viewProfile(u)}
                           onRemoveFriend={() => removeFriendVia(u)}
                           onHide={() => hideUserFromList(u)}
                           onReport={reportUser}
                           onBlock={() => blockUserVia(u)}
                         />
-                      </div>
-                    </Card>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
-          </motion.div>
-        </AnimatePresence>
+        </ReducedMotionSwitch>
       </div>
     </AppLayout>
   );

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Languages, Check } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 
 import { setLocale, type Locale } from "@/lib/i18n";
 
 type Lang = Locale;
 
-const LANGS: { code: Lang; label: string; native: string; flag: string }[] = [
+export const LANGS: { code: Lang; label: string; native: string; flag: string }[] = [
   { code: "ru", label: "Русский", native: "Русский", flag: "🇷🇺" },
   { code: "en", label: "English", native: "English", flag: "🇬🇧" },
   { code: "zh", label: "中文", native: "中文", flag: "🇨🇳" },
@@ -53,19 +53,14 @@ export function LanguageSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[color:var(--background-surface-hover)]"
+        className="inline-flex h-[40px] items-center gap-[6px] rounded-full px-[10px] transition-colors hover:bg-[color:var(--background-surface-hover)]"
         style={{ color: "var(--foreground-70)" }}
         aria-label={t("lang.title")}
         title={`${t("lang.title")}: ${current.native}`}
       >
-        <span className="relative inline-flex">
-          <Languages size={18} />
-          <span
-            className="absolute -bottom-[6px] -right-[8px] grid h-[14px] min-w-[18px] place-items-center rounded-[4px] px-[3px] text-[9px] font-bold uppercase"
-            style={{ background: "var(--accent)", color: "#fff" }}
-          >
-            {current.code}
-          </span>
+        <Languages size={18} />
+        <span className="text-[12px] font-semibold uppercase" style={{ color: "var(--foreground-60)" }}>
+          {current.code}
         </span>
       </button>
       {open && (

@@ -8,7 +8,7 @@ const Tabs = TabsPrimitive.Root;
 /**
  * UI Kit 2.0 — underline-style tabs.
  * Scrollable on mobile (overflow-x-auto), no text clipping, 44px tap targets.
- * Active state: #627FFF (var(--accent)).
+ * Active state: var(--accent) (var(--accent)).
  */
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
@@ -18,7 +18,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       // Scrollable row, hidden scrollbar
-      "flex w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      "flex w-full overflow-x-auto no-scrollbar",
       // Persistent bottom border — active trigger overlaps it with accent color
       "border-b border-[var(--border)] bg-transparent",
       className,

@@ -18,6 +18,8 @@ import {
   registerUser,
   adById,
   communityById,
+  mockVideos,
+  mockVideoCategories,
   type User,
   type Post,
   type Ad,
@@ -27,6 +29,9 @@ import {
   type Category,
   type Banner,
   type ID,
+  type Comment,
+  type Video,
+  type VideoCategory,
 } from "@/lib/mock";
 import {
   setCurrentUser,
@@ -49,6 +54,7 @@ export const DEMO_USER: User = {
     "https://api.dicebear.com/7.x/initials/svg?seed=" +
     encodeURIComponent("Алексей Крылов") +
     "&backgroundColor=627fff,3f4fbf,1976d2",
+  email: "alexey.krylov@modelizmclub.ru",
   subscription: "Год",
   bio: "Пилот RC-авиации и багги 1:8. Строю, летаю, гоняю. Собираю сообщество моделистов Краснодара.",
   status: "Основатель · МоДелизМ Pro",
@@ -191,14 +197,19 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
     result = result.filter((a) => a.status === params.listingStatus);
   }
 
-  if (params.withPhotoOnly) {
-    result = result.filter((a) => a.image || (a.gallery && a.gallery.length > 0));
-  }
 
   if (params.sort === "cheap") result = [...result].sort((a, b) => a.price - b.price);
   else if (params.sort === "expensive") result = [...result].sort((a, b) => b.price - a.price);
   else if (params.sort === "popular") result = [...result].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
   // "new" — default order (mockAds already sorted newest first)
+
+  // Pagination — mirrors the real API's per_page/page contract so "load more"
+  // behaves the same in demo mode as in prod.
+  if (params.perPage) {
+    const page = params.page && params.page > 1 ? params.page : 1;
+    const start = (page - 1) * params.perPage;
+    result = result.slice(start, start + params.perPage);
+  }
 
   return result;
 }
@@ -590,4 +601,70 @@ export function demoFaq(): DemoFaqCategory[] {
 
 export function demoStats(): { firstHundred: { taken: number; total: number } } {
   return { firstHundred: firstHundredStats };
+}
+
+// ── reviews / videos ─────────────────────────────────────────────────────────
+const videoViewOverrides = new Map<ID, number>();
+const sessionVideos: Video[] = []; // videos uploaded during this demo session
+
+function allDemoVideos(): Video[] {
+  return [...sessionVideos, ...mockVideos].map((v) => ({
+    ...v,
+    views: v.views + (videoViewOverrides.get(v.id) ?? 0),
+  }));
+}
+
+export function demoVideoCategories(): VideoCategory[] {
+  return mockVideoCategories;
+}
+
+export function demoVideos(query?: string, categorySlug?: string): Video[] {
+  let list = allDemoVideos();
+  if (categorySlug && categorySlug !== "all") {
+    const cat = mockVideoCategories.find((c) => c.slug === categorySlug);
+    if (cat) list = list.filter((v) => v.categoryId === cat.id);
+  }
+  if (query) {
+    const q = query.toLowerCase();
+    const catName = (id: ID) => mockVideoCategories.find((c) => c.id === id)?.name.toLowerCase() ?? "";
+    list = list.filter(
+      (v) =>
+        v.title.toLowerCase().includes(q) ||
+        v.tags.some((t) => t.toLowerCase().includes(q)) ||
+        catName(v.categoryId).includes(q),
+    );
+  }
+  return list.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)); // newest first
+}
+
+export function demoVideo(id: ID): Video | null {
+  return allDemoVideos().find((v) => v.id === id) ?? null;
+}
+
+export function demoFeaturedVideos(): Video[] {
+  return allDemoVideos().filter((v) => v.isFeatured).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+export function demoIncrementVideoView(id: ID): void {
+  videoViewOverrides.set(id, (videoViewOverrides.get(id) ?? 0) + 1);
+}
+
+export function demoVideoComments(id: ID): Comment[] {
+  return allDemoVideos().find((v) => v.id === id)?.commentList ?? [];
+}
+
+export function demoAddVideo(v: Video): void {
+  sessionVideos.unshift(v);
+}
+
+export function demoDeleteVideo(id: ID): void {
+  const si = sessionVideos.findIndex((v) => v.id === id);
+  if (si >= 0) { sessionVideos.splice(si, 1); return; }
+  const mi = mockVideos.findIndex((v) => v.id === id);
+  if (mi >= 0) mockVideos.splice(mi, 1);
+}
+
+export function demoSetVideoFeatured(id: ID, on: boolean): void {
+  const v = [...sessionVideos, ...mockVideos].find((x) => x.id === id);
+  if (v) v.isFeatured = on;
 }

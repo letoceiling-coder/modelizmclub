@@ -1,21 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing } from "@/lib/api/listings";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
-import { SuccessModal } from "@/components/ads/wizard/SuccessModal";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
+import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,7 +37,6 @@ export const Route = createFileRoute("/ads/new")({
 
 type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
-const DELIVERIES = ["СДЭК", "Почта России", "Яндекс Доставка", "Ozon", "Wildberries"];
 const MAX_PHOTOS = 10;
 const STEPS = ["Фото", "Данные", "Превью"];
 
@@ -73,8 +74,6 @@ function NewAdPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
-  const [success, setSuccess] = useState(false);
-  const [newId, setNewId] = useState<string | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
@@ -104,17 +103,6 @@ function NewAdPage() {
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const resetWizard = () => {
-    setForm(initial);
-    setStep(1);
-    setTouched(new Set());
-    setNewId(null);
-    setSuccess(false);
-    if (cats[0]) {
-      setForm((f) => ({ ...f, categoryId: cats[0].id, subcategoryId: cats[0].subcategories[0]?.id ?? "" }));
-    }
-  };
-
   const submit = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -141,12 +129,11 @@ function NewAdPage() {
         mediaIds,
         publish: true,
       });
-      setNewId(ad.id);
-      setSuccess(true);
+      toast.success("Объявление опубликовано");
+      void navigate({ to: "/my-ads" });
     } catch {
       setSubmitError(true);
       toast.error("Не удалось опубликовать объявление");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -169,19 +156,17 @@ function NewAdPage() {
 
         <StepIndicator current={step} labels={STEPS} />
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} touched={touched} touch={touch} />}
-            {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
-          </motion.div>
-        </AnimatePresence>
+        <ReducedMotionSwitch
+          switchKey={step}
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {step === 1 && <StepPhotos form={form} set={set} />}
+          {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} touched={touched} touch={touch} />}
+          {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
+        </ReducedMotionSwitch>
       </div>
 
       {/* Sticky footer — lifted above the mobile BottomNav so the submit CTA is never covered */}
@@ -212,22 +197,16 @@ function NewAdPage() {
           ) : (
             <Button
               onClick={submit}
-              disabled={submitting}
+              loading={submitting}
               className="h-11 rounded-[var(--r-button)]"
             >
-              <CreditCard size={16} /> {submitting ? "Публикуем…" : "Оплатить 20 ₽ и опубликовать"}
+              {!submitting && <CreditCard size={16} />}
+              {submitting ? "Публикуется…" : "Оплатить 20 ₽ и опубликовать"}
             </Button>
           )}
         </div>
       </div>
 
-      <SuccessModal
-        open={success}
-        onClose={() => { setSuccess(false); navigate({ to: "/ads" }); }}
-        onView={newId ? () => { setSuccess(false); navigate({ to: "/ads/$id", params: { id: newId } }); } : undefined}
-        onCreateAnother={resetWizard}
-        onGoToList={() => { setSuccess(false); navigate({ to: "/my-ads" }); }}
-      />
     </AppLayout>
   );
 }
@@ -255,6 +234,11 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
     nf.unshift(mf);
     set("files", nf);
   };
+  const reorder = (newPhotos: string[]) => {
+    const newFiles = newPhotos.map((url) => form.files[form.photos.indexOf(url)]);
+    set("photos", newPhotos);
+    set("files", newFiles);
+  };
 
   return (
     <section className="space-y-[16px]">
@@ -269,6 +253,7 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
           onAdd={addPhoto}
           onRemove={remove}
           onMakeMain={makeMain}
+          onReorder={reorder}
         />
       </Card>
     </section>
@@ -291,11 +276,21 @@ function StepData({
   const cityErr = touched.has("city") && !form.city.trim();
   const contactErr = touched.has("contact") && !form.contact.trim();
 
+  // Keep the focused field clear of the mobile soft keyboard + the fixed
+  // wizard footer: on focus, centre the field in the viewport. Delayed so the
+  // keyboard has begun animating before we measure/scroll.
+  const keepFieldVisible = (e: React.FocusEvent<HTMLElement>) => {
+    const t = e.target;
+    if (t instanceof HTMLElement && t.matches("input, textarea, select")) {
+      setTimeout(() => t.scrollIntoView({ block: "center", behavior: "smooth" }), 120);
+    }
+  };
+
   return (
-    <section className="space-y-[16px]">
+    <section className="space-y-[16px]" onFocusCapture={keepFieldVisible}>
       {form.photos.length > 0 && (
         <Block title="Фотографии">
-          <div className="flex gap-[8px] overflow-x-auto pb-[2px] [scrollbar-width:thin]">
+          <div className="flex gap-[8px] overflow-x-auto pb-[2px] no-scrollbar">
             {form.photos.map((src, i) => (
               <div key={i} className="relative shrink-0">
                 <img
@@ -405,26 +400,25 @@ function StepData({
               />
             </div>
           </Field>
-          <Field label="Контакт" required error={contactErr ? "Укажите контакт" : undefined}>
-            <Input
-              value={form.contact}
-              onChange={(e) => set("contact", e.target.value)}
+          <Field label="Контакт" required error={contactErr ? "Укажите телефон" : undefined}>
+            <PhoneInput
+              defaultValue={form.contact}
+              onValueChange={(v) => set("contact", v)}
               onBlur={() => touch("contact")}
               error={contactErr}
               className="h-11"
-              placeholder="+7 999 000-00-00"
             />
           </Field>
         </div>
         <Field label="Способы доставки">
           <div className="flex flex-wrap gap-[8px]">
-            {DELIVERIES.map((d) => (
+            {DELIVERY_METHODS.map((m) => (
               <Checkbox
-                key={d}
-                checked={form.deliveries.includes(d)}
-                onChange={() => set("deliveries", form.deliveries.includes(d)
-                  ? form.deliveries.filter((x) => x !== d) : [...form.deliveries, d])}
-                label={d}
+                key={m.id}
+                checked={form.deliveries.includes(m.label)}
+                onChange={() => set("deliveries", form.deliveries.includes(m.label)
+                  ? form.deliveries.filter((x) => x !== m.label) : [...form.deliveries, m.label])}
+                label={m.label}
               />
             ))}
           </div>
@@ -523,17 +517,3 @@ function Field({ label, children, required, error }: { label: string; children: 
   );
 }
 
-type SelOpt = string | { label: string; value: string };
-function NativeSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: SelOpt[] }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-11 w-full cursor-pointer rounded-[var(--r-input)] border border-[var(--border)] bg-[var(--background-input)] px-3 text-[14px] text-[var(--foreground)] shadow-sm outline-none transition-colors focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)]"
-    >
-      {options.map((o) => typeof o === "string"
-        ? <option key={o} value={o}>{o}</option>
-        : <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
-}

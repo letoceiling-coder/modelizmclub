@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Banner } from "@/lib/mock";
 import { fetchBanners } from "@/lib/api/banners";
 
@@ -33,7 +33,7 @@ export function AdBanner() {
 
   return (
     <div className="-mx-3 lg:mx-0">
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 lg:px-0 [scrollbar-width:thin]">
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 lg:px-0 no-scrollbar">
         <AnimatePresence initial={false}>
           {visible.map((b) => (
             <motion.div

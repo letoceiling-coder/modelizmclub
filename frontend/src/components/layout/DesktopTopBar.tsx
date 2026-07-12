@@ -41,7 +41,7 @@ export function DesktopTopBar() {
         />
         <input
           type="search"
-          placeholder={t("common.search")}
+          placeholder="Поиск по объявлениям"
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           onKeyDown={(e) => {

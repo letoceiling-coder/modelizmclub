@@ -1,9 +1,35 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { resetPassword } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+
+/** Matches this page's raw `inputStyle` fields (not the shared UI Kit `Input`
+ *  component) — a lightweight local eye-toggle keeps the visual style
+ *  consistent with the email field on the same form. */
+function PasswordFieldWithToggle(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input {...props} type={visible ? "text" : "password"} style={{ ...inputStyle, paddingRight: 40 }} />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        tabIndex={-1}
+        aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
+        style={{
+          position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+          display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: "999px",
+          color: "var(--foreground-50)", background: "transparent", border: "none", cursor: "pointer",
+        }}
+      >
+        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (s: Record<string, unknown>): { token?: string; email?: string } => ({
@@ -71,8 +97,8 @@ function ResetPasswordPage() {
           onChange={(e) => setEmail(e.target.value)}
           style={inputStyle}
         />
-        <input required name="password" type="password" placeholder="Новый пароль (от 8 символов)" minLength={8} style={inputStyle} />
-        <input required name="password_confirmation" type="password" placeholder="Повторите пароль" minLength={8} style={inputStyle} />
+        <PasswordFieldWithToggle required name="password" placeholder="Новый пароль (от 8 символов)" minLength={8} />
+        <PasswordFieldWithToggle required name="password_confirmation" placeholder="Повторите пароль" minLength={8} />
         <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
           {loading ? "Сохраняем…" : "Сохранить пароль"}
         </button>

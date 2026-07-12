@@ -8,7 +8,7 @@ import type { Category } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 
 export const Route = createFileRoute("/categories/$id/")({
-  head: () => ({ meta: [{ title: "Категория — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: "Направление — МоДелизМ" }] }),
   component: CategoryRoomsPage,
 });
 
@@ -55,7 +55,7 @@ function CategoryRoomsPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0 ? "Загрузка…" : "Категория не найдена."}
+          {categories.length === 0 ? "Загрузка…" : "Направление не найдено."}
         </p>
       </AppLayout>
     );
@@ -68,10 +68,10 @@ function CategoryRoomsPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[14px]">
-        <Breadcrumbs items={[{ label: "Категории", to: "/categories" }, { label: c.name }]} />
+        <Breadcrumbs items={[{ label: "Направления", to: "/categories" }, { label: c.name }]} />
         {/* Header */}
         <header
-          className="rounded-[14px] border p-[16px]"
+          className="rounded-[var(--r-card)] border p-[16px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div className="flex items-center gap-[10px]">
@@ -104,7 +104,7 @@ function CategoryRoomsPage() {
 
         {/* Search */}
         <div
-          className="rounded-[14px] border px-[14px] py-[10px]"
+          className="rounded-[var(--r-card)] border px-[14px] py-[10px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div
@@ -136,7 +136,7 @@ function CategoryRoomsPage() {
 
         {/* Rooms */}
         <section
-          className="overflow-hidden rounded-[14px] border"
+          className="overflow-hidden rounded-[var(--r-card)] border"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div

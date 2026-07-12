@@ -4,7 +4,7 @@
  */
 
 import { useSyncExternalStore } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { fetchLiveKitToken, inviteToGroup } from "./api/livekit";
 import { logEvent } from "./logger";
 import { startRingtone, stopCallSounds } from "./callAudio";

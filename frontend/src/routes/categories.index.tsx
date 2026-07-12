@@ -6,7 +6,7 @@ import { usePostCategories } from "@/lib/hooks/useCategories";
 import { showcaseImages } from "@/lib/showcase-images";
 
 export const Route = createFileRoute("/categories/")({
-  head: () => ({ meta: [{ title: "Категории — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: "Направления — МоДелизМ" }] }),
   component: CategoriesPage,
 });
 

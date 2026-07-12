@@ -92,7 +92,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
               type="button"
               onClick={() => emblaApi?.scrollPrev()}
               aria-label="Назад"
-              className="absolute left-[12px] top-1/2 grid h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105"
+              className="absolute left-[12px] top-1/2 hidden h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105 md:grid"
               style={{ background: "var(--background-elevated)", color: "var(--foreground)", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-float)" }}
             >
               <ChevronLeft size={20} />
@@ -101,7 +101,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
               type="button"
               onClick={() => emblaApi?.scrollNext()}
               aria-label="Вперёд"
-              className="absolute right-[12px] top-1/2 grid h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105"
+              className="absolute right-[12px] top-1/2 hidden h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105 md:grid"
               style={{ background: "var(--background-elevated)", color: "var(--foreground)", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-float)" }}
             >
               <ChevronRight size={20} />

@@ -56,9 +56,17 @@ DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayNam
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
+    /** Portal target. Defaults to document.body (Radix default). Pass the
+     *  same element a hover-driven trigger listens on to make the content a
+     *  real DOM descendant of that hover zone — otherwise mouseenter/leave
+     *  on the trigger's wrapper and on the portaled-to-body content are two
+     *  separate zones with a dead gap between them, and a close timer can
+     *  fire while the cursor is still crossing it. */
+    portalContainer?: HTMLElement | null;
+  }
+>(({ className, sideOffset = 4, portalContainer, ...props }, ref) => (
+  <DropdownMenuPrimitive.Portal container={portalContainer ?? undefined}>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}

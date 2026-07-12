@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type Ad } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
 import { fetchMyListings, publishListing, archiveListing, deleteListing } from "@/lib/api/listings";
@@ -136,8 +137,10 @@ function MyAdsPage() {
     const active = decorated.filter(({ status }) => status === "active");
     const views = active.reduce((s, x) => s + (x.ad.views ?? 0), 0);
     const likes = active.reduce((s, x) => s + (x.ad.likes ?? 0), 0);
-    const earnings = active.reduce((s, x) => s + x.ad.price, 0);
-    return { count: active.length, views, likes, earnings };
+    // Sum of active listings' sticker prices — the value on sale, NOT
+    // earnings/revenue (kept honestly named so nobody re-surfaces it as income).
+    const activeValue = active.reduce((s, x) => s + x.ad.price, 0);
+    return { count: active.length, views, likes, activeValue };
   }, [decorated]);
 
   const handleCreate = () => navigate({ to: "/ads/new" });
@@ -179,11 +182,15 @@ function MyAdsPage() {
         </header>
 
         {/* Stats — compact (Avito-style) */}
-        <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 no-scrollbar">
           <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
           <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
           <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />
-          <StatCard icon={<MessageCircle size={14} />} label="Сумма"   value={`${stats.earnings.toLocaleString("ru")} ₽`} />
+          {/* "Стоимость" — сумма ценников активных объявлений, НЕ выручка.
+              Раньше называлось "Сумма", что читалось как "заработано".
+              Продавец не должен думать, что заработал то, чего не заработал
+              (реальной монетизации/дохода в системе пока нет). */}
+          <StatCard icon={<MessageCircle size={14} />} label="Стоимость" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
         {/* Tabs */}
@@ -254,7 +261,7 @@ function MyAdsPage() {
                 type="button"
                 onClick={() => setQuery("")}
                 className="absolute right-[8px] top-1/2 grid h-[24px] w-[24px] -translate-y-1/2 place-items-center"
-                style={{ color: "var(--foreground-50)", borderRadius: 999 }}
+                style={{ color: "var(--foreground-50)", borderRadius: "var(--r-pill)" }}
                 aria-label="Очистить"
               >
                 <X size={14} />
@@ -393,14 +400,12 @@ function MyAdsPage() {
           )}
         </AnimatePresence>
 
-        {/* List */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className="flex flex-col gap-[12px] pb-[120px] md:pb-[40px]"
-          >
+        <ReducedMotionSwitch
+          switchKey={tab}
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+          className="flex flex-col gap-[12px] pb-[120px] md:pb-[40px]"
+        >
             {visible.length === 0 ? (
               <EmptyTab tab={tab} onCreate={handleCreate} dirty={filtersDirty} onReset={resetFilters} />
             ) : (
@@ -417,8 +422,7 @@ function MyAdsPage() {
                 />
               ))
             )}
-          </motion.div>
-        </AnimatePresence>
+        </ReducedMotionSwitch>
       </div>
 
       {/* Mobile FAB — positioned above BottomNav (z-40) */}
@@ -503,12 +507,12 @@ function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: ()
   return (
     <EmptyState icon={Inbox} title={c.title} description={c.desc}>
       {dirty && (
-        <Button type="button" variant="outline" size="sm" onClick={onReset} className="rounded-[10px]">
+        <Button type="button" variant="outline" size="sm" onClick={onReset}>
           <RotateCcw size={13} /> Сбросить фильтры
         </Button>
       )}
       {tab === "active" && (
-        <Button type="button" size="sm" onClick={onCreate} className="rounded-[10px]">
+        <Button type="button" size="sm" onClick={onCreate}>
           <Plus size={14} /> Разместить объявление
         </Button>
       )}

@@ -4,15 +4,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, selectors, getState } from "@/lib/store";
+import { useFeatureFlag, setFeatureFlag } from "@/lib/config/featureFlags";
 import { ensureSession } from "@/lib/auth/session";
-import type { Tariff, PromoCode, Banner } from "@/lib/mock";
+import type { Tariff, PromoCode, Banner, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
   fetchDashboard, fetchAuditLogs, fetchAdminUsers, updateAdminUser,
@@ -33,6 +35,7 @@ import {
   type FeedbackRow, type FeedbackStatus,
   type AdminDeliveryStats, type AdminShipmentRow,
 } from "@/lib/api/admin";
+import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
@@ -45,7 +48,7 @@ export const Route = createFileRoute("/admin")({
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
-  | "monetization" | "categories" | "notifications" | "analytics" | "design" | "feedback" | "settings";
+  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings";
 
 const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -56,6 +59,7 @@ const navItems: { id: Section; label: string; icon: typeof Users }[] = [
   { id: "moderation", label: "Модерация", icon: ShieldCheck },
   { id: "monetization", label: "Монетизация", icon: DollarSign },
   { id: "categories", label: "Категории", icon: FolderTree },
+  { id: "reviews", label: "Обзоры", icon: Clapperboard },
   { id: "notifications", label: "Уведомления", icon: Bell },
   { id: "analytics", label: "Аналитика", icon: BarChart3 },
   { id: "feedback", label: "Обращения", icon: Inbox },
@@ -264,17 +268,15 @@ function AdminPage() {
             </select>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={section}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <SectionView section={section} />
-            </motion.div>
-          </AnimatePresence>
+          <ReducedMotionSwitch
+            switchKey={section}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SectionView section={section} />
+          </ReducedMotionSwitch>
         </main>
       </div>
     </div>
@@ -325,6 +327,7 @@ function SectionView({ section }: { section: Section }) {
   if (section === "moderation") return <ModerationSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "categories") return <CategoriesSection />;
+  if (section === "reviews") return <ReviewsSection />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
   if (section === "feedback") return <FeedbackSection />;
@@ -560,7 +563,7 @@ function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: 
         <span style={{ padding: "8px 14px", borderRadius: 10, background: preset.primary, color: preset.foreground, fontSize: 13, fontWeight: 600 }}>
           Кнопка
         </span>
-        <span style={{ padding: "3px 10px", borderRadius: 999, background: preset.primary, color: preset.foreground, fontSize: 11, fontWeight: 700 }}>
+        <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: preset.primary, color: preset.foreground, fontSize: 11, fontWeight: 700 }}>
           PRO
         </span>
         <span style={{ padding: "6px 12px", borderRadius: 8, background: preset.soft, color: preset.primary, fontSize: 12, fontWeight: 600 }}>
@@ -687,7 +690,7 @@ function PreviewArea() {
 }
 
 function Badge({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
-  return <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: bg, color: fg }}>{children}</span>;
+  return <span style={{ padding: "4px 10px", borderRadius: "var(--r-pill)", fontSize: 11, fontWeight: 600, background: bg, color: fg }}>{children}</span>;
 }
 function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: string; text: string }) {
   return (
@@ -2196,6 +2199,58 @@ function AnalyticsSection() {
   );
 }
 
+/* ============ REVIEWS (videos) ============ */
+function ReviewsSection() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    fetchVideos({})
+      .then(setVideos)
+      .catch(() => toast.error("Не удалось загрузить обзоры"))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+
+  const toggleFeatured = async (id: string, on: boolean) => {
+    setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, isFeatured: on } : v)));
+    try { await setVideoFeatured(id, on); } catch { toast.error("Не удалось обновить"); load(); }
+  };
+  const remove = async (id: string) => {
+    if (!window.confirm("Удалить обзор?")) return;
+    setVideos((prev) => prev.filter((v) => v.id !== id));
+    try { await deleteVideo(id); toast.success("Обзор удалён"); } catch { toast.error("Не удалось удалить"); load(); }
+  };
+
+  return (
+    <div>
+      <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>+ Загрузить обзор</Link>}>Обзоры</H>
+      <div style={{ ...card, padding: "16px" }}>
+        {loading ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+        ) : videos.length === 0 ? (
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Обзоров пока нет</p>
+        ) : (
+          <div className="flex flex-col gap-[8px]">
+            {videos.map((v) => (
+              <div key={v.id} className="flex items-center gap-[12px] py-[8px]" style={{ borderBottom: "1px solid var(--border)" }}>
+                <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: "var(--foreground)" }}>{v.title}</span>
+                <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{v.views.toLocaleString("ru")} просм.</span>
+                <label className="flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                  <input type="checkbox" checked={v.isFeatured} onChange={(e) => toggleFeatured(v.id, e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+                  Промо
+                </label>
+                <button type="button" onClick={() => remove(v.id)} className="text-[12px]" style={{ color: "var(--danger)" }}>Удалить</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ============ SETTINGS ============ */
 function SettingsSection() {
   const [settings, setSettings] = useState<AdminSetting[]>([]);
@@ -2255,9 +2310,42 @@ function SettingsSection() {
     return Array.from(map.entries());
   }, [settings]);
 
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+
   return (
     <div>
       <H>Настройки</H>
+
+      {/* Client-only feature flags — see backend-endpoints-needed.md #17 for
+          the persistent server-side version once it exists. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Feature flags (демо)
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Хранятся локально в браузере (localStorage), не синхронизируются между устройствами.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
+          <input
+            type="checkbox"
+            checked={communitiesEnabled}
+            onChange={(e) => setFeatureFlag("communitiesEnabled", e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Сообщества»</span>
+        </label>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
+          <input
+            type="checkbox"
+            checked={reviewsEnabled}
+            onChange={(e) => setFeatureFlag("reviewsEnabled", e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Обзоры»</span>
+        </label>
+      </div>
+
       <div style={{ ...card, padding: "24px", maxWidth: "640px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "16px" }}>
           Системные настройки платформы
@@ -2468,7 +2556,7 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                     fontSize: "11px",
                     fontWeight: 600,
                     padding: "3px 8px",
-                    borderRadius: 999,
+                    borderRadius: "var(--r-pill)",
                     background: p.status === "active" ? "var(--success-soft, rgba(34,197,94,0.12))" : "var(--background-surface)",
                     color: p.status === "active" ? "var(--success, #16a34a)" : "var(--foreground-50)",
                   }}>

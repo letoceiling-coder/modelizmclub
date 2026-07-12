@@ -88,9 +88,6 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
   const transcript = voice.transcript ?? "";
-  const previewLimit = 60;
-  const isLong = transcript.length > previewLimit;
-  const preview = isLong ? transcript.slice(0, previewLimit).trimEnd() + "…" : transcript;
 
   return (
     <div style={{ minWidth: 220, maxWidth: 280 }}>
@@ -128,44 +125,45 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
         </div>
       </div>
 
-      {transcript && (
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="mt-[8px] flex w-full items-start gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
+        className="mt-[8px] flex w-full items-center gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
         style={{
           background: isMe ? "rgba(255,255,255,0.12)" : "color-mix(in oklab, var(--accent) 8%, transparent)",
           color: fg,
         }}
+        aria-expanded={expanded}
       >
-        <FileText size={12} style={{ marginTop: 2, color: subtle, flexShrink: 0 }} />
-        <div className="flex-1 text-[12px] leading-[1.4]">
-          <AnimatePresence initial={false} mode="wait">
-            <motion.div
-              key={expanded ? "full" : "preview"}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.18 }}
-              style={{ overflow: "hidden" }}
-            >
-              {expanded ? transcript : preview}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        {isLong && (
-          <ChevronDown
-            size={12}
-            style={{
-              marginTop: 2,
-              color: subtle,
-              flexShrink: 0,
-              transform: expanded ? "rotate(180deg)" : "none",
-              transition: "transform 0.2s",
-            }}
-          />
-        )}
+        <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
+        <span className="flex-1 text-[12px] font-medium">{expanded ? "Скрыть текст" : "Показать текст"}</span>
+        <ChevronDown
+          size={12}
+          style={{ color: subtle, flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+        />
       </button>
-      )}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div
+              className="mt-[6px] rounded-[10px] px-[8px] py-[6px] text-[12px] leading-[1.45]"
+              style={{
+                background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
+                color: transcript ? fg : subtle,
+              }}
+            >
+              {transcript
+                ? transcript
+                : "Расшифровка недоступна — распознавание речи подключается на сервере."}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

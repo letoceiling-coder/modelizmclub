@@ -12,9 +12,21 @@ interface Props {
   rightColumn?: ReactNode | false;
   navCollapsed?: boolean;
   footer?: boolean;
+  /** Replaces the default app <Sidebar> — e.g. a takeover nav for a
+   *  sub-section (Настройки) so two left-column navs never show at once.
+   *  Omit for the default Sidebar; pass `false` to render no left column. */
+  sidebar?: ReactNode | false;
+  /** Suppresses the mobile app-chrome header (logo/search/favorites/bell/
+   *  burger) — for sections with their own full-width contextual header
+   *  (e.g. messenger, Avito-style). Desktop's DesktopTopBar is unaffected. */
+  hideMobileHeader?: boolean;
+  /** Hides the mobile BottomNav — for full-screen immersive views (e.g. an
+   *  open chat, Avito-style) where the section owns the whole viewport and
+   *  exits via its own back arrow. Desktop is unaffected (nav is lg:hidden). */
+  hideBottomNav?: boolean;
 }
 
-export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props) {
+export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar, hideMobileHeader, hideBottomNav }: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
@@ -22,7 +34,11 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props
     // Only <main> scrolls — sidebar and right rail are fixed-height columns.
     // Mobile: normal document scroll (min-h, no overflow-hidden, no flex-col).
     <div className="min-h-[100dvh] overflow-x-clip bg-background lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden">
-      <MobileHeader />
+      {hideMobileHeader ? (
+        <div className="lg:hidden" style={{ height: "var(--safe-top)" }} />
+      ) : (
+        <MobileHeader />
+      )}
       <DesktopTopBar />
       {/*
         Mobile: pt-4/pb/px-3 — normal flow with BottomNav clearance.
@@ -32,13 +48,13 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props
         so the top spacing is unchanged from the previous design.
       */}
       <div
-        className="
-          mx-auto flex w-full max-w-[var(--container-max)] items-start gap-6 px-3 pt-4
-          pb-[calc(var(--bottom-nav-space)+8px)]
-          lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0
-        "
+        className={cn(
+          "mx-auto flex w-full max-w-[var(--container-max)] items-start gap-6 px-3 pt-4",
+          hideBottomNav ? "pb-[var(--safe-bottom)]" : "pb-[calc(var(--bottom-nav-space)+8px)]",
+          "lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0",
+        )}
       >
-        <Sidebar collapsed={navCollapsed} />
+        {sidebar === false ? null : sidebar ?? <Sidebar collapsed={navCollapsed} />}
         {/* Center column: the only scroll zone on desktop. */}
         <main
           className={cn(
@@ -51,7 +67,7 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer }: Props
         </main>
         {rightColumn === false ? null : rightColumn ?? <RightCategories />}
       </div>
-      <BottomNav />
+      {hideBottomNav ? null : <BottomNav />}
     </div>
   );
 }

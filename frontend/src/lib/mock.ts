@@ -11,6 +11,7 @@ export interface User {
   city: string;
   interests: string;
   avatar: string;
+  email?: string;
   subscription?: "Тестовый" | "Месяц" | "Полгода" | "Год" | null;
   bio?: string;
   status?: string;
@@ -39,6 +40,33 @@ export interface Comment {
   text: string;
   likes?: number;
   replies?: Comment[];
+}
+
+export interface VideoCategory {
+  id: ID;
+  name: string;
+  slug: string;
+}
+
+export interface Video {
+  id: ID;                    // uuid
+  title: string;
+  description: string;
+  categoryId: ID;            // -> VideoCategory.id
+  posterUrl: string;
+  videoUrl: string;
+  durationSeconds: number;
+  views: number;             // passive watch counter, separate from likes/comments
+  isFeatured: boolean;       // hero-carousel curation
+  tags: string[];
+  publishedAt: string;       // ISO date, newest-first sort key
+  uploaderId: ID;
+  status: "processing" | "published";
+  // Social fields — mirror the relevant Post interaction fields. Likes + comments only.
+  likes: number;
+  comments: number;
+  isLiked?: boolean;
+  commentList?: Comment[];   // the SAME Comment type, reused unchanged
 }
 
 export interface Post {
@@ -76,6 +104,10 @@ export interface AdSeller {
   rating: number;
   deals: number;
   since: string;
+  /** Demo-only for now — no backend field exists yet (see
+   *  backend-endpoints-needed.md #22). Populated by makeSeller() below;
+   *  undefined for any seller not in SELLER_PHONES. */
+  phone?: string;
 }
 
 export interface Ad {
@@ -99,6 +131,9 @@ export interface Ad {
   likes?: number;
   createdAt?: string;
   moderation?: "published" | "moderation" | "rejected";
+  /** Currently boosted/продвигается (Stage 5). On the real backend this comes
+   *  from ListingResource (is_promoted / promoted_until) — not yet exposed. */
+  promoted?: boolean;
 }
 
 export interface Category {
@@ -235,8 +270,12 @@ export interface DialogAdRef {
   image?: string;
 }
 
+// Evenly-weighted palette (same "600" saturation/lightness class per color)
+// so initials avatars read as one consistent set — the previous palette
+// (one saturated red + three grays) skewed heavily toward red by DiceBear's
+// hash distribution (5 of 8 demo users landed on the same red).
 const avatar = (seed: string) =>
-  `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
+  `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&backgroundColor=4f46e5,059669,d97706,dc2626,7c3aed,0891b2,db2777,65a30d`;
 
 const photo = (id: number) =>
   `https://picsum.photos/seed/modelizm${id}/800/600`;
@@ -260,7 +299,12 @@ export const friendRequests: FriendRequest[] = [
 
 export const me: User = users[0];
 
+// Sorted alphabetically (ru collation) — this order drives the display order
+// everywhere categories are listed (feed right rail, /categories, "Найди
+// своих" sheet, post composer). Existing ids/subcategory names are unchanged
+// so posts/ads that reference a category or subcategory by name still match.
 export const categories: Category[] = [
+  { id: "c11", name: "3D-печать", description: "3D-принтеры, модели, материалы", icon: "Printer", members: 610, subcategories: [{ id: "s1", name: "Принтеры" }, { id: "s2", name: "Пластик и материалы" }] },
   {
     id: "c1", name: "Автомодели", description: "RC авто всех масштабов", icon: "Car", members: 2840,
     subcategories: [
@@ -274,15 +318,24 @@ export const categories: Category[] = [
       { id: "s8", name: "Запчасти" },
     ],
   },
-  { id: "c2", name: "Самолёты", description: "Авиамодели и планеры", icon: "Plane", members: 1920, subcategories: [{ id: "s1", name: "Планеры" }, { id: "s2", name: "Пилотажки" }] },
-  { id: "c3", name: "Корабли", description: "Катера и судомодели", icon: "Ship", members: 740, subcategories: [{ id: "s1", name: "Катера" }, { id: "s2", name: "Парусники" }] },
-  { id: "c4", name: "Квадрокоптеры", description: "FPV, дроны, мультироторы", icon: "Send", members: 3180, subcategories: [{ id: "s1", name: "FPV" }, { id: "s2", name: "Съёмочные" }] },
-  { id: "c5", name: "Электроника", description: "Платы, датчики, DIY", icon: "Cpu", members: 1450, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Датчики" }] },
   { id: "c6", name: "Аккумуляторы", description: "LiPo, Li-ion, NiMH", icon: "BatteryCharging", members: 890, subcategories: [{ id: "s1", name: "LiPo" }, { id: "s2", name: "Li-ion" }] },
-  { id: "c7", name: "Радиоаппаратура", description: "Пульты, приёмники", icon: "Radio", members: 1120, subcategories: [{ id: "s1", name: "Пульты" }, { id: "s2", name: "Приёмники" }] },
-  { id: "c8", name: "Электросамокаты", description: "Самокаты и моды", icon: "Zap", members: 980, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Моды" }] },
-  { id: "c9", name: "Разработчики", description: "Прошивки, автопилоты", icon: "Code2", members: 540, subcategories: [{ id: "s1", name: "Автопилоты" }, { id: "s2", name: "Прошивки" }] },
+  { id: "c12", name: "Военная техника", description: "Танки, БТР, военные модели", icon: "Shield", members: 860, subcategories: [{ id: "s1", name: "Танки" }, { id: "s2", name: "БТР и техника" }] },
+  { id: "c13", name: "Железные дороги", description: "Масштабные ж/д модели и макеты", icon: "TrainFront", members: 430, subcategories: [{ id: "s1", name: "Локомотивы" }, { id: "s2", name: "Макеты" }] },
   { id: "c10", name: "Запчасти", description: "Детали и комплектующие", icon: "Wrench", members: 2210, subcategories: [{ id: "s1", name: "Шасси" }, { id: "s2", name: "Моторы" }] },
+  { id: "c14", name: "Инструменты", description: "Станки, инструмент для мастерской", icon: "Hammer", members: 720, subcategories: [{ id: "s1", name: "Ручной инструмент" }, { id: "s2", name: "Станки" }] },
+  { id: "c4", name: "Квадрокоптеры", description: "FPV, дроны, мультироторы", icon: "Send", members: 3180, subcategories: [{ id: "s1", name: "FPV" }, { id: "s2", name: "Съёмочные" }] },
+  { id: "c3", name: "Корабли", description: "Катера и судомодели", icon: "Ship", members: 740, subcategories: [{ id: "s1", name: "Катера" }, { id: "s2", name: "Парусники" }] },
+  { id: "c15", name: "Мотоциклы", description: "RC мотоциклы и мотомодели", icon: "Bike", members: 390, subcategories: [{ id: "s1", name: "Модели" }, { id: "s2", name: "Запчасти" }] },
+  { id: "c16", name: "Оптика и камеры", description: "Экшн-камеры, объективы, FPV-оптика", icon: "Camera", members: 560, subcategories: [{ id: "s1", name: "Экшн-камеры" }, { id: "s2", name: "Объективы" }] },
+  { id: "c7", name: "Радиоаппаратура", description: "Пульты, приёмники", icon: "Radio", members: 1120, subcategories: [{ id: "s1", name: "Пульты" }, { id: "s2", name: "Приёмники" }] },
+  { id: "c9", name: "Разработчики", description: "Прошивки, автопилоты", icon: "Code2", members: 540, subcategories: [{ id: "s1", name: "Автопилоты" }, { id: "s2", name: "Прошивки" }] },
+  { id: "c17", name: "Ракетомоделизм", description: "Модельные ракеты и двигатели", icon: "Rocket", members: 310, subcategories: [{ id: "s1", name: "Ракеты" }, { id: "s2", name: "Двигатели" }] },
+  { id: "c18", name: "Робототехника", description: "Роботы, конструкторы, наборы", icon: "Bot", members: 480, subcategories: [{ id: "s1", name: "Конструкторы" }, { id: "s2", name: "Комплектующие" }] },
+  { id: "c2", name: "Самолёты", description: "Авиамодели и планеры", icon: "Plane", members: 1920, subcategories: [{ id: "s1", name: "Планеры" }, { id: "s2", name: "Пилотажки" }] },
+  { id: "c19", name: "Спецтехника", description: "RC-модели строительной техники", icon: "Truck", members: 340, subcategories: [{ id: "s1", name: "Модели" }, { id: "s2", name: "Гидравлика" }] },
+  { id: "c20", name: "Стендовые модели", description: "Сборные пластиковые модели", icon: "Blocks", members: 970, subcategories: [{ id: "s1", name: "Военная техника" }, { id: "s2", name: "Гражданская техника" }] },
+  { id: "c5", name: "Электроника", description: "Платы, датчики, DIY", icon: "Cpu", members: 1450, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Датчики" }] },
+  { id: "c8", name: "Электросамокаты", description: "Самокаты и моды", icon: "Zap", members: 980, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Моды" }] },
 ];
 
 
@@ -332,13 +385,24 @@ export const posts: Post[] = [
 
 const gal = (seeds: number[], category: string) => seeds.map((s) => categoryPlaceholder(`mz-ad${s}`, category));
 
+const SELLER_PHONES: Record<string, string> = {
+  u1: "+7 901 234-56-01",
+  u2: "+7 901 234-56-02",
+  u3: "+7 901 234-56-03",
+  u4: "+7 901 234-56-04",
+  u5: "+7 901 234-56-05",
+  u6: "+7 901 234-56-06",
+  u7: "+7 901 234-56-07",
+  u8: "+7 901 234-56-08",
+};
+
 const makeSeller = (uid: ID, rating: number, deals: number, since: string): AdSeller => {
   const u = users.find((x) => x.id === uid) ?? users[0];
-  return { id: u.id, numericId: u.numericId, name: u.name, avatar: u.avatar, rating, deals, since };
+  return { id: u.id, numericId: u.numericId, name: u.name, avatar: u.avatar, rating, deals, since, phone: SELLER_PHONES[u.id] };
 };
 
 const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]; sellerStats: [number, number, string] }> = [
-  { id: "a1", title: "Двигатель ДВС Picco .21 для багги 1:8", price: 18000, category: "Автомодели", subcategory: "ДВС", city: "Краснодар", delivery: ["СДЭК", "Почта России"], deliveryDetails: "Отправка в день оплаты, трек предоставляется. Самовывоз в центре Краснодара.", condition: "Б/у — отлично", status: "Продаю", contact: "+7 900 000-00-01", authorId: "u1", description: "Двигатель Picco P3 21 в отличном состоянии. Откатан 8 баков, компрессия живая, гильза-поршень без задиров. Свеча новая OS A5. Подходит для багги и трагги класса 1:8. Продаю по причине перехода на электро.", views: 1240, likes: 18, createdAt: "2 часа назад", seeds: [11, 111, 112, 113, 114], sellerStats: [4.9, 47, "март 2022"] },
+  { id: "a1", title: "Двигатель ДВС Picco .21 для багги 1:8", price: 18000, category: "Автомодели", subcategory: "ДВС", city: "Краснодар", delivery: ["СДЭК", "Почта России"], deliveryDetails: "Отправка в день оплаты, трек предоставляется. Самовывоз в центре Краснодара.", condition: "Б/у — отлично", status: "Продаю", contact: "+7 900 000-00-01", authorId: "u1", description: "Двигатель Picco P3 21 в отличном состоянии. Откатан 8 баков, компрессия живая, гильза-поршень без задиров. Свеча новая OS A5. Подходит для багги и трагги класса 1:8. Продаю по причине перехода на электро.", views: 1240, likes: 18, createdAt: "2 часа назад", promoted: true, seeds: [11, 111, 112, 113, 114], sellerStats: [4.9, 47, "март 2022"] },
   { id: "a2", title: "Комплект колёс Pro-Line Trencher 1:8 (4 шт)", price: 4500, category: "Автомодели", subcategory: "Запчасти", city: "Москва", delivery: ["СДЭК", "Яндекс Доставка"], deliveryDetails: "Доставка по Москве курьером в день заказа. По регионам — СДЭК.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-02", authorId: "u2", description: "Новые колёса Pro-Line Trencher 3.8\" на чёрных дисках. Шипованный протектор для бездорожья. Подходят на трагги и монстры 1:8.", views: 820, likes: 12, createdAt: "5 часов назад", seeds: [12, 121, 122, 123], sellerStats: [4.8, 32, "июль 2021"] },
   { id: "a3", title: "Аккумулятор LiPo 6S 5000mAh 50C XT90", price: 3200, category: "Аккумуляторы", subcategory: "LiPo", city: "Санкт-Петербург", delivery: ["СДЭК"], deliveryDetails: "Аккумуляторы отправляются только СДЭК (наземкой), без авиа.", condition: "Б/у — отлично", status: "Продаю", contact: "tg @rc_spb", authorId: "u3", description: "LiPo 6S2P 5000mAh, 50C, разъём XT90. Использовался один сезон в FPV-квадрокоптере 7\". Циклов ~40, баланс ячеек идеальный (3.85 в покое). Без вздутий.", views: 2150, likes: 34, createdAt: "вчера", seeds: [13, 131, 132, 133, 134], sellerStats: [5.0, 89, "ноябрь 2020"] },
   { id: "a4", title: "Рама квадрокоптера iFlight Nazgul5 V3", price: 2800, category: "Квадрокоптеры", subcategory: "FPV", city: "Казань", delivery: ["Почта России", "СДЭК"], deliveryDetails: "Отправка по предоплате, упаковка в пузырчатую плёнку.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-04", authorId: "u6", description: "Рама iFlight Nazgul5 V3, 5\" фристайл, толщина лучей 6мм. Полный комплект крепежа, ТПУ-маунты под GoPro.", views: 1480, likes: 22, createdAt: "вчера", seeds: [14, 141, 142], sellerStats: [4.7, 21, "май 2023"] },
@@ -407,6 +471,39 @@ export const communities: Community[] = [
   { id: "g8", name: "Школа батарей", description: "Обучение работе с LiPo, Li-ion, NiMH: эксплуатация и безопасность.", fullDescription: "Образовательный канал по аккумуляторам: подбор, эксплуатация, безопасность, утилизация. Видеоуроки, чек-листы, обзоры зарядных устройств.", members: 670, category: "Аккумуляторы", avatarIcon: "BatteryCharging", adminId: "u2", postIds: [], coverImage: photo(308), avatarImage: photo(408), contacts: {}, allowSubmitPost: false },
 ];
 
+export const mockVideoCategories: VideoCategory[] = [
+  { id: "vc-avia",   name: "Авиация",          slug: "aviaciya" },
+  { id: "vc-auto",   name: "Автомодели",       slug: "avtomodeli" },
+  { id: "vc-kvadro", name: "Квадрокоптеры",    slug: "kvadrokoptery" },
+  { id: "vc-korabli",name: "Корабли",          slug: "korabli" },
+  { id: "vc-radio",  name: "Радиоаппаратура",  slug: "radioapparatura" },
+  { id: "vc-elektro",name: "Электроника",      slug: "elektronika" },
+];
+
+const DEMO_VIDEO_SRC = "/videos/demo-review-sample.mp4"; // bundled in Task 3
+
+// Deterministic seeded catalog. All videoUrl point at the one bundled sample.
+// publishedAt staggered (newest first is visibly meaningful). Several featured.
+export const mockVideos: Video[] = [
+  { id: "v1", title: "Первый полёт FPV-крыла: настройка и тримминг", description: "Полный разбор сборки и первого запуска FPV-крыла, настройка аппаратуры и полётного контроллера.", categoryId: "vc-avia", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 754, views: 12480, isFeatured: true, tags: ["FPV", "крыло", "настройка"], publishedAt: "2026-07-08T10:00:00Z", uploaderId: "u1", status: "published", likes: 342, comments: 2, commentList: [
+    cmt("vc1", "u2", "1 ч назад", "Отличная настройка тримминга! Какой приёмник используешь?", 4),
+    cmt("vc2", "u3", "40 мин назад", "Давно искал такой разбор, спасибо!", 1),
+  ] },
+  { id: "v2", title: "Багги 1:8 ДВС — обкатка нового мотора Picco", description: "Обкатываем свежий мотор, замеряем температуру, подбираем иглы карбюратора.", categoryId: "vc-auto", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 1263, views: 8320, isFeatured: true, tags: ["багги", "ДВС", "обкатка"], publishedAt: "2026-07-07T14:30:00Z", uploaderId: "u2", status: "published", likes: 210, comments: 1, commentList: [
+    cmt("vc3", "u4", "2 ч назад", "Какие иглы в итоге подошли лучше?", 2),
+  ] },
+  { id: "v3", title: "Квадрокоптер 5\" фристайл — сборка с нуля", description: "Собираем фристайл-квадрик, паяем, прошиваем Betaflight.", categoryId: "vc-kvadro", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 2105, views: 21050, isFeatured: true, tags: ["квадрокоптер", "фристайл", "Betaflight"], publishedAt: "2026-07-06T09:15:00Z", uploaderId: "u3", status: "published", likes: 560, comments: 3, commentList: [
+    cmt("vc4", "u5", "5 ч назад", "Какие настройки PID использовал в итоге?", 6),
+    cmt("vc5", "u6", "3 ч назад", "Крутая сборка, повторю себе такую же", 2),
+    cmt("vc6", "u7", "1 ч назад", "А рама какая? Ссылку скинь", 0),
+  ] },
+  { id: "v4", title: "RC-катер из стеклопластика — первый спуск на воду", description: "Ходовые испытания самодельного катера на пруду.", categoryId: "vc-korabli", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 489, views: 5410, isFeatured: false, tags: ["катер", "стеклопластик"], publishedAt: "2026-07-05T18:00:00Z", uploaderId: "u5", status: "published", likes: 98, comments: 0 },
+  { id: "v5", title: "Обзор аппаратуры RadioMaster TX16S MKII", description: "Разбираем флагманский пульт, прошивка EdgeTX, модуль ELRS.", categoryId: "vc-radio", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 933, views: 15600, isFeatured: false, tags: ["аппаратура", "EdgeTX", "ELRS"], publishedAt: "2026-07-04T11:00:00Z", uploaderId: "u4", status: "published", likes: 401, comments: 0 },
+  { id: "v6", title: "Пайка ESC и настройка регулятора Hobbywing", description: "Аккуратная пайка силовых проводов и калибровка регулятора.", categoryId: "vc-elektro", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 671, views: 7230, isFeatured: false, tags: ["ESC", "пайка", "Hobbywing"], publishedAt: "2026-07-03T16:45:00Z", uploaderId: "u7", status: "published", likes: 156, comments: 0 },
+  { id: "v7", title: "Пилотаж на самолёте 3D — базовые фигуры", description: "Учимся крутить харрикейн и торк-роллы на пилотажке.", categoryId: "vc-avia", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 1420, views: 9840, isFeatured: false, tags: ["самолёт", "3D", "пилотаж"], publishedAt: "2026-07-02T12:20:00Z", uploaderId: "u8", status: "published", likes: 233, comments: 0 },
+  { id: "v8", title: "Тюнинг подвески туринга 1:10", description: "Настройка развала, клиренса и жёсткости для асфальта.", categoryId: "vc-auto", posterUrl: "", videoUrl: DEMO_VIDEO_SRC, durationSeconds: 812, views: 6120, isFeatured: false, tags: ["туринг", "подвеска", "тюнинг"], publishedAt: "2026-07-01T08:00:00Z", uploaderId: "u4", status: "published", likes: 187, comments: 0 },
+];
+
 const _ago = (minutes: number): string =>
   new Date(Date.now() - minutes * 60 * 1000).toISOString();
 
@@ -420,6 +517,7 @@ export const dialogs: Dialog[] = [
       { id: "d1m4", authorId: "u2", time: _ago(110), text: "С этим мотором главное — игла холостого хода. Выставь зазор 0.7 мм, потом крути низ по температуре.", status: "read" },
       { id: "d1m5", authorId: "u1", time: _ago(100), text: "А свечу какую посоветуешь?", status: "read" },
       { id: "d1m6", authorId: "u2", time: _ago(90), text: "OS A5 средняя. На нитро 25% — идеально. У меня на такой же связке температура головы 105-115°C.", status: "read" },
+      { id: "d1m6b", authorId: "u2", time: _ago(88), text: "", status: "read", voice: { duration: 13, waveform: makeMockWaveform(6142), transcript: "И ещё: после прогрева проверь компрессию рукой — если поршень легко проходит верхнюю точку, значит гильза подсела, пора менять." } },
       { id: "d1m7", authorId: "u1", time: _ago(15), text: "Спасибо, попробую! А можешь скинуть свою схему настройки?", status: "read" },
       { id: "d1m8", authorId: "u2", time: _ago(5), text: "Да, конечно! Скину схему вечером", status: "delivered", replyTo: "d1m7" },
     ],
@@ -689,4 +787,38 @@ export const promoCodes: PromoCode[] = [
   { id: "pr1", code: "START2026", discount: 20, usedCount: 34, limit: 100, expiresAt: "2026-12-31", status: "active" },
   { id: "pr2", code: "MODELIZM", discount: 15, usedCount: 128, limit: 500, expiresAt: "2026-09-30", status: "active" },
   { id: "pr3", code: "HALFPRICE", discount: 50, usedCount: 5, limit: 20, expiresAt: "2026-03-01", status: "expired" },
+];
+
+export interface WalletOperation {
+  id: string;
+  type: "in" | "out";
+  amount: number;
+  title: string;
+  date: string;
+}
+
+export const mockWalletBalance = 4250;
+
+export const mockWalletOperations: WalletOperation[] = [
+  { id: "w1", type: "in", amount: 1500, title: "Пополнение баланса", date: "2026-07-06T12:00:00Z" },
+  { id: "w2", type: "out", amount: 490, title: "Продвижение объявления", date: "2026-07-05T09:30:00Z" },
+  { id: "w3", type: "in", amount: 3200, title: "Продажа: RC багги HB Racing", date: "2026-07-02T16:45:00Z" },
+  { id: "w4", type: "out", amount: 160, title: "Комиссия сервиса", date: "2026-07-02T16:45:00Z" },
+];
+
+export interface MyReview {
+  id: string;
+  author: string;
+  avatar: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+
+export const mockMyRating = { average: 4.8, count: 27 };
+
+export const mockMyReviews: MyReview[] = [
+  { id: "r1", author: "Сергей ДВС", avatar: avatar("Сергей ДВС"), rating: 5, text: "Отличная сделка, багги в идеале. Всё честно, рекомендую!", date: "2026-07-04T10:00:00Z" },
+  { id: "r2", author: "Михаил Квадро", avatar: avatar("Михаил Квадро"), rating: 5, text: "Быстро ответил, помог с настройкой. Спасибо!", date: "2026-06-28T14:20:00Z" },
+  { id: "r3", author: "Дмитрий Моделист", avatar: avatar("Дмитрий Моделист"), rating: 4, text: "Хороший продавец, доставка чуть задержалась, но товар соответствует.", date: "2026-06-20T09:15:00Z" },
 ];

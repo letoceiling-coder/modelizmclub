@@ -1,18 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  Bell, BadgeCheck, Ban, FileText, MapPin, MessageSquare, Pencil, Tag, User as UserIcon,
+  Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
   Camera, Trash2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import type { User, Post, Ad, Community } from "@/lib/mock";
 import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
 import type { AdStatusKey } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
 import { AdCard } from "@/components/AdCard";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
 import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -22,6 +23,7 @@ import { fetchFeed } from "@/lib/api/feed";
 import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
 import { uploadMedia } from "@/lib/api/media";
+import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,22 +61,19 @@ function ProfilePage() {
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [friendsCount, setFriendsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     if (!currentUser?.id) return;
-    fetchMyListings()
-      .then((list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) }))))
-      .catch(() => {});
-    fetchCommunities()
-      .then((cs) => active && setMyCommunities(cs.filter((c) => c.joined)))
-      .catch(() => {});
-    fetchFeed({ perPage: 50 })
-      .then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id)))
-      .catch(() => {});
-    fetchFriends()
-      .then((fr) => active && setFriendsCount(fr.length))
-      .catch(() => {});
+    setLoading(true);
+    const settle = Promise.allSettled([
+      fetchMyListings().then((list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) })))),
+      fetchCommunities().then((cs) => active && setMyCommunities(cs.filter((c) => c.joined))),
+      fetchFeed({ perPage: 50 }).then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id))),
+      fetchFriends().then((fr) => active && setFriendsCount(fr.length)),
+    ]);
+    settle.finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [currentUser?.id]);
 
@@ -91,6 +90,7 @@ function ProfilePage() {
       postsOverride={myPosts}
       adsOverride={myAds}
       communitiesOverride={myCommunities}
+      loading={loading}
       onSaveProfile={saveProfile}
     />
   );
@@ -134,6 +134,8 @@ export interface ProfileViewProps {
   postsOverride?: Post[];
   adsOverride?: { ad: Ad; status: AdStatus }[];
   communitiesOverride?: Community[];
+  /** First-load flag for own profile — shows a content skeleton instead of a false-empty flash. */
+  loading?: boolean;
   isFriendInitial?: boolean;
   isFollowingInitial?: boolean;
   onToggleFriend?: (next: boolean) => void | Promise<void>;
@@ -143,7 +145,7 @@ export interface ProfileViewProps {
 }
 
 export function ProfileView({
-  user, isOwn, stats, postsOverride, adsOverride, communitiesOverride,
+  user, isOwn, stats, postsOverride, adsOverride, communitiesOverride, loading = false,
   isFriendInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile,
 }: ProfileViewProps) {
   const [tab, setTab] = useState<TabKey>("posts");
@@ -181,7 +183,7 @@ export function ProfileView({
       <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
         {/* Cover */}
         <div className="relative">
-          <CoverImage src={user.coverImage} />
+          <CoverImage src={user.coverImage} editable={isOwn} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56px]" style={{ background: "linear-gradient(to bottom, transparent, color-mix(in oklab, var(--background) 85%, transparent))" }} />
         </div>
 
@@ -260,6 +262,9 @@ export function ProfileView({
                 <Button
                   type="button"
                   variant="outline"
+                  size="icon"
+                  title="Написать сообщение"
+                  aria-label="Написать сообщение"
                   onClick={async () => {
                     if (onWrite) { await onWrite(); return; }
                     if (!user.numericId || !currentUser?.id) {
@@ -273,9 +278,9 @@ export function ProfileView({
                       toast.error("Не удалось открыть диалог");
                     }
                   }}
-                  className="h-[40px] flex-1 rounded-[10px] md:flex-none"
+                  className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
                 >
-                  <MessageSquare size={14} /> Написать
+                  <Mail size={16} />
                 </Button>
 
                 <Button
@@ -305,7 +310,7 @@ export function ProfileView({
 
 
         {/* Counters */}
-        <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+        <div className="grid grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
           <Counter label="Публикаций" value={stats?.publications ?? userPosts.length} divider />
           <Counter label="Объявлений" value={stats?.ads ?? userAds.length} divider />
           <Counter label="Друзей" value={friendsCountDerived} divider />
@@ -317,24 +322,25 @@ export function ProfileView({
 
         {/* Tab content */}
         <div className="px-[16px] py-[24px] md:px-[32px]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tab}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
+          <ReducedMotionSwitch
+            switchKey={tab}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
               {tab === "posts" && (
+                loading ? <ProfileTabSkeleton /> :
                 userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
                   <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
                 )
               )}
               {tab === "ads" && (
+                loading ? <ProfileTabSkeleton /> :
                 userAds.length === 0 ? (
                   <EmptyTab text="Нет объявлений">
                     {isOwn && (
-                      <Button asChild className="mt-[16px] rounded-[10px]">
+                      <Button asChild className="mt-[16px]">
                         <Link to="/ads/new"><Plus size={14} /> Создать объявление</Link>
                       </Button>
                     )}
@@ -342,7 +348,7 @@ export function ProfileView({
                 ) : (
                   <div className="space-y-[16px]">
                     {isOwn && (
-                      <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] no-scrollbar">
                         {AD_STATUS_FILTERS.map((f) => {
                           const count = f.key === "all" ? userAdsWithStatus.length : userAdsWithStatus.filter((x) => x.status === f.key).length;
                           const active = adFilter === f.key;
@@ -354,7 +360,7 @@ export function ProfileView({
                               style={{
                                 height: 32,
                                 padding: "0 14px",
-                                borderRadius: 999,
+                                borderRadius: "var(--r-pill)",
                                 background: active ? "var(--accent)" : "var(--background-surface)",
                                 color: active ? "#fff" : "var(--foreground-70)",
                                 fontWeight: active ? 600 : 500,
@@ -367,7 +373,7 @@ export function ProfileView({
                                   fontSize: 11,
                                   fontWeight: 700,
                                   padding: "1px 7px",
-                                  borderRadius: 999,
+                                  borderRadius: "var(--r-pill)",
                                   background: active ? "rgba(255,255,255,0.22)" : "var(--background)",
                                   color: active ? "#fff" : "var(--foreground-50)",
                                 }}
@@ -382,21 +388,25 @@ export function ProfileView({
                     {filteredUserAds.length === 0 ? (
                       <EmptyTab text="Нет объявлений с этим статусом" />
                     ) : (
-                      <div className="grid gap-[16px] sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-2 gap-[10px] sm:gap-[16px] lg:grid-cols-3">
                         {filteredUserAds.map(({ ad, status }) => {
                           const badge = AD_STATUS_BADGE[status];
                           const cardState: "default" | "moderation" | "rejected" =
                             status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
                           return (
-                            <div key={ad.id} className="relative" style={{ opacity: status === "archived" ? 0.65 : 1 }}>
-                              <AdCard ad={ad} state={cardState} />
-                              <Badge
-                                variant={badge.variant}
-                                withIcon={false}
-                                className="absolute right-[12px] top-[12px] z-[2] rounded-full"
-                              >
-                                {badge.label}
-                              </Badge>
+                            <div key={ad.id} style={{ opacity: status === "archived" ? 0.65 : 1 }}>
+                              {/* Normal-flow badge above the card, not overlaid on the image:
+                                  AdCard's own top-left status pill (Продаю/Куплю/Обменяю) plus
+                                  an overlaid moderation badge don't both fit at 2-up mobile
+                                  width. AdCard's own bottom banner already covers moderation/
+                                  rejected ("На проверке"/"Отклонено"), so this only needs to
+                                  add information for active/archived. */}
+                              {cardState === "default" && (
+                                <Badge variant={badge.variant} withIcon={false} className="mb-[6px] rounded-full">
+                                  {badge.label}
+                                </Badge>
+                              )}
+                              <AdCard ad={ad} state={cardState} compact />
                             </div>
                           );
                         })}
@@ -406,12 +416,13 @@ export function ProfileView({
                 )
               )}
               {tab === "communities" && (
+                loading ? <ProfileTabSkeleton /> :
                 userCommunities.length === 0 ? <EmptyTab text="Не состоит в сообществах" /> : (
                   <div className="grid gap-[12px] md:grid-cols-2">
                     {userCommunities.map((c) => {
                       const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
                       return (
-                        <Card key={c.id} className="rounded-[14px] transition-colors hover:border-[var(--border-strong)]">
+                        <Card key={c.id} className="rounded-[var(--r-card)] transition-colors hover:border-[var(--border-strong)]">
                           <Link
                             to="/communities/$id"
                             params={{ id: c.id }}
@@ -456,8 +467,7 @@ export function ProfileView({
                   )}
                 </div>
               )}
-            </motion.div>
-          </AnimatePresence>
+          </ReducedMotionSwitch>
         </div>
       </div>
 
@@ -490,26 +500,41 @@ export function ProfileView({
 
 function Counter({ label, value, divider }: { label: string; value: number; divider?: boolean }) {
   return (
-    <div className="px-[16px] py-[20px] text-center md:px-[24px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
-      <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>{value}</div>
-      <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
+    <div className="min-w-0 px-[6px] py-[10px] text-center md:px-[24px] md:py-[12px]" style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}>
+      <div className="font-display text-[16px] font-bold leading-none tabular-nums md:text-[18px]" style={{ color: "var(--foreground)" }}>{value}</div>
+      <div className="mt-[3px] truncate text-[10px] md:text-[11px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
     </div>
   );
 }
 
 function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
+  const reduce = useReducedMotion();
   const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
 
   useEffect(() => {
     const el = refs.current[tab];
-    if (el) setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
-  }, [tab]);
+    const box = scrollRef.current;
+    if (el) {
+      setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
+      // Keep the active tab centred — the strip overflows on mobile (6 tabs),
+      // so a tab near the end would otherwise stay clipped. Set scrollLeft on
+      // the strip directly (scrollIntoView can hijack the vertical page scroll).
+      // Under reduced motion Chrome silently drops smooth scrolls, so fall
+      // back to an instant jump.
+      if (box) {
+        const target = el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2;
+        box.scrollTo({ left: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
+      }
+    }
+  }, [tab, reduce]);
 
   return (
     <div
-      className="sticky top-0 z-10 overflow-x-auto"
+      ref={scrollRef}
+      className="sticky top-0 z-10 overflow-x-auto no-scrollbar"
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
       {/* min-w-max lets the scroll container measure total content width */}
@@ -521,9 +546,9 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
               key={key}
               ref={(el) => { refs.current[key] = el; }}
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap font-display transition-colors duration-200"
+              className="inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap px-[14px] font-display transition-colors duration-200 md:px-[20px]"
               style={{
-                height: 48, padding: "0 20px", fontSize: 14,
+                height: 48, fontSize: 14,
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--accent)" : "var(--foreground-50)",
               }}
@@ -548,6 +573,22 @@ function EmptyTab({ text, children }: { text: string; children?: React.ReactNode
     <EmptyState variant="compact" title={text}>
       {children}
     </EmptyState>
+  );
+}
+
+/** First-load placeholder for profile tab content — avoids a false-empty flash
+ *  before the async posts/ads/communities fetches resolve. */
+function ProfileTabSkeleton() {
+  return (
+    <div className="space-y-[16px]">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse"
+          style={{ height: 120, background: "var(--background-surface)", borderRadius: "var(--r-card)" }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -589,7 +630,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
             <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="h-11" />
           </Field>
           <Field label="Город">
-            <Input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="Город" className="h-11" />
+            <CitySelect value={draft.city} onChange={(name) => setDraft({ ...draft, city: name })} placeholder="Город" />
           </Field>
           <Field label="О себе">
             <Textarea
@@ -621,7 +662,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
                 placeholder="Добавить интерес"
                 className="h-11 flex-1"
               />
-              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0 rounded-[10px]">
+              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0">
                 <Plus size={18} />
               </Button>
             </div>
@@ -772,25 +813,58 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
   );
 }
 
-/** Cover image with a gradient fallback for empty/broken URLs. */
-function CoverImage({ src }: { src?: string }) {
+/** Cover image with a gradient fallback for empty/broken URLs. Owner can upload. */
+function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   const [broken, setBroken] = useState(false);
+  const currentUser = useStore(selectors.currentUser);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const showImg = Boolean(src && src.trim()) && !broken;
-  if (!showImg) {
-    return (
-      <div
-        className="w-full"
-        style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
-      />
-    );
-  }
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const media = await uploadMedia(file, "cover");
+      const url = media.url ?? "";
+      setCurrentUser({ ...currentUser, coverImage: url });
+      void updateOwnProfile({ cover_media_id: media.uuid });
+      toast.success("Обложка обновлена");
+    } catch {
+      toast.error("Не удалось загрузить обложку");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <img
-      src={src}
-      alt=""
-      className="w-full object-cover"
-      style={{ height: "clamp(120px, 22vw, 220px)" }}
-      onError={() => setBroken(true)}
-    />
+    <div className="group relative">
+      {showImg ? (
+        <img src={src} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} onError={() => setBroken(true)} />
+      ) : (
+        <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
+      )}
+      {editable && (
+        <>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+          <button
+            type="button"
+            aria-label="Изменить обложку"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
+          >
+            <Camera size={14} /> Обложка
+          </button>
+        </>
+      )}
+    </div>
   );
 }

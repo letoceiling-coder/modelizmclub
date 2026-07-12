@@ -26,7 +26,7 @@ export function AppFooter() {
                     to={l.to}
                     className="text-[13px] transition-colors"
                     style={{ color: "var(--foreground-50)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--neutral-700)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
                   >
                     {l.label}

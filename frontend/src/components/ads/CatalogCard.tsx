@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
 import { isDemoMode } from "@/lib/demo-mode";
+import { getToken } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useStore, actions, selectors } from "@/lib/store";
 
@@ -14,6 +15,7 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
   const initial = ad.gallery?.[0] ?? ad.image ?? "";
   const [src, setSrc] = useState(initial);
+  const navigate = useNavigate();
 
   return (
     <Card
@@ -47,6 +49,11 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
           onClick={async (e) => {
             e.preventDefault();
+            if (!getToken() && !isDemoMode()) {
+              toast.info("Войдите, чтобы добавить в избранное");
+              navigate({ to: "/login" });
+              return;
+            }
             const next = !fav;
             actions.toggleFavoriteAd(ad.id);
             if (!isDemoMode()) {
@@ -55,13 +62,15 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
                 else await removeFavoriteListing(ad.id);
               } catch {
                 actions.toggleFavoriteAd(ad.id);
-                toast.error("Не удалось обновить избранное");
+                toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
                 return;
               }
             }
-            toast.success(next ? "В избранное" : "Убрано из избранного");
+            // Fixed id: rapid taps (small icon, easy to double-tap) replace
+            // the previous toast instead of stacking a pile of duplicates.
+            toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
           }}
-          className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full"
+          className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
           style={{
             background: "color-mix(in oklab, var(--background) 78%, transparent)",
             backdropFilter: "blur(6px)",

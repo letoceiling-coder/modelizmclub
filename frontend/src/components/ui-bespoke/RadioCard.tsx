@@ -12,7 +12,7 @@ interface Props {
 
 /**
  * UI Kit 2.0 selectable card. Active state is always the blue accent
- * (#627FFF) — never commercial-orange. Keyboard-focusable with a visible ring;
+ * (var(--accent)) — never commercial-orange. Keyboard-focusable with a visible ring;
  * min height comfortably above the 44px tap target.
  */
 export function RadioCard({ selected, onClick, icon: Icon, title, description, className }: Props) {
@@ -22,7 +22,7 @@ export function RadioCard({ selected, onClick, icon: Icon, title, description, c
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "group flex min-h-[64px] w-full items-start gap-[14px] rounded-[var(--r-card-sm)] border-2 p-[16px] text-left transition-all",
+        "group flex min-h-[64px] w-full items-start gap-[14px] rounded-[var(--r-card-sm)] border-2 p-[16px] text-left transition",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
         selected
           ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-[var(--shadow-card-hover)]"

@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import { fetchBanners } from "@/lib/api/banners";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 
 const AUTOPLAY_MS = 10_000;
 
@@ -83,15 +84,14 @@ export function EventsHero() {
       onMouseLeave={() => setPaused(false)}
     >
       <div className="relative h-[200px] sm:h-[220px] md:h-[240px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0"
-          >
+        <ReducedMotionSwitch
+          switchKey={current.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0"
+        >
             {current.image ? (
               <img src={current.image} alt="" className="h-full w-full object-cover" />
             ) : (
@@ -132,8 +132,7 @@ export function EventsHero() {
                 </button>
               </div>
             </div>
-          </motion.div>
-        </AnimatePresence>
+        </ReducedMotionSwitch>
 
         {list.length > 1 && (
           <>
@@ -166,7 +165,7 @@ export function EventsHero() {
                 key={b.id}
                 aria-label={`Перейти к баннеру ${i + 1}`}
                 onClick={() => setIndex(i)}
-                className="rounded-full transition-all"
+                className="rounded-full transition"
                 style={{
                   width: active ? 20 : 6,
                   height: 6,

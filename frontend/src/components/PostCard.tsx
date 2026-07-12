@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2, ImageOff } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
@@ -101,6 +101,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const [reposted, setReposted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const commentsRef = useRef<HTMLDivElement>(null);
 
   const [likes, setLikes] = useState(post.likes);
   const [saves, setSaves] = useState(post.saves ?? 0);
@@ -115,6 +116,17 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
       .then(setCommentList)
       .catch(() => {});
   }, [commentsOpen, commentsLoaded, post.id]);
+
+  // When comments open, bring the input (top of the section) into view — a
+  // post tapped near the bottom of the feed would otherwise open its comments
+  // off-screen. Waits out the expand animation before measuring.
+  useEffect(() => {
+    if (!commentsOpen) return;
+    const t = setTimeout(() => {
+      commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 280);
+    return () => clearTimeout(t);
+  }, [commentsOpen]);
 
   const isLong = post.text.length > 220;
   const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
@@ -305,6 +317,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={likes}
+                className="tabular-nums"
                 initial={{ y: 6, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -6, opacity: 0 }}
@@ -323,7 +336,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             aria-label="Комментарии"
           >
             <MessageCircle className="h-[16px] w-[16px]" />
-            <span>{commentsCount}</span>
+            <span className="tabular-nums">{commentsCount}</span>
           </button>
 
           {/* Repost */}
@@ -342,7 +355,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             >
               <Bookmark className="h-[16px] w-[16px]" fill={saved ? "currentColor" : "none"} />
             </motion.span>
-            {saves > 0 && <span>{saves}</span>}
+            {saves > 0 && <span className="tabular-nums">{saves}</span>}
           </button>
 
           {/* Views — desktop only */}
@@ -351,7 +364,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             style={{ color: "var(--foreground-50)" }}
           >
             <Eye className="h-[14px] w-[14px]" />
-            <span>{post.views?.toLocaleString("ru-RU") ?? 0}</span>
+            <span className="tabular-nums">{post.views?.toLocaleString("ru-RU") ?? 0}</span>
           </div>
         </footer>
 
@@ -365,7 +378,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <CommentSection comments={commentList} onAdd={addComment} />
+              <div ref={commentsRef}>
+                <CommentSection comments={commentList} onAdd={addComment} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

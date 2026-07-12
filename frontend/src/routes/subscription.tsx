@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
-import { Check, Gift, Zap, CalendarClock } from "lucide-react";
-import { toast } from "sonner";
+import { Gift, Zap, CalendarClock } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
+import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
+import { subscriptionEndDate, SUB_DAYS_LEFT } from "@/lib/subscription";
+import { isDemoMode } from "@/lib/demo-mode";
+import { createSubscriptionPayment, confirmStubPayment, fetchMySubscription } from "@/lib/api/payment";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
@@ -19,47 +24,15 @@ const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
-const stagger: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
-};
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  savings?: string;
-  best?: boolean;
-}
-
-const PLANS: Plan[] = [
-  { id: "month", name: "Месяц", price: 99, period: "месяц" },
-  { id: "half", name: "Полгода", price: 499, period: "6 месяцев", savings: "Выгода 95 ₽", best: true },
-  { id: "year", name: "Год", price: 799, period: "12 месяцев", savings: "Выгода 389 ₽" },
-];
-
-const FEATURES = [
-  "Доступ ко всем каналам и сообществам",
-  "Размещение объявлений без ограничений",
-  "Сообщения и звонки внутри платформы",
-  "Публикации постов в ленте",
-  "Голосовые сообщения с транскрибацией",
-  "Поддержка приоритетом",
-];
 
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
 
-// Demo subscription state — single source of truth for the countdown.
+// Demo subscription state. SUB_DAYS_LEFT is imported from lib/subscription
+// (single source of truth shared with the sidebar end-date).
 // On the real backend this comes from the user's active subscription record.
 const SUB_TOTAL_DAYS = 365;
-const SUB_DAYS_LEFT = 287;
 const SUB_PLAN_NAME = "Год";
-function subscriptionEndDate(): string {
-  const end = new Date(Date.now() + SUB_DAYS_LEFT * 86400000);
-  return end.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-}
 function daysWord(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
@@ -68,13 +41,55 @@ function daysWord(n: number): string {
   return "дней";
 }
 
-function payClick(planName: string) {
-  toast("Оплата будет доступна после подключения эквайринга", {
-    description: `Тариф: ${planName}`,
-  });
+/**
+ * Start a real subscription checkout (Stage 1). Demo hosts (neeklo/local)
+ * have no billing backend, so there we keep the honest "оплата будет
+ * доступна" message rather than faking a payment. On the real backend:
+ *   - vtb/yookassa → redirect to the provider's hosted page; it returns to
+ *     /subscription?payment=success|failed (backend config return_url/fail_url).
+ *   - stub (test contour w/o live acquiring) → no hosted page: confirm the
+ *     stub payment directly and reflect the resulting subscription status.
+ */
+async function startSubscriptionCheckout(plan: { id: string; name: string }) {
+  if (isDemoMode()) {
+    toast("Оплата будет доступна после подключения эквайринга", {
+      description: `Тариф: ${plan.name}`,
+    });
+    return;
+  }
+  try {
+    const checkout = await createSubscriptionPayment(plan.id);
+    if (checkout.checkout_url) {
+      window.location.href = checkout.checkout_url;
+      return;
+    }
+    await confirmStubPayment(checkout.payment_uuid);
+    const sub = await fetchMySubscription();
+    toast.success(
+      sub?.is_active ? "Подписка активирована (тестовый режим)" : "Платёж подтверждён (тестовый режим)",
+    );
+  } catch {
+    toast.error("Не удалось создать платёж. Попробуйте позже.");
+  }
 }
 
 function SubscriptionPage() {
+  // Provider hosted-page return: config return_url/fail_url send the user
+  // back to /subscription?payment=success|failed. Surface the outcome, then
+  // strip the param so a refresh doesn't re-toast. Activation itself happens
+  // server-side via the provider webhook, so "success" is phrased as
+  // "activating", not a hard confirmation.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("payment");
+    if (!p) return;
+    if (p === "success") toast.success("Оплата прошла — подписка активируется");
+    else if (p === "failed") toast.error("Оплата не завершена");
+    params.delete("payment");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+  }, []);
+
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
@@ -205,17 +220,23 @@ function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Plans */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="mt-[24px] grid grid-cols-1 gap-[16px] md:grid-cols-3"
-        >
-          {PLANS.map((p) => (
-            <PlanCard key={p.id} plan={p} />
-          ))}
-        </motion.div>
+        {/* Plans — one shared feature set. Mobile keeps the narrow single-card
+            width (max-w-[420px]); desktop widens to fit PlanTermSelector's
+            3-column open-cards layout (~230px card x3 + 16px gaps x2). */}
+        <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[760px]">
+          <PlanTermSelector
+            renderCta={(plan) => (
+              <button
+                type="button"
+                onClick={() => startSubscriptionCheckout({ id: plan.id, name: plan.name })}
+                className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              >
+                Оформить подписку
+              </button>
+            )}
+          />
+        </div>
 
         {/* One-time placement */}
         <div className="mt-[32px]">
@@ -273,70 +294,6 @@ function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Comparison */}
-        <section className="mt-[40px]">
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
-              fontSize: "var(--fs-h3)",
-              color: "var(--foreground)",
-            }}
-          >
-            Что входит
-          </h2>
-          <p style={{ marginTop: 6, fontSize: 13, color: "var(--foreground-50)" }}>
-            Набор возможностей одинаковый для всех тарифов — отличается только срок.
-          </p>
-
-          <div
-            className="mt-[16px] overflow-hidden"
-            style={{
-              background: "var(--background-elevated)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-card)",
-            }}
-          >
-            {/* Table head */}
-            <div
-              className="grid items-center text-[12px] uppercase"
-              style={{
-                gridTemplateColumns: "minmax(0,1fr) 56px 56px 56px",
-                padding: "12px 16px",
-                background: "var(--background-surface)",
-                color: "var(--foreground-50)",
-                letterSpacing: 1,
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              <div>Возможность</div>
-              <div className="text-center">Мес</div>
-              <div className="text-center">6 мес</div>
-              <div className="text-center">Год</div>
-            </div>
-            {FEATURES.map((f, i) => (
-              <div
-                key={f}
-                className="grid items-center"
-                style={{
-                  gridTemplateColumns: "minmax(0,1fr) 56px 56px 56px",
-                  padding: "14px 16px",
-                  borderTop: i === 0 ? "none" : "1px solid var(--border)",
-                  fontSize: 13,
-                  color: "var(--foreground)",
-                }}
-              >
-                <div>{f}</div>
-                {[0, 1, 2].map((c) => (
-                  <div key={c} className="flex justify-center">
-                    <Check size={16} style={{ color: "var(--success)" }} />
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-
         <InviteBlock />
       </div>
 
@@ -344,99 +301,3 @@ function SubscriptionPage() {
   );
 }
 
-function PlanCard({ plan }: { plan: Plan }) {
-  const best = !!plan.best;
-  return (
-    <motion.article
-      variants={fadeInUp}
-      className="relative flex flex-col"
-      style={{
-        background: best
-          ? "linear-gradient(135deg, var(--accent-soft) 0%, var(--background-elevated) 60%)"
-          : "var(--background-elevated)",
-        border: best ? "2px solid var(--accent)" : "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
-        padding: "24px 20px",
-      }}
-    >
-      {best && (
-        <span
-          className="absolute uppercase"
-          style={{
-            top: 14,
-            right: 14,
-            background: "var(--accent)",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 10,
-            letterSpacing: 1,
-            padding: "4px 10px",
-            borderRadius: "var(--r-tag)",
-          }}
-        >
-          Лучший выбор
-        </span>
-      )}
-      <h3
-        style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 700,
-          fontSize: 18,
-          color: best ? "var(--accent)" : "var(--foreground)",
-        }}
-      >
-        {plan.name}
-      </h3>
-      <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 800,
-            fontSize: 36,
-            color: best ? "var(--accent)" : "var(--foreground)",
-          }}
-        >
-          {plan.price} ₽
-        </span>
-        <span style={{ fontSize: 13, color: "var(--foreground-50)" }}>/ {plan.period}</span>
-      </div>
-      {plan.savings && (
-        <span
-          className="mt-[6px] inline-block"
-          style={{
-            width: "fit-content",
-            background: "var(--success-soft)",
-            color: "var(--success)",
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "2px 8px",
-            borderRadius: "var(--r-tag)",
-          }}
-        >
-          {plan.savings}
-        </span>
-      )}
-
-      <div style={{ flex: 1 }} />
-
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={() => payClick(plan.name)}
-        className="mt-[20px] w-full transition-colors"
-        style={{
-          height: 48,
-          background: "var(--accent)",
-          color: "#fff",
-          fontWeight: 700,
-          fontSize: 15,
-          borderRadius: "var(--r-button)",
-          boxShadow: best ? "var(--shadow-glow-accent)" : "none",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
-      >
-        Оплатить
-      </motion.button>
-    </motion.article>
-  );
-}

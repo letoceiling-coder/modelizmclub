@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -39,13 +40,20 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center",
-        !isBare && "rounded-[14px] border border-dashed",
+        !isBare && "rounded-[var(--r-card)] border border-dashed",
         isCompact ? "gap-[8px] px-[16px] py-[32px]" : "gap-[12px] px-[24px] py-[56px]",
         className,
       )}
       style={
         !isBare
-          ? { background: "var(--background-elevated)", borderColor: "var(--border-strong)" }
+          ? {
+              backgroundColor: "var(--background-elevated)",
+              // Blueprint grid — same brand motif as the hero, kept subtle
+              // behind the icon/text (backgrounds never intercept clicks).
+              backgroundImage: blueprintGridOnLight,
+              backgroundSize: blueprintGridSize,
+              borderColor: "var(--border-strong)",
+            }
           : undefined
       }
     >
@@ -91,7 +99,7 @@ export function EmptyState({
       {(action || secondaryAction || children) && (
         <div className="mt-[4px] flex flex-wrap items-center justify-center gap-[8px]">
           {action && (
-            <Button onClick={action.onClick} className="rounded-[10px] px-[20px]">
+            <Button onClick={action.onClick} className=" px-[20px]">
               {action.label}
             </Button>
           )}

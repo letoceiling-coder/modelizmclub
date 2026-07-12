@@ -1,4 +1,4 @@
-import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, ShieldCheck, Tag } from "lucide-react";
+import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, ShieldCheck, Tag, Phone } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,13 @@ interface AdActionPanelProps {
   onWrite: () => void;
   onToggleSave: () => void;
   onShare: () => void;
+  phoneRevealState: "idle" | "loading" | "revealed";
+  revealedPhone: string | null;
+  onRevealPhone: () => void;
   className?: string;
 }
 
-export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, className }: AdActionPanelProps) {
+export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phoneRevealState, revealedPhone, onRevealPhone, className }: AdActionPanelProps) {
   return (
     <Card
       className={cn("flex flex-col gap-[16px] p-[20px]", className)}
@@ -73,11 +76,11 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, class
             {ad.city}
           </span>
         )}
-        <span className="inline-flex items-center gap-[6px]">
+        <span className="inline-flex items-center gap-[6px] tabular-nums">
           <Eye size={14} className="shrink-0" />
           {ad.views ?? 0}
         </span>
-        <span className="inline-flex items-center gap-[6px]">
+        <span className="inline-flex items-center gap-[6px] tabular-nums">
           <Heart size={14} className="shrink-0" />
           {ad.likes ?? 0}
         </span>
@@ -99,6 +102,27 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, class
         <Button onClick={onWrite} size="lg" className="w-full rounded-[var(--r-button)]">
           <MessageSquare size={16} /> Написать продавцу
         </Button>
+        {phoneRevealState === "revealed" && revealedPhone ? (
+          <Button asChild variant="outline" size="lg" className="w-full rounded-[var(--r-button)]">
+            <a href={`tel:${revealedPhone.replace(/[^\d+]/g, "")}`}>
+              <Phone size={16} /> {revealedPhone}
+            </a>
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onRevealPhone}
+            loading={phoneRevealState === "loading"}
+            className="w-full rounded-[var(--r-button)]"
+          >
+            {phoneRevealState === "loading" ? "Загрузка…" : (
+              <>
+                <Phone size={16} /> Позвонить продавцу
+              </>
+            )}
+          </Button>
+        )}
         <div className="grid grid-cols-2 gap-[8px]">
           <Button
             variant="outline"

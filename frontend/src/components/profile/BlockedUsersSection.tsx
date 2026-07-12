@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Ban, ShieldOff } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { userById } from "@/lib/mock";
 import { useStore, actions } from "@/lib/store";
 import { fetchBlockedUsers, unblockUser } from "@/lib/api/social";

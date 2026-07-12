@@ -1,9 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import type { Ad } from "@/lib/mock";
-import { MapPin } from "lucide-react";
+import { MapPin, Tag } from "lucide-react";
+
+/** Single source of truth for how many cards this row always shows — the
+ *  caller (ads.$id.tsx) fetches/tiers up to this many real ads, and this
+ *  component backfills whatever's left with placeholder cards so the row
+ *  is never short a few slots. */
+export const SIMILAR_ADS_SLOTS = 12;
 
 export function SimilarAds({ items }: { items: Ad[] }) {
-  if (items.length === 0) return null;
+  const placeholderCount = Math.max(0, SIMILAR_ADS_SLOTS - items.length);
+
   return (
     <section className="space-y-[16px]">
       <h2 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
@@ -50,7 +57,35 @@ export function SimilarAds({ items }: { items: Ad[] }) {
             </div>
           </Link>
         ))}
+        {Array.from({ length: placeholderCount }).map((_, i) => (
+          <SimilarAdPlaceholder key={`similar-placeholder-${i}`} />
+        ))}
       </div>
     </section>
+  );
+}
+
+/** Backfill card for an empty slot in the row — keeps it always exactly
+ *  SIMILAR_ADS_SLOTS wide (no short/ragged row) when there simply isn't
+ *  enough matching (or even total) inventory yet. Non-interactive. */
+function SimilarAdPlaceholder() {
+  return (
+    <div
+      aria-hidden
+      className="flex shrink-0 snap-start flex-col overflow-hidden"
+      style={{
+        flex: "0 0 220px",
+        background: "var(--background-elevated)",
+        border: "1px dashed var(--border)",
+        borderRadius: "var(--r-card)",
+      }}
+    >
+      <div className="grid place-items-center" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
+        <Tag size={22} style={{ color: "var(--foreground-30)" }} />
+      </div>
+      <div className="flex flex-col gap-[6px] p-[12px]">
+        <span className="text-[13px] font-medium" style={{ color: "var(--foreground-50)" }}>Скоро появятся</span>
+      </div>
+    </div>
   );
 }

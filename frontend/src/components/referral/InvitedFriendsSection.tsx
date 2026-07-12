@@ -29,7 +29,7 @@ export function InvitedFriendsSection() {
             color: "var(--accent)",
             fontSize: 12,
             padding: "4px 10px",
-            borderRadius: 999,
+            borderRadius: "var(--r-pill)",
           }}
         >
           <Gift size={12} /> +{bonus} / {REFERRAL_MAX_BONUS}
@@ -42,7 +42,7 @@ export function InvitedFriendsSection() {
           style={{
             padding: "32px 16px",
             border: "1px dashed var(--border)",
-            borderRadius: 14,
+            borderRadius: "var(--r-card)",
             color: "var(--foreground-50)",
           }}
         >
@@ -103,7 +103,7 @@ export function InvitedFriendsSection() {
                       color: "var(--success)",
                       background: "var(--success-soft)",
                       padding: "4px 10px",
-                      borderRadius: 999,
+                      borderRadius: "var(--r-pill)",
                     }}
                   >
                     +1

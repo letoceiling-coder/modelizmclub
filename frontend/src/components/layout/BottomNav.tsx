@@ -1,26 +1,31 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
+import { Newspaper, Users2, MessageSquare, Megaphone, User, UserPlus } from "lucide-react";
 import { getActiveSection } from "@/lib/routes";
 import { useStore } from "@/lib/store";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 type Item = {
-  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
+  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
   label: string;
   icon: typeof Newspaper;
   section: string;
 };
 
-const ITEMS: Item[] = [
+const ALL_ITEMS: Item[] = [
   { to: "/feed", label: "Лента", icon: Newspaper, section: "feed" },
   { to: "/communities", label: "Сообщества", icon: Users2, section: "communities" },
   { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
   { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
   { to: "/profile", label: "Профиль", icon: User, section: "profile" },
+  { to: "/friends", label: "Друзья", icon: UserPlus, section: "friends" },
 ];
-
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  // Обзоры (reviews) lives in the mobile "…" menu, not the tab bar; Друзья
+  // takes the tab-bar slot. Only communities remains flag-gated here.
+  const ITEMS = ALL_ITEMS.filter((i) => i.to !== "/communities" || communitiesEnabled);
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useStore((s) =>
@@ -39,8 +44,8 @@ export function BottomNav() {
       }}
     >
       <ul
-        className="grid grid-cols-5 items-stretch"
-        style={{ height: "var(--bottom-nav-h)" }}
+        className="grid items-stretch"
+        style={{ height: "var(--bottom-nav-h)", gridTemplateColumns: `repeat(${ITEMS.length}, 1fr)` }}
       >
         {ITEMS.map((it) => (
           <NavTab
@@ -68,7 +73,7 @@ function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: n
           <Icon size={22} strokeWidth={active ? 2.4 : 2} />
           {badge > 0 && (
             <span
-              className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+              className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
               style={{
                 height: 15,
                 fontSize: 9,

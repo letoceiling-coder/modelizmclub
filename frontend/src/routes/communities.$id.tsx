@@ -65,7 +65,7 @@ function ContactsBlock({ contacts, compact }: { contacts?: CommunityContacts; co
   return (
     <Card
       className="overflow-hidden shadow-none"
-      style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 14 }}
+      style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
     >
       <h3
         className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider"
@@ -138,7 +138,7 @@ function CommunityPostCard({ post, community, Icon }: { post: Post; community: C
   const img = post.image ?? post.images?.[0];
   const showAvatar = Boolean(community.avatarImage);
   return (
-    <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 14 }}>
+    <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="flex items-center gap-[10px] px-[16px] pt-[14px]">
         <div className="grid h-[38px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-[10px]" style={{ background: "var(--accent-soft)" }}>
           {showAvatar ? (
@@ -187,7 +187,7 @@ function DiscussionRow({ d }: { d: DemoDiscussion }) {
 function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoCommunityEvent) => void }) {
   const [broken, setBroken] = useState(false);
   return (
-    <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 14 }}>
+    <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="relative h-[140px] w-full overflow-hidden" style={{ background: "var(--background-surface)" }}>
         {!broken ? (
           <img src={e.cover} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
@@ -209,7 +209,7 @@ function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoC
           <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
             <span className="font-semibold" style={{ color: "var(--foreground)" }}>{e.attendees}</span> идут
           </span>
-          <Button onClick={() => onSignup(e)} size="sm" className="gap-[6px] rounded-[10px]">
+          <Button onClick={() => onSignup(e)} size="sm" className="gap-[6px]">
             <CalendarDays size={14} /> Записаться
           </Button>
         </div>
@@ -270,7 +270,7 @@ function CommunityRightRail({
       <div className="flex h-full flex-col gap-[14px] overflow-y-auto py-[2px] pr-[2px]" style={{ scrollbarWidth: "thin" }}>
         {/* Online members */}
         {online.length > 0 && (
-          <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: 14 }}>
+          <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
             <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Участники онлайн</h3>
             <div className="mt-[10px] flex flex-wrap gap-[8px]">
               {online.map((m) => (
@@ -289,7 +289,7 @@ function CommunityRightRail({
 
         {/* Upcoming events */}
         {events.length > 0 && (
-          <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: 14 }}>
+          <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
             <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Ближайшие события</h3>
             <div className="mt-[10px] flex flex-col gap-[10px]">
               {events.slice(0, 2).map((e) => (
@@ -309,7 +309,7 @@ function CommunityRightRail({
 
         {/* Similar communities */}
         {fallbackSimilar.length > 0 && (
-          <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: 14 }}>
+          <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
             <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Похожие сообщества</h3>
             <div className="mt-[10px] flex flex-col gap-[8px]">
               {fallbackSimilar.map((c) => {
@@ -437,7 +437,7 @@ function CommunityDetailPage() {
       <AppLayout rightColumn={false}>
         <div className="py-[40px]">
           <EmptyState icon={Users} title="Сообщество не найдено" description="Возможно, оно было удалено или ссылка некорректна">
-            <Button asChild className="rounded-[10px] px-[20px]">
+            <Button asChild className=" px-[20px]">
               <Link to="/communities">Все сообщества</Link>
             </Button>
           </EmptyState>
@@ -556,7 +556,7 @@ function CommunityDetailPage() {
         </Card>
 
         {/* Tabs */}
-        <nav role="tablist" className="flex items-center gap-[2px] overflow-x-auto" style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}>
+        <nav role="tablist" className="flex items-center gap-[2px] overflow-x-auto no-scrollbar" style={{ borderBottom: "1px solid var(--border)" }}>
           {TABS.map((t) => {
             const active = tab === t.key;
             const count =
@@ -573,7 +573,7 @@ function CommunityDetailPage() {
               >
                 {t.label}
                 {count > 0 && t.key !== "about" && (
-                  <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[5px] text-[11px] font-bold" style={{ background: active ? "var(--accent-soft)" : "var(--background-surface)", color: active ? "var(--accent)" : "var(--foreground-50)", borderRadius: 999 }}>
+                  <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[5px] text-[11px] font-bold" style={{ background: active ? "var(--accent-soft)" : "var(--background-surface)", color: active ? "var(--accent)" : "var(--foreground-50)", borderRadius: "var(--r-pill)" }}>
                     {count}
                   </span>
                 )}
@@ -598,7 +598,7 @@ function CommunityDetailPage() {
 
         {tab === "discussions" && (
           discussions.length > 0 ? (
-            <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 14 }}>
+            <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
               <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>Обсуждения</h2>
               <div className="mt-[8px]">{discussions.map((d) => <DiscussionRow key={d.id} d={d} />)}</div>
             </Card>
@@ -619,7 +619,7 @@ function CommunityDetailPage() {
 
         {tab === "members" && (
           memberList.length > 0 ? (
-            <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 14 }}>
+            <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
               <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>Участники</h2>
               <div className="mt-[8px]">{memberList.map((m) => <MemberRow key={m.user.id} m={m} />)}</div>
             </Card>
@@ -630,7 +630,7 @@ function CommunityDetailPage() {
 
         {tab === "about" && (
           <div className="space-y-[16px]">
-            <Card className="px-[16px] py-[20px] shadow-none sm:px-[24px]" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 14 }}>
+            <Card className="px-[16px] py-[20px] shadow-none sm:px-[24px]" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
               <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>О сообществе</h2>
               <p className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.65]" style={{ color: "var(--foreground-70)" }}>
                 {community.fullDescription || community.description}
@@ -656,7 +656,7 @@ function CommunityDetailPage() {
 
         {/* Back link */}
         <div className="pb-[8px]">
-          <Button asChild variant="ghost" className="gap-[6px] rounded-[10px] text-[13px]">
+          <Button asChild variant="ghost" className="gap-[6px] text-[13px]">
             <Link to="/communities"><ArrowLeft size={14} /> Все сообщества</Link>
           </Button>
         </div>

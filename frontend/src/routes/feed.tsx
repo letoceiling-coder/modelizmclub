@@ -10,7 +10,7 @@ import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
-import { EmptyFeedState } from "@/components/feed/EmptyFeedState";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { CreatePostPayload } from "@/components/CreatePostForm";
 import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
@@ -140,7 +140,8 @@ function FeedPage() {
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
   const addPost = (p: CreatePostPayload) => {
-    setPosts([
+    setComposerOpen(false);
+    setPosts((cur) => [
       {
         id: `np${Date.now()}`,
         authorId: me.id,
@@ -160,7 +161,7 @@ function FeedPage() {
         isFollowing: true,
         commentList: [],
       },
-      ...posts,
+      ...cur,
     ]);
   };
 
@@ -178,14 +179,14 @@ function FeedPage() {
         <FeedFilterTabs value={filter} onChange={setFilter} />
 
         {filter === "categories" && (
-          <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0">
+          <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] no-scrollbar lg:mx-0 lg:px-0">
             {categories.map((c) => {
               const active = activeCategory === c.name;
               return (
                 <button
                   key={c.id}
                   onClick={() => setActiveCategory(active ? null : c.name)}
-                  className="shrink-0 rounded-[999px] border px-[14px] py-[6px] text-[13px] transition-colors"
+                  className="shrink-0 rounded-[var(--r-pill)] border px-[14px] py-[6px] text-[13px] transition-colors"
                   style={{
                     background: active ? "var(--accent)" : "var(--background-elevated)",
                     color: active ? "#fff" : "var(--foreground)",
@@ -205,37 +206,31 @@ function FeedPage() {
             Array.from({ length: 3 }).map((_, i) => <PostCardSkeleton key={i} />)
           ) : slice.length === 0 ? (
             filter === "following" ? (
-              <EmptyFeedState
+              <EmptyState
                 icon={UserPlus}
                 title="Здесь пока пусто"
                 description="Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте."
-                ctaLabel="Найти авторов"
-                onCta={() => setFilter("all")}
+                action={{ label: "Найти авторов", onClick: () => setFilter("all") }}
               />
             ) : filter === "categories" && !activeCategory ? (
-              <EmptyFeedState
+              <EmptyState
                 icon={Compass}
                 title="Выберите категорию"
                 description="Отфильтруйте ленту по интересующему вас направлению моделизма."
               />
             ) : filter === "saved" ? (
-              <EmptyFeedState
+              <EmptyState
                 icon={Bookmark}
                 title="Нет сохранённых публикаций"
                 description="Нажмите на иконку закладки у понравившейся публикации."
-                ctaLabel="Вернуться в ленту"
-                onCta={() => setFilter("all")}
+                action={{ label: "Вернуться в ленту", onClick: () => setFilter("all") }}
               />
             ) : (
-              <EmptyFeedState
+              <EmptyState
                 icon={Newspaper}
                 title="Публикаций не найдено"
                 description="В этой категории пока никто ничего не опубликовал."
-                ctaLabel="Показать все"
-                onCta={() => {
-                  setFilter("all");
-                  setActiveCategory(null);
-                }}
+                action={{ label: "Показать все", onClick: () => { setFilter("all"); setActiveCategory(null); } }}
               />
             )
           ) : (

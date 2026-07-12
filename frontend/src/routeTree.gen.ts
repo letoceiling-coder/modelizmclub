@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as SubscriptionRouteImport } from './routes/subscription'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RecoverRouteImport } from './routes/recover'
@@ -32,11 +34,25 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
+import { Route as SettingsWalletRouteImport } from './routes/settings.wallet'
+import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
+import { Route as SettingsRequisitesRouteImport } from './routes/settings.requisites'
+import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
+import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.payment-methods'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
+import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
+import { Route as SettingsDashboardRouteImport } from './routes/settings.dashboard'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
+import { Route as SettingsAccountRouteImport } from './routes/settings.account'
+import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
+import { Route as ReviewsIdRouteImport } from './routes/reviews.$id'
 import { Route as LegalRulesRouteImport } from './routes/legal.rules'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as InfoSlugRouteImport } from './routes/info.$slug'
@@ -57,6 +73,16 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const SubscriptionRoute = SubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -164,6 +190,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReviewsRoute,
+} as any)
 const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -188,6 +224,66 @@ const UserIdRoute = UserIdRouteImport.update({
   id: '/user/$id',
   path: '/user/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsWalletRoute = SettingsWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRequisitesRoute = SettingsRequisitesRouteImport.update({
+  id: '/requisites',
+  path: '/requisites',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRatingRoute = SettingsRatingRouteImport.update({
+  id: '/rating',
+  path: '/rating',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsPaymentMethodsRoute = SettingsPaymentMethodsRouteImport.update({
+  id: '/payment-methods',
+  path: '/payment-methods',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsDashboardRoute = SettingsDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAccountRoute = SettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const ReviewsUploadRoute = ReviewsUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => ReviewsRoute,
+} as any)
+const ReviewsIdRoute = ReviewsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ReviewsRoute,
 } as any)
 const LegalRulesRoute = LegalRulesRouteImport.update({
   id: '/legal/rules',
@@ -267,6 +363,8 @@ export interface FileRoutesByFullPath {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/reviews': typeof ReviewsRouteWithChildren
+  '/settings': typeof SettingsRouteWithChildren
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
@@ -278,11 +376,25 @@ export interface FileRoutesByFullPath {
   '/info/$slug': typeof InfoSlugRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/rules': typeof LegalRulesRoute
+  '/reviews/$id': typeof ReviewsIdRoute
+  '/reviews/upload': typeof ReviewsUploadRoute
+  '/settings/account': typeof SettingsAccountRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/dashboard': typeof SettingsDashboardRoute
+  '/settings/history': typeof SettingsHistoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
+  '/settings/rating': typeof SettingsRatingRoute
+  '/settings/requisites': typeof SettingsRequisitesRoute
+  '/settings/security': typeof SettingsSecurityRoute
+  '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
+  '/reviews/': typeof ReviewsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
@@ -315,11 +427,25 @@ export interface FileRoutesByTo {
   '/info/$slug': typeof InfoSlugRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/rules': typeof LegalRulesRoute
+  '/reviews/$id': typeof ReviewsIdRoute
+  '/reviews/upload': typeof ReviewsUploadRoute
+  '/settings/account': typeof SettingsAccountRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/dashboard': typeof SettingsDashboardRoute
+  '/settings/history': typeof SettingsHistoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
+  '/settings/rating': typeof SettingsRatingRoute
+  '/settings/requisites': typeof SettingsRequisitesRoute
+  '/settings/security': typeof SettingsSecurityRoute
+  '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads': typeof AdsIndexRoute
   '/categories': typeof CategoriesIndexRoute
   '/channels': typeof ChannelsIndexRoute
   '/communities': typeof CommunitiesIndexRoute
+  '/reviews': typeof ReviewsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/categories/$id': typeof CategoriesIdIndexRoute
 }
@@ -346,6 +472,8 @@ export interface FileRoutesById {
   '/recover': typeof RecoverRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/reviews': typeof ReviewsRouteWithChildren
+  '/settings': typeof SettingsRouteWithChildren
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
@@ -357,11 +485,25 @@ export interface FileRoutesById {
   '/info/$slug': typeof InfoSlugRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/rules': typeof LegalRulesRoute
+  '/reviews/$id': typeof ReviewsIdRoute
+  '/reviews/upload': typeof ReviewsUploadRoute
+  '/settings/account': typeof SettingsAccountRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/dashboard': typeof SettingsDashboardRoute
+  '/settings/history': typeof SettingsHistoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
+  '/settings/rating': typeof SettingsRatingRoute
+  '/settings/requisites': typeof SettingsRequisitesRoute
+  '/settings/security': typeof SettingsSecurityRoute
+  '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
+  '/reviews/': typeof ReviewsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
@@ -389,6 +531,8 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/reset-password'
+    | '/reviews'
+    | '/settings'
     | '/subscription'
     | '/verify-email'
     | '/admin/design-system'
@@ -400,11 +544,25 @@ export interface FileRouteTypes {
     | '/info/$slug'
     | '/legal/privacy'
     | '/legal/rules'
+    | '/reviews/$id'
+    | '/reviews/upload'
+    | '/settings/account'
+    | '/settings/appearance'
+    | '/settings/dashboard'
+    | '/settings/history'
+    | '/settings/notifications'
+    | '/settings/payment-methods'
+    | '/settings/rating'
+    | '/settings/requisites'
+    | '/settings/security'
+    | '/settings/wallet'
     | '/user/$id'
     | '/ads/'
     | '/categories/'
     | '/channels/'
     | '/communities/'
+    | '/reviews/'
+    | '/settings/'
     | '/categories/$id/$subId'
     | '/categories/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -437,11 +595,25 @@ export interface FileRouteTypes {
     | '/info/$slug'
     | '/legal/privacy'
     | '/legal/rules'
+    | '/reviews/$id'
+    | '/reviews/upload'
+    | '/settings/account'
+    | '/settings/appearance'
+    | '/settings/dashboard'
+    | '/settings/history'
+    | '/settings/notifications'
+    | '/settings/payment-methods'
+    | '/settings/rating'
+    | '/settings/requisites'
+    | '/settings/security'
+    | '/settings/wallet'
     | '/user/$id'
     | '/ads'
     | '/categories'
     | '/channels'
     | '/communities'
+    | '/reviews'
+    | '/settings'
     | '/categories/$id/$subId'
     | '/categories/$id'
   id:
@@ -467,6 +639,8 @@ export interface FileRouteTypes {
     | '/recover'
     | '/register'
     | '/reset-password'
+    | '/reviews'
+    | '/settings'
     | '/subscription'
     | '/verify-email'
     | '/admin/design-system'
@@ -478,11 +652,25 @@ export interface FileRouteTypes {
     | '/info/$slug'
     | '/legal/privacy'
     | '/legal/rules'
+    | '/reviews/$id'
+    | '/reviews/upload'
+    | '/settings/account'
+    | '/settings/appearance'
+    | '/settings/dashboard'
+    | '/settings/history'
+    | '/settings/notifications'
+    | '/settings/payment-methods'
+    | '/settings/rating'
+    | '/settings/requisites'
+    | '/settings/security'
+    | '/settings/wallet'
     | '/user/$id'
     | '/ads/'
     | '/categories/'
     | '/channels/'
     | '/communities/'
+    | '/reviews/'
+    | '/settings/'
     | '/categories/$id/$subId'
     | '/categories/$id/'
   fileRoutesById: FileRoutesById
@@ -509,6 +697,8 @@ export interface RootRouteChildren {
   RecoverRoute: typeof RecoverRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ReviewsRoute: typeof ReviewsRouteWithChildren
+  SettingsRoute: typeof SettingsRouteWithChildren
   SubscriptionRoute: typeof SubscriptionRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ChannelIdRoute: typeof ChannelIdRoute
@@ -533,6 +723,20 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/subscription'
       preLoaderRoute: typeof SubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -682,6 +886,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/reviews/': {
+      id: '/reviews/'
+      path: '/'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof ReviewsIndexRouteImport
+      parentRoute: typeof ReviewsRoute
+    }
     '/communities/': {
       id: '/communities/'
       path: '/'
@@ -716,6 +934,90 @@ declare module '@tanstack/react-router' {
       fullPath: '/user/$id'
       preLoaderRoute: typeof UserIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/settings/wallet': {
+      id: '/settings/wallet'
+      path: '/wallet'
+      fullPath: '/settings/wallet'
+      preLoaderRoute: typeof SettingsWalletRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/requisites': {
+      id: '/settings/requisites'
+      path: '/requisites'
+      fullPath: '/settings/requisites'
+      preLoaderRoute: typeof SettingsRequisitesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/rating': {
+      id: '/settings/rating'
+      path: '/rating'
+      fullPath: '/settings/rating'
+      preLoaderRoute: typeof SettingsRatingRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/payment-methods': {
+      id: '/settings/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/settings/payment-methods'
+      preLoaderRoute: typeof SettingsPaymentMethodsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/notifications': {
+      id: '/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/history': {
+      id: '/settings/history'
+      path: '/history'
+      fullPath: '/settings/history'
+      preLoaderRoute: typeof SettingsHistoryRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/dashboard': {
+      id: '/settings/dashboard'
+      path: '/dashboard'
+      fullPath: '/settings/dashboard'
+      preLoaderRoute: typeof SettingsDashboardRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/account': {
+      id: '/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof SettingsAccountRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/reviews/upload': {
+      id: '/reviews/upload'
+      path: '/upload'
+      fullPath: '/reviews/upload'
+      preLoaderRoute: typeof ReviewsUploadRouteImport
+      parentRoute: typeof ReviewsRoute
+    }
+    '/reviews/$id': {
+      id: '/reviews/$id'
+      path: '/$id'
+      fullPath: '/reviews/$id'
+      preLoaderRoute: typeof ReviewsIdRouteImport
+      parentRoute: typeof ReviewsRoute
     }
     '/legal/rules': {
       id: '/legal/rules'
@@ -863,6 +1165,53 @@ const CommunitiesRouteWithChildren = CommunitiesRoute._addFileChildren(
   CommunitiesRouteChildren,
 )
 
+interface ReviewsRouteChildren {
+  ReviewsIdRoute: typeof ReviewsIdRoute
+  ReviewsUploadRoute: typeof ReviewsUploadRoute
+  ReviewsIndexRoute: typeof ReviewsIndexRoute
+}
+
+const ReviewsRouteChildren: ReviewsRouteChildren = {
+  ReviewsIdRoute: ReviewsIdRoute,
+  ReviewsUploadRoute: ReviewsUploadRoute,
+  ReviewsIndexRoute: ReviewsIndexRoute,
+}
+
+const ReviewsRouteWithChildren =
+  ReviewsRoute._addFileChildren(ReviewsRouteChildren)
+
+interface SettingsRouteChildren {
+  SettingsAccountRoute: typeof SettingsAccountRoute
+  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsDashboardRoute: typeof SettingsDashboardRoute
+  SettingsHistoryRoute: typeof SettingsHistoryRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsPaymentMethodsRoute: typeof SettingsPaymentMethodsRoute
+  SettingsRatingRoute: typeof SettingsRatingRoute
+  SettingsRequisitesRoute: typeof SettingsRequisitesRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
+  SettingsWalletRoute: typeof SettingsWalletRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccountRoute: SettingsAccountRoute,
+  SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsDashboardRoute: SettingsDashboardRoute,
+  SettingsHistoryRoute: SettingsHistoryRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsPaymentMethodsRoute: SettingsPaymentMethodsRoute,
+  SettingsRatingRoute: SettingsRatingRoute,
+  SettingsRequisitesRoute: SettingsRequisitesRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
+  SettingsWalletRoute: SettingsWalletRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -885,6 +1234,8 @@ const rootRouteChildren: RootRouteChildren = {
   RecoverRoute: RecoverRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ReviewsRoute: ReviewsRouteWithChildren,
+  SettingsRoute: SettingsRouteWithChildren,
   SubscriptionRoute: SubscriptionRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ChannelIdRoute: ChannelIdRoute,

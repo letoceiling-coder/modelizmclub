@@ -11,6 +11,9 @@ export function ThemeToggle({ size = 40 }: { size?: number }) {
       onClick={toggleTheme}
       aria-label="Переключить тему"
       title="Переключить тему"
+      // Theme switching is desktop-only — hidden below lg across every surface
+      // it appears on (auth, landing, onboarding, admin).
+      className="hidden lg:inline-flex"
       style={{
         width: size,
         height: size,
@@ -18,7 +21,6 @@ export function ThemeToggle({ size = 40 }: { size?: number }) {
         background: "var(--background-surface)",
         border: "1px solid var(--border)",
         cursor: "pointer",
-        display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         transition: "background 200ms var(--ease-out-expo)",

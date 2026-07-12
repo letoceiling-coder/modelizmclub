@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
-import { CategoryChips } from "@/components/ads/CategoryChips";
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
@@ -31,6 +30,10 @@ export const Route = createFileRoute("/ads/")({
 
 type LoadState = "idle" | "loading" | "ok" | "error";
 
+// Fetched in batches via per_page/page instead of all at once — keeps the
+// initial catalog payload light (perf, especially on weak mobile networks).
+const PAGE_SIZE = 24;
+
 function countActiveFilters(f: FiltersState): number {
   let n = 0;
   if (f.category !== "Все") n++;
@@ -39,7 +42,6 @@ function countActiveFilters(f: FiltersState): number {
   if (f.conditions.length) n++;
   if (f.priceMin > 0) n++;
   if (f.priceMax < 100000) n++;
-  if (f.withPhotoOnly) n++;
   return n;
 }
 
@@ -59,7 +61,6 @@ function buildParams(
     conditions: filters.conditions.length ? filters.conditions : undefined,
     deliveries: filters.deliveries.length ? filters.deliveries : undefined,
     listingStatus: filters.status !== "Все" ? filters.status : undefined,
-    withPhotoOnly: filters.withPhotoOnly || undefined,
     sort,
   };
 }
@@ -71,6 +72,9 @@ function CatalogPage() {
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState(search.q ?? "");
 
   useEffect(() => {
@@ -86,26 +90,56 @@ function CatalogPage() {
     setLoadState("loading");
     try {
       const params = buildParams(q, filters, sort);
-      const result = await fetchListings(params);
+      const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: 1 });
       setAds(result);
+      setPage(1);
+      setHasMore(result.length === PAGE_SIZE);
       setLoadState("ok");
     } catch {
       setLoadState("error");
     }
   }, [q, filters, sort]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const params = buildParams(q, filters, sort);
+      const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: nextPage });
+      setAds((prev) => [...prev, ...result]);
+      setPage(nextPage);
+      setHasMore(result.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page, q, filters, sort]);
+
+  // Debounced: `load` changes identity on every keystroke into text filters
+  // (search query, city — CitySelect's own dropdown-suggestion debounce fires
+  // separately and doesn't cover this). Without this, the whole grid
+  // re-fetches and re-renders (loading skeleton flash) on every letter typed.
+  // The very first load (mount) skips the debounce so the page doesn't sit
+  // blank for 350ms before showing the loading skeleton.
+  const isFirstLoad = useRef(true);
   useEffect(() => {
-    void load();
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      void load();
+      return;
+    }
+    const timer = setTimeout(() => {
+      void load();
+    }, 350);
+    return () => clearTimeout(timer);
   }, [load]);
 
   function resetFilters() {
     setFilters(DEFAULT_FILTERS);
     setQ("");
     setSort("new");
-  }
-
-  function handleCategoryChip(name: string) {
-    setFilters((prev) => ({ ...prev, category: name, subcategory: "Все" }));
   }
 
   const hasAnyFilter = activeFilterCount > 0 || q;
@@ -162,12 +196,6 @@ function CatalogPage() {
             </Link>
           )}
         </div>
-
-        {/* Category chips */}
-        <CategoryChips
-          value={filters.category}
-          onChange={handleCategoryChip}
-        />
 
         {/* Content — persistent filter panel (xl+) + grid; drawer on <xl */}
         <div className="flex gap-[20px]">
@@ -281,11 +309,20 @@ function CatalogPage() {
             )}
 
             {loadState === "ok" && ads.length > 0 && (
-              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                {ads.map((ad) => (
-                  <CatalogCard key={ad.id} ad={ad} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+                  {ads.map((ad) => (
+                    <CatalogCard key={ad.id} ad={ad} />
+                  ))}
+                </div>
+                {hasMore && (
+                  <div className="mt-[16px] flex justify-center">
+                    <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
+                      {loadingMore ? "Загружаем…" : "Показать ещё"}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

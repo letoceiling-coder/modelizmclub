@@ -1,5 +1,3 @@
-import { motion } from "framer-motion";
-
 export type FeedFilter = "all" | "following" | "categories" | "saved";
 
 interface Props {
@@ -7,10 +5,14 @@ interface Props {
   onChange: (v: FeedFilter) => void;
 }
 
+// Labels kept short so all four tabs fit a 360px viewport WITHOUT horizontal
+// scroll: the strip is sticky (always under the finger while scrolling), and
+// an overflowing strip pans sideways on diagonal gestures — the reported
+// "feed drifts left-right" jank.
 const items: { id: FeedFilter; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "following", label: "Подписки" },
-  { id: "categories", label: "По категориям" },
+  { id: "categories", label: "Направления" },
   { id: "saved", label: "Сохранённое" },
 ];
 
@@ -23,28 +25,22 @@ export function FeedFilterTabs({ value, onChange }: Props) {
         borderColor: "var(--border)",
       }}
     >
-      <div className="flex gap-[4px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex justify-between sm:justify-start sm:gap-[4px]">
         {items.map((it) => {
           const active = value === it.id;
           return (
             <button
               key={it.id}
               onClick={() => onChange(it.id)}
-              className="relative shrink-0 whitespace-nowrap px-[16px] py-[12px] text-[14px] transition-colors"
+              className="shrink-0 whitespace-nowrap px-[6px] py-[12px] text-[13.5px] transition-colors sm:px-[16px] sm:text-[14px]"
               style={{
                 color: active ? "var(--accent)" : "var(--foreground-70)",
                 fontWeight: active ? 600 : 500,
+                // Static underline — no cross-strip flight animation.
+                boxShadow: active ? "inset 0 -2px 0 var(--accent)" : "none",
               }}
             >
               {it.label}
-              {active && (
-                <motion.span
-                  layoutId="feed-filter-underline"
-                  className="absolute inset-x-[8px] -bottom-[1px] h-[2px] rounded-full"
-                  style={{ background: "var(--accent)" }}
-                  transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                />
-              )}
             </button>
           );
         })}

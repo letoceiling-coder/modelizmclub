@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { login } from "@/lib/api/auth";
@@ -32,9 +33,10 @@ function LoginPage() {
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
+    const remember = form.get("remember") === "on";
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, remember);
       resetSessionCache();
       setCurrentUser(user);
       toast.success(t("authPages.loginSuccess"));
@@ -94,12 +96,12 @@ function LoginPage() {
         </>
       }
     >
-      <form onSubmit={submit} className="space-y-[12px]">
-        <Input required name="email" type="email" placeholder={t("auth.email")} error={fieldError} />
-        <Input required name="password" type="password" placeholder={t("auth.password")} error={fieldError} />
+      <form onSubmit={submit} className="space-y-[12px]" autoComplete="on">
+        <Input required name="email" type="email" autoComplete="email" placeholder={t("auth.email")} error={fieldError} />
+        <PasswordInput required name="password" autoComplete="current-password" placeholder={t("auth.password")} error={fieldError} />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="checkbox" defaultChecked style={{ accentColor: "var(--accent)" }} />
+            <input type="checkbox" name="remember" defaultChecked style={{ accentColor: "var(--accent)" }} />
             {t("authPages.rememberMe")}
           </label>
           <Link to="/recover" style={{ color: "var(--accent)", fontWeight: 600 }}>

@@ -121,8 +121,9 @@ export interface CatalogParams {
   deliveries?: string[];
   listingStatus?: string;
   sort?: "new" | "cheap" | "expensive" | "popular";
-  withPhotoOnly?: boolean;
   perPage?: number;
+  /** 1-based page number, for "load more" pagination. Defaults to 1. */
+  page?: number;
 }
 
 export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
@@ -133,8 +134,8 @@ export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
       city_id: params.cityId || undefined,
       price_min: params.priceMin || undefined,
       price_max: params.priceMax || undefined,
-      has_media: params.withPhotoOnly ? 1 : undefined,
       per_page: params.perPage ?? 50,
+      page: params.page && params.page > 1 ? params.page : undefined,
       sort: params.sort || undefined,
     },
   });
@@ -191,6 +192,17 @@ export async function fetchListing(uuid: string): Promise<Ad> {
   }
   const res = await api<{ data: ApiListing }>(`/listings/${uuid}`);
   return mapListing(res.data);
+}
+
+export async function revealSellerPhone(adId: string): Promise<string> {
+  if (isDemoMode()) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const ad = demoListing(adId);
+    if (!ad?.seller?.phone) throw new Error("no phone");
+    return ad.seller.phone;
+  }
+  const res = await api<{ data: { phone: string } }>(`/listings/${adId}/reveal-phone`, { method: "POST" });
+  return res.data.phone;
 }
 
 export async function publishListing(uuid: string): Promise<void> {

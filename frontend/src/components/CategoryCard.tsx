@@ -11,7 +11,7 @@ export function CategoryCard({ c }: { c: Category }) {
     <Link
       to="/categories/$id"
       params={{ id: c.id }}
-      className="group flex flex-col rounded-xl border bg-card p-4 transition-all hover:border-[var(--accent)] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      className="group flex flex-col rounded-xl border bg-card p-4 transition hover:border-[var(--neutral-400)] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       aria-label={t("pages.categories.openCategory", { name: c.name })}
     >
       <div className="flex items-center gap-3">

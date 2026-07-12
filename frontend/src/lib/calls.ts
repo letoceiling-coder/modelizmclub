@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 // Exposes the same module-store API the call UI already consumes.
 
 import { useSyncExternalStore } from "react";

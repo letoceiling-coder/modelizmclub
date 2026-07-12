@@ -130,7 +130,7 @@ export async function updateAdminUser(
   return mapAdminUser(res.data);
 }
 
-export type ModerationType = "posts" | "communities";
+export type ModerationType = "posts" | "communities" | "videos";
 
 export interface ModerationItem {
   id: number;
@@ -157,7 +157,9 @@ interface ApiModerationItem {
 }
 
 function moderationTypeFromClass(cls?: string): ModerationType {
-  return cls === "Community" ? "communities" : "posts";
+  if (cls === "Community") return "communities";
+  if (cls === "Video") return "videos";
+  return "posts";
 }
 
 export async function fetchModerationQueue(status = "pending"): Promise<ModerationItem[]> {

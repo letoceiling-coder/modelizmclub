@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -11,12 +11,12 @@ import type { Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
   setDialogs, setDialogMessages, replaceMessage, upsertMessage,
-  GUEST_USER,
+  GUEST_USER, getState,
 } from "@/lib/store";
 import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
-  createConversation, uploadChatAttachment, sendAttachmentMessage,
+  uploadChatAttachment, sendAttachmentMessage,
   hideMessageForMe, pinMessage as apiPinMessage,
 } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -28,8 +28,6 @@ import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
-import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import { DialogContextMenu } from "@/components/messenger/DialogContextMenu";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
@@ -38,12 +36,13 @@ import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
 import { CallsList } from "@/components/calls/CallsList";
 import { useChannels, formatCount } from "@/lib/channels";
 import { Link } from "@tanstack/react-router";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 export const Route = createFileRoute("/messenger")({
@@ -107,6 +106,7 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
 
 function MessageImage({ src }: { src: string }) {
   const [broken, setBroken] = useState(false);
+  const [open, setOpen] = useState(false);
   if (broken) {
     return (
       <div
@@ -118,13 +118,23 @@ function MessageImage({ src }: { src: string }) {
     );
   }
   return (
-    <img
-      src={src}
-      alt=""
-      className="mb-[6px] max-h-[320px] w-full object-cover"
-      style={{ borderRadius: "12px", maxWidth: 280 }}
-      onError={() => setBroken(true)}
-    />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Открыть фото на весь экран"
+        className="mb-[6px] block cursor-zoom-in p-0"
+      >
+        <img
+          src={src}
+          alt=""
+          className="max-h-[320px] w-full object-cover"
+          style={{ borderRadius: "12px", maxWidth: 280 }}
+          onError={() => setBroken(true)}
+        />
+      </button>
+      {open && <ImageLightbox src={src} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -179,7 +189,10 @@ function MessageBubble({
         onTouchEnd={cancelLongPress}
         onTouchMove={cancelLongPress}
       >
-        <div className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+        {/* Hover affordance is desktop-only: on mobile the same menu opens via
+            long-press → portal bottom-sheet, so this off-bubble trigger would
+            only push the row past the viewport (horizontal overflow). */}
+        <div className={`absolute top-1/2 hidden -translate-y-1/2 sm:block ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
           <MessageActionsMenu
             ref={menuRef}
             isMe={isMe}
@@ -225,7 +238,7 @@ function MessageBubble({
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
-            <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
               {msg.text}
             </div>
           )}
@@ -251,6 +264,7 @@ function MessengerPage() {
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
   const { chat } = Route.useSearch();
+  const navigate = useNavigate();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [text, setText] = useState("");
@@ -260,21 +274,27 @@ function MessengerPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
-  const [createOpen, setCreateOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
 
 
-  // Respond to ?chat= search-param changes (e.g. "Написать" from another page)
+  // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
+  // Deps include `dlgs`, whose reference changes on every store dispatch
+  // (useStore's snapshot memo), not just when dialogs actually change — so
+  // this can re-fire for unrelated updates while `chat` is still set to a
+  // dialog the user just deleted (deselectDialog's navigate() clearing the
+  // URL is async and can lose the race). Guard against re-selecting a
+  // dialog that's been locally deleted.
   useEffect(() => {
     if (!chat) return;
     const dlg = dlgs.find((d) => d.id === chat);
     if (!dlg) return;
+    if (dialogMetaMap[chat]?.deletedLocally) return;
     setActiveId(chat);
     setMobileView("chat");
     if (dlg.unread) actions.markRead(chat);
-  }, [chat, dlgs]);
+  }, [chat, dlgs, dialogMetaMap]);
 
   useEffect(() => {
     let alive = true;
@@ -321,7 +341,21 @@ function MessengerPage() {
     let alive = true;
     setChatLoading(true);
     fetchMessages(activeId)
-      .then((msgs) => { if (alive) setDialogMessages(activeId, msgs); })
+      .then(async (msgs) => {
+        if (!alive) return;
+        setDialogMessages(activeId, msgs);
+        const pending = getState().pendingDialogMessages[activeId];
+        if (pending) {
+          try {
+            const saved = await apiSendMessage(activeId, pending);
+            actions.addMessage(activeId, saved);
+          } catch {
+            /* delivery-choice message is best-effort; conversation itself already exists */
+          } finally {
+            actions.clearPendingMessage(activeId);
+          }
+        }
+      })
       .catch(() => {})
       .finally(() => { if (alive) setChatLoading(false); });
     return () => { alive = false; };
@@ -333,6 +367,7 @@ function MessengerPage() {
     const id = activeId;
     const tick = () => {
       if (isEchoConnected()) return;
+      if (getState().pendingDialogMessages[id]) return; // avoid clobbering while the delivery-choice flush (other effect) is in flight
       fetchMessages(id)
         .then((msgs) => setDialogMessages(id, msgs))
         .catch(() => {});
@@ -372,6 +407,7 @@ function MessengerPage() {
     const q = query.trim().toLowerCase();
     const base = dlgs.filter((d) => {
       const m = getMeta(d.id);
+      if (m.deletedLocally) return false;
       return showArchived ? m.archived : !m.archived;
     });
     const searched = !q
@@ -389,31 +425,9 @@ function MessengerPage() {
   }, [dlgs, query, dialogMetaMap, showArchived]);
 
   const archivedCount = useMemo(
-    () => dlgs.filter((d) => getMeta(d.id).archived).length,
+    () => dlgs.filter((d) => { const m = getMeta(d.id); return m.archived && !m.deletedLocally; }).length,
     [dlgs, dialogMetaMap]
   );
-
-  const handleCreateChat = async (userId: string) => {
-    const partner = userById(userId);
-    if (!partner.numericId) {
-      toast.error("Не удалось открыть диалог");
-      return;
-    }
-    try {
-      const dialog = await createConversation(partner.numericId, meId);
-      const list = await fetchConversations(meId);
-      setDialogs(list);
-      setCreateOpen(false);
-      setActiveId(dialog.id);
-      setMobileView("chat");
-      setShowArchived(false);
-      actions.markRead(dialog.id);
-      toast.success("Чат открыт", { description: "Можете начать переписку прямо сейчас" });
-    } catch {
-      toast.error("Не удалось открыть диалог");
-    }
-  };
-
 
   useEffect(() => {
     if (!scrollRef.current || chatLoading) return;
@@ -425,6 +439,18 @@ function MessengerPage() {
     setMobileView("chat");
     setReplyTo(null);
     actions.markRead(id);
+  };
+
+  // Used after "Удалить чат". Also clears the ?chat= search param when it
+  // points at the deleted dialog — otherwise the sync-from-URL effect above
+  // (deps: [chat, dlgs]) re-fires on the next store dispatch (dlgs gets a new
+  // array reference from useStore's snapshot memo on every dispatch, even
+  // when the dialogs themselves didn't change) and silently re-selects the
+  // just-deleted dialog right back.
+  const deselectDialog = (id: string) => {
+    setActiveId(null);
+    setMobileView("list");
+    if (chat === id) void navigate({ to: "/messenger", search: {} });
   };
 
   const [dialogCtxMenu, setDialogCtxMenu] = useState<{ dialogId: string; point: { x: number; y: number } } | null>(null);
@@ -497,6 +523,10 @@ function MessengerPage() {
     };
     actions.addMessage(dialogId, optimistic);
     setReplyTo(null);
+    // Demo mode has no media backend — the optimistic message already carries a
+    // playable blob URL + waveform + duration, so it IS the final message. Skip
+    // the upload/send (which would 404 against no backend) and keep the blob.
+    if (isDemoMode()) return;
     try {
       const { uuid } = await uploadVoice(blob, durationSec);
       const saved = await apiSendVoiceMessage(dialogId, uuid, durationSec, replyId);
@@ -589,9 +619,13 @@ function MessengerPage() {
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} hideMobileHeader hideBottomNav={mobileView === "chat"}>
       <div
-        className="grid overflow-hidden h-[calc(100dvh-var(--mobile-header-h)-var(--bottom-nav-space)-28px)] md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]"
+        className={`grid overflow-hidden ${
+          mobileView === "chat"
+            ? "h-[calc(100dvh-var(--safe-top)-var(--safe-bottom)-24px)]"
+            : "h-[calc(100dvh-var(--safe-top)-var(--bottom-nav-space)-28px)]"
+        } md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]`}
         style={{
           background: "var(--background)",
           border: "1px solid var(--border)",
@@ -614,18 +648,8 @@ function MessengerPage() {
                   aria-label="Поиск диалога"
                 />
               </div>
-              <Button
-                type="button"
-                size="icon"
-                onClick={() => setCreateOpen(true)}
-                aria-label="Новый чат"
-                title="Новый чат"
-                className="shrink-0 rounded-[10px]"
-              >
-                <Plus size={18} />
-              </Button>
             </div>
-            <div className="flex items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center gap-[16px] overflow-x-auto no-scrollbar" style={{ borderBottom: "1px solid var(--border)" }}>
               {([
                 { key: "chats-active" as const, label: "Активные" },
                 { key: "channels" as const, label: "Каналы" },
@@ -648,12 +672,12 @@ function MessengerPage() {
                         setShowArchived(t.key === "chats-archive");
                       }
                     }}
-                    className="inline-flex shrink-0 items-center text-[12px] font-semibold transition-colors"
+                    className="shrink-0 text-[13px] transition-colors"
                     style={{
-                      height: 28, padding: "0 12px", borderRadius: 999,
-                      background: isActive ? "var(--accent-soft)" : "transparent",
+                      height: 32,
+                      fontWeight: isActive ? 600 : 500,
                       color: isActive ? "var(--accent)" : "var(--foreground-50)",
-                      border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
+                      borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
                     {t.label}
@@ -685,12 +709,14 @@ function MessengerPage() {
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
-              <motion.ul initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}>
+              <ul>
                 {filtered.map((d) => {
                   const u = userById(d.userId);
                   const isActive = d.id === activeId;
+                  const isUnread = !!d.unread && !getMeta(d.id).muted;
+                  const adRef = dialogAdRefs[d.id];
                   return (
-                    <motion.li key={d.id} variants={{ hidden: { opacity: 0, x: -16 }, visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } } }}>
+                    <li key={d.id}>
                       <button
                         onClick={() => {
                           if (suppressNextDialogClick.current) {
@@ -727,15 +753,34 @@ function MessengerPage() {
                               {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                             </span>
-                            <TimeAgo iso={d.time} className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }} />
+                            <TimeAgo
+                              iso={d.time}
+                              className="shrink-0 font-mono text-[11px]"
+                              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)", fontWeight: isUnread ? 700 : 400 }}
+                            />
                           </div>
-                          <div className="truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage}</div>
+                          <div
+                            className="truncate text-[13px]"
+                            style={{ color: isUnread ? "var(--foreground)" : "var(--foreground-50)", fontWeight: isUnread ? 600 : 400 }}
+                          >
+                            {d.lastMessage}
+                          </div>
+                          {adRef && (
+                            <div className="mt-[4px] flex items-center gap-[6px]">
+                              {adRef.image ? (
+                                <img src={adRef.image} alt="" className="h-[18px] w-[18px] shrink-0 rounded-[4px] object-cover" />
+                              ) : (
+                                <div className="h-[18px] w-[18px] shrink-0 rounded-[4px]" style={{ background: "var(--background-surface)" }} />
+                              )}
+                              <span className="truncate text-[11px]" style={{ color: "var(--foreground-50)" }}>{adRef.title}</span>
+                            </div>
+                          )}
                         </div>
                         {!!d.unread && !getMeta(d.id).muted && (
                           <Badge
                             variant="default"
                             withIcon={false}
-                            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[6px] py-0 text-[11px] leading-none"
+                            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[6px] py-0 text-[11px] leading-none tabular-nums"
                           >
                             {d.unread}
                           </Badge>
@@ -757,10 +802,10 @@ function MessengerPage() {
                         </span>
 
                       </button>
-                    </motion.li>
+                    </li>
                   );
                 })}
-              </motion.ul>
+              </ul>
             )}
           </div>
         </aside>
@@ -800,8 +845,13 @@ function MessengerPage() {
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
-                  <span className="hidden sm:block"><LanguageSwitcher /></span>
-                  <ChatHeaderActions partnerId={partner!.id} partnerName={partner!.name} dialogId={active.id} pinned={Boolean(active.pinned)} />
+                  <ChatHeaderActions
+                    partnerId={partner!.id}
+                    partnerName={partner!.name}
+                    dialogId={active.id}
+                    pinned={Boolean(active.pinned)}
+                    onDeleted={() => deselectDialog(active.id)}
+                  />
                 </div>
 
 
@@ -914,33 +964,36 @@ function MessengerPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <div className="relative flex items-end gap-[8px] px-[12px] py-[10px]" style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
+                {/* Composer: attach · photo · input · mic/send — one optical
+                    line (items-end), equal 44px tap targets, equal gaps. Attach
+                    controls live outside the pill so the row reads as one set. */}
+                <div className="relative flex items-end gap-[4px] px-[8px] py-[8px]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
+                  <AttachmentMenu onPick={handleAttachment} />
+                  <input
+                    ref={quickPhotoRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleQuickPhoto}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => quickPhotoRef.current?.click()}
+                    className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[40px] sm:w-[40px]"
+                    aria-label="Быстрое фото"
+                  >
+                    <ImagePlus size={18} />
+                  </Button>
                   <div
-                    className="flex flex-1 items-end gap-[4px] pl-[6px] pr-[4px]"
+                    className="flex min-w-0 flex-1 items-center px-[14px]"
                     style={{
-                      minHeight: 42,
+                      minHeight: 44,
                       background: "var(--background-surface)",
                       borderRadius: 22,
                       border: "1px solid var(--border)",
                     }}
                   >
-                    <AttachmentMenu onPick={handleAttachment} />
-                    <input
-                      ref={quickPhotoRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleQuickPhoto}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => quickPhotoRef.current?.click()}
-                      className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[36px] sm:w-[36px]"
-                      aria-label="Быстрое фото"
-                    >
-                      <ImagePlus size={18} />
-                    </Button>
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
@@ -952,10 +1005,10 @@ function MessengerPage() {
                       }}
                       placeholder="Сообщение..."
                       rows={1}
-                      className="flex-1 resize-none bg-transparent text-[14px] outline-none"
+                      className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
-                        minHeight: 36, maxHeight: 120,
-                        padding: "9px 4px",
+                        minHeight: 24, maxHeight: 120,
+                        padding: "0",
                         color: "var(--foreground)",
                         lineHeight: 1.35,
                       }}
@@ -965,7 +1018,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[42px] sm:w-[42px]"
+                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px]"
                       aria-label="Отправить"
                     >
                       <Send size={18} />
@@ -980,7 +1033,6 @@ function MessengerPage() {
           )}
         </section>
       </div>
-      <CreateChatDialog open={createOpen} onClose={() => setCreateOpen(false)} onPick={handleCreateChat} />
       <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
       <DialogContextMenu
         point={dialogCtxMenu?.point ?? null}
@@ -1002,6 +1054,12 @@ function MessengerPage() {
           if (!dialogCtxMenu) return;
           if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
           actions.clearHistory(dialogCtxMenu.dialogId);
+        }}
+        onDeleteChat={() => {
+          if (!dialogCtxMenu) return;
+          if (!window.confirm("Удалить чат? Переписка исчезнет из списка.")) return;
+          actions.setDialogMeta(dialogCtxMenu.dialogId, { deletedLocally: true });
+          if (activeId === dialogCtxMenu.dialogId) deselectDialog(dialogCtxMenu.dialogId);
         }}
       />
     </AppLayout>
@@ -1086,7 +1144,7 @@ function ChannelsList({ query }: { query: string }) {
               {subscribed && (
                 <span
                   className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: 999 }}
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}
                 >
                   <Check size={11} /> Подписан
                 </span>
