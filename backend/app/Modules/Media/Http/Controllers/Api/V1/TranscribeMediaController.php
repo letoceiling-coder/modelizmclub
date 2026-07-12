@@ -30,6 +30,18 @@ class TranscribeMediaController extends Controller
             return response()->json(['text' => $existing->text, 'lang' => $existing->lang]);
         }
 
+        if (config('media.transcription.stub')) {
+            $text = (string) config('media.transcription.stub_text');
+            $lang = (string) config('media.transcription.stub_lang');
+
+            MediaTranscript::query()->updateOrCreate(
+                ['media_id' => $media->id],
+                ['text' => $text, 'lang' => $lang],
+            );
+
+            return response()->json(['text' => $text, 'lang' => $lang]);
+        }
+
         return response()->json([
             'message' => 'Расшифровка недоступна — STT-провайдер не подключён.',
         ], 503);

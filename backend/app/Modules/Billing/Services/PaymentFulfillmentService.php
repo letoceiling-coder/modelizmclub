@@ -39,6 +39,10 @@ class PaymentFulfillmentService
             if (($locked->metadata['payable_type'] ?? null) === 'listing_boost') {
                 $this->activateListingBoost($locked);
             }
+
+            if (($locked->metadata['payable_type'] ?? null) === 'listing_placement') {
+                $locked->user->increment('listing_placement_credits');
+            }
         });
     }
 

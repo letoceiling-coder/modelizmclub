@@ -3,10 +3,13 @@
 namespace Modules\Report\Services;
 
 use App\Models\Comment;
+use App\Models\Conversation;
 use App\Models\Listing;
+use App\Models\Message;
 use App\Models\Post;
 use App\Models\Report;
 use App\Models\User;
+use App\Models\Video;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,6 +28,9 @@ class ReportService
         'listing' => Listing::class,
         'comment' => Comment::class,
         'user' => User::class,
+        'video' => Video::class,
+        'conversation' => Conversation::class,
+        'message' => Message::class,
     ];
 
     public function create(User $reporter, string $type, string $targetUuid, string $reason, ?string $description): Report
@@ -110,7 +116,7 @@ class ReportService
     private function targetOwnerId(Model $target): ?int
     {
         return match (true) {
-            $target instanceof Post, $target instanceof Listing, $target instanceof Comment => (int) $target->user_id,
+            $target instanceof Post, $target instanceof Listing, $target instanceof Comment, $target instanceof Message => (int) $target->user_id,
             default => null,
         };
     }

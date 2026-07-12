@@ -15,6 +15,11 @@
 view-history, seller stats, delete conversation, review_video upload, video moderation) закрыты
 на **master** (2026-07-12). Backend + frontend wiring без изменения UI.
 
+**Обновление 2026-07-12 (backend completeness):** закрыты также Stage 2 (привязка карт,
+stub + ЮKassa), Stage 5 (буст), Stage 6 (stats/views-daily), разовое размещение 99 ₽
+(`payable_type=listing_placement`), 2FA (`POST /account/2fa/*`), расширение жалоб
+(`video`/`conversation`/`message`), транскрибация (stub-режим `MEDIA_TRANSCRIPTION_STUB`).
+
 | № | Что | Статус | Где |
 |---|---|---|---|
 | 1 | Каталог с фильтрами (`city_id`, `sort`, …) | `Done` | `IndexListingsController`, `ListingService` |
@@ -34,6 +39,25 @@ view-history, seller stats, delete conversation, review_video upload, video mode
 
 **По ранним пунктам (№1–14) открытых backend-задач нет** — на проде всё
 включается, когда `isDemoMode()` false и есть валидный токен.
+
+**Открытые backend-задачи** (после полного закрытия seller-cabinet Stage 1–6):
+
+| Область | Статус | Комментарий |
+|---|---|---|
+| Эквайринг ВТБ/ЮKassa на проде | `Infra` | Код готов; на VPS `stub` без env-ключей |
+| Сброс пароля P0 (#16) | `Investigate` | Контракт фронта верный; нужен E2E на сервере |
+| Delivery CDEK/Yandex полный цикл (#21) | `Deferred` | API есть, UI настройки профиля нет |
+| reveal-phone анти-скрапинг (#22) | `Deferred` | `POST /listings/{uuid}/reveal-phone` есть, защита — отдельный проект |
+| Видео CDN/транскодинг (#23) | `Deferred` | MVP: прямой MP4 через `POST /media` |
+| SSR-prefetch лендинга | `Frontend-only` | |
+| Настройки `/settings` роут (#6) | `Frontend-only` | Страница есть, backend для неё закрыт |
+
+**seller-cabinet Stage 1–6:** backend **закрыт** (2026-07-12). Demo-режим и смоук без
+реальных ключей эквайринга — ожидаемо.
+
+---
+
+_Ниже — исторические разделы №1–25 и этапы seller-cabinet (детальный контракт)._
 
 **Открытые backend-задачи** сгруппированы ниже: №15–25 (загрузка файлов,
 сброс пароля P0-баг №16, feature-flags №17, телефон №18, delivery №21,
@@ -958,9 +982,13 @@ See #18 for the full write-up (field missing from `RegisterRequest`/`UpdateProfi
 - Auth: required for writes; public-readable on `GET /users/{id}` if these should show on a public profile (product decision, not specified here).
 - Frontend: `settings.account.tsx` Соцсети card, currently `localStorage` (`modelizm_account_extra`), no format validation beyond trim.
 
-### 24.12 Двухфакторная аутентификация — не реализовано, только placeholder
-`POST /account/2fa/setup` (returns a QR/secret), `POST /account/2fa/verify` (confirms a code), `POST /account/2fa/disable`.
-- Frontend currently ships **only an inert UI placeholder** (a disabled row with a "Скоро" badge, no click handler) — deliberately not an interactive/functional setup flow, to avoid presenting protection that doesn't exist. No client-side 2FA logic exists to wire up; this would be new frontend work, not a connect-the-existing-UI task like the others in this entry.
+### 24.12 Двухфакторная аутентификация
+
+**Статус:** `Done` (2026-07-12) — `POST /account/2fa/setup`, `POST /account/2fa/verify`,
+`POST /account/2fa/disable` (TOTP, без внешних пакетов). Frontend UI — placeholder «Скоро»;
+подключение wiring — отдельная frontend-задача без изменения визуала.
+
+_Историческая запись:_
 
 ### 24.13 Привязка способов оплаты — explicitly not simulated
 No saved-payment-method / card-binding UI exists anywhere in the frontend, and none was added as part of the Настройки work. `components/PaymentModal.tsx` is an existing, unused, self-labelled prototype stub for one-shot checkout ("В production будет подключена оплата через ЮKassa или Т-Банк. Сейчас это заглушка для прототипа.") — it is not a saved-methods vault and has no importers. A real payment-method feature requires a PCI-scope decision (tokenized vault via a provider, most likely ЮKassa или Т-Банк per the existing stub's own note) that is out of scope for frontend-only work. No endpoint shape is proposed here since the provider integration approach isn't decided.
@@ -983,7 +1011,10 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
 
 ## 25. Транскрибация голосовых сообщений (speech-to-text)
 
-Лендинг рекламирует «Голосовые сообщения с транскрибацией» (Pro). Фронтенд
+**Статус:** `Done` (stub, 2026-07-12) — `POST /media/{uuid}/transcribe` возвращает текст
+при `MEDIA_TRANSCRIPTION_STUB=true` (по умолчанию). Реальный STT-провайдер — infra на будущее.
+
+_Историческая спецификация:_
 показывает только UI раскрытия (тоггл «Показать текст» под голосовым сообщением)
 плюс честное состояние «Расшифровка недоступна»; распознавание речи на клиенте
 НЕ выполняется и не имитируется.
@@ -1049,9 +1080,8 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
   редирект на хостинговую страницу провайдера, а этот компонент —
   self-labeled прототип, который имитирует успешную оплату. Оставлен как
   dead-code (нет импортёров); удаление/замена — отдельным решением.
-- **Разовое размещение (99 ₽) и бусты объявлений** — другой payable-тип,
-  текущий `CreatePaymentController` принимает только `plan_slug` (подписка).
-  Это Stage 5, здесь кнопка оставлена как честный toast.
+- **Разовое размещение (99 ₽)** — `Done`: `POST /payments` с `payable_type: "listing_placement"`,
+  после оплаты начисляется `users.listing_placement_credits`.
 - **Смоук-тест** «кнопка → вебхук → смена статуса подписки» помечен
   **pending**: требует включённого backend-эквайринга (или stub-контура) и
   реального запуска — на demo-хостах не проверяется.
@@ -1065,16 +1095,16 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
 размещение) — отдельная сущность от реквизитов **выплат** продавцу (см.
 ниже, вторая половина Stage 2 — на паузе). Эндпоинты backend-owned.
 
-### Контракт (нужно реализовать на бэке)
+### Контракт (реализовано на бэке, 2026-07-12)
 
 - `GET /account/payment-methods` → `{ "data": [ { "id": string, "brand": string, "last4": string, "is_default"?: bool } ] }`.
 - `POST /account/payment-methods` → `{ "data": { "binding_url": string } }`.
-  Создаёт у эквайринга (ВТБ/ЮKassa) заказ на привязку карты и возвращает URL
-  его хостинговой страницы ввода карты. Провайдер после токенизации (обычно
-  холд/возврат небольшой суммы) возвращает пользователя на
-  `/settings/payment-methods?card=added|failed` — фронт читает этот параметр.
-- `DELETE /account/payment-methods/{id}` → 200/204. Отзывает токен карты у
-  провайдера.
+  Stub: `binding_url` ведёт на `/api/v1/account/payment-methods/bind/complete?token=…`.
+  ЮKassa: `save_payment_method` + redirect на хостинговую страницу.
+- `DELETE /account/payment-methods/{id}` → 200/204.
+- `GET /account/payment-methods/bind/complete` — callback stub (без auth).
+
+**Статус:** `Done` — `CardBindingService`, тест `BackendCompletenessTest::test_stub_card_binding_flow`.
 
 ### 🔒 Безопасность (обязательное требование)
 
@@ -1222,11 +1252,10 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
 
 ## Платное продвижение объявлений — буст (seller-cabinet-v1, Stage 5)
 
-⚠️ В отличие от этапов 1–4, у Stage 5 **на бэке нет ничего, кроме сырых
-таблиц** (`listing_promotions`, `listing_pricing_rules`). Нет API прайсинга,
-нет флоу оплаты буста (`CreatePaymentController` принимает только
-`plan_slug`), и `ListingResource` **не отдаёт** признак продвижения. Фронт
-построен против контракта ниже — его нужно реализовать целиком.
+**Статус:** `Done` (2026-07-12) — `GET /listings/boost-packages`, `POST /listings/{uuid}/promote`,
+`ListingResource` с `is_promoted`/`promoted_until`, оплата через эквайринг-инфру Stage 1.
+
+_Историческая спецификация (до реализации):_
 
 Плюс **продуктовое решение**: пакеты/цены/сроки буста не определены. Сейчас
 на фронте захардкожен ПЛЕЙСХОЛДЕР (`src/lib/config/boost.ts`: 7/14/30 дней за
@@ -1273,7 +1302,9 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
 
 ## Дашборд продавца + динамика просмотров (seller-cabinet-v1, Stage 6)
 
-Новый раздел `/settings/dashboard` («Статистика», первая вкладка кабинета).
+**Статус:** `Done` (2026-07-12) — `GET /users/me/stats`, `GET /users/me/stats/views-daily?range=30d`.
+
+_Историческая спецификация:_
 
 ### Что построил фронт
 

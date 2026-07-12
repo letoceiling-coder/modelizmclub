@@ -81,7 +81,9 @@ check "me-stats-views" 200 GET "/users/me/stats/views-daily"
 echo "==> Account mutations (auth)"
 check "change-password-wrong" 422 POST "/account/change-password" "" '{"current_password":"wrong","password":"newpass123","password_confirmation":"newpass123"}'
 check "logout-others" 200 POST "/auth/logout-others" "" '{}'
-check "payment-methods-bind" 422 POST "/account/payment-methods" "" '{}'
+check "payment-methods-bind" 201 POST "/account/payment-methods" "" '{}'
+check "2fa-setup" 200 POST "/account/2fa/setup" "" '{}'
+check "listing-placement-payment" 201 POST "/payments" "" '{"payable_type":"listing_placement"}'
 
 echo "==> User public"
 USER_ID=$(cd /var/www/modelizmclub/backend && php artisan tinker --execute="echo App\\Models\\User::where('email','demo@modelizmclub.ru')->value('id');" 2>/dev/null | tail -1)

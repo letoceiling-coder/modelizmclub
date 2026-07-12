@@ -5,12 +5,11 @@ namespace Modules\Account\Services;
 use App\Models\SavedPaymentMethod;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
-use Modules\Billing\Contracts\PaymentGateway;
 
 class PaymentMethodService
 {
     public function __construct(
-        private readonly PaymentGateway $gateway,
+        private readonly CardBindingService $binding,
     ) {}
 
     /** @return list<array<string, mixed>> */
@@ -33,15 +32,7 @@ class PaymentMethodService
     /** @return array{binding_url: string} */
     public function startBinding(User $user): array
     {
-        if ($this->gateway->provider() === 'stub') {
-            throw ValidationException::withMessages([
-                'payment' => ['Привязка карт будет доступна после подключения эквайринга.'],
-            ]);
-        }
-
-        throw ValidationException::withMessages([
-            'payment' => ['Привязка карт через '.$this->gateway->provider().' пока не реализована.'],
-        ]);
+        return $this->binding->start($user);
     }
 
     public function delete(User $user, string $uuid): void

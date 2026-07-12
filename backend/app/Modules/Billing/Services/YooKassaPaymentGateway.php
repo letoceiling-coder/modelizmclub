@@ -5,6 +5,7 @@ namespace Modules\Billing\Services;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Modules\Account\Services\CardBindingService;
 use Modules\Billing\Clients\YooKassaClient;
 use Modules\Billing\Contracts\PaymentGateway;
 use RuntimeException;
@@ -103,7 +104,13 @@ class YooKassaPaymentGateway implements PaymentGateway
         }
 
         if ($event === 'payment.succeeded') {
-            $this->syncSucceeded($providerId);
+            $payment = $this->findByProviderId($providerId);
+
+            if ($payment) {
+                $this->syncSucceeded($providerId);
+            } else {
+                app(CardBindingService::class)->saveFromYooKassaWebhook($object);
+            }
 
             return;
         }
