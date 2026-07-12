@@ -31,6 +31,10 @@ export interface User {
     website_url?: string | null;
   } | null;
   email_verified?: boolean;
+  /** Server role — drives the /admin RBAC gate (Task 2) and moderator-scoped
+   *  dashboard (Task 3). Undefined in most demo-mode contexts; the gate
+   *  falls back to `isAdmin` there (see Task 2). */
+  role?: "user" | "subscriber" | "moderator" | "admin";
 }
 
 export const firstHundredStats = { taken: 47, total: 100 };

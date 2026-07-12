@@ -58,6 +58,7 @@ export function mapApiUser(u: ApiUser): User {
         }
       : undefined,
     email_verified: u.email_verified,
+    role: (u.role as User["role"]) ?? undefined,
   };
 }
 

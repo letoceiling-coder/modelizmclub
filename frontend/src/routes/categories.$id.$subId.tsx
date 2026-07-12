@@ -185,7 +185,7 @@ function buildMembers(
   c: Category,
   subId: string,
   pool: User[],
-): Array<User & { role?: string; isOnline: boolean }> {
+): Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> {
   const seed = seedFrom(c.id + subId);
   return pool.map((u, i) => ({
     ...u,
@@ -920,7 +920,7 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
 
 /* --------------------------- MEMBERS TAB --------------------------- */
 
-function MembersTab({ members }: { members: Array<User & { role?: string; isOnline: boolean }> }) {
+function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> }) {
   const sorted = [...members].sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
   return (
     <div className="h-full overflow-y-auto px-[10px] py-[10px]">
