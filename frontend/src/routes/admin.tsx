@@ -110,6 +110,19 @@ function AdminPage() {
     };
   }, [navigate]);
 
+  // Hooks must run unconditionally on every render (Rules of Hooks) — this
+  // has to sit before the "checking"/"forbidden" early returns below, not
+  // after them, or React throws "Rendered more hooks than during the
+  // previous render" once access resolves past "checking".
+  const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
+
+  useEffect(() => {
+    if (adminRole === null) return;
+    if (!visibleNavItems.some((n) => n.id === section)) {
+      setSection(visibleNavItems[0]?.id ?? "dashboard");
+    }
+  }, [adminRole, section, visibleNavItems]);
+
   if (access === "checking") {
     return (
       <div
@@ -177,15 +190,6 @@ function AdminPage() {
       </div>
     );
   }
-
-  const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
-
-  useEffect(() => {
-    if (adminRole === null) return;
-    if (!visibleNavItems.some((n) => n.id === section)) {
-      setSection(visibleNavItems[0]?.id ?? "dashboard");
-    }
-  }, [adminRole, section, visibleNavItems]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
