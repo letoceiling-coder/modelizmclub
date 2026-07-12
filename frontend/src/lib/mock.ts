@@ -21,6 +21,16 @@ export interface User {
   online?: boolean;
   isAdmin?: boolean;
   firstHundred?: boolean;
+  /** Server-only fields carried through from ApiUser for settings.account.tsx
+   *  (phone/social links/email-verification status) — not part of the core
+   *  mock-data shape, so kept optional and undefined in demo mode. */
+  phone?: string | null;
+  profile?: {
+    vk_url?: string | null;
+    telegram_url?: string | null;
+    website_url?: string | null;
+  } | null;
+  email_verified?: boolean;
 }
 
 export const firstHundredStats = { taken: 47, total: 100 };
