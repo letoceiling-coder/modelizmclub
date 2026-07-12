@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Eye, Heart, MapPin, ImageOff } from "lucide-react";
+import { Eye, Heart, MapPin, ImageOff, Zap } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +115,14 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
       {/* Body */}
       <div className="flex min-w-0 flex-col justify-between gap-[4px] py-[2px]">
         <div className="min-w-0">
+          {ad.promoted && (
+            <span
+              className="mb-[4px] inline-flex items-center gap-[4px] rounded-[var(--r-pill)] px-[8px] py-[2px] text-[10px] font-bold uppercase tracking-[0.03em]"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              <Zap size={11} /> Продвигается
+            </span>
+          )}
           <Link
             to="/ads/$id"
             params={{ id: ad.id }}

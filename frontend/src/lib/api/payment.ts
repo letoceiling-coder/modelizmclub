@@ -146,3 +146,19 @@ export async function addPaymentMethodBinding(): Promise<{ binding_url: string }
 export async function deletePaymentMethod(id: string): Promise<void> {
   await api(`/account/payment-methods/${id}`, { method: "DELETE" });
 }
+
+/* ── Listing boost (продвижение) — one-time purchase, Stage 5 ──
+ * Reuses the same checkout shape as subscription, but a different (backend
+ * to-build) endpoint: CreatePaymentController today only accepts plan_slug.
+ * See docs/backend-endpoints-needed.md. */
+
+/** Start a checkout to promote (boost) a single listing. Returns the same
+ *  PaymentCheckout shape — redirect to checkout_url (vtb/yookassa) or
+ *  confirm-stub in the test contour. */
+export async function createListingBoostPayment(listingUuid: string, packageId: string): Promise<PaymentCheckout> {
+  const res = await api<{ data: PaymentCheckout }>(`/listings/${listingUuid}/promote`, {
+    method: "POST",
+    json: { package: packageId, idempotency_key: newIdempotencyKey() },
+  });
+  return res.data;
+}

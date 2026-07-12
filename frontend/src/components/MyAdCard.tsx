@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Pencil, Archive, Trash2, Upload, MoreHorizontal } from "lucide-react";
+import { Pencil, Archive, Trash2, Upload, MoreHorizontal, Zap } from "lucide-react";
 import { useState } from "react";
 import type { Ad } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { ListingCard, type ListingStatus } from "@/components/ads/ListingCard";
+import { BoostSheet } from "@/components/ads/BoostSheet";
 
 // Re-export for backward compatibility with ads.index.tsx
 export type MyAdStatus = ListingStatus;
@@ -21,6 +22,7 @@ interface Props {
 
 export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish, onDelete }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [boostOpen, setBoostOpen] = useState(false);
   const archived = status !== "active" && status !== "moderation";
 
   return (
@@ -69,6 +71,14 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
                   }}
                 >
                 <MenuItem to="/ads/$id" params={{ id: ad.id }} icon={<Pencil size={14} />} label="Редактировать" />
+                {status === "active" && !ad.promoted && (
+                  <MenuItem
+                    onClick={() => { setMenuOpen(false); setBoostOpen(true); }}
+                    icon={<Zap size={14} />}
+                    label="Продвинуть"
+                    color="var(--accent)"
+                  />
+                )}
                 {archived ? (
                   <MenuItem
                     onClick={() => onPublish?.(ad.id)}
@@ -95,6 +105,12 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
             )}
           </div>
         }
+      />
+      <BoostSheet
+        open={boostOpen}
+        onClose={() => setBoostOpen(false)}
+        listingId={ad.id}
+        listingTitle={ad.title}
       />
     </motion.div>
   );
