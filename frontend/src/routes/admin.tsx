@@ -300,7 +300,7 @@ function AdminPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <SectionView section={section} />
+            <SectionView section={section} adminRole={adminRole} />
           </ReducedMotionSwitch>
         </main>
       </div>
@@ -343,8 +343,8 @@ const primaryBtn: React.CSSProperties = {
   height: "40px",
 };
 
-function SectionView({ section }: { section: Section }) {
-  if (section === "dashboard") return <Dashboard />;
+function SectionView({ section, adminRole }: { section: Section; adminRole: AdminRole | null }) {
+  if (section === "dashboard") return <Dashboard role={adminRole ?? "admin"} />;
   if (section === "users") return <UsersSection />;
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
@@ -726,7 +726,7 @@ function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: 
 }
 
 /* ============ DASHBOARD ============ */
-function Dashboard() {
+function Dashboard({ role }: { role: AdminRole }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchDashboard>> | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
 
@@ -737,14 +737,15 @@ function Dashboard() {
     return () => { active = false; };
   }, []);
 
-  const stats = [
-    { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "", up: true },
-    { v: (data?.communitiesTotal ?? 0).toLocaleString("ru"), l: "Сообществ", icon: Users, ch: "", up: true },
-    { v: (data?.bannersActive ?? 0).toLocaleString("ru"), l: "Активных баннеров", icon: Megaphone, ch: "", up: true },
-    { v: (data?.postsTotal ?? 0).toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "", up: true },
-    { v: String(data?.moderationPending ?? 0), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true },
-    { v: String(data?.reportsPending ?? 0), l: "Жалоб", icon: UserPlus, ch: "", up: true },
+  const allStats = [
+    { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "", up: true, adminOnly: true },
+    { v: (data?.communitiesTotal ?? 0).toLocaleString("ru"), l: "Сообществ", icon: Users, ch: "", up: true, adminOnly: true },
+    { v: (data?.bannersActive ?? 0).toLocaleString("ru"), l: "Активных баннеров", icon: Megaphone, ch: "", up: true, adminOnly: true },
+    { v: (data?.postsTotal ?? 0).toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "", up: true, adminOnly: true },
+    { v: String(data?.moderationPending ?? 0), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true, adminOnly: false },
+    { v: String(data?.reportsPending ?? 0), l: "Жалоб", icon: UserPlus, ch: "", up: true, adminOnly: false },
   ];
+  const stats = allStats.filter((s) => role === "admin" || !s.adminOnly);
   const bars = [40, 65, 55, 80, 70, 90, 60];
   const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -781,8 +782,10 @@ function Dashboard() {
         ))}
       </motion.div>
 
-      {/* Chart */}
-      <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
+      {role === "admin" && (
+        <>
+          {/* Chart */}
+          <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
           Регистрации за 30 дней
         </h4>
@@ -828,6 +831,8 @@ function Dashboard() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
