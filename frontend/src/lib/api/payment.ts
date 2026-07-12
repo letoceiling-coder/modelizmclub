@@ -110,3 +110,39 @@ export async function fetchMySubscription(): Promise<MySubscription | null> {
   const res = await api<{ data: MySubscription | null }>("/users/me/subscription");
   return res.data ?? null;
 }
+
+/* ── Saved payment methods (cards for paying — subscription / paid placement) ──
+ * We NEVER store a raw card number. The card is tokenized by the acquiring
+ * provider (VTB/YooKassa) via their binding flow; our backend keeps only the
+ * provider token + display fields (brand, last4). See
+ * docs/backend-endpoints-needed.md for the exact contract — these endpoints
+ * are backend-owned (frontend-only stage). */
+
+export interface PaymentMethod {
+  id: string;
+  brand: string; // "visa" | "mastercard" | "mir" | ...
+  last4: string; // last 4 digits, for "•••• 4242" display only
+  is_default?: boolean;
+}
+
+/** List saved cards. */
+export async function fetchPaymentMethods(): Promise<PaymentMethod[]> {
+  const res = await api<{ data: PaymentMethod[] }>("/account/payment-methods");
+  return res.data ?? [];
+}
+
+/** Start binding a new card. Backend creates a provider binding order and
+ *  returns its hosted card-entry URL; the provider returns the user to
+ *  /settings/payment-methods?card=added|failed after the tokenization
+ *  (typically a small hold/charge that's refunded). */
+export async function addPaymentMethodBinding(): Promise<{ binding_url: string }> {
+  const res = await api<{ data: { binding_url: string } }>("/account/payment-methods", {
+    method: "POST",
+  });
+  return res.data;
+}
+
+/** Remove a saved card (revokes the provider token server-side). */
+export async function deletePaymentMethod(id: string): Promise<void> {
+  await api(`/account/payment-methods/${id}`, { method: "DELETE" });
+}

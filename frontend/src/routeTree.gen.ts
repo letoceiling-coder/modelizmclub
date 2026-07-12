@@ -45,6 +45,7 @@ import { Route as SettingsWalletRouteImport } from './routes/settings.wallet'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SettingsRequisitesRouteImport } from './routes/settings.requisites'
 import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
+import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.payment-methods'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
@@ -243,6 +244,11 @@ const SettingsRatingRoute = SettingsRatingRouteImport.update({
   path: '/rating',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsPaymentMethodsRoute = SettingsPaymentMethodsRouteImport.update({
+  id: '/payment-methods',
+  path: '/payment-methods',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -370,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -419,6 +426,7 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -475,6 +483,7 @@ export interface FileRoutesById {
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -532,6 +541,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/history'
     | '/settings/notifications'
+    | '/settings/payment-methods'
     | '/settings/rating'
     | '/settings/requisites'
     | '/settings/security'
@@ -581,6 +591,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/history'
     | '/settings/notifications'
+    | '/settings/payment-methods'
     | '/settings/rating'
     | '/settings/requisites'
     | '/settings/security'
@@ -636,6 +647,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/history'
     | '/settings/notifications'
+    | '/settings/payment-methods'
     | '/settings/rating'
     | '/settings/requisites'
     | '/settings/security'
@@ -939,6 +951,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRatingRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/payment-methods': {
+      id: '/settings/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/settings/payment-methods'
+      preLoaderRoute: typeof SettingsPaymentMethodsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/notifications': {
       id: '/settings/notifications'
       path: '/notifications'
@@ -1147,6 +1166,7 @@ interface SettingsRouteChildren {
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsPaymentMethodsRoute: typeof SettingsPaymentMethodsRoute
   SettingsRatingRoute: typeof SettingsRatingRoute
   SettingsRequisitesRoute: typeof SettingsRequisitesRoute
   SettingsSecurityRoute: typeof SettingsSecurityRoute
@@ -1159,6 +1179,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAppearanceRoute: SettingsAppearanceRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsPaymentMethodsRoute: SettingsPaymentMethodsRoute,
   SettingsRatingRoute: SettingsRatingRoute,
   SettingsRequisitesRoute: SettingsRequisitesRoute,
   SettingsSecurityRoute: SettingsSecurityRoute,

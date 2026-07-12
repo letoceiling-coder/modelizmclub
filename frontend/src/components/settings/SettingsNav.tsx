@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { UserCog, Bell, Wallet, ClipboardList, FileText, Star, History, ShieldCheck, Palette, ChevronRight, ExternalLink } from "lucide-react";
+import { UserCog, Bell, Wallet, CreditCard, ClipboardList, FileText, Star, History, ShieldCheck, Palette, ChevronRight, ExternalLink } from "lucide-react";
 
 type Row = { to: string; label: string; icon: typeof UserCog };
 
@@ -9,6 +9,7 @@ const ROWS: Row[] = [
   { to: "/settings/appearance", label: "Оформление", icon: Palette },
   { to: "/settings/notifications", label: "Уведомления", icon: Bell },
   { to: "/settings/wallet", label: "Кошелёк", icon: Wallet },
+  { to: "/settings/payment-methods", label: "Способы оплаты", icon: CreditCard },
   { to: "/settings/requisites", label: "Реквизиты", icon: FileText },
   { to: "/settings/rating", label: "Рейтинг и отзывы", icon: Star },
   { to: "/settings/history", label: "История просмотров", icon: History },
