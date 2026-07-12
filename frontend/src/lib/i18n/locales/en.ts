@@ -114,7 +114,7 @@ export const en: TranslationSchema = {
       empty: "Categories coming soon",
     },
     reviews: {
-      eyebrow: "Video",
+      eyebrow: "Reviews",
       title: "Latest reviews",
       subtitle: "Video reviews of models, builds, and gear from the community.",
       all: "All reviews",

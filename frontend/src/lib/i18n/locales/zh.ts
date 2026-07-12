@@ -114,7 +114,7 @@ export const zh: TranslationSchema = {
       empty: "分类即将上线",
     },
     reviews: {
-      eyebrow: "视频",
+      eyebrow: "评测",
       title: "最新测评",
       subtitle: "来自社区成员的模型、装配和器材视频测评。",
       all: "全部测评",
