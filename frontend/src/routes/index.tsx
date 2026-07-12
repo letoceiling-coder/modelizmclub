@@ -780,7 +780,10 @@ function PricingSection() {
       <Eyebrow>{t("landing.pricing.eyebrow")}</Eyebrow>
       <Title>{t("landing.pricing.title")}</Title>
       <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
-      <div className="mx-auto mt-10 max-w-[420px]">
+      {/* Mobile keeps the narrow single-card width (max-w-[420px]); desktop
+          widens to fit PlanTermSelector's 3-column open-cards layout
+          (~230px card x3 + 16px gaps x2). */}
+      <div className="mx-auto mt-10 max-w-[420px] md:max-w-[760px]">
         <PlanTermSelector
           renderCta={() => (
             <Link

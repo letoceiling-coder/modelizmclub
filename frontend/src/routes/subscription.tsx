@@ -175,8 +175,10 @@ function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Plans — one shared feature set, choose the term */}
-        <div className="mx-auto mt-[24px] max-w-[420px]">
+        {/* Plans — one shared feature set. Mobile keeps the narrow single-card
+            width (max-w-[420px]); desktop widens to fit PlanTermSelector's
+            3-column open-cards layout (~230px card x3 + 16px gaps x2). */}
+        <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[760px]">
           <PlanTermSelector
             renderCta={(plan) => (
               <button
