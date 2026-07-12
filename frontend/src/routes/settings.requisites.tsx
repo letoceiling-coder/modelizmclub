@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getRequisites, setRequisites, type Requisites } from "@/lib/settings-prefs";
+import { isDemoMode } from "@/lib/demo-mode";
+import { fetchPayoutRequisites, savePayoutRequisites } from "@/lib/api/payout-requisites";
 
 export const Route = createFileRoute("/settings/requisites")({
   component: RequisitesSection,
@@ -45,6 +48,84 @@ function RequisitesSection() {
           <Button type="submit">Сохранить</Button>
         </form>
       </Card>
+
+      <PayoutCard />
     </SettingsSectionShell>
+  );
+}
+
+/** Card number for manual payouts — an admin reads it and sends money by
+ *  hand. No escrow/marketplace API on the backend; the number is stored in
+ *  one encrypted column. GET only ever returns the last 4 digits, so the
+ *  field always starts blank — re-entering replaces the stored number. */
+function PayoutCard() {
+  const [last4, setLast4] = useState<string | null>(null);
+  const [cardNumber, setCardNumber] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetchPayoutRequisites()
+      .then((r) => { if (alive) setLast4(r.last4); })
+      .catch(() => { if (alive) setLast4(null); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const digits = cardNumber.replace(/\D/g, "");
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (digits.length < 16) { toast.error("Введите номер карты полностью (16 цифр)"); return; }
+    if (isDemoMode()) { toast("В демо-режиме сохранение карты для выплат недоступно"); return; }
+
+    setSaving(true);
+    try {
+      await savePayoutRequisites(digits);
+      setLast4(digits.slice(-4));
+      setCardNumber("");
+      toast.success("Карта для выплат сохранена");
+    } catch {
+      toast.error("Не удалось сохранить карту");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="mt-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <h3 className="mb-[4px] text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Карта для выплат</h3>
+      <p className="mb-[16px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+        Номер карты хранится в зашифрованном виде и используется только для ручного
+        перевода администратором — без автоматических выплат через эквайринг.
+      </p>
+
+      {loading ? (
+        <div className="flex items-center gap-[8px] py-[8px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+          <Loader2 size={14} className="animate-spin" /> Загрузка…
+        </div>
+      ) : (
+        <>
+          {last4 && (
+            <p className="mb-[10px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+              Сейчас сохранена карта •••• {last4}
+            </p>
+          )}
+          <form onSubmit={save} className="space-y-[12px]">
+            <Field label={last4 ? "Новый номер карты (чтобы заменить)" : "Номер карты"}>
+              <Input
+                value={cardNumber}
+                onChange={(e) => setCardNumber(e.target.value)}
+                placeholder="0000 0000 0000 0000"
+                inputMode="numeric"
+                autoComplete="off"
+              />
+            </Field>
+            <Button type="submit" disabled={saving}>{saving ? "Сохранение…" : "Сохранить"}</Button>
+          </form>
+        </>
+      )}
+    </Card>
   );
 }

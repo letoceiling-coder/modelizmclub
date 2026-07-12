@@ -65,6 +65,34 @@ export function setRequisites(r: Requisites): void {
   window.localStorage.setItem(REQUISITES_KEY, JSON.stringify(r));
 }
 
+/** Payout method — separate from the legal Requisites above (documents vs.
+ *  where money is sent). Manual-transfer model: no escrow/marketplace API,
+ *  an admin reads this and sends money by hand. See backend-endpoints-needed.md
+ *  §"Реквизиты выплат". Demo-only storage — real mode always round-trips the
+ *  card number through the server, never persists it to localStorage. */
+export interface PayoutRequisites {
+  cardNumber: string;
+}
+
+const PAYOUT_REQUISITES_KEY = "modelizm_payout_requisites";
+const PAYOUT_REQUISITES_DEFAULTS: PayoutRequisites = { cardNumber: "" };
+
+export function getPayoutRequisites(): PayoutRequisites {
+  if (typeof window === "undefined") return PAYOUT_REQUISITES_DEFAULTS;
+  try {
+    const raw = window.localStorage.getItem(PAYOUT_REQUISITES_KEY);
+    if (!raw) return PAYOUT_REQUISITES_DEFAULTS;
+    return { ...PAYOUT_REQUISITES_DEFAULTS, ...JSON.parse(raw) };
+  } catch {
+    return PAYOUT_REQUISITES_DEFAULTS;
+  }
+}
+
+export function setPayoutRequisites(r: PayoutRequisites): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PAYOUT_REQUISITES_KEY, JSON.stringify(r));
+}
+
 export interface AccountExtra {
   phone: string;
   vk: string;
