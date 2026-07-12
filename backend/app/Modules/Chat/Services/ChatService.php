@@ -410,4 +410,15 @@ class ChatService
             }
         }
     }
+
+    public function leaveConversation(User $user, string $uuid): void
+    {
+        $conversation = $this->findConversation($uuid, $user);
+
+        ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', $user->id)
+            ->whereNull('left_at')
+            ->update(['left_at' => now()]);
+    }
 }

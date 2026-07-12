@@ -5,6 +5,7 @@ use Modules\Auth\Http\Controllers\Api\V1\ConsentController;
 use Modules\Auth\Http\Controllers\Api\V1\ForgotPasswordController;
 use Modules\Auth\Http\Controllers\Api\V1\LoginController;
 use Modules\Auth\Http\Controllers\Api\V1\LogoutController;
+use Modules\Auth\Http\Controllers\Api\V1\LogoutOthersController;
 use Modules\Auth\Http\Controllers\Api\V1\MeController;
 use Modules\Auth\Http\Controllers\Api\V1\OAuthController;
 use Modules\Auth\Http\Controllers\Api\V1\RegisterController;
@@ -23,6 +24,7 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('logout', LogoutController::class);
+        Route::post('logout-others', LogoutOthersController::class);
         Route::post('consent', ConsentController::class);
         Route::get('me', MeController::class);
     });

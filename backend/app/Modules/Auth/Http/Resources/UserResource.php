@@ -20,6 +20,8 @@ class UserResource extends JsonResource
             'registration_track' => $this->registration_track?->value,
             'locale' => $this->locale,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            'email_verified' => $this->email_verified_at !== null,
+            'phone' => $this->phone,
             'last_seen_at' => $this->last_seen_at?->toIso8601String(),
             'profile' => $this->whenLoaded('profile', fn () => [
                 'display_name' => $this->profile->display_name,

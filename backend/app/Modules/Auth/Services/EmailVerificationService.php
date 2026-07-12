@@ -5,6 +5,7 @@ namespace Modules\Auth\Services;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Modules\Auth\Notifications\VerificationCodeNotification;
 
 class EmailVerificationService
@@ -38,5 +39,25 @@ class EmailVerificationService
         }
 
         return $record;
+    }
+
+    public function generateCode(): string
+    {
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    public function sendCode(string $email, string $code, string $context = 'verification'): void
+    {
+        try {
+            Notification::route('mail', $email)
+                ->notify(new VerificationCodeNotification($code));
+        } catch (\Throwable $e) {
+            Log::warning('Verification email could not be sent; code retained in log as fallback', [
+                'email' => $email,
+                'context' => $context,
+                'code' => $code,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

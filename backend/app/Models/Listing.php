@@ -32,6 +32,7 @@ class Listing extends Model
         'views_count',
         'favorites_count',
         'published_at',
+        'paid_until',
     ];
 
     protected function casts(): array
@@ -41,6 +42,7 @@ class Listing extends Model
             'delivery_methods' => 'array',
             'contact_via_messenger' => 'boolean',
             'published_at' => 'datetime',
+            'paid_until' => 'datetime',
         ];
     }
 

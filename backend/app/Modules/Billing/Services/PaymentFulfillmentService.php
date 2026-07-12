@@ -35,7 +35,27 @@ class PaymentFulfillmentService
             if ($planId) {
                 $this->activateSubscription($locked->user, (int) $planId);
             }
+
+            if (($locked->metadata['payable_type'] ?? null) === 'listing_boost') {
+                $this->activateListingBoost($locked);
+            }
         });
+    }
+
+    private function activateListingBoost(Payment $payment): void
+    {
+        $listingId = $payment->metadata['listing_id'] ?? null;
+        $days = (int) ($payment->metadata['duration_days'] ?? 0);
+
+        if (! $listingId || $days <= 0) {
+            return;
+        }
+
+        $listing = \App\Models\Listing::query()->find($listingId);
+
+        if ($listing) {
+            app(\Modules\Listing\Services\ListingBoostService::class)->activate($listing, $days);
+        }
     }
 
     public function markFailed(Payment $payment, ?string $reason = null): void

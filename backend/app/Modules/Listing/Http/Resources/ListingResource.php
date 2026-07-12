@@ -5,6 +5,7 @@ namespace Modules\Listing\Http\Resources;
 use App\Models\Listing;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Listing\Services\ListingBoostService;
 use Modules\User\Http\Resources\UserCompactResource;
 
 /** @mixin Listing */
@@ -12,6 +13,9 @@ class ListingResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $boost = app(ListingBoostService::class);
+        $promotedUntil = $boost->promotedUntil($this->resource);
+
         return [
             'uuid' => $this->uuid,
             'title' => $this->title,
@@ -49,6 +53,8 @@ class ListingResource extends JsonResource
                 ->filter(fn ($m) => $m['url'] !== null)
                 ->values()),
             'published_at' => $this->published_at?->toIso8601String(),
+            'is_promoted' => $promotedUntil !== null,
+            'promoted_until' => $promotedUntil?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
         ];
     }

@@ -119,9 +119,35 @@ class UserService
             }
         }
 
+        foreach (['cover_media_id' => 'cover_media_id', 'cover_media_uuid' => 'cover_media_id'] as $input => $target) {
+            if (! array_key_exists($input, $data)) {
+                continue;
+            }
+            $value = $data[$input];
+            unset($data[$input]);
+            if ($value === null || $value === '') {
+                $data[$target] = null;
+            } else {
+                $media = Media::query()
+                    ->where(is_string($value) && ! ctype_digit($value) ? 'uuid' : 'id', is_string($value) && ! ctype_digit($value) ? $value : (int) $value)
+                    ->where('uploaded_by', $user->id)
+                    ->first();
+                if (! $media) {
+                    throw ValidationException::withMessages([$input => ['Изображение недоступно.']]);
+                }
+                $data[$target] = $media->id;
+            }
+        }
+
+        if (array_key_exists('phone', $data)) {
+            $phone = $data['phone'];
+            unset($data['phone']);
+            $user->forceFill(['phone' => $phone === '' ? null : $phone])->save();
+        }
+
         $profile->fill($data)->save();
 
-        return $profile->fresh(['city', 'avatar']);
+        return $profile->fresh(['city', 'avatar', 'cover']);
     }
 
     /** @return Collection<int, NotificationPreference> */

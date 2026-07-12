@@ -47,6 +47,10 @@ class PublicProfileResource extends JsonResource
             'permissions' => [
                 'can_view_email' => $isOwner || ($privacy['show_email'] ?? false),
             ],
+            'phone' => $this->when($isOwner, $this->user?->phone),
+            'vk_url' => $this->vk_url,
+            'telegram_url' => $this->telegram_url,
+            'website_url' => $this->website_url,
         ];
     }
 }

@@ -25,6 +25,7 @@ class AuthService
         RegistrationTrack $track,
         ?string $displayName = null,
         ?string $referralCode = null,
+        ?string $phone = null,
     ): User {
         $email = Str::lower($email);
 
@@ -38,10 +39,11 @@ class AuthService
             ? User::query()->whereRaw('upper(referral_code) = ?', [Str::upper(trim($referralCode))])->first()
             : null;
 
-        return DB::transaction(function () use ($email, $password, $track, $displayName, $referrer): User {
+        return DB::transaction(function () use ($email, $password, $track, $displayName, $referrer, $phone): User {
             $user = User::create([
                 'name' => $displayName,
                 'email' => $email,
+                'phone' => $phone,
                 'password' => $password,
                 'role' => UserRole::User,
                 'status' => UserStatus::PendingVerification,

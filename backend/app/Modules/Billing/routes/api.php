@@ -8,6 +8,8 @@ use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\SyncPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\VtbWebhookController;
+use Modules\Billing\Http\Controllers\Api\V1\WalletBalanceController;
+use Modules\Billing\Http\Controllers\Api\V1\WalletTransactionsController;
 use Modules\Billing\Http\Controllers\Api\V1\YooKassaWebhookController;
 
 Route::get('plans', IndexPlansController::class);
@@ -21,4 +23,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('payments/{uuid}', ShowPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('payments/{uuid}/sync', SyncPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('payments/{uuid}/confirm-stub', ConfirmStubPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
+
+    Route::get('wallet', WalletBalanceController::class);
+    Route::get('wallet/transactions', WalletTransactionsController::class);
 });

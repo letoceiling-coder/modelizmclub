@@ -21,6 +21,7 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'confirmed', Password::min(8)],
             'registration_track' => ['required', Rule::enum(RegistrationTrack::class)],
             'display_name' => ['nullable', 'string', 'max:120'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'referral_code' => ['nullable', 'string', 'max:40'],
         ];
     }

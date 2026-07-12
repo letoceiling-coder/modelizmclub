@@ -21,7 +21,7 @@ class ServeMediaController extends Controller
      * addressed by an unguessable UUID (same posture as the rest of the media
      * proxy) so they can be played back via a plain <audio> element.
      */
-    private const PUBLIC_PURPOSES = ['avatar', 'post', 'post_video', 'listing', 'banner', 'voice'];
+    private const PUBLIC_PURPOSES = ['avatar', 'cover', 'post', 'post_video', 'listing', 'banner', 'voice', 'review_video'];
 
     public function __invoke(Request $request, string $uuid): StreamedResponse
     {

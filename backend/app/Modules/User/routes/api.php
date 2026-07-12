@@ -5,6 +5,8 @@ use Modules\User\Http\Controllers\Api\V1\BlockController;
 use Modules\User\Http\Controllers\Api\V1\FeedbackController;
 use Modules\User\Http\Controllers\Api\V1\FollowController;
 use Modules\User\Http\Controllers\Api\V1\FriendController;
+use Modules\User\Http\Controllers\Api\V1\MyStatsController;
+use Modules\User\Http\Controllers\Api\V1\MyStatsViewsDailyController;
 use Modules\User\Http\Controllers\Api\V1\IndexUsersController;
 use Modules\User\Http\Controllers\Api\V1\InterestsController;
 use Modules\User\Http\Controllers\Api\V1\NotificationController;
@@ -13,9 +15,13 @@ use Modules\User\Http\Controllers\Api\V1\ReferralController;
 use Modules\User\Http\Controllers\Api\V1\SettingsController;
 use Modules\User\Http\Controllers\Api\V1\ShowProfileController;
 use Modules\User\Http\Controllers\Api\V1\UpdateProfileController;
+use Modules\User\Http\Controllers\Api\V1\UserRatingController;
+use Modules\User\Http\Controllers\Api\V1\UserReviewsController;
 
 Route::prefix('users')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('me/stats/views-daily', MyStatsViewsDailyController::class);
+        Route::get('me/stats', MyStatsController::class);
         Route::get('search', IndexUsersController::class);
         Route::patch('me', UpdateProfileController::class);
         Route::get('me/settings', [SettingsController::class, 'show']);
@@ -41,6 +47,8 @@ Route::prefix('users')->group(function (): void {
         Route::delete('{id}/block', [BlockController::class, 'destroy'])->whereNumber('id');
     });
 
+    Route::get('{id}/rating', UserRatingController::class)->whereNumber('id');
+    Route::get('{id}/reviews', UserReviewsController::class)->whereNumber('id');
     Route::get('{slug}', ShowProfileController::class);
 });
 

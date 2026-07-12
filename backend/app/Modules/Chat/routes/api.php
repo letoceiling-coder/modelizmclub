@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Chat\Http\Controllers\Api\V1\DestroyConversationController;
 use Modules\Chat\Http\Controllers\Api\V1\HideMessageController;
 use Modules\Chat\Http\Controllers\Api\V1\IndexConversationsController;
 use Modules\Chat\Http\Controllers\Api\V1\IndexMessagesController;
@@ -17,6 +18,7 @@ Route::middleware('auth:sanctum')->prefix('conversations')->group(function (): v
     Route::get('/', IndexConversationsController::class);
     Route::post('/', StoreConversationController::class);
     Route::get('{uuid}', ShowConversationController::class);
+    Route::delete('{uuid}', DestroyConversationController::class);
     Route::post('{uuid}/attachments', StoreAttachmentController::class);
     Route::post('{uuid}/pin', PinConversationController::class);
     Route::delete('{uuid}/pin', UnpinConversationController::class);

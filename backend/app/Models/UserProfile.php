@@ -22,9 +22,13 @@ class UserProfile extends Model
         'display_name',
         'slug',
         'avatar_media_id',
+        'cover_media_id',
         'city_id',
         'bio',
         'privacy_settings',
+        'vk_url',
+        'telegram_url',
+        'website_url',
     ];
 
     protected function casts(): array
@@ -48,5 +52,10 @@ class UserProfile extends Model
     public function avatar(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'avatar_media_id');
+    }
+
+    public function cover(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'cover_media_id');
     }
 }

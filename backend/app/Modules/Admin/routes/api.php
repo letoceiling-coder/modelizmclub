@@ -19,6 +19,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\ApproveModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexModerationQueueController;
@@ -45,6 +46,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
     Route::middleware('role:admin')->group(function (): void {
         Route::get('dashboard', AdminDashboardController::class);
 
+        Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
         Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid']);
 
         Route::prefix('categories')->group(function (): void {

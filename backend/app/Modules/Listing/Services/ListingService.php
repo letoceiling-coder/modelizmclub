@@ -215,6 +215,8 @@ class ListingService
         }
 
         $listing->increment('views_count');
+
+        app(\Modules\Listing\Services\SellerStatsService::class)->recordDailyView($listing);
     }
 
     /** @param array<string, mixed> $data */
