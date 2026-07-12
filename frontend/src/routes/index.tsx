@@ -6,7 +6,7 @@ import {
   ArrowRight, ChevronDown, Plus,
   Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
   MapPin, Search, Compass, ImageOff, CalendarDays,
-  Target, HeartHandshake, LayoutGrid, Send,
+  Target, HeartHandshake, LayoutGrid, Send, Play,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -15,6 +15,9 @@ import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchPopularListings } from "@/lib/api/listings";
 import { fetchListingCategories } from "@/lib/api/categories";
+import { fetchVideos } from "@/lib/api/reviews";
+import { VideoCard } from "@/components/reviews/VideoCard";
+import type { Video } from "@/lib/mock";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
@@ -53,6 +56,7 @@ function LandingPage() {
       <TopNav />
       <Hero />
       <QuickSections />
+      <ReviewsPreview />
       <PopularListings />
       <CategoriesSection />
       <StepsTimeline />
@@ -428,7 +432,7 @@ function PopularListings() {
   const priceLocale = i18n.language === "ru" ? "ru-RU" : i18n.language === "zh" ? "zh-CN" : "en-US";
 
   return (
-    <Section bg="var(--background)">
+    <Section bg="var(--background-surface)">
       <div className="flex items-end justify-between gap-4">
         <div>
           <Eyebrow>{t("landing.listings.eyebrow")}</Eyebrow>
@@ -568,6 +572,96 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
   );
 }
 
+/* ===================== Reviews preview (landing "Что есть в МоДелизМ" block) =====================
+ * Data source: fetchVideos() from src/lib/api/reviews.ts (demo mode: demoVideos()
+ * over mockVideos in src/lib/mock.ts; real backend: GET /videos).
+ * Contract: always exactly REVIEW_SLOTS cards, never fewer, never a resized grid.
+ *   - 6+ real videos  -> featured first, then newest by publishedAt, sliced to 6.
+ *   - <6 real videos  -> real cards first (same ordering), remaining slots filled
+ *                        with a "Скоро" placeholder card so the 3x2 grid is always whole.
+ *   - 0 real videos   -> all 6 slots are placeholders.
+ * This is a landing teaser, not the full list — remaining videos live at /reviews. */
+const REVIEW_SLOTS = 6;
+
+function ReviewsPreview() {
+  const { t } = useTranslation();
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchVideos()
+      .then((list) => {
+        if (!alive) return;
+        const sorted = [...list].sort((a, b) => {
+          if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
+          return b.publishedAt.localeCompare(a.publishedAt);
+        });
+        setVideos(sorted.slice(0, REVIEW_SLOTS));
+      })
+      .catch(() => { if (alive) setVideos([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const placeholderCount = REVIEW_SLOTS - videos.length;
+
+  return (
+    <Section bg="var(--background)">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <Eyebrow>{t("landing.reviews.eyebrow")}</Eyebrow>
+          <Title>{t("landing.reviews.title")}</Title>
+          <p className="mt-3 max-w-[560px]" style={mutedP}>{t("landing.reviews.subtitle")}</p>
+        </div>
+        <Link to="/reviews" className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+        >{t("landing.reviews.all")} <ArrowRight size={15} /></Link>
+      </div>
+
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        {loading ? (
+          <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.reviews.loading")}</p>
+        ) : (
+          <>
+            {videos.map((v) => <VideoCard key={v.id} video={v} />)}
+            {Array.from({ length: placeholderCount }).map((_, i) => (
+              <ReviewPlaceholderCard key={`placeholder-${i}`} />
+            ))}
+          </>
+        )}
+      </div>
+
+      <div className="mt-6 text-center sm:hidden">
+        <Link to="/reviews" className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
+        >{t("landing.reviews.all")} <ArrowRight size={15} /></Link>
+      </div>
+    </Section>
+  );
+}
+
+/** Backfill card for an empty review slot — keeps the 3x2 grid visually whole
+ *  when there are fewer than REVIEW_SLOTS real videos. Non-interactive (no
+ *  link, nothing to open yet), so it's marked aria-hidden. */
+function ReviewPlaceholderCard() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col" aria-hidden>
+      <div
+        className="relative flex items-center justify-center overflow-hidden border border-dashed"
+        style={{ aspectRatio: "16 / 9", borderRadius: "var(--r-card)", borderColor: "var(--border)", background: "var(--background-elevated)" }}
+      >
+        <Play size={22} style={{ color: "var(--foreground-30)" }} />
+      </div>
+      <div className="mt-[8px] flex flex-col gap-[4px]">
+        <span className="text-[13.5px] font-medium" style={{ color: "var(--foreground-50)" }}>{t("landing.reviews.comingSoon")}</span>
+      </div>
+    </div>
+  );
+}
+
 /* ===================== Categories ===================== */
 
 const STEP_KEYS = ["direction", "find", "share"] as const;
@@ -589,7 +683,7 @@ function CategoriesSection() {
   }, []);
 
   return (
-    <Section bg="var(--background-surface)">
+    <Section bg="var(--background)">
       <Eyebrow>{t("landing.categories.eyebrow")}</Eyebrow>
       <Title>{t("landing.categories.title")}</Title>
       {loading ? (
@@ -646,7 +740,7 @@ function StepsTimeline() {
   // animation never completes.
   const reduce = useReducedMotion();
   return (
-    <Section bg="var(--background)" id="how">
+    <Section bg="var(--background-surface)" id="how">
       <Eyebrow>{t("landing.steps.eyebrow")}</Eyebrow>
       <Title>{t("landing.steps.title")}</Title>
       <div className="relative mt-12">
@@ -676,7 +770,7 @@ function StepsTimeline() {
 function PricingSection() {
   const { t } = useTranslation();
   return (
-    <Section bg="var(--background-surface)">
+    <Section bg="var(--background)">
       <Eyebrow>{t("landing.pricing.eyebrow")}</Eyebrow>
       <Title>{t("landing.pricing.title")}</Title>
       <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
@@ -705,7 +799,7 @@ const VALUE_ICONS = [Target, HeartHandshake, LayoutGrid, Send] as const;
 function WhyChoose() {
   const { t } = useTranslation();
   return (
-    <Section bg="var(--background)">
+    <Section bg="var(--background-surface)">
       <Eyebrow>{t("landing.values.eyebrow")}</Eyebrow>
       <Title>{t("landing.values.title")}</Title>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -744,7 +838,7 @@ function FaqSection() {
   const items = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <Section bg="var(--background-surface)">
+    <Section bg="var(--background)">
       <Eyebrow>{t("landing.faq.eyebrow")}</Eyebrow>
       <Title>{t("landing.faq.title")}</Title>
       <div className="mx-auto mt-9 max-w-[820px] space-y-2.5">

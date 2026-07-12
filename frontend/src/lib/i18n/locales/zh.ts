@@ -113,6 +113,14 @@ export const zh: TranslationSchema = {
       loading: "正在加载分类…",
       empty: "分类即将上线",
     },
+    reviews: {
+      eyebrow: "视频",
+      title: "最新测评",
+      subtitle: "来自社区成员的模型、装配和器材视频测评。",
+      all: "全部测评",
+      comingSoon: "敬请期待",
+      loading: "正在加载测评…",
+    },
     steps: {
       eyebrow: "如何运作",
       title: "加入社区，三步搞定",
