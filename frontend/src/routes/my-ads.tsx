@@ -137,8 +137,10 @@ function MyAdsPage() {
     const active = decorated.filter(({ status }) => status === "active");
     const views = active.reduce((s, x) => s + (x.ad.views ?? 0), 0);
     const likes = active.reduce((s, x) => s + (x.ad.likes ?? 0), 0);
-    const earnings = active.reduce((s, x) => s + x.ad.price, 0);
-    return { count: active.length, views, likes, earnings };
+    // Sum of active listings' sticker prices — the value on sale, NOT
+    // earnings/revenue (kept honestly named so nobody re-surfaces it as income).
+    const activeValue = active.reduce((s, x) => s + x.ad.price, 0);
+    return { count: active.length, views, likes, activeValue };
   }, [decorated]);
 
   const handleCreate = () => navigate({ to: "/ads/new" });
@@ -184,7 +186,11 @@ function MyAdsPage() {
           <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
           <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
           <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />
-          <StatCard icon={<MessageCircle size={14} />} label="Сумма"   value={`${stats.earnings.toLocaleString("ru")} ₽`} />
+          {/* "Стоимость" — сумма ценников активных объявлений, НЕ выручка.
+              Раньше называлось "Сумма", что читалось как "заработано".
+              Продавец не должен думать, что заработал то, чего не заработал
+              (реальной монетизации/дохода в системе пока нет). */}
+          <StatCard icon={<MessageCircle size={14} />} label="Стоимость" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
         {/* Tabs */}
