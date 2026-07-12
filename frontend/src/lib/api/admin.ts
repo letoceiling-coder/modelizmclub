@@ -73,6 +73,39 @@ export async function fetchAuditLogs(): Promise<AuditEntry[]> {
   }));
 }
 
+export interface AuditLogDetailEntry {
+  id: string;
+  user: string;
+  action: string;
+  target: string;
+  time: string;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+}
+
+export async function fetchAuditLogPage(
+  page: number,
+): Promise<{ entries: AuditLogDetailEntry[]; currentPage: number; lastPage: number }> {
+  const res = await api<{ data: Paginated<ApiAuditLog & { old_values?: Record<string, unknown> | null; new_values?: Record<string, unknown> | null }> }>(
+    "/admin/audit-logs",
+    { query: { per_page: 20, page } },
+  );
+  const rows = res.data?.data ?? [];
+  return {
+    entries: rows.map((r) => ({
+      id: String(r.id ?? Math.random()),
+      user: r.user?.name ?? r.user?.email ?? "—",
+      action: r.action ?? "",
+      target: r.auditable_type ? r.auditable_type.split("\\").pop() ?? "" : "",
+      time: r.created_at ?? "",
+      oldValues: r.old_values ?? null,
+      newValues: r.new_values ?? null,
+    })),
+    currentPage: res.data?.meta?.current_page ?? page,
+    lastPage: res.data?.meta?.last_page ?? page,
+  };
+}
+
 export type AdminUserRole = "user" | "subscriber" | "moderator" | "admin";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 
