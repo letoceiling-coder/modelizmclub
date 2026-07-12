@@ -219,7 +219,7 @@ class SellerCabinetTest extends TestCase
             ->assertJsonPath('data.promoted_until', $listing->paid_until->toIso8601String());
     }
 
-    public function test_payment_methods_list_empty_and_stub_binding_rejected(): void
+    public function test_payment_methods_list_empty_and_stub_binding(): void
     {
         config(['billing.provider' => 'stub']);
         $user = $this->userWithProfile();
@@ -230,7 +230,8 @@ class SellerCabinetTest extends TestCase
             ->assertJsonPath('data', []);
 
         $this->postJson('/api/v1/account/payment-methods')
-            ->assertStatus(422);
+            ->assertCreated()
+            ->assertJsonStructure(['data' => ['binding_url']]);
 
         SavedPaymentMethod::query()->create([
             'uuid' => (string) Str::uuid(),
