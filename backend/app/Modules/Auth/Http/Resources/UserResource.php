@@ -27,6 +27,10 @@ class UserResource extends JsonResource
                 'display_name' => $this->profile->display_name,
                 'slug' => $this->profile->slug,
                 'bio' => $this->profile->bio,
+                'city_id' => $this->profile->city_id,
+                'vk_url' => $this->profile->vk_url,
+                'telegram_url' => $this->profile->telegram_url,
+                'website_url' => $this->profile->website_url,
             ]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

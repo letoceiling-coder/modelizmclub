@@ -11,9 +11,9 @@
 > кабинета продавца (seller-cabinet-v1, Stage 1–6) и раздел **«Известные
 > проблемы (frontend)»** в самом конце.
 
-**Статус интеграции:** пункты №2–5, 9–11, 14 закрыты на **master** (коммиты
-`67cf6f5`, `bac81cd` и далее). Backend + frontend wiring + тест
-`ChatFrontendIntegrationTest` (331 строка).
+**Статус интеграции:** пункты №2–5, 9–11, 14, 17, 18, 24 (wallet, account, requisites,
+view-history, seller stats, delete conversation, review_video upload, video moderation) закрыты
+на **master** (2026-07-12). Backend + frontend wiring без изменения UI.
 
 | № | Что | Статус | Где |
 |---|---|---|---|

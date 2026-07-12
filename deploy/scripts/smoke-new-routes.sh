@@ -72,6 +72,9 @@ check "payment-methods" 200 GET "/account/payment-methods"
 check "payout-requisites" 200 GET "/account/payout-requisites"
 check "requisites" 200 GET "/account/requisites"
 check "view-history" 200 GET "/me/view-history"
+check "view-history-post" 200 POST "/me/view-history" "" '{"id":"00000000-0000-0000-0000-000000000001","kind":"ad","title":"smoke","thumb":null}'
+check "view-history-clear" 200 DELETE "/me/view-history"
+check "requisites-put" 200 PUT "/account/requisites" "" '{"full_name":"Smoke Test","inn":"","phone":"+79000000000","address":"Moscow"}'
 check "me-stats" 200 GET "/users/me/stats"
 check "me-stats-views" 200 GET "/users/me/stats/views-daily"
 

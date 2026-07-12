@@ -7,6 +7,10 @@ export interface ApiProfile {
   slug?: string | null;
   bio?: string | null;
   city?: { name?: string | null } | null;
+  city_id?: number | null;
+  vk_url?: string | null;
+  telegram_url?: string | null;
+  website_url?: string | null;
   avatar?: { url?: string | null } | null;
   avatar_media_id?: number | null;
 }
@@ -18,6 +22,8 @@ export interface ApiUser {
   name?: string | null;
   role?: string;
   status?: string;
+  phone?: string | null;
+  email_verified?: boolean;
   profile?: ApiProfile | null;
   interests?: Array<{ name?: string }> | null;
 }
@@ -76,6 +82,7 @@ export async function register(input: {
   passwordConfirmation: string;
   track?: RegistrationTrack;
   referralCode?: string;
+  phone?: string;
 }): Promise<void> {
   await api("/auth/register", {
     method: "POST",
@@ -87,6 +94,7 @@ export async function register(input: {
       password_confirmation: input.passwordConfirmation,
       registration_track: input.track ?? "community",
       referral_code: input.referralCode?.trim() || undefined,
+      phone: input.phone?.trim() || undefined,
     },
   });
 }

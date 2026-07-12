@@ -37,6 +37,21 @@ bash /var/www/modelizmclub/deploy/scripts/server-setup.sh
 bash /var/www/modelizmclub/deploy/scripts/deploy-dev.sh
 ```
 
+После деплоя с поддержкой загрузки обзоров (видео до 200 МБ) — один раз:
+
+```bash
+bash /var/www/modelizmclub/deploy/scripts/setup-upload-limits.sh
+```
+
+Скрипт поднимает `upload_max_filesize` / `post_max_size` в PHP-FPM и `client_max_body_size` в nginx.
+
+Проверка новых маршрутов:
+
+```bash
+bash /var/www/modelizmclub/deploy/scripts/smoke-new-routes.sh
+bash /var/www/modelizmclub/deploy/scripts/run-server-tests.sh
+```
+
 ## Frontend (modelizmclub.ru)
 
 Источник UI: [modelism-hub-connect](https://github.com/Neeklo1606/modelism-hub-connect) (TanStack Start + Nitro `node-server`).
@@ -71,6 +86,10 @@ bash /var/www/modelizmclub/deploy/scripts/deploy-frontend.sh
 - `REDIS_*` — Redis на localhost
 - `AWS_*` — Selectel S3
 - `APP_URL=https://dev.modelizmclub.ru`
+
+Эквайринг (оплата подписки/буста) — по умолчанию `BILLING_PROVIDER=stub`. Для prod:
+`VTB_ACQUIRING_ENABLED=true` + `VTB_ACQUIRING_USERNAME` / `VTB_ACQUIRING_PASSWORD`, либо
+`YOOKASSA_ENABLED=true` + `YOOKASSA_SHOP_ID` / `YOOKASSA_SECRET_KEY` (см. `backend/.env.example`).
 
 ## CI
 

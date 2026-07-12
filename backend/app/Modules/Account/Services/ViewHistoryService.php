@@ -18,7 +18,7 @@ class ViewHistoryService
 
         return [
             'data' => $rows->map(fn (UserViewHistory $row) => [
-                'id' => (string) $row->id,
+                'id' => $row->target_uuid,
                 'kind' => $row->kind,
                 'title' => $row->title,
                 'thumb' => $row->thumb,
@@ -37,5 +37,10 @@ class ViewHistoryService
                 'viewed_at' => now(),
             ],
         );
+    }
+
+    public function clear(User $user): void
+    {
+        UserViewHistory::query()->where('user_id', $user->id)->delete();
     }
 }

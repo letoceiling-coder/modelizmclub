@@ -1,26 +1,54 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { mockWalletBalance, mockWalletOperations } from "@/lib/mock";
+import { fetchWalletBalance, fetchWalletTransactions } from "@/lib/api/wallet";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const Route = createFileRoute("/settings/wallet")({
   component: WalletSection,
 });
 
 function WalletSection() {
+  const [balance, setBalance] = useState(mockWalletBalance);
+  const [operations, setOperations] = useState(mockWalletOperations);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([fetchWalletBalance(), fetchWalletTransactions()])
+      .then(([b, ops]) => {
+        if (!alive) return;
+        setBalance(b.balance);
+        setOperations(ops.map((op) => ({
+          id: op.id,
+          type: op.type,
+          amount: op.amount,
+          title: op.title,
+          date: op.date,
+        })));
+      })
+      .catch(() => {
+        if (!alive || !isDemoMode()) return;
+        setBalance(mockWalletBalance);
+        setOperations(mockWalletOperations);
+      });
+    return () => { alive = false; };
+  }, []);
+
   return (
     <SettingsSectionShell title="Кошелёк">
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
         <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Демо-баланс</div>
         <div className="mt-[4px] font-display text-[32px] font-bold" style={{ color: "var(--foreground)" }}>
-          {mockWalletBalance.toLocaleString("ru-RU")} ₽
+          {balance.toLocaleString("ru-RU")} ₽
         </div>
       </Card>
 
       <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>История операций</h2>
       <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        {mockWalletOperations.map((op) => (
+        {operations.map((op) => (
           <div key={op.id} className="flex items-center gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
             <span className="grid h-[36px] w-[36px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: op.type === "in" ? "var(--success)" : "var(--foreground-50)" }}>
               {op.type === "in" ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}

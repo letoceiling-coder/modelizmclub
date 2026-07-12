@@ -28,6 +28,19 @@ class MediaUploadService
         'voice' => ['max_files' => 1, 'max_size' => 20_971_520, 'mimes' => ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'video/webm', 'video/mp4']],
     ];
 
+    /** @return list<string> */
+    public static function purposes(): array
+    {
+        return array_keys(self::LIMITS);
+    }
+
+    public static function maxSizeKb(string $purpose): int
+    {
+        $bytes = self::LIMITS[$purpose]['max_size'] ?? 10_485_760;
+
+        return (int) ceil($bytes / 1024);
+    }
+
     /**
      * @param  array{purpose: string, files: list<array{name: string, size: int, mime: string}>}  $payload
      * @return array{session_uuid: string, expires_at: string, uploads: list<array{media_uuid: string, upload_url: string, path: string, headers: array<string, string>}>}

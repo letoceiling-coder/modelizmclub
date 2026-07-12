@@ -4,7 +4,7 @@ import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { VideoCategory } from "@/lib/mock";
 import { fetchVideoCategories, uploadVideo } from "@/lib/api/reviews";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMedia, validateReviewVideoFile } from "@/lib/api/media";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,13 +51,19 @@ function UploadPage() {
     return () => { alive = false; };
   }, [navigate]);
 
-  const pickVideo = (f: File) => { setVideoFile(f); setVideoUrl(URL.createObjectURL(f)); };
+  const pickVideo = (f: File) => {
+    const err = validateReviewVideoFile(f);
+    if (err) { toast.error(err); return; }
+    setVideoFile(f); setVideoUrl(URL.createObjectURL(f));
+  };
   const pickPoster = (f: File) => { setPosterFile(f); setPosterUrl(URL.createObjectURL(f)); };
 
   const valid = title.trim().length >= 3 && categoryId && videoFile;
 
   const submit = async () => {
     if (!valid || submitting || !videoFile) return;
+    const err = validateReviewVideoFile(videoFile);
+    if (err) { toast.error(err); return; }
     setSubmitting(true);
     try {
       const videoMedia = await uploadMedia(videoFile, "review_video");

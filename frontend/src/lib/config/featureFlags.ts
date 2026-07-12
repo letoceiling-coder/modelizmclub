@@ -1,17 +1,10 @@
 import { useSyncExternalStore } from "react";
+import { api } from "@/lib/api/client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 /**
- * Client-side feature flags, editable from /admin (SettingsSection).
- *
- * These are meant to eventually read the generic AdminSetting key
- * `feature.communities_enabled` (GET /admin/settings — the mechanism already
- * exists and is generic). They live in localStorage instead because that
- * endpoint requires admin auth (no `security: []` override in the OpenAPI
- * spec, tag "Admin — System") — anonymous/regular site visitors, who are the
- * audience this flag actually needs to affect, can't read it. There is no
- * public-readable settings/flags endpoint yet. See
- * backend-endpoints-needed.md #17 for the requested backend addition
- * (persistent, server-side storage + a public read endpoint).
+ * Site-wide feature flags. Production reads GET /public/feature-flags;
+ * demo/admin override still uses localStorage via setFeatureFlag.
  */
 
 export interface FeatureFlags {
@@ -27,14 +20,17 @@ const DEFAULTS: FeatureFlags = {
 const LS_KEY = "modelizm_feature_flags";
 const EVENT = "modelizm:feature-flags-changed";
 
+let serverFlags: Partial<FeatureFlags> | null = null;
+let serverFetchStarted = false;
+
 function readFromStorage(): FeatureFlags {
-  if (typeof window === "undefined") return DEFAULTS;
+  if (typeof window === "undefined") return { ...DEFAULTS, ...serverFlags };
   try {
     const raw = window.localStorage.getItem(LS_KEY);
-    if (!raw) return DEFAULTS;
-    return { ...DEFAULTS, ...JSON.parse(raw) };
+    const local = raw ? JSON.parse(raw) : {};
+    return { ...DEFAULTS, ...serverFlags, ...local };
   } catch {
-    return DEFAULTS;
+    return { ...DEFAULTS, ...serverFlags };
   }
 }
 
@@ -45,9 +41,29 @@ function notify() {
   window.dispatchEvent(new Event(EVENT));
 }
 
+export async function loadFeatureFlagsFromServer(): Promise<void> {
+  if (isDemoMode() || typeof window === "undefined") return;
+  try {
+    const res = await api<{ data: { communities_enabled?: boolean } }>("/public/feature-flags", {
+      auth: false,
+    });
+    serverFlags = {
+      communitiesEnabled: Boolean(res.data?.communities_enabled),
+    };
+    notify();
+  } catch {
+    // Keep defaults/localStorage on error.
+  }
+}
+
+if (typeof window !== "undefined" && !serverFetchStarted) {
+  serverFetchStarted = true;
+  void loadFeatureFlagsFromServer();
+}
+
 /** Read a flag outside React (e.g. plain non-component modules). */
 export function getFeatureFlags(): FeatureFlags {
-  return typeof window === "undefined" ? DEFAULTS : cache;
+  return typeof window === "undefined" ? { ...DEFAULTS, ...serverFlags } : cache;
 }
 
 /** Write a flag (used by the /admin toggle). Persists to localStorage. */
@@ -72,6 +88,6 @@ export function useFeatureFlag<K extends keyof FeatureFlags>(key: K): FeatureFla
   return useSyncExternalStore(
     subscribe,
     () => readFromStorage()[key],
-    () => DEFAULTS[key],
+    () => (DEFAULTS[key]),
   );
 }

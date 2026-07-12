@@ -77,8 +77,12 @@ function ProfilePage() {
     return () => { active = false; };
   }, [currentUser?.id]);
 
-  const saveProfile = async (draft: User) => {
-    await updateOwnProfile({ display_name: draft.name, bio: draft.bio ?? "" });
+  const saveProfile = async (draft: User, cityId?: number) => {
+    await updateOwnProfile({
+      display_name: draft.name,
+      bio: draft.bio ?? "",
+      city_id: cityId ?? null,
+    });
     setCurrentUser({ ...currentUser, name: draft.name, bio: draft.bio, city: draft.city, interests: draft.interests });
   };
 
@@ -141,7 +145,7 @@ export interface ProfileViewProps {
   onToggleFriend?: (next: boolean) => void | Promise<void>;
   onToggleFollow?: (next: boolean) => void | Promise<void>;
   onWrite?: () => void | Promise<void>;
-  onSaveProfile?: (draft: User) => void | Promise<void>;
+  onSaveProfile?: (draft: User, cityId?: number) => void | Promise<void>;
 }
 
 export function ProfileView({
@@ -477,10 +481,10 @@ export function ProfileView({
             draft={draft}
             setDraft={setDraft}
             onClose={() => setEditOpen(false)}
-            onSave={async () => {
+            onSave={async (cityId) => {
               try {
                 if (onSaveProfile) {
-                  await onSaveProfile(draft);
+                  await onSaveProfile(draft, cityId);
                 } else if (isOwn) {
                   actions.updateProfile(user.id, draft);
                 }
@@ -593,9 +597,10 @@ function ProfileTabSkeleton() {
 }
 
 function EditSheet({ draft, setDraft, onClose, onSave }: {
-  draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: () => void;
+  draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: (cityId?: number) => void | Promise<void>;
 }) {
   const [newInterest, setNewInterest] = useState("");
+  const [cityId, setCityId] = useState<number | undefined>();
   const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
   const addInterest = () => {
@@ -630,7 +635,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
             <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="h-11" />
           </Field>
           <Field label="Город">
-            <CitySelect value={draft.city} onChange={(name) => setDraft({ ...draft, city: name })} placeholder="Город" />
+            <CitySelect value={draft.city} onChange={(name, id) => { setDraft({ ...draft, city: name }); setCityId(id); }} placeholder="Город" />
           </Field>
           <Field label="О себе">
             <Textarea
@@ -673,7 +678,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
           <Button variant="outline" onClick={onClose} className="h-[48px] flex-1 rounded-[12px]">
             Отмена
           </Button>
-          <Button onClick={onSave} className="h-[48px] flex-1 rounded-[12px]">
+          <Button onClick={() => onSave(cityId)} className="h-[48px] flex-1 rounded-[12px]">
             Сохранить
           </Button>
         </div>

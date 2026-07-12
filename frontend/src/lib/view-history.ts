@@ -1,5 +1,4 @@
-// Client-only "recently viewed" list (per-device). Server-side
-// personalization is backend-track — see backend-endpoints-needed.md #24.
+// Client-side "recently viewed" list with optional server sync when authenticated.
 
 export interface ViewHistoryItem {
   id: string;
@@ -27,10 +26,10 @@ export function getViewHistory(): ViewHistoryItem[] {
 export function recordView(item: Omit<ViewHistoryItem, "viewedAt">): void {
   if (typeof window === "undefined") return;
   const entry: ViewHistoryItem = { ...item, viewedAt: new Date().toISOString() };
-  // De-dupe by kind+id (move to front), then cap.
   const rest = getViewHistory().filter((x) => !(x.kind === entry.kind && x.id === entry.id));
   const next = [entry, ...rest].slice(0, CAP);
   window.localStorage.setItem(KEY, JSON.stringify(next));
+  void import("@/lib/api/view-history-api").then(({ recordViewHistory }) => recordViewHistory(item));
 }
 
 export function clearViewHistory(): void {

@@ -4,6 +4,7 @@ namespace Modules\Video\Services;
 
 use App\Models\Comment;
 use App\Models\Media;
+use App\Models\ModerationQueue;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VideoCategory;
@@ -72,7 +73,9 @@ class VideoService
         $poster = $this->ownedMedia($user, $data['poster_media_id']);
         $videoMedia = $this->ownedMedia($user, $data['video_media_id'], ['post', 'post_video', 'review_video']);
 
-        return Video::query()->create([
+        $autoPublish = $user->isAdmin();
+
+        $video = Video::query()->create([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'category_id' => $category->id,
@@ -81,9 +84,25 @@ class VideoService
             'tags' => $data['tags'] ?? [],
             'is_featured' => (bool) ($data['is_featured'] ?? false),
             'uploader_id' => $user->id,
-            'status' => 'published',
-            'published_at' => now(),
+            'status' => $autoPublish ? 'published' : 'processing',
+            'published_at' => $autoPublish ? now() : null,
         ]);
+
+        if (! $autoPublish) {
+            ModerationQueue::query()->updateOrCreate(
+                [
+                    'moderatable_type' => Video::class,
+                    'moderatable_id' => $video->id,
+                ],
+                [
+                    'queue' => 'videos',
+                    'priority' => 0,
+                    'status' => 'pending',
+                ],
+            );
+        }
+
+        return $video;
     }
 
     public function update(Video $video, User $user, array $data): Video

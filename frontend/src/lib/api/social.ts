@@ -142,6 +142,11 @@ export async function updateOwnProfile(input: {
   display_name?: string;
   bio?: string;
   slug?: string;
+  city_id?: number | null;
+  phone?: string | null;
+  vk_url?: string | null;
+  telegram_url?: string | null;
+  website_url?: string | null;
   avatar_media_id?: string | null;
   cover_media_id?: string | null;
 }): Promise<void> {

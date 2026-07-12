@@ -35,13 +35,14 @@ function RegisterPage() {
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
+    const phone = String(form.get("phone") ?? "").trim();
     if (password !== passwordConfirmation) {
       setFieldError(true);
       return toast.error("Пароли не совпадают");
     }
     setLoading(true);
     try {
-      await register({ name, email, password, passwordConfirmation, referralCode: ref });
+      await register({ name, email, password, passwordConfirmation, referralCode: ref, phone });
       toast.success("Аккаунт создан. Введите код из письма");
       nav({ to: "/verify-email", search: { email } });
     } catch (err) {

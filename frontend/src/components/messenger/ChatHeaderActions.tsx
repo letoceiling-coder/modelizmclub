@@ -5,7 +5,7 @@ import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRes
 import { toast } from "@/lib/toast";
 import { userById } from "@/lib/mock";
 import { blockUser, unblockUser } from "@/lib/api/social";
-import { pinConversation, unpinConversation } from "@/lib/api/chat";
+import { pinConversation, unpinConversation, deleteConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { calls, useCalls } from "@/lib/calls";
@@ -128,13 +128,13 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
     toast.success("История очищена");
   };
 
-  // Local-only: no DELETE /conversations/{uuid} on the backend (see
-  // backend-endpoints-needed.md), so this hides the dialog from every tab
-  // for the current session rather than truly deleting it server-side.
-  const deleteChat = () => {
+  const deleteChat = async () => {
     close();
     if (!dialogId) return;
     if (!window.confirm(`Удалить чат с ${partnerName}? Переписка исчезнет из списка.`)) return;
+    if (!isDemoMode()) {
+      try { await deleteConversation(dialogId); } catch { toast.error("Не удалось удалить чат"); return; }
+    }
     actions.setDialogMeta(dialogId, { deletedLocally: true });
     toast.success("Чат удалён");
     onDeleted?.();

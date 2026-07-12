@@ -4,7 +4,8 @@ set -euo pipefail
 APP_DIR="/var/www/modelizmclub"
 
 cd "${APP_DIR}"
-git pull origin master
+git fetch origin master
+git reset --hard origin/master
 
 if [[ "${DEPLOY_REEXECED:-}" != 1 ]]; then
   export DEPLOY_REEXECED=1
@@ -28,7 +29,6 @@ php artisan config:cache
 php artisan route:clear
 php artisan route:cache
 php artisan view:cache 2>/dev/null || true
-bash ../deploy/scripts/export-openapi.sh 2>/dev/null || true
 
 chown -R www-data:www-data storage bootstrap/cache
 systemctl reload php8.3-fpm

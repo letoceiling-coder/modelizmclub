@@ -246,4 +246,32 @@ class SellerCabinetTest extends TestCase
 
         $this->assertDatabaseCount('saved_payment_methods', 0);
     }
+
+    public function test_view_history_record_list_and_clear(): void
+    {
+        $user = $this->userWithProfile();
+        Sanctum::actingAs($user);
+
+        $targetUuid = (string) Str::uuid();
+
+        $this->postJson('/api/v1/me/view-history', [
+            'id' => $targetUuid,
+            'kind' => 'ad',
+            'title' => 'Test listing',
+            'thumb' => null,
+        ])->assertOk();
+
+        $this->getJson('/api/v1/me/view-history')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $targetUuid)
+            ->assertJsonPath('data.0.kind', 'ad');
+
+        $this->deleteJson('/api/v1/me/view-history')
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->getJson('/api/v1/me/view-history')
+            ->assertOk()
+            ->assertJsonPath('data', []);
+    }
 }

@@ -5,17 +5,25 @@ namespace Modules\Media\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Modules\Media\Services\MediaUploadService;
 
 class DirectUploadController extends Controller
 {
     public function __invoke(Request $request, MediaUploadService $uploads): JsonResponse
     {
+        $request->validate([
+            'purpose' => ['required', 'string', Rule::in(MediaUploadService::purposes())],
+        ]);
+
+        $purpose = $request->string('purpose')->toString();
+
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:102400'],
-            'purpose' => ['required', 'string', 'in:avatar,post,post_video,listing,chat,voice'],
+            'file' => ['required', 'file', 'max:'.MediaUploadService::maxSizeKb($purpose)],
             'duration' => ['nullable', 'integer', 'min:1', 'max:600'],
         ]);
+
+        $validated['purpose'] = $purpose;
 
         $media = $uploads->storeUploadedFile(
             $request->user(),

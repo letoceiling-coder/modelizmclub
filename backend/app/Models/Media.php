@@ -57,4 +57,9 @@ class Media extends Model
         // storage never needs to be made world-readable. Stable + cacheable.
         return rtrim((string) config('app.url'), '/').'/api/v1/media/'.$this->uuid;
     }
+
+    public function getPurposeAttribute(): string
+    {
+        return explode('/', (string) $this->path)[1] ?? '';
+    }
 }

@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getViewHistory, clearViewHistory, type ViewHistoryItem } from "@/lib/view-history";
+import { getViewHistory, type ViewHistoryItem } from "@/lib/view-history";
+import { fetchViewHistory, clearViewHistoryRemote } from "@/lib/api/view-history-api";
 
 export const Route = createFileRoute("/settings/history")({
   component: HistorySection,
@@ -22,9 +23,21 @@ const KIND_LABEL: Record<ViewHistoryItem["kind"], string> = { ad: "Объявл�
 function HistorySection() {
   const [items, setItems] = useState<ViewHistoryItem[]>(getViewHistory);
 
-  const clear = () => {
-    clearViewHistory();
-    setItems([]);
+  useEffect(() => {
+    let alive = true;
+    fetchViewHistory()
+      .then((rows) => { if (alive) setItems(rows); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const clear = async () => {
+    try {
+      await clearViewHistoryRemote();
+      setItems([]);
+    } catch {
+      setItems([]);
+    }
   };
 
   return (

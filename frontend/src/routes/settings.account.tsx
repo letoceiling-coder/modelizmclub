@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { ChevronRight } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
@@ -10,6 +10,11 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { useStore, selectors } from "@/lib/store";
 import { getAccountExtra, setAccountExtra, type AccountExtra } from "@/lib/settings-prefs";
+import { isDemoMode } from "@/lib/demo-mode";
+import { fetchMe } from "@/lib/api/auth";
+import { requestEmailChange, resendVerificationEmail } from "@/lib/api/account";
+import { updateOwnProfile } from "@/lib/api/social";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/settings/account")({
   component: AccountSection,
@@ -29,34 +34,88 @@ function AccountSection() {
   const [email, setEmail] = useState("");
   const [extra, setExtra] = useState<AccountExtra>(getAccountExtra);
   const [verifySent, setVerifySent] = useState(false);
+  const [serverEmailVerified, setServerEmailVerified] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (isDemoMode()) return;
+    fetchMe().then((u) => {
+      if (!u) return;
+      const base = getAccountExtra();
+      setExtra({
+        ...base,
+        email: u.email ?? base.email,
+        phone: u.phone ?? base.phone,
+        vk: u.profile?.vk_url ?? base.vk,
+        telegram: u.profile?.telegram_url ?? base.telegram,
+        website: u.profile?.website_url ?? base.website,
+        emailVerified: u.email_verified ?? base.emailVerified,
+      });
+      if (u.email_verified !== undefined) setServerEmailVerified(u.email_verified);
+    }).catch(() => {});
+  }, []);
 
   const currentEmail = extra.email ?? currentUser?.email ?? "";
-  const emailPending = extra.email !== undefined && extra.emailVerified === false;
+  const emailPending = isDemoMode()
+    ? extra.email !== undefined && extra.emailVerified === false
+    : serverEmailVerified === false;
 
-  const submitEmail = (e: React.FormEvent) => {
+  const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Введите корректный email"); return; }
-    // На демо email реально меняется локально и логично уходит в «не подтверждён».
-    // На бою — POST /account/email + верификация по ссылке из письма.
-    const next = { ...extra, email, emailVerified: false };
-    setExtra(next); setAccountExtra(next);
-    setEmail(""); setVerifySent(false);
-    toast.success("Email обновлён — подтвердите по ссылке из письма");
+    if (isDemoMode()) {
+      const next = { ...extra, email, emailVerified: false };
+      setExtra(next); setAccountExtra(next);
+      setEmail(""); setVerifySent(false);
+      toast.success("Email обновлён — подтвердите по ссылке из письма");
+      return;
+    }
+    try {
+      await requestEmailChange(email);
+      const next = { ...extra, email, emailVerified: false };
+      setExtra(next);
+      setEmail("");
+      setVerifySent(false);
+      setServerEmailVerified(false);
+      toast.success("Email обновлён — подтвердите по ссылке из письма");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Не удалось изменить email");
+    }
   };
 
-  const resendVerification = () => {
-    // Документированный POST /account/email/verify/resend (no-op в demo).
-    setVerifySent(true);
+  const resendVerification = async () => {
+    if (isDemoMode()) { setVerifySent(true); return; }
+    try {
+      await resendVerificationEmail();
+      setVerifySent(true);
+    } catch {
+      toast.error("Не удалось отправить письмо");
+    }
   };
 
-  const savePhone = () => {
-    setAccountExtra(extra);
-    toast.success("Телефон сохранён");
+  const savePhone = async () => {
+    if (isDemoMode()) { setAccountExtra(extra); toast.success("Телефон сохранён"); return; }
+    try {
+      await updateOwnProfile({ phone: extra.phone || null });
+      setAccountExtra(extra);
+      toast.success("Телефон сохранён");
+    } catch {
+      toast.error("Не удалось сохранить телефон");
+    }
   };
 
-  const saveSocials = () => {
-    setAccountExtra(extra);
-    toast.success("Соцсети сохранены");
+  const saveSocials = async () => {
+    if (isDemoMode()) { setAccountExtra(extra); toast.success("Соцсети сохранены"); return; }
+    try {
+      await updateOwnProfile({
+        vk_url: extra.vk?.trim() || null,
+        telegram_url: extra.telegram?.trim() || null,
+        website_url: extra.website?.trim() || null,
+      });
+      setAccountExtra(extra);
+      toast.success("Соцсети сохранены");
+    } catch {
+      toast.error("Не удалось сохранить соцсети");
+    }
   };
 
   return (

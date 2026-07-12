@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { getRequisites, setRequisites, type Requisites } from "@/lib/settings-prefs";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchPayoutRequisites, savePayoutRequisites } from "@/lib/api/payout-requisites";
+import { fetchDocumentRequisites, saveDocumentRequisites } from "@/lib/api/account";
 
 export const Route = createFileRoute("/settings/requisites")({
   component: RequisitesSection,
@@ -25,11 +26,40 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function RequisitesSection() {
   const [form, setForm] = useState<Requisites>(getRequisites);
+  const [loading, setLoading] = useState(!isDemoMode());
 
-  const save = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isDemoMode()) return;
+    let alive = true;
+    fetchDocumentRequisites()
+      .then((r) => {
+        if (!alive) return;
+        setForm({
+          fullName: r.full_name ?? "",
+          inn: r.inn ?? "",
+          phone: r.phone ?? "",
+          address: r.address ?? "",
+        });
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRequisites(form);
-    toast.success("Реквизиты сохранены");
+    try {
+      await saveDocumentRequisites({
+        full_name: form.fullName,
+        inn: form.inn,
+        phone: form.phone,
+        address: form.address,
+      });
+      setRequisites(form);
+      toast.success("Реквизиты сохранены");
+    } catch {
+      toast.error("Не удалось сохранить реквизиты");
+    }
   };
 
   const set = (patch: Partial<Requisites>) => setForm((f) => ({ ...f, ...patch }));
@@ -40,13 +70,19 @@ function RequisitesSection() {
         Данные сохраняются на этом устройстве и используются при оформлении документов по сделкам.
       </p>
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <form onSubmit={save} className="space-y-[12px]">
-          <Field label="Полное имя (ФИО)"><Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" /></Field>
-          <Field label="ИНН (необязательно)"><Input value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" inputMode="numeric" /></Field>
-          <Field label="Телефон"><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+7 900 000-00-00" inputMode="tel" /></Field>
-          <Field label="Адрес"><Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" /></Field>
-          <Button type="submit">Сохранить</Button>
-        </form>
+        {loading ? (
+          <div className="flex items-center gap-[8px] py-[8px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            <Loader2 size={14} className="animate-spin" /> Загрузка…
+          </div>
+        ) : (
+          <form onSubmit={save} className="space-y-[12px]">
+            <Field label="Полное имя (ФИО)"><Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" /></Field>
+            <Field label="ИНН (необязательно)"><Input value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" inputMode="numeric" /></Field>
+            <Field label="Телефон"><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+7 900 000-00-00" inputMode="tel" /></Field>
+            <Field label="Адрес"><Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" /></Field>
+            <Button type="submit">Сохранить</Button>
+          </form>
+        )}
       </Card>
 
       <PayoutCard />

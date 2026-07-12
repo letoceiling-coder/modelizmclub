@@ -305,6 +305,11 @@ export async function unpinConversation(conversationUuid: string): Promise<void>
   await api(`/conversations/${conversationUuid}/pin`, { method: "DELETE" });
 }
 
+export async function deleteConversation(conversationUuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/conversations/${conversationUuid}`, { method: "DELETE" });
+}
+
 export async function forwardMessage(
   targetConversationUuid: string,
   sourceMessageUuid: string,

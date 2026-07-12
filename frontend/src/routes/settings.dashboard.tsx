@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { TrendingUp, Eye, Heart, ClipboardList, Loader2, LineChart } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
-import type { Ad } from "@/lib/mock";
 import type { AdStatusKey } from "@/lib/store";
-import { fetchMyListings } from "@/lib/api/listings";
+import { mapListingStatus } from "@/lib/api/listings";
+import { fetchMyStats } from "@/lib/api/seller-stats";
 
 export const Route = createFileRoute("/settings/dashboard")({
   component: DashboardSection,
@@ -21,29 +21,36 @@ const STATUS_LABEL: Partial<Record<AdStatusKey, string>> = {
 };
 
 function DashboardSection() {
-  const [rows, setRows] = useState<{ ad: Ad; status: AdStatusKey }[] | null>(null);
+  const [stats, setStats] = useState<{
+    active: number;
+    total: number;
+    views: number;
+    favorites: number;
+    byStatus: Map<AdStatusKey, number>;
+  } | null>(null);
 
   useEffect(() => {
     let alive = true;
-    fetchMyListings()
-      .then((r) => { if (alive) setRows(r); })
-      .catch(() => { if (alive) setRows([]); });
+    fetchMyStats()
+      .then((s) => {
+        if (!alive) return;
+        const byStatus = new Map<AdStatusKey, number>();
+        for (const [raw, cnt] of Object.entries(s.by_status ?? {})) {
+          byStatus.set(mapListingStatus(raw), cnt);
+        }
+        setStats({
+          active: s.active,
+          total: s.total,
+          views: s.views_total,
+          favorites: s.favorites_total,
+          byStatus,
+        });
+      })
+      .catch(() => { if (alive) setStats({ active: 0, total: 0, views: 0, favorites: 0, byStatus: new Map() }); });
     return () => { alive = false; };
   }, []);
 
-  const stats = useMemo(() => {
-    const list = rows ?? [];
-    // Totals span ALL of the seller's listings (not just active) — a seller
-    // wants their whole reach. Views/favorites come from each Ad.
-    const views = list.reduce((s, x) => s + (x.ad.views ?? 0), 0);
-    const favorites = list.reduce((s, x) => s + (x.ad.likes ?? 0), 0);
-    const active = list.filter((x) => x.status === "active").length;
-    const byStatus = new Map<AdStatusKey, number>();
-    for (const { status } of list) byStatus.set(status, (byStatus.get(status) ?? 0) + 1);
-    return { total: list.length, active, views, favorites, byStatus };
-  }, [rows]);
-
-  if (rows === null) {
+  if (stats === null) {
     return (
       <SettingsSectionShell title="Статистика">
         <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>

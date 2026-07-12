@@ -9,6 +9,7 @@ use App\Models\ModerationAction;
 use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\User;
+use App\Models\Video;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,12 @@ class ModerationService
                     'approved_at' => now(),
                 ]);
                 $this->updateQueue($model, 'approved');
+            } elseif ($model instanceof Video) {
+                $model->update([
+                    'status' => 'published',
+                    'published_at' => $model->published_at ?? now(),
+                ]);
+                $this->updateQueue($model, 'approved');
             }
 
             $this->logAction($model, $actor, 'approve');
@@ -63,6 +70,8 @@ class ModerationService
                 $model->update(['status' => ContentStatus::Rejected]);
             } elseif ($model instanceof Community) {
                 $model->update(['status' => CommunityStatus::Blocked]);
+            } elseif ($model instanceof Video) {
+                $model->update(['status' => 'rejected']);
             }
 
             $this->updateQueue($model, 'rejected');
@@ -79,6 +88,8 @@ class ModerationService
 
             if ($model instanceof Post) {
                 $model->update(['status' => ContentStatus::Revision]);
+            } elseif ($model instanceof Video) {
+                $model->update(['status' => 'processing']);
             }
 
             $this->updateQueue($model, 'revision');

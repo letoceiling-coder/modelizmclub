@@ -32,6 +32,8 @@ interface ApiListing {
   subcategory?: { id?: number; name?: string; slug?: string } | null;
   city?: { id?: number; name?: string } | null;
   media?: Array<{ uuid?: string; url?: string | null }>;
+  is_promoted?: boolean;
+  promoted_until?: string | null;
   published_at?: string | null;
   created_at?: string;
 }
@@ -99,6 +101,7 @@ export function mapListing(l: ApiListing): Ad {
     seller,
     views: l.views_count ?? 0,
     likes: l.favorites_count ?? 0,
+    promoted: Boolean(l.is_promoted),
     createdAt: l.published_at ?? l.created_at ?? undefined,
     moderation:
       l.status === "published"
