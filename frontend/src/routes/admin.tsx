@@ -48,29 +48,34 @@ export const Route = createFileRoute("/admin")({
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
-  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings";
+  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings"
+  | "auditLog";
 
-const navItems: { id: Section; label: string; icon: typeof Users }[] = [
-  { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
-  { id: "users", label: "Пользователи", icon: Users },
-  { id: "content", label: "Контент", icon: Newspaper },
-  { id: "ads", label: "Объявления", icon: Megaphone },
-  { id: "delivery", label: "Доставки", icon: Truck },
-  { id: "moderation", label: "Модерация", icon: ShieldCheck },
-  { id: "monetization", label: "Монетизация", icon: DollarSign },
-  { id: "categories", label: "Категории", icon: FolderTree },
-  { id: "reviews", label: "Обзоры", icon: Clapperboard },
-  { id: "notifications", label: "Уведомления", icon: Bell },
-  { id: "analytics", label: "Аналитика", icon: BarChart3 },
-  { id: "feedback", label: "Обращения", icon: Inbox },
-  { id: "design", label: "Design System", icon: Palette },
-  { id: "settings", label: "Настройки", icon: Settings },
+type AdminRole = "admin" | "moderator";
+
+const navItems: { id: Section; label: string; icon: typeof Users; roles: AdminRole[] }[] = [
+  { id: "dashboard", label: "Дашборд", icon: LayoutDashboard, roles: ["admin", "moderator"] },
+  { id: "users", label: "Пользователи", icon: Users, roles: ["admin"] },
+  { id: "content", label: "Контент", icon: Newspaper, roles: ["admin"] },
+  { id: "ads", label: "Объявления", icon: Megaphone, roles: ["admin"] },
+  { id: "delivery", label: "Доставки", icon: Truck, roles: ["admin"] },
+  { id: "moderation", label: "Модерация", icon: ShieldCheck, roles: ["admin", "moderator"] },
+  { id: "monetization", label: "Монетизация", icon: DollarSign, roles: ["admin"] },
+  { id: "categories", label: "Категории", icon: FolderTree, roles: ["admin"] },
+  { id: "reviews", label: "Обзоры", icon: Clapperboard, roles: ["admin"] },
+  { id: "notifications", label: "Уведомления", icon: Bell, roles: ["admin"] },
+  { id: "analytics", label: "Аналитика", icon: BarChart3, roles: ["admin"] },
+  { id: "feedback", label: "Обращения", icon: Inbox, roles: ["admin", "moderator"] },
+  { id: "design", label: "Design System", icon: Palette, roles: ["admin"] },
+  { id: "settings", label: "Настройки", icon: Settings, roles: ["admin"] },
+  { id: "auditLog", label: "История изменений", icon: Search, roles: ["admin"] },
 ];
 
 function AdminPage() {
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
+  const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [section, setSection] = useState<Section>("dashboard");
 
   // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
@@ -87,7 +92,18 @@ function AdminPage() {
         navigate({ to: "/login", search: { redirect: "/admin" } });
         return;
       }
-      setAccess(selectors.currentUser(getState()).isAdmin ? "granted" : "forbidden");
+      const current = selectors.currentUser(getState());
+      // `role` is the source of truth when present (real API sessions);
+      // demo-mode sessions only set `isAdmin` (see lib/demo-data.ts DEMO_USER),
+      // so fall back to treating isAdmin as "admin" there.
+      const resolvedRole: AdminRole | null =
+        current.role === "admin" || current.role === "moderator"
+          ? current.role
+          : current.isAdmin
+            ? "admin"
+            : null;
+      setAdminRole(resolvedRole);
+      setAccess(resolvedRole ? "granted" : "forbidden");
     })();
     return () => {
       alive = false;
@@ -162,6 +178,15 @@ function AdminPage() {
     );
   }
 
+  const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
+
+  useEffect(() => {
+    if (adminRole === null) return;
+    if (!visibleNavItems.some((n) => n.id === section)) {
+      setSection(visibleNavItems[0]?.id ?? "dashboard");
+    }
+  }, [adminRole, section, visibleNavItems]);
+
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       {/* Header */}
@@ -213,7 +238,7 @@ function AdminPage() {
           }}
         >
           <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            {navItems.map((n) => {
+            {visibleNavItems.map((n) => {
               const active = section === n.id;
               return (
                 <button
@@ -264,7 +289,7 @@ function AdminPage() {
                 color: "var(--foreground)",
               }}
             >
-              {navItems.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+              {visibleNavItems.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </div>
 
