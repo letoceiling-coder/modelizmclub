@@ -50,10 +50,9 @@ class VideoUploadModerationTest extends TestCase
 
         $category = VideoCategory::query()->create([
             'uuid' => (string) Str::uuid(),
-            'name' => 'Обзоры',
+            'title' => 'Обзоры',
             'slug' => 'reviews-'.uniqid(),
             'sort_order' => 1,
-            'is_active' => true,
         ]);
 
         $poster = Media::query()->create([
