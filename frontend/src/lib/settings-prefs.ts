@@ -4,8 +4,10 @@
 export type NotifKey = "friend_requests" | "comments" | "likes" | "messages" | "subscription_posts";
 export type NotificationPrefs = Record<NotifKey, boolean>;
 
+export const NOTIF_KEYS: NotifKey[] = ["friend_requests", "comments", "likes", "messages", "subscription_posts"];
+
 const NOTIF_KEY = "modelizm_notif_prefs";
-const NOTIF_DEFAULTS: NotificationPrefs = {
+export const NOTIF_DEFAULTS: NotificationPrefs = {
   friend_requests: true,
   comments: true,
   likes: true,
@@ -28,6 +30,13 @@ export function setNotifPref(key: NotifKey, value: boolean): void {
   if (typeof window === "undefined") return;
   const next = { ...getNotifPrefs(), [key]: value };
   window.localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
+}
+
+/** Persist the whole set at once — used as the demo-mode backend by
+ *  api/notification-prefs.ts (real backend uses /users/me/settings). */
+export function setAllNotifPrefs(prefs: NotificationPrefs): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(NOTIF_KEY, JSON.stringify(prefs));
 }
 
 export interface Requisites {

@@ -1111,3 +1111,49 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
 - **Смоук-тест** (сменить пароль реальным вводом; выйти на другом
   устройстве и убедиться, что второй токен инвалидирован) — **pending**,
   нужен backend.
+
+---
+
+## Настройки на сервер вместо localStorage (seller-cabinet-v1, Stage 4)
+
+Цель этапа — увести пользовательские настройки из localStorage в БД. По
+факту мигрируемо только то, где на бэке уже есть хранилище.
+
+### ✅ Сделано: уведомления → `/users/me/settings`
+
+`routes/settings.notifications.tsx` больше не пишет в localStorage — читает/
+пишет через `src/lib/api/notification-prefs.ts`.
+
+- `GET /users/me/settings` → `{ "data": [ { "channel": string, "type": string, "enabled": bool } ] }` (уже есть).
+- `PATCH /users/me/settings` → тело `{ "preferences": [ { "channel", "type", "enabled" } ] }` (уже есть).
+- **Соглашение маппинга** (фронт↔бэк): фронтовые 5 тумблеров — это строки с
+  `channel = "in_app"` и `type ∈ { friend_requests, comments, likes, messages, subscription_posts }`.
+  `updateSettings` делает `updateOrCreate` по (channel, type), так что набор
+  round-trip'ится. Другие каналы (email/push), если появятся, фронт
+  игнорирует (фильтрует `in_app`).
+- Demo-режим → localStorage (как раньше), чтобы раздел переживал refresh и
+  на demo-стенде.
+
+### ⛔ Не мигрируемо сейчас — нет хранилища на бэке (осталось на localStorage)
+
+- **Телефон и соцсети** (`AccountExtra`: phone, vk, telegram, website в
+  `settings.account.tsx`). `PATCH /users/me` (UpdateProfileRequest) принимает
+  только `display_name / slug / bio / city_id / avatar_*` — **полей phone и
+  соцсетей в `user_profiles` нет**. Нужно: колонки в `user_profiles` (phone,
+  vk, telegram, website) + расширить `UpdateProfileRequest` этими полями (или
+  отдельный `PATCH /account/contacts`). До этого — остаётся в localStorage
+  (fake-wire на несуществующий эндпоинт делать нельзя: потеряются данные на
+  проде).
+- **Кошелёк** (`settings.wallet.tsx`) — сейчас статический mock
+  (`mockWalletBalance`), не localStorage. Нужен реальный эндпоинт баланса
+  (напр. `GET /account/wallet` поверх `bonus_accounts`/`bonus_transactions`).
+  Не реализовано, помечено.
+- **Реквизиты выплат** — держим на паузе по Stage 2 (вопрос к Никите про
+  способ вывода), не дублируем здесь.
+
+### Приёмка
+
+«Обновил страницу — данные на месте» выполняется для уведомлений в обоих
+режимах: prod — сервер, demo — localStorage. Для phone/socials/wallet — пока
+только demo/localStorage, до появления бэкенд-хранилища. Смоук-тест реального
+серверного сохранения уведомлений — **pending** (нужен backend).
