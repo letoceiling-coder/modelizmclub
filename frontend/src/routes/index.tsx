@@ -410,6 +410,14 @@ function QuickSections() {
 const CONDITION_COLOR = (c?: string) =>
   c === "Новое" ? "var(--success)" : "var(--foreground-50)";
 
+/* Landing "Популярные объявления" always shows exactly this many cards, so the
+ * grid never renders a short/ragged final row. 12 divides evenly into the grid's
+ * column counts at every breakpoint (3 / 4 / 6), so all rows are full.
+ * We fetch up to 12 real listings ("popular" is already a global selection —
+ * no direction/date narrowing to widen); if the whole catalog has fewer than 12,
+ * the remaining slots are backfilled with a "Разместить объявление" CTA card. */
+const POPULAR_SLOTS = 12;
+
 function PopularListings() {
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState<Ad[]>([]);
@@ -418,14 +426,15 @@ function PopularListings() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetchPopularListings(10)
-      .then((list) => { if (alive) setItems(list); })
+    fetchPopularListings(POPULAR_SLOTS)
+      .then((list) => { if (alive) setItems(list.slice(0, POPULAR_SLOTS)); })
       .catch(() => { if (alive) setItems([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
 
   const priceLocale = i18n.language === "ru" ? "ru-RU" : i18n.language === "zh" ? "zh-CN" : "en-US";
+  const placeholderCount = Math.max(0, POPULAR_SLOTS - items.length);
 
   return (
     <Section bg="var(--background)">
@@ -439,16 +448,19 @@ function PopularListings() {
         >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
       </div>
 
-      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-5"
+      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-6"
       >
         {loading ? (
           <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.listings.loading")}</p>
-        ) : items.length === 0 ? (
-          <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.listings.empty")}</p>
         ) : (
-          items.map((ad) => (
-            <LandingListingCard key={ad.id} ad={ad} priceLocale={priceLocale} />
-          ))
+          <>
+            {items.map((ad) => (
+              <LandingListingCard key={ad.id} ad={ad} priceLocale={priceLocale} />
+            ))}
+            {Array.from({ length: placeholderCount }).map((_, i) => (
+              <ListingCtaPlaceholder key={`listing-cta-${i}`} label={t("landing.listings.postCta")} />
+            ))}
+          </>
         )}
       </div>
 
@@ -458,6 +470,25 @@ function PopularListings() {
         >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
       </div>
     </Section>
+  );
+}
+
+/** Backfill card for the popular-listings grid: a real, tappable CTA to post an
+ *  ad, shown when the catalog has fewer than POPULAR_SLOTS listings. Keeps the
+ *  grid always full (never a ragged final row) while staying honest — it's an
+ *  action, not a fake listing. */
+function ListingCtaPlaceholder({ label }: { label: string }) {
+  return (
+    <Link
+      to="/ads/new"
+      className="group flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col items-center justify-center gap-2 overflow-hidden p-6 text-center transition hover:-translate-y-1 sm:w-auto sm:max-w-none"
+      style={{ ...cardStyle, borderStyle: "dashed" }}
+    >
+      <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+        <Plus size={22} />
+      </div>
+      <span className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>{label}</span>
+    </Link>
   );
 }
 

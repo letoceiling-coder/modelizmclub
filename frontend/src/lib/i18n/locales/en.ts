@@ -105,6 +105,7 @@ export const en: TranslationSchema = {
       photoSoon: "Photo soon",
       loading: "Loading listings…",
       empty: "No published listings yet",
+      postCta: "Post a listing",
     },
     categories: {
       eyebrow: "Directions",

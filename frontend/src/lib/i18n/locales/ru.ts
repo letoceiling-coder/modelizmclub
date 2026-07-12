@@ -103,6 +103,7 @@ export const ru = {
       photoSoon: "Фото скоро",
       loading: "Загрузка объявлений…",
       empty: "Пока нет опубликованных объявлений",
+      postCta: "Разместить объявление",
     },
     categories: {
       eyebrow: "Направления",

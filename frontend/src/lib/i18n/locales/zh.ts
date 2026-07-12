@@ -105,6 +105,7 @@ export const zh: TranslationSchema = {
       photoSoon: "图片即将上线",
       loading: "正在加载广告…",
       empty: "暂无已发布的广告",
+      postCta: "发布广告",
     },
     categories: {
       eyebrow: "方向",
