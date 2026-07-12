@@ -22,6 +22,16 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// Radix portals DropdownMenuContent to document.body by default, so it's
+// not a DOM descendant of the trigger — a hover handler on the trigger and
+// one on the (separately-mounted) content are two disjoint zones with a
+// real gap between them (sideOffset). Crossing that gap at normal mouse
+// speed usually beats a close timer, but not always — enough to reproduce
+// "closes right as you're about to click". CLOSE_DELAY_MS plus routing the
+// portal back inside wrapperRef (below) fixes both the timing margin and
+// the gap itself.
+const CLOSE_DELAY_MS = 250;
+
 export function UserMenu() {
   const me = useStore(selectors.currentUser);
   const { t } = useTranslation();
@@ -29,6 +39,7 @@ export function UserMenu() {
   const isDark = theme === "dark";
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const cancelClose = () => {
     if (closeTimer.current) {
@@ -38,7 +49,7 @@ export function UserMenu() {
   };
   const scheduleClose = () => {
     cancelClose();
-    closeTimer.current = setTimeout(() => setOpen(false), 150);
+    closeTimer.current = setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
   };
 
   const hasAvatar = Boolean(me.avatar && me.avatar.trim());
@@ -50,7 +61,12 @@ export function UserMenu() {
   };
 
   return (
-    <div onMouseEnter={() => { cancelClose(); setOpen(true); }} onMouseLeave={scheduleClose}>
+    <div
+      ref={wrapperRef}
+      className="relative"
+      onMouseEnter={() => { cancelClose(); setOpen(true); }}
+      onMouseLeave={scheduleClose}
+    >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -71,6 +87,7 @@ export function UserMenu() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
+          portalContainer={wrapperRef.current}
           align="end"
           sideOffset={8}
           className="w-56"
