@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
 import { Gift, Zap, CalendarClock } from "lucide-react";
@@ -7,6 +8,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { subscriptionEndDate, SUB_DAYS_LEFT } from "@/lib/subscription";
+import { isDemoMode } from "@/lib/demo-mode";
+import { createSubscriptionPayment, confirmStubPayment, fetchMySubscription } from "@/lib/api/payment";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
@@ -38,13 +41,55 @@ function daysWord(n: number): string {
   return "дней";
 }
 
-function payClick(planName: string) {
-  toast("Оплата будет доступна после подключения эквайринга", {
-    description: `Тариф: ${planName}`,
-  });
+/**
+ * Start a real subscription checkout (Stage 1). Demo hosts (neeklo/local)
+ * have no billing backend, so there we keep the honest "оплата будет
+ * доступна" message rather than faking a payment. On the real backend:
+ *   - vtb/yookassa → redirect to the provider's hosted page; it returns to
+ *     /subscription?payment=success|failed (backend config return_url/fail_url).
+ *   - stub (test contour w/o live acquiring) → no hosted page: confirm the
+ *     stub payment directly and reflect the resulting subscription status.
+ */
+async function startSubscriptionCheckout(plan: { id: string; name: string }) {
+  if (isDemoMode()) {
+    toast("Оплата будет доступна после подключения эквайринга", {
+      description: `Тариф: ${plan.name}`,
+    });
+    return;
+  }
+  try {
+    const checkout = await createSubscriptionPayment(plan.id);
+    if (checkout.checkout_url) {
+      window.location.href = checkout.checkout_url;
+      return;
+    }
+    await confirmStubPayment(checkout.payment_uuid);
+    const sub = await fetchMySubscription();
+    toast.success(
+      sub?.is_active ? "Подписка активирована (тестовый режим)" : "Платёж подтверждён (тестовый режим)",
+    );
+  } catch {
+    toast.error("Не удалось создать платёж. Попробуйте позже.");
+  }
 }
 
 function SubscriptionPage() {
+  // Provider hosted-page return: config return_url/fail_url send the user
+  // back to /subscription?payment=success|failed. Surface the outcome, then
+  // strip the param so a refresh doesn't re-toast. Activation itself happens
+  // server-side via the provider webhook, so "success" is phrased as
+  // "activating", not a hard confirmation.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("payment");
+    if (!p) return;
+    if (p === "success") toast.success("Оплата прошла — подписка активируется");
+    else if (p === "failed") toast.error("Оплата не завершена");
+    params.delete("payment");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+  }, []);
+
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
@@ -183,7 +228,7 @@ function SubscriptionPage() {
             renderCta={(plan) => (
               <button
                 type="button"
-                onClick={() => payClick(plan.name)}
+                onClick={() => startSubscriptionCheckout({ id: plan.id, name: plan.name })}
                 className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >

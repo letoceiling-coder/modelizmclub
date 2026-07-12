@@ -984,3 +984,61 @@ No saved-payment-method / card-binding UI exists anywhere in the frontend, and n
   появится, «Показать текст» на сообщении без расшифровки будет вызывать его и
   рендерить возвращённый текст. Выбор STT-провайдера (например, Whisper /
   Yandex SpeechKit) — backend/infra-решение, здесь не предлагается.
+
+---
+
+## Billing / оплата подписки (seller-cabinet-v1, Stage 1)
+
+Фронт подключил **реальный** флоу оплаты подписки вместо заглушки-toast
+(`routes/subscription.tsx` + новый клиент `src/lib/api/payment.ts`). Все
+перечисленные эндпоинты **уже реализованы** в `backend/app/Modules/Billing`
+— это не запрос «сделать эндпоинт», а фиксация контракта, который теперь
+дёргает фронт, плюс два backend/infra-действия для запуска.
+
+### Что вызывает фронт
+
+- `POST /payments` — тело `{ "plan_slug": string, "idempotency_key": string }`
+  → `201 { "data": { "payment_uuid", "checkout_url": string|null, "status", "provider" } }`.
+  - `checkout_url` не null (vtb/yookassa) → фронт делает `window.location.href = checkout_url`.
+  - `checkout_url` null (провайдер `stub`) → фронт вызывает `POST /payments/{uuid}/confirm-stub`.
+- `GET /payments/{uuid}` — статус платежа.
+- `POST /payments/{uuid}/sync` — пересинхронизировать статус у провайдера.
+- `POST /payments/{uuid}/confirm-stub` — подтвердить stub-платёж (только dev/test-контур, провайдер `stub`).
+- `GET /users/me/subscription` — текущая подписка или `data: null` на бесплатном тарифе.
+
+### Возврат с хостинговой страницы провайдера
+
+`config/billing.php` уже задаёт `return_url = FRONTEND/subscription?payment=success`
+и `fail_url = .../subscription?payment=failed`. Фронт (`SubscriptionPage`)
+читает `?payment=success|failed` на маунте, показывает тост и очищает
+параметр. Менять эти URL не нужно — если фронтовый роут `/subscription`
+сохранится, всё сойдётся.
+
+### ⚠️ Действия на стороне backend/infra (без них флоу не заработает)
+
+1. **Слаги тарифов должны совпадать.** Фронт шлёт `plan_slug` из
+   `src/lib/config/pricing.ts` — это `"month"`, `"half"`, `"year"`. Бэкенду
+   нужно засеять `subscription_plans.slug` **ровно этими значениями** (или
+   согласовать иной маппинг и обновить фронтовый конфиг). Сидера
+   `subscription_plans` в репозитории не нашёл — вероятно, план ещё не
+   засеян.
+2. **Включить эквайринг в тест-контуре.** Оба провайдера по умолчанию
+   `enabled=false` → сейчас резолвится `stub`. Для боевого редиректа нужны
+   env-ключи ВТБ (`VTB_ACQUIRING_*`, `VTB_ACQUIRING_ENABLED=true`) или ЮKassa
+   (`YOOKASSA_*`, `YOOKASSA_ENABLED=true`).
+
+### Не входит в Stage 1
+
+- **Demo-режим** (neeklo/local) намеренно **не** вызывает эти эндпоинты —
+  показывает честное «Оплата будет доступна после подключения эквайринга»
+  (фейкового успешного платежа нет).
+- **`PaymentModal.tsx`** намеренно **не** используется: реальный флоу —
+  редирект на хостинговую страницу провайдера, а этот компонент —
+  self-labeled прототип, который имитирует успешную оплату. Оставлен как
+  dead-code (нет импортёров); удаление/замена — отдельным решением.
+- **Разовое размещение (99 ₽) и бусты объявлений** — другой payable-тип,
+  текущий `CreatePaymentController` принимает только `plan_slug` (подписка).
+  Это Stage 5, здесь кнопка оставлена как честный toast.
+- **Смоук-тест** «кнопка → вебхук → смена статуса подписки» помечен
+  **pending**: требует включённого backend-эквайринга (или stub-контура) и
+  реального запуска — на demo-хостах не проверяется.
