@@ -37,7 +37,7 @@ function RequisitesSection() {
   return (
     <SettingsSectionShell title="Реквизиты">
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Данные хранятся локально. Интеграция с документами сделок — в разработке.
+        Данные сохраняются на этом устройстве и используются при оформлении документов по сделкам.
       </p>
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <form onSubmit={save} className="space-y-[12px]">
