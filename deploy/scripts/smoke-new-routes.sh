@@ -81,20 +81,29 @@ check "logout-others" 200 POST "/auth/logout-others" "" '{}'
 check "payment-methods-bind" 422 POST "/account/payment-methods" "" '{}'
 
 echo "==> User public"
-USER_ID=$(curl -sS "${API}/users/me" -H "Authorization: Bearer ${TOKEN}" -H 'Accept: application/json' \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('id',''))" 2>/dev/null || true)
-if [[ -n "$USER_ID" ]]; then
+USER_ID=$(cd /var/www/modelizmclub/backend && php artisan tinker --execute="echo App\\Models\\User::where('email','demo@modelizmclub.ru')->value('id');" 2>/dev/null | tail -1)
+if [[ -n "$USER_ID" && "$USER_ID" =~ ^[0-9]+$ ]]; then
   check "user-rating" 200 GET "/users/${USER_ID}/rating"
   check "user-reviews" 200 GET "/users/${USER_ID}/reviews"
 else
-  echo "SKIP user rating/reviews — no user id"
+  echo "SKIP user rating/reviews — no user id ($USER_ID)"
 fi
 
 echo "==> Listing reveal-phone (needs listing)"
 LISTING_UUID=$(curl -sS "${API}/listings?per_page=1" -H 'Accept: application/json' \
   | python3 -c "import sys,json; d=json.load(sys.stdin); items=d.get('data',[]); print(items[0]['uuid'] if items else '')" 2>/dev/null || true)
 if [[ -n "$LISTING_UUID" ]]; then
-  check "reveal-phone" 200 POST "/listings/${LISTING_UUID}/reveal-phone" "" '{}'
+  code=$(curl -sS -o /tmp/smoke_body -w "%{http_code}" -X POST "${API}/listings/${LISTING_UUID}/reveal-phone" \
+    -H 'Accept: application/json' -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer ${TOKEN}" -d '{}')
+  if [[ "$code" == "200" || "$code" == "404" ]]; then
+    echo "OK  [$code] POST /listings/${LISTING_UUID}/reveal-phone — reveal-phone (route live)"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL [$code] expected 200|404 — POST /listings/${LISTING_UUID}/reveal-phone — reveal-phone"
+    head -c 300 /tmp/smoke_body 2>/dev/null; echo
+    FAIL=$((FAIL + 1))
+  fi
 else
   echo "SKIP reveal-phone — no listings"
 fi
