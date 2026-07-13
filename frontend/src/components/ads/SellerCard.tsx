@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Star, MessageSquare, Calendar } from "lucide-react";
+import { Star, ChevronRight, Calendar } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -20,9 +19,9 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
       <img
         src={seller.avatar}
         alt={seller.name}
-        width={56}
-        height={56}
-        className="h-[56px] w-[56px] shrink-0 object-cover"
+        width={44}
+        height={44}
+        className="h-[44px] w-[44px] shrink-0 object-cover"
         style={{ borderRadius: "var(--r-pill)", border: "1px solid var(--border)" }}
         onError={() => setBroken(true)}
       />
@@ -30,7 +29,7 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
   }
   return (
     <div
-      className="grid h-[56px] w-[56px] shrink-0 place-items-center text-[18px] font-semibold"
+      className="grid h-[44px] w-[44px] shrink-0 place-items-center text-[15px] font-semibold"
       style={{
         borderRadius: "var(--r-pill)",
         background: "var(--accent-soft)",
@@ -44,61 +43,54 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
   );
 }
 
-export function SellerCard({ seller, onWrite }: { seller: AdSeller; onWrite?: () => void }) {
+/** Compact — identity + rating only. Contact actions (Написать/Позвонить)
+ *  live solely in the sticky AdActionPanel now, so this doesn't duplicate
+ *  them; tapping the row just opens the seller's profile. */
+export function SellerCard({ seller }: { seller: AdSeller }) {
   const hasRating = seller.rating > 0;
   const hasDeals = seller.deals > 0;
   const hasSince = Boolean(seller.since && seller.since.trim());
   const hasStats = hasRating || hasDeals;
 
   return (
-    <Card
-      className="flex flex-col gap-[16px] p-[20px]"
-      style={{
-        background: "var(--background-elevated)",
-        borderColor: "var(--border)",
-        borderRadius: "var(--r-card)",
-        boxShadow: "var(--shadow-card)",
-      }}
-    >
-      <div className="flex items-center gap-[14px]">
+    <Link to="/profile">
+      <Card
+        className="flex items-center gap-[12px] p-[14px] transition-colors hover:bg-[var(--background-surface)]"
+        style={{
+          background: "var(--background-elevated)",
+          borderColor: "var(--border)",
+          borderRadius: "var(--r-card)",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
         <SellerAvatar seller={seller} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+          <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
             {seller.name}
           </div>
-
-          {hasStats ? (
-            <div className="mt-[3px] flex items-center gap-[10px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
-              {hasRating && (
-                <span className="inline-flex items-center gap-[3px]">
-                  <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
-                  <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
-                </span>
-              )}
-              {hasDeals && <span>{hasRating ? "· " : ""}{seller.deals} сделок</span>}
-            </div>
-          ) : (
-            <div className="mt-[3px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Продавец на МоДелизМ
-            </div>
-          )}
-
-          {hasSince && (
-            <div className="mt-[2px] inline-flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              <Calendar size={10} /> На сайте с {seller.since}
-            </div>
-          )}
+          <div className="mt-[2px] flex flex-wrap items-center gap-x-[8px] gap-y-[2px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+            {hasStats ? (
+              <>
+                {hasRating && (
+                  <span className="inline-flex items-center gap-[3px]">
+                    <Star size={11} fill="currentColor" style={{ color: "var(--warning)" }} />
+                    <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
+                  </span>
+                )}
+                {hasDeals && <span>{seller.deals} сделок</span>}
+              </>
+            ) : (
+              <span style={{ color: "var(--foreground-50)" }}>Продавец на МоДелизМ</span>
+            )}
+            {hasSince && (
+              <span className="inline-flex items-center gap-[3px]" style={{ color: "var(--foreground-50)" }}>
+                <Calendar size={10} /> с {seller.since}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-[8px]">
-        <Button onClick={onWrite} size="lg" className="w-full rounded-[var(--r-button)]">
-          <MessageSquare size={16} /> Написать продавцу
-        </Button>
-        <Button asChild variant="outline" className="rounded-[var(--r-button)]">
-          <Link to="/profile">Профиль продавца</Link>
-        </Button>
-      </div>
-    </Card>
+        <ChevronRight size={16} className="shrink-0" style={{ color: "var(--foreground-30)" }} />
+      </Card>
+    </Link>
   );
 }

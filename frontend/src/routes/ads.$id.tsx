@@ -7,6 +7,8 @@ import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
 import { AdActionPanel } from "@/components/ads/AdActionPanel";
+import { AskSellerWidget } from "@/components/ads/AskSellerWidget";
+import { MobileStickyActionBar } from "@/components/ads/MobileStickyActionBar";
 import { DeliveryChoiceSheet } from "@/components/ads/DeliveryChoiceSheet";
 import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { AdDetailSkeleton } from "@/components/ads/AdDetailSkeleton";
@@ -134,7 +136,7 @@ function AdDetailPage() {
     }
   };
 
-  const proceedToConversation = async (deliveryChoice: string | null) => {
+  const proceedToConversation = async (queuedMessage: string | null) => {
     const sellerId = ad?.seller?.numericId;
     if (!sellerId || !me) {
       toast.error("Не удалось открыть диалог с продавцом");
@@ -150,8 +152,8 @@ function AdDetailPage() {
           image: ad.gallery?.[0] ?? ad.image,
         });
       }
-      if (deliveryChoice) {
-        actions.queuePendingMessage(dialog.id, `📦 Способ получения: ${deliveryChoice}`);
+      if (queuedMessage) {
+        actions.queuePendingMessage(dialog.id, queuedMessage);
       }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
@@ -159,21 +161,31 @@ function AdDetailPage() {
     }
   };
 
-  const writeToSeller = async () => {
+  const requireAuthAndNotOwnAd = (): boolean => {
     if (!getToken() && !isDemoMode()) {
       toast.info("Войдите, чтобы написать продавцу");
       navigate({ to: "/login" });
-      return;
+      return false;
     }
     if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
       toast.info("Это ваше объявление");
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const writeToSeller = async () => {
+    if (!requireAuthAndNotOwnAd()) return;
     if (availableDeliveryMethods.length > 0) {
       setDeliveryPickerOpen(true);
       return;
     }
     await proceedToConversation(null);
+  };
+
+  const askSeller = async (question: string) => {
+    if (!requireAuthAndNotOwnAd()) return;
+    await proceedToConversation(question);
   };
 
   if (state === "loading") {
@@ -269,9 +281,11 @@ function AdDetailPage() {
 
   return (
     <AppLayout rightColumn={false}>
-      <div className="mx-auto flex max-w-[1100px] flex-col gap-[24px]">
+      <div
+        className="mx-auto max-w-[1100px] pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0"
+      >
         {/* Breadcrumbs */}
-        <nav className="flex flex-wrap items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+        <nav className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
           <Link to="/ads" className="inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]">
             <ChevronLeft size={14} /> Объявления
           </Link>
@@ -289,13 +303,24 @@ function AdDetailPage() {
           )}
         </nav>
 
-        {/* Top section: gallery + purchase panel */}
-        <div className="grid gap-[24px] lg:grid-cols-[1fr_360px]">
-          <div className="min-w-0">
+        {/* Avito-style structure via named grid areas — the actual fix for
+            "правый блок не закреплён при скролле": the old markup put the
+            sticky wrapper inside a grid row that ended right after the
+            gallery, so it released the moment that row scrolled past.
+            Named areas let "actions" span the full height of the page
+            (sticky the whole way through description/delivery/seller/
+            similar) while still reordering naturally on mobile: gallery,
+            then price/actions/ask-seller, then the rest — matching where
+            Avito puts title+price on its mobile listing page, just above
+            the description, rather than only in the fixed bottom bar. */}
+        <div
+          className="grid gap-[16px] lg:grid-cols-[1fr_360px] lg:items-start lg:gap-[24px] [grid-template-areas:'gallery'_'actions'_'content'] lg:[grid-template-areas:'gallery_actions'_'content_actions']"
+        >
+          <div className="min-w-0 [grid-area:gallery]">
             <AdGallery images={images} alt={ad.title} />
           </div>
 
-          <div className="lg:sticky lg:top-[16px] lg:h-fit">
+          <div className="flex flex-col gap-[16px] [grid-area:actions] lg:sticky lg:top-[16px]">
             <AdActionPanel
               ad={ad}
               saved={saved}
@@ -306,85 +331,90 @@ function AdDetailPage() {
               revealedPhone={revealedPhone}
               onRevealPhone={() => void revealPhone()}
             />
+            <AskSellerWidget onAsk={(q) => void askSeller(q)} />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-[16px] [grid-area:content] lg:gap-[20px]">
+
+            {/* Description */}
+            <Card
+              className="p-[16px] sm:p-[20px]"
+              style={{
+                background: "var(--background-elevated)",
+                borderColor: "var(--border)",
+                borderRadius: "var(--r-card)",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <h2 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+                Описание
+              </h2>
+              <p className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.55]" style={{ color: "var(--foreground-90)" }}>
+                {ad.description ?? "Описание отсутствует."}
+              </p>
+
+              <div className="mt-[14px] grid gap-[10px] sm:grid-cols-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                <Spec label="Категория" value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"} />
+                <Spec label="Состояние" value={ad.condition ?? "—"} />
+                <Spec label="Город" value={ad.city || "—"} />
+              </div>
+            </Card>
+
+            {/* Delivery — only when the listing declares options */}
+            {hasDelivery && (
+              <Card
+                className="p-[16px] sm:p-[20px]"
+                style={{
+                  background: "var(--background-elevated)",
+                  borderColor: "var(--border)",
+                  borderRadius: "var(--r-card)",
+                  boxShadow: "var(--shadow-card)",
+                }}
+              >
+                <h2 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+                  Доставка
+                </h2>
+                <div className="mt-[8px] flex flex-wrap gap-[6px]">
+                  {ad.delivery.map((d) => (
+                    <span
+                      key={d}
+                      className="inline-flex items-center gap-[6px] px-[10px] py-[5px] text-[12px] font-medium"
+                      style={{ background: "var(--background-surface)", color: "var(--foreground)", borderRadius: "var(--r-tag)" }}
+                    >
+                      <Truck size={12} /> {d}
+                    </span>
+                  ))}
+                </div>
+                {ad.deliveryDetails && (
+                  <p className="mt-[10px] text-[13px] leading-[1.55]" style={{ color: "var(--foreground-70)" }}>
+                    {ad.deliveryDetails}
+                  </p>
+                )}
+              </Card>
+            )}
+
+            {/* Seller */}
+            {ad.seller && <SellerCard seller={ad.seller} />}
+
+            <SimilarAds items={similar} />
           </div>
         </div>
-
-        {/* Description */}
-        <Card
-          className="p-[24px]"
-          style={{
-            background: "var(--background-elevated)",
-            borderColor: "var(--border)",
-            borderRadius: "var(--r-card)",
-            boxShadow: "var(--shadow-card)",
-          }}
-        >
-          <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            Описание
-          </h2>
-          <p className="mt-[12px] whitespace-pre-line text-[14px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
-            {ad.description ?? "Описание отсутствует."}
-          </p>
-
-          <div className="mt-[20px] grid gap-[12px] sm:grid-cols-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 20 }}>
-            <Spec label="Категория" value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"} />
-            <Spec label="Состояние" value={ad.condition ?? "—"} />
-            <Spec label="Город" value={ad.city || "—"} />
-          </div>
-        </Card>
-
-        {/* Delivery — only when the listing declares options */}
-        {hasDelivery && (
-          <Card
-            className="p-[24px]"
-            style={{
-              background: "var(--background-elevated)",
-              borderColor: "var(--border)",
-              borderRadius: "var(--r-card)",
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Доставка
-            </h2>
-            <div className="mt-[12px] flex flex-wrap gap-[8px]">
-              {ad.delivery.map((d) => (
-                <span
-                  key={d}
-                  className="inline-flex items-center gap-[6px] px-[12px] py-[6px] text-[12px] font-medium"
-                  style={{ background: "var(--background-surface)", color: "var(--foreground)", borderRadius: "var(--r-tag)" }}
-                >
-                  <Truck size={12} /> {d}
-                </span>
-              ))}
-            </div>
-            {ad.deliveryDetails && (
-              <p className="mt-[14px] text-[13px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
-                {ad.deliveryDetails}
-              </p>
-            )}
-          </Card>
-        )}
-
-        {/* Seller */}
-        {ad.seller && (
-          <section className="space-y-[12px]">
-            <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Продавец
-            </h2>
-            <SellerCard seller={ad.seller} onWrite={writeToSeller} />
-          </section>
-        )}
-
-        <SimilarAds items={similar} />
       </div>
+
+      <MobileStickyActionBar
+        ad={ad}
+        onWrite={writeToSeller}
+        phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
+        revealedPhone={revealedPhone}
+        onRevealPhone={() => void revealPhone()}
+      />
 
       <DeliveryChoiceSheet
         open={deliveryPickerOpen}
         methods={availableDeliveryMethods}
         onConfirm={(choice) => {
           setDeliveryPickerOpen(false);
-          void proceedToConversation(choice);
+          void proceedToConversation(choice ? `📦 Способ получения: ${choice}` : null);
         }}
       />
     </AppLayout>
