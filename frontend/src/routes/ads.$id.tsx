@@ -331,7 +331,6 @@ function AdDetailPage() {
               revealedPhone={revealedPhone}
               onRevealPhone={() => void revealPhone()}
             />
-            <AskSellerWidget onAsk={(q) => void askSeller(q)} />
           </div>
 
           <div className="flex min-w-0 flex-col gap-[16px] [grid-area:content] lg:gap-[20px]">
@@ -393,8 +392,13 @@ function AdDetailPage() {
               </Card>
             )}
 
-            {/* Seller */}
+            {/* Seller, then the "ask the seller" quick-question widget directly
+                beneath it — Avito-style placement: seller info first, then the
+                way to contact them, in the main content column rather than the
+                right rail. */}
             {ad.seller && <SellerCard seller={ad.seller} />}
+
+            <AskSellerWidget onAsk={(q) => void askSeller(q)} />
 
             <SimilarAds items={similar} />
           </div>
