@@ -17,7 +17,13 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 function RailCard({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="overflow-hidden rounded-[var(--r-card)] border"
+      // shrink-0: the card lives inside the rail's flex-col scroll container.
+      // Its own overflow-hidden (for the rounded corners) zeroes its flex
+      // auto-min-height, so without this the flex algorithm shrank the card to
+      // the viewport height and clipped the category list instead of letting
+      // the scroll container scroll. Keeping the card at its natural height
+      // makes the outer overflow-y-auto do the scrolling.
+      className="shrink-0 overflow-hidden rounded-[var(--r-card)] border"
       style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
       {children}
