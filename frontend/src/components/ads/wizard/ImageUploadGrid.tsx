@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Reorder } from "framer-motion";
-import { ImagePlus, X, Star, ImageOff } from "lucide-react";
+import { useRef, useState } from "react";
+import { ImagePlus, X, Star, ImageOff, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   photos: string[];
@@ -11,35 +10,59 @@ interface Props {
   onReorder: (newPhotos: string[]) => void;
 }
 
-/** Single preview tile — a draggable Reorder.Item with a broken-image fallback
- *  (revoked/failed blob URL never shows the browser's default broken glyph). */
+/** Single preview tile — a broken-image fallback (revoked/failed blob URL
+ *  never shows the browser's default broken glyph), a "make main" star, a
+ *  delete button, and left/right nudge buttons as a drag-free reorder path.
+ *  Drag itself is driven by the parent grid's pointer handlers (see
+ *  ImageUploadGrid) rather than per-tile, so a drag started on one tile can
+ *  be tracked against every other tile's live position. */
 function PreviewTile({
   src,
   index,
+  count,
+  dragging,
+  dropTarget,
   onRemove,
   onMakeMain,
+  onMoveLeft,
+  onMoveRight,
+  onPointerDownDrag,
 }: {
   src: string;
   index: number;
+  count: number;
+  dragging: boolean;
+  dropTarget: boolean;
   onRemove: (i: number) => void;
   onMakeMain: (i: number) => void;
+  onMoveLeft: (i: number) => void;
+  onMoveRight: (i: number) => void;
+  onPointerDownDrag: (i: number, e: React.PointerEvent) => void;
 }) {
   const [broken, setBroken] = useState(false);
   const isMain = index === 0;
 
+  const stopDrag = {
+    onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+  };
+
   return (
-    <Reorder.Item
-      value={src}
-      className="relative shrink-0 cursor-grab overflow-hidden active:cursor-grabbing"
+    <div
+      data-tile-index={index}
+      onPointerDown={(e) => onPointerDownDrag(index, e)}
+      className="relative shrink-0 cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
       style={{
         width: 104,
         height: 104,
-        touchAction: "none",
         background: "var(--background-surface)",
-        border: `2px solid ${isMain ? "var(--accent)" : "var(--border)"}`,
+        border: `2px solid ${dropTarget ? "var(--accent)" : isMain ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
+        opacity: dragging ? 0.4 : 1,
+        transform: dragging ? "scale(1.05)" : "scale(1)",
+        boxShadow: dragging ? "var(--shadow-float)" : "none",
+        zIndex: dragging ? 10 : 1,
+        transition: "transform 150ms ease, opacity 150ms ease, border-color 150ms ease",
       }}
-      whileDrag={{ scale: 1.05, zIndex: 10, boxShadow: "var(--shadow-float)" }}
     >
       {broken ? (
         <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
@@ -69,7 +92,7 @@ function PreviewTile({
           <button
             type="button"
             onClick={() => onMakeMain(index)}
-            onPointerDownCapture={(e) => e.stopPropagation()}
+            {...stopDrag}
             title="Сделать главным"
             aria-label="Сделать главным фото"
             className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -81,7 +104,7 @@ function PreviewTile({
         <button
           type="button"
           onClick={() => onRemove(index)}
-          onPointerDownCapture={(e) => e.stopPropagation()}
+          {...stopDrag}
           title="Удалить"
           aria-label="Удалить фото"
           className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -90,17 +113,92 @@ function PreviewTile({
           <X size={12} />
         </button>
       </div>
-    </Reorder.Item>
+
+      {/* Left/right nudge — an always-available alternative to drag, same
+          idea as marketplace apps (Avito etc.) that offer both. */}
+      <div className="absolute bottom-[6px] left-[6px] flex gap-[4px]">
+        {index > 0 && (
+          <button
+            type="button"
+            onClick={() => onMoveLeft(index)}
+            {...stopDrag}
+            title="Переместить влево"
+            aria-label="Переместить фото влево"
+            className="grid h-[24px] w-[24px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
+          >
+            <ChevronLeft size={13} />
+          </button>
+        )}
+        {index < count - 1 && (
+          <button
+            type="button"
+            onClick={() => onMoveRight(index)}
+            {...stopDrag}
+            title="Переместить вправо"
+            aria-label="Переместить фото вправо"
+            className="grid h-[24px] w-[24px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
+          >
+            <ChevronRight size={13} />
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
 export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onReorder }: Props) {
   const full = photos.length >= max;
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const draggingRef = useRef(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     onAdd(files);
     e.target.value = ""; // allow re-picking the same file
+  };
+
+  const moveTo = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= photos.length) return;
+    const next = [...photos];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onReorder(next);
+  };
+
+  // Drag is driven from the grid level (not per-tile) via native Pointer
+  // Events — works identically for touch and mouse, and doesn't depend on
+  // any gesture library's single-axis assumptions, which is what broke
+  // touch dragging in a wrapping (multi-row) grid before. The dragged tile
+  // itself isn't moved in the DOM during drag; instead every pointermove
+  // hit-tests which tile the pointer is currently over (via
+  // elementFromPoint + the tile's data-tile-index) and highlights it as the
+  // drop target, then the swap commits on release.
+  const onTilePointerDown = (index: number, e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    draggingRef.current = true;
+    setDragIndex(index);
+    setOverIndex(index);
+  };
+
+  const onGridPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const tileEl = el?.closest<HTMLElement>("[data-tile-index]");
+    if (!tileEl) return;
+    const idx = Number(tileEl.dataset.tileIndex);
+    if (!Number.isNaN(idx)) setOverIndex(idx);
+  };
+
+  const endDrag = () => {
+    if (draggingRef.current && dragIndex !== null && overIndex !== null) {
+      moveTo(dragIndex, overIndex);
+    }
+    draggingRef.current = false;
+    setDragIndex(null);
+    setOverIndex(null);
   };
 
   return (
@@ -132,19 +230,30 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
 
       {photos.length > 0 && (
         <>
-          <Reorder.Group
-            as="div"
-            axis="x"
-            values={photos}
-            onReorder={onReorder}
+          <div
             className="flex flex-wrap gap-[12px] py-[2px]"
+            onPointerMove={onGridPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
           >
             {photos.map((src, i) => (
-              <PreviewTile key={src} src={src} index={i} onRemove={onRemove} onMakeMain={onMakeMain} />
+              <PreviewTile
+                key={src}
+                src={src}
+                index={i}
+                count={photos.length}
+                dragging={dragIndex === i}
+                dropTarget={overIndex === i && dragIndex !== null && dragIndex !== i}
+                onRemove={onRemove}
+                onMakeMain={onMakeMain}
+                onMoveLeft={(idx) => moveTo(idx, idx - 1)}
+                onMoveRight={(idx) => moveTo(idx, idx + 1)}
+                onPointerDownDrag={onTilePointerDown}
+              />
             ))}
-          </Reorder.Group>
+          </div>
           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            {photos.length} из {max}. Перетащите фото, чтобы изменить порядок. Первое — главное в карточке.
+            {photos.length} из {max}. Перетащите фото или используйте стрелки, чтобы изменить порядок. Первое — главное в карточке.
           </p>
         </>
       )}
