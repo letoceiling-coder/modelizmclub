@@ -1635,7 +1635,7 @@ function FeedbackSection() {
 
   return (
     <div>
-      <H>Книга жалоб и предложений</H>
+      <H>Книга замечаний и предложений</H>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
         {FEEDBACK_FILTERS.map((f) => (
           <button

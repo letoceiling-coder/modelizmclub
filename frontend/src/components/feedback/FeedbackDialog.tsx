@@ -55,7 +55,7 @@ export function FeedbackDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Книга жалоб и предложений</DialogTitle>
+          <DialogTitle>Книга замечаний и предложений</DialogTitle>
           <DialogDescription>
             Расскажите, что улучшить, или сообщите о проблеме — мы читаем каждое сообщение.
           </DialogDescription>
