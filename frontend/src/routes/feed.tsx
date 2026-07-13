@@ -27,8 +27,16 @@ export const Route = createFileRoute("/feed")({
       { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { composer?: string } => ({
+  // `category` — set by landing's "Направления" cards (routes/index.tsx
+  // CategoriesSection) so a direction click opens /feed pre-filtered to
+  // that direction instead of the unfiltered feed. Value is a category
+  // *name*, matching the existing chip-filter convention below
+  // (activeCategory / categoryIdByName both key by name, not id) — both
+  // the landing and this page read categories from the same
+  // fetchPostCategories() source, so the names are guaranteed to match.
+  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string } => ({
     composer: (search.composer as string) || undefined,
+    category: (search.category as string) || undefined,
   }),
   component: FeedPage,
 });
@@ -36,14 +44,14 @@ export const Route = createFileRoute("/feed")({
 const PAGE_SIZE = 6;
 
 function FeedPage() {
-  const { composer } = Route.useSearch();
+  const { composer, category: categoryFromUrl } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [filter, setFilter] = useState<FeedFilter>("all");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FeedFilter>(categoryFromUrl ? "categories" : "all");
+  const [activeCategory, setActiveCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerIntent, setComposerIntent] = useState<PostIntent | undefined>(undefined);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());

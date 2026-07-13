@@ -720,7 +720,7 @@ function CategoriesSection() {
             const Icon = resolveLucideIcon(cat.icon);
             const count = cat.listingsCount ?? cat.members ?? 0;
             return (
-              <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+              <Link key={cat.id} to="/feed" search={{ category: cat.name }} className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
