@@ -5,6 +5,7 @@ import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -29,6 +30,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [password, setPassword] = useState("");
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -166,7 +168,16 @@ function RegisterPage() {
             field (see backend-endpoints-needed.md). Collected for UX now so the
             field/mask exist; wire it into submit() once the backend adds support. */}
         <PhoneInput name="phone" />
-        <PasswordInput required name="password" placeholder="Пароль (от 8 символов)" minLength={8} error={fieldError} />
+        <PasswordInput
+          required
+          name="password"
+          placeholder="Пароль (от 8 символов)"
+          minLength={8}
+          error={fieldError}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <PasswordStrengthMeter password={password} />
         <PasswordInput required name="password_confirmation" placeholder="Повторите пароль" minLength={8} error={fieldError} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
