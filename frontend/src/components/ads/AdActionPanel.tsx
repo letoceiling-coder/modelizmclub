@@ -103,14 +103,14 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
           <MessageSquare size={16} /> Написать продавцу
         </Button>
         {phoneRevealState === "revealed" && revealedPhone ? (
-          <Button asChild variant="outline" size="lg" className="w-full rounded-[var(--r-button)]">
+          <Button asChild variant="success" size="lg" className="w-full rounded-[var(--r-button)]">
             <a href={`tel:${revealedPhone.replace(/[^\d+]/g, "")}`}>
               <Phone size={16} /> {revealedPhone}
             </a>
           </Button>
         ) : (
           <Button
-            variant="outline"
+            variant="success"
             size="lg"
             onClick={onRevealPhone}
             loading={phoneRevealState === "loading"}

@@ -744,10 +744,12 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                   <Link
                     to="/messenger"
                     search={{ chat: u.id }}
-                    className="mt-[2px] text-[10.5px] hover:underline"
+                    aria-label="Написать в личку"
+                    title="Написать в личку"
+                    className="mt-[2px] grid h-[22px] w-[22px] place-items-center rounded-full transition-colors hover:bg-[var(--accent-soft)]"
                     style={{ color: "var(--accent)" }}
                   >
-                    Написать в личку
+                    <MessageCircle size={13} />
                   </Link>
                 )}
               </div>
