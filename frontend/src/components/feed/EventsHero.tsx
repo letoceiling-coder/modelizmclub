@@ -57,7 +57,7 @@ export function EventsHero() {
   // `list.length === 0` early return below, since hooks can't be called
   // conditionally (a hook only reached once list finishes loading would
   // change the hook count between renders and crash with React error #310).
-  const dragStartX = useRef<number | null>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
 
   if (list.length === 0) return null;
 
@@ -74,12 +74,22 @@ export function EventsHero() {
   // children (arrows, CTA button) stop propagation so they keep their own
   // single action instead of also paging.
   const onSlidePointerDown = (e: React.PointerEvent) => {
-    dragStartX.current = e.clientX;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    // Capture so the gesture keeps tracking even if the finger drifts off the
+    // slide before release — otherwise a fast swipe that leaves the element
+    // never delivers its pointerup here and silently does nothing.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onSlidePointerUp = (e: React.PointerEvent) => {
-    if (dragStartX.current === null || list.length <= 1) return;
-    const dx = e.clientX - dragStartX.current;
-    dragStartX.current = null;
+    const start = dragStart.current;
+    dragStart.current = null;
+    if (start === null || list.length <= 1) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    // A vertically-dominant gesture is the user scrolling the page over the
+    // banner (touch-action:pan-y lets that scroll happen natively) — never
+    // treat it as a slide change or a tap-to-page.
+    if (Math.abs(dy) > Math.abs(dx)) return;
     const SWIPE_THRESHOLD = 40;
     if (Math.abs(dx) > SWIPE_THRESHOLD) {
       dx < 0 ? next() : prev();
@@ -118,6 +128,11 @@ export function EventsHero() {
     >
       <div
         className="relative h-[200px] cursor-pointer sm:h-[220px] md:h-[240px]"
+        // pan-y: vertical page scroll stays native, horizontal drags are
+        // delivered to our pointer handlers as a reliable swipe instead of
+        // being swallowed/cancelled by the browser's default gesture handling
+        // (the reason full-area swipe felt broken on mobile before).
+        style={{ touchAction: "pan-y" }}
         onPointerDown={onSlidePointerDown}
         onPointerUp={onSlidePointerUp}
       >
