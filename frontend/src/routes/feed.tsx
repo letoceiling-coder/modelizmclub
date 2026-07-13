@@ -90,7 +90,7 @@ function FeedPage() {
       filter === "following"
         ? { filter: "following" as const }
         : filter === "categories" && activeCategory
-          ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory) }
+          ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory), categoryName: activeCategory }
           : { filter: "all" as const };
     fetchFeed({ ...query, perPage: 50 })
       .then((r) => {

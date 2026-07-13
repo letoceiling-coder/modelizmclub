@@ -82,6 +82,12 @@ export function mapPost(p: ApiPost): Post {
 export interface FeedQuery {
   filter?: "all" | "following" | "category";
   categoryId?: number;
+  /** Demo-mode filtering only — mockPosts.category is a name string, not an
+   *  id, and categoryIdByName()'s id cache isn't guaranteed populated yet on
+   *  a fresh page load (e.g. /feed?category=... opened directly, not via an
+   *  in-app link from a page that already warmed the cache). Real backend
+   *  filtering still uses categoryId below; this is ignored on that path. */
+  categoryName?: string;
   page?: number;
   perPage?: number;
 }
@@ -95,7 +101,7 @@ export interface FeedResult {
 
 export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
   if (isDemoMode()) {
-    return demoFeed({ filter: opts.filter, page: opts.page, perPage: opts.perPage });
+    return demoFeed({ filter: opts.filter, categoryName: opts.categoryName, page: opts.page, perPage: opts.perPage });
   }
   const res = await api<Paginated<ApiPost>>("/feed", {
     query: {
