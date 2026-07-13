@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays, Newspaper, Sparkles } from "lucide-react";
@@ -60,6 +60,34 @@ export function EventsHero() {
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
+
+  // Whole-slide tap/swipe navigation — the dot indicators are a tiny target,
+  // so the entire photo area doubles as the primary control: swipe left/right
+  // pages like a carousel, and a plain tap (no meaningful drag) advances by
+  // side (left half = prev, right half = next), story-style. Interactive
+  // children (arrows, CTA button) stop propagation so they keep their own
+  // single action instead of also paging.
+  const dragStartX = useRef<number | null>(null);
+  const onSlidePointerDown = (e: React.PointerEvent) => {
+    dragStartX.current = e.clientX;
+  };
+  const onSlidePointerUp = (e: React.PointerEvent) => {
+    if (dragStartX.current === null || list.length <= 1) return;
+    const dx = e.clientX - dragStartX.current;
+    dragStartX.current = null;
+    const SWIPE_THRESHOLD = 40;
+    if (Math.abs(dx) > SWIPE_THRESHOLD) {
+      dx < 0 ? next() : prev();
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tapX = e.clientX - rect.left;
+    tapX < rect.width / 2 ? prev() : next();
+  };
+  const stopPointerPropagation = {
+    onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+    onPointerUp: (e: React.PointerEvent) => e.stopPropagation(),
+  };
   const openCta = (b: Banner) => {
     const link = b.link?.trim();
     // Real external link → open it. Otherwise show the event signup dialog
@@ -83,7 +111,11 @@ export function EventsHero() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="relative h-[200px] sm:h-[220px] md:h-[240px]">
+      <div
+        className="relative h-[200px] cursor-pointer sm:h-[220px] md:h-[240px]"
+        onPointerDown={onSlidePointerDown}
+        onPointerUp={onSlidePointerUp}
+      >
         <ReducedMotionSwitch
           switchKey={current.id}
           initial={{ opacity: 0 }}
@@ -126,6 +158,7 @@ export function EventsHero() {
                 <button
                   type="button"
                   onClick={() => openCta(current)}
+                  {...stopPointerPropagation}
                   className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99]"
                 >
                   {current.cta}
@@ -138,6 +171,7 @@ export function EventsHero() {
           <>
             <button
               onClick={prev}
+              {...stopPointerPropagation}
               aria-label="Предыдущий"
               className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
@@ -146,6 +180,7 @@ export function EventsHero() {
             </button>
             <button
               onClick={next}
+              {...stopPointerPropagation}
               aria-label="Следующий"
               className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
