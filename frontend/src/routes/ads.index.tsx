@@ -39,7 +39,6 @@ function countActiveFilters(f: FiltersState): number {
   if (f.category !== "Все") n++;
   if (f.city) n++;
   if (f.status !== "Все") n++;
-  if (f.conditions.length) n++;
   if (f.priceMin > 0) n++;
   if (f.priceMax < 100000) n++;
   return n;
@@ -58,7 +57,6 @@ function buildParams(
     subcategoryName: filters.subcategory !== "Все" ? filters.subcategory : undefined,
     priceMin: filters.priceMin > 0 ? filters.priceMin : undefined,
     priceMax: filters.priceMax < 100000 ? filters.priceMax : undefined,
-    conditions: filters.conditions.length ? filters.conditions : undefined,
     deliveries: filters.deliveries.length ? filters.deliveries : undefined,
     listingStatus: filters.status !== "Все" ? filters.status : undefined,
     sort,
@@ -236,15 +234,6 @@ function CatalogPage() {
                     onRemove={() => setFilters((p) => ({ ...p, status: "Все" }))}
                   />
                 )}
-                {filters.conditions.map((c) => (
-                  <FilterTag
-                    key={c}
-                    label={c}
-                    onRemove={() =>
-                      setFilters((p) => ({ ...p, conditions: p.conditions.filter((x) => x !== c) }))
-                    }
-                  />
-                ))}
                 {(activeFilterCount > 1 || (activeFilterCount === 1 && q)) && (
                   <button
                     type="button"

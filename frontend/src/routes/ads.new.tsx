@@ -36,7 +36,7 @@ export const Route = createFileRoute("/ads/new")({
 });
 
 type Status = "Продаю" | "Куплю" | "Обменяю";
-const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
+const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
 const STEPS = ["Фото", "Данные", "Превью"];
 
@@ -64,7 +64,7 @@ const initial: Form = {
   price: "",
   categoryId: "",
   subcategoryId: "",
-  condition: "Б/у — отлично",
+  condition: "Б/у",
   city: "",
   contact: "",
   deliveries: ["СДЭК"],
@@ -363,6 +363,9 @@ function StepData({
           </Field>
           <Field label="Состояние">
             <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)} options={CONDITIONS} />
+            <p className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+              Подробности состояния укажите в описании объявления.
+            </p>
           </Field>
           <Field label="Категория">
             <NativeSelect

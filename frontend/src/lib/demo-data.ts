@@ -187,10 +187,6 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
     result = result.filter((a) => a.price <= params.priceMax!);
   }
 
-  if (params.conditions && params.conditions.length > 0) {
-    result = result.filter((a) => a.condition && params.conditions!.includes(a.condition));
-  }
-
   if (params.deliveries && params.deliveries.length > 0) {
     result = result.filter((a) => a.delivery && params.deliveries!.some((d) => a.delivery.includes(d)));
   }
