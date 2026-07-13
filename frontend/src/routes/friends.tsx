@@ -26,6 +26,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FriendActionsMenu } from "@/components/friends/FriendActionsMenu";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: "Друзья — МоДелизМ" }] }),
@@ -144,6 +145,7 @@ function FriendsPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [complaintTarget, setComplaintTarget] = useState<User | null>(null);
   const navigateMessenger = useNavigate();
   const onlineSet = useOnlineSet();
   const isOnline = (u: User) => onlineSet.has(u.id) || !!u.online;
@@ -297,9 +299,7 @@ function FriendsPage() {
     toast.success("Скрыто из рекомендаций");
   };
 
-  const reportUser = () => {
-    toast("Жалоба: будет доступно позже");
-  };
+  const reportUser = (u: User) => setComplaintTarget(u);
 
   const blockUserVia = async (u: User) => {
     if (!isDemoMode() && u.numericId) {
@@ -483,7 +483,7 @@ function FriendsPage() {
                           onViewProfile={() => viewProfile(u)}
                           onRemoveFriend={() => {}}
                           onHide={() => hideUserFromList(u)}
-                          onReport={reportUser}
+                          onReport={() => reportUser(u)}
                           onBlock={() => {
                             blockUserVia(u);
                             decline(r.id);
@@ -519,7 +519,7 @@ function FriendsPage() {
                         onViewProfile={() => viewProfile(u)}
                         onRemoveFriend={() => removeFriendVia(u)}
                         onHide={() => hideUserFromList(u)}
-                        onReport={reportUser}
+                        onReport={() => reportUser(u)}
                         onBlock={() => blockUserVia(u)}
                       />
                     );
@@ -553,7 +553,7 @@ function FriendsPage() {
                         onViewProfile={() => viewProfile(u)}
                         onRemoveFriend={() => removeFriendVia(u)}
                         onHide={() => hideUserFromList(u)}
-                        onReport={reportUser}
+                        onReport={() => reportUser(u)}
                         onBlock={() => blockUserVia(u)}
                       />
                     ))}
@@ -576,7 +576,7 @@ function FriendsPage() {
                           onViewProfile={() => viewProfile(u)}
                           onRemoveFriend={() => removeFriendVia(u)}
                           onHide={() => hideUserFromList(u)}
-                          onReport={reportUser}
+                          onReport={() => reportUser(u)}
                           onBlock={() => blockUserVia(u)}
                         />
                       );
@@ -587,6 +587,7 @@ function FriendsPage() {
             )}
         </ReducedMotionSwitch>
       </div>
+      <ComplaintDialog target={complaintTarget} onClose={() => setComplaintTarget(null)} />
     </AppLayout>
   );
 }
