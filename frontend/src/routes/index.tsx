@@ -14,8 +14,10 @@ import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher
 import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
-import { GUEST_USER, selectors, useStore } from "@/lib/store";
-import { fetchPopularListings } from "@/lib/api/listings";
+import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
+import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
+import { getToken } from "@/lib/api/client";
+import { toast } from "@/lib/toast";
 import { fetchPostCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
@@ -546,7 +548,7 @@ function ListingCtaPlaceholder({ label }: { label: string }) {
 
 function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }) {
   const { t } = useTranslation();
-  const [fav, setFav] = useState(false);
+  const fav = useStore(selectors.isAdFavorite(ad.id));
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(0);
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
@@ -603,7 +605,26 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
       {/* favorite */}
       <button
         aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
-        onClick={() => setFav((v) => !v)}
+        onClick={async () => {
+          if (!getToken() && !isDemoMode()) {
+            toast.info("Войдите, чтобы добавить в избранное");
+            navigate({ to: "/login" });
+            return;
+          }
+          const next = !fav;
+          actions.toggleFavoriteAd(ad.id);
+          if (!isDemoMode()) {
+            try {
+              if (next) await addFavoriteListing(ad.id);
+              else await removeFavoriteListing(ad.id);
+            } catch {
+              actions.toggleFavoriteAd(ad.id);
+              toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
+              return;
+            }
+          }
+          toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
+        }}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
       >
@@ -625,7 +646,15 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
             style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", boxShadow: "var(--shadow-modal)" }}
           >
             {[t("landing.card.hide"), t("landing.card.notInterested"), t("landing.card.report")].map((label) => (
-              <button key={label} onClick={() => setMenuOpen(false)}
+              <button key={label} onClick={() => {
+                setMenuOpen(false);
+                if (!getToken() && !isDemoMode()) {
+                  toast.info("Войдите, чтобы выполнить это действие");
+                  navigate({ to: "/login" });
+                  return;
+                }
+                toast(`${label}: будет доступно позже`);
+              }}
                 className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}
               >{label}</button>
