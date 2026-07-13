@@ -181,8 +181,9 @@ function MyAdsPage() {
           </Button>
         </header>
 
-        {/* Stats — compact (Avito-style) */}
-        <section className="-mx-3 flex gap-[8px] overflow-x-auto px-3 pb-[2px] sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-[12px] sm:px-0 no-scrollbar">
+        {/* Stats — 2x2 grid on mobile (was a horizontal-scroll strip that hid
+            cards off-screen without any swipe affordance), 4-across on sm+. */}
+        <section className="grid grid-cols-2 gap-[8px] sm:grid-cols-4 sm:gap-[12px]">
           <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
           <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
           <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />
@@ -471,9 +472,8 @@ function FilterField({ label, children }: { label: string; children: React.React
 function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
   return (
     <div
-      className="flex shrink-0 flex-col gap-[4px] px-[12px] py-[10px] sm:px-[14px] sm:py-[12px]"
+      className="flex flex-col gap-[4px] px-[12px] py-[10px] sm:px-[14px] sm:py-[12px]"
       style={{
-        minWidth: 132,
         background: accent ? "var(--accent-soft)" : "var(--background-surface)",
         border: `1px solid ${accent ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
