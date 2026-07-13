@@ -137,14 +137,14 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
             axis="x"
             values={photos}
             onReorder={onReorder}
-            className="flex gap-[12px] overflow-x-auto no-scrollbar py-[2px]"
+            className="flex flex-wrap gap-[12px] py-[2px]"
           >
             {photos.map((src, i) => (
               <PreviewTile key={src} src={src} index={i} onRemove={onRemove} onMakeMain={onMakeMain} />
             ))}
           </Reorder.Group>
           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Перетащите фото, чтобы изменить порядок. Первое — главное в карточке.
+            {photos.length} из {max}. Перетащите фото, чтобы изменить порядок. Первое — главное в карточке.
           </p>
         </>
       )}
