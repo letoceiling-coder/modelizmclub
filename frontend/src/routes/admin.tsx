@@ -2350,6 +2350,8 @@ function SettingsSection() {
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
   const [savingMarket, setSavingMarket] = useState(false);
+  const escrowEnabled = useFeatureFlag("escrowEnabled");
+  const [savingEscrow, setSavingEscrow] = useState(false);
 
   const toggleMarket = async (checked: boolean) => {
     if (isDemoMode()) {
@@ -2366,6 +2368,24 @@ function SettingsSection() {
       toast.error("Не удалось сохранить настройку");
     } finally {
       setSavingMarket(false);
+    }
+  };
+
+  const toggleEscrow = async (checked: boolean) => {
+    if (isDemoMode()) {
+      setFeatureFlag("escrowEnabled", checked);
+      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      return;
+    }
+    setSavingEscrow(true);
+    try {
+      await updateAdminSettings([{ key: "feature.escrow_enabled", value: { enabled: checked }, group: "feature" }]);
+      setFeatureFlag("escrowEnabled", checked);
+      toast.success(checked ? "Бейдж «Безопасная сделка» включён для всех" : "Бейдж «Безопасная сделка» отключён для всех");
+    } catch {
+      toast.error("Не удалось сохранить настройку");
+    } finally {
+      setSavingEscrow(false);
     }
   };
 
@@ -2421,6 +2441,28 @@ function SettingsSection() {
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать кнопку «Маркет»</span>
+        </label>
+      </div>
+
+      {/* Server-persisted (SystemSetting: feature.escrow_enabled). Off by
+          default — turn on only once ЮKassa Безопасная сделка is live on the
+          backend, so the escrow badge never promises an unimplemented feature. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Бейдж «Безопасная сделка»
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Сохраняется на сервере — показывает бейдж «Безопасная сделка / эскроу» на объявлениях для всех сразу, без деплоя. Включать только когда ЮKassa Безопасная сделка реально подключена на бэке.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingEscrow ? 0.6 : 1 }}>
+          <input
+            type="checkbox"
+            checked={escrowEnabled}
+            disabled={savingEscrow}
+            onChange={(e) => void toggleEscrow(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать бейдж «Безопасная сделка»</span>
         </label>
       </div>
 

@@ -13,12 +13,17 @@ export interface FeatureFlags {
   /** Off by default — traffic should go to listings, not an external
    *  marketplace link. Server-controlled via /admin, see FeatureFlagsController. */
   marketEnabled: boolean;
+  /** Off by default — the «Безопасная сделка» (escrow) badge must only claim
+   *  what actually works. Turn on from /admin once ЮKassa Безопасная сделка is
+   *  wired on the backend. Server-controlled, see FeatureFlagsController. */
+  escrowEnabled: boolean;
 }
 
 const DEFAULTS: FeatureFlags = {
   communitiesEnabled: false,
   reviewsEnabled: true,
   marketEnabled: false,
+  escrowEnabled: false,
 };
 
 const LS_KEY = "modelizm_feature_flags";
@@ -48,12 +53,13 @@ function notify() {
 export async function loadFeatureFlagsFromServer(): Promise<void> {
   if (isDemoMode() || typeof window === "undefined") return;
   try {
-    const res = await api<{ data: { communities_enabled?: boolean; market_enabled?: boolean } }>("/public/feature-flags", {
+    const res = await api<{ data: { communities_enabled?: boolean; market_enabled?: boolean; escrow_enabled?: boolean } }>("/public/feature-flags", {
       auth: false,
     });
     serverFlags = {
       communitiesEnabled: Boolean(res.data?.communities_enabled),
       marketEnabled: Boolean(res.data?.market_enabled),
+      escrowEnabled: Boolean(res.data?.escrow_enabled),
     };
     notify();
   } catch {

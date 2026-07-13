@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 /** Deal-type (Продаю/Куплю/Обменяю) → Badge variant. Stays within the
  *  blue accent family + neutral; never the commercial-orange palette. */
@@ -27,6 +28,11 @@ interface AdActionPanelProps {
 }
 
 export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phoneRevealState, revealedPhone, onRevealPhone, className }: AdActionPanelProps) {
+  // «Безопасная сделка» (escrow) badge is gated behind a server feature flag
+  // (default off) — same pattern as the «Маркет» link — so it only appears
+  // once ЮKassa Безопасная сделка is actually live and an admin flips it on,
+  // never promising a payment guarantee that isn't wired up yet.
+  const escrowEnabled = useFeatureFlag("escrowEnabled");
   return (
     <Card
       className={cn("flex flex-col gap-[16px] p-[20px]", className)}
@@ -142,13 +148,15 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
         </div>
       </div>
 
-      <div
-        className="flex items-center gap-[8px] p-[10px] text-[11px]"
-        style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}
-      >
-        <ShieldCheck size={14} className="shrink-0" style={{ color: "var(--success)" }} />
-        Безопасная сделка: оплата при получении или через эскроу.
-      </div>
+      {escrowEnabled && (
+        <div
+          className="flex items-center gap-[8px] p-[10px] text-[11px]"
+          style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}
+        >
+          <ShieldCheck size={14} className="shrink-0" style={{ color: "var(--success)" }} />
+          Безопасная сделка: оплата при получении или через эскроу.
+        </div>
+      )}
     </Card>
   );
 }

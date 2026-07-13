@@ -1410,3 +1410,30 @@ _Историческая спецификация:_
   `POST /media → 201`, `POST /posts → 201`,
   `POST /posts/{uuid}/publish → 200`; пост с реальным фото виден в ленте
   и **переживает полную перезагрузку страницы** (проверено).
+
+### Новый feature-флаг `escrow_enabled` (бейдж «Безопасная сделка») — 2026-07-14
+
+- **Контекст:** бейдж «Безопасная сделка: оплата при получении или через
+  эскроу» на странице объявления (`AdActionPanel`) честен только когда
+  ЮKassa Безопасная сделка реально подключена на бэке. Поэтому бейдж
+  спрятан за новым site-wide флагом `escrowEnabled`, **по умолчанию OFF**
+  (тот же серверный паттерн, что у `market_enabled`, см. секцию №17).
+- **Фронт уже готов (этот коммит):**
+  - `featureFlags.ts` — добавлен ключ `escrowEnabled` (default `false`),
+    читается из `GET /public/feature-flags` → `data.escrow_enabled`.
+  - `AdActionPanel.tsx` — бейдж рендерится только при
+    `useFeatureFlag("escrowEnabled") === true`.
+  - `/admin` → Настройки → блок «Бейдж «Безопасная сделка»» — тоггл,
+    пишет `PATCH /admin/settings` ключ `feature.escrow_enabled`
+    (`{ value: { enabled: bool }, group: "feature" }`).
+- **Что нужно на бэкенде (чтобы тоггл реально работал для всех без
+  деплоя):**
+  1. Добавить `escrow_enabled` в white-list ответа
+     `GET /public/feature-flags` → `{ "data": { ..., "escrow_enabled": false } }`,
+     значение из той же таблицы `AdminSetting` (`feature.escrow_enabled`).
+  2. Разрешить `PATCH /admin/settings` принимать ключ
+     `feature.escrow_enabled` (как уже принимает `feature.market_enabled`).
+- **Пока бэк не отдаёт ключ** — фронт безопасно дефолтит в `false`
+  (`Boolean(undefined)`), бейдж скрыт у всех. Никакого фолза на проде.
+- **Когда Игорь подключит ЮKassa Безопасную сделку** — включает тоггл в
+  `/admin`, бейдж появляется у всех без нового деплоя фронта.
