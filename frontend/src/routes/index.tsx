@@ -195,7 +195,29 @@ function TopNav() {
             <div className="flex flex-col gap-1 px-4 py-3">
               {navLinks.map((l) =>
                 l.kind === "hash" ? (
-                  <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
+                  <a
+                    key={l.label}
+                    href={l.href}
+                    onClick={(e) => {
+                      // Closing the menu (height: auto -> 0) and the native
+                      // hash jump would otherwise fire in the same tick — the
+                      // jump lands correctly, then the collapse animation
+                      // shifts the whole page under it, missing the target.
+                      // Close first, scroll manually once the sheet has
+                      // finished collapsing (matches its ~300ms default
+                      // Framer Motion transition).
+                      e.preventDefault();
+                      setMenuOpen(false);
+                      const href = l.href;
+                      setTimeout(() => {
+                        document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 320);
+                    }}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {l.label}
+                  </a>
                 ) : (
                   <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
                 ),
@@ -983,6 +1005,10 @@ function Section({ children, bg, id }: { children: React.ReactNode; bg: string; 
         backgroundImage: blueprintGridOnLight,
         backgroundSize: blueprintGridSize,
         padding: "72px 0",
+        // Anchor targets (e.g. #how) must clear the sticky 64px header —
+        // without this, a hash jump lands the section flush with the
+        // viewport top, right under the overlapping header.
+        ...(id ? { scrollMarginTop: "calc(64px + var(--safe-top, 0px))" } : {}),
       }}
     >
       <div className="mx-auto max-w-[1240px] px-4 md:px-8">{children}</div>
