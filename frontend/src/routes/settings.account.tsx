@@ -103,21 +103,6 @@ function AccountSection() {
     }
   };
 
-  const saveSocials = async () => {
-    if (isDemoMode()) { setAccountExtra(extra); toast.success("Соцсети сохранены"); return; }
-    try {
-      await updateOwnProfile({
-        vk_url: extra.vk?.trim() || null,
-        telegram_url: extra.telegram?.trim() || null,
-        website_url: extra.website?.trim() || null,
-      });
-      setAccountExtra(extra);
-      toast.success("Соцсети сохранены");
-    } catch {
-      toast.error("Не удалось сохранить соцсети");
-    }
-  };
-
   return (
     <SettingsSectionShell title="Профиль и аккаунт">
       <Link
@@ -174,24 +159,6 @@ function AccountSection() {
         </p>
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Соцсети</h2>
-        <div className="space-y-[12px]">
-          <Field label="VK">
-            <Input value={extra.vk} onChange={(e) => setExtra((x) => ({ ...x, vk: e.target.value }))} placeholder="https://vk.com/username" />
-          </Field>
-          <Field label="Telegram">
-            <Input value={extra.telegram} onChange={(e) => setExtra((x) => ({ ...x, telegram: e.target.value }))} placeholder="https://t.me/username" />
-          </Field>
-          <Field label="Сайт">
-            <Input value={extra.website} onChange={(e) => setExtra((x) => ({ ...x, website: e.target.value }))} placeholder="https://example.com" />
-          </Field>
-        </div>
-        <Button type="button" onClick={saveSocials} className="mt-[12px]">Сохранить</Button>
-        <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Сохраняется в вашем аккаунте.
-        </p>
-      </Card>
     </SettingsSectionShell>
   );
 }
