@@ -202,6 +202,14 @@ function TopNav() {
               )}
               <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
               <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
+              {/* theme — mobile-only entry point, since ThemeToggle itself is
+                  hidden below lg everywhere except here (alwaysVisible) and
+                  the footer; both read/write the same ThemeProvider state,
+                  so toggling here or in the footer stays in sync. */}
+              <div className="mt-1 flex items-center justify-between px-3 py-1.5 lg:hidden">
+                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.footer.theme")}</span>
+                <ThemeToggle size={32} alwaysVisible />
+              </div>
               {/* language — quiet inline chips, at the bottom (mobile only; sm+ has it in the header) */}
               <div className="mt-1 flex items-center gap-1.5 px-3 pt-1 sm:hidden">
                 {LANGS.map((l) => {
@@ -921,7 +929,7 @@ function Footer() {
           <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {t("common.appName")}</p>
           <div className="mt-4 flex items-center gap-2">
             <span className="text-xs" style={{ color: "var(--foreground-50)" }}>{t("landing.footer.theme")}</span>
-            <ThemeToggle size={32} />
+            <ThemeToggle size={32} alwaysVisible />
           </div>
         </div>
 

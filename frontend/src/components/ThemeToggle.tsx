@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
-export function ThemeToggle({ size = 40 }: { size?: number }) {
+export function ThemeToggle({ size = 40, alwaysVisible = false }: { size?: number; alwaysVisible?: boolean }) {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -11,9 +11,10 @@ export function ThemeToggle({ size = 40 }: { size?: number }) {
       onClick={toggleTheme}
       aria-label="Переключить тему"
       title="Переключить тему"
-      // Theme switching is desktop-only — hidden below lg across every surface
-      // it appears on (auth, landing, onboarding, admin).
-      className="hidden lg:inline-flex"
+      // Theme switching is desktop-only by default — hidden below lg across
+      // most surfaces (auth, onboarding, admin). Callers that need it on
+      // mobile too (landing footer, landing burger menu) pass alwaysVisible.
+      className={alwaysVisible ? "inline-flex" : "hidden lg:inline-flex"}
       style={{
         width: size,
         height: size,
