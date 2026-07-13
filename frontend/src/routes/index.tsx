@@ -717,6 +717,7 @@ const STEP_ICONS = [Compass, Search, Users2] as const;
 
 function CategoriesSection() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -750,7 +751,20 @@ function CategoriesSection() {
             const Icon = resolveLucideIcon(cat.icon);
             const count = cat.listingsCount ?? cat.members ?? 0;
             return (
-              <Link key={cat.id} to="/feed" search={{ category: cat.name }} className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+              // Same destination as the /feed «Направления» right-rail item —
+              // the category page (/categories/$id), not a filtered feed — so
+              // both entry points land in one place for logged-in users. Guests
+              // are sent to auth first, matching the landing's gate pattern
+              // (popular-listings card actions).
+              <Link key={cat.id} to="/categories/$id" params={{ id: cat.id }}
+                onClick={(e) => {
+                  if (!getToken() && !isDemoMode()) {
+                    e.preventDefault();
+                    toast.info("Войдите, чтобы открыть направление");
+                    navigate({ to: "/login" });
+                  }
+                }}
+                className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
