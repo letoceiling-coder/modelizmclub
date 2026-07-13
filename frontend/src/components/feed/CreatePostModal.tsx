@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { CreatePostForm, type CreatePostPayload } from "@/components/CreatePostForm";
+import { CreatePostForm } from "@/components/CreatePostForm";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
+import type { Post } from "@/lib/mock";
 
 interface Props {
   open: boolean;
   intent?: PostIntent;
   onClose: () => void;
-  onCreate: (p: CreatePostPayload) => void;
+  onCreate: (p: Post) => void;
 }
 
 const EXIT_MS = 200;

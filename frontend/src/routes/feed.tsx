@@ -11,7 +11,6 @@ import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { CreatePostPayload } from "@/components/CreatePostForm";
 import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed } from "@/lib/api/feed";
@@ -147,30 +146,14 @@ function FeedPage() {
     return () => io.disconnect();
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
-  const addPost = (p: CreatePostPayload) => {
+  // Post creation itself (upload + createPost + publish) happens inside
+  // CreatePostForm against the real API — this just closes the composer
+  // and prepends whatever real Post the backend returned, instead of the
+  // fully client-fabricated placeholder this used to construct (which
+  // never touched the network at all, so nothing was ever actually saved).
+  const addPost = (post: Post) => {
     setComposerOpen(false);
-    setPosts((cur) => [
-      {
-        id: `np${Date.now()}`,
-        authorId: me.id,
-        date: "только что",
-        category: p.category,
-        title: p.title,
-        text: p.text,
-        image: p.photos[0],
-        images: p.photos,
-        tags: p.subcategory ? [p.subcategory] : [],
-        views: 0,
-        likes: 0,
-        comments: 0,
-        saves: 0,
-        reposts: 0,
-        status: "moderation",
-        isFollowing: true,
-        commentList: [],
-      },
-      ...cur,
-    ]);
+    setPosts((cur) => [{ ...post, isFollowing: true }, ...cur]);
   };
 
   const slice = filtered.slice(0, visible);

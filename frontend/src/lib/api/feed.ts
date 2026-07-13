@@ -183,7 +183,9 @@ export interface CreatePostInput {
   title: string;
   body: string;
   categoryId?: number;
-  mediaIds?: number[];
+  /** Media UUIDs from uploadMedia() — the backend's StorePostRequest
+   *  validates media_ids.* as uuid strings, not numeric ids. */
+  mediaIds?: string[];
   hashtags?: string[];
 }
 
@@ -218,5 +220,15 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
       hashtags: input.hashtags,
     },
   });
+  return mapPost(res.data);
+}
+
+/** createPost() only creates a Draft — the composer must call this
+ *  afterwards to actually publish it (goes through the normal moderation
+ *  queue, per PostService::publish on the backend). Demo mode's createPost
+ *  already returns a "published" fake post, so callers should skip this
+ *  in demo mode rather than call it. */
+export async function publishPost(uuid: string): Promise<Post> {
+  const res = await api<{ data: ApiPost }>(`/posts/${uuid}/publish`, { method: "POST" });
   return mapPost(res.data);
 }

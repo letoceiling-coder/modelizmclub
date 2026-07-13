@@ -1,19 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Plus, X, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ChevronDown, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
+import { isDemoMode } from "@/lib/demo-mode";
+import { uploadMedia } from "@/lib/api/media";
+import { createPost, publishPost } from "@/lib/api/feed";
+import type { Post } from "@/lib/mock";
+import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import type { PostIntent } from "@/components/feed/CreatePostTrigger";
 
-const MAX_PHOTOS = 5;
-
-export interface CreatePostPayload {
-  title: string;
-  text: string;
-  category: string;
-  subcategory?: string;
-  photos: string[];
-}
+const MAX_PHOTOS = 10;
 
 type Step = "photos" | "details";
 
@@ -51,7 +48,10 @@ function ChipSelect({
 }
 
 export function CreatePostForm({ onCreate, onClose, intent }: {
-  onCreate?: (p: CreatePostPayload) => void;
+  /** Fired once the post is actually created (and, outside demo mode,
+   *  published) on the backend — the real Post the API returned, not a
+   *  locally-fabricated stand-in. */
+  onCreate?: (p: Post) => void;
   onClose?: () => void;
   intent?: PostIntent;
 }) {
@@ -63,7 +63,8 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
   const [catId, setCatId] = useState("");
   const [subId, setSubId] = useState<string>("");
   const [photos, setPhotos] = useState<string[]>([]);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (!catId && categories.length > 0) {
@@ -72,39 +73,57 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
     }
   }, [categories, catId]);
 
-  // Photo-first: when opened from the camera icon, pop the system gallery
-  // immediately (still within the trigger's user-gesture window).
-  useEffect(() => {
-    if (intent !== "photo") return;
-    const t = setTimeout(() => fileRef.current?.click(), 150);
-    return () => clearTimeout(t);
-  }, [intent]);
-
   const cat = useMemo(() => categories.find((c) => c.id === catId), [categories, catId]);
   const sub = cat?.subcategories.find((s) => s.id === subId);
 
-  const addPhotos = (files: FileList | null) => {
-    if (!files) return;
-    const slots = MAX_PHOTOS - photos.length;
-    const next = Array.from(files).slice(0, slots).map((f) => URL.createObjectURL(f));
-    setPhotos((p) => [...p, ...next]);
+  const addPhotos = (picked: File[]) => {
+    const room = MAX_PHOTOS - photos.length;
+    const next = picked.slice(0, room);
+    const urls = next.map((f) => URL.createObjectURL(f));
+    setPhotos((p) => [...p, ...urls]);
+    setFiles((f) => [...f, ...next]);
+  };
+  const removePhoto = (i: number) => {
+    setPhotos((p) => p.filter((_, idx) => idx !== i));
+    setFiles((f) => f.filter((_, idx) => idx !== i));
+  };
+  const reorderPhotos = (next: string[]) => {
+    setFiles(next.map((url) => files[photos.indexOf(url)]));
+    setPhotos(next);
   };
 
-  const removePhoto = (i: number) => setPhotos((p) => p.filter((_, idx) => idx !== i));
-
-  const publish = () => {
+  const publish = async () => {
     if (!title.trim()) { toast.error("Введите заголовок"); return; }
     if (!text.trim()) { toast.error("Введите текст публикации"); return; }
     if (!cat) { toast.error("Выберите категорию"); return; }
-    onCreate?.({ title, text, category: cat.name, subcategory: sub?.name, photos });
-    toast.success("Публикация отправлена на модерацию");
-    onClose?.();
+    setPublishing(true);
+    try {
+      const mediaIds: string[] = [];
+      for (const file of files) {
+        const m = await uploadMedia(file, "post");
+        mediaIds.push(m.uuid);
+      }
+      let post = await createPost({
+        title: title.trim(),
+        body: text.trim(),
+        categoryId: Number(cat.id),
+        mediaIds,
+      });
+      if (!isDemoMode()) {
+        post = await publishPost(post.id);
+      }
+      onCreate?.(post);
+      toast.success("Публикация отправлена на модерацию");
+      onClose?.();
+    } catch {
+      toast.error("Не удалось опубликовать. Попробуйте позже");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => addPhotos(e.target.files)} />
-
       {/* Header — step-aware: close on step 1, back on step 2. */}
       <header
         className="flex items-center gap-[8px] border-b px-[8px] py-[8px]"
@@ -128,7 +147,16 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
       </header>
 
       {step === "photos" ? (
-        <PhotosStep photos={photos} onPick={() => fileRef.current?.click()} onRemove={removePhoto} />
+        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] pt-[16px]">
+          <ImageUploadGrid
+            photos={photos}
+            max={MAX_PHOTOS}
+            onAdd={addPhotos}
+            onRemove={removePhoto}
+            onMakeMain={() => {}}
+            onReorder={reorderPhotos}
+          />
+        </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[16px] pt-[14px]">
           {photos.length > 0 && (
@@ -213,73 +241,11 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
           <button
             type="button"
             onClick={publish}
-            className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90"
+            disabled={publishing}
+            className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
             style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
           >
-            Опубликовать
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PhotosStep({ photos, onPick, onRemove }: {
-  photos: string[];
-  onPick: () => void;
-  onRemove: (i: number) => void;
-}) {
-  if (photos.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-[16px] py-[24px]">
-        <button
-          type="button"
-          onClick={onPick}
-          className="flex w-full max-w-[320px] flex-col items-center gap-[12px] rounded-[var(--r-card)] border-2 border-dashed px-[20px] py-[36px] transition-colors hover:bg-[var(--background-surface)]"
-          style={{ borderColor: "var(--border)" }}
-        >
-          <span
-            className="grid h-[56px] w-[56px] place-items-center rounded-full"
-            style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-          >
-            <ImagePlus className="h-[26px] w-[26px]" />
-          </span>
-          <span className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-            Выбрать из галереи
-          </span>
-          <span className="text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            JPG или PNG, до {MAX_PHOTOS} фото. Фото можно и не добавлять.
-          </span>
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-[16px] pt-[16px]">
-      <div className="grid grid-cols-3 gap-[8px]">
-        {photos.map((src, i) => (
-          <div key={i} className="relative aspect-square overflow-hidden rounded-[var(--r-card-sm)] border" style={{ borderColor: "var(--border)" }}>
-            <img src={src} alt="" className="h-full w-full object-cover" />
-            <button
-              type="button"
-              aria-label="Убрать фото"
-              onClick={() => onRemove(i)}
-              className="absolute right-[5px] top-[5px] grid h-[24px] w-[24px] place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
-            >
-              <X className="h-[13px] w-[13px]" />
-            </button>
-          </div>
-        ))}
-        {photos.length < MAX_PHOTOS && (
-          <button
-            type="button"
-            onClick={onPick}
-            aria-label="Добавить ещё фото"
-            className="grid aspect-square place-items-center rounded-[var(--r-card-sm)] border-2 border-dashed transition-colors hover:bg-[var(--background-surface)]"
-            style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}
-          >
-            <Plus className="h-[24px] w-[24px]" />
+            {publishing ? "Публикуем…" : "Опубликовать"}
           </button>
         )}
       </div>
