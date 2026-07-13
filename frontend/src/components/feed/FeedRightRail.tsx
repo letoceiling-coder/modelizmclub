@@ -96,8 +96,15 @@ export function FeedRightRail() {
   }
 
   return (
-    <aside className="hidden xl:block w-64 shrink-0">
-      <div className="flex h-full flex-col gap-[12px] overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
+    <aside className="hidden w-64 shrink-0 xl:block xl:min-h-0">
+      {/* min-h-0 on the aside: as a flex child of AppLayout's items-stretch
+          row its default min-height:auto let it grow to the full category
+          list height, so the shell's overflow-hidden clipped the overflow
+          instead of the inner overflow-y-auto scrolling (unlike <main>,
+          whose own overflow-y-auto implicitly zeroes its min-height). With
+          min-h-0 the aside stays at its stretched height and the inner list
+          scrolls. */}
+      <div className="flex h-full flex-col gap-[12px] overflow-y-auto pb-4">
 
         {/* Card 1 — Направления. Shows every direction (not a top-N
             subset) — this list must match the landing's "Направления"
