@@ -29,7 +29,21 @@ export async function ensureSession(): Promise<boolean> {
 
 async function loadSession(): Promise<boolean> {
   const me = await fetchMe();
-  if (!me) return false;
+  if (!me) {
+    // fetchMe() only clears the token on a real 401 — anything else (a
+    // transient network blip, a slow/failed CORS preflight, a timeout)
+    // also resolves to null here, but the token is still valid. Without
+    // this reset, sessionPromise permanently caches that one failed
+    // attempt for the rest of the SPA session: every later ensureSession()
+    // call (requireAuth, requireAdmin, the landing page, /admin,
+    // /reviews/upload — anything that checks auth after the first one)
+    // would keep getting the same stale "false" and render as a guest
+    // even though the user is still logged in, until a full page reload
+    // happens to retry successfully. Clearing it here lets the next call
+    // make a fresh attempt instead of being stuck for the whole session.
+    sessionPromise = null;
+    return false;
+  }
   setCurrentUser(me);
   shutdownCalls();
   await startRealtimeHub(me.id);
@@ -45,7 +59,19 @@ export function resetSessionCache(): void {
 
 // Restore the authenticated user into the store on app boot.
 export async function restoreSession(): Promise<void> {
-  await ensureSession();
+  const ok = await ensureSession();
+  // Root-mount is the *only* unconditional session check — most pages
+  // (e.g. /feed) never call ensureSession() themselves, they just read the
+  // store reactively, so if this one attempt fails there's otherwise no
+  // automatic retry until either the user navigates to one of the few
+  // routes that do call ensureSession() again (requireAuth/requireAdmin
+  // guards), or reloads the whole page. One immediate retry here — now a
+  // genuine second attempt, since loadSession() resets sessionPromise on
+  // failure — self-heals a transient first-attempt failure (network blip,
+  // slow/failed CORS preflight) without either of those.
+  if (!ok && getToken() && !isDemoMode()) {
+    await ensureSession();
+  }
 }
 
 export function isAuthenticated(): boolean {
