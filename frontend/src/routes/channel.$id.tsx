@@ -13,6 +13,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import { VideoUploadField } from "@/components/reviews/VideoUploadField";
+import { uploadMedia } from "@/lib/api/media";
 
 
 export const Route = createFileRoute("/channel/$id")({
@@ -341,6 +344,16 @@ function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
       <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground)" }}>
         {post.text}
       </p>
+      {post.video && (
+        <video src={post.video} controls preload="metadata" className="mt-3 w-full" style={{ maxHeight: 320, borderRadius: 10, background: "#000" }} />
+      )}
+      {(post.images ?? []).length > 0 && (
+        <div className={`mt-3 grid gap-[6px] ${post.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+          {post.images.map((src, i) => (
+            <img key={`${post.id}-img-${i}`} src={src} alt="" className="w-full object-cover" style={{ maxHeight: 260, borderRadius: 10 }} />
+          ))}
+        </div>
+      )}
       {post.status === "published" && (
         <div className="mt-3 flex items-center gap-4 text-[12px]" style={{ color: "var(--foreground-50)" }}>
           <span className="inline-flex items-center gap-1"><Heart size={13} /> {post.likes}</span>
@@ -363,20 +376,62 @@ function KindIcon({ kind }: { kind: PostKind }) {
   return <Icon size={11} />;
 }
 
+const MAX_PHOTOS = 10;
+
 function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: () => void }) {
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState<null | { id: string }>(null);
   const MAX = 800;
   const canSend = text.trim().length >= 4 && text.length <= MAX && !sending;
 
+  const addPhotos = (picked: File[]) => {
+    const room = MAX_PHOTOS - photos.length;
+    const files = picked.slice(0, room);
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPhotos((p) => [...p, ...urls]);
+    setPhotoFiles((f) => [...f, ...files]);
+  };
+  const removePhoto = (i: number) => {
+    setPhotos((p) => p.filter((_, j) => j !== i));
+    setPhotoFiles((f) => f.filter((_, j) => j !== i));
+  };
+  const reorderPhotos = (next: string[]) => {
+    setPhotoFiles(next.map((url) => photoFiles[photos.indexOf(url)]));
+    setPhotos(next);
+  };
+
   const submit = async () => {
     if (!canSend) return;
     setSending(true);
     try {
-      const post = await createChannelPost({ channelSlug, text: text.trim(), kind });
+      const mediaIds: string[] = [];
+      for (const file of photoFiles) {
+        const m = await uploadMedia(file, "post");
+        mediaIds.push(m.uuid);
+      }
+      if (videoFile) {
+        const m = await uploadMedia(videoFile, "post_video");
+        mediaIds.push(m.uuid);
+      }
+      const post = await createChannelPost({
+        channelSlug,
+        text: text.trim(),
+        kind,
+        mediaIds,
+        demoImages: photos,
+        demoVideo: videoUrl ?? undefined,
+      });
       setText("");
+      setPhotos([]);
+      setPhotoFiles([]);
+      setVideoUrl(null);
+      setVideoFile(null);
       setJustSent({ id: post.id });
       toast.success("Пост опубликован");
       onPosted();
@@ -449,6 +504,33 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
         onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
       />
 
+      <div className="mt-3">
+        <ImageUploadGrid
+          photos={photos}
+          max={MAX_PHOTOS}
+          onAdd={addPhotos}
+          onRemove={removePhoto}
+          onMakeMain={() => {}}
+          onReorder={reorderPhotos}
+        />
+      </div>
+
+      <div className="mt-3">
+        <VideoUploadField
+          fileUrl={videoUrl}
+          accept="video/*"
+          label="Добавить видео"
+          onPick={(file) => {
+            setVideoFile(file);
+            setVideoUrl(URL.createObjectURL(file));
+          }}
+          onClear={() => {
+            setVideoFile(null);
+            setVideoUrl(null);
+          }}
+        />
+      </div>
+
       <div className="mt-2 flex items-center justify-between gap-3">
         <span className="text-[11px]" style={{ color: text.length > MAX - 80 ? "rgb(217,119,6)" : "var(--foreground-50)" }}>
           {text.length} / {MAX}
@@ -472,7 +554,7 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
           <div>
             <div className="font-semibold">Пост опубликован</div>
             <div style={{ color: "rgb(4,120,87)" }}>
-              Публикация уже видна подписчикам в ленте канала.
+              Публикация уже видна подписчикам в ленте канала и продублирована в общую ленту сайта.
             </div>
           </div>
         </div>

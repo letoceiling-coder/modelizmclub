@@ -5,6 +5,9 @@ namespace Modules\Channel\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
 use App\Models\ChannelPost;
+use App\Models\Post;
+use App\Models\PostCategory;
+use App\Models\User;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,11 +17,18 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Modules\Channel\Http\Resources\ChannelPostResource;
 use Modules\Channel\Http\Resources\ChannelResource;
+use Modules\Channel\Support\ChannelPostMediaSync;
+use Modules\Feed\Services\PostService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Channels', weight: 35)]
 class ChannelController extends Controller
 {
+    public function __construct(
+        private readonly ChannelPostMediaSync $channelMediaSync,
+        private readonly PostService $postService,
+    ) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $viewer = $request->user();
@@ -60,7 +70,7 @@ class ChannelController extends Controller
         $isOwner = $viewer !== null && $channel->owner_id === $viewer->id;
 
         $items = ChannelPost::query()
-            ->with(['author.profile', 'channel'])
+            ->with(['author.profile', 'channel', 'media.media'])
             ->where('channel_id', $channel->id)
             ->when(! $isOwner, fn ($q) => $q->where('status', 'published'))
             ->orderByDesc('created_at')
@@ -107,22 +117,61 @@ class ChannelController extends Controller
         $data = $request->validate([
             'text' => ['required', 'string', 'max:5000'],
             'kind' => ['nullable', Rule::in(['news', 'review', 'announce', 'promo'])],
+            'media_ids' => ['array', 'max:10'],
+            'media_ids.*' => ['uuid', 'exists:media,uuid'],
         ]);
+        $mediaIds = $data['media_ids'] ?? [];
 
-        $post = ChannelPost::query()->create([
-            'channel_id' => $channel->id,
-            'author_id' => $user->id,
-            'text' => $data['text'],
-            'kind' => $data['kind'] ?? 'news',
-            'status' => 'published',
-            'published_at' => now(),
-        ]);
+        $post = DB::transaction(function () use ($channel, $user, $data, $mediaIds): ChannelPost {
+            $channelPost = ChannelPost::query()->create([
+                'channel_id' => $channel->id,
+                'author_id' => $user->id,
+                'text' => $data['text'],
+                'kind' => $data['kind'] ?? 'news',
+                'status' => 'published',
+                'published_at' => now(),
+            ]);
 
-        $post->load(['author.profile', 'channel']);
+            $this->channelMediaSync->sync($channelPost, $user, $mediaIds);
+
+            $feedPost = $this->duplicateToFeed($channel, $user, $channelPost, $mediaIds);
+            $channelPost->update(['feed_post_id' => $feedPost->id]);
+
+            return $channelPost;
+        });
+
+        $post->load(['author.profile', 'channel', 'media.media']);
 
         return (new ChannelPostResource($post))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Channel posts are a one-way publishing surface, but readers still
+     * browse them through the main feed like any other post — so every
+     * channel post is mirrored into a feed Post (same pipeline the regular
+     * composer uses: create then publish, subject to the normal moderation
+     * queue) under a dedicated "Каналы" category, since feed posts require
+     * a category and a channel post's `kind` isn't one.
+     */
+    private function duplicateToFeed(Channel $channel, User $user, ChannelPost $channelPost, array $mediaIds): Post
+    {
+        $category = PostCategory::query()->firstOrCreate(
+            ['slug' => 'channels'],
+            ['name' => 'Каналы', 'is_active' => true, 'sort_order' => 999],
+        );
+
+        $title = Str::limit(trim($channelPost->text), 80, '…');
+
+        $post = $this->postService->create($user, [
+            'title' => $title !== '' ? $title : $channel->name,
+            'body' => $channelPost->text,
+            'category_id' => $category->id,
+            'media_ids' => $mediaIds,
+        ]);
+
+        return $this->postService->publish($post, $user);
     }
 
     private function findChannel(string $slug): Channel

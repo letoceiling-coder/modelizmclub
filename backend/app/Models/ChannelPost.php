@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ChannelPost extends Model
@@ -16,6 +17,7 @@ class ChannelPost extends Model
         'uuid',
         'channel_id',
         'author_id',
+        'feed_post_id',
         'text',
         'kind',
         'status',
@@ -41,5 +43,15 @@ class ChannelPost extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function feedPost(): BelongsTo
+    {
+        return $this->belongsTo(Post::class, 'feed_post_id');
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(ChannelPostMedia::class)->orderBy('sort_order');
     }
 }
