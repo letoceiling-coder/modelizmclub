@@ -10,12 +10,16 @@ class FeatureFlagsController extends Controller
 {
     public function __invoke(): JsonResponse
     {
-        $setting = SystemSetting::query()->where('key', 'feature.communities_enabled')->first();
-        $enabled = (bool) ($setting?->value['enabled'] ?? false);
+        $communities = SystemSetting::query()->where('key', 'feature.communities_enabled')->first();
+        $market = SystemSetting::query()->where('key', 'feature.market_enabled')->first();
 
         return response()->json([
             'data' => [
-                'communities_enabled' => $enabled,
+                'communities_enabled' => (bool) ($communities?->value['enabled'] ?? false),
+                // Traffic is meant to go to listings, not be split across an
+                // external marketplace link — off by default, toggleable from
+                // /admin without a frontend deploy.
+                'market_enabled' => (bool) ($market?->value['enabled'] ?? false),
             ],
         ]);
     }

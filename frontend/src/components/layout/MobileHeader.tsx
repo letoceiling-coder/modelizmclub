@@ -108,12 +108,13 @@ function MoreMenu() {
   const lang = (i18n.language as Locale) || "ru";
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const marketEnabled = useFeatureFlag("marketEnabled");
   const isGuest = useStore(selectors.currentUser).id === "guest";
 
   // Dev-time guarantee that every section is reachable on mobile (no-op in prod).
   useEffect(() => { assertMobileNavCoverage(); }, []);
 
-  const flags = { reviewsEnabled, communitiesEnabled } as const;
+  const flags = { reviewsEnabled, communitiesEnabled, marketEnabled } as const;
   const visible = MOBILE_MENU_SECTIONS.filter(
     (s) => (!s.authOnly || !isGuest) && (!s.flag || flags[s.flag]),
   );

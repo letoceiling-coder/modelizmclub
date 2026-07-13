@@ -37,6 +37,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const isGuest = me.id === "guest";
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+  const marketEnabled = useFeatureFlag("marketEnabled");
   const items = ALL_ITEMS.filter(
     (i) =>
       (i.to !== ROUTES.communities || communitiesEnabled) &&
@@ -67,18 +68,20 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
             </Link>
           );
         })}
-        <a
-          href="https://modelizm23.ru"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted"
-        >
-          <span className="flex items-center gap-3">
-            <ShoppingBag className="h-5 w-5" />
-            {t("nav.market")}
-          </span>
-          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-        </a>
+        {marketEnabled && (
+          <a
+            href="https://modelizm23.ru"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted"
+          >
+            <span className="flex items-center gap-3">
+              <ShoppingBag className="h-5 w-5" />
+              {t("nav.market")}
+            </span>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+          </a>
+        )}
       </nav>
 
       {/* Compact subscription status — управление только на /subscription */}
@@ -126,17 +129,19 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
               </Link>
             );
           })}
-          <a
-            href="https://modelizm23.ru"
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t("nav.market")}
-            aria-label={t("nav.market")}
-            className="grid h-10 w-10 place-items-center rounded-lg transition-colors hover:bg-muted"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <ShoppingBag className="h-5 w-5" />
-          </a>
+          {marketEnabled && (
+            <a
+              href="https://modelizm23.ru"
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t("nav.market")}
+              aria-label={t("nav.market")}
+              className="grid h-10 w-10 place-items-center rounded-lg transition-colors hover:bg-muted"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              <ShoppingBag className="h-5 w-5" />
+            </a>
+          )}
         </nav>
       </aside>
     </>
