@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, Hash } from "lucide-react";
 import * as Icons from "lucide-react";
@@ -68,6 +68,16 @@ export function FeedRightRail() {
   }, [collapsed]);
 
   const categories = usePostCategories();
+  // Display-only sort — the landing's "Направления" section reads the same
+  // usePostCategories()/fetchPostCategories() source in its original
+  // (backend/category-priority) order, and other code may rely on that
+  // order too (e.g. categoryIdByName's index-based id fallback in demo
+  // mode). Sorting a copy here, only for what this list renders, keeps
+  // that shared order and cache untouched.
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+    [categories],
+  );
 
   if (collapsed) {
     return (
@@ -97,7 +107,7 @@ export function FeedRightRail() {
         <RailCard>
           <CardHeader title="Направления" to="/categories" onCollapse={() => setCollapsed(true)} />
           <ul className="p-[6px]">
-            {categories.map((c) => {
+            {sortedCategories.map((c) => {
               const online = onlineFor(c);
               const open = openId === c.id;
               const hasSubs = c.subcategories.length > 0;
