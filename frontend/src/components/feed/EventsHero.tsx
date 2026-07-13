@@ -53,6 +53,12 @@ export function EventsHero() {
     if (index >= list.length) setIndex(0);
   }, [index, list.length]);
 
+  // Whole-slide tap/swipe navigation state — must be declared before the
+  // `list.length === 0` early return below, since hooks can't be called
+  // conditionally (a hook only reached once list finishes loading would
+  // change the hook count between renders and crash with React error #310).
+  const dragStartX = useRef<number | null>(null);
+
   if (list.length === 0) return null;
 
   const current = list[index];
@@ -67,7 +73,6 @@ export function EventsHero() {
   // side (left half = prev, right half = next), story-style. Interactive
   // children (arrows, CTA button) stop propagation so they keep their own
   // single action instead of also paging.
-  const dragStartX = useRef<number | null>(null);
   const onSlidePointerDown = (e: React.PointerEvent) => {
     dragStartX.current = e.clientX;
   };
