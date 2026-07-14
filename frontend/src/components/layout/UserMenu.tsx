@@ -101,7 +101,18 @@ export function UserMenu() {
       onMouseEnter={onWrapperMouseEnter}
       onMouseLeave={onWrapperMouseLeave}
     >
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+      {/* modal={false}: Radix's default modal DropdownMenu sets
+          document.body.style.pointerEvents = "none" while open, so the
+          browser hit-tests any point outside the trigger/content branch to
+          <html> (the only ancestor still receiving events). That makes a
+          GENUINE mouseleave (cursor actually moved off the trigger) carry
+          the exact same relatedTarget === document.documentElement as the
+          phantom DOM-mutation event isPhantomHoverEvent was written to
+          filter (see that guard's comment) — so the guard swallowed real
+          leaves too, and the menu never scheduled a close. Non-modal removes
+          the pointer-events lockout, so real leaves get a real relatedTarget
+          again and only true phantoms get filtered. */}
+      <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
