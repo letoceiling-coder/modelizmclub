@@ -163,7 +163,7 @@ function FeedPage() {
       <div className="space-y-[16px]">
         <EventsHero />
 
-        <CreatePostMenu onSelect={(sel) => { setComposerSelection(sel); setComposerOpen(true); }} />
+        <CreatePostMenu me={me} onSelect={(sel) => { setComposerSelection(sel); setComposerOpen(true); }} />
 
         <FindYourPeopleSheet />
 

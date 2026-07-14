@@ -10,8 +10,10 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer";
+import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import { useChannels, type Channel } from "@/lib/channels";
+import type { User } from "@/lib/mock";
 
 export type ComposerKind = "photo" | "video";
 export type ComposerSourceKind = "profile" | "channel";
@@ -24,6 +26,7 @@ export interface ComposerSelection {
 }
 
 interface Props {
+  me: User;
   onSelect: (selection: ComposerSelection) => void;
 }
 
@@ -37,7 +40,7 @@ const ROW_CLASS =
  *  (type, then — only for a channel owner — source, via a native Radix
  *  submenu); mobile uses a flat vaul bottom sheet instead, since 2-4 items
  *  don't need a second sheet screen. */
-export function CreatePostMenu({ onSelect }: Props) {
+export function CreatePostMenu({ me, onSelect }: Props) {
   const { channels } = useChannels();
   const myChannel = channels.find((c) => c.isOwner);
   const { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter } = useHoverDropdown();
@@ -49,13 +52,29 @@ export function CreatePostMenu({ onSelect }: Props) {
     setMobileOpen(false);
   };
 
+  // Desktop trigger reads as a real composer bar — avatar, a "what's on your
+  // mind" placeholder, an accent plus — the familiar feed-composer pattern
+  // (Facebook/VK/LinkedIn), spanning the full content column instead of a
+  // small pill floating on its own above the tabs.
   const triggerButton = (
     <button
       type="button"
-      className="inline-flex h-[40px] items-center gap-[6px] rounded-[var(--r-button)] border px-[16px] text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface-hover)]"
-      style={{ borderColor: "var(--border)", color: "var(--foreground)", background: "var(--background-surface)" }}
+      className="flex w-full items-center gap-[12px] rounded-[var(--r-card)] border px-[14px] py-[10px] text-left transition-colors hover:border-[var(--border-strong)]"
+      style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
-      <Plus size={16} /> Создать
+      <ChatAvatar src={me.avatar} name={me.name} size={40} />
+      <span
+        className="flex-1 truncate rounded-[var(--r-pill)] px-[16px] py-[10px] text-[14px]"
+        style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
+      >
+        Что у вас нового?
+      </span>
+      <span
+        className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
+        <Plus size={18} />
+      </span>
     </button>
   );
 
