@@ -55,20 +55,35 @@ export function UserMenu() {
   // below), it is a real DOM descendant of the exact element these hover
   // handlers are on. Mounting/unmounting that descendant while the cursor
   // sits stationary over the wrapper makes Chromium re-run hit-testing and
-  // synchronously fire a PHANTOM mouseleave (right after open) and a phantom
-  // mouseenter (right after close) — even though the pointer never moved.
-  // Measured live: this phantom leave fires ~15ms after every open, its
-  // scheduled close then fires the phantom-triggered unmount, which itself
-  // fires a phantom re-enter ~15ms later — reopening the menu and repeating
-  // the cycle for as long as the cursor stays put, a visible open→close→
-  // reopen pulse ("дёргается"). A genuine leave always has relatedTarget
-  // pointing at whatever real element the cursor moved onto; these phantom
-  // ones consistently arrive with relatedTarget === document.documentElement
-  // (<html>) — a real "moved off-window" leave gives relatedTarget === null,
-  // which this does NOT filter, so that case still closes normally.
+  // synchronously fire a PHANTOM mouseleave right after mount and a phantom
+  // mouseenter right after unmount — even though the pointer never moved.
+  // This happens on EVERY mount/unmount, not just the hover-driven ones: an
+  // Escape-driven or click-outside-driven close ALSO unmounts the content
+  // and re-triggers the same phantom mouseenter while the cursor is still
+  // resting on the trigger, silently REOPENING a menu the user just closed
+  // (measured live: ~15-33ms after the close). Left unfiltered, the
+  // hover-driven case alone chains into a repeating open→close→reopen pulse
+  // for as long as the cursor stays put ("дёргается"). A genuine leave/enter
+  // always has relatedTarget pointing at a real element the cursor actually
+  // moved to/from; these phantom ones consistently arrive with relatedTarget
+  // === document.documentElement (<html>) — a real "cursor left the browser
+  // window" leave gives relatedTarget === null, which this does NOT filter,
+  // so that case still closes normally. Guard BOTH directions symmetrically:
+  // an unfiltered phantom mouseenter alone is enough to undo Escape/
+  // outside-click closes.
+  const isPhantomHoverEvent = (e: React.MouseEvent) => e.relatedTarget === document.documentElement;
+  const onWrapperMouseEnter = (e: React.MouseEvent) => {
+    if (isPhantomHoverEvent(e)) return;
+    cancelClose();
+    setOpen(true);
+  };
   const onWrapperMouseLeave = (e: React.MouseEvent) => {
-    if (e.relatedTarget === document.documentElement) return;
+    if (isPhantomHoverEvent(e)) return;
     scheduleClose();
+  };
+  const onContentMouseEnter = (e: React.MouseEvent) => {
+    if (isPhantomHoverEvent(e)) return;
+    cancelClose();
   };
 
   const hasAvatar = Boolean(me.avatar && me.avatar.trim());
@@ -83,7 +98,7 @@ export function UserMenu() {
     <div
       ref={wrapperRef}
       className="relative"
-      onMouseEnter={() => { cancelClose(); setOpen(true); }}
+      onMouseEnter={onWrapperMouseEnter}
       onMouseLeave={onWrapperMouseLeave}
     >
       <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -110,7 +125,7 @@ export function UserMenu() {
           align="end"
           sideOffset={8}
           className="w-56"
-          onMouseEnter={cancelClose}
+          onMouseEnter={onContentMouseEnter}
           onMouseLeave={onWrapperMouseLeave}
         >
           <DropdownMenuItem asChild>
