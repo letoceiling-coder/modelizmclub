@@ -11,6 +11,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
 import { fetchCommunity, joinCommunity, leaveCommunity } from "@/lib/api/communities";
+import { recordView } from "@/lib/view-history";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
   demoCommunityPosts, demoCommunityDiscussions, demoCommunityEvents, demoCommunityMembers,
@@ -417,6 +418,7 @@ function CommunityDetailPage() {
         setCommunity(c);
         setJoined(Boolean(c.joined));
         setMembers(c.members);
+        recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
       })
       .catch(() => alive && setCommunity(null))
       .finally(() => alive && setLoading(false));

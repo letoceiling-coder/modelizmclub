@@ -15,10 +15,11 @@ export const Route = createFileRoute("/settings/history")({
 function hrefFor(item: ViewHistoryItem): { to: string; params: Record<string, string> } {
   if (item.kind === "ad") return { to: "/ads/$id", params: { id: item.id } };
   if (item.kind === "review") return { to: "/reviews/$id", params: { id: item.id } };
+  if (item.kind === "community") return { to: "/communities/$id", params: { id: item.id } };
   return { to: "/user/$id", params: { id: item.id } };
 }
 
-const KIND_LABEL: Record<ViewHistoryItem["kind"], string> = { ad: "Объявление", review: "Обзор", profile: "Профиль" };
+const KIND_LABEL: Record<ViewHistoryItem["kind"], string> = { ad: "Объявление", review: "Обзор", profile: "Профиль", community: "Сообщество" };
 
 function HistorySection() {
   const [items, setItems] = useState<ViewHistoryItem[]>(getViewHistory);
