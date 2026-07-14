@@ -57,13 +57,20 @@ changed.
   Non-blocking: гейт сборки — `tsc --noEmit` (чист), `vite build` проходит;
   eslint в CI/деплое не запускается.
 
-### Фаза 2b (иконки) — статические слоты ещё не подключены
-- Слоты `nav.*` / `section.*` заведены в `ICON_SLOTS` и выбираются в админ-вкладке
-  «Иконки», но НИ ОДНО место рендера не использует `<Icon slot="…">` (Task 5
-  подключил только иконки категорий через `<CategoryIcon>`). Поэтому override для
-  nav/section-слота публикуется, но визуально ни на что не влияет. **Функциональны
-  end-to-end только иконки категорий.** Follow-up: адаптировать `<Icon slot>` в
-  реальных местах (Sidebar / BottomNav / заголовки разделов).
+### Фаза 2b (иконки) — статические слоты подключены ✅ (2026-07-14)
+- РЕШЕНО: `nav.*` слоты подключены через `<Icon slot={navSlotKey(section)} inheritColor>`
+  во всех потребителях навигации (Sidebar обе колонки + «Маркет», BottomNav,
+  бургер MobileHeader); `section.safe-deal` — в бейдже «Безопасная сделка»
+  (`AdActionPanel`). `<Icon>` получил `inheritColor` (nav сохраняет active/inactive
+  цвет от `currentColor` ссылки) и проброс `strokeWidth` (толщина активной вкладки
+  BottomNav). Live-проверено: глифы без override не изменились, active/inactive
+  цвет сохранён, override применяется к nav (Sidebar+BottomNav), fallback на lucide
+  цел.
+- `section.directions` НЕ заведён намеренно: у заголовков «Направления» нет иконки,
+  слот был бы «мёртвым». Если нужна иконка рядом с «Направления» — отдельная правка.
+- Оставшийся мелкий долг: `icon`-поля в массивах Sidebar/BottomNav/MOBILE_MENU_SECTIONS
+  теперь vestigial (рендер идёт через ICON_SLOTS) — можно удалить в follow-up
+  (оставлены, чтобы не плодить diff; держать в синхроне с ICON_SLOTS до удаления).
 
 ### Реальный режим — иконки заблокированы до бэкенда #26
 - Публичный бутстрап `GET /icon-overrides` в НЕ-demo режиме отдаёт **404**
