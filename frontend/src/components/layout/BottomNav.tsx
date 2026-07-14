@@ -1,5 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User, UserPlus } from "lucide-react";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
+import { navSlotKey } from "@/lib/icon-slots";
 import { getActiveSection } from "@/lib/routes";
 import { useStore } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
@@ -61,7 +63,6 @@ export function BottomNav() {
 }
 
 function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: number }) {
-  const Icon = item.icon;
   return (
     <li className="flex">
       <Link
@@ -70,7 +71,7 @@ function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: n
         style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
       >
         <span className="relative inline-flex">
-          <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+          <SlotIcon slot={navSlotKey(item.section)} inheritColor size={22} strokeWidth={active ? 2.4 : 2} />
           {badge > 0 && (
             <span
               className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"

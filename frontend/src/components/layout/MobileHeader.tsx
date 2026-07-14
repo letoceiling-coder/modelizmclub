@@ -9,6 +9,8 @@ import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
+import { navSlotKey } from "@/lib/icon-slots";
 import {
   Drawer,
   DrawerContent,
@@ -125,10 +127,13 @@ function MoreMenu() {
     "flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]";
 
   const renderRow = (s: (typeof MOBILE_MENU_SECTIONS)[number]) => {
-    const Icon = s.icon;
     const inner = (
       <>
-        <Icon size={20} style={{ color: "var(--foreground-70)" }} />
+        {/* inheritColor wrapper keeps the fixed foreground-70 tint (burger icons
+            aren't state-coloured) while making the glyph override-aware. */}
+        <span style={{ display: "inline-flex", color: "var(--foreground-70)" }}>
+          <SlotIcon slot={navSlotKey(s.key)} inheritColor size={20} />
+        </span>
         <span className="flex-1 text-[15px] font-medium">{s.label}</span>
         {s.href && <ExternalLink size={15} style={{ color: "var(--foreground-50)" }} />}
       </>

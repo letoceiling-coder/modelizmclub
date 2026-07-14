@@ -1,4 +1,5 @@
-import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, ShieldCheck, Tag, Phone } from "lucide-react";
+import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, Tag, Phone } from "lucide-react";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,7 +154,7 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
           className="flex items-center gap-[8px] p-[10px] text-[11px]"
           style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}
         >
-          <ShieldCheck size={14} className="shrink-0" style={{ color: "var(--success)" }} />
+          <SlotIcon slot="section.safe-deal" size={14} className="shrink-0" />
           Безопасная сделка: оплата при получении или через эскроу.
         </div>
       )}

@@ -34,16 +34,37 @@ export const GROUP_LABELS: Record<IconSlot["group"], string> = {
 
 // Первый набор статических слотов фазы 2b. Имена lucide взяты из nav.tsx/Sidebar.
 // Расширяется по мере надобности — добавление слота не ломает существующие.
+// NB: nav.* defaultLucide MUST match the lucide icon each nav consumer
+// (Sidebar/BottomNav/burger, keyed by `nav.<section>`) currently renders —
+// otherwise switching those render sites to <Icon slot> silently changes the
+// glyph with no override. nav.* slots render with inheritColor (color comes
+// from the active/inactive link state via currentColor), so their defaultToken
+// is not used for color — kept as a neutral placeholder.
 export const ICON_SLOTS: IconSlot[] = [
   { key: "nav.feed", label: "Навигация — Лента", group: "nav", defaultLucide: "Newspaper", defaultToken: "foreground-70" },
   { key: "nav.ads", label: "Навигация — Каталог объявлений", group: "nav", defaultLucide: "Megaphone", defaultToken: "foreground-70" },
+  { key: "nav.ad-create", label: "Навигация — Разместить объявление", group: "nav", defaultLucide: "Plus", defaultToken: "foreground-70" },
+  { key: "nav.my-ads", label: "Навигация — Мои объявления", group: "nav", defaultLucide: "ClipboardList", defaultToken: "foreground-70" },
+  { key: "nav.favorites", label: "Навигация — Избранное", group: "nav", defaultLucide: "Heart", defaultToken: "foreground-70" },
+  { key: "nav.communities", label: "Навигация — Сообщества", group: "nav", defaultLucide: "Users2", defaultToken: "foreground-70" },
   { key: "nav.reviews", label: "Навигация — Обзоры", group: "nav", defaultLucide: "Clapperboard", defaultToken: "foreground-70" },
   { key: "nav.channels", label: "Навигация — Каналы", group: "nav", defaultLucide: "Radio", defaultToken: "foreground-70" },
-  { key: "nav.messenger", label: "Навигация — Мессенджер", group: "nav", defaultLucide: "MessageCircle", defaultToken: "foreground-70" },
-  { key: "nav.friends", label: "Навигация — Друзья", group: "nav", defaultLucide: "Users", defaultToken: "foreground-70" },
-  { key: "section.directions", label: "Раздел — Направления", group: "section", defaultLucide: "Compass", defaultToken: "accent" },
+  { key: "nav.messenger", label: "Навигация — Мессенджер", group: "nav", defaultLucide: "MessageSquare", defaultToken: "foreground-70" },
+  { key: "nav.friends", label: "Навигация — Друзья", group: "nav", defaultLucide: "UserPlus", defaultToken: "foreground-70" },
+  { key: "nav.profile", label: "Навигация — Профиль", group: "nav", defaultLucide: "User", defaultToken: "foreground-70" },
+  { key: "nav.settings", label: "Навигация — Настройки", group: "nav", defaultLucide: "Settings", defaultToken: "foreground-70" },
+  { key: "nav.subscription", label: "Навигация — Подписка", group: "nav", defaultLucide: "Crown", defaultToken: "foreground-70" },
+  { key: "nav.market", label: "Навигация — Маркет", group: "nav", defaultLucide: "ShoppingBag", defaultToken: "foreground-70" },
+  // Only slots with a real render site live here. «Направления»-заголовки сейчас
+  // без иконки, поэтому section.directions намеренно не заведён (иначе слот был бы
+  // выбираем в админке, но ни на что не влиял — как было до этой правки).
   { key: "section.safe-deal", label: "Раздел — Безопасная сделка", group: "section", defaultLucide: "ShieldCheck", defaultToken: "success" },
 ];
+
+/** Slot key for a nav section (matches the `section`/`key` on nav consumers). */
+export function navSlotKey(section: string): string {
+  return `nav.${section}`;
+}
 
 export const TOKEN_OPTIONS: { key: TokenKey; label: string; cssVar: string }[] = [
   { key: "accent", label: "Акцент", cssVar: "var(--accent)" },
