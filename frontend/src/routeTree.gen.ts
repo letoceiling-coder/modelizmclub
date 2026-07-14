@@ -42,6 +42,7 @@ import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
 import { Route as SettingsWalletRouteImport } from './routes/settings.wallet'
+import { Route as SettingsSpacesRouteImport } from './routes/settings.spaces'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SettingsRequisitesRouteImport } from './routes/settings.requisites'
 import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
@@ -230,6 +231,11 @@ const SettingsWalletRoute = SettingsWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSpacesRoute = SettingsSpacesRouteImport.update({
+  id: '/spaces',
+  path: '/spaces',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
   id: '/security',
   path: '/security',
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
   '/settings/security': typeof SettingsSecurityRoute
+  '/settings/spaces': typeof SettingsSpacesRoute
   '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
@@ -438,6 +445,7 @@ export interface FileRoutesByTo {
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
   '/settings/security': typeof SettingsSecurityRoute
+  '/settings/spaces': typeof SettingsSpacesRoute
   '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads': typeof AdsIndexRoute
@@ -496,6 +504,7 @@ export interface FileRoutesById {
   '/settings/rating': typeof SettingsRatingRoute
   '/settings/requisites': typeof SettingsRequisitesRoute
   '/settings/security': typeof SettingsSecurityRoute
+  '/settings/spaces': typeof SettingsSpacesRoute
   '/settings/wallet': typeof SettingsWalletRoute
   '/user/$id': typeof UserIdRoute
   '/ads/': typeof AdsIndexRoute
@@ -555,6 +564,7 @@ export interface FileRouteTypes {
     | '/settings/rating'
     | '/settings/requisites'
     | '/settings/security'
+    | '/settings/spaces'
     | '/settings/wallet'
     | '/user/$id'
     | '/ads/'
@@ -606,6 +616,7 @@ export interface FileRouteTypes {
     | '/settings/rating'
     | '/settings/requisites'
     | '/settings/security'
+    | '/settings/spaces'
     | '/settings/wallet'
     | '/user/$id'
     | '/ads'
@@ -663,6 +674,7 @@ export interface FileRouteTypes {
     | '/settings/rating'
     | '/settings/requisites'
     | '/settings/security'
+    | '/settings/spaces'
     | '/settings/wallet'
     | '/user/$id'
     | '/ads/'
@@ -942,6 +954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsWalletRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/spaces': {
+      id: '/settings/spaces'
+      path: '/spaces'
+      fullPath: '/settings/spaces'
+      preLoaderRoute: typeof SettingsSpacesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/security': {
       id: '/settings/security'
       path: '/security'
@@ -1190,6 +1209,7 @@ interface SettingsRouteChildren {
   SettingsRatingRoute: typeof SettingsRatingRoute
   SettingsRequisitesRoute: typeof SettingsRequisitesRoute
   SettingsSecurityRoute: typeof SettingsSecurityRoute
+  SettingsSpacesRoute: typeof SettingsSpacesRoute
   SettingsWalletRoute: typeof SettingsWalletRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
@@ -1204,6 +1224,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsRatingRoute: SettingsRatingRoute,
   SettingsRequisitesRoute: SettingsRequisitesRoute,
   SettingsSecurityRoute: SettingsSecurityRoute,
+  SettingsSpacesRoute: SettingsSpacesRoute,
   SettingsWalletRoute: SettingsWalletRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
