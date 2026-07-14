@@ -254,7 +254,7 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
   return (
     <div className="space-y-[16px]">
       <label
-        className="grid cursor-pointer place-items-center gap-[10px] px-[20px] py-[36px] text-center transition-colors hover:border-[var(--accent)]"
+        className="grid cursor-pointer touch-manipulation place-items-center gap-[10px] px-[20px] py-[36px] text-center transition-[border-color,transform] active:scale-[0.98] hover:border-[var(--accent)]"
         style={{
           background: "var(--background-elevated)",
           border: "2px dashed var(--border-strong)",

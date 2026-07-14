@@ -282,7 +282,13 @@ html, body {
 }
 
 @layer base {
-  * { border-color: var(--border); }
+  * {
+    border-color: var(--border);
+    /* iOS Safari flashes a solid highlight box on tap by default — most
+       visible on <label>/file-input triggers right before the native
+       picker sheet opens. Custom active: states below replace it. */
+    -webkit-tap-highlight-color: transparent;
+  }
   html, body {
     overflow-x: hidden;
     background-color: var(--background);
