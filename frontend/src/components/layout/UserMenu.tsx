@@ -30,7 +30,18 @@ function initials(name: string): string {
 // "closes right as you're about to click". CLOSE_DELAY_MS plus routing the
 // portal back inside wrapperRef (below) fixes both the timing margin and
 // the gap itself.
-const CLOSE_DELAY_MS = 250;
+//
+// 250ms was measured to be too tight: instrumenting real mouseenter/
+// mouseleave while hovering from an adjacent header icon onto this trigger
+// showed a genuine leave→re-enter gap of ~260-265ms — right as the dropdown
+// mounts and its ~150ms CSS entrance animation starts painting, which is
+// exactly when the main thread is busiest and native pointer-event delivery
+// can lag. With a 250ms timer the scheduled close fires ~10-15ms BEFORE the
+// re-entry arrives, so the menu fully unmounts and immediately remounts —
+// a full close+reopen with the entrance animation restarting from scratch,
+// which reads as a visible "jump"/jitter on hover. 400ms comfortably
+// bridges that gap without making a genuine mouse-away close feel slow.
+const CLOSE_DELAY_MS = 400;
 
 export function UserMenu() {
   const me = useStore(selectors.currentUser);
