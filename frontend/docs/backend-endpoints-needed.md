@@ -959,10 +959,17 @@ Frontend added a `/settings/*` personal cabinet with working demo UI (localStora
 - Frontend: `settings.rating.tsx` (currently `mockMyRating` / `mockMyReviews`).
 
 ### 24.7 История просмотров (server-side personalization)
-`GET /me/view-history?per_page=N` → `{ "data": [{ "id": string, "kind": "ad"|"profile"|"review", "title": string, "thumb": string|null, "viewed_at": ISO8601 }] }`
-Optionally `POST /me/view-history` `{ "id", "kind" }` to record a view server-side (currently recorded client-side via `lib/view-history.ts` on `/ads/$id` and `/reviews/$id` only).
+`GET /me/view-history?per_page=N` → `{ "data": [{ "id": string, "kind": "ad"|"profile"|"review"|"community", "title": string, "thumb": string|null, "viewed_at": ISO8601 }] }`
+Optionally `POST /me/view-history` `{ "id", "kind" }` to record a view server-side (currently recorded client-side via `lib/view-history.ts` on `/ads/$id`, `/reviews/$id`, `/user/$id` и `/communities/$id`).
 - Auth: required.
 - Frontend: `settings.history.tsx` (currently localStorage `modelizm_view_history`).
+- **ОБНОВЛЕНО 2026-07-14 (mobile-search-overlay):** `kind` расширен значением
+  `"community"`, и просмотры профилей/сообществ теперь пишутся клиентом
+  (раньше только ad/review). Клиентский `view-history-api.ts`
+  (`ApiViewHistoryRow.kind`) при реализации серверной ручки нужно расширить
+  до тех же 4 значений — сейчас POST community/profile-просмотра
+  fire-and-forget и молча no-op'ит (try/catch), пользовательского сбоя нет,
+  но серверная персонализация их не увидит, пока не реализовано.
 
 ### 24.8 Обложка профиля
 `PATCH /users/me` already exists; extend it to accept `cover_media_id: string | null` (alongside the existing `avatar_media_id`). `MediaPurpose` gains `"cover"` for `POST /media` uploads.
