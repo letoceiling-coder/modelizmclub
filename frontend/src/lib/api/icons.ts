@@ -1,7 +1,6 @@
 // frontend/src/lib/api/icons.ts
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { uploadMedia } from "@/lib/api/media";
 import { updateAdminSettings, fetchAuditLogPage } from "@/lib/api/admin";
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import type { TokenKey } from "@/lib/icon-slots";
@@ -85,12 +84,15 @@ export async function uploadIconAsset(file: File): Promise<IconAsset> {
     writeDemoAssets([asset, ...readDemoAssets()]);
     return asset;
   }
-  // Реальный режим: бэкенд санитизирует+токенизирует и создаёт IconAsset.
-  const media = await uploadMedia(file, "icon");
-  // Бэкенд возвращает IconAsset в ответе confirm/upload; здесь читаем список,
-  // либо (по контракту #26) POST /media purpose=icon вернёт сразу asset.
-  // Контракт: uploadMedia отдаёт { uuid }, поэтому дочитываем ассет по id.
-  const res = await api<{ data: IconAsset }>(`/admin/icon-assets/${media.uuid}`);
+  // Реальный режим: POST /media с purpose=icon; бэкенд санитизирует+
+  // токенизирует и возвращает созданный IconAsset ({ id, name, svg, ... })
+  // напрямую в этом ответе (см. backend-endpoints-needed.md #26 пункт 3).
+  // Дочитывать ассет отдельным GET не нужно — GET /admin/icon-assets/{id}
+  // не входит в контракт (там только list и DELETE).
+  const form = new FormData();
+  form.append("file", file);
+  form.append("purpose", "icon");
+  const res = await api<{ data: IconAsset }>("/media", { method: "POST", body: form });
   return res.data;
 }
 
