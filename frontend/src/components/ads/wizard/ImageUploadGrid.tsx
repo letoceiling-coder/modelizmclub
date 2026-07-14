@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImagePlus, X, Star, ImageOff, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
@@ -8,6 +8,11 @@ interface Props {
   onRemove: (index: number) => void;
   onMakeMain: (index: number) => void;
   onReorder: (newPhotos: string[]) => void;
+  /** Auto-clicks the hidden file input on mount, after a short delay to
+   *  let the parent modal's mount/transition settle first. Used by
+   *  CreatePostForm so choosing "Пост" in the composer menu jumps
+   *  straight to the OS file picker instead of landing on an empty grid. */
+  autoOpen?: boolean;
 }
 
 /** Single preview tile — a broken-image fallback (revoked/failed blob URL
@@ -148,11 +153,18 @@ function PreviewTile({
   );
 }
 
-export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onReorder }: Props) {
+export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onReorder, autoOpen }: Props) {
   const full = photos.length >= max;
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const draggingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    const t = setTimeout(() => inputRef.current?.click(), 150);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -225,7 +237,7 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
         <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
           JPG, PNG до 10 МБ · {photos.length}/{max}
         </div>
-        <input type="file" accept="image/*" multiple onChange={handleChange} className="hidden" disabled={full} />
+        <input ref={inputRef} type="file" accept="image/*" multiple onChange={handleChange} className="hidden" disabled={full} />
       </label>
 
       {photos.length > 0 && (
