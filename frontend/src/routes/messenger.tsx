@@ -746,9 +746,17 @@ function MessengerPage() {
                         <ChatAvatar src={u.avatar} name={u.name} size={48} online={onlineSet.has(d.userId) || u.online} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
-                            <span className="flex min-w-0 items-center gap-[6px] truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                            {/* Flex row of [pin?] name [muted?/blocked?/archived?].
+                                The name must carry BOTH `truncate` and `min-w-0`
+                                — a flex child's default `min-width:auto` otherwise
+                                refuses to shrink below its text's intrinsic width,
+                                so once a pin/mute icon takes space the name gets
+                                clipped (or hidden entirely) instead of ellipsizing.
+                                `truncate` on the flex *container* is a no-op, so it
+                                lives only on the text span. */}
+                            <span className="flex min-w-0 items-center gap-[6px] font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
                               {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                              <span className="truncate">{u.name}</span>
+                              <span className="min-w-0 truncate">{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                               {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
