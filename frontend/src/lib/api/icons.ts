@@ -66,7 +66,8 @@ function demoTokenizeSvg(raw: string): { svg: string } | { error: string } {
   if (fills.size > 1) return { error: "Иконка должна быть одноцветной (найдено несколько цветов)" };
   const tokenized = s
     .replace(/\sfill\s*=\s*"(?!none)[^"]*"/gi, ' fill="currentColor"')
-    .replace(/\sstroke\s*=\s*"(?!none)[^"]*"/gi, ' stroke="currentColor"');
+    .replace(/\sstroke\s*=\s*"(?!none)[^"]*"/gi, ' stroke="currentColor"')
+    .replace(/\s(width|height)\s*=\s*"[^"]*"/gi, "");
   return { svg: tokenized };
 }
 

@@ -10,7 +10,6 @@ let published: IconOverrideMap = {};
 let draft: IconOverrideMap = {};              // slotKey → override (для превью)
 const draftCleared = new Set<string>();       // слоты, сброшенные на дефолт в черновике
 let fetchStarted = false;
-let assetsVersion = 0;
 
 function notify() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENT));
@@ -85,19 +84,5 @@ export function useIconOverride(slotKey: string): IconOverride | null {
     subscribe,
     () => mergedFor(slotKey),
     () => null, // SSR: всегда fallback на lucide
-  );
-}
-
-/** Реактивная версия для перерисовки библиотеки иконок после upload/delete (опционально). */
-export function bumpIconAssetsVersion(): void {
-  assetsVersion += 1;
-  notify();
-}
-
-export function useIconAssetsVersion(): number {
-  return useSyncExternalStore(
-    subscribe,
-    () => assetsVersion,
-    () => 0,
   );
 }

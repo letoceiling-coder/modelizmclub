@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
@@ -37,6 +37,19 @@ import {
   type AdminDeliveryStats, type AdminShipmentRow,
 } from "@/lib/api/admin";
 import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
+import {
+  fetchIconAssets, uploadIconAsset, deleteIconAsset,
+  publishIconOverrides, fetchLastPublishedIconOverrides,
+  type IconAsset, type IconOverrideMap,
+} from "@/lib/api/icons";
+import {
+  getMergedMap, setDraftOverride, resetDraft, applyPublishedMap,
+} from "@/lib/icon-overrides";
+import {
+  ICON_SLOTS, GROUP_LABELS, TOKEN_OPTIONS, categorySlotKey, type TokenKey,
+} from "@/lib/icon-slots";
+import { isSafeSvgMarkup } from "@/lib/safe-svg";
+import { usePostCategories } from "@/lib/hooks/useCategories";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
@@ -494,6 +507,215 @@ function DesignSystemSection() {
       {/* Preview */}
       <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>Превью компонентов</h2>
       <PreviewArea />
+
+      <IconsPanel />
+    </div>
+  );
+}
+
+interface SlotOption { key: string; label: string; group: string; }
+
+function IconsPanel() {
+  const categories = usePostCategories();
+  const [assets, setAssets] = useState<IconAsset[]>([]);
+  const [slotKey, setSlotKey] = useState<string>(ICON_SLOTS[0]?.key ?? "");
+  const [assetId, setAssetId] = useState<string>("");           // "" = по умолчанию (lucide)
+  const [token, setToken] = useState<TokenKey>("foreground");
+  const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [canRollback, setCanRollback] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const selectStyle: React.CSSProperties = {
+    height: 38, padding: "0 10px", borderRadius: 10,
+    border: "1px solid var(--border)", background: "var(--background)",
+    color: "var(--foreground)", fontSize: 13,
+  };
+
+  // Загрузка библиотеки иконок + состояния «можно ли откатить».
+  useEffect(() => {
+    let alive = true;
+    fetchIconAssets().then((a) => alive && setAssets(a)).catch(() => {});
+    fetchLastPublishedIconOverrides().then((prev) => alive && setCanRollback(prev !== null)).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // Слоты категорий строятся из usePostCategories() — тот же id-space, что
+  // читает <CategoryIcon categoryId={c.id}> в FeedRightRail/RightCategories,
+  // поэтому назначенные тут override'ы реально применяются в ленте (в demo —
+  // те же demo-id "c1".."c20", что и в правом рейле).
+  const categorySlots: SlotOption[] = useMemo(
+    () => categories.map((c) => ({
+      key: categorySlotKey(c.id), label: `Категория — ${c.name}`, group: GROUP_LABELS.category,
+    })),
+    [categories],
+  );
+
+  const allSlots: SlotOption[] = useMemo(
+    () => [
+      ...ICON_SLOTS.map((s) => ({ key: s.key, label: s.label, group: GROUP_LABELS[s.group] })),
+      ...categorySlots,
+    ],
+    [categorySlots],
+  );
+
+  async function onUpload(file: File) {
+    setUploading(true);
+    try {
+      const asset = await uploadIconAsset(file);
+      setAssets((prev) => [asset, ...prev]);
+      setAssetId(asset.id);
+      toast.success("Иконка загружена");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось загрузить иконку");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function onDeleteAsset(id: string) {
+    try {
+      await deleteIconAsset(id);
+      setAssets((prev) => prev.filter((a) => a.id !== id));
+      if (assetId === id) setAssetId("");
+    } catch {
+      toast.error("Не удалось удалить иконку");
+    }
+  }
+
+  function onApply() {
+    if (!slotKey) return;
+    if (assetId === "") {
+      setDraftOverride(slotKey, null); // сброс слота на дефолт (в превью)
+      toast("Слот сброшен на иконку по умолчанию (превью)");
+      return;
+    }
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset) return;
+    setDraftOverride(slotKey, { assetId: asset.id, svg: asset.svg, token });
+    toast("Применено в превью — опубликуйте, чтобы увидели все");
+  }
+
+  async function onPublish() {
+    setPublishing(true);
+    try {
+      const map: IconOverrideMap = getMergedMap();
+      await publishIconOverrides(map);
+      applyPublishedMap(map); // published := map, draft очищается
+      setCanRollback(true);
+      toast.success(isDemoMode()
+        ? "Опубликовано (demo — только в этом браузере)"
+        : "Иконки опубликованы для всех");
+    } catch {
+      toast.error("Не удалось опубликовать");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function onRollback() {
+    try {
+      const prev = await fetchLastPublishedIconOverrides();
+      if (prev === null) { setCanRollback(false); return; }
+      await publishIconOverrides(prev);
+      applyPublishedMap(prev);
+      toast.success("Откат выполнен");
+    } catch {
+      toast.error("Не удалось откатить");
+    }
+  }
+
+  return (
+    <div style={{ ...card, padding: 24, maxWidth: 760, marginTop: 20 }}>
+      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)", marginBottom: 4 }}>
+        Иконки
+      </h4>
+      <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 16 }}>
+        Загрузите монохромный SVG, назначьте на место в интерфейсе и выберите цвет из палитры токенов.
+        Превью применяется только у вас; «Опубликовать» — для всех пользователей.
+      </p>
+
+      {/* Библиотека */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>Библиотека</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))", gap: 8 }}>
+          {assets.map((a) => (
+            <div key={a.id} title={a.name}
+              style={{
+                position: "relative", aspectRatio: "1", display: "grid", placeItems: "center",
+                border: `1px solid ${assetId === a.id ? "var(--accent)" : "var(--border)"}`,
+                borderRadius: 10, cursor: "pointer", color: "var(--foreground)",
+              }}
+              onClick={() => setAssetId(a.id)}
+            >
+              <span aria-hidden style={{ width: 22, height: 22, display: "inline-flex" }}
+                dangerouslySetInnerHTML={{ __html: isSafeSvgMarkup(a.svg) ? a.svg : "" }} />
+              <button type="button" aria-label="Удалить" onClick={(e) => { e.stopPropagation(); void onDeleteAsset(a.id); }}
+                style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: 6,
+                  background: "var(--background-surface)", color: "var(--foreground-50)", fontSize: 12, lineHeight: "16px" }}>
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()}
+            style={{ aspectRatio: "1", border: "1px dashed var(--border)", borderRadius: 10,
+              color: "var(--foreground-50)", fontSize: 12, opacity: uploading ? 0.6 : 1 }}>
+            {uploading ? "…" : "+ SVG"}
+          </button>
+        </div>
+        <input ref={fileRef} type="file" accept="image/svg+xml,.svg" hidden
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onUpload(f); }} />
+      </div>
+
+      {/* Назначение */}
+      <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Слот (место в интерфейсе)</span>
+          <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)} style={selectStyle}>
+            {allSlots.map((s) => <option key={s.key} value={s.key}>{s.group} · {s.label}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Иконка</span>
+          <select value={assetId} onChange={(e) => setAssetId(e.target.value)} style={selectStyle}>
+            <option value="">По умолчанию (lucide)</option>
+            {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Цвет (токен)</span>
+          <select value={token} onChange={(e) => setToken(e.target.value as TokenKey)} style={selectStyle}>
+            {TOKEN_OPTIONS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={onApply}
+          style={{ justifySelf: "start", padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--accent-soft)" }}>
+          Применить (превью)
+        </button>
+      </div>
+
+      {/* Публикация */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button type="button" disabled={publishing} onClick={onPublish}
+          style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            background: "var(--accent)", color: "var(--accent-foreground)", opacity: publishing ? 0.6 : 1 }}>
+          {publishing ? "Публикация…" : "Опубликовать для всех"}
+        </button>
+        <button type="button" onClick={resetDraft}
+          style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+            border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
+          Сбросить превью
+        </button>
+        {canRollback && (
+          <button type="button" onClick={onRollback}
+            style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+              border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
+            Откатить последнее изменение
+          </button>
+        )}
+      </div>
     </div>
   );
 }
