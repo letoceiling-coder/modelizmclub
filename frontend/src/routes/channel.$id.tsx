@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia } from "@/lib/api/media";
+import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 
 
 export const Route = createFileRoute("/channel/$id")({
@@ -50,6 +51,7 @@ function ChannelPage() {
   const { posts, reload: reloadPosts } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>("posts");
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   if (loading) {
     return (
@@ -170,6 +172,17 @@ function ChannelPage() {
                 )}
               </div>
 
+              {!channel.isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setRequestOpen(true)}
+                  className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-[12px] border text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface)]"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                >
+                  Хочу свой канал
+                </button>
+              )}
+
               {/* explanation strip */}
               <div
                 className="mt-3 flex items-start gap-2 p-3 text-[12px]"
@@ -263,6 +276,13 @@ function ChannelPage() {
 
 
       </div>
+      {requestOpen && (
+        <EntityRequestForm
+          kind="channel"
+          onClose={() => setRequestOpen(false)}
+          onSubmitted={() => setRequestOpen(false)}
+        />
+      )}
     </AppLayout>
   );
 }
