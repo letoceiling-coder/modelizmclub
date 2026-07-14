@@ -1,9 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
 import { useListingCategories } from "@/lib/hooks/useCategories";
-import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { CitySelect } from "@/components/ads/CitySelect";
-import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
 
@@ -39,10 +37,6 @@ function Body({ value, onChange, onReset }: Props) {
   const categories = useListingCategories();
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
-  const toggle = <K extends "deliveries">(k: K, item: string) => {
-    const arr = value[k] as string[];
-    set(k, (arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item]) as FiltersState[K]);
-  };
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -108,14 +102,6 @@ function Body({ value, onChange, onReset }: Props) {
           onChange={(name, id) => onChange({ ...value, city: name, cityId: id })}
           placeholder="Любой город"
         />
-      </Group>
-
-      <Group title="Доставка">
-        <div className="flex flex-wrap gap-[6px]">
-          {DELIVERY_METHODS.map((m) => (
-            <Checkbox key={m.id} checked={value.deliveries.includes(m.label)} onChange={() => toggle("deliveries", m.label)} label={m.label} />
-          ))}
-        </div>
       </Group>
 
       <button
