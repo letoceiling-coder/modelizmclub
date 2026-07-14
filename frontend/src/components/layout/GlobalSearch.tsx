@@ -1,90 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Search, User as UserIcon, Users2, Megaphone, Compass } from "lucide-react";
-import { searchUsers } from "@/lib/api/social";
-import { fetchCommunities } from "@/lib/api/communities";
-import { fetchListings } from "@/lib/api/listings";
-import { fetchListingCategories } from "@/lib/api/categories";
-import type { User, Community, Ad, Category } from "@/lib/mock";
-
-interface SearchResults {
-  users: User[];
-  communities: Community[];
-  ads: Ad[];
-  categories: Category[];
-}
-
-const EMPTY: SearchResults = { users: [], communities: [], ads: [], categories: [] };
-const MIN_QUERY_LENGTH = 2;
-const DEBOUNCE_MS = 300;
-
-function SearchGroup({
-  label,
-  icon: Icon,
-  children,
-}: {
-  label: string;
-  icon: typeof UserIcon;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="py-[6px]">
-      <div
-        className="flex items-center gap-[6px] px-[14px] py-[4px] text-[11px] font-semibold uppercase tracking-wide"
-        style={{ color: "var(--foreground-50)" }}
-      >
-        <Icon size={12} />
-        {label}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function ResultRow({
-  to,
-  params,
-  avatar,
-  fallbackIcon: FallbackIcon,
-  title,
-  subtitle,
-  onNavigate,
-}: {
-  to: string;
-  params?: Record<string, string>;
-  search?: Record<string, string>;
-  avatar?: string;
-  fallbackIcon: typeof UserIcon;
-  title: string;
-  subtitle?: string;
-  onNavigate: () => void;
-}) {
-  return (
-    <Link
-      to={to}
-      params={params}
-      onClick={onNavigate}
-      className="flex items-center gap-[10px] px-[14px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
-    >
-      {avatar ? (
-        <img src={avatar} alt="" className="h-[32px] w-[32px] shrink-0 rounded-full object-cover" />
-      ) : (
-        <div
-          className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-        >
-          <FallbackIcon size={16} />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{title}</div>
-        {subtitle && (
-          <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{subtitle}</div>
-        )}
-      </div>
-    </Link>
-  );
-}
+import { useGlobalSearch, MIN_QUERY_LENGTH } from "@/lib/hooks/useGlobalSearch";
+import { SearchGroup, ResultRow } from "@/components/layout/search/SearchResultRow";
 
 /** Header search — live dropdown split by content type (люди, сообщества,
  *  объявления, направления), VK-style. Replaces the old behavior of only
@@ -93,37 +11,9 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
-  const [results, setResults] = useState<SearchResults>(EMPTY);
-  const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const requestId = useRef(0);
-
   const q = value.trim();
-
-  useEffect(() => {
-    if (q.length < MIN_QUERY_LENGTH) {
-      setResults(EMPTY);
-      setLoading(false);
-      return;
-    }
-    const id = ++requestId.current;
-    setLoading(true);
-    const timer = setTimeout(() => {
-      Promise.all([
-        searchUsers(q).catch(() => []),
-        fetchCommunities(q).catch(() => []),
-        fetchListings({ q, perPage: 5 }).catch(() => []),
-        fetchListingCategories().catch(() => []),
-      ]).then(([users, communities, ads, allCategories]) => {
-        if (id !== requestId.current) return;
-        const qLower = q.toLowerCase();
-        const categories = allCategories.filter((c) => c.name.toLowerCase().includes(qLower)).slice(0, 5);
-        setResults({ users: users.slice(0, 4), communities: communities.slice(0, 4), ads: ads.slice(0, 5), categories });
-        setLoading(false);
-      });
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [q]);
+  const { results, loading } = useGlobalSearch(q);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
