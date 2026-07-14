@@ -15,6 +15,7 @@
 /frontend/dist
 /frontend/.output
 /frontend/.next
+/.worktrees
 /frontend/.env
 /frontend/.env.local
 .idea
