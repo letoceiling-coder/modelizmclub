@@ -18,6 +18,7 @@ import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog"
 import { I18nProvider, useLocaleFade } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
+import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
 
 // Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
 // "theme" key holds the resolved value from the old binary toggle). "system"
