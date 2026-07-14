@@ -8,6 +8,7 @@ import { setLocale, type Locale } from "@/lib/i18n";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { MobileSearchOverlay } from "@/components/layout/MobileSearchOverlay";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
@@ -32,9 +33,11 @@ const LANGS: { code: Locale; native: string; flag: string }[] = [
 export function MobileHeader() {
   const { t } = useTranslation();
   const unread = useUnreadNotifications();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header
+    <>
+      <header
       className="lg:hidden sticky top-0 z-30"
       style={{
         paddingTop: "var(--safe-top)",
@@ -53,14 +56,15 @@ export function MobileHeader() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-1">
-          <Link
-            to="/ads"
+          <button
+            type="button"
             aria-label="Поиск"
+            onClick={() => setSearchOpen(true)}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
           >
             <Search size={20} />
-          </Link>
+          </button>
 
           <Link
             to="/favorites"
@@ -100,7 +104,9 @@ export function MobileHeader() {
           <MoreMenu />
         </div>
       </div>
-    </header>
+      </header>
+      <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 }
 
