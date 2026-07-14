@@ -30,18 +30,7 @@ function initials(name: string): string {
 // "closes right as you're about to click". CLOSE_DELAY_MS plus routing the
 // portal back inside wrapperRef (below) fixes both the timing margin and
 // the gap itself.
-//
-// 250ms was measured to be too tight: instrumenting real mouseenter/
-// mouseleave while hovering from an adjacent header icon onto this trigger
-// showed a genuine leave→re-enter gap of ~260-265ms — right as the dropdown
-// mounts and its ~150ms CSS entrance animation starts painting, which is
-// exactly when the main thread is busiest and native pointer-event delivery
-// can lag. With a 250ms timer the scheduled close fires ~10-15ms BEFORE the
-// re-entry arrives, so the menu fully unmounts and immediately remounts —
-// a full close+reopen with the entrance animation restarting from scratch,
-// which reads as a visible "jump"/jitter on hover. 400ms comfortably
-// bridges that gap without making a genuine mouse-away close feel slow.
-const CLOSE_DELAY_MS = 400;
+const CLOSE_DELAY_MS = 250;
 
 export function UserMenu() {
   const me = useStore(selectors.currentUser);
@@ -62,6 +51,25 @@ export function UserMenu() {
     cancelClose();
     closeTimer.current = setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
   };
+  // Because DropdownMenuContent portals INTO wrapperRef (see portalContainer
+  // below), it is a real DOM descendant of the exact element these hover
+  // handlers are on. Mounting/unmounting that descendant while the cursor
+  // sits stationary over the wrapper makes Chromium re-run hit-testing and
+  // synchronously fire a PHANTOM mouseleave (right after open) and a phantom
+  // mouseenter (right after close) — even though the pointer never moved.
+  // Measured live: this phantom leave fires ~15ms after every open, its
+  // scheduled close then fires the phantom-triggered unmount, which itself
+  // fires a phantom re-enter ~15ms later — reopening the menu and repeating
+  // the cycle for as long as the cursor stays put, a visible open→close→
+  // reopen pulse ("дёргается"). A genuine leave always has relatedTarget
+  // pointing at whatever real element the cursor moved onto; these phantom
+  // ones consistently arrive with relatedTarget === document.documentElement
+  // (<html>) — a real "moved off-window" leave gives relatedTarget === null,
+  // which this does NOT filter, so that case still closes normally.
+  const onWrapperMouseLeave = (e: React.MouseEvent) => {
+    if (e.relatedTarget === document.documentElement) return;
+    scheduleClose();
+  };
 
   const hasAvatar = Boolean(me.avatar && me.avatar.trim());
 
@@ -76,7 +84,7 @@ export function UserMenu() {
       ref={wrapperRef}
       className="relative"
       onMouseEnter={() => { cancelClose(); setOpen(true); }}
-      onMouseLeave={scheduleClose}
+      onMouseLeave={onWrapperMouseLeave}
     >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
@@ -103,7 +111,7 @@ export function UserMenu() {
           sideOffset={8}
           className="w-56"
           onMouseEnter={cancelClose}
-          onMouseLeave={scheduleClose}
+          onMouseLeave={onWrapperMouseLeave}
         >
           <DropdownMenuItem asChild>
             <Link to={ROUTES.profile} className="flex items-center gap-2">
