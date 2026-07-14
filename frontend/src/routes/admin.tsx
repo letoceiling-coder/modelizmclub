@@ -37,6 +37,7 @@ import {
   type AdminDeliveryStats, type AdminShipmentRow,
 } from "@/lib/api/admin";
 import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
+import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import {
   fetchIconAssets, uploadIconAsset, deleteIconAsset,
   publishIconOverrides, fetchLastPublishedIconOverrides,
@@ -63,7 +64,7 @@ export const Route = createFileRoute("/admin")({
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
   | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings"
-  | "auditLog";
+  | "auditLog" | "applications";
 
 type AdminRole = "admin" | "moderator";
 
@@ -74,6 +75,7 @@ const navItems: { id: Section; label: string; icon: typeof Users; roles: AdminRo
   { id: "ads", label: "Объявления", icon: Megaphone, roles: ["admin"] },
   { id: "delivery", label: "Доставки", icon: Truck, roles: ["admin"] },
   { id: "moderation", label: "Модерация", icon: ShieldCheck, roles: ["admin", "moderator"] },
+  { id: "applications", label: "Заявки", icon: Inbox, roles: ["admin"] },
   { id: "monetization", label: "Монетизация", icon: DollarSign, roles: ["admin"] },
   { id: "categories", label: "Категории", icon: FolderTree, roles: ["admin"] },
   { id: "reviews", label: "Обзоры", icon: Clapperboard, roles: ["admin"] },
@@ -368,6 +370,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "ads") return <AdsSection />;
   if (section === "delivery") return <DeliverySection />;
   if (section === "moderation") return <ModerationSection />;
+  if (section === "applications") return <ApplicationsSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "categories") return <CategoriesSection />;
   if (section === "reviews") return <ReviewsSection />;
@@ -3080,6 +3083,113 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function ApplicationsSection() {
+  const [status, setStatus] = useState<RequestStatus>("pending");
+  const [items, setItems] = useState<EntityRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchEntityRequests(status)
+      .then((list) => { if (alive) setItems(list); })
+      .catch(() => { if (alive) setItems([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [status]);
+
+  const decide = async (r: EntityRequest, approve: boolean) => {
+    setItems((cur) => cur.filter((x) => x.id !== r.id)); // optimistic
+    try {
+      if (approve) await approveEntityRequest(r.kind, r.id);
+      else await rejectEntityRequest(r.kind, r.id);
+    } catch {
+      // на реальном бэке при ошибке перезагрузим список
+      fetchEntityRequests(status).then(setItems).catch(() => {});
+    }
+  };
+
+  const STATUSES: { id: RequestStatus; label: string }[] = [
+    { id: "pending", label: "Новые" },
+    { id: "approved", label: "Одобрены" },
+    { id: "rejected", label: "Отклонены" },
+  ];
+
+  const KIND_LABEL: Record<EntityKind, string> = { channel: "Канал", community: "Сообщество" };
+
+  return (
+    <div>
+      <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "18px", color: "var(--foreground)", marginBottom: "12px" }}>
+        Заявки на создание
+      </h3>
+
+      <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
+        {STATUSES.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setStatus(s.id)}
+            style={{
+              padding: "7px 14px", borderRadius: "9px", fontSize: "13px", fontWeight: 600,
+              background: status === s.id ? "var(--accent-soft)" : "var(--background-surface)",
+              color: status === s.id ? "var(--accent)" : "var(--foreground-70)",
+              border: `1px solid ${status === s.id ? "var(--border-accent)" : "var(--border)"}`,
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ color: "var(--foreground-50)", fontSize: "13px" }}>Загрузка…</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px", border: "1px solid var(--border)", borderRadius: "12px" }}>
+          Заявок нет
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {items.map((r) => (
+            <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: "12px", padding: "16px", background: "var(--background-elevated)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: "var(--accent-soft)", color: "var(--accent)" }}>
+                  {KIND_LABEL[r.kind]}
+                </span>
+                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--foreground)" }}>{r.proposedName}</span>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--foreground-70)", marginBottom: "8px" }}>
+                <Link to="/user/$id" params={{ id: r.applicant.slug ?? r.applicant.id }} style={{ color: "var(--accent)" }}>
+                  {r.applicant.name}
+                </Link>
+                {" · "}{r.category}{" · "}{new Date(r.createdAt).toLocaleDateString("ru-RU")}
+              </div>
+              {r.description && (
+                <p style={{ fontSize: "13px", color: "var(--foreground-70)", marginBottom: "12px" }}>{r.description}</p>
+              )}
+              {status === "pending" && (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button" onClick={() => decide(r, true)}
+                    style={{ flex: 1, height: "38px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, background: "var(--accent)", color: "var(--accent-foreground)", border: "none" }}
+                  >
+                    Одобрить
+                  </button>
+                  <button
+                    type="button" onClick={() => decide(r, false)}
+                    style={{ flex: 1, height: "38px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
+                  >
+                    Отклонить
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
