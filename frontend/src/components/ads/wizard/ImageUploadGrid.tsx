@@ -25,7 +25,9 @@ function PreviewTile({
   src,
   index,
   count,
-  dragging,
+  lifted,
+  dragDx,
+  dragDy,
   dropTarget,
   onRemove,
   onMakeMain,
@@ -36,7 +38,11 @@ function PreviewTile({
   src: string;
   index: number;
   count: number;
-  dragging: boolean;
+  /** This tile is the one being carried, and the pointer has moved past the
+   *  lift threshold — render it following the pointer, lifted off the grid. */
+  lifted: boolean;
+  dragDx: number;
+  dragDy: number;
   dropTarget: boolean;
   onRemove: (i: number) => void;
   onMakeMain: (i: number) => void;
@@ -62,11 +68,18 @@ function PreviewTile({
         background: "var(--background-surface)",
         border: `2px solid ${dropTarget ? "var(--accent)" : isMain ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
-        opacity: dragging ? 0.4 : 1,
-        transform: dragging ? "scale(1.05)" : "scale(1)",
-        boxShadow: dragging ? "var(--shadow-float)" : "none",
-        zIndex: dragging ? 10 : 1,
-        transition: "transform 150ms ease, opacity 150ms ease, border-color 150ms ease",
+        // The carried tile follows the pointer 1:1 (translate by the raw
+        // pointer delta) — no transition so it tracks the finger without lag,
+        // and pointer-events:none so elementFromPoint sees the tile beneath it
+        // to pick the drop slot. Every other tile keeps a short transform
+        // transition, so on release the carried tile snaps smoothly into its
+        // new slot instead of teleporting.
+        transform: lifted ? `translate(${dragDx}px, ${dragDy}px) scale(1.05)` : "scale(1)",
+        boxShadow: lifted ? "var(--shadow-float)" : "none",
+        opacity: 1,
+        zIndex: lifted ? 50 : 1,
+        pointerEvents: lifted ? "none" : "auto",
+        transition: lifted ? "none" : "transform 160ms ease, border-color 150ms ease, box-shadow 160ms ease",
       }}
     >
       {broken ? (
@@ -153,11 +166,24 @@ function PreviewTile({
   );
 }
 
+// Pointer must travel this far before a press turns into a lift — keeps a
+// plain tap (or a tap on a tile button) from twitching the photo.
+const LIFT_THRESHOLD_PX = 5;
+
+interface DragState {
+  index: number;
+  startX: number;
+  startY: number;
+  dx: number;
+  dy: number;
+  lifted: boolean;
+}
+
 export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onReorder, autoOpen }: Props) {
   const full = photos.length >= max;
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
-  const draggingRef = useRef(false);
+  const dragRef = useRef<DragState | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -182,21 +208,32 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
 
   // Drag is driven from the grid level (not per-tile) via native Pointer
   // Events — works identically for touch and mouse, and doesn't depend on
-  // any gesture library's single-axis assumptions, which is what broke
-  // touch dragging in a wrapping (multi-row) grid before. The dragged tile
-  // itself isn't moved in the DOM during drag; instead every pointermove
-  // hit-tests which tile the pointer is currently over (via
-  // elementFromPoint + the tile's data-tile-index) and highlights it as the
-  // drop target, then the swap commits on release.
+  // any gesture library's single-axis assumptions, which is what broke touch
+  // dragging in a wrapping (multi-row) grid before. Once the pointer passes
+  // the lift threshold the carried tile follows the finger (translate by the
+  // raw pointer delta, pointer-events:none so it doesn't shadow the tile
+  // beneath); every pointermove hit-tests which tile is under the pointer
+  // (elementFromPoint + data-tile-index) to highlight the drop slot, and the
+  // swap commits on release.
   const onTilePointerDown = (index: number, e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    draggingRef.current = true;
-    setDragIndex(index);
+    const state: DragState = { index, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, lifted: false };
+    dragRef.current = state;
+    setDrag(state);
     setOverIndex(index);
   };
 
   const onGridPointerMove = (e: React.PointerEvent) => {
-    if (!draggingRef.current) return;
+    const cur = dragRef.current;
+    if (!cur) return;
+    const dx = e.clientX - cur.startX;
+    const dy = e.clientY - cur.startY;
+    const lifted = cur.lifted || Math.hypot(dx, dy) > LIFT_THRESHOLD_PX;
+    const next: DragState = { ...cur, dx, dy, lifted };
+    dragRef.current = next;
+    setDrag(next);
+
+    if (!lifted) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const tileEl = el?.closest<HTMLElement>("[data-tile-index]");
     if (!tileEl) return;
@@ -205,11 +242,12 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
   };
 
   const endDrag = () => {
-    if (draggingRef.current && dragIndex !== null && overIndex !== null) {
-      moveTo(dragIndex, overIndex);
+    const cur = dragRef.current;
+    if (cur && cur.lifted && overIndex !== null) {
+      moveTo(cur.index, overIndex);
     }
-    draggingRef.current = false;
-    setDragIndex(null);
+    dragRef.current = null;
+    setDrag(null);
     setOverIndex(null);
   };
 
@@ -248,21 +286,26 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
           >
-            {photos.map((src, i) => (
-              <PreviewTile
-                key={src}
-                src={src}
-                index={i}
-                count={photos.length}
-                dragging={dragIndex === i}
-                dropTarget={overIndex === i && dragIndex !== null && dragIndex !== i}
-                onRemove={onRemove}
-                onMakeMain={onMakeMain}
-                onMoveLeft={(idx) => moveTo(idx, idx - 1)}
-                onMoveRight={(idx) => moveTo(idx, idx + 1)}
-                onPointerDownDrag={onTilePointerDown}
-              />
-            ))}
+            {photos.map((src, i) => {
+              const isDragged = drag?.index === i;
+              return (
+                <PreviewTile
+                  key={src}
+                  src={src}
+                  index={i}
+                  count={photos.length}
+                  lifted={Boolean(isDragged && drag?.lifted)}
+                  dragDx={isDragged ? drag!.dx : 0}
+                  dragDy={isDragged ? drag!.dy : 0}
+                  dropTarget={overIndex === i && drag !== null && drag.lifted && drag.index !== i}
+                  onRemove={onRemove}
+                  onMakeMain={onMakeMain}
+                  onMoveLeft={(idx) => moveTo(idx, idx - 1)}
+                  onMoveRight={(idx) => moveTo(idx, idx + 1)}
+                  onPointerDownDrag={onTilePointerDown}
+                />
+              );
+            })}
           </div>
           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
             {photos.length} из {max}. Перетащите фото или используйте стрелки, чтобы изменить порядок. Первое — главное в карточке.
