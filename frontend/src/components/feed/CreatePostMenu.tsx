@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -59,6 +59,36 @@ export function CreatePostMenu({ onSelect }: Props) {
     </button>
   );
 
+  // Mobile gets the same full-width block treatment as the "Найди своих" row
+  // right below it, instead of a small pill floating on its own — matches
+  // that row's icon-circle + title/subtitle + chevron layout.
+  const mobileTriggerButton = (
+    <button
+      type="button"
+      className="flex w-full items-center gap-[12px] rounded-[var(--r-card)] border px-[14px] py-[12px] text-left transition-colors hover:bg-[var(--background-surface)]"
+      style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+    >
+      <span
+        className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px]"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
+        <Plus className="h-[18px] w-[18px]" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className="block text-[14px] font-semibold"
+          style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
+        >
+          Создать
+        </span>
+        <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          Пост или видео{myChannel ? " — от профиля или канала" : ""}
+        </span>
+      </span>
+      <ChevronDown className="h-[16px] w-[16px] -rotate-90 shrink-0" style={{ color: "var(--foreground-50)" }} />
+    </button>
+  );
+
   return (
     <>
       {/* Desktop */}
@@ -99,7 +129,7 @@ export function CreatePostMenu({ onSelect }: Props) {
       {/* Mobile */}
       <div className="lg:hidden">
         <Drawer open={mobileOpen} onOpenChange={setMobileOpen} shouldScaleBackground={false}>
-          <DrawerTrigger asChild>{triggerButton}</DrawerTrigger>
+          <DrawerTrigger asChild>{mobileTriggerButton}</DrawerTrigger>
           <DrawerContent className="pb-[calc(var(--safe-bottom)+12px)]">
             <div className="px-4 pt-3">
               <DrawerTitle className="text-base">Создать</DrawerTitle>
