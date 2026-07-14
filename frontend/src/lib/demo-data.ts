@@ -666,3 +666,33 @@ export function demoSetVideoFeatured(id: ID, on: boolean): void {
   const v = [...sessionVideos, ...mockVideos].find((x) => x.id === id);
   if (v) v.isFeatured = on;
 }
+
+// ---- Entity creation requests (Channel / Community) — demo ----
+import type { EntityRequest, RequestStatus, CommunityCategoryOption } from "@/lib/api/entity-requests";
+
+let demoRequestsList: EntityRequest[] = [
+  { id: "req-1", kind: "community", proposedName: "RC-моделисты Краснодара", description: "Хотим отдельное сообщество по нашему городу, чтобы не засорять общий чат Автомоделей.", category: "Автомодели", status: "pending", createdAt: "2026-07-13T10:00:00Z", applicant: { id: "u2", name: "Сергей ДВС", slug: "u2" } },
+  { id: "req-2", kind: "channel", proposedName: "Мастерская стендовых моделей", description: "Канал про сборку и покраску стендовых моделей.", category: "Стендовые модели", status: "pending", createdAt: "2026-07-13T12:30:00Z", applicant: { id: "u3", name: "Андрей Самолёты", slug: "u3" } },
+];
+
+export function demoEntityRequests(status?: RequestStatus): EntityRequest[] {
+  return status ? demoRequestsList.filter((r) => r.status === status) : demoRequestsList;
+}
+
+export function demoMyEntityRequests(): EntityRequest[] {
+  return [];
+}
+
+export function demoDecideEntityRequest(id: string): void {
+  demoRequestsList = demoRequestsList.filter((r) => r.id !== id);
+}
+
+export function demoCommunityCategories(): CommunityCategoryOption[] {
+  return [
+    { id: 1, name: "Автомодели", slug: "avtomodeli" },
+    { id: 2, name: "Самолёты", slug: "samolyoty" },
+    { id: 3, name: "Стендовые модели", slug: "stendovye-modeli" },
+    { id: 4, name: "Квадрокоптеры", slug: "kvadrokoptery" },
+    { id: 5, name: "Корабли", slug: "korabli" },
+  ];
+}

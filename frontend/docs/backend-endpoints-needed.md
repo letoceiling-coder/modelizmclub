@@ -1486,3 +1486,54 @@ neutral | foreground-70` (источник — `frontend/src/styles.css` `:root`
 Фронт работает целиком на дефолтных lucide-иконках (fallback гарантирован):
 `GET /icon-overrides` отсутствует/`{}` → каждый слот рендерит свою
 `defaultLucide`. Ничего не пропадает и не ломается.
+
+---
+
+## 27. Заявки на создание Канала / Сообщества (frontend готов, бэкенд нужен)
+
+Фронт (форма заявки, CTA «Хочу свой», настройки, admin-обзор «Заявки»)
+реализован demo-first. Реальный режим включится сам при готовом бэке.
+Аудит: `docs/communities-channels-ownership-audit.md`.
+
+### 🔴 CRITICAL — approve → создать сущность → назначить владельца
+Без этого фича не работает даже при готовом фронте.
+
+- **Сообщество:** одобрение `CommunityApplication` должно СОЗДАВАТЬ `Community`
+  (`created_by = applicant`, `status = active`, `slug = CommunityService::uniqueSlug(name)`)
+  и attach заявителя ВЛАДЕЛЬЦЕМ в `community_members`. Для этого добавить
+  значение `owner` в enum `App\Enums\CommunityMemberRole` (сейчас только
+  `member`/`moderator`). Текущий `ModerationService::approve` для `Community`
+  лишь флипает `status` существующей записи и никого не назначает — разрыв.
+- **Канал:** одобрение должно СОЗДАВАТЬ `Channel` с `owner_id = applicant`.
+
+### 🔴 CRITICAL — admin-стек обзора заявок
+- **Сообщество:** `GET /admin/communities/applications?status=` (список),
+  `POST /admin/communities/applications/{id}/approve`,
+  `POST /admin/communities/applications/{id}/reject` (пишет
+  `moderator_comment`, `reviewed_by`, `reviewed_at` — поля модели уже есть).
+  Сейчас `community_applications` пишется через `POST /communities/apply`, но
+  **никто не читает** (нет роута/контроллера).
+- **Канал:** весь стек новый — таблица+модель `channel_applications` (по
+  образцу `community_applications`), `POST /channels/apply` (+guard «уже
+  pending»), `GET /admin/channels/applications`,
+  `POST /admin/channels/applications/{id}/{approve|reject}`.
+
+### Контракт ответа для фронта (все list-эндпоинты)
+`GET .../applications` и `GET /me/entity-requests` должны вернуть
+`{ data: EntityRequest[] }`, где `EntityRequest`:
+`{ id: string, kind: "channel"|"community", proposedName, description|null,
+category (имя категории строкой), status: "pending"|"approved"|"rejected",
+createdAt (ISO), applicant: { id, name, slug? } }`.
+
+### 🟡 Прочее
+- Подключить `applyCommunity` фронта к **существующему** `POST /communities/apply`
+  (guard «уже pending» бэк уже отдаёт `422` с ключом `application`).
+- `GET /me/entity-requests` — свои заявки со статусом (для «на рассмотрении»);
+  может агрегировать community+channel.
+- «Мои сообщества, где я владелец» — для «Моё сообщество» в настройках и для
+  скрытия CTA у владельца (сейчас владение сообществом на фронте неопределимо:
+  роли owner нет, `created_by` не отдаётся в `CommunityResource`).
+
+### 🟢 Уже существует
+- `GET /categories/communities` (`CommunityCategoryTreeController`) — для пикера
+  категорий в форме сообщества; нужен только фронт-фетч (сделан в §A фронта).
