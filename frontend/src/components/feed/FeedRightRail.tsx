@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, Hash } from "lucide-react";
-import * as Icons from "lucide-react";
+import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown } from "lucide-react";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { onlineFor } from "@/lib/category-online";
+import { CategoryIcon } from "@/components/ui/Icon";
 
 const COLLAPSE_KEY = "modelizm:feedrail:collapsed";
-
-function CategoryIcon({ name, className }: { name: string; className?: string }) {
-  const Icon =
-    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] ??
-    Hash;
-  return <Icon className={className} />;
-}
 
 function RailCard({ children }: { children: React.ReactNode }) {
   return (
@@ -136,7 +129,7 @@ export function FeedRightRail() {
                         className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
                         style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                       >
-                        <CategoryIcon name={c.icon} className="h-[14px] w-[14px]" />
+                        <CategoryIcon categoryId={c.id} name={c.icon} className="h-[14px] w-[14px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
