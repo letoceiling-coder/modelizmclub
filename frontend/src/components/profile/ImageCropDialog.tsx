@@ -129,7 +129,19 @@ export function ImageCropDialog({ file, aspect, outputWidth, outputHeight, title
             alt=""
             draggable={false}
             className="pointer-events-none absolute left-0 top-0"
-            style={{ width: displayedW, height: displayedH, transform: `translate(${offset.x}px, ${offset.y}px)` }}
+            // maxWidth/maxHeight: none override Tailwind Preflight's global
+            // `img { max-width: 100%; height: auto }` reset. That rule clamps
+            // the rendered width to the 320px viewport regardless of the
+            // (correct, proportional) inline width computed below — height
+            // stays uncapped since inline height wins the same-property
+            // cascade — so at any zoom that pushes displayedW past the
+            // viewport, the box shrinks in width but not height and the
+            // browser's default object-fit:fill stretches the pixels to
+            // match, visibly distorting the photo as the slider moves.
+            style={{
+              width: displayedW, height: displayedH, maxWidth: "none", maxHeight: "none",
+              transform: `translate(${offset.x}px, ${offset.y}px)`,
+            }}
           />
         </div>
         <div className="flex items-center gap-3 px-1">
