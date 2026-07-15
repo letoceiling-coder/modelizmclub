@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getState, selectors } from "@/lib/store";
 import { ensureSession } from "@/lib/auth/session";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/reviews/upload")({
   head: () => ({ meta: [{ title: "Загрузить обзор — МоДелизМ" }] }),
@@ -73,7 +74,7 @@ function UploadPage() {
         description: description.trim(),
         categoryId,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-        posterMediaId: posterMedia?.uuid ?? "",
+        posterMediaId: posterMedia?.uuid,
         videoMediaId: videoMedia.uuid,
         posterUrl: posterUrl ?? "",
         videoUrl: videoUrl ?? videoMedia.url ?? "",
@@ -81,8 +82,11 @@ function UploadPage() {
       });
       toast.success("Обзор опубликован");
       void navigate({ to: "/reviews" });
-    } catch {
-      toast.error("Не удалось опубликовать обзор");
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? err.message || "Не удалось опубликовать обзор"
+        : "Не удалось опубликовать обзор";
+      toast.error(msg);
       setSubmitting(false);
     }
   };

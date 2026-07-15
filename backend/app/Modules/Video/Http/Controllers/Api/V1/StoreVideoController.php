@@ -17,7 +17,7 @@ class StoreVideoController extends Controller
             'description' => ['nullable', 'string'],
             'category_id' => ['required', 'string'],
             'tags' => ['nullable', 'array'],
-            'poster_media_id' => ['required', 'string'],
+            'poster_media_id' => ['nullable', 'string'],
             'video_media_id' => ['required', 'string'],
             'is_featured' => ['nullable', 'boolean'],
         ]);

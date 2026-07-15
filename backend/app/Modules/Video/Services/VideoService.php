@@ -70,7 +70,12 @@ class VideoService
             throw ValidationException::withMessages(['category_id' => ['Категория не найдена.']]);
         }
 
-        $poster = $this->ownedMedia($user, $data['poster_media_id']);
+        $posterId = null;
+        $posterUuid = trim((string) ($data['poster_media_id'] ?? ''));
+        if ($posterUuid !== '') {
+            $posterId = $this->ownedMedia($user, $posterUuid, ['post', 'listing', 'avatar', 'cover'])->id;
+        }
+
         $videoMedia = $this->ownedMedia($user, $data['video_media_id'], ['post', 'post_video', 'review_video']);
 
         $autoPublish = $user->isAdmin();
@@ -79,7 +84,7 @@ class VideoService
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'category_id' => $category->id,
-            'poster_media_id' => $poster->id,
+            'poster_media_id' => $posterId,
             'video_media_id' => $videoMedia->id,
             'tags' => $data['tags'] ?? [],
             'is_featured' => (bool) ($data['is_featured'] ?? false),

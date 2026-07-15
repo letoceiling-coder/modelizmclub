@@ -43,6 +43,50 @@ class VideoUploadModerationTest extends TestCase
             ->assertJsonPath('data.uploads.0.media_uuid', fn ($v) => is_string($v) && $v !== '');
     }
 
+    public function test_admin_can_create_video_without_poster(): void
+    {
+        Storage::fake('s3');
+        config(['filesystems.default' => 's3']);
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $category = VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'Суда',
+            'slug' => 'ships-'.uniqid(),
+            'sort_order' => 1,
+        ]);
+
+        $videoMedia = Media::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'disk' => 's3',
+            'path' => 'review_video/'.$admin->id.'/clip.mp4',
+            'filename' => 'clip.mp4',
+            'mime_type' => 'video/mp4',
+            'size_bytes' => 5_242_880,
+            'uploaded_by' => $admin->id,
+            'purpose' => 'review_video',
+            'status' => MediaStatus::Ready,
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/videos', [
+                'title' => 'Обзор 1',
+                'description' => 'Без обложки',
+                'category_id' => $category->uuid,
+                'video_media_id' => $videoMedia->uuid,
+                'is_featured' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'published');
+
+        $this->assertDatabaseHas('videos', [
+            'title' => 'Обзор 1',
+            'poster_media_id' => null,
+            'status' => 'published',
+        ]);
+    }
+
     public function test_moderator_can_approve_video(): void
     {
         $uploader = User::factory()->create();

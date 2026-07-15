@@ -130,7 +130,7 @@ export interface VideoUploadInput {
   description: string;
   categoryId: string;
   tags: string[];
-  posterMediaId: string;
+  posterMediaId?: string;
   videoMediaId: string;
   posterUrl: string;   // demo: blob URL for immediate preview
   videoUrl: string;    // demo: blob URL for immediate playback
@@ -168,7 +168,7 @@ export async function uploadVideo(input: VideoUploadInput): Promise<Video> {
       description: input.description,
       category_id: input.categoryId,
       tags: input.tags,
-      poster_media_id: input.posterMediaId,
+      ...(input.posterMediaId ? { poster_media_id: input.posterMediaId } : {}),
       video_media_id: input.videoMediaId,
       is_featured: input.isFeatured,
     },
