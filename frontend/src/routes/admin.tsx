@@ -2530,7 +2530,7 @@ const SETTING_META: Record<string, { label: string; hint?: string; hidden?: bool
   moderation_auto_publish: { label: "Автопубликация объявлений", hint: "Публиковать объявления сразу, без ручной модерации" },
 };
 
-const GROUP_LABELS: Record<string, string> = {
+const SETTING_GROUP_LABELS: Record<string, string> = {
   feature: "Функции",
   general: "Общие",
   marketing: "Маркетинг",
@@ -2869,7 +2869,7 @@ function SettingsSection() {
             {groups.map(([group, rows]) => (
               <div key={group}>
                 <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--foreground-50)", marginBottom: "10px" }}>
-                  {GROUP_LABELS[group] ?? group}
+                  {SETTING_GROUP_LABELS[group] ?? group}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {rows.map(renderSetting)}
