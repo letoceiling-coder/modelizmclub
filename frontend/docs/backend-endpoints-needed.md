@@ -3,7 +3,7 @@
 > Автоматически формируется при аудите. Код не менять — фиксировать здесь.
 > Статусы: `Needed` | `Existing` | `Done` | `Frontend-only`
 
-## Сводка для бэкенд-разработчика (обновлено 2026-07-12)
+## Сводка для бэкенд-разработчика (обновлено 2026-07-15)
 
 > **Это единственный документ для передачи бэкенд-разработчику (Игорю).**
 > Весь backend-контракт фронта живёт здесь — отдельных файлов больше нет.
@@ -19,6 +19,15 @@ view-history, seller stats, delete conversation, review_video upload, video mode
 stub + ЮKassa), Stage 5 (буст), Stage 6 (stats/views-daily), разовое размещение 99 ₽
 (`payable_type=listing_placement`), 2FA (`POST /account/2fa/*`), расширение жалоб
 (`video`/`conversation`/`message`), транскрибация (stub-режим `MEDIA_TRANSCRIPTION_STUB`).
+
+**Обновление 2026-07-15:** закрыты §27 (заявки на канал/сообщество: `POST /channels/apply`,
+`GET /me/entity-requests`, admin `GET/approve/reject /admin/{communities|channels}/applications`,
+approve создаёт Community с owner-участником / Channel с `owner_id`; роль `owner` добавлена в
+`CommunityMemberRole`; `is_owner` в `CommunityResource`; фильтр `owned=1` в `GET /communities`)
+и §26 (иконки: `IconAsset` + серверная SVG-санитизация/токенизация, `POST /media purpose=icon`,
+`GET/DELETE /admin/icon-assets`, публичный `GET /icon-overrides`; `PATCH /admin/settings` пишет
+old_values в audit log для отката). Feature-flags: добавлены `market_enabled` и `escrow_enabled`.
+Баг №16 (сброс пароля) исправлен ранее — двойное хеширование в `ResetPasswordController`.
 
 | № | Что | Статус | Где |
 |---|---|---|---|
@@ -45,7 +54,9 @@ stub + ЮKassa), Stage 5 (буст), Stage 6 (stats/views-daily), разовое
 | Область | Статус | Комментарий |
 |---|---|---|
 | Эквайринг ВТБ/ЮKassa на проде | `Infra` | Код готов; на VPS `stub` без env-ключей |
-| Сброс пароля P0 (#16) | `Investigate` | Контракт фронта верный; нужен E2E на сервере |
+| Сброс пароля P0 (#16) | `Done` | Исправлено (двойное хеширование, `f704fb0`); E2E-тест `AuthFlowTest` |
+| Заявки на канал/сообщество (§27, neeklo) | `Done` | 2026-07-15, `EntityRequestsAndIconsTest` |
+| Иконки — SVG upload + overrides (§26, neeklo) | `Done` | 2026-07-15, `EntityRequestsAndIconsTest` |
 | Delivery CDEK/Yandex полный цикл (#21) | `Deferred` | API есть, UI настройки профиля нет |
 | reveal-phone анти-скрапинг (#22) | `Deferred` | `POST /listings/{uuid}/reveal-phone` есть, защита — отдельный проект |
 | Видео CDN/транскодинг (#23) | `Deferred` | MVP: прямой MP4 через `POST /media` |

@@ -26,8 +26,13 @@ class AdminSettingsController extends Controller
     public function update(UpdateSettingsRequest $request, AuditService $audit): JsonResponse
     {
         $updated = [];
+        $oldValues = [];
 
         foreach ($request->validated('settings') as $row) {
+            // Previous value is kept in the audit log so publications like
+            // icon_overrides can be rolled back from /admin (see §26).
+            $oldValues[$row['key']] = SystemSetting::query()->where('key', $row['key'])->first()?->value;
+
             $setting = SystemSetting::query()->updateOrCreate(
                 ['key' => $row['key']],
                 [
@@ -38,7 +43,7 @@ class AdminSettingsController extends Controller
             $updated[] = $setting;
         }
 
-        $audit->log($request->user(), 'admin.settings.update', null, null, ['keys' => collect($updated)->pluck('key')], $request);
+        $audit->log($request->user(), 'admin.settings.update', null, $oldValues, ['keys' => collect($updated)->pluck('key')], $request);
 
         return response()->json(['data' => $updated]);
     }

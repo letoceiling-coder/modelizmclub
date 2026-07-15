@@ -16,6 +16,7 @@ class IndexCommunityController extends Controller
             'category_id' => $request->integer('category_id') ?: null,
             'q' => $request->string('q')->toString() ?: null,
             'official' => $request->has('official') ? $request->boolean('official') : null,
+            'owned' => $request->boolean('owned') ?: null,
             'sort' => $request->string('sort')->toString() ?: null,
         ], min($request->integer('per_page', 20), 50), $request->user('sanctum'));
 

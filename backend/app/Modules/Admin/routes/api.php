@@ -7,6 +7,9 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminAuditLogController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminChannelApplicationsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityApplicationsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIconAssetController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
@@ -41,6 +44,16 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
         Route::get('feedback', [AdminFeedbackController::class, 'index']);
         Route::patch('feedback/{id}', [AdminFeedbackController::class, 'update'])->whereNumber('id');
+
+        // Registered before the communities apiResource below so the literal
+        // "applications" segment wins over the {slug} parameter.
+        Route::get('communities/applications', [AdminCommunityApplicationsController::class, 'index']);
+        Route::post('communities/applications/{id}/approve', [AdminCommunityApplicationsController::class, 'approve'])->whereNumber('id');
+        Route::post('communities/applications/{id}/reject', [AdminCommunityApplicationsController::class, 'reject'])->whereNumber('id');
+
+        Route::get('channels/applications', [AdminChannelApplicationsController::class, 'index']);
+        Route::post('channels/applications/{id}/approve', [AdminChannelApplicationsController::class, 'approve'])->whereNumber('id');
+        Route::post('channels/applications/{id}/reject', [AdminChannelApplicationsController::class, 'reject'])->whereNumber('id');
     });
 
     Route::middleware('role:admin')->group(function (): void {
@@ -71,6 +84,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('notifications', AdminNotificationController::class);
 
         Route::get('audit-logs', AdminAuditLogController::class);
+
+        Route::get('icon-assets', [AdminIconAssetController::class, 'index']);
+        Route::delete('icon-assets/{id}', [AdminIconAssetController::class, 'destroy'])->whereNumber('id');
 
         Route::prefix('delivery')->group(function (): void {
             Route::get('stats', AdminDeliveryStatsController::class);

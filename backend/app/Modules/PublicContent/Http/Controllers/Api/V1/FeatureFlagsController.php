@@ -10,12 +10,27 @@ class FeatureFlagsController extends Controller
 {
     public function __invoke(): JsonResponse
     {
-        $setting = SystemSetting::query()->where('key', 'feature.communities_enabled')->first();
-        $enabled = (bool) ($setting?->value['enabled'] ?? false);
+        $flags = SystemSetting::query()
+            ->whereIn('key', [
+                'feature.communities_enabled',
+                'feature.market_enabled',
+                'feature.escrow_enabled',
+            ])
+            ->get()
+            ->keyBy('key');
+
+        $enabled = fn (string $key): bool => (bool) ($flags->get($key)?->value['enabled'] ?? false);
 
         return response()->json([
             'data' => [
-                'communities_enabled' => $enabled,
+                'communities_enabled' => $enabled('feature.communities_enabled'),
+                // Traffic is meant to go to listings, not be split across an
+                // external marketplace link — off by default, toggleable from
+                // /admin without a frontend deploy.
+                'market_enabled' => $enabled('feature.market_enabled'),
+                // «Безопасная сделка» badge on listings — only honest once
+                // YooKassa escrow is actually wired up; off by default.
+                'escrow_enabled' => $enabled('feature.escrow_enabled'),
             ],
         ]);
     }

@@ -29,7 +29,8 @@ class CommunityService
                         ->orWhere('description', 'ilike', "%{$term}%");
                 });
             })
-            ->when(isset($filters['official']), fn ($q) => $q->where('is_official', (bool) $filters['official']));
+            ->when(isset($filters['official']), fn ($q) => $q->where('is_official', (bool) $filters['official']))
+            ->when(($filters['owned'] ?? false) && $viewer, fn ($q) => $q->where('created_by', $viewer->id));
 
         // Варианты сортировки: popular (участники), newest, name; по умолчанию — официальные и крупные вперёд.
         match ($filters['sort'] ?? null) {
@@ -104,6 +105,64 @@ class CommunityService
             'category_id' => $categoryId,
             'status' => CommunityApplicationStatus::Pending,
         ]);
+    }
+
+    /**
+     * Approve a pending application: create the Community, make the applicant
+     * its owner, and mark the application as reviewed.
+     */
+    public function approveApplication(CommunityApplication $application, User $reviewer): Community
+    {
+        $this->assertPendingApplication($application);
+
+        return DB::transaction(function () use ($application, $reviewer): Community {
+            $community = Community::create([
+                'category_id' => $application->category_id,
+                'name' => $application->proposed_name,
+                'slug' => self::uniqueSlug($application->proposed_name),
+                'description' => $application->description,
+                'status' => CommunityStatus::Active,
+                'created_by' => $application->user_id,
+                'approved_at' => now(),
+                'members_count' => 1,
+            ]);
+
+            $community->members()->attach($application->user_id, [
+                'role' => CommunityMemberRole::Owner->value,
+                'joined_at' => now(),
+            ]);
+
+            $application->update([
+                'status' => CommunityApplicationStatus::Approved,
+                'reviewed_by' => $reviewer->id,
+                'reviewed_at' => now(),
+            ]);
+
+            return $community;
+        });
+    }
+
+    public function rejectApplication(CommunityApplication $application, User $reviewer, ?string $reason = null): CommunityApplication
+    {
+        $this->assertPendingApplication($application);
+
+        $application->update([
+            'status' => CommunityApplicationStatus::Rejected,
+            'moderator_comment' => $reason,
+            'reviewed_by' => $reviewer->id,
+            'reviewed_at' => now(),
+        ]);
+
+        return $application->fresh();
+    }
+
+    private function assertPendingApplication(CommunityApplication $application): void
+    {
+        if ($application->status !== CommunityApplicationStatus::Pending) {
+            throw ValidationException::withMessages([
+                'application' => ['Заявка уже рассмотрена.'],
+            ]);
+        }
     }
 
     public function join(User $user, Community $community): void
