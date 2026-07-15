@@ -60,7 +60,7 @@ class VideoUploadModerationTest extends TestCase
         $videoMedia = Media::query()->create([
             'uuid' => (string) Str::uuid(),
             'disk' => 's3',
-            'path' => 'review_video/'.$admin->id.'/clip.mp4',
+            'path' => 'media/review_video/2026/07/clip.mp4',
             'filename' => 'clip.mp4',
             'mime_type' => 'video/mp4',
             'size_bytes' => 5_242_880,
