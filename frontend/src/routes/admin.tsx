@@ -40,8 +40,9 @@ import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import {
   fetchIconAssets, uploadIconAsset, deleteIconAsset,
+  fetchIconMedia, registerIconFromMedia, assetToOverride,
   publishIconOverrides, fetchLastPublishedIconOverrides,
-  type IconAsset, type IconOverrideMap,
+  type IconAsset, type IconOverrideMap, type IconMediaItem,
 } from "@/lib/api/icons";
 import {
   getMergedMap, setDraftOverride, resetDraft, applyPublishedMap,
@@ -521,10 +522,13 @@ interface SlotOption { key: string; label: string; group: string; }
 function IconsPanel() {
   const categories = usePostCategories();
   const [assets, setAssets] = useState<IconAsset[]>([]);
+  const [mediaItems, setMediaItems] = useState<IconMediaItem[]>([]);
+  const [showMedia, setShowMedia] = useState(false);
   const [slotKey, setSlotKey] = useState<string>(ICON_SLOTS[0]?.key ?? "");
   const [assetId, setAssetId] = useState<string>("");           // "" = по умолчанию (lucide)
   const [token, setToken] = useState<TokenKey>("foreground");
   const [uploading, setUploading] = useState(false);
+  const [registeringMedia, setRegisteringMedia] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [canRollback, setCanRollback] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -577,6 +581,44 @@ function IconsPanel() {
     }
   }
 
+  async function loadMediaLibrary() {
+    try {
+      const items = await fetchIconMedia({ unregistered: true });
+      setMediaItems(items);
+      setShowMedia(true);
+    } catch {
+      toast.error("Не удалось загрузить медиа");
+    }
+  }
+
+  async function onRegisterFromMedia(item: IconMediaItem) {
+    setRegisteringMedia(item.uuid);
+    try {
+      const asset = await registerIconFromMedia(item.uuid);
+      setAssets((prev) => [asset, ...prev]);
+      setAssetId(asset.id);
+      setMediaItems((prev) => prev.filter((m) => m.uuid !== item.uuid));
+      toast.success("Иконка добавлена из медиа");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось добавить из медиа");
+    } finally {
+      setRegisteringMedia(null);
+    }
+  }
+
+  function renderAssetThumb(a: IconAsset) {
+    if (a.format === "png" && a.url) {
+      return <img src={a.url} alt="" aria-hidden style={{ width: 22, height: 22, objectFit: "contain" }} />;
+    }
+    if (a.svg && isSafeSvgMarkup(a.svg)) {
+      return (
+        <span aria-hidden style={{ width: 22, height: 22, display: "inline-flex" }}
+          dangerouslySetInnerHTML={{ __html: a.svg }} />
+      );
+    }
+    return null;
+  }
+
   async function onDeleteAsset(id: string) {
     try {
       await deleteIconAsset(id);
@@ -596,7 +638,7 @@ function IconsPanel() {
     }
     const asset = assets.find((a) => a.id === assetId);
     if (!asset) return;
-    setDraftOverride(slotKey, { assetId: asset.id, svg: asset.svg, token });
+    setDraftOverride(slotKey, assetToOverride(asset, token));
     toast("Применено в превью — опубликуйте, чтобы увидели все");
   }
 
@@ -635,7 +677,8 @@ function IconsPanel() {
         Иконки
       </h4>
       <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 16 }}>
-        Загрузите монохромный SVG, назначьте на место в интерфейсе и выберите цвет из палитры токенов.
+        Загрузите SVG (монохромный) или PNG, либо добавьте файл из медиаменеджера (назначение icon).
+        Назначьте на место в интерфейсе и выберите цвет из палитры токенов (для PNG цвет не перекрашивается).
         Превью применяется только у вас; «Опубликовать» — для всех пользователей.
       </p>
 
@@ -652,8 +695,7 @@ function IconsPanel() {
               }}
               onClick={() => setAssetId(a.id)}
             >
-              <span aria-hidden style={{ width: 22, height: 22, display: "inline-flex" }}
-                dangerouslySetInnerHTML={{ __html: isSafeSvgMarkup(a.svg) ? a.svg : "" }} />
+              {renderAssetThumb(a)}
               <button type="button" aria-label="Удалить" onClick={(e) => { e.stopPropagation(); void onDeleteAsset(a.id); }}
                 style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: 6,
                   background: "var(--background-surface)", color: "var(--foreground-50)", fontSize: 12, lineHeight: "16px" }}>
@@ -664,11 +706,47 @@ function IconsPanel() {
           <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()}
             style={{ aspectRatio: "1", border: "1px dashed var(--border)", borderRadius: 10,
               color: "var(--foreground-50)", fontSize: 12, opacity: uploading ? 0.6 : 1 }}>
-            {uploading ? "…" : "+ SVG"}
+            {uploading ? "…" : "+ SVG/PNG"}
           </button>
+          {!isDemoMode() && (
+            <button type="button" onClick={() => void loadMediaLibrary()}
+              style={{ aspectRatio: "1", border: "1px dashed var(--border)", borderRadius: 10,
+                color: "var(--foreground-50)", fontSize: 11, padding: 4 }}>
+              Из медиа
+            </button>
+          )}
         </div>
-        <input ref={fileRef} type="file" accept="image/svg+xml,.svg" hidden
+        <input ref={fileRef} type="file" accept="image/svg+xml,.svg,image/png,.png" hidden
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onUpload(f); }} />
+        {showMedia && (
+          <div style={{ marginTop: 12, padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--background-surface)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)" }}>Медиаменеджер (icon)</span>
+              <button type="button" onClick={() => setShowMedia(false)} style={{ fontSize: 12, color: "var(--foreground-50)" }}>Скрыть</button>
+            </div>
+            {mediaItems.length === 0 ? (
+              <p style={{ fontSize: 12, color: "var(--foreground-50)", margin: 0 }}>
+                Нет незарегистрированных файлов. Загрузите PNG/SVG в медиаменеджер с назначением icon.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 8 }}>
+                {mediaItems.map((m) => (
+                  <div key={m.uuid} style={{ textAlign: "center" }}>
+                    {m.mimeType === "image/png"
+                      ? <img src={m.url} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />
+                      : <img src={m.url} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />}
+                    <button type="button" disabled={registeringMedia === m.uuid}
+                      onClick={() => void onRegisterFromMedia(m)}
+                      style={{ display: "block", width: "100%", marginTop: 4, fontSize: 11, padding: "4px 0",
+                        borderRadius: 6, border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
+                      {registeringMedia === m.uuid ? "…" : "Добавить"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Назначение */}

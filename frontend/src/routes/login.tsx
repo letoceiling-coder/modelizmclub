@@ -1,21 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { login } from "@/lib/api/auth";
+import { login, completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { resetSessionCache } from "@/lib/auth/session";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Вход — МоДелизМ" }] }),
-  validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({
+  validateSearch: (s: Record<string, unknown>) => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
+    oauth_token: typeof s.oauth_token === "string" ? s.oauth_token : undefined,
+    oauth_error: typeof s.oauth_error === "string" ? s.oauth_error : undefined,
+    oauth_provider: typeof s.oauth_provider === "string" ? s.oauth_provider : undefined,
   }),
   component: LoginPage,
 });
@@ -23,9 +27,36 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const { redirect: redirectTo } = Route.useSearch();
+  const { redirect: redirectTo, oauth_token, oauth_error } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
+
+  useEffect(() => {
+    if (oauth_error) {
+      toast.error(oauth_error === "auth_failed" ? "OAuth: не удалось войти" : `OAuth: ${oauth_error}`);
+      nav({ to: "/login", search: { redirect: redirectTo }, replace: true });
+      return;
+    }
+    if (!oauth_token) return;
+    let alive = true;
+    setLoading(true);
+    void completeOAuthLogin(oauth_token)
+      .then((user) => {
+        if (!alive) return;
+        resetSessionCache();
+        setCurrentUser(user);
+        toast.success(t("authPages.loginSuccess"));
+        const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
+        nav({ to: target as "/feed", replace: true });
+      })
+      .catch(() => {
+        if (!alive) return;
+        toast.error("OAuth: не удалось завершить вход");
+        nav({ to: "/login", search: { redirect: redirectTo }, replace: true });
+      })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [oauth_token, oauth_error, nav, redirectTo, t]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -112,6 +143,8 @@ function LoginPage() {
           {loading ? t("common.loading") : t("auth.login")}
         </Button>
       </form>
+      <OAuthDivider />
+      <OAuthButtons />
       <Link
         to="/feed"
         className="mt-[16px] block text-center"

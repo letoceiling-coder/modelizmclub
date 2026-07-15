@@ -81,6 +81,14 @@ export async function login(email: string, password: string, remember = true): P
   return mapApiUser(res.data);
 }
 
+/** Завершение OAuth: токен приходит в query после редиректа с бэкенда. */
+export async function completeOAuthLogin(token: string, remember = true): Promise<User> {
+  setToken(token, remember);
+  const user = await fetchMe();
+  if (!user) throw new ApiError(401, "Не удалось получить профиль после OAuth");
+  return user;
+}
+
 export type RegistrationTrack = "community" | "listing";
 
 // Регистрация создаёт аккаунт со статусом «ожидает подтверждения» и отправляет

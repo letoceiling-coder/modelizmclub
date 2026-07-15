@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "@/lib/toast";
 import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
@@ -191,31 +192,8 @@ function RegisterPage() {
           {loading ? "Создаём…" : "Создать аккаунт"}
         </Button>
       </form>
-      <div className="mt-[24px] flex items-center gap-[12px]" style={{ color: "var(--foreground-50)", fontSize: "var(--fs-xs)" }}>
-        <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        ИЛИ
-        <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-      </div>
-      <div className="mt-[16px] grid grid-cols-2 gap-[8px]">
-        {["VK", "Яндекс"].map((p) => (
-          <button
-            key={p}
-            type="button"
-            style={{
-              background: "var(--background-surface)",
-              border: "1px solid var(--border)",
-              padding: "10px 14px",
-              borderRadius: "var(--r-button)",
-              fontSize: "var(--fs-sm)",
-              color: "var(--foreground)",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
+      <OAuthDivider />
+      <OAuthButtons />
     </AuthShell>
   );
 }

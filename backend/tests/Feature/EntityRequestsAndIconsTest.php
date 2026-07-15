@@ -267,6 +267,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
         $data = $response->json('data');
         $this->assertSame('tank', $data['name']);
+        $this->assertSame('svg', $data['format']);
         $this->assertStringNotContainsString('<script', $data['svg']);
         $this->assertStringNotContainsString('onclick', $data['svg']);
         $this->assertStringNotContainsString('#ff0000', $data['svg']);
@@ -274,6 +275,63 @@ class EntityRequestsAndIconsTest extends TestCase
         $this->assertStringNotContainsString('width="24"', $data['svg']);
 
         $this->assertDatabaseHas('icon_assets', ['id' => (int) $data['id'], 'name' => 'tank']);
+    }
+
+    public function test_admin_can_upload_png_icon(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $headers = $this->authHeaders($admin);
+
+        $response = $this->post('/api/v1/media', [
+            'purpose' => 'icon',
+            'file' => UploadedFile::fake()->image('badge.png', 32, 32),
+        ], array_merge($headers, ['Accept' => 'application/json']))->assertCreated();
+
+        $data = $response->json('data');
+        $this->assertSame('badge', $data['name']);
+        $this->assertSame('png', $data['format']);
+        $this->assertNull($data['svg']);
+        $this->assertNotEmpty($data['url']);
+
+        $this->assertDatabaseHas('icon_assets', [
+            'id' => (int) $data['id'],
+            'name' => 'badge',
+            'format' => 'png',
+        ]);
+        $this->assertDatabaseHas('media', [
+            'id' => IconAsset::query()->find((int) $data['id'])?->media_id,
+            'mime_type' => 'image/png',
+        ]);
+    }
+
+    public function test_admin_can_register_icon_from_media_manager_upload(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $headers = $this->authHeaders($admin);
+
+        $media = \App\Models\Media::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'disk' => config('filesystems.default', 'local'),
+            'path' => 'media/icon/2026/07/test-icon.png',
+            'filename' => 'from-media.png',
+            'mime_type' => 'image/png',
+            'size_bytes' => 1024,
+            'uploaded_by' => $admin->id,
+            'status' => \App\Enums\MediaStatus::Ready,
+        ]);
+        \Illuminate\Support\Facades\Storage::disk($media->disk)->put($media->path, 'png-bytes');
+
+        $this->getJson('/api/v1/admin/icon-media?unregistered=1', $headers)
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $media->uuid);
+
+        $assetResponse = $this->postJson('/api/v1/admin/icon-assets/from-media', [
+            'media_uuid' => $media->uuid,
+        ], $headers)->assertCreated();
+
+        $this->assertSame('from-media', $assetResponse->json('data.name'));
+        $this->assertSame('png', $assetResponse->json('data.format'));
+        $this->assertSame($media->uuid, $assetResponse->json('data.mediaUuid'));
     }
 
     public function test_multicolor_icon_is_rejected(): void

@@ -10,6 +10,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminChannelApplicationsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityApplicationsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIconAssetController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIconMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
@@ -86,7 +87,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('audit-logs', AdminAuditLogController::class);
 
         Route::get('icon-assets', [AdminIconAssetController::class, 'index']);
+        Route::post('icon-assets/from-media', [AdminIconAssetController::class, 'storeFromMedia']);
         Route::delete('icon-assets/{id}', [AdminIconAssetController::class, 'destroy'])->whereNumber('id');
+        Route::get('icon-media', AdminIconMediaController::class);
 
         Route::prefix('delivery')->group(function (): void {
             Route::get('stats', AdminDeliveryStatsController::class);

@@ -3,19 +3,18 @@
 namespace Modules\Media\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\IconAsset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Modules\Media\Services\IconAssetService;
 use Modules\Media\Services\MediaUploadService;
-use Modules\Media\Services\SvgIconSanitizer;
 
 class DirectUploadController extends Controller
 {
     public function __invoke(Request $request, MediaUploadService $uploads): JsonResponse
     {
         if ($request->input('purpose') === 'icon') {
-            return $this->storeIcon($request, app(SvgIconSanitizer::class));
+            return $this->storeIcon($request, app(IconAssetService::class));
         }
 
         $request->validate([
@@ -52,37 +51,30 @@ class DirectUploadController extends Controller
     }
 
     /**
-     * `purpose = icon` — admin-only SVG icon upload: sanitize + tokenize on
-     * the server and return the created IconAsset in the response body
-     * (backend-endpoints-needed.md §26, item 3). No Media row is created.
+     * `purpose = icon` — admin-only icon upload (SVG sanitize + tokenize, or PNG
+     * via Media row). Returns the created IconAsset in the response body.
      */
-    private function storeIcon(Request $request, SvgIconSanitizer $sanitizer): JsonResponse
+    private function storeIcon(Request $request, IconAssetService $icons): JsonResponse
     {
         if (! $request->user()->isAdmin()) {
             return response()->json(['message' => 'Загрузка иконок доступна только администратору.'], 403);
         }
 
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:512'],
+            'file' => ['required', 'file', 'mimes:svg,png', 'max:2048'],
         ]);
 
-        $raw = (string) file_get_contents($validated['file']->getRealPath());
-        $svg = $sanitizer->sanitize($raw);
+        $file = $validated['file'];
+        $mime = $file->getMimeType() ?? $file->getClientMimeType();
+        $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) ?: 'icon';
 
-        $asset = IconAsset::create([
-            'name' => pathinfo($validated['file']->getClientOriginalName(), PATHINFO_FILENAME) ?: 'icon',
-            'svg' => $svg,
-            'source' => 'upload',
-            'uploaded_by' => $request->user()->id,
-        ]);
+        if ($mime === 'image/png') {
+            $asset = $icons->createFromPngUpload($file, $request->user());
+        } else {
+            $raw = (string) file_get_contents($file->getRealPath());
+            $asset = $icons->createFromSvgString($raw, $name, $request->user());
+        }
 
-        return response()->json([
-            'data' => [
-                'id' => (string) $asset->id,
-                'name' => $asset->name,
-                'svg' => $asset->svg,
-                'createdAt' => $asset->created_at?->toIso8601String(),
-            ],
-        ], 201);
+        return response()->json(['data' => $icons->toApiArray($asset)], 201);
     }
 }

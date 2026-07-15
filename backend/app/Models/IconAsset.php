@@ -12,7 +12,9 @@ class IconAsset extends Model
 
     protected $fillable = [
         'name',
+        'format',
         'svg',
+        'media_id',
         'source',
         'uploaded_by',
     ];
@@ -20,5 +22,10 @@ class IconAsset extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function media(): BelongsTo
+    {
+        return $this->belongsTo(Media::class);
     }
 }
