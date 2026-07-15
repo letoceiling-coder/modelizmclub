@@ -61,4 +61,21 @@ return [
         'api_url' => rtrim(env('YOOKASSA_API_URL', 'https://api.yookassa.ru/v3'), '/'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | YooKassa Safe Deal (Безопасная сделка)
+    |--------------------------------------------------------------------------
+    |
+    | @see https://yookassa.ru/developers/solutions-for-platforms/safe-deal/
+    |
+    */
+    'safe_deal' => [
+        'enabled' => env('YOOKASSA_SAFE_DEAL_ENABLED', true),
+        // Platform commission (% of listing price, remainder goes to seller).
+        'platform_fee_percent' => (float) env('YOOKASSA_PLATFORM_FEE_PERCENT', 5),
+        // When the platform fee is collected: deal_closed (recommended for marketplaces).
+        'fee_moment' => env('YOOKASSA_FEE_MOMENT', 'deal_closed'),
+        'return_url' => env('YOOKASSA_ESCROW_RETURN_URL', env('FRONTEND_URL', 'https://modelizmclub.ru').'/ads/{listing_uuid}?escrow=success'),
+    ],
+
 ];

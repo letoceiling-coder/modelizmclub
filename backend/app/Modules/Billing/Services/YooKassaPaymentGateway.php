@@ -2,6 +2,7 @@
 
 namespace Modules\Billing\Services;
 
+use App\Enums\EscrowDealStatus;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -108,6 +109,13 @@ class YooKassaPaymentGateway implements PaymentGateway
 
             if ($payment) {
                 $this->syncSucceeded($providerId);
+
+                if (($payment->fresh()->metadata['payable_type'] ?? null) === 'escrow') {
+                    $escrow = app(EscrowService::class)->findByPaymentProviderId($providerId);
+                    if ($escrow && $escrow->status === EscrowDealStatus::PendingPayment) {
+                        app(EscrowService::class)->markPaid($escrow, $providerId);
+                    }
+                }
             } else {
                 app(CardBindingService::class)->saveFromYooKassaWebhook($object);
             }

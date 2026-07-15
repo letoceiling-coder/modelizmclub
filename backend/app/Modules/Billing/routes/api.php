@@ -1,10 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Billing\Http\Controllers\Api\V1\ConfirmEscrowReceiptController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
+use Modules\Billing\Http\Controllers\Api\V1\CreateEscrowCheckoutController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
+use Modules\Billing\Http\Controllers\Api\V1\ShowEscrowDealController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\SyncPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\VtbWebhookController;
@@ -26,4 +29,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('wallet', WalletBalanceController::class);
     Route::get('wallet/transactions', WalletTransactionsController::class);
+
+    Route::post('listings/{uuid}/escrow/checkout', CreateEscrowCheckoutController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::get('escrow/{uuid}', ShowEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::post('escrow/{uuid}/confirm-receipt', ConfirmEscrowReceiptController::class)->where('uuid', '[0-9a-f-]{36}');
 });

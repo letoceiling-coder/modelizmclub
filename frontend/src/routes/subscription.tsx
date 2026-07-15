@@ -7,9 +7,14 @@ import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
-import { subscriptionEndDate, SUB_DAYS_LEFT } from "@/lib/subscription";
+import { useMySubscription, formatSubscriptionEndDate, invalidateMySubscription } from "@/lib/subscription";
 import { isDemoMode } from "@/lib/demo-mode";
-import { createSubscriptionPayment, confirmStubPayment, fetchMySubscription } from "@/lib/api/payment";
+import {
+  createSubscriptionPayment,
+  createListingPlacementPayment,
+  confirmStubPayment,
+  fetchMySubscription,
+} from "@/lib/api/payment";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
@@ -25,14 +30,11 @@ const fadeInUp: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
 
+// Demo-only free-placements counter (no backend concept behind it) — shown
+// only on demo hosts; production renders real subscription data instead.
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
 
-// Demo subscription state. SUB_DAYS_LEFT is imported from lib/subscription
-// (single source of truth shared with the sidebar end-date).
-// On the real backend this comes from the user's active subscription record.
-const SUB_TOTAL_DAYS = 365;
-const SUB_PLAN_NAME = "Год";
 function daysWord(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
@@ -64,6 +66,7 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }) {
       return;
     }
     await confirmStubPayment(checkout.payment_uuid);
+    invalidateMySubscription();
     const sub = await fetchMySubscription();
     toast.success(
       sub?.is_active ? "Подписка активирована (тестовый режим)" : "Платёж подтверждён (тестовый режим)",
@@ -73,7 +76,35 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }) {
   }
 }
 
+/** One-time 99 ₽ listing placement — real checkout on the production backend. */
+async function startPlacementCheckout() {
+  if (isDemoMode()) {
+    toast("Оплата будет доступна после подключения эквайринга", {
+      description: "Разовое размещение — 99 ₽",
+    });
+    return;
+  }
+  try {
+    const checkout = await createListingPlacementPayment();
+    if (checkout.checkout_url) {
+      window.location.href = checkout.checkout_url;
+      return;
+    }
+    await confirmStubPayment(checkout.payment_uuid);
+    toast.success("Размещение оплачено (тестовый режим) — доступно при создании объявления");
+  } catch {
+    toast.error("Не удалось создать платёж. Попробуйте позже.");
+  }
+}
+
 function SubscriptionPage() {
+  // Real subscription record (API) — demo hosts get the fixed demo state
+  // from lib/subscription. Null = free tier: the countdown card is hidden.
+  const { sub } = useMySubscription();
+  const daysLeft = sub?.days_left ?? 0;
+  const totalDays = sub?.plan?.period_days ?? 365;
+  const planName = sub?.plan?.name ?? "Подписка";
+
   // Provider hosted-page return: config return_url/fail_url send the user
   // back to /subscription?payment=success|failed. Surface the outcome, then
   // strip the param so a refresh doesn't re-toast. Activation itself happens
@@ -135,7 +166,10 @@ function SubscriptionPage() {
           </p>
         </motion.div>
 
-        {/* Active subscription — the single place the countdown lives */}
+        {/* Active subscription — the single place the countdown lives.
+            Rendered only when there IS an active subscription (real API data;
+            demo hosts always have the fixed demo state). */}
+        {sub?.is_active && (
         <motion.div
           initial="hidden"
           animate="visible"
@@ -158,7 +192,7 @@ function SubscriptionPage() {
             <div>
               <div className="flex items-center gap-[8px]">
                 <span style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>
-                  Подписка «{SUB_PLAN_NAME}» активна
+                  Подписка «{planName}» активна
                 </span>
                 <span
                   className="inline-block"
@@ -168,13 +202,13 @@ function SubscriptionPage() {
                 </span>
               </div>
               <div className="mt-[4px]" style={{ fontSize: 13, color: "var(--foreground-50)" }}>
-                Действует до {subscriptionEndDate()}
+                Действует до {formatSubscriptionEndDate(sub)}
               </div>
             </div>
           </div>
           <div className="sm:text-right">
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--foreground)", lineHeight: 1 }}>
-              {SUB_DAYS_LEFT} {daysWord(SUB_DAYS_LEFT)}
+              {daysLeft} {daysWord(daysLeft)}
             </div>
             <div className="mt-[2px]" style={{ fontSize: 12, color: "var(--foreground-50)" }}>
               до окончания
@@ -183,7 +217,7 @@ function SubscriptionPage() {
               <div
                 style={{
                   height: "100%",
-                  width: `${(SUB_DAYS_LEFT / SUB_TOTAL_DAYS) * 100}%`,
+                  width: `${Math.min(100, Math.max(0, (daysLeft / totalDays) * 100))}%`,
                   background: "var(--accent)",
                   borderRadius: 3,
                 }}
@@ -191,8 +225,11 @@ function SubscriptionPage() {
             </div>
           </div>
         </motion.div>
+        )}
 
-        {/* Free counter */}
+        {/* Free counter — demo-only illustration (no backend concept behind
+            it); production hides it so no fake numbers are ever shown */}
+        {isDemoMode() && (
         <div
           className="mt-[16px] flex items-center gap-[14px]"
           style={{
@@ -219,6 +256,7 @@ function SubscriptionPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Plans — one shared feature set. Mobile keeps the narrow single-card
             width (max-w-[420px]); desktop widens to fit PlanTermSelector's
@@ -270,11 +308,7 @@ function SubscriptionPage() {
                 99 ₽
               </div>
               <button
-                onClick={() =>
-                  toast("Оплата будет доступна после подключения эквайринга", {
-                    description: "Разовое размещение — 99 ₽",
-                  })
-                }
+                onClick={() => void startPlacementCheckout()}
                 className="transition-colors"
                 style={{
                   height: 40,

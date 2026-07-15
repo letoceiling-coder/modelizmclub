@@ -31,6 +31,24 @@ class YooKassaClient
     }
 
     /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function createDeal(array $payload, string $idempotenceKey): array
+    {
+        return $this->request('POST', '/deals', $payload, $idempotenceKey);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function createPayout(array $payload, string $idempotenceKey): array
+    {
+        return $this->request('POST', '/payouts', $payload, $idempotenceKey);
+    }
+
+    /**
      * @param  array<string, mixed>|null  $payload
      * @return array<string, mixed>
      */

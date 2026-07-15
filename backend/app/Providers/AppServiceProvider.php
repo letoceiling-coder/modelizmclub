@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbAcquiringClient;
 use Modules\Billing\Clients\YooKassaClient;
 use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Billing\Services\EscrowService;
 use Modules\Billing\Services\PaymentFulfillmentService;
 use Modules\Billing\Services\PaymentGatewayManager;
 use Modules\Billing\Services\PaymentRecorder;
@@ -44,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(YooKassaClient::class);
         $this->app->singleton(VtbPaymentGateway::class);
         $this->app->singleton(YooKassaPaymentGateway::class);
+        $this->app->singleton(EscrowService::class);
         $this->app->singleton(StubPaymentGateway::class);
         $this->app->singleton(PaymentGatewayManager::class);
 

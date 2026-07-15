@@ -7,7 +7,7 @@ import { ROUTES, getActiveSection } from "@/lib/routes";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
-import { subscriptionEndDate } from "@/lib/subscription";
+import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription";
 
 interface Item {
   to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
@@ -40,6 +40,8 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
+  // Real subscription (API; fixed demo state on demo hosts). Null = free tier.
+  const { sub } = useMySubscription();
   const items = ALL_ITEMS.filter(
     (i) =>
       (i.to !== ROUTES.communities || communitiesEnabled) &&
@@ -86,7 +88,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         )}
       </nav>
 
-      {/* Compact subscription status — управление только на /subscription */}
+      {/* Compact subscription status — управление только на /subscription.
+          Real API data: with an active subscription shows the end date; on
+          the free tier links to the plans page instead of faking a state. */}
+      {!isGuest && (
       <Link
         to={ROUTES.subscription}
         className="mt-4 flex items-center gap-[10px] rounded-xl px-3 py-[10px] text-xs transition-colors hover:bg-muted"
@@ -94,10 +99,20 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       >
         <Crown size={16} className="shrink-0" style={{ color: "var(--foreground-50)" }} />
         <span className="min-w-0">
-          <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
-          <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>до {subscriptionEndDate()}</span>
+          {sub?.is_active ? (
+            <>
+              <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
+              <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>до {formatSubscriptionEndDate(sub)}</span>
+            </>
+          ) : (
+            <>
+              <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("nav.subscription", "Подписка")}</span>
+              <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>{t("common.subscriptionCta", "Оформить")}</span>
+            </>
+          )}
         </span>
       </Link>
+      )}
 
       <div className="mt-2">
         <FeedbackDialog />

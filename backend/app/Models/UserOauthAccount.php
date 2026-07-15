@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserOauthAccount extends Model
+class UserOAuthAccount extends Model
 {
+    protected $table = 'user_oauth_accounts';
+
     protected $fillable = [
         'user_id',
         'provider',

@@ -2513,9 +2513,43 @@ function ReviewsSection() {
 }
 
 /* ============ SETTINGS ============ */
+
+/* Human-readable metadata for system settings. The admin NEVER sees or edits
+   raw JSON — every known key gets a labeled toggle/input; unknown keys fall
+   back by value shape (boolean → тумблер, string/number → инпут, plain
+   object → labeled per-field inputs). */
+const SETTING_META: Record<string, { label: string; hint?: string; hidden?: boolean; fieldLabels?: Record<string, string> }> = {
+  "feature.communities_enabled": { label: "Раздел «Сообщества» виден всем", hint: "Показывает/скрывает раздел для всех пользователей" },
+  // Managed by the dedicated cards above — hidden here to avoid duplicates.
+  "feature.market_enabled": { label: "Кнопка «Маркет»", hidden: true },
+  "feature.escrow_enabled": { label: "Бейдж «Безопасная сделка»", hidden: true },
+  // Icon slots are managed visually from the «Дизайн» section.
+  icon_overrides: { label: "Иконки", hidden: true },
+  site_name: { label: "Название сайта", fieldLabels: { ru: "Название (рус.)", en: "Название (англ.)" } },
+  first_hundred_stats: { label: "Счётчик «Первая сотня»", fieldLabels: { taken: "Занято мест", total: "Всего мест" } },
+  moderation_auto_publish: { label: "Автопубликация объявлений", hint: "Публиковать объявления сразу, без ручной модерации" },
+};
+
+const GROUP_LABELS: Record<string, string> = {
+  feature: "Функции",
+  general: "Общие",
+  marketing: "Маркетинг",
+  moderation: "Модерация",
+  design: "Дизайн",
+};
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** {enabled: boolean} (possibly the only key) → treat as a single toggle. */
+function isEnabledShape(v: unknown): v is { enabled: boolean } {
+  return isPlainObject(v) && Object.keys(v).length === 1 && typeof v.enabled === "boolean";
+}
+
 function SettingsSection() {
   const [settings, setSettings] = useState<AdminSetting[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [drafts, setDrafts] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -2523,9 +2557,9 @@ function SettingsSection() {
     fetchAdminSettings()
       .then((rows) => {
         setSettings(rows);
-        const d: Record<string, string> = {};
+        const d: Record<string, unknown> = {};
         for (const s of rows) {
-          d[s.key] = typeof s.value === "string" ? s.value : JSON.stringify(s.value, null, 2);
+          d[s.key] = structuredClone(s.value);
         }
         setDrafts(d);
       })
@@ -2533,26 +2567,28 @@ function SettingsSection() {
       .finally(() => setLoading(false));
   }, []);
 
+  const setDraft = (key: string, value: unknown) => setDrafts((p) => ({ ...p, [key]: value }));
+
+  const setDraftField = (key: string, field: string, value: unknown) =>
+    setDrafts((p) => {
+      const cur = isPlainObject(p[key]) ? { ...(p[key] as Record<string, unknown>) } : {};
+      cur[field] = value;
+      return { ...p, [key]: cur };
+    });
+
   const save = async () => {
-    const next: AdminSetting[] = [];
-    for (const s of settings) {
-      const raw = drafts[s.key] ?? "";
-      let value: unknown = raw;
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        try {
-          value = JSON.parse(trimmed);
-        } catch {
-          toast.error(`Некорректный JSON в «${s.key}»`);
-          return;
-        }
-      }
-      next.push({ key: s.key, value, group: s.group });
-    }
+    const next: AdminSetting[] = settings.map((s) => ({
+      key: s.key,
+      value: drafts[s.key] ?? s.value,
+      group: s.group,
+    }));
     setSaving(true);
     try {
       const updated = await updateAdminSettings(next);
       setSettings(updated);
+      const d: Record<string, unknown> = {};
+      for (const s of updated) d[s.key] = structuredClone(s.value);
+      setDrafts(d);
       toast.success("Настройки сохранены");
     } catch {
       toast.error("Не удалось сохранить настройки");
@@ -2564,12 +2600,140 @@ function SettingsSection() {
   const groups = useMemo(() => {
     const map = new Map<string, AdminSetting[]>();
     for (const s of settings) {
+      if (SETTING_META[s.key]?.hidden) continue;
       const arr = map.get(s.group) ?? [];
       arr.push(s);
       map.set(s.group, arr);
     }
-    return Array.from(map.entries());
+    return Array.from(map.entries()).filter(([, rows]) => rows.length > 0);
   }, [settings]);
+
+  const inputStyle: CSSProperties = {
+    height: "40px",
+    background: "var(--background)",
+    border: "1.5px solid var(--border)",
+    borderRadius: "var(--r-input)",
+    padding: "0 14px",
+    fontSize: "13px",
+    color: "var(--foreground)",
+  };
+
+  /** One field inside an object-valued setting (string/number/boolean). */
+  const renderField = (key: string, field: string, value: unknown) => {
+    const meta = SETTING_META[key];
+    const label = meta?.fieldLabels?.[field] ?? field;
+    if (typeof value === "boolean") {
+      return (
+        <label key={field} className="flex items-center gap-[8px] cursor-pointer" style={{ height: 32 }}>
+          <input
+            type="checkbox"
+            checked={value}
+            onChange={(e) => setDraftField(key, field, e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{label}</span>
+        </label>
+      );
+    }
+    if (typeof value === "number") {
+      return (
+        <label key={field} style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{label}</span>
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => setDraftField(key, field, Number(e.target.value))}
+            className="outline-none"
+            style={{ ...inputStyle, maxWidth: 180 }}
+          />
+        </label>
+      );
+    }
+    if (typeof value === "string") {
+      return (
+        <label key={field} style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{label}</span>
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => setDraftField(key, field, e.target.value)}
+            className="outline-none"
+            style={inputStyle}
+          />
+        </label>
+      );
+    }
+    // Nested structures are system-managed — never expose raw JSON.
+    return (
+      <p key={field} style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
+        «{label}» настраивается системой
+      </p>
+    );
+  };
+
+  /** Full control block for a single setting, chosen by value shape. */
+  const renderSetting = (s: AdminSetting) => {
+    const meta = SETTING_META[s.key];
+    const label = meta?.label ?? s.key;
+    const value = drafts[s.key];
+
+    // Toggle: plain boolean or the {enabled: bool} convention.
+    if (typeof value === "boolean" || isEnabledShape(value)) {
+      const checked = typeof value === "boolean" ? value : value.enabled;
+      return (
+        <div key={s.key} style={{ display: "grid", gap: "4px" }}>
+          <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 32 }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) =>
+                typeof value === "boolean"
+                  ? setDraft(s.key, e.target.checked)
+                  : setDraftField(s.key, "enabled", e.target.checked)
+              }
+              style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+            />
+            <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{label}</span>
+          </label>
+          {meta?.hint && <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginLeft: 26 }}>{meta.hint}</p>}
+        </div>
+      );
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      return (
+        <label key={s.key} style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{label}</span>
+          <input
+            type={typeof value === "number" ? "number" : "text"}
+            value={value}
+            onChange={(e) => setDraft(s.key, typeof value === "number" ? Number(e.target.value) : e.target.value)}
+            className="outline-none"
+            style={{ ...inputStyle, maxWidth: typeof value === "number" ? 180 : undefined }}
+          />
+        </label>
+      );
+    }
+
+    if (isPlainObject(value)) {
+      return (
+        <div key={s.key} style={{ display: "grid", gap: "10px" }}>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)" }}>{label}</span>
+          {meta?.hint && <p style={{ fontSize: "12px", color: "var(--foreground-50)" }}>{meta.hint}</p>}
+          <div style={{ display: "grid", gap: "10px", paddingLeft: 2 }}>
+            {Object.entries(value).map(([field, v]) => renderField(s.key, field, v))}
+          </div>
+        </div>
+      );
+    }
+
+    // Arrays / null / anything exotic — system-managed, no raw JSON editing.
+    return (
+      <p key={s.key} style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
+        «{label}» настраивается системой
+      </p>
+    );
+  };
 
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
@@ -2701,55 +2865,14 @@ function SettingsSection() {
         ) : settings.length === 0 ? (
           <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Настроек пока нет</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {groups.map(([group, rows]) => (
               <div key={group}>
                 <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--foreground-50)", marginBottom: "10px" }}>
-                  {group}
+                  {GROUP_LABELS[group] ?? group}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  {rows.map((s) => {
-                    const multiline = (drafts[s.key] ?? "").includes("\n");
-                    return (
-                      <label key={s.key} style={{ display: "grid", gap: "6px" }}>
-                        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{s.key}</span>
-                        {multiline ? (
-                          <textarea
-                            value={drafts[s.key] ?? ""}
-                            onChange={(e) => setDrafts((p) => ({ ...p, [s.key]: e.target.value }))}
-                            rows={Math.min(8, (drafts[s.key] ?? "").split("\n").length + 1)}
-                            className="outline-none"
-                            style={{
-                              background: "var(--background)",
-                              border: "1.5px solid var(--border)",
-                              borderRadius: "var(--r-input)",
-                              padding: "10px 14px",
-                              fontSize: "13px",
-                              fontFamily: "var(--font-mono)",
-                              color: "var(--foreground)",
-                              resize: "vertical",
-                            }}
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={drafts[s.key] ?? ""}
-                            onChange={(e) => setDrafts((p) => ({ ...p, [s.key]: e.target.value }))}
-                            className="outline-none"
-                            style={{
-                              height: "40px",
-                              background: "var(--background)",
-                              border: "1.5px solid var(--border)",
-                              borderRadius: "var(--r-input)",
-                              padding: "0 14px",
-                              fontSize: "13px",
-                              color: "var(--foreground)",
-                            }}
-                          />
-                        )}
-                      </label>
-                    );
-                  })}
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {rows.map(renderSetting)}
                 </div>
               </div>
             ))}

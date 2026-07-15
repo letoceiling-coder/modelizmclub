@@ -87,6 +87,17 @@ export async function createSubscriptionPayment(planSlug: string): Promise<Payme
   return res.data;
 }
 
+/** One-time paid listing placement (99 ₽) — same checkout shape as
+ *  subscription; backend credits `users.listing_placement_credits` on
+ *  fulfillment. */
+export async function createListingPlacementPayment(): Promise<PaymentCheckout> {
+  const res = await api<{ data: PaymentCheckout }>("/payments", {
+    method: "POST",
+    json: { payable_type: "listing_placement", idempotency_key: newIdempotencyKey() },
+  });
+  return res.data;
+}
+
 export async function fetchPayment(uuid: string): Promise<PaymentStatus> {
   const res = await api<{ data: PaymentStatus }>(`/payments/${uuid}`);
   return res.data;

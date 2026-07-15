@@ -12,8 +12,11 @@ export const Route = createFileRoute("/settings/wallet")({
 });
 
 function WalletSection() {
-  const [balance, setBalance] = useState(mockWalletBalance);
-  const [operations, setOperations] = useState(mockWalletOperations);
+  // Real mode starts EMPTY (no mock flash before the API answers) and stays
+  // honest on errors; only demo hosts ever see the illustrative mock figures.
+  const demo = isDemoMode();
+  const [balance, setBalance] = useState(demo ? mockWalletBalance : 0);
+  const [operations, setOperations] = useState(demo ? mockWalletOperations : []);
 
   useEffect(() => {
     let alive = true;
@@ -29,18 +32,14 @@ function WalletSection() {
           date: op.date,
         })));
       })
-      .catch(() => {
-        if (!alive || !isDemoMode()) return;
-        setBalance(mockWalletBalance);
-        setOperations(mockWalletOperations);
-      });
+      .catch(() => { /* real mode: keep zeros; demo: mocks already shown */ });
     return () => { alive = false; };
   }, []);
 
   return (
     <SettingsSectionShell title="Кошелёк">
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
-        <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Демо-баланс</div>
+        <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{demo ? "Демо-баланс" : "Баланс"}</div>
         <div className="mt-[4px] font-display text-[32px] font-bold" style={{ color: "var(--foreground)" }}>
           {balance.toLocaleString("ru-RU")} ₽
         </div>
@@ -48,6 +47,9 @@ function WalletSection() {
 
       <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>История операций</h2>
       <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+        {operations.length === 0 && (
+          <div className="px-[16px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>Операций пока нет</div>
+        )}
         {operations.map((op) => (
           <div key={op.id} className="flex items-center gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
             <span className="grid h-[36px] w-[36px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: op.type === "in" ? "var(--success)" : "var(--foreground-50)" }}>
