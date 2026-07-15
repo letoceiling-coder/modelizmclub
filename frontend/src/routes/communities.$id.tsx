@@ -11,6 +11,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
 import { fetchCommunity, joinCommunity, leaveCommunity } from "@/lib/api/communities";
+import { recordView } from "@/lib/view-history";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
   demoCommunityPosts, demoCommunityDiscussions, demoCommunityEvents, demoCommunityMembers,
@@ -23,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: "Сообщество — МоДелизМ" }] }),
@@ -397,6 +399,7 @@ function CommunityDetailPage() {
   const [loading, setLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
   const [brokenCover, setBrokenCover] = useState(false);
   const [brokenAvatar, setBrokenAvatar] = useState(false);
   const [tab, setTab] = useState<TabKey>("posts");
@@ -417,6 +420,7 @@ function CommunityDetailPage() {
         setCommunity(c);
         setJoined(Boolean(c.joined));
         setMembers(c.members);
+        recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
       })
       .catch(() => alive && setCommunity(null))
       .finally(() => alive && setLoading(false));
@@ -551,6 +555,9 @@ function CommunityDetailPage() {
               <Button variant="outline" onClick={() => setShareOpen(true)} size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
                 <Share2 size={16} /> Поделиться
               </Button>
+              <Button variant="outline" onClick={() => setRequestOpen(true)} size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
+                <Plus size={16} /> Хочу своё сообщество
+              </Button>
             </div>
           </div>
         </Card>
@@ -664,6 +671,13 @@ function CommunityDetailPage() {
 
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} />
       <SubmitPostSheet open={submitOpen} onOpenChange={setSubmitOpen} communityName={community.name} />
+      {requestOpen && (
+        <EntityRequestForm
+          kind="community"
+          onClose={() => setRequestOpen(false)}
+          onSubmitted={() => setRequestOpen(false)}
+        />
+      )}
       <EventSignupModal event={signupEvent} onClose={() => setSignupEvent(null)} />
     </AppLayout>
   );

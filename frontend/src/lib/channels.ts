@@ -26,6 +26,8 @@ export interface ChannelPost {
   likes: number;
   views: number;
   kind?: PostKind;
+  images: string[];
+  video?: string;
 }
 
 export interface Channel {
@@ -73,6 +75,11 @@ interface ApiChannel {
   is_subscribed?: boolean;
 }
 
+interface ApiChannelPostMedia {
+  type?: string;
+  media?: { url?: string | null } | null;
+}
+
 interface ApiChannelPost {
   id: string;
   channel_id?: string;
@@ -83,6 +90,7 @@ interface ApiChannelPost {
   likes?: number;
   views?: number;
   created_at?: string;
+  media?: ApiChannelPostMedia[];
 }
 
 function mapChannel(c: ApiChannel): Channel {
@@ -110,6 +118,7 @@ function mapStatus(s?: string): PostStatus {
 }
 
 function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
+  const media = p.media ?? [];
   return {
     id: p.id,
     channelId: p.channel_id ?? channelId,
@@ -120,6 +129,8 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
     likes: p.likes ?? 0,
     views: p.views ?? 0,
     kind: (p.kind as PostKind) ?? undefined,
+    images: media.filter((m) => m.type !== "video" && m.media?.url).map((m) => m.media!.url!),
+    video: media.find((m) => m.type === "video" && m.media?.url)?.media?.url ?? undefined,
   };
 }
 
@@ -158,6 +169,11 @@ export async function createChannelPost(input: {
   channelSlug: string;
   text: string;
   kind: PostKind;
+  mediaIds?: string[];
+  /** Demo mode has no real upload — pass the local blob preview URLs
+   *  straight through so the composer's own preview reflects what was picked. */
+  demoImages?: string[];
+  demoVideo?: string;
 }): Promise<ChannelPost> {
   if (isDemoMode()) {
     return {
@@ -170,11 +186,13 @@ export async function createChannelPost(input: {
       likes: 0,
       views: 0,
       kind: input.kind,
+      images: input.demoImages ?? [],
+      video: input.demoVideo,
     };
   }
   const res = await api<{ data: ApiChannelPost }>(`/channels/${input.channelSlug}/posts`, {
     method: "POST",
-    json: { text: input.text, kind: input.kind },
+    json: { text: input.text, kind: input.kind, media_ids: input.mediaIds ?? [] },
   });
   return mapPost(res.data, input.channelSlug);
 }

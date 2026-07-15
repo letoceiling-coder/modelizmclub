@@ -5,6 +5,9 @@ import { toast } from "@/lib/toast";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InnInput } from "@/components/ui/inn-input";
+import { CardNumberInput } from "@/components/ui/card-number-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { getRequisites, setRequisites, type Requisites } from "@/lib/settings-prefs";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -77,8 +80,11 @@ function RequisitesSection() {
         ) : (
           <form onSubmit={save} className="space-y-[12px]">
             <Field label="Полное имя (ФИО)"><Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" /></Field>
-            <Field label="ИНН (необязательно)"><Input value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" inputMode="numeric" /></Field>
-            <Field label="Телефон"><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+7 900 000-00-00" inputMode="tel" /></Field>
+            <Field label="ИНН (необязательно)"><InnInput value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" /></Field>
+            {/* keyed on `loading` so the uncontrolled PhoneInput reseeds once
+                the async fetchDocumentRequisites() result lands (its defaultValue
+                only seeds initial state on mount, not on later prop changes) */}
+            <Field label="Телефон"><PhoneInput key={loading ? "phone-loading" : "phone-loaded"} defaultValue={form.phone} onValueChange={(formatted) => set({ phone: formatted })} /></Field>
             <Field label="Адрес"><Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" /></Field>
             <Button type="submit">Сохранить</Button>
           </form>
@@ -109,17 +115,15 @@ function PayoutCard() {
     return () => { alive = false; };
   }, []);
 
-  const digits = cardNumber.replace(/\D/g, "");
-
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (digits.length < 16) { toast.error("Введите номер карты полностью (16 цифр)"); return; }
+    if (cardNumber.length < 16) { toast.error("Введите номер карты полностью (16 цифр)"); return; }
     if (isDemoMode()) { toast("В демо-режиме сохранение карты для выплат недоступно"); return; }
 
     setSaving(true);
     try {
-      await savePayoutRequisites(digits);
-      setLast4(digits.slice(-4));
+      await savePayoutRequisites(cardNumber);
+      setLast4(cardNumber.slice(-4));
       setCardNumber("");
       toast.success("Карта для выплат сохранена");
     } catch {
@@ -150,13 +154,7 @@ function PayoutCard() {
           )}
           <form onSubmit={save} className="space-y-[12px]">
             <Field label={last4 ? "Новый номер карты (чтобы заменить)" : "Номер карты"}>
-              <Input
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                placeholder="0000 0000 0000 0000"
-                inputMode="numeric"
-                autoComplete="off"
-              />
+              <CardNumberInput value={cardNumber} onValueChange={setCardNumber} />
             </Field>
             <Button type="submit" disabled={saving}>{saving ? "Сохранение…" : "Сохранить"}</Button>
           </form>

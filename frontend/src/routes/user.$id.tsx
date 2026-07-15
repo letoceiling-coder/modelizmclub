@@ -8,6 +8,7 @@ import {
   type PublicProfile,
 } from "@/lib/api/social";
 import { createConversation } from "@/lib/api/chat";
+import { recordView } from "@/lib/view-history";
 import { ProfileView } from "./profile";
 import { toast } from "@/lib/toast";
 
@@ -29,7 +30,13 @@ function UserPage() {
     setLoading(true);
     setNotFound(false);
     fetchPublicProfile(id)
-      .then((p) => { if (active) { setProfile(p); setLoading(false); } })
+      .then((p) => {
+        if (active) {
+          setProfile(p);
+          setLoading(false);
+          recordView({ id: p.user.slug ?? p.user.id, kind: "profile", title: p.user.name, thumb: p.user.avatar });
+        }
+      })
       .catch(() => { if (active) { setNotFound(true); setLoading(false); } });
     return () => { active = false; };
   }, [id]);

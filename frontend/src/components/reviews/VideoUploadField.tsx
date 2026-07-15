@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { X, Film } from "lucide-react";
 
 interface Props {
@@ -6,9 +7,22 @@ interface Props {
   onClear: () => void;
   accept: string;                 // "video/*" or "image/*"
   label: string;
+  /** Auto-clicks the hidden file input on mount, after a short delay to
+   *  let the parent modal's mount/transition settle first. Used by
+   *  CreatePostForm so choosing "Видео" in the composer menu jumps
+   *  straight to the OS file picker instead of landing on an empty field. */
+  autoOpen?: boolean;
 }
 
-export function VideoUploadField({ fileUrl, onPick, onClear, accept, label }: Props) {
+export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, autoOpen }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    const t = setTimeout(() => inputRef.current?.click(), 150);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div className="space-y-[8px]">
       {fileUrl ? (
@@ -27,6 +41,7 @@ export function VideoUploadField({ fileUrl, onPick, onClear, accept, label }: Pr
           <Film size={22} />
           <span className="text-[13px]">{label}</span>
           <input
+            ref={inputRef}
             type="file"
             accept={accept}
             className="hidden"

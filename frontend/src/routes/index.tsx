@@ -14,8 +14,10 @@ import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher
 import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
-import { GUEST_USER, selectors, useStore } from "@/lib/store";
-import { fetchPopularListings } from "@/lib/api/listings";
+import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
+import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
+import { getToken } from "@/lib/api/client";
+import { toast } from "@/lib/toast";
 import { fetchPostCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
@@ -193,13 +195,43 @@ function TopNav() {
             <div className="flex flex-col gap-1 px-4 py-3">
               {navLinks.map((l) =>
                 l.kind === "hash" ? (
-                  <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</a>
+                  <a
+                    key={l.label}
+                    href={l.href}
+                    onClick={(e) => {
+                      // Closing the menu (height: auto -> 0) and the native
+                      // hash jump would otherwise fire in the same tick — the
+                      // jump lands correctly, then the collapse animation
+                      // shifts the whole page under it, missing the target.
+                      // Close first, scroll manually once the sheet has
+                      // finished collapsing (matches its ~300ms default
+                      // Framer Motion transition).
+                      e.preventDefault();
+                      setMenuOpen(false);
+                      const href = l.href;
+                      setTimeout(() => {
+                        document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 320);
+                    }}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {l.label}
+                  </a>
                 ) : (
                   <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
                 ),
               )}
               <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
               <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
+              {/* theme — mobile-only entry point, since ThemeToggle itself is
+                  hidden below lg everywhere except here (alwaysVisible) and
+                  the footer; both read/write the same ThemeProvider state,
+                  so toggling here or in the footer stays in sync. */}
+              <div className="mt-1 flex items-center justify-between px-3 py-1.5 lg:hidden">
+                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.footer.theme")}</span>
+                <ThemeToggle size={32} alwaysVisible />
+              </div>
               {/* language — quiet inline chips, at the bottom (mobile only; sm+ has it in the header) */}
               <div className="mt-1 flex items-center gap-1.5 px-3 pt-1 sm:hidden">
                 {LANGS.map((l) => {
@@ -546,7 +578,7 @@ function ListingCtaPlaceholder({ label }: { label: string }) {
 
 function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }) {
   const { t } = useTranslation();
-  const [fav, setFav] = useState(false);
+  const fav = useStore(selectors.isAdFavorite(ad.id));
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(0);
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
@@ -603,7 +635,26 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
       {/* favorite */}
       <button
         aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
-        onClick={() => setFav((v) => !v)}
+        onClick={async () => {
+          if (!getToken() && !isDemoMode()) {
+            toast.info("Войдите, чтобы добавить в избранное");
+            navigate({ to: "/login" });
+            return;
+          }
+          const next = !fav;
+          actions.toggleFavoriteAd(ad.id);
+          if (!isDemoMode()) {
+            try {
+              if (next) await addFavoriteListing(ad.id);
+              else await removeFavoriteListing(ad.id);
+            } catch {
+              actions.toggleFavoriteAd(ad.id);
+              toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
+              return;
+            }
+          }
+          toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
+        }}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
       >
@@ -625,7 +676,15 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
             style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", boxShadow: "var(--shadow-modal)" }}
           >
             {[t("landing.card.hide"), t("landing.card.notInterested"), t("landing.card.report")].map((label) => (
-              <button key={label} onClick={() => setMenuOpen(false)}
+              <button key={label} onClick={() => {
+                setMenuOpen(false);
+                if (!getToken() && !isDemoMode()) {
+                  toast.info("Войдите, чтобы выполнить это действие");
+                  navigate({ to: "/login" });
+                  return;
+                }
+                toast(`${label}: будет доступно позже`);
+              }}
                 className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}
               >{label}</button>
@@ -658,6 +717,7 @@ const STEP_ICONS = [Compass, Search, Users2] as const;
 
 function CategoriesSection() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -691,7 +751,20 @@ function CategoriesSection() {
             const Icon = resolveLucideIcon(cat.icon);
             const count = cat.listingsCount ?? cat.members ?? 0;
             return (
-              <Link key={cat.id} to="/ads" className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+              // Same destination as the /feed «Направления» right-rail item —
+              // the category page (/categories/$id), not a filtered feed — so
+              // both entry points land in one place for logged-in users. Guests
+              // are sent to auth first, matching the landing's gate pattern
+              // (popular-listings card actions).
+              <Link key={cat.id} to="/categories/$id" params={{ id: cat.id }}
+                onClick={(e) => {
+                  if (!getToken() && !isDemoMode()) {
+                    e.preventDefault();
+                    toast.info("Войдите, чтобы открыть направление");
+                    navigate({ to: "/login" });
+                  }
+                }}
+                className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
@@ -892,7 +965,7 @@ function Footer() {
           <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {t("common.appName")}</p>
           <div className="mt-4 flex items-center gap-2">
             <span className="text-xs" style={{ color: "var(--foreground-50)" }}>{t("landing.footer.theme")}</span>
-            <ThemeToggle size={32} />
+            <ThemeToggle size={32} alwaysVisible />
           </div>
         </div>
 
@@ -946,6 +1019,10 @@ function Section({ children, bg, id }: { children: React.ReactNode; bg: string; 
         backgroundImage: blueprintGridOnLight,
         backgroundSize: blueprintGridSize,
         padding: "72px 0",
+        // Anchor targets (e.g. #how) must clear the sticky 64px header —
+        // without this, a hash jump lands the section flush with the
+        // viewport top, right under the overlapping header.
+        ...(id ? { scrollMarginTop: "calc(64px + var(--safe-top, 0px))" } : {}),
       }}
     >
       <div className="mx-auto max-w-[1240px] px-4 md:px-8">{children}</div>

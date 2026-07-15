@@ -82,6 +82,12 @@ export function mapPost(p: ApiPost): Post {
 export interface FeedQuery {
   filter?: "all" | "following" | "category";
   categoryId?: number;
+  /** Demo-mode filtering only — mockPosts.category is a name string, not an
+   *  id, and categoryIdByName()'s id cache isn't guaranteed populated yet on
+   *  a fresh page load (e.g. /feed?category=... opened directly, not via an
+   *  in-app link from a page that already warmed the cache). Real backend
+   *  filtering still uses categoryId below; this is ignored on that path. */
+  categoryName?: string;
   page?: number;
   perPage?: number;
 }
@@ -95,7 +101,7 @@ export interface FeedResult {
 
 export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
   if (isDemoMode()) {
-    return demoFeed({ filter: opts.filter, page: opts.page, perPage: opts.perPage });
+    return demoFeed({ filter: opts.filter, categoryName: opts.categoryName, page: opts.page, perPage: opts.perPage });
   }
   const res = await api<Paginated<ApiPost>>("/feed", {
     query: {
@@ -177,7 +183,9 @@ export interface CreatePostInput {
   title: string;
   body: string;
   categoryId?: number;
-  mediaIds?: number[];
+  /** Media UUIDs from uploadMedia() — the backend's StorePostRequest
+   *  validates media_ids.* as uuid strings, not numeric ids. */
+  mediaIds?: string[];
   hashtags?: string[];
 }
 
@@ -212,5 +220,15 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
       hashtags: input.hashtags,
     },
   });
+  return mapPost(res.data);
+}
+
+/** createPost() only creates a Draft — the composer must call this
+ *  afterwards to actually publish it (goes through the normal moderation
+ *  queue, per PostService::publish on the backend). Demo mode's createPost
+ *  already returns a "published" fake post, so callers should skip this
+ *  in demo mode rather than call it. */
+export async function publishPost(uuid: string): Promise<Post> {
+  const res = await api<{ data: ApiPost }>(`/posts/${uuid}/publish`, { method: "POST" });
   return mapPost(res.data);
 }

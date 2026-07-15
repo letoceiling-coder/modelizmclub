@@ -20,6 +20,7 @@ class ChannelPostResource extends JsonResource
             'status' => $this->status,
             'likes' => $this->likes_count,
             'views' => $this->views_count,
+            'media' => ChannelPostMediaResource::collection($this->whenLoaded('media')),
             'created_at' => ($this->published_at ?? $this->created_at)?->toIso8601String(),
         ];
     }

@@ -1,4 +1,3 @@
-import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { User, ClipboardList, Crown, LogOut, Sun, Moon, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +13,7 @@ import { useStore, selectors } from "@/lib/store";
 import { signOut } from "@/lib/auth/session";
 import { ROUTES } from "@/lib/routes";
 import { useTheme } from "@/components/ThemeProvider";
+import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -22,35 +22,12 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-// Radix portals DropdownMenuContent to document.body by default, so it's
-// not a DOM descendant of the trigger — a hover handler on the trigger and
-// one on the (separately-mounted) content are two disjoint zones with a
-// real gap between them (sideOffset). Crossing that gap at normal mouse
-// speed usually beats a close timer, but not always — enough to reproduce
-// "closes right as you're about to click". CLOSE_DELAY_MS plus routing the
-// portal back inside wrapperRef (below) fixes both the timing margin and
-// the gap itself.
-const CLOSE_DELAY_MS = 250;
-
 export function UserMenu() {
   const me = useStore(selectors.currentUser);
   const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const cancelClose = () => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  };
-  const scheduleClose = () => {
-    cancelClose();
-    closeTimer.current = setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
-  };
+  const { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter } = useHoverDropdown();
 
   const hasAvatar = Boolean(me.avatar && me.avatar.trim());
 
@@ -64,10 +41,14 @@ export function UserMenu() {
     <div
       ref={wrapperRef}
       className="relative"
-      onMouseEnter={() => { cancelClose(); setOpen(true); }}
-      onMouseLeave={scheduleClose}
+      onMouseEnter={onWrapperMouseEnter}
+      onMouseLeave={onWrapperMouseLeave}
     >
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+      {/* modal={false}: see useHoverDropdown's doc comment — Radix's default
+          modal DropdownMenu disables body pointer-events while open, which
+          makes genuine cursor-leave events indistinguishable from the
+          phantom DOM-mutation events the hook filters. */}
+      <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
@@ -91,8 +72,8 @@ export function UserMenu() {
           align="end"
           sideOffset={8}
           className="w-56"
-          onMouseEnter={cancelClose}
-          onMouseLeave={scheduleClose}
+          onMouseEnter={onContentMouseEnter}
+          onMouseLeave={onWrapperMouseLeave}
         >
           <DropdownMenuItem asChild>
             <Link to={ROUTES.profile} className="flex items-center gap-2">

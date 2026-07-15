@@ -28,6 +28,11 @@ const buttonVariants = cva(
           "bg-[var(--accent-commercial)] text-white shadow-[var(--shadow-button-commercial)] hover:bg-[var(--accent-commercial-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none",
         destructive:
           "bg-[var(--danger)] text-white shadow-sm hover:opacity-90 disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)]",
+        // Success — secondary accent for actions that are a distinct choice
+        // from the primary CTA (e.g. "Позвонить" next to "Написать"), not a
+        // new color outside the approved palette.
+        success:
+          "bg-[var(--success)] text-white shadow-sm hover:opacity-90 disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)]",
         link: "text-[var(--accent)] underline-offset-4 hover:underline disabled:text-[var(--neutral-400)]",
       },
       size: {

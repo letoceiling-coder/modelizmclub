@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
@@ -13,11 +13,12 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, selectors, getState } from "@/lib/store";
 import { useFeatureFlag, setFeatureFlag } from "@/lib/config/featureFlags";
+import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import type { Tariff, PromoCode, Banner, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
-  fetchDashboard, fetchAuditLogs, fetchAdminUsers, updateAdminUser,
+  fetchDashboard, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser,
   fetchModerationQueue, approveModeration, rejectModeration,
   fetchAdminPlans, updateAdminPlan,
   fetchAdminPromocodes, createPromocode, deletePromocode,
@@ -29,13 +30,27 @@ import {
   broadcastNotification,
   fetchAdminFeedback, updateAdminFeedbackStatus,
   fetchAdminDeliveryStats, fetchAdminShipments, updateAdminShipment,
-  type AdminUserRow, type AuditEntry, type ModerationItem,
+  type AdminUserRow, type AuditEntry, type AuditLogDetailEntry, type ModerationItem,
   type AdminCategory, type CategoryKind, type AdminSetting,
   type AdminPostRow, type AdminListingRow,
   type FeedbackRow, type FeedbackStatus,
   type AdminDeliveryStats, type AdminShipmentRow,
 } from "@/lib/api/admin";
 import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
+import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
+import {
+  fetchIconAssets, uploadIconAsset, deleteIconAsset,
+  publishIconOverrides, fetchLastPublishedIconOverrides,
+  type IconAsset, type IconOverrideMap,
+} from "@/lib/api/icons";
+import {
+  getMergedMap, setDraftOverride, resetDraft, applyPublishedMap,
+} from "@/lib/icon-overrides";
+import {
+  ICON_SLOTS, GROUP_LABELS, TOKEN_OPTIONS, categorySlotKey, type TokenKey,
+} from "@/lib/icon-slots";
+import { isSafeSvgMarkup } from "@/lib/safe-svg";
+import { usePostCategories } from "@/lib/hooks/useCategories";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
@@ -48,29 +63,35 @@ export const Route = createFileRoute("/admin")({
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
-  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings";
+  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings"
+  | "auditLog" | "applications";
 
-const navItems: { id: Section; label: string; icon: typeof Users }[] = [
-  { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
-  { id: "users", label: "Пользователи", icon: Users },
-  { id: "content", label: "Контент", icon: Newspaper },
-  { id: "ads", label: "Объявления", icon: Megaphone },
-  { id: "delivery", label: "Доставки", icon: Truck },
-  { id: "moderation", label: "Модерация", icon: ShieldCheck },
-  { id: "monetization", label: "Монетизация", icon: DollarSign },
-  { id: "categories", label: "Категории", icon: FolderTree },
-  { id: "reviews", label: "Обзоры", icon: Clapperboard },
-  { id: "notifications", label: "Уведомления", icon: Bell },
-  { id: "analytics", label: "Аналитика", icon: BarChart3 },
-  { id: "feedback", label: "Обращения", icon: Inbox },
-  { id: "design", label: "Design System", icon: Palette },
-  { id: "settings", label: "Настройки", icon: Settings },
+type AdminRole = "admin" | "moderator";
+
+const navItems: { id: Section; label: string; icon: typeof Users; roles: AdminRole[] }[] = [
+  { id: "dashboard", label: "Дашборд", icon: LayoutDashboard, roles: ["admin", "moderator"] },
+  { id: "users", label: "Пользователи", icon: Users, roles: ["admin"] },
+  { id: "content", label: "Контент", icon: Newspaper, roles: ["admin"] },
+  { id: "ads", label: "Объявления", icon: Megaphone, roles: ["admin"] },
+  { id: "delivery", label: "Доставки", icon: Truck, roles: ["admin"] },
+  { id: "moderation", label: "Модерация", icon: ShieldCheck, roles: ["admin", "moderator"] },
+  { id: "applications", label: "Заявки", icon: Inbox, roles: ["admin"] },
+  { id: "monetization", label: "Монетизация", icon: DollarSign, roles: ["admin"] },
+  { id: "categories", label: "Категории", icon: FolderTree, roles: ["admin"] },
+  { id: "reviews", label: "Обзоры", icon: Clapperboard, roles: ["admin"] },
+  { id: "notifications", label: "Уведомления", icon: Bell, roles: ["admin"] },
+  { id: "analytics", label: "Аналитика", icon: BarChart3, roles: ["admin"] },
+  { id: "feedback", label: "Обращения", icon: Inbox, roles: ["admin", "moderator"] },
+  { id: "design", label: "Design System", icon: Palette, roles: ["admin"] },
+  { id: "settings", label: "Настройки", icon: Settings, roles: ["admin"] },
+  { id: "auditLog", label: "История изменений", icon: Search, roles: ["admin"] },
 ];
 
 function AdminPage() {
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
+  const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [section, setSection] = useState<Section>("dashboard");
 
   // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
@@ -87,12 +108,36 @@ function AdminPage() {
         navigate({ to: "/login", search: { redirect: "/admin" } });
         return;
       }
-      setAccess(selectors.currentUser(getState()).isAdmin ? "granted" : "forbidden");
+      const current = selectors.currentUser(getState());
+      // `role` is the source of truth when present (real API sessions);
+      // demo-mode sessions only set `isAdmin` (see lib/demo-data.ts DEMO_USER),
+      // so fall back to treating isAdmin as "admin" there.
+      const resolvedRole: AdminRole | null =
+        current.role === "admin" || current.role === "moderator"
+          ? current.role
+          : current.isAdmin
+            ? "admin"
+            : null;
+      setAdminRole(resolvedRole);
+      setAccess(resolvedRole ? "granted" : "forbidden");
     })();
     return () => {
       alive = false;
     };
   }, [navigate]);
+
+  // Hooks must run unconditionally on every render (Rules of Hooks) — this
+  // has to sit before the "checking"/"forbidden" early returns below, not
+  // after them, or React throws "Rendered more hooks than during the
+  // previous render" once access resolves past "checking".
+  const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
+
+  useEffect(() => {
+    if (adminRole === null) return;
+    if (!visibleNavItems.some((n) => n.id === section)) {
+      setSection(visibleNavItems[0]?.id ?? "dashboard");
+    }
+  }, [adminRole, section, visibleNavItems]);
 
   if (access === "checking") {
     return (
@@ -213,7 +258,7 @@ function AdminPage() {
           }}
         >
           <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            {navItems.map((n) => {
+            {visibleNavItems.map((n) => {
               const active = section === n.id;
               return (
                 <button
@@ -264,7 +309,7 @@ function AdminPage() {
                 color: "var(--foreground)",
               }}
             >
-              {navItems.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+              {visibleNavItems.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </div>
 
@@ -275,7 +320,7 @@ function AdminPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <SectionView section={section} />
+            <SectionView section={section} adminRole={adminRole} />
           </ReducedMotionSwitch>
         </main>
       </div>
@@ -318,13 +363,14 @@ const primaryBtn: React.CSSProperties = {
   height: "40px",
 };
 
-function SectionView({ section }: { section: Section }) {
-  if (section === "dashboard") return <Dashboard />;
+function SectionView({ section, adminRole }: { section: Section; adminRole: AdminRole | null }) {
+  if (section === "dashboard") return <Dashboard role={adminRole ?? "admin"} />;
   if (section === "users") return <UsersSection />;
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
   if (section === "delivery") return <DeliverySection />;
   if (section === "moderation") return <ModerationSection />;
+  if (section === "applications") return <ApplicationsSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "categories") return <CategoriesSection />;
   if (section === "reviews") return <ReviewsSection />;
@@ -332,6 +378,7 @@ function SectionView({ section }: { section: Section }) {
   if (section === "analytics") return <AnalyticsSection />;
   if (section === "feedback") return <FeedbackSection />;
   if (section === "design") return <DesignSystemSection />;
+  if (section === "auditLog") return <AuditLogSection />;
   return <SettingsSection />;
 }
 
@@ -463,6 +510,215 @@ function DesignSystemSection() {
       {/* Preview */}
       <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>Превью компонентов</h2>
       <PreviewArea />
+
+      <IconsPanel />
+    </div>
+  );
+}
+
+interface SlotOption { key: string; label: string; group: string; }
+
+function IconsPanel() {
+  const categories = usePostCategories();
+  const [assets, setAssets] = useState<IconAsset[]>([]);
+  const [slotKey, setSlotKey] = useState<string>(ICON_SLOTS[0]?.key ?? "");
+  const [assetId, setAssetId] = useState<string>("");           // "" = по умолчанию (lucide)
+  const [token, setToken] = useState<TokenKey>("foreground");
+  const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [canRollback, setCanRollback] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const selectStyle: React.CSSProperties = {
+    height: 38, padding: "0 10px", borderRadius: 10,
+    border: "1px solid var(--border)", background: "var(--background)",
+    color: "var(--foreground)", fontSize: 13,
+  };
+
+  // Загрузка библиотеки иконок + состояния «можно ли откатить».
+  useEffect(() => {
+    let alive = true;
+    fetchIconAssets().then((a) => alive && setAssets(a)).catch(() => {});
+    fetchLastPublishedIconOverrides().then((prev) => alive && setCanRollback(prev !== null)).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // Слоты категорий строятся из usePostCategories() — тот же id-space, что
+  // читает <CategoryIcon categoryId={c.id}> в FeedRightRail/RightCategories,
+  // поэтому назначенные тут override'ы реально применяются в ленте (в demo —
+  // те же demo-id "c1".."c20", что и в правом рейле).
+  const categorySlots: SlotOption[] = useMemo(
+    () => categories.map((c) => ({
+      key: categorySlotKey(c.id), label: `Категория — ${c.name}`, group: GROUP_LABELS.category,
+    })),
+    [categories],
+  );
+
+  const allSlots: SlotOption[] = useMemo(
+    () => [
+      ...ICON_SLOTS.map((s) => ({ key: s.key, label: s.label, group: GROUP_LABELS[s.group] })),
+      ...categorySlots,
+    ],
+    [categorySlots],
+  );
+
+  async function onUpload(file: File) {
+    setUploading(true);
+    try {
+      const asset = await uploadIconAsset(file);
+      setAssets((prev) => [asset, ...prev]);
+      setAssetId(asset.id);
+      toast.success("Иконка загружена");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось загрузить иконку");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function onDeleteAsset(id: string) {
+    try {
+      await deleteIconAsset(id);
+      setAssets((prev) => prev.filter((a) => a.id !== id));
+      if (assetId === id) setAssetId("");
+    } catch {
+      toast.error("Не удалось удалить иконку");
+    }
+  }
+
+  function onApply() {
+    if (!slotKey) return;
+    if (assetId === "") {
+      setDraftOverride(slotKey, null); // сброс слота на дефолт (в превью)
+      toast("Слот сброшен на иконку по умолчанию (превью)");
+      return;
+    }
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset) return;
+    setDraftOverride(slotKey, { assetId: asset.id, svg: asset.svg, token });
+    toast("Применено в превью — опубликуйте, чтобы увидели все");
+  }
+
+  async function onPublish() {
+    setPublishing(true);
+    try {
+      const map: IconOverrideMap = getMergedMap();
+      await publishIconOverrides(map);
+      applyPublishedMap(map); // published := map, draft очищается
+      setCanRollback(true);
+      toast.success(isDemoMode()
+        ? "Опубликовано (demo — только в этом браузере)"
+        : "Иконки опубликованы для всех");
+    } catch {
+      toast.error("Не удалось опубликовать");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function onRollback() {
+    try {
+      const prev = await fetchLastPublishedIconOverrides();
+      if (prev === null) { setCanRollback(false); return; }
+      await publishIconOverrides(prev);
+      applyPublishedMap(prev);
+      toast.success("Откат выполнен");
+    } catch {
+      toast.error("Не удалось откатить");
+    }
+  }
+
+  return (
+    <div style={{ ...card, padding: 24, maxWidth: 760, marginTop: 20 }}>
+      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)", marginBottom: 4 }}>
+        Иконки
+      </h4>
+      <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 16 }}>
+        Загрузите монохромный SVG, назначьте на место в интерфейсе и выберите цвет из палитры токенов.
+        Превью применяется только у вас; «Опубликовать» — для всех пользователей.
+      </p>
+
+      {/* Библиотека */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>Библиотека</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))", gap: 8 }}>
+          {assets.map((a) => (
+            <div key={a.id} title={a.name}
+              style={{
+                position: "relative", aspectRatio: "1", display: "grid", placeItems: "center",
+                border: `1px solid ${assetId === a.id ? "var(--accent)" : "var(--border)"}`,
+                borderRadius: 10, cursor: "pointer", color: "var(--foreground)",
+              }}
+              onClick={() => setAssetId(a.id)}
+            >
+              <span aria-hidden style={{ width: 22, height: 22, display: "inline-flex" }}
+                dangerouslySetInnerHTML={{ __html: isSafeSvgMarkup(a.svg) ? a.svg : "" }} />
+              <button type="button" aria-label="Удалить" onClick={(e) => { e.stopPropagation(); void onDeleteAsset(a.id); }}
+                style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: 6,
+                  background: "var(--background-surface)", color: "var(--foreground-50)", fontSize: 12, lineHeight: "16px" }}>
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()}
+            style={{ aspectRatio: "1", border: "1px dashed var(--border)", borderRadius: 10,
+              color: "var(--foreground-50)", fontSize: 12, opacity: uploading ? 0.6 : 1 }}>
+            {uploading ? "…" : "+ SVG"}
+          </button>
+        </div>
+        <input ref={fileRef} type="file" accept="image/svg+xml,.svg" hidden
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onUpload(f); }} />
+      </div>
+
+      {/* Назначение */}
+      <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Слот (место в интерфейсе)</span>
+          <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)} style={selectStyle}>
+            {allSlots.map((s) => <option key={s.key} value={s.key}>{s.group} · {s.label}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Иконка</span>
+          <select value={assetId} onChange={(e) => setAssetId(e.target.value)} style={selectStyle}>
+            <option value="">По умолчанию (lucide)</option>
+            {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Цвет (токен)</span>
+          <select value={token} onChange={(e) => setToken(e.target.value as TokenKey)} style={selectStyle}>
+            {TOKEN_OPTIONS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={onApply}
+          style={{ justifySelf: "start", padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--accent-soft)" }}>
+          Применить (превью)
+        </button>
+      </div>
+
+      {/* Публикация */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button type="button" disabled={publishing} onClick={onPublish}
+          style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            background: "var(--accent)", color: "var(--accent-foreground)", opacity: publishing ? 0.6 : 1 }}>
+          {publishing ? "Публикация…" : "Опубликовать для всех"}
+        </button>
+        <button type="button" onClick={resetDraft}
+          style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+            border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
+          Сбросить превью
+        </button>
+        {canRollback && (
+          <button type="button" onClick={onRollback}
+            style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+              border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
+            Откатить последнее изменение
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -701,7 +957,7 @@ function Alert({ icon, bg, fg, text }: { icon: React.ReactNode; bg: string; fg: 
 }
 
 /* ============ DASHBOARD ============ */
-function Dashboard() {
+function Dashboard({ role }: { role: AdminRole }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchDashboard>> | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
 
@@ -712,14 +968,15 @@ function Dashboard() {
     return () => { active = false; };
   }, []);
 
-  const stats = [
-    { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "", up: true },
-    { v: (data?.communitiesTotal ?? 0).toLocaleString("ru"), l: "Сообществ", icon: Users, ch: "", up: true },
-    { v: (data?.bannersActive ?? 0).toLocaleString("ru"), l: "Активных баннеров", icon: Megaphone, ch: "", up: true },
-    { v: (data?.postsTotal ?? 0).toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "", up: true },
-    { v: String(data?.moderationPending ?? 0), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true },
-    { v: String(data?.reportsPending ?? 0), l: "Жалоб", icon: UserPlus, ch: "", up: true },
+  const allStats = [
+    { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "", up: true, adminOnly: true },
+    { v: (data?.communitiesTotal ?? 0).toLocaleString("ru"), l: "Сообществ", icon: Users, ch: "", up: true, adminOnly: true },
+    { v: (data?.bannersActive ?? 0).toLocaleString("ru"), l: "Активных баннеров", icon: Megaphone, ch: "", up: true, adminOnly: true },
+    { v: (data?.postsTotal ?? 0).toLocaleString("ru"), l: "Публикаций", icon: Newspaper, ch: "", up: true, adminOnly: true },
+    { v: String(data?.moderationPending ?? 0), l: "На модерации", icon: ShieldCheck, ch: "", up: true, warn: true, adminOnly: false },
+    { v: String(data?.reportsPending ?? 0), l: "Жалоб", icon: UserPlus, ch: "", up: true, adminOnly: false },
   ];
+  const stats = allStats.filter((s) => role === "admin" || !s.adminOnly);
   const bars = [40, 65, 55, 80, 70, 90, 60];
   const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -756,8 +1013,10 @@ function Dashboard() {
         ))}
       </motion.div>
 
-      {/* Chart */}
-      <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
+      {role === "admin" && (
+        <>
+          {/* Chart */}
+          <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
           Регистрации за 30 дней
         </h4>
@@ -803,6 +1062,8 @@ function Dashboard() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1599,7 +1860,7 @@ function FeedbackSection() {
 
   return (
     <div>
-      <H>Книга жалоб и предложений</H>
+      <H>Книга замечаний и предложений</H>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
         {FEEDBACK_FILTERS.map((f) => (
           <button
@@ -2312,6 +2573,46 @@ function SettingsSection() {
 
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+  const marketEnabled = useFeatureFlag("marketEnabled");
+  const [savingMarket, setSavingMarket] = useState(false);
+  const escrowEnabled = useFeatureFlag("escrowEnabled");
+  const [savingEscrow, setSavingEscrow] = useState(false);
+
+  const toggleMarket = async (checked: boolean) => {
+    if (isDemoMode()) {
+      setFeatureFlag("marketEnabled", checked);
+      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      return;
+    }
+    setSavingMarket(true);
+    try {
+      await updateAdminSettings([{ key: "feature.market_enabled", value: { enabled: checked }, group: "feature" }]);
+      setFeatureFlag("marketEnabled", checked);
+      toast.success(checked ? "Кнопка «Маркет» включена для всех" : "Кнопка «Маркет» отключена для всех");
+    } catch {
+      toast.error("Не удалось сохранить настройку");
+    } finally {
+      setSavingMarket(false);
+    }
+  };
+
+  const toggleEscrow = async (checked: boolean) => {
+    if (isDemoMode()) {
+      setFeatureFlag("escrowEnabled", checked);
+      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      return;
+    }
+    setSavingEscrow(true);
+    try {
+      await updateAdminSettings([{ key: "feature.escrow_enabled", value: { enabled: checked }, group: "feature" }]);
+      setFeatureFlag("escrowEnabled", checked);
+      toast.success(checked ? "Бейдж «Безопасная сделка» включён для всех" : "Бейдж «Безопасная сделка» отключён для всех");
+    } catch {
+      toast.error("Не удалось сохранить настройку");
+    } finally {
+      setSavingEscrow(false);
+    }
+  };
 
   return (
     <div>
@@ -2343,6 +2644,50 @@ function SettingsSection() {
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Обзоры»</span>
+        </label>
+      </div>
+
+      {/* Server-persisted (SystemSetting: feature.market_enabled via the same
+          /admin/settings endpoint below) — unlike the flags above, this one
+          actually changes what every visitor sees, not just this browser. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Кнопка «Маркет»
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Сохраняется на сервере — включает/выключает кнопку для всех пользователей сразу, без деплоя фронта.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingMarket ? 0.6 : 1 }}>
+          <input
+            type="checkbox"
+            checked={marketEnabled}
+            disabled={savingMarket}
+            onChange={(e) => void toggleMarket(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать кнопку «Маркет»</span>
+        </label>
+      </div>
+
+      {/* Server-persisted (SystemSetting: feature.escrow_enabled). Off by
+          default — turn on only once ЮKassa Безопасная сделка is live on the
+          backend, so the escrow badge never promises an unimplemented feature. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Бейдж «Безопасная сделка»
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Сохраняется на сервере — показывает бейдж «Безопасная сделка / эскроу» на объявлениях для всех сразу, без деплоя. Включать только когда ЮKassa Безопасная сделка реально подключена на бэке.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingEscrow ? 0.6 : 1 }}>
+          <input
+            type="checkbox"
+            checked={escrowEnabled}
+            disabled={savingEscrow}
+            onChange={(e) => void toggleEscrow(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать бейдж «Безопасная сделка»</span>
         </label>
       </div>
 
@@ -2417,6 +2762,162 @@ function SettingsSection() {
           style={{ ...primaryBtn, height: "44px", padding: "0 32px", fontSize: "14px", marginTop: "20px", opacity: saving || loading ? 0.7 : 1 }}
         >
           {saving ? "Сохраняем…" : "Сохранить"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ AUDIT LOG ============ */
+function AuditLogSection() {
+  const [page, setPage] = useState(1);
+  const [entries, setEntries] = useState<AuditLogDetailEntry[]>([]);
+  const [lastPage, setLastPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [userFilter, setUserFilter] = useState("all");
+  const [actionFilter, setActionFilter] = useState("all");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchAuditLogPage(page)
+      .then((r) => {
+        if (!active) return;
+        setEntries(r.entries);
+        setLastPage(r.lastPage);
+      })
+      .catch(() => active && setEntries([]))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [page]);
+
+  const userOptions = useMemo(
+    () => Array.from(new Set(entries.map((e) => e.user))).sort(),
+    [entries],
+  );
+  const actionPrefixOptions = useMemo(
+    () => Array.from(new Set(entries.map((e) => e.action.split(".")[0]).filter(Boolean))).sort(),
+    [entries],
+  );
+
+  const filtered = entries.filter((e) => {
+    const matchUser = userFilter === "all" || e.user === userFilter;
+    const matchAction = actionFilter === "all" || e.action.startsWith(actionFilter + ".");
+    return matchUser && matchAction;
+  });
+
+  const renderDiffValue = (v: unknown): string => {
+    if (v === null || v === undefined) return "—";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  };
+
+  const renderDiff = (entry: AuditLogDetailEntry) => {
+    const oldV = entry.oldValues ?? {};
+    const newV = entry.newValues ?? {};
+    const keys = Array.from(new Set([...Object.keys(oldV), ...Object.keys(newV)]));
+    if (keys.length === 0) {
+      return <p style={{ fontSize: 12, color: "var(--foreground-50)" }}>Нет данных об изменении.</p>;
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {keys.map((k) => (
+          <div key={k} style={{ fontSize: 12, color: "var(--foreground-70)" }}>
+            <span style={{ fontWeight: 600, color: "var(--foreground)" }}>{k}</span>
+            {": "}
+            {renderDiffValue((oldV as Record<string, unknown>)[k])}
+            {" → "}
+            <span style={{ color: "var(--accent)" }}>{renderDiffValue((newV as Record<string, unknown>)[k])}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <H>История изменений</H>
+      <div className="flex flex-wrap" style={{ gap: "12px", marginBottom: "16px" }}>
+        <select
+          value={userFilter}
+          onChange={(e) => setUserFilter(e.target.value)}
+          className="outline-none"
+          style={{ ...inputStyle, padding: "0 12px" }}
+        >
+          <option value="all">Все пользователи</option>
+          {userOptions.map((u) => <option key={u} value={u}>{u}</option>)}
+        </select>
+        <select
+          value={actionFilter}
+          onChange={(e) => setActionFilter(e.target.value)}
+          className="outline-none"
+          style={{ ...inputStyle, padding: "0 12px" }}
+        >
+          <option value="all">Все действия</option>
+          {actionPrefixOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+
+      <div style={{ ...card, overflow: "hidden" }}>
+        {loading ? (
+          <p style={{ padding: 16, fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>
+        ) : filtered.length === 0 ? (
+          <p style={{ padding: 16, fontSize: 13, color: "var(--foreground-50)" }}>Нет записей.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
+              <thead>
+                <tr style={{ background: "var(--background-surface)" }}>
+                  {["Кто", "Когда", "Действие", "Сущность"].map((h) => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((e) => (
+                  <Fragment key={e.id}>
+                    <tr
+                      onClick={() => setExpandedId(expandedId === e.id ? null : e.id)}
+                      style={{ borderTop: "1px solid var(--border)", cursor: "pointer" }}
+                    >
+                      <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{e.user}</td>
+                      <td style={{ padding: "10px 16px", color: "var(--foreground-30)", fontSize: "12px" }} title={e.time}>{e.time}</td>
+                      <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{e.action}</td>
+                      <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{e.target}</td>
+                    </tr>
+                    {expandedId === e.id && (
+                      <tr style={{ background: "var(--background-surface)" }}>
+                        <td colSpan={4} style={{ padding: "12px 16px" }}>
+                          {renderDiff(e)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between" style={{ marginTop: "12px" }}>
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page <= 1}
+          style={{ fontSize: 13, padding: "6px 14px", borderRadius: "var(--r-card-sm)", border: "1px solid var(--border)", color: "var(--foreground-70)", opacity: page <= 1 ? 0.5 : 1 }}
+        >
+          ← Назад
+        </button>
+        <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Страница {page} из {lastPage}</span>
+        <button
+          onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+          disabled={page >= lastPage}
+          style={{ fontSize: 13, padding: "6px 14px", borderRadius: "var(--r-card-sm)", border: "1px solid var(--border)", color: "var(--foreground-70)", opacity: page >= lastPage ? 0.5 : 1 }}
+        >
+          Вперёд →
         </button>
       </div>
     </div>
@@ -2582,6 +3083,113 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function ApplicationsSection() {
+  const [status, setStatus] = useState<RequestStatus>("pending");
+  const [items, setItems] = useState<EntityRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchEntityRequests(status)
+      .then((list) => { if (alive) setItems(list); })
+      .catch(() => { if (alive) setItems([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [status]);
+
+  const decide = async (r: EntityRequest, approve: boolean) => {
+    setItems((cur) => cur.filter((x) => x.id !== r.id)); // optimistic
+    try {
+      if (approve) await approveEntityRequest(r.kind, r.id);
+      else await rejectEntityRequest(r.kind, r.id);
+    } catch {
+      // на реальном бэке при ошибке перезагрузим список
+      fetchEntityRequests(status).then(setItems).catch(() => {});
+    }
+  };
+
+  const STATUSES: { id: RequestStatus; label: string }[] = [
+    { id: "pending", label: "Новые" },
+    { id: "approved", label: "Одобрены" },
+    { id: "rejected", label: "Отклонены" },
+  ];
+
+  const KIND_LABEL: Record<EntityKind, string> = { channel: "Канал", community: "Сообщество" };
+
+  return (
+    <div>
+      <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "18px", color: "var(--foreground)", marginBottom: "12px" }}>
+        Заявки на создание
+      </h3>
+
+      <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
+        {STATUSES.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setStatus(s.id)}
+            style={{
+              padding: "7px 14px", borderRadius: "9px", fontSize: "13px", fontWeight: 600,
+              background: status === s.id ? "var(--accent-soft)" : "var(--background-surface)",
+              color: status === s.id ? "var(--accent)" : "var(--foreground-70)",
+              border: `1px solid ${status === s.id ? "var(--border-accent)" : "var(--border)"}`,
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ color: "var(--foreground-50)", fontSize: "13px" }}>Загрузка…</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px", border: "1px solid var(--border)", borderRadius: "12px" }}>
+          Заявок нет
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {items.map((r) => (
+            <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: "12px", padding: "16px", background: "var(--background-elevated)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: "var(--accent-soft)", color: "var(--accent)" }}>
+                  {KIND_LABEL[r.kind]}
+                </span>
+                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--foreground)" }}>{r.proposedName}</span>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--foreground-70)", marginBottom: "8px" }}>
+                <Link to="/user/$id" params={{ id: r.applicant.slug ?? r.applicant.id }} style={{ color: "var(--accent)" }}>
+                  {r.applicant.name}
+                </Link>
+                {" · "}{r.category}{" · "}{new Date(r.createdAt).toLocaleDateString("ru-RU")}
+              </div>
+              {r.description && (
+                <p style={{ fontSize: "13px", color: "var(--foreground-70)", marginBottom: "12px" }}>{r.description}</p>
+              )}
+              {status === "pending" && (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button" onClick={() => decide(r, true)}
+                    style={{ flex: 1, height: "38px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, background: "var(--accent)", color: "var(--accent-foreground)", border: "none" }}
+                  >
+                    Одобрить
+                  </button>
+                  <button
+                    type="button" onClick={() => decide(r, false)}
+                    style={{ flex: 1, height: "38px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
+                  >
+                    Отклонить
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

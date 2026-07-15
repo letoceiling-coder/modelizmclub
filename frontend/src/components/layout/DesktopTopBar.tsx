@@ -1,10 +1,10 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { Search, Bell, Heart, MessageSquare } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Bell, Heart, MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { useStore } from "@/lib/store";
 import { ROUTES } from "@/lib/routes";
@@ -16,8 +16,6 @@ export function DesktopTopBar() {
     Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
   );
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [searchValue, setSearchValue] = useState("");
 
   return (
     <header
@@ -33,34 +31,7 @@ export function DesktopTopBar() {
         <Logo size={36} />
       </Link>
 
-      <div className="relative min-w-0 max-w-[420px] flex-1">
-        <Search
-          size={16}
-          className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2"
-          style={{ color: "var(--foreground-50)" }}
-        />
-        <input
-          type="search"
-          placeholder="Поиск по объявлениям"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const v = searchValue.trim();
-              void navigate({ to: "/ads", search: v ? { q: v } : {} });
-            }
-          }}
-          className="w-full text-[14px] outline-none transition-colors"
-          style={{
-            background: "var(--background-elevated)",
-            color: "var(--foreground)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-input)",
-            height: 40,
-            padding: "0 12px 0 36px",
-          }}
-        />
-      </div>
+      <GlobalSearch />
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />

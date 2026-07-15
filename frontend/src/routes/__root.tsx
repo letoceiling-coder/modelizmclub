@@ -18,6 +18,7 @@ import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog"
 import { I18nProvider, useLocaleFade } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
+import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
 
 // Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
 // "theme" key holds the resolved value from the old binary toggle). "system"
@@ -113,33 +114,23 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * Toasts render shifted down by roughly their own height from where their
- * `bottom` offset says they should sit — measured live (Playwright, mobile
- * AND desktop), reproducible on every mount, independent of the offset
- * value's source (plain number or calc()). Root cause not isolated (Sonner's
- * own `--y`/`data-mounted` CSS resolves to the correct translateY(0) when
- * queried directly, yet the rendered bounding box disagrees) — rather than
- * block on further Sonner/Chromium internals archaeology, both the mobile
- * and desktop bottom offsets below are padded by this amount so toasts
- * clear the fixed BottomNav (mobile) / viewport bottom (desktop) regardless.
+ * Toasts now anchor under the header instead of the bottom-right corner —
+ * bottom placement risked sitting over the fixed BottomNav or over
+ * page-level action buttons (submit/FAB) on mobile, which is exactly the
+ * "неудобная зона" this was reworked to avoid. Top-center, cleared under
+ * the header (mobile: safe-area-inset-top + header row; desktop: a small
+ * fixed margin, since desktop pages have no fixed top bar), keeps toasts
+ * out of both the header and any bottom-fixed chrome regardless of page.
  */
-const TOAST_SHIFT_BUFFER = 70;
-
-/**
- * Resolves `--bottom-nav-space` (bottom-nav height + safe-area-inset-bottom)
- * to a real pixel number for Sonner's `mobileOffset.bottom` — Sonner's
- * positioning math does `parseInt()` on offset values, which silently fails
- * on a raw `calc(var(...))` string, so this must be a plain number.
- */
-function useMobileToastOffset(): number {
-  const [offset, setOffset] = useState(76 + TOAST_SHIFT_BUFFER); // SSR/pre-mount fallback: 60px nav + 16px margin
+function useTopToastOffset(): number {
+  const [offset, setOffset] = useState(52 + 16); // SSR/pre-mount fallback: mobile-header-h + margin
   useEffect(() => {
     const probe = document.createElement("div");
-    probe.style.cssText = "position:absolute;visibility:hidden;height:var(--bottom-nav-space)";
+    probe.style.cssText = "position:absolute;visibility:hidden;height:calc(var(--safe-top) + var(--mobile-header-h))";
     document.body.appendChild(probe);
     const px = probe.getBoundingClientRect().height;
     document.body.removeChild(probe);
-    if (px > 0) setOffset(px + 16 + TOAST_SHIFT_BUFFER);
+    if (px > 0) setOffset(px + 12);
   }, []);
   return offset;
 }
@@ -155,7 +146,7 @@ function FadingOutlet() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const mobileToastOffset = useMobileToastOffset();
+  const mobileToastOffset = useTopToastOffset();
   useEffect(() => {
     bindCallAudioUnlock();
     void restoreSession();
@@ -168,18 +159,21 @@ function RootComponent() {
           <CallScreen />
           <GroupCallScreen />
           <GroupCallInviteDialog />
-          {/* Bottom-right: clear of the sticky header on all viewports.
-              Mobile offset clears the fixed BottomNav + safe-area so toasts
-              never sit under it (see useMobileToastOffset for why this must
-              be a plain number, not a CSS calc() string). */}
+          {/* Top-center, cleared under the header on every viewport — never
+              overlaps the fixed BottomNav or page action buttons. Desktop has
+              no fixed top bar, so a small fixed margin is enough there;
+              mobile clears safe-area-inset-top + the header row via
+              useTopToastOffset (must resolve to a plain number, not a raw
+              CSS calc() string — Sonner's offset math does parseInt() on it). */}
           {/* No richColors: keep toasts in the site's UI Kit style
               (elevated surface + colored left border), not Sonner's
               filled green/red boxes that looked like foreign Laravel flashes. */}
           <Toaster
-            position="bottom-right"
+            position="top-center"
             closeButton
-            offset={{ bottom: 16 + TOAST_SHIFT_BUFFER, right: 16 }}
-            mobileOffset={{ bottom: mobileToastOffset, right: 16, left: 16 }}
+            duration={4000}
+            offset={{ top: 24 }}
+            mobileOffset={{ top: mobileToastOffset, left: 16, right: 16 }}
           />
         </ThemeProvider>
       </I18nProvider>

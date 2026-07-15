@@ -147,7 +147,7 @@ function MenuItems({
       <Item icon={UserIcon} label="Смотреть профиль" onClick={onViewProfile} />
       {isFriend && <Item icon={UserMinus} label="Удалить из друзей" onClick={onRemoveFriend} />}
       <Item icon={EyeOff} label="Скрыть из рекомендаций" onClick={onHide} />
-      <Item icon={Flag} label="Пожаловаться" onClick={onReport} />
+      <Item icon={Flag} label="Книга замечаний и предложений" onClick={onReport} />
       <div className="border-t" style={{ borderColor: "var(--border)" }} />
       <Item icon={Ban} label="Заблокировать" onClick={onBlock} danger />
     </>

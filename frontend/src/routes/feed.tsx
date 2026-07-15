@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { CreatePostTrigger, type PostIntent } from "@/components/feed/CreatePostTrigger";
+import { CreatePostMenu, type ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
@@ -11,7 +11,6 @@ import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { CreatePostPayload } from "@/components/CreatePostForm";
 import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed } from "@/lib/api/feed";
@@ -27,8 +26,16 @@ export const Route = createFileRoute("/feed")({
       { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { composer?: string } => ({
+  // `category` — set by landing's "Направления" cards (routes/index.tsx
+  // CategoriesSection) so a direction click opens /feed pre-filtered to
+  // that direction instead of the unfiltered feed. Value is a category
+  // *name*, matching the existing chip-filter convention below
+  // (activeCategory / categoryIdByName both key by name, not id) — both
+  // the landing and this page read categories from the same
+  // fetchPostCategories() source, so the names are guaranteed to match.
+  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string } => ({
     composer: (search.composer as string) || undefined,
+    category: (search.category as string) || undefined,
   }),
   component: FeedPage,
 });
@@ -36,16 +43,16 @@ export const Route = createFileRoute("/feed")({
 const PAGE_SIZE = 6;
 
 function FeedPage() {
-  const { composer } = Route.useSearch();
+  const { composer, category: categoryFromUrl } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [filter, setFilter] = useState<FeedFilter>("all");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FeedFilter>(categoryFromUrl ? "categories" : "all");
+  const [activeCategory, setActiveCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [composerIntent, setComposerIntent] = useState<PostIntent | undefined>(undefined);
+  const [composerSelection, setComposerSelection] = useState<ComposerSelection | undefined>(undefined);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -82,7 +89,7 @@ function FeedPage() {
       filter === "following"
         ? { filter: "following" as const }
         : filter === "categories" && activeCategory
-          ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory) }
+          ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory), categoryName: activeCategory }
           : { filter: "all" as const };
     fetchFeed({ ...query, perPage: 50 })
       .then((r) => {
@@ -139,30 +146,14 @@ function FeedPage() {
     return () => io.disconnect();
   }, [filtered.length, visible, loadingMore, initialLoading]);
 
-  const addPost = (p: CreatePostPayload) => {
+  // Post creation itself (upload + createPost + publish) happens inside
+  // CreatePostForm against the real API — this just closes the composer
+  // and prepends whatever real Post the backend returned, instead of the
+  // fully client-fabricated placeholder this used to construct (which
+  // never touched the network at all, so nothing was ever actually saved).
+  const addPost = (post: Post) => {
     setComposerOpen(false);
-    setPosts((cur) => [
-      {
-        id: `np${Date.now()}`,
-        authorId: me.id,
-        date: "только что",
-        category: p.category,
-        title: p.title,
-        text: p.text,
-        image: p.photos[0],
-        images: p.photos,
-        tags: p.subcategory ? [p.subcategory] : [],
-        views: 0,
-        likes: 0,
-        comments: 0,
-        saves: 0,
-        reposts: 0,
-        status: "moderation",
-        isFollowing: true,
-        commentList: [],
-      },
-      ...cur,
-    ]);
+    setPosts((cur) => [{ ...post, isFollowing: true }, ...cur]);
   };
 
   const slice = filtered.slice(0, visible);
@@ -172,7 +163,7 @@ function FeedPage() {
       <div className="space-y-[16px]">
         <EventsHero />
 
-        <CreatePostTrigger onOpen={(intent) => { setComposerIntent(intent); setComposerOpen(true); }} />
+        <CreatePostMenu me={me} onSelect={(sel) => { setComposerSelection(sel); setComposerOpen(true); }} />
 
         <FindYourPeopleSheet />
 
@@ -274,7 +265,7 @@ function FeedPage() {
         </div>
       </div>
 
-      <CreatePostModal open={composerOpen} intent={composerIntent} onClose={() => setComposerOpen(false)} onCreate={addPost} />
+      <CreatePostModal open={composerOpen} selection={composerSelection} onClose={() => setComposerOpen(false)} onCreate={addPost} />
     </AppLayout>
   );
 }

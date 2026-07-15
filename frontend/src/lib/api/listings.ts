@@ -120,7 +120,6 @@ export interface CatalogParams {
   subcategoryName?: string;
   priceMin?: number;
   priceMax?: number;
-  conditions?: string[];
   deliveries?: string[];
   listingStatus?: string;
   sort?: "new" | "cheap" | "expensive" | "popular";

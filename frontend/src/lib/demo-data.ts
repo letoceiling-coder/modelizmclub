@@ -107,11 +107,13 @@ export interface DemoFeedResult {
 
 export function demoFeed(opts?: {
   filter?: string;
+  categoryName?: string;
   page?: number;
   perPage?: number;
 }): DemoFeedResult {
   let list = mockPosts.slice();
   if (opts?.filter === "following") list = list.filter((p) => p.isFollowing);
+  if (opts?.filter === "category" && opts.categoryName) list = list.filter((p) => p.category === opts.categoryName);
   const perPage = opts?.perPage ?? 20;
   const page = opts?.page ?? 1;
   const start = (page - 1) * perPage;
@@ -183,10 +185,6 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
 
   if (params.priceMax && params.priceMax < 100000) {
     result = result.filter((a) => a.price <= params.priceMax!);
-  }
-
-  if (params.conditions && params.conditions.length > 0) {
-    result = result.filter((a) => a.condition && params.conditions!.includes(a.condition));
   }
 
   if (params.deliveries && params.deliveries.length > 0) {
@@ -667,4 +665,34 @@ export function demoDeleteVideo(id: ID): void {
 export function demoSetVideoFeatured(id: ID, on: boolean): void {
   const v = [...sessionVideos, ...mockVideos].find((x) => x.id === id);
   if (v) v.isFeatured = on;
+}
+
+// ---- Entity creation requests (Channel / Community) — demo ----
+import type { EntityRequest, RequestStatus, CommunityCategoryOption } from "@/lib/api/entity-requests";
+
+let demoRequestsList: EntityRequest[] = [
+  { id: "req-1", kind: "community", proposedName: "RC-моделисты Краснодара", description: "Хотим отдельное сообщество по нашему городу, чтобы не засорять общий чат Автомоделей.", category: "Автомодели", status: "pending", createdAt: "2026-07-13T10:00:00Z", applicant: { id: "u2", name: "Сергей ДВС", slug: "u2" } },
+  { id: "req-2", kind: "channel", proposedName: "Мастерская стендовых моделей", description: "Канал про сборку и покраску стендовых моделей.", category: "Стендовые модели", status: "pending", createdAt: "2026-07-13T12:30:00Z", applicant: { id: "u3", name: "Андрей Самолёты", slug: "u3" } },
+];
+
+export function demoEntityRequests(status?: RequestStatus): EntityRequest[] {
+  return status ? demoRequestsList.filter((r) => r.status === status) : demoRequestsList;
+}
+
+export function demoMyEntityRequests(): EntityRequest[] {
+  return [];
+}
+
+export function demoDecideEntityRequest(id: string): void {
+  demoRequestsList = demoRequestsList.filter((r) => r.id !== id);
+}
+
+export function demoCommunityCategories(): CommunityCategoryOption[] {
+  return [
+    { id: 1, name: "Автомодели", slug: "avtomodeli" },
+    { id: 2, name: "Самолёты", slug: "samolyoty" },
+    { id: 3, name: "Стендовые модели", slug: "stendovye-modeli" },
+    { id: 4, name: "Квадрокоптеры", slug: "kvadrokoptery" },
+    { id: 5, name: "Корабли", slug: "korabli" },
+  ];
 }

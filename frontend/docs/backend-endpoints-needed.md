@@ -970,10 +970,17 @@ Frontend added a `/settings/*` personal cabinet with working demo UI (localStora
 - Frontend: `settings.rating.tsx` (currently `mockMyRating` / `mockMyReviews`).
 
 ### 24.7 История просмотров (server-side personalization)
-`GET /me/view-history?per_page=N` → `{ "data": [{ "id": string, "kind": "ad"|"profile"|"review", "title": string, "thumb": string|null, "viewed_at": ISO8601 }] }`
-Optionally `POST /me/view-history` `{ "id", "kind" }` to record a view server-side (currently recorded client-side via `lib/view-history.ts` on `/ads/$id` and `/reviews/$id` only).
+`GET /me/view-history?per_page=N` → `{ "data": [{ "id": string, "kind": "ad"|"profile"|"review"|"community", "title": string, "thumb": string|null, "viewed_at": ISO8601 }] }`
+Optionally `POST /me/view-history` `{ "id", "kind" }` to record a view server-side (currently recorded client-side via `lib/view-history.ts` on `/ads/$id`, `/reviews/$id`, `/user/$id` и `/communities/$id`).
 - Auth: required.
 - Frontend: `settings.history.tsx` (currently localStorage `modelizm_view_history`).
+- **ОБНОВЛЕНО 2026-07-14 (mobile-search-overlay):** `kind` расширен значением
+  `"community"`, и просмотры профилей/сообществ теперь пишутся клиентом
+  (раньше только ad/review). Клиентский `view-history-api.ts`
+  (`ApiViewHistoryRow.kind`) при реализации серверной ручки нужно расширить
+  до тех же 4 значений — сейчас POST community/profile-просмотра
+  fire-and-forget и молча no-op'ит (try/catch), пользовательского сбоя нет,
+  но серверная персонализация их не увидит, пока не реализовано.
 
 ### 24.8 Обложка профиля
 `PATCH /users/me` already exists; extend it to accept `cover_media_id: string | null` (alongside the existing `avatar_media_id`). `MediaPurpose` gains `"cover"` for `POST /media` uploads.
@@ -1369,3 +1376,182 @@ _Историческая спецификация:_
 - **От бэка ничего не требуется**, если только корневой причиной не окажется
   поле, которое сервер отдаёт в непредсказуемом порядке/формате (тогда заведём
   отдельный пункт выше). На текущий момент — чисто клиентский рендер.
+
+### CORS на neeklo-api.modelizmclub.ru не пускал свой же фронтенд — исправлено 2026-07-13
+
+- **Симптом:** любой реальный (не demo-mode) запрос со стороны
+  `https://neeklo.modelizmclub.ru` к `https://neeklo-api.modelizmclub.ru`
+  падал в браузере с `CORS policy: No 'Access-Control-Allow-Origin' header`
+  — включая `POST /auth/login`, то есть реальный логин был физически
+  невозможен на этом стенде до фикса.
+- **Причина:** в `backend/.env` на сервере не было переменной
+  `CORS_ALLOWED_ORIGINS` вовсе, поэтому действовал дефолт из
+  `config/cors.php` — список из **продовых** доменов
+  (`modelizmclub.ru`, `www.modelizmclub.ru`, `localhost:3000`), без
+  собственного домена стенда (`neeklo.modelizmclub.ru`).
+- **Исправлено:** по явному разрешению пользователя (2026-07-13) добавлена
+  строка в `/var/www/modelizmclub-neeklo/backend/.env` (бэкап предыдущей
+  версии файла сохранён рядом, `.env.bak-<timestamp>`):
+  ```
+  CORS_ALLOWED_ORIGINS=https://neeklo.modelizmclub.ru,https://modelizmclub.ru,https://www.modelizmclub.ru,http://localhost:3000,http://127.0.0.1:3000
+  ```
+  плюс `php artisan config:clear && config:cache` и `systemctl reload php8.3-fpm`.
+- **Подтверждено:** `POST /auth/login` → `200` (было заблокировано браузером
+  до ответа сервера), реальный логин через сид-аккаунт
+  `demo@modelizmclub.ru` проходит целиком.
+- **Это правка только для стенда neeklo** — прод (`api.modelizmclub.ru`) не
+  затронут (там своя `.env`, свой CORS-конфиг, ни разу не трогали). Если у
+  других demo/staging-стендов та же проблема — тот же фикс применим.
+
+### Композер поста в ленте никогда не отправлял запрос на бэкенд — исправлено 2026-07-13
+
+- **Симптом (репортнут пользователем):** при добавлении фото к посту в ленте
+  публикация «работала» — пост появлялся в UI, — но при обновлении страницы
+  исчезал бесследно.
+- **Причина (фронт, не бэк):** `feed.tsx`'s `addPost()` был полностью
+  клиентским фейком — конструировал `Post`-объект локально (с `blob:`-URL
+  вместо реального фото) и пушил в `useState`, ни разу не вызывая
+  `uploadMedia()`/`createPost()`. Подтверждено живым Network-трейсом на
+  `neeklo.modelizmclub.ru` в реальном (не demo) режиме: после выбора фото и
+  нажатия «Опубликовать» — **ноль** сетевых запросов к `/media` или
+  `/posts`.
+- **Отдельно:** `CreatePostForm.tsx` был самописным степ-пикером фото (свой
+  грид на 5 фото, без drag-reorder), разошедшимся с рабочим паттерном
+  `ImageUploadGrid` (объявления/каналы).
+- **Исправлено:** `CreatePostForm` переведён на `ImageUploadGrid` (тот же
+  компонент, что и в объявлениях/каналах); `publish()` теперь реально
+  вызывает `uploadMedia()` → `createPost()` → `publishPost()` (последнего
+  враппера не существовало вовсе — `createPost()` создаёт только Draft).
+  Заодно исправлен неверный тип `CreatePostInput.mediaIds` (был
+  `number[]`, должен быть `string[]` — бэк валидирует UUID).
+- **Подтверждено живым Network-трейсом после фикса:**
+  `POST /media → 201`, `POST /posts → 201`,
+  `POST /posts/{uuid}/publish → 200`; пост с реальным фото виден в ленте
+  и **переживает полную перезагрузку страницы** (проверено).
+
+### Новый feature-флаг `escrow_enabled` (бейдж «Безопасная сделка») — 2026-07-14
+
+- **Контекст:** бейдж «Безопасная сделка: оплата при получении или через
+  эскроу» на странице объявления (`AdActionPanel`) честен только когда
+  ЮKassa Безопасная сделка реально подключена на бэке. Поэтому бейдж
+  спрятан за новым site-wide флагом `escrowEnabled`, **по умолчанию OFF**
+  (тот же серверный паттерн, что у `market_enabled`, см. секцию №17).
+- **Фронт уже готов (этот коммит):**
+  - `featureFlags.ts` — добавлен ключ `escrowEnabled` (default `false`),
+    читается из `GET /public/feature-flags` → `data.escrow_enabled`.
+  - `AdActionPanel.tsx` — бейдж рендерится только при
+    `useFeatureFlag("escrowEnabled") === true`.
+  - `/admin` → Настройки → блок «Бейдж «Безопасная сделка»» — тоггл,
+    пишет `PATCH /admin/settings` ключ `feature.escrow_enabled`
+    (`{ value: { enabled: bool }, group: "feature" }`).
+- **Что нужно на бэкенде (чтобы тоггл реально работал для всех без
+  деплоя):**
+  1. Добавить `escrow_enabled` в white-list ответа
+     `GET /public/feature-flags` → `{ "data": { ..., "escrow_enabled": false } }`,
+     значение из той же таблицы `AdminSetting` (`feature.escrow_enabled`).
+  2. Разрешить `PATCH /admin/settings` принимать ключ
+     `feature.escrow_enabled` (как уже принимает `feature.market_enabled`).
+- **Пока бэк не отдаёт ключ** — фронт безопасно дефолтит в `false`
+  (`Boolean(undefined)`), бейдж скрыт у всех. Никакого фолза на проде.
+- **Когда Игорь подключит ЮKassa Безопасную сделку** — включает тоггл в
+  `/admin`, бейдж появляется у всех без нового деплоя фронта.
+
+## 26. Иконки — загрузка кастомных SVG, санитизация, централизованная перекраска (админка, фаза 2b)
+
+**Спека:** `docs/superpowers/specs/2026-07-14-admin-icons-svg-recolor-design.md`.
+
+Админ загружает собственные SVG-иконки, назначает их на именованные UI-слоты и
+централизованно перекрашивает через 9 токенов UI Kit 2.0, с публикацией «для
+всех» + предпросмотром + откатом. Модель `icon_overrides` переиспользует
+`SystemSetting` + `PUT /admin/settings` + audit log (как Design System
+colors/fonts), новых write-эндпоинтов для карты назначений не нужно.
+
+### Что нужно на бэкенде
+
+| # | Что | Тип | Детали |
+|---|-----|-----|--------|
+| 1 | Модель+миграция `IconAsset` | новое | `id, name (string), svg (text — санитизированная монохромная разметка), source (enum: upload), uploaded_by (fk users), created_at, deleted_at (nullable — мягкое удаление)` |
+| 2 | **Санитизация + токенизация SVG при загрузке** | новое, **критично (XSS)** | whitelist тегов (`svg,g,path,circle,ellipse,rect,line,polyline,polygon,defs,title,desc`) и атрибутов; вырезать `<script>`, любые `on*`, `<foreignObject>`, `<style>`, внешние `href/xlink:href`, `<use>`/`<image>` на внешние ресурсы, `javascript:`/`data:` URI; убрать конкретные `fill/stroke` → `currentColor`; отклонить многоцветные (после нормализации остаётся >1 визуального цвета / есть градиенты) с валидационной ошибкой |
+| 3 | `POST /media` `purpose = icon` | расширение существующего | принять `icon`, прогнать файл через санитайзер из п.2, создать `IconAsset` и **вернуть его целиком в теле ответа** — `{ "data": { "id", "name", "svg" (санитизированная+токенизированная разметка), ... } }`. Фронт читает `IconAsset` прямо из этого ответа и **не делает никакого follow-up `GET`** (отдельного `GET /admin/icon-assets/{id}` не существует и не нужен — см. п.4/5) |
+| 4 | `GET /admin/icon-assets` | новое, admin-only | список библиотеки иконок (не удалённых) для админки. Это единственный `GET`-эндпоинт для чтения `IconAsset` — постранично/списком, **без** отдельного `GET /admin/icon-assets/{id}` для одного элемента |
+| 5 | `DELETE /admin/icon-assets/{id}` | новое, admin-only | мягкое удаление (проставить `deleted_at`); в фазе 3 станет корзиной медиаменеджера |
+| 6 | `GET /icon-overrides` | новое, **публичное (без авторизации)** | по образцу `GET /feature-flags` / планируемого `GET /design-system`; отдаёт карту `{ "<slotKey>": { "assetId": "...", "svg": "<sanitized>", "token": "<tokenKey>" }, ... }` (SVG инлайном, чтобы фронт не делал N запросов; `assetId` сохраняется для откатов/повторной публикации). Если `SystemSetting` `icon_overrides` не создан — отдать `{}` (не 404, не ошибка) |
+
+### Что уже есть и переиспользуется без изменений
+
+- `SystemSetting` (`key='icon_overrides'`, `group='design'`,
+  `value = { slotKey: { assetId, svg, token } }` — SVG хранится инлайном в
+  самой настройке, а не только `assetId`/`token`, чтобы `GET /icon-overrides`
+  отдавал готовую разметку одним запросом), `PUT /admin/settings` для
+  публикации, `AuditService::log()` для истории, `GET /admin/audit-logs` для
+  отката (читать последнюю запись с `keys` содержащим `icon_overrides`,
+  публиковать `old_values`).
+
+### Токены цвета (строго 9, произвольный hex запрещён)
+
+`accent | foreground | success | warning | info | danger | commercial |
+neutral | foreground-70` (источник — `frontend/src/styles.css` `:root`).
+
+### Замечания по безопасности
+
+- Санитизация обязательно **на сервере** — клиентская проверка только UX-подсказка,
+  не граница безопасности.
+- Фронт инлайнит только уже-санитизированную сервером разметку и проверяет, что
+  корневой узел — `<svg>`.
+
+### До появления эндпоинтов
+
+Фронт работает целиком на дефолтных lucide-иконках (fallback гарантирован):
+`GET /icon-overrides` отсутствует/`{}` → каждый слот рендерит свою
+`defaultLucide`. Ничего не пропадает и не ломается.
+
+---
+
+## 27. Заявки на создание Канала / Сообщества (frontend готов, бэкенд нужен)
+
+Фронт (форма заявки, CTA «Хочу свой», настройки, admin-обзор «Заявки»)
+реализован demo-first. Реальный режим включится сам при готовом бэке.
+Аудит: `docs/communities-channels-ownership-audit.md`.
+
+### 🔴 CRITICAL — approve → создать сущность → назначить владельца
+Без этого фича не работает даже при готовом фронте.
+
+- **Сообщество:** одобрение `CommunityApplication` должно СОЗДАВАТЬ `Community`
+  (`created_by = applicant`, `status = active`, `slug = CommunityService::uniqueSlug(name)`)
+  и attach заявителя ВЛАДЕЛЬЦЕМ в `community_members`. Для этого добавить
+  значение `owner` в enum `App\Enums\CommunityMemberRole` (сейчас только
+  `member`/`moderator`). Текущий `ModerationService::approve` для `Community`
+  лишь флипает `status` существующей записи и никого не назначает — разрыв.
+- **Канал:** одобрение должно СОЗДАВАТЬ `Channel` с `owner_id = applicant`.
+
+### 🔴 CRITICAL — admin-стек обзора заявок
+- **Сообщество:** `GET /admin/communities/applications?status=` (список),
+  `POST /admin/communities/applications/{id}/approve`,
+  `POST /admin/communities/applications/{id}/reject` (пишет
+  `moderator_comment`, `reviewed_by`, `reviewed_at` — поля модели уже есть).
+  Сейчас `community_applications` пишется через `POST /communities/apply`, но
+  **никто не читает** (нет роута/контроллера).
+- **Канал:** весь стек новый — таблица+модель `channel_applications` (по
+  образцу `community_applications`), `POST /channels/apply` (+guard «уже
+  pending»), `GET /admin/channels/applications`,
+  `POST /admin/channels/applications/{id}/{approve|reject}`.
+
+### Контракт ответа для фронта (все list-эндпоинты)
+`GET .../applications` и `GET /me/entity-requests` должны вернуть
+`{ data: EntityRequest[] }`, где `EntityRequest`:
+`{ id: string, kind: "channel"|"community", proposedName, description|null,
+category (имя категории строкой), status: "pending"|"approved"|"rejected",
+createdAt (ISO), applicant: { id, name, slug? } }`.
+
+### 🟡 Прочее
+- Подключить `applyCommunity` фронта к **существующему** `POST /communities/apply`
+  (guard «уже pending» бэк уже отдаёт `422` с ключом `application`).
+- `GET /me/entity-requests` — свои заявки со статусом (для «на рассмотрении»);
+  может агрегировать community+channel.
+- «Мои сообщества, где я владелец» — для «Моё сообщество» в настройках и для
+  скрытия CTA у владельца (сейчас владение сообществом на фронте неопределимо:
+  роли owner нет, `created_by` не отдаётся в `CommunityResource`).
+
+### 🟢 Уже существует
+- `GET /categories/communities` (`CommunityCategoryTreeController`) — для пикера
+  категорий в форме сообщества; нужен только фронт-фетч (сделан в §A фронта).

@@ -18,7 +18,6 @@ import * as Icons from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { userById } from "@/lib/mock";
 import type { Category, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -185,7 +184,7 @@ function buildMembers(
   c: Category,
   subId: string,
   pool: User[],
-): Array<User & { role?: string; isOnline: boolean }> {
+): Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> {
   const seed = seedFrom(c.id + subId);
   return pool.map((u, i) => ({
     ...u,
@@ -297,9 +296,6 @@ function SubcategoryRoomPage() {
               </p>
             </div>
           </button>
-          <div className="ml-auto shrink-0">
-            <LanguageSwitcher />
-          </div>
         </header>
 
         {/* Tabs */}
@@ -744,10 +740,12 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                   <Link
                     to="/messenger"
                     search={{ chat: u.id }}
-                    className="mt-[2px] text-[10.5px] hover:underline"
+                    aria-label="Написать в личку"
+                    title="Написать в личку"
+                    className="mt-[2px] grid h-[22px] w-[22px] place-items-center rounded-full transition-colors hover:bg-[var(--accent-soft)]"
                     style={{ color: "var(--accent)" }}
                   >
-                    Написать в личку
+                    <MessageCircle size={13} />
                   </Link>
                 )}
               </div>
@@ -920,7 +918,7 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
 
 /* --------------------------- MEMBERS TAB --------------------------- */
 
-function MembersTab({ members }: { members: Array<User & { role?: string; isOnline: boolean }> }) {
+function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> }) {
   const sorted = [...members].sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
   return (
     <div className="h-full overflow-y-auto px-[10px] py-[10px]">

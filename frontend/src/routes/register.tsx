@@ -5,11 +5,15 @@ import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+
+// Letters (Cyrillic + Latin), space, hyphen, apostrophe (straight or curly)
+const NAME_PATTERN = /^[A-Za-zА-ЯЁа-яё\s'’-]+$/;
 
 export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>): { ref?: string } => ({
@@ -25,10 +29,13 @@ function RegisterPage() {
   const [agree, setAgree] = useState(true);
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [password, setPassword] = useState("");
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFieldError(false);
+    setNameError(false);
     if (!agree) return toast.error("Подтвердите согласие с правилами");
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
@@ -36,6 +43,10 @@ function RegisterPage() {
     const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
     const phone = String(form.get("phone") ?? "").trim();
+    if (!NAME_PATTERN.test(name) || name.length > 120) {
+      setNameError(true);
+      return toast.error("Имя может содержать только буквы, пробел, дефис и апостроф (до 120 символов)");
+    }
     if (password !== passwordConfirmation) {
       setFieldError(true);
       return toast.error("Пароли не совпадают");
@@ -144,13 +155,29 @@ function RegisterPage() {
         </div>
       )}
       <form onSubmit={submit} className="space-y-[12px]">
-        <Input required name="name" placeholder="Имя и фамилия" />
+        <Input
+          required
+          name="name"
+          placeholder="Имя и фамилия"
+          maxLength={120}
+          error={nameError}
+          onChange={() => nameError && setNameError(false)}
+        />
         <Input required name="email" type="email" placeholder="Email" />
         {/* Not sent to /auth/register yet — backend RegisterRequest has no phone
             field (see backend-endpoints-needed.md). Collected for UX now so the
             field/mask exist; wire it into submit() once the backend adds support. */}
         <PhoneInput name="phone" />
-        <PasswordInput required name="password" placeholder="Пароль (от 8 символов)" minLength={8} error={fieldError} />
+        <PasswordInput
+          required
+          name="password"
+          placeholder="Пароль (от 8 символов)"
+          minLength={8}
+          error={fieldError}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <PasswordStrengthMeter password={password} />
         <PasswordInput required name="password_confirmation" placeholder="Повторите пароль" minLength={8} error={fieldError} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />

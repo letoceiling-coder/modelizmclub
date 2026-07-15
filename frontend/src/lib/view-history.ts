@@ -2,7 +2,7 @@
 
 export interface ViewHistoryItem {
   id: string;
-  kind: "ad" | "profile" | "review";
+  kind: "ad" | "profile" | "review" | "community";
   title: string;
   thumb?: string;
   viewedAt: string;

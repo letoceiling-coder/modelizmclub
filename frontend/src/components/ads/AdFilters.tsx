@@ -1,16 +1,9 @@
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, RotateCcw, ChevronDown } from "lucide-react";
+import { X, RotateCcw } from "lucide-react";
 import { useListingCategories } from "@/lib/hooks/useCategories";
-import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { CitySelect } from "@/components/ads/CitySelect";
-import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 
 const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
-// Filter buckets stay coarse (new/used) even though a listing's own
-// `condition` is more granular ("Б/у — отлично" etc, see ads.new.tsx) —
-// buyers filter broadly, sellers describe precisely.
-const CONDITIONS = ["Новое", "Б/у"] as const;
 
 export interface FiltersState {
   category: string;            // "Все" | category name
@@ -18,7 +11,6 @@ export interface FiltersState {
   status: string;              // "Все" | "Продаю" | "Куплю" | "Обменяю"
   city: string;                // free text
   cityId?: number;
-  conditions: string[];
   deliveries: string[];
   priceMin: number;
   priceMax: number;
@@ -30,7 +22,6 @@ export const DEFAULT_FILTERS: FiltersState = {
   status: "Все",
   city: "",
   cityId: undefined,
-  conditions: [],
   deliveries: [],
   priceMin: 0,
   priceMax: 100000,
@@ -46,11 +37,6 @@ function Body({ value, onChange, onReset }: Props) {
   const categories = useListingCategories();
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
-  const toggle = <K extends "conditions" | "deliveries">(k: K, item: string) => {
-    const arr = value[k] as string[];
-    set(k, (arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item]) as FiltersState[K]);
-  };
-  const [conditionsOpen, setConditionsOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -116,45 +102,6 @@ function Body({ value, onChange, onReset }: Props) {
           onChange={(name, id) => onChange({ ...value, city: name, cityId: id })}
           placeholder="Любой город"
         />
-      </Group>
-
-      <div className="flex flex-col gap-[10px]">
-        <button
-          type="button"
-          onClick={() => setConditionsOpen((v) => !v)}
-          aria-expanded={conditionsOpen}
-          className="flex items-center justify-between"
-          style={{
-            background: "var(--background-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-input)",
-            height: 40,
-            padding: "0 12px",
-          }}
-        >
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
-            Состояние{value.conditions.length > 0 ? ` · ${value.conditions.length}` : ""}
-          </span>
-          <ChevronDown
-            size={16}
-            style={{ color: "var(--foreground-50)", transform: conditionsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-          />
-        </button>
-        {conditionsOpen && (
-          <div className="flex flex-wrap gap-[6px] pl-[2px]">
-            {CONDITIONS.map((c) => (
-              <Checkbox key={c} checked={value.conditions.includes(c)} onChange={() => toggle("conditions", c)} label={c} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Group title="Доставка">
-        <div className="flex flex-wrap gap-[6px]">
-          {DELIVERY_METHODS.map((m) => (
-            <Checkbox key={m.id} checked={value.deliveries.includes(m.label)} onChange={() => toggle("deliveries", m.label)} label={m.label} />
-          ))}
-        </div>
       </Group>
 
       <button

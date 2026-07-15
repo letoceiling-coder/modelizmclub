@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),
@@ -711,6 +712,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -721,7 +723,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
     return () => document.removeEventListener("mousedown", onClick);
   }, [menuOpen]);
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -729,8 +731,14 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
       toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
       return;
     }
+    setPendingFile(file);
+  };
+
+  const uploadCropped = async (blob: Blob) => {
+    setPendingFile(null);
     setUploading(true);
     try {
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
       const media = await uploadMedia(file, "avatar");
       const url = media.url ?? "";
       setCurrentUser({ ...currentUser, avatar: url });
@@ -772,15 +780,18 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
       {editable && (
         <>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+          {/* Always-visible corner badge, not a hover-only overlay — a
+              hover reveal is undiscoverable on touch devices, which have no
+              hover state at all. */}
           <button
             type="button"
             aria-label="Изменить фото"
             onClick={() => setMenuOpen((v) => !v)}
             disabled={uploading}
-            className="absolute inset-0 grid place-items-center rounded-full opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-            style={{ background: "rgba(0,0,0,0.45)", color: "#fff", border: "4px solid transparent" }}
+            className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors md:h-[36px] md:w-[36px]"
+            style={{ background: "var(--accent)", color: "#fff", borderColor: "var(--background)" }}
           >
-            <Camera size={22} />
+            <Camera size={15} />
           </button>
 
           {menuOpen && (
@@ -814,6 +825,15 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
           )}
         </>
       )}
+      <ImageCropDialog
+        file={pendingFile}
+        aspect={1}
+        outputWidth={480}
+        outputHeight={480}
+        title="Обрезка фото профиля"
+        onCancel={() => setPendingFile(null)}
+        onCropped={uploadCropped}
+      />
     </div>
   );
 }
@@ -824,9 +844,10 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   const currentUser = useStore(selectors.currentUser);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const showImg = Boolean(src && src.trim()) && !broken;
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -834,8 +855,14 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
       toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
       return;
     }
+    setPendingFile(file);
+  };
+
+  const uploadCropped = async (blob: Blob) => {
+    setPendingFile(null);
     setUploading(true);
     try {
+      const file = new File([blob], "cover.jpg", { type: "image/jpeg" });
       const media = await uploadMedia(file, "cover");
       const url = media.url ?? "";
       setCurrentUser({ ...currentUser, coverImage: url });
@@ -858,18 +885,29 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
       {editable && (
         <>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+          {/* Always visible — same reasoning as the avatar badge above,
+              a hover-only reveal never shows up on touch. */}
           <button
             type="button"
             aria-label="Изменить обложку"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium transition-colors hover:brightness-110"
             style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
           >
-            <Camera size={14} /> Обложка
+            <Camera size={14} /> Изменить обложку
           </button>
         </>
       )}
+      <ImageCropDialog
+        file={pendingFile}
+        aspect={3.5}
+        outputWidth={1400}
+        outputHeight={400}
+        title="Обрезка обложки профиля"
+        onCancel={() => setPendingFile(null)}
+        onCropped={uploadCropped}
+      />
     </div>
   );
 }

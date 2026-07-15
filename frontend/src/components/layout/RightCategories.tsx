@@ -3,17 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { ChevronDown, MessageCircle, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
-import * as Icons from "lucide-react";
 import type { Category } from "@/lib/mock";
 import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-
-function CategoryIcon({ name, className }: { name: string; className?: string }) {
-  const Icon =
-    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] ??
-    Icons.Hash;
-  return <Icon className={className} />;
-}
+import { CategoryIcon } from "@/components/ui/Icon";
 
 export function RightCategories() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -92,7 +85,7 @@ export function RightCategories() {
                       className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
                       style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                     >
-                      <CategoryIcon name={c.icon} className="h-[14px] w-[14px]" />
+                      <CategoryIcon categoryId={c.id} name={c.icon} className="h-[14px] w-[14px]" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span

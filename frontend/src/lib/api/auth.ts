@@ -49,6 +49,16 @@ export function mapApiUser(u: ApiUser): User {
     email: u.email ?? undefined,
     bio: u.profile?.bio ?? undefined,
     isAdmin: u.role === "admin",
+    phone: u.phone ?? undefined,
+    profile: u.profile
+      ? {
+          vk_url: u.profile.vk_url ?? undefined,
+          telegram_url: u.profile.telegram_url ?? undefined,
+          website_url: u.profile.website_url ?? undefined,
+        }
+      : undefined,
+    email_verified: u.email_verified,
+    role: (u.role as User["role"]) ?? undefined,
   };
 }
 

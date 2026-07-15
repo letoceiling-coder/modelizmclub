@@ -1,21 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Plus, X, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, X, Newspaper, Star, Megaphone, Tag } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
-import type { PostIntent } from "@/components/feed/CreatePostTrigger";
+import { isDemoMode } from "@/lib/demo-mode";
+import { uploadMedia } from "@/lib/api/media";
+import { createPost, publishPost } from "@/lib/api/feed";
+import { createChannelPost, POST_KIND_LABEL, type PostKind } from "@/lib/channels";
+import type { Post } from "@/lib/mock";
+import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import { VideoUploadField } from "@/components/reviews/VideoUploadField";
+import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
 
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = 10;
 
-export interface CreatePostPayload {
-  title: string;
-  text: string;
-  category: string;
-  subcategory?: string;
-  photos: string[];
-}
-
-type Step = "photos" | "details";
+const POST_KIND_ICON: Record<PostKind, typeof Newspaper> = {
+  news: Newspaper,
+  review: Star,
+  announce: Megaphone,
+  promo: Tag,
+};
 
 /** Compact chromed <select> chip for the composer — quieter and auto-width,
  *  unlike the full-width NativeSelect used in forms. */
@@ -50,20 +54,32 @@ function ChipSelect({
   );
 }
 
-export function CreatePostForm({ onCreate, onClose, intent }: {
-  onCreate?: (p: CreatePostPayload) => void;
+export function CreatePostForm({ onCreate, onClose, selection }: {
+  /** Fired once the post is actually created (and, outside demo mode,
+   *  published) on the backend — the real Post the API returned, not a
+   *  locally-fabricated stand-in. Only called for selection.source ===
+   *  "profile" — see publish() below for the channel branch. */
+  onCreate?: (p: Post) => void;
   onClose?: () => void;
-  intent?: PostIntent;
+  selection?: ComposerSelection;
 }) {
+  // selection is only briefly undefined during CreatePostModal's closing
+  // CSS transition (content stays mounted while fading out) — this
+  // fallback is render-only and never affects a real publish, since the
+  // form is unreachable by the user once closing has started.
+  const sel: ComposerSelection = selection ?? { kind: "photo", source: "profile" };
   const categories = usePostCategories();
   const me = useStore(selectors.currentUser);
-  const [step, setStep] = useState<Step>("photos");
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [catId, setCatId] = useState("");
   const [subId, setSubId] = useState<string>("");
+  const [channelKind, setChannelKind] = useState<PostKind>("news");
   const [photos, setPhotos] = useState<string[]>([]);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (!catId && categories.length > 0) {
@@ -72,83 +88,100 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
     }
   }, [categories, catId]);
 
-  // Photo-first: when opened from the camera icon, pop the system gallery
-  // immediately (still within the trigger's user-gesture window).
-  useEffect(() => {
-    if (intent !== "photo") return;
-    const t = setTimeout(() => fileRef.current?.click(), 150);
-    return () => clearTimeout(t);
-  }, [intent]);
-
   const cat = useMemo(() => categories.find((c) => c.id === catId), [categories, catId]);
-  const sub = cat?.subcategories.find((s) => s.id === subId);
 
-  const addPhotos = (files: FileList | null) => {
-    if (!files) return;
-    const slots = MAX_PHOTOS - photos.length;
-    const next = Array.from(files).slice(0, slots).map((f) => URL.createObjectURL(f));
-    setPhotos((p) => [...p, ...next]);
+  const addPhotos = (picked: File[]) => {
+    const room = MAX_PHOTOS - photos.length;
+    const next = picked.slice(0, room);
+    const urls = next.map((f) => URL.createObjectURL(f));
+    setPhotos((p) => [...p, ...urls]);
+    setPhotoFiles((f) => [...f, ...next]);
+  };
+  const removePhoto = (i: number) => {
+    setPhotos((p) => p.filter((_, idx) => idx !== i));
+    setPhotoFiles((f) => f.filter((_, idx) => idx !== i));
+  };
+  const reorderPhotos = (next: string[]) => {
+    setPhotoFiles(next.map((url) => photoFiles[photos.indexOf(url)]));
+    setPhotos(next);
   };
 
-  const removePhoto = (i: number) => setPhotos((p) => p.filter((_, idx) => idx !== i));
-
-  const publish = () => {
-    if (!title.trim()) { toast.error("Введите заголовок"); return; }
+  const publish = async () => {
+    if (sel.source === "profile" && !title.trim()) { toast.error("Введите заголовок"); return; }
     if (!text.trim()) { toast.error("Введите текст публикации"); return; }
-    if (!cat) { toast.error("Выберите категорию"); return; }
-    onCreate?.({ title, text, category: cat.name, subcategory: sub?.name, photos });
-    toast.success("Публикация отправлена на модерацию");
-    onClose?.();
+    if (sel.source === "profile" && !cat) { toast.error("Выберите категорию"); return; }
+    setPublishing(true);
+    try {
+      const mediaIds: string[] = [];
+      if (sel.kind === "photo") {
+        for (const file of photoFiles) {
+          const m = await uploadMedia(file, "post");
+          mediaIds.push(m.uuid);
+        }
+      } else if (videoFile) {
+        const m = await uploadMedia(videoFile, "post_video");
+        mediaIds.push(m.uuid);
+      }
+
+      if (sel.source === "profile") {
+        let post = await createPost({
+          title: title.trim(),
+          body: text.trim(),
+          categoryId: Number(cat!.id),
+          mediaIds,
+        });
+        if (!isDemoMode()) {
+          post = await publishPost(post.id);
+        }
+        onCreate?.(post);
+        toast.success("Публикация отправлена на модерацию");
+      } else {
+        await createChannelPost({
+          channelSlug: sel.channel!.slug,
+          text: text.trim(),
+          kind: channelKind,
+          mediaIds,
+        });
+        toast.success("Пост опубликован в канал");
+        // No onCreate call — createChannelPost only returns a ChannelPost
+        // (channel-scoped view), not the duplicated Post the backend
+        // created server-side. Nothing is locally fabricated or prepended
+        // to the feed here; the real duplicated Post shows up on the next
+        // GET /feed, exactly like today's channel Composer.
+      }
+      onClose?.();
+    } catch {
+      toast.error("Не удалось опубликовать. Попробуйте позже");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => addPhotos(e.target.files)} />
-
-      {/* Header — step-aware: close on step 1, back on step 2. */}
       <header
         className="flex items-center gap-[8px] border-b px-[8px] py-[8px]"
         style={{ borderColor: "var(--border)" }}
       >
         <button
           type="button"
-          onClick={() => (step === "details" ? setStep("photos") : onClose?.())}
-          aria-label={step === "details" ? "Назад" : "Закрыть"}
+          onClick={() => onClose?.()}
+          aria-label="Закрыть"
           className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-70)" }}
         >
-          {step === "details" ? <ArrowLeft className="h-[20px] w-[20px]" /> : <X className="h-[20px] w-[20px]" />}
+          <X className="h-[20px] w-[20px]" />
         </button>
         <h2
           className="min-w-0 flex-1 truncate text-[16px] font-semibold"
           style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
         >
-          {step === "photos" ? "Фото публикации" : "Детали публикации"}
+          Новый пост
         </h2>
       </header>
 
-      {step === "photos" ? (
-        <PhotosStep photos={photos} onPick={() => fileRef.current?.click()} onRemove={removePhoto} />
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[16px] pt-[14px]">
-          {photos.length > 0 && (
-            <div className="flex gap-[8px] overflow-x-auto pb-[2px] no-scrollbar">
-              {photos.map((src, i) => (
-                <div key={i} className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-[var(--r-card-sm)] border" style={{ borderColor: "var(--border)" }}>
-                  <img src={src} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    aria-label="Убрать фото"
-                    onClick={() => removePhoto(i)}
-                    className="absolute right-[3px] top-[3px] grid h-[18px] w-[18px] place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
-                  >
-                    <X className="h-[11px] w-[11px]" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
+      <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[16px] pt-[14px]">
+        {sel.source === "profile" && (
           <div className="flex items-start gap-[12px]">
             <img src={me.avatar} alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
             <input
@@ -159,15 +192,21 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
               style={{ color: "var(--foreground)" }}
             />
           </div>
+        )}
 
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Расскажите о проекте — опыт, детали сборки, впечатления…"
-            className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
-            style={{ color: "var(--foreground)" }}
-          />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={
+            sel.source === "channel"
+              ? `Текст ${POST_KIND_LABEL[channelKind].toLowerCase()}а для подписчиков…`
+              : "Расскажите о проекте — опыт, детали сборки, впечатления…"
+          }
+          className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
+          style={{ color: "var(--foreground)" }}
+        />
 
+        {sel.source === "profile" ? (
           <div className="flex flex-col gap-[8px]">
             <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
               Направление и масштаб
@@ -192,96 +231,74 @@ export function CreatePostForm({ onCreate, onClose, intent }: {
               />
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-wrap gap-[6px]">
+            {(Object.keys(POST_KIND_LABEL) as PostKind[]).map((k) => {
+              const active = channelKind === k;
+              const Icon = POST_KIND_ICON[k];
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setChannelKind(k)}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-semibold transition-colors"
+                  style={{
+                    padding: "7px 11px",
+                    borderRadius: 9,
+                    background: active ? "var(--accent-soft)" : "var(--background-surface)",
+                    color: active ? "var(--accent)" : "var(--foreground-70)",
+                    border: active ? "1px solid color-mix(in oklab, var(--accent) 35%, transparent)" : "1px solid transparent",
+                  }}
+                >
+                  <Icon size={12} /> {POST_KIND_LABEL[k]}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {/* Footer CTA — full-width, step-aware. */}
+        {sel.kind === "photo" ? (
+          <ImageUploadGrid
+            photos={photos}
+            max={MAX_PHOTOS}
+            onAdd={addPhotos}
+            onRemove={removePhoto}
+            onMakeMain={() => {}}
+            onReorder={reorderPhotos}
+            autoOpen
+          />
+        ) : (
+          <VideoUploadField
+            fileUrl={videoUrl}
+            accept="video/*"
+            label="Добавить видео"
+            onPick={(file) => {
+              setVideoFile(file);
+              setVideoUrl(URL.createObjectURL(file));
+            }}
+            onClear={() => {
+              setVideoFile(null);
+              setVideoUrl(null);
+            }}
+            autoOpen
+          />
+        )}
+      </div>
+
       <div
         className="shrink-0 border-t px-[16px] pt-[10px]"
         style={{ borderColor: "var(--border)", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
       >
-        {step === "photos" ? (
-          <button
-            type="button"
-            onClick={() => setStep("details")}
-            className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-          >
-            {photos.length > 0 ? "Далее" : "Далее без фото"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={publish}
-            className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-          >
-            Опубликовать
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PhotosStep({ photos, onPick, onRemove }: {
-  photos: string[];
-  onPick: () => void;
-  onRemove: (i: number) => void;
-}) {
-  if (photos.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-[16px] py-[24px]">
         <button
           type="button"
-          onClick={onPick}
-          className="flex w-full max-w-[320px] flex-col items-center gap-[12px] rounded-[var(--r-card)] border-2 border-dashed px-[20px] py-[36px] transition-colors hover:bg-[var(--background-surface)]"
-          style={{ borderColor: "var(--border)" }}
+          onClick={publish}
+          disabled={publishing}
+          className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
         >
-          <span
-            className="grid h-[56px] w-[56px] place-items-center rounded-full"
-            style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-          >
-            <ImagePlus className="h-[26px] w-[26px]" />
-          </span>
-          <span className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-            Выбрать из галереи
-          </span>
-          <span className="text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            JPG или PNG, до {MAX_PHOTOS} фото. Фото можно и не добавлять.
-          </span>
+          {publishing ? "Публикуем…" : "Опубликовать"}
         </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-[16px] pt-[16px]">
-      <div className="grid grid-cols-3 gap-[8px]">
-        {photos.map((src, i) => (
-          <div key={i} className="relative aspect-square overflow-hidden rounded-[var(--r-card-sm)] border" style={{ borderColor: "var(--border)" }}>
-            <img src={src} alt="" className="h-full w-full object-cover" />
-            <button
-              type="button"
-              aria-label="Убрать фото"
-              onClick={() => onRemove(i)}
-              className="absolute right-[5px] top-[5px] grid h-[24px] w-[24px] place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
-            >
-              <X className="h-[13px] w-[13px]" />
-            </button>
-          </div>
-        ))}
-        {photos.length < MAX_PHOTOS && (
-          <button
-            type="button"
-            onClick={onPick}
-            aria-label="Добавить ещё фото"
-            className="grid aspect-square place-items-center rounded-[var(--r-card-sm)] border-2 border-dashed transition-colors hover:bg-[var(--background-surface)]"
-            style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}
-          >
-            <Plus className="h-[24px] w-[24px]" />
-          </button>
-        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
+import { CitySelect } from "@/components/ads/CitySelect";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing } from "@/lib/api/listings";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/ads/new")({
 });
 
 type Status = "Продаю" | "Куплю" | "Обменяю";
-const CONDITIONS: AdCondition[] = ["Новое", "Б/у — отлично", "Б/у — хорошо", "Под восстановление"];
+const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
 const STEPS = ["Фото", "Данные", "Превью"];
 
@@ -51,6 +52,7 @@ interface Form {
   subcategoryId: string;
   condition: AdCondition;
   city: string;
+  cityId?: number;
   contact: string;
   deliveries: string[];
 }
@@ -64,8 +66,9 @@ const initial: Form = {
   price: "",
   categoryId: "",
   subcategoryId: "",
-  condition: "Б/у — отлично",
+  condition: "Б/у",
   city: "",
+  cityId: undefined,
   contact: "",
   deliveries: ["СДЭК"],
 };
@@ -113,8 +116,12 @@ function NewAdPage() {
         const m = await uploadMedia(file, "listing");
         mediaIds.push(m.uuid);
       }
-      let cityId: number | undefined;
-      if (form.city.trim()) {
+      // Prefer the id captured when the user picked a suggestion from
+      // CitySelect's autocomplete; fall back to a best-effort name lookup
+      // only if they typed a city and dismissed the dropdown without
+      // picking (e.g. blurred away), so a valid-looking city still resolves.
+      let cityId: number | undefined = form.cityId;
+      if (!cityId && form.city.trim()) {
         const found = await searchCities(form.city.trim());
         cityId = found[0]?.id;
       }
@@ -363,6 +370,9 @@ function StepData({
           </Field>
           <Field label="Состояние">
             <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)} options={CONDITIONS} />
+            <p className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+              Подробности состояния укажите в описании объявления.
+            </p>
           </Field>
           <Field label="Категория">
             <NativeSelect
@@ -388,17 +398,16 @@ function StepData({
       <Block title="Контакты и доставка">
         <div className="grid gap-[12px] sm:grid-cols-2">
           <Field label="Город" required error={cityErr ? "Укажите город" : undefined}>
-            <div className="relative">
-              <MapPin size={14} className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" style={{ color: "var(--foreground-50)" }} />
-              <Input
-                value={form.city}
-                onChange={(e) => set("city", e.target.value)}
-                onBlur={() => touch("city")}
-                error={cityErr}
-                className="h-11 pl-9"
-                placeholder="Краснодар"
-              />
-            </div>
+            <CitySelect
+              value={form.city}
+              cityId={form.cityId}
+              onChange={(name, id) => {
+                set("city", name);
+                set("cityId", id);
+                touch("city");
+              }}
+              placeholder="Краснодар"
+            />
           </Field>
           <Field label="Контакт" required error={contactErr ? "Укажите телефон" : undefined}>
             <PhoneInput

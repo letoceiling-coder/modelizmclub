@@ -8,7 +8,10 @@ import { setLocale, type Locale } from "@/lib/i18n";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { MobileSearchOverlay } from "@/components/layout/MobileSearchOverlay";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
+import { navSlotKey } from "@/lib/icon-slots";
 import {
   Drawer,
   DrawerContent,
@@ -30,9 +33,11 @@ const LANGS: { code: Locale; native: string; flag: string }[] = [
 export function MobileHeader() {
   const { t } = useTranslation();
   const unread = useUnreadNotifications();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header
+    <>
+      <header
       className="lg:hidden sticky top-0 z-30"
       style={{
         paddingTop: "var(--safe-top)",
@@ -51,14 +56,15 @@ export function MobileHeader() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-1">
-          <Link
-            to="/ads"
+          <button
+            type="button"
             aria-label="Поиск"
+            onClick={() => setSearchOpen(true)}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
           >
             <Search size={20} />
-          </Link>
+          </button>
 
           <Link
             to="/favorites"
@@ -98,7 +104,9 @@ export function MobileHeader() {
           <MoreMenu />
         </div>
       </div>
-    </header>
+      </header>
+      <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 }
 
@@ -108,12 +116,13 @@ function MoreMenu() {
   const lang = (i18n.language as Locale) || "ru";
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const marketEnabled = useFeatureFlag("marketEnabled");
   const isGuest = useStore(selectors.currentUser).id === "guest";
 
   // Dev-time guarantee that every section is reachable on mobile (no-op in prod).
   useEffect(() => { assertMobileNavCoverage(); }, []);
 
-  const flags = { reviewsEnabled, communitiesEnabled } as const;
+  const flags = { reviewsEnabled, communitiesEnabled, marketEnabled } as const;
   const visible = MOBILE_MENU_SECTIONS.filter(
     (s) => (!s.authOnly || !isGuest) && (!s.flag || flags[s.flag]),
   );
@@ -124,10 +133,13 @@ function MoreMenu() {
     "flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 transition-colors hover:bg-[var(--background-surface)]";
 
   const renderRow = (s: (typeof MOBILE_MENU_SECTIONS)[number]) => {
-    const Icon = s.icon;
     const inner = (
       <>
-        <Icon size={20} style={{ color: "var(--foreground-70)" }} />
+        {/* inheritColor wrapper keeps the fixed foreground-70 tint (burger icons
+            aren't state-coloured) while making the glyph override-aware. */}
+        <span style={{ display: "inline-flex", color: "var(--foreground-70)" }}>
+          <SlotIcon slot={navSlotKey(s.key)} inheritColor size={20} />
+        </span>
         <span className="flex-1 text-[15px] font-medium">{s.label}</span>
         {s.href && <ExternalLink size={15} style={{ color: "var(--foreground-50)" }} />}
       </>

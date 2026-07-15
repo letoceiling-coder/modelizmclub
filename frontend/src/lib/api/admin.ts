@@ -73,6 +73,53 @@ export async function fetchAuditLogs(): Promise<AuditEntry[]> {
   }));
 }
 
+export interface AuditLogDetailEntry {
+  id: string;
+  user: string;
+  action: string;
+  target: string;
+  time: string;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+}
+
+/**
+ * `GET /admin/audit-logs` returns a raw Laravel `LengthAwarePaginator`
+ * (`response()->json(['data' => $logs])` in AdminAuditLogController) — the
+ * pagination fields sit flat alongside `data`, NOT nested under a `meta` key
+ * like the API-Resource-wrapped `Paginated<T>` responses elsewhere in this
+ * file. Do not reuse `Paginated<T>` here — its `meta` shape does not exist
+ * on this endpoint's response.
+ */
+interface RawLaravelPaginator<T> {
+  data: T[];
+  current_page?: number;
+  last_page?: number;
+}
+
+export async function fetchAuditLogPage(
+  page: number,
+): Promise<{ entries: AuditLogDetailEntry[]; currentPage: number; lastPage: number }> {
+  const res = await api<{ data: RawLaravelPaginator<ApiAuditLog & { old_values?: Record<string, unknown> | null; new_values?: Record<string, unknown> | null }> }>(
+    "/admin/audit-logs",
+    { query: { per_page: 20, page } },
+  );
+  const rows = res.data?.data ?? [];
+  return {
+    entries: rows.map((r) => ({
+      id: String(r.id ?? Math.random()),
+      user: r.user?.name ?? r.user?.email ?? "—",
+      action: r.action ?? "",
+      target: r.auditable_type ? r.auditable_type.split("\\").pop() ?? "" : "",
+      time: r.created_at ?? "",
+      oldValues: r.old_values ?? null,
+      newValues: r.new_values ?? null,
+    })),
+    currentPage: res.data?.current_page ?? page,
+    lastPage: res.data?.last_page ?? page,
+  };
+}
+
 export type AdminUserRole = "user" | "subscriber" | "moderator" | "admin";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 

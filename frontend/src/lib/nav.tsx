@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { ClipboardList, Heart, Clapperboard, Radio, Plus, Settings, Crown, ShoppingBag } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 
-export type FeatureFlagKey = "communitiesEnabled" | "reviewsEnabled";
+export type FeatureFlagKey = "communitiesEnabled" | "reviewsEnabled" | "marketEnabled";
 export type NavGroup = "content" | "account";
 
 export interface MobileMenuSection {
@@ -40,7 +40,7 @@ export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
   // — Аккаунт —
   { key: "settings", to: ROUTES.settings, label: "Настройки", icon: Settings, group: "account", authOnly: true },
   { key: "subscription", to: ROUTES.subscription, label: "Подписка", icon: Crown, group: "account" },
-  { key: "market", href: "https://modelizm23.ru", label: "Маркет", icon: ShoppingBag, group: "account" },
+  { key: "market", href: "https://modelizm23.ru", label: "Маркет", icon: ShoppingBag, group: "account", flag: "marketEnabled" },
 ];
 
 /** Routes surfaced as bottom tabs (communities only when its flag is on). */

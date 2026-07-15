@@ -1,23 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown, Hash } from "lucide-react";
-import * as Icons from "lucide-react";
+import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown } from "lucide-react";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { onlineFor } from "@/lib/category-online";
+import { CategoryIcon } from "@/components/ui/Icon";
 
 const COLLAPSE_KEY = "modelizm:feedrail:collapsed";
-
-function CategoryIcon({ name, className }: { name: string; className?: string }) {
-  const Icon =
-    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] ??
-    Hash;
-  return <Icon className={className} />;
-}
 
 function RailCard({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="overflow-hidden rounded-[var(--r-card)] border"
+      // shrink-0: the card lives inside the rail's flex-col scroll container.
+      // Its own overflow-hidden (for the rounded corners) zeroes its flex
+      // auto-min-height, so without this the flex algorithm shrank the card to
+      // the viewport height and clipped the category list instead of letting
+      // the scroll container scroll. Keeping the card at its natural height
+      // makes the outer overflow-y-auto do the scrolling.
+      className="shrink-0 overflow-hidden rounded-[var(--r-card)] border"
       style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
       {children}
@@ -68,6 +67,16 @@ export function FeedRightRail() {
   }, [collapsed]);
 
   const categories = usePostCategories();
+  // Display-only sort — the landing's "Направления" section reads the same
+  // usePostCategories()/fetchPostCategories() source in its original
+  // (backend/category-priority) order, and other code may rely on that
+  // order too (e.g. categoryIdByName's index-based id fallback in demo
+  // mode). Sorting a copy here, only for what this list renders, keeps
+  // that shared order and cache untouched.
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+    [categories],
+  );
 
   if (collapsed) {
     return (
@@ -86,8 +95,15 @@ export function FeedRightRail() {
   }
 
   return (
-    <aside className="hidden xl:block w-64 shrink-0">
-      <div className="flex h-full flex-col gap-[12px] overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
+    <aside className="hidden w-64 shrink-0 xl:block xl:min-h-0">
+      {/* min-h-0 on the aside: as a flex child of AppLayout's items-stretch
+          row its default min-height:auto let it grow to the full category
+          list height, so the shell's overflow-hidden clipped the overflow
+          instead of the inner overflow-y-auto scrolling (unlike <main>,
+          whose own overflow-y-auto implicitly zeroes its min-height). With
+          min-h-0 the aside stays at its stretched height and the inner list
+          scrolls. */}
+      <div className="flex h-full flex-col gap-[12px] overflow-y-auto pb-4">
 
         {/* Card 1 — Направления. Shows every direction (not a top-N
             subset) — this list must match the landing's "Направления"
@@ -97,7 +113,7 @@ export function FeedRightRail() {
         <RailCard>
           <CardHeader title="Направления" to="/categories" onCollapse={() => setCollapsed(true)} />
           <ul className="p-[6px]">
-            {categories.map((c) => {
+            {sortedCategories.map((c) => {
               const online = onlineFor(c);
               const open = openId === c.id;
               const hasSubs = c.subcategories.length > 0;
@@ -113,7 +129,7 @@ export function FeedRightRail() {
                         className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
                         style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                       >
-                        <CategoryIcon name={c.icon} className="h-[14px] w-[14px]" />
+                        <CategoryIcon categoryId={c.id} name={c.icon} className="h-[14px] w-[14px]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
