@@ -21,7 +21,7 @@ class CommunityService
     {
         $query = Community::query()
             ->active()
-            ->withCount('members')
+            ->withCount(['members as live_members_count'])
             ->with(['category', 'avatar', 'cover'])
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
             ->when($filters['q'] ?? null, function ($q, $term): void {
@@ -62,7 +62,7 @@ class CommunityService
     public function show(string $slug, ?User $viewer = null): Community
     {
         $community = Community::query()
-            ->withCount('members')
+            ->withCount(['members as live_members_count'])
             ->with(['category', 'avatar', 'cover', 'subcategories'])
             ->where('slug', $slug)
             ->first();

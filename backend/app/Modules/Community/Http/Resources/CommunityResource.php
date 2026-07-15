@@ -18,7 +18,7 @@ class CommunityResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'is_official' => $this->is_official,
-            'members_count' => $this->members_count,
+            'members_count' => (int) ($this->live_members_count ?? $this->members_count),
             'posts_count' => $this->posts_count,
             'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category->id,
