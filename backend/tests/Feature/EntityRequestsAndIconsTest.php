@@ -169,7 +169,9 @@ class EntityRequestsAndIconsTest extends TestCase
             'reviewed_by' => $admin->id,
         ]);
 
-        // Владелец видит is_owner=true в карточке сообщества.
+        // Владелец видит is_owner=true в карточке сообщества. Guard кэширует
+        // пользователя в рамках одного теста — сбрасываем перед сменой токена.
+        $this->app['auth']->forgetGuards();
         $this->getJson("/api/v1/communities/{$community->slug}", $this->authHeaders($applicant))
             ->assertOk()
             ->assertJsonPath('data.is_owner', true);
