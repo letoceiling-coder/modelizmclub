@@ -49,7 +49,7 @@ class EscrowDealTest extends TestCase
             'description' => 'Desc',
             'price_cents' => 100000,
             'currency' => 'RUB',
-            'status' => ListingStatus::Active,
+            'status' => ListingStatus::Published,
             'published_at' => now(),
         ]);
     }

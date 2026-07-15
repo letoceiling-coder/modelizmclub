@@ -41,7 +41,7 @@ class EscrowService
     {
         $this->assertEnabled();
 
-        if ($listing->status !== ListingStatus::Active) {
+        if ($listing->status !== ListingStatus::Published) {
             throw ValidationException::withMessages([
                 'listing' => ['Объявление недоступно для покупки.'],
             ]);
