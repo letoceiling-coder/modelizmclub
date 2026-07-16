@@ -9,10 +9,12 @@ use App\Models\MessageAttachment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Modules\Media\Exceptions\TranscriptionException;
+use Modules\Media\Services\VoiceTranscriber;
 
 class TranscribeMediaController extends Controller
 {
-    public function __invoke(Request $request, string $uuid): JsonResponse
+    public function __invoke(Request $request, string $uuid, VoiceTranscriber $transcriber): JsonResponse
     {
         $media = Media::query()->where('uuid', $uuid)->firstOrFail();
 
@@ -31,21 +33,28 @@ class TranscribeMediaController extends Controller
             return response()->json(['text' => $existing->text, 'lang' => $existing->lang]);
         }
 
-        if (config('media.transcription.stub')) {
-            $text = (string) config('media.transcription.stub_text');
-            $lang = (string) config('media.transcription.stub_lang');
-
-            MediaTranscript::query()->updateOrCreate(
-                ['media_id' => $media->id],
-                ['text' => $text, 'lang' => $lang],
-            );
-
-            return response()->json(['text' => $text, 'lang' => $lang]);
+        try {
+            $result = $transcriber->transcribe($media);
+        } catch (TranscriptionException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
         }
 
-        return response()->json([
-            'message' => 'Расшифровка недоступна — STT-провайдер не подключён.',
-        ], 503);
+        if ($result === null) {
+            return response()->json([
+                'message' => 'Расшифровка недоступна — STT-провайдер не подключён.',
+            ], 503);
+        }
+
+        // Cache non-empty transcripts; an empty result usually means silence or
+        // a recognition miss, so don't persist it and let a later retry try again.
+        if (trim($result['text']) !== '') {
+            MediaTranscript::query()->updateOrCreate(
+                ['media_id' => $media->id],
+                ['text' => $result['text'], 'lang' => $result['lang']],
+            );
+        }
+
+        return response()->json(['text' => $result['text'], 'lang' => $result['lang']]);
     }
 
     private function canAccessVoice(Media $media, int $userId): bool

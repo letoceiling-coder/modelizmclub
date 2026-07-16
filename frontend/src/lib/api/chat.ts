@@ -311,16 +311,23 @@ export async function deleteConversation(conversationUuid: string): Promise<void
   await api(`/conversations/${conversationUuid}`, { method: "DELETE" });
 }
 
+export interface VoiceTranscription {
+  /** Recognized text; empty string means the request succeeded but found no speech. */
+  text: string;
+  /** false when STT is not configured / the request failed (503 or network). */
+  available: boolean;
+}
+
 /** Speech-to-text for a voice note (stub on dev, 503 when STT is not wired). */
-export async function transcribeVoiceMedia(mediaUuid: string): Promise<string | null> {
-  if (isDemoMode()) return "Тестовая расшифровка голосового сообщения.";
+export async function transcribeVoiceMedia(mediaUuid: string): Promise<VoiceTranscription> {
+  if (isDemoMode()) return { text: "Тестовая расшифровка голосового сообщения.", available: true };
   try {
     const res = await api<{ text?: string; message?: string }>(`/media/${mediaUuid}/transcribe`, {
       method: "POST",
     });
-    return res.text ?? null;
+    return { text: (res.text ?? "").trim(), available: true };
   } catch {
-    return null;
+    return { text: "", available: false };
   }
 }
 

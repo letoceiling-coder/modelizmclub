@@ -16,6 +16,10 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   const [expanded, setExpanded] = useState(false);
   const [transcript, setTranscript] = useState(voice.transcript ?? "");
   const [loadingTranscript, setLoadingTranscript] = useState(false);
+  // "idle" until fetched; then whether STT is wired and whether speech was found.
+  const [transcriptStatus, setTranscriptStatus] = useState<"idle" | "ok" | "empty" | "unavailable">(
+    voice.transcript ? "ok" : "idle",
+  );
   const raf = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const startProgRef = useRef<number>(0);
@@ -45,12 +49,20 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   }, [voice.src, voice.duration, hasAudio]);
 
   useEffect(() => {
-    if (!expanded || transcript || !voice.mediaUuid) return;
+    if (!expanded || transcript || !voice.mediaUuid || transcriptStatus !== "idle") return;
     let alive = true;
     setLoadingTranscript(true);
     transcribeVoiceMedia(voice.mediaUuid)
-      .then((text) => {
-        if (alive && text) setTranscript(text);
+      .then((res) => {
+        if (!alive) return;
+        if (!res.available) {
+          setTranscriptStatus("unavailable");
+        } else if (res.text) {
+          setTranscript(res.text);
+          setTranscriptStatus("ok");
+        } else {
+          setTranscriptStatus("empty");
+        }
       })
       .finally(() => {
         if (alive) setLoadingTranscript(false);
@@ -58,7 +70,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
     return () => {
       alive = false;
     };
-  }, [expanded, transcript, voice.mediaUuid]);
+  }, [expanded, transcript, voice.mediaUuid, transcriptStatus]);
 
   const toggle = () => {
     if (hasAudio) {
@@ -102,9 +114,12 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   const playedBg = isMe ? "white" : "var(--accent)";
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
+  const unavailableText = "Расшифровка недоступна — распознавание речи подключается на сервере.";
   const transcriptText = transcript
     || (loadingTranscript ? "Загрузка расшифровки…" : "")
-    || (expanded && !voice.mediaUuid && !isDemoMode() ? "Расшифровка недоступна — распознавание речи подключается на сервере." : "")
+    || (transcriptStatus === "empty" ? "Речь не распознана." : "")
+    || (transcriptStatus === "unavailable" ? unavailableText : "")
+    || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
     || (expanded && isDemoMode() ? "Тестовая расшифровка голосового сообщения." : "");
 
   return (
