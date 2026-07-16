@@ -81,7 +81,7 @@ export async function fetchIconMedia(opts?: { unregistered?: boolean }): Promise
 export async function registerIconFromMedia(mediaUuid: string): Promise<IconAsset> {
   const res = await api<{ data: IconAsset }>("/admin/icon-assets/from-media", {
     method: "POST",
-    body: { media_uuid: mediaUuid },
+    json: { media_uuid: mediaUuid },
   });
   return res.data;
 }

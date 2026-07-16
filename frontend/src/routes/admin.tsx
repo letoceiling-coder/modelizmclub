@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
@@ -2601,6 +2602,7 @@ const SETTING_META: Record<string, { label: string; hint?: string; hidden?: bool
   // Managed by the dedicated cards above — hidden here to avoid duplicates.
   "feature.market_enabled": { label: "Кнопка «Маркет»", hidden: true },
   "feature.escrow_enabled": { label: "Бейдж «Безопасная сделка»", hidden: true },
+  "feature.feed_auto_publish": { label: "Авто-публикация ленты", hidden: true },
   // Icon slots are managed visually from the «Дизайн» section.
   icon_overrides: { label: "Иконки", hidden: true },
   site_name: { label: "Название сайта", fieldLabels: { ru: "Название (рус.)", en: "Название (англ.)" } },
@@ -2820,6 +2822,38 @@ function SettingsSection() {
   const escrowEnabled = useFeatureFlag("escrowEnabled");
   const [savingEscrow, setSavingEscrow] = useState(false);
 
+  // Server-persisted (SystemSetting: feature.feed_auto_publish). Not part of the
+  // public feature-flags endpoint — it only affects the backend publish path.
+  // Absent/false → moderation ON (posts wait in queue). Read straight from the
+  // loaded settings so it reflects the real server state.
+  const feedAutoPublish = (() => {
+    const row = settings.find((s) => s.key === "feature.feed_auto_publish");
+    return isEnabledShape(row?.value) ? row.value.enabled : false;
+  })();
+  const [savingFeedAutoPublish, setSavingFeedAutoPublish] = useState(false);
+
+  const toggleFeedAutoPublish = async (checked: boolean) => {
+    if (isDemoMode()) {
+      toast("В демо-режиме настройка не сохраняется на сервере");
+      return;
+    }
+    setSavingFeedAutoPublish(true);
+    try {
+      const [updated] = await updateAdminSettings([
+        { key: "feature.feed_auto_publish", value: { enabled: checked }, group: "feed" },
+      ]);
+      setSettings((prev) => {
+        const rest = prev.filter((s) => s.key !== "feature.feed_auto_publish");
+        return updated ? [...rest, updated] : rest;
+      });
+      toast.success(checked ? "Лента публикуется сразу, без модерации" : "Посты ленты уходят в модерацию");
+    } catch {
+      toast.error("Не удалось сохранить настройку");
+    } finally {
+      setSavingFeedAutoPublish(false);
+    }
+  };
+
   const toggleMarket = async (checked: boolean) => {
     if (isDemoMode()) {
       setFeatureFlag("marketEnabled", checked);
@@ -2930,6 +2964,28 @@ function SettingsSection() {
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать бейдж «Безопасная сделка»</span>
+        </label>
+      </div>
+
+      {/* Server-persisted (SystemSetting: feature.feed_auto_publish). Off by
+          default → new feed posts go to the moderation queue. Turning it on
+          auto-publishes them without a redeploy. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Авто-публикация ленты
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Сохраняется на сервере. Выключено — новые посты уходят на модерацию (рекомендуется). Включено — публикуются сразу, без ручной проверки.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingFeedAutoPublish ? 0.6 : 1 }}>
+          <input
+            type="checkbox"
+            checked={feedAutoPublish}
+            disabled={savingFeedAutoPublish}
+            onChange={(e) => void toggleFeedAutoPublish(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Публиковать посты ленты сразу</span>
         </label>
       </div>
 

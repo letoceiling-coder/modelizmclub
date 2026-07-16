@@ -94,6 +94,58 @@ class FeedModuleTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    public function test_feed_auto_publish_setting_overrides_config(): void
+    {
+        // Config says moderation ON, but the admin SystemSetting flips it to auto-publish.
+        config(['feed.auto_publish' => false]);
+        \App\Models\SystemSetting::query()->updateOrCreate(
+            ['key' => 'feature.feed_auto_publish'],
+            ['value' => ['enabled' => true], 'group' => 'feed'],
+        );
+
+        $category = PostCategory::create([
+            'name' => 'Ships',
+            'slug' => 'ships-feed',
+            'sort_order' => 1,
+            'depth' => 0,
+            'is_active' => true,
+        ]);
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'Bismarck build',
+                'body' => 'Auto-published via admin setting.',
+                'category_id' => $category->id,
+            ])
+            ->json('data.uuid');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/publish")
+            ->assertOk()
+            ->assertJsonPath('data.status', ContentStatus::Published->value);
+
+        // Now disable via setting; even though config still false, moderation applies.
+        \App\Models\SystemSetting::query()->updateOrCreate(
+            ['key' => 'feature.feed_auto_publish'],
+            ['value' => ['enabled' => false], 'group' => 'feed'],
+        );
+
+        $secondUuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'Yamato build',
+                'body' => 'Should wait for moderation.',
+                'category_id' => $category->id,
+            ])
+            ->json('data.uuid');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$secondUuid}/publish")
+            ->assertOk()
+            ->assertJsonPath('data.status', ContentStatus::PendingModeration->value);
+    }
+
     public function test_comment_thread_respects_max_depth(): void
     {
         config(['feed.auto_publish' => true]);

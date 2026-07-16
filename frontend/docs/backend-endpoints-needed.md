@@ -31,6 +31,12 @@ CDN/транскодинг). Всё остальное — `Frontend-only`.
   (`communities_enabled`, `market_enabled`, `escrow_enabled`).
 - **§18 phone** — `Done`: `PATCH /users/me` поле `phone` — `SellerCabinetTest`.
 - **§26 иконки, §27 заявки** — `Done`, `EntityRequestsAndIconsTest` (16 тестов).
+- **Лента — авто-публикация/модерация** — `Done`: `PostService::autoPublishEnabled()`
+  читает `SystemSetting` ключ `feature.feed_auto_publish` (JSON `{ "enabled": bool }`)
+  с фолбэком на `config('feed.auto_publish')`. Управляется из `/admin` тумблером
+  «Авто-публикация ленты» через существующий `PATCH /admin/settings` (новый endpoint
+  не нужен). Дефолт на проде — модерация ВКЛ (`enabled` отсутствует/`false`). Тест —
+  `FeedModuleTest::test_feed_auto_publish_setting_overrides_config`.
 
 **Статус интеграции (2026-07-12):** пункты №2–5, 9–11, 14, 17, 18, 24 (wallet, account, requisites,
 view-history, seller stats, delete conversation, review_video upload, video moderation) закрыты

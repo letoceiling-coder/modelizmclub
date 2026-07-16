@@ -27,9 +27,11 @@ import {
   ArrowLeftRight, MapPin, Truck, CreditCard,
 } from "lucide-react";
 
+type NewAdSearch = { edit?: string };
+
 export const Route = createFileRoute("/ads/new")({
   head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ" }] }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): NewAdSearch => ({
     edit: typeof s.edit === "string" ? s.edit : undefined,
   }),
   beforeLoad: async ({ location }) => {

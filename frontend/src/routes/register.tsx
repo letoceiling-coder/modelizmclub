@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "@/lib/toast";
 import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
@@ -204,8 +203,7 @@ function RegisterPage() {
           {loading ? "Создаём…" : "Создать аккаунт"}
         </Button>
       </form>
-      <OAuthDivider />
-      <OAuthButtons />
+      {/* OAuth VK/Yandex скрыты до подключения ключей — компонент оставлен в коде. */}
     </AuthShell>
   );
 }

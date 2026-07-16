@@ -7,6 +7,7 @@ use App\Models\Community;
 use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
+use App\Models\SystemSetting;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -151,12 +152,31 @@ class PostService
                 ],
             );
 
-            if (config('feed.auto_publish')) {
+            if ($this->autoPublishEnabled()) {
                 $this->markPublished($post);
             }
 
             return $post->fresh($this->defaultRelations());
         });
+    }
+
+    /**
+     * Whether new posts should be auto-published (moderation OFF).
+     * Prefers the admin-controlled `feature.feed_auto_publish` SystemSetting
+     * (JSON `{ "enabled": bool }`), falling back to `config('feed.auto_publish')`
+     * when the setting is absent — so it can be flipped without a redeploy.
+     */
+    public function autoPublishEnabled(): bool
+    {
+        $setting = SystemSetting::query()
+            ->where('key', 'feature.feed_auto_publish')
+            ->value('value');
+
+        if (is_array($setting) && array_key_exists('enabled', $setting)) {
+            return (bool) $setting['enabled'];
+        }
+
+        return (bool) config('feed.auto_publish');
     }
 
     public function markPublished(Post $post): void

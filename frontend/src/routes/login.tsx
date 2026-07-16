@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
@@ -14,9 +13,16 @@ import { resetSessionCache } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ApiError } from "@/lib/api/client";
 
+type LoginSearch = {
+  redirect?: string;
+  oauth_token?: string;
+  oauth_error?: string;
+  oauth_provider?: string;
+};
+
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Вход — МоДелизМ" }] }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): LoginSearch => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
     oauth_token: typeof s.oauth_token === "string" ? s.oauth_token : undefined,
     oauth_error: typeof s.oauth_error === "string" ? s.oauth_error : undefined,
@@ -144,8 +150,7 @@ function LoginPage() {
           {loading ? t("common.loading") : t("auth.login")}
         </Button>
       </form>
-      <OAuthDivider />
-      <OAuthButtons />
+      {/* OAuth VK/Yandex скрыты до подключения ключей — компонент оставлен в коде. */}
       {isDemoMode() && (
         <Link
           to="/feed"
