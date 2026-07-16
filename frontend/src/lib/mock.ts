@@ -144,10 +144,17 @@ export interface Ad {
   views?: number;
   likes?: number;
   createdAt?: string;
+  /** ISO timestamp for sorting/filtering (display string is in createdAt). */
+  publishedAt?: string;
   moderation?: "published" | "moderation" | "rejected";
   /** Currently boosted/продвигается (Stage 5). On the real backend this comes
    *  from ListingResource (is_promoted / promoted_until) — not yet exposed. */
   promoted?: boolean;
+  /** Edit-form helpers — populated from API listing detail. */
+  categoryId?: string;
+  subcategoryId?: string;
+  cityId?: number;
+  mediaIds?: string[];
 }
 
 export interface Category {
@@ -211,8 +218,9 @@ export interface Tariff {
 export interface VoiceMessage {
   duration: number; // seconds
   waveform: number[]; // normalized 0..1 bar heights
-  transcript?: string; // optional speech-to-text (not produced for real recordings)
-  src?: string; // playable audio URL for real voice notes
+  transcript?: string;
+  src?: string;
+  mediaUuid?: string;
 }
 
 export interface MessageFile {

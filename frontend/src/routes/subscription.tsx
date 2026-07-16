@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useMySubscription, formatSubscriptionEndDate, invalidateMySubscription } from "@/lib/subscription";
+import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
   createSubscriptionPayment,
@@ -18,10 +19,6 @@ import {
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
-  beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
-  },
   component: SubscriptionPage,
 });
 
@@ -52,7 +49,18 @@ function daysWord(n: number): string {
  *   - stub (test contour w/o live acquiring) → no hosted page: confirm the
  *     stub payment directly and reflect the resulting subscription status.
  */
-async function startSubscriptionCheckout(plan: { id: string; name: string }) {
+function requireAuthForCheckout(navigate: ReturnType<typeof useNavigate>): boolean {
+  if (isAuthenticated() || isDemoMode()) return true;
+  toast.info("Войдите, чтобы оформить подписку");
+  navigate({ to: "/login", search: { redirect: "/subscription" } });
+  return false;
+}
+
+async function startSubscriptionCheckout(
+  plan: { id: string; name: string },
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  if (!requireAuthForCheckout(navigate)) return;
   if (isDemoMode()) {
     toast("Оплата будет доступна после подключения эквайринга", {
       description: `Тариф: ${plan.name}`,
@@ -77,7 +85,8 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }) {
 }
 
 /** One-time 99 ₽ listing placement — real checkout on the production backend. */
-async function startPlacementCheckout() {
+async function startPlacementCheckout(navigate: ReturnType<typeof useNavigate>) {
+  if (!requireAuthForCheckout(navigate)) return;
   if (isDemoMode()) {
     toast("Оплата будет доступна после подключения эквайринга", {
       description: "Разовое размещение — 99 ₽",
@@ -98,6 +107,7 @@ async function startPlacementCheckout() {
 }
 
 function SubscriptionPage() {
+  const navigate = useNavigate();
   // Real subscription record (API) — demo hosts get the fixed demo state
   // from lib/subscription. Null = free tier: the countdown card is hidden.
   const { sub } = useMySubscription();
@@ -266,7 +276,7 @@ function SubscriptionPage() {
             renderCta={(plan) => (
               <button
                 type="button"
-                onClick={() => startSubscriptionCheckout({ id: plan.id, name: plan.name })}
+                onClick={() => void startSubscriptionCheckout({ id: plan.id, name: plan.name }, navigate)}
                 className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
@@ -308,7 +318,7 @@ function SubscriptionPage() {
                 99 ₽
               </div>
               <button
-                onClick={() => void startPlacementCheckout()}
+                onClick={() => void startPlacementCheckout(navigate)}
                 className="transition-colors"
                 style={{
                   height: 40,

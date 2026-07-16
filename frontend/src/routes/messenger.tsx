@@ -756,7 +756,7 @@ function MessengerPage() {
                                 lives only on the text span. */}
                             <span className="flex min-w-0 items-center gap-[6px] font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
                               {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                              <span className="min-w-0 truncate">{u.name}</span>
+                              <span className="min-w-0 truncate" title={u.name}>{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                               {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
@@ -839,7 +839,7 @@ function MessengerPage() {
                 <Link to="/user/$id" params={{ id: partner!.slug ?? partner!.id }} className="flex min-w-0 items-center gap-[12px]">
                   <ChatAvatar src={partner!.avatar} name={partner!.name} size={40} />
                   <div className="min-w-0">
-                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{partner!.name}</div>
+                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={partner!.name}>{partner!.name}</div>
                     <div className="flex items-center gap-[6px] text-[12px]">
                       {(onlineSet.has(partner!.id) || partner!.online) ? (
                         <>

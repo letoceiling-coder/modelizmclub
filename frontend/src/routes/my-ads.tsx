@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type Ad } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
-import { fetchMyListings, publishListing, archiveListing, deleteListing } from "@/lib/api/listings";
+import { fetchMyListings, publishListing, archiveListing, deleteListing, restoreListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,17 +37,26 @@ function statusToTab(s: AdStatusKey): TabKey {
   return s as TabKey;
 }
 
-type SortKey = "new" | "old" | "views" | "price";
-type DateRange = "all" | "7d" | "30d" | "90d";
+type SortKey = "new" | "old" | "views" | "likes" | "price_asc" | "price_desc" | "updated";
+type DateRange = "all" | "today" | "7d" | "30d";
+type QuickChip = "all" | "new" | "used" | "delivery";
 
 interface Filters {
   category: string;
   dateRange: DateRange;
-  minViews: number;
+  priceMin: number;
+  priceMax: number;
   sort: SortKey;
 }
 
-const DEFAULT_FILTERS: Filters = { category: "all", dateRange: "all", minViews: 0, sort: "new" };
+const DEFAULT_FILTERS: Filters = { category: "all", dateRange: "all", priceMin: 0, priceMax: 0, sort: "new" };
+
+const QUICK_CHIPS: { key: QuickChip; label: string }[] = [
+  { key: "all", label: "Все" },
+  { key: "new", label: "Новые" },
+  { key: "used", label: "Б/У" },
+  { key: "delivery", label: "Есть доставка" },
+];
 
 function MyAdsPage() {
   const navigate = useNavigate();
@@ -57,6 +66,7 @@ function MyAdsPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [query, setQuery] = useState("");
+  const [quickChip, setQuickChip] = useState<QuickChip>("all");
 
   useEffect(() => {
     fetchMyListings()
@@ -66,7 +76,6 @@ function MyAdsPage() {
 
   const setLocalStatus = (id: string, status: AdStatusKey) =>
     setItems((prev) => prev.map((x) => (x.ad.id === id ? { ...x, status } : x)));
-  const removeLocal = (id: string) => setItems((prev) => prev.filter((x) => x.ad.id !== id));
   const doArchive = (id: string) => {
     setLocalStatus(id, "archived");
     archiveListing(id).catch(() => {});
@@ -76,8 +85,15 @@ function MyAdsPage() {
     publishListing(id).catch(() => {});
   };
   const doDelete = (id: string) => {
-    removeLocal(id);
-    deleteListing(id).catch(() => {});
+    setLocalStatus(id, "deleted");
+    deleteListing(id).catch(() => {
+      fetchMyListings().then(setItems).catch(() => {});
+    });
+  };
+  const doRestore = (id: string) => {
+    restoreListing(id)
+      .then(() => fetchMyListings().then(setItems))
+      .catch(() => fetchMyListings().then(setItems).catch(() => {}));
   };
 
   const decorated = items;
@@ -96,41 +112,59 @@ function MyAdsPage() {
   }, [decorated]);
 
   const filtersDirty = useMemo(
-    () => filters.category !== "all" || filters.dateRange !== "all" || filters.minViews > 0 || filters.sort !== "new",
-    [filters]
+    () =>
+      filters.category !== "all"
+      || filters.dateRange !== "all"
+      || filters.priceMin > 0
+      || filters.priceMax > 0
+      || filters.sort !== "new"
+      || quickChip !== "all",
+    [filters, quickChip],
   );
 
   const visible = useMemo(() => {
     const now = Date.now();
     const rangeMs: Record<DateRange, number> = {
       all: Infinity,
+      today: 24 * 3600 * 1000,
       "7d": 7 * 24 * 3600 * 1000,
       "30d": 30 * 24 * 3600 * 1000,
-      "90d": 90 * 24 * 3600 * 1000,
     };
     const q = query.trim().toLowerCase();
     const filtered = decorated.filter(({ ad, status }) => {
       if (statusToTab(status) !== tab) return false;
       if (filters.category !== "all" && ad.category !== filters.category) return false;
-      if (filters.minViews > 0 && (ad.views ?? 0) < filters.minViews) return false;
+      if (filters.priceMin > 0 && ad.price < filters.priceMin) return false;
+      if (filters.priceMax > 0 && ad.price > filters.priceMax) return false;
       if (filters.dateRange !== "all") {
-        const createdAt = ad.createdAt ? Date.parse(ad.createdAt) : NaN;
-        if (!isFinite(createdAt) || now - createdAt > rangeMs[filters.dateRange]) return false;
+        const ts = ad.publishedAt ? Date.parse(ad.publishedAt) : NaN;
+        if (!isFinite(ts) || now - ts > rangeMs[filters.dateRange]) return false;
       }
+      if (quickChip === "new") {
+        const ts = ad.publishedAt ? Date.parse(ad.publishedAt) : NaN;
+        if (!isFinite(ts) || now - ts > rangeMs["7d"]) return false;
+      }
+      if (quickChip === "used" && ad.condition !== "Б/у") return false;
+      if (quickChip === "delivery" && !(ad.delivery?.length)) return false;
       if (q && !ad.title.toLowerCase().includes(q)) return false;
       return true;
     });
 
     const sorted = [...filtered].sort((a, b) => {
+      const ta = Date.parse(a.ad.publishedAt ?? "0");
+      const tb = Date.parse(b.ad.publishedAt ?? "0");
       switch (filters.sort) {
-        case "old":   return Date.parse(a.ad.createdAt ?? "0") - Date.parse(b.ad.createdAt ?? "0");
+        case "old": return ta - tb;
         case "views": return (b.ad.views ?? 0) - (a.ad.views ?? 0);
-        case "price": return b.ad.price - a.ad.price;
-        default:      return Date.parse(b.ad.createdAt ?? "0") - Date.parse(a.ad.createdAt ?? "0");
+        case "likes": return (b.ad.likes ?? 0) - (a.ad.likes ?? 0);
+        case "price_asc": return a.ad.price - b.ad.price;
+        case "price_desc": return b.ad.price - a.ad.price;
+        case "updated": return tb - ta;
+        default: return tb - ta;
       }
     });
     return sorted.map((x) => ({ ad: x.ad, status: statusToMyAdStatus(x.status) }));
-  }, [decorated, tab, filters, query]);
+  }, [decorated, tab, filters, query, quickChip]);
 
   // Aggregate stats from active ads
   const stats = useMemo(() => {
@@ -154,9 +188,20 @@ function MyAdsPage() {
   const clearSelection = () => setSelected(new Set());
   const archiveSelected = () => { selected.forEach((id) => doArchive(id)); clearSelection(); };
   const deleteSelected = () => { selected.forEach((id) => doDelete(id)); clearSelection(); };
-  const resetFilters = () => setFilters(DEFAULT_FILTERS);
+  const resetFilters = () => {
+    setFilters(DEFAULT_FILTERS);
+    setQuickChip("all");
+  };
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const tabsNavRef = useRef<HTMLElement | null>(null);
+
+  const scrollTabs = (e: React.WheelEvent<HTMLElement>) => {
+    const el = tabsNavRef.current;
+    if (!el || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  };
 
   return (
     <AppLayout rightColumn={false} footer>
@@ -191,13 +236,15 @@ function MyAdsPage() {
               Раньше называлось "Сумма", что читалось как "заработано".
               Продавец не должен думать, что заработал то, чего не заработал
               (реальной монетизации/дохода в системе пока нет). */}
-          <StatCard icon={<MessageCircle size={14} />} label="Стоимость" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
+          <StatCard icon={<MessageCircle size={14} />} label="На продаже" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
         {/* Tabs */}
         <nav
-          className="sticky top-0 z-10 flex items-center gap-[4px] overflow-x-auto py-[8px]"
-          style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
+          ref={tabsNavRef}
+          onWheel={scrollTabs}
+          className="sticky top-0 z-10 flex snap-x snap-mandatory items-center gap-[4px] overflow-x-auto py-[8px] pr-[16px] scroll-smooth"
+          style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)", scrollbarWidth: "thin" }}
           role="tablist"
         >
           {TABS.map((t) => {
@@ -303,73 +350,104 @@ function MyAdsPage() {
           )}
         </div>
 
-
-        <AnimatePresence initial={false}>
-          {showFilters && (
-            <motion.div
-              key="filterbar"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <div
-                className="grid gap-[12px] p-[14px] sm:grid-cols-2 md:grid-cols-4"
-                style={{ background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}
+        {/* Quick filter chips */}
+        <div className="flex flex-wrap gap-[8px]">
+          {QUICK_CHIPS.map((chip) => {
+            const active = quickChip === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setQuickChip(chip.key)}
+                className="inline-flex h-[32px] shrink-0 items-center px-[12px] text-[13px] font-medium transition-colors"
+                style={{
+                  borderRadius: "var(--r-pill)",
+                  background: active ? "var(--accent-soft)" : "var(--background-surface)",
+                  color: active ? "var(--accent)" : "var(--foreground-70)",
+                  border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                }}
               >
-                <FilterField label="Категория">
-                  <select
-                    value={filters.category}
-                    onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-                    className="w-full text-[13px]"
-                    style={selectStyle}
-                  >
-                    <option value="all">Все категории</option>
-                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </FilterField>
-                <FilterField label="Период">
-                  <select
-                    value={filters.dateRange}
-                    onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))}
-                    className="w-full text-[13px]"
-                    style={selectStyle}
-                  >
-                    <option value="all">За всё время</option>
-                    <option value="7d">7 дней</option>
-                    <option value="30d">30 дней</option>
-                    <option value="90d">90 дней</option>
-                  </select>
-                </FilterField>
-                <FilterField label="Просмотров не менее">
-                  <input
-                    type="number"
-                    min={0}
-                    value={filters.minViews || ""}
-                    onChange={(e) => setFilters((f) => ({ ...f, minViews: Math.max(0, Number(e.target.value) || 0) }))}
-                    placeholder="0"
-                    className="w-full text-[13px]"
-                    style={selectStyle}
-                  />
-                </FilterField>
-                <FilterField label="Сортировка">
-                  <select
-                    value={filters.sort}
-                    onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortKey }))}
-                    className="w-full text-[13px]"
-                    style={selectStyle}
-                  >
-                    <option value="new">Сначала новые</option>
-                    <option value="old">Сначала старые</option>
-                    <option value="views">По просмотрам</option>
-                    <option value="price">По цене</option>
-                  </select>
-                </FilterField>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filter panel — grid 0fr/1fr avoids layout jump on collapse */}
+        <div
+          className="grid transition-[grid-template-rows] duration-200 ease-out"
+          style={{ gridTemplateRows: showFilters ? "1fr" : "0fr" }}
+        >
+          <div className="overflow-hidden">
+            <div
+              className="grid gap-[12px] p-[14px] sm:grid-cols-2 lg:grid-cols-3"
+              style={{ background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}
+            >
+              <FilterField label="Категория">
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="all">Все категории</option>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Период">
+                <select
+                  value={filters.dateRange}
+                  onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="all">За всё время</option>
+                  <option value="today">Сегодня</option>
+                  <option value="7d">7 дней</option>
+                  <option value="30d">30 дней</option>
+                </select>
+              </FilterField>
+              <FilterField label="Цена от, ₽">
+                <input
+                  type="number"
+                  min={0}
+                  value={filters.priceMin || ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, priceMin: Math.max(0, Number(e.target.value) || 0) }))}
+                  placeholder="0"
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                />
+              </FilterField>
+              <FilterField label="Цена до, ₽">
+                <input
+                  type="number"
+                  min={0}
+                  value={filters.priceMax || ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, priceMax: Math.max(0, Number(e.target.value) || 0) }))}
+                  placeholder="∞"
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                />
+              </FilterField>
+              <FilterField label="Сортировка">
+                <select
+                  value={filters.sort}
+                  onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortKey }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="new">Сначала новые</option>
+                  <option value="old">Сначала старые</option>
+                  <option value="views">Больше просмотров</option>
+                  <option value="likes">Больше лайков</option>
+                  <option value="price_asc">По цене ↑</option>
+                  <option value="price_desc">По цене ↓</option>
+                  <option value="updated">По дате обновления</option>
+                </select>
+              </FilterField>
+            </div>
+          </div>
+        </div>
 
         {/* Bulk toolbar */}
         <AnimatePresence>
@@ -420,6 +498,7 @@ function MyAdsPage() {
                   onArchive={(id) => doArchive(id)}
                   onPublish={(id) => doPublish(id)}
                   onDelete={(id) => doDelete(id)}
+                  onRestore={(id) => doRestore(id)}
                 />
               ))
             )}

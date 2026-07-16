@@ -338,8 +338,7 @@ function Hero() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `${blueprintGridOnDark}, linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)`,
-            backgroundSize: `${blueprintGridSize}, auto`,
+            backgroundImage: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)",
           }}
         />
       </div>
@@ -467,9 +466,9 @@ function QuickSections() {
       <p className="mt-3 max-w-[560px]" style={mutedP}>
         {t("landing.quick.subtitle")}
       </p>
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
-          <Link key={key} to={to} className="group flex flex-col p-6 transition hover:-translate-y-1"
+          <Link key={key} to={to} className="group flex h-full flex-col p-6 transition hover:-translate-y-1"
             style={cardStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
@@ -478,7 +477,7 @@ function QuickSections() {
               <Icon size={22} />
             </div>
             <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t(`landing.quick.items.${key}.title`)}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.quick.items.${key}.desc`)}</p>
+            <p className="mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.quick.items.${key}.desc`)}</p>
             <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
               {t("landing.quick.open")} <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
             </span>
@@ -757,13 +756,6 @@ function CategoriesSection() {
               // are sent to auth first, matching the landing's gate pattern
               // (popular-listings card actions).
               <Link key={cat.id} to="/categories/$id" params={{ id: cat.id }}
-                onClick={(e) => {
-                  if (!getToken() && !isDemoMode()) {
-                    e.preventDefault();
-                    toast.info("Войдите, чтобы открыть направление");
-                    navigate({ to: "/login" });
-                  }
-                }}
                 className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
                 style={cardStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
@@ -907,7 +899,7 @@ function WhyChoose() {
 function FaqSection() {
   const { t } = useTranslation();
   const items = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
-  const [open, setOpen] = useState<number | null>(0);
+  const [open, setOpen] = useState<number | null>(null);
   return (
     <Section bg="var(--background-surface)">
       <Eyebrow>{t("landing.faq.eyebrow")}</Eyebrow>

@@ -269,6 +269,7 @@
 }
 
 html, body {
+  scrollbar-gutter: stable;
   transition:
     background-color var(--theme-transition),
     color var(--theme-transition),

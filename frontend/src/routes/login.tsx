@@ -11,6 +11,7 @@ import { Logo } from "@/components/Logo";
 import { login, completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { resetSessionCache } from "@/lib/auth/session";
+import { isDemoMode } from "@/lib/demo-mode";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({
@@ -72,7 +73,7 @@ function LoginPage() {
       setCurrentUser(user);
       toast.success(t("authPages.loginSuccess"));
       const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
-      nav({ to: target as "/feed" });
+      nav({ to: target as "/feed", replace: true });
     } catch (err) {
       setFieldError(true);
       const msg =
@@ -145,13 +146,15 @@ function LoginPage() {
       </form>
       <OAuthDivider />
       <OAuthButtons />
-      <Link
-        to="/feed"
-        className="mt-[16px] block text-center"
-        style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-50)" }}
-      >
-        Посмотреть прототип без входа →
-      </Link>
+      {isDemoMode() && (
+        <Link
+          to="/feed"
+          className="mt-[16px] block text-center"
+          style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-50)" }}
+        >
+          Посмотреть прототип без входа →
+        </Link>
+      )}
     </AuthShell>
   );
 }

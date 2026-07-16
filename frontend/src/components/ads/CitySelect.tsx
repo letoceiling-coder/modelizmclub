@@ -9,12 +9,13 @@ interface CitySelectProps {
   placeholder?: string;
 }
 
-export function CitySelect({ value, onChange, placeholder = "Любой город" }: CitySelectProps) {
+export function CitySelect({ value, cityId, onChange, placeholder = "Любой город" }: CitySelectProps) {
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // sync external value reset (e.g. "Сбросить фильтры")
@@ -35,23 +36,30 @@ export function CitySelect({ value, onChange, placeholder = "Любой горо
 
   function handleInput(v: string) {
     setQuery(v);
-    onChange(v, undefined); // сбросить cityId пока пользователь печатает
+    onChange(v, undefined);
+    setResults([]);
+    setOpen(false);
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!v.trim()) {
-      setResults([]);
-      setOpen(false);
       return;
     }
+    const reqId = ++requestIdRef.current;
     timerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         const cities = await searchCities(v);
-        setResults(cities.slice(0, 8));
-        setOpen(cities.length > 0);
+        if (reqId !== requestIdRef.current) return;
+        const q = v.trim().toLowerCase();
+        const filtered = cities.filter(
+          (c) => c.name.toLowerCase().includes(q) || (c.region?.toLowerCase().includes(q) ?? false),
+        );
+        const list = (filtered.length > 0 ? filtered : cities).slice(0, 8);
+        setResults(list);
+        setOpen(list.length > 0);
       } catch {
-        setResults([]);
+        if (reqId === requestIdRef.current) setResults([]);
       } finally {
-        setLoading(false);
+        if (reqId === requestIdRef.current) setLoading(false);
       }
     }, 300);
   }
@@ -103,7 +111,7 @@ export function CitySelect({ value, onChange, placeholder = "Любой горо
 
       {open && results.length > 0 && (
         <div
-          className="absolute left-0 right-0 top-[44px] z-50 overflow-hidden py-[4px]"
+          className="absolute left-0 right-0 top-[44px] z-50 max-h-[min(240px,40vh)] overflow-y-auto py-[4px]"
           style={{
             background: "var(--background-elevated)",
             border: "1px solid var(--border)",

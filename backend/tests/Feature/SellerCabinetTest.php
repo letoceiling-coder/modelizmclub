@@ -275,4 +275,39 @@ class SellerCabinetTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data', []);
     }
+
+    public function test_soft_deleted_listing_appears_in_my_listings_and_can_be_restored(): void
+    {
+        $user = $this->userWithProfile();
+        $category = $this->category();
+        Sanctum::actingAs($user);
+
+        $listing = Listing::create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'title' => 'To delete',
+            'slug' => 'to-delete-'.uniqid(),
+            'description' => 'Test',
+            'price_cents' => 10000,
+            'currency' => 'RUB',
+            'status' => ListingStatus::Published,
+            'category_id' => $category->id,
+            'published_at' => now(),
+        ]);
+
+        $this->deleteJson("/api/v1/listings/{$listing->uuid}")
+            ->assertOk();
+
+        $this->getJson('/api/v1/users/me/listings')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $listing->uuid)
+            ->assertJsonPath('data.0.deleted_at', fn ($v) => $v !== null);
+
+        $this->postJson("/api/v1/listings/{$listing->uuid}/restore")
+            ->assertOk()
+            ->assertJsonPath('data.uuid', $listing->uuid)
+            ->assertJsonPath('data.deleted_at', null);
+
+        $this->assertNull($listing->fresh()->deleted_at);
+    }
 }

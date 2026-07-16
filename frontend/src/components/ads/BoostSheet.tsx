@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Zap, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
 import { BOOST_PACKAGES } from "@/lib/config/boost";
+import { fetchBoostPackages } from "@/lib/api/listings";
 import { createListingBoostPayment, confirmStubPayment } from "@/lib/api/payment";
+import { ApiError } from "@/lib/api/client";
 
 /**
  * Boost (продвижение) picker for one listing. Pick a package → checkout via
@@ -21,8 +23,28 @@ export function BoostSheet({
   listingId: string;
   listingTitle: string;
 }) {
+  const [packages, setPackages] = useState(BOOST_PACKAGES);
   const [selected, setSelected] = useState(BOOST_PACKAGES[1]?.id ?? BOOST_PACKAGES[0].id);
   const [paying, setPaying] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    fetchBoostPackages()
+      .then((list) => {
+        if (!alive || list.length === 0) return;
+        const mapped = list.map((p) => ({
+          id: p.id,
+          label: p.label,
+          days: p.days,
+          price: Math.round(p.price_cents / 100),
+        }));
+        setPackages(mapped);
+        setSelected(mapped[1]?.id ?? mapped[0].id);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [open]);
 
   if (!open) return null;
 
@@ -41,8 +63,9 @@ export function BoostSheet({
       await confirmStubPayment(checkout.payment_uuid);
       toast.success("Продвижение активировано (тестовый режим)");
       onClose();
-    } catch {
-      toast.error("Не удалось оформить продвижение");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Не удалось оформить продвижение";
+      toast.error(msg);
     } finally {
       setPaying(false);
     }
@@ -73,7 +96,7 @@ export function BoostSheet({
         </div>
 
         <div className="flex flex-col gap-[8px]" role="radiogroup" aria-label="Срок продвижения">
-          {BOOST_PACKAGES.map((p) => {
+          {packages.map((p) => {
             const active = selected === p.id;
             return (
               <button

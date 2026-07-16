@@ -6,6 +6,7 @@ import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing } from "@/lib/demo-data";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
+import { formatTimeAgo } from "@/lib/utils";
 
 interface ApiListingAuthor {
   id?: number;
@@ -35,6 +36,7 @@ interface ApiListing {
   is_promoted?: boolean;
   promoted_until?: string | null;
   published_at?: string | null;
+  deleted_at?: string | null;
   created_at?: string;
 }
 
@@ -102,7 +104,12 @@ export function mapListing(l: ApiListing): Ad {
     views: l.views_count ?? 0,
     likes: l.favorites_count ?? 0,
     promoted: Boolean(l.is_promoted),
-    createdAt: l.published_at ?? l.created_at ?? undefined,
+    createdAt: (l.published_at ?? l.created_at) ? formatTimeAgo(l.published_at ?? l.created_at ?? "") : undefined,
+    publishedAt: l.published_at ?? l.created_at ?? undefined,
+    categoryId: l.category?.id != null ? String(l.category.id) : undefined,
+    subcategoryId: l.subcategory?.id != null ? String(l.subcategory.id) : undefined,
+    cityId: l.city?.id,
+    mediaIds: (l.media ?? []).map((m) => m.uuid).filter((u): u is string => Boolean(u)),
     moderation:
       l.status === "published"
         ? "published"
@@ -183,7 +190,10 @@ export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }
   const res = await api<Paginated<ApiListing>>("/users/me/listings", {
     query: { per_page: 100 },
   });
-  return (res.data ?? []).map((l) => ({ ad: mapListing(l), status: mapListingStatus(l.status) }));
+  return (res.data ?? []).map((l) => ({
+    ad: mapListing(l),
+    status: l.deleted_at ? "deleted" as const : mapListingStatus(l.status),
+  }));
 }
 
 export async function fetchListing(uuid: string): Promise<Ad> {
@@ -194,6 +204,60 @@ export async function fetchListing(uuid: string): Promise<Ad> {
   }
   const res = await api<{ data: ApiListing }>(`/listings/${uuid}`);
   return mapListing(res.data);
+}
+
+export interface UpdateListingInput {
+  title?: string;
+  description?: string;
+  priceCents?: number;
+  categoryId?: number;
+  subcategoryId?: number;
+  cityId?: number;
+  deliveryMethods?: string[];
+  mediaIds?: string[];
+}
+
+export async function updateListing(uuid: string, input: UpdateListingInput): Promise<Ad> {
+  if (isDemoMode()) {
+    const ad = demoListing(uuid);
+    if (!ad) throw new Error("Listing not found");
+    return ad;
+  }
+  const res = await api<{ data: ApiListing }>(`/listings/${uuid}`, {
+    method: "PATCH",
+    json: {
+      title: input.title,
+      description: input.description,
+      price_cents: input.priceCents,
+      category_id: input.categoryId,
+      subcategory_id: input.subcategoryId,
+      city_id: input.cityId,
+      delivery_methods: input.deliveryMethods,
+      media_ids: input.mediaIds,
+    },
+  });
+  return mapListing(res.data);
+}
+
+export interface BoostPackageApi {
+  id: string;
+  label: string;
+  days: number;
+  price_cents: number;
+}
+
+export async function fetchBoostPackages(): Promise<BoostPackageApi[]> {
+  if (isDemoMode()) {
+    const { BOOST_PACKAGES } = await import("@/lib/config/boost");
+    return BOOST_PACKAGES.map((p) => ({
+      id: p.id,
+      label: p.label,
+      days: p.days,
+      price_cents: p.price * 100,
+    }));
+  }
+  const res = await api<{ data: BoostPackageApi[] }>("/listings/boost-packages");
+  return res.data ?? [];
 }
 
 export async function revealSellerPhone(adId: string): Promise<string> {
@@ -220,6 +284,16 @@ export async function archiveListing(uuid: string): Promise<void> {
 export async function deleteListing(uuid: string): Promise<void> {
   if (isDemoMode()) return;
   await api(`/listings/${uuid}`, { method: "DELETE" });
+}
+
+export async function restoreListing(uuid: string): Promise<Ad> {
+  if (isDemoMode()) {
+    const ad = demoListing(uuid);
+    if (!ad) throw new Error("Listing not found");
+    return ad;
+  }
+  const res = await api<{ data: ApiListing }>(`/listings/${uuid}/restore`, { method: "POST" });
+  return mapListing(res.data);
 }
 
 export interface CreateListingInput {

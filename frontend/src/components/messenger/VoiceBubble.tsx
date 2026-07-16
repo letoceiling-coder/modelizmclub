@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, ChevronDown, FileText } from "lucide-react";
+import { Play, Pause, ChevronDown, FileText, Loader2 } from "lucide-react";
 import type { VoiceMessage } from "@/lib/mock";
+import { transcribeVoiceMedia } from "@/lib/api/chat";
+import { isDemoMode } from "@/lib/demo-mode";
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -11,15 +12,16 @@ function fmt(s: number): string {
 
 export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolean }) {
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1
+  const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [transcript, setTranscript] = useState(voice.transcript ?? "");
+  const [loadingTranscript, setLoadingTranscript] = useState(false);
   const raf = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const startProgRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasAudio = Boolean(voice.src);
 
-  // Real audio playback (when a recording URL is present).
   useEffect(() => {
     if (!hasAudio) return;
     const audio = new Audio(voice.src);
@@ -40,8 +42,23 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
       audio.removeEventListener("ended", onEnd);
       audioRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voice.src]);
+  }, [voice.src, voice.duration, hasAudio]);
+
+  useEffect(() => {
+    if (!expanded || transcript || !voice.mediaUuid) return;
+    let alive = true;
+    setLoadingTranscript(true);
+    transcribeVoiceMedia(voice.mediaUuid)
+      .then((text) => {
+        if (alive && text) setTranscript(text);
+      })
+      .finally(() => {
+        if (alive) setLoadingTranscript(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [expanded, transcript, voice.mediaUuid]);
 
   const toggle = () => {
     if (hasAudio) {
@@ -58,7 +75,6 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
     setPlaying((p) => !p);
   };
 
-  // Simulated playback fallback (used only when there is no real audio source).
   useEffect(() => {
     if (hasAudio || !playing) return;
     startRef.current = performance.now();
@@ -78,8 +94,7 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
     return () => {
       if (raf.current) cancelAnimationFrame(raf.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, hasAudio]);
+  }, [playing, hasAudio, progress, voice.duration]);
 
   const fg = isMe ? "white" : "var(--foreground)";
   const subtle = isMe ? "rgba(255,255,255,0.6)" : "var(--foreground-50)";
@@ -87,7 +102,10 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
   const playedBg = isMe ? "white" : "var(--accent)";
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
-  const transcript = voice.transcript ?? "";
+  const transcriptText = transcript
+    || (loadingTranscript ? "Загрузка расшифровки…" : "")
+    || (expanded && !voice.mediaUuid && !isDemoMode() ? "Расшифровка недоступна — распознавание речи подключается на сервере." : "")
+    || (expanded && isDemoMode() ? "Тестовая расшифровка голосового сообщения." : "");
 
   return (
     <div style={{ minWidth: 220, maxWidth: 280 }}>
@@ -136,34 +154,29 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
       >
         <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
         <span className="flex-1 text-[12px] font-medium">{expanded ? "Скрыть текст" : "Показать текст"}</span>
+        {loadingTranscript && <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />}
         <ChevronDown
           size={12}
           style={{ color: subtle, flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
         />
       </button>
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18 }}
-            style={{ overflow: "hidden" }}
+
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div
+            className="mt-[6px] rounded-[10px] px-[8px] py-[6px] text-[12px] leading-[1.45]"
+            style={{
+              background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
+              color: transcriptText && !loadingTranscript ? fg : subtle,
+            }}
           >
-            <div
-              className="mt-[6px] rounded-[10px] px-[8px] py-[6px] text-[12px] leading-[1.45]"
-              style={{
-                background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
-                color: transcript ? fg : subtle,
-              }}
-            >
-              {transcript
-                ? transcript
-                : "Расшифровка недоступна — распознавание речи подключается на сервере."}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {transcriptText || "Расшифровка недоступна — распознавание речи подключается на сервере."}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

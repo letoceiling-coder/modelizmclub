@@ -31,7 +31,13 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+
+  const validateName = (value: string) => {
+    const v = value.trim();
+    return v.length > 0 && NAME_PATTERN.test(v) && v.length <= 120;
+  };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -161,8 +167,14 @@ function RegisterPage() {
           name="name"
           placeholder="Имя и фамилия"
           maxLength={120}
+          value={name}
           error={nameError}
-          onChange={() => nameError && setNameError(false)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setName(v);
+            if (nameError) setNameError(!validateName(v));
+          }}
+          onBlur={() => setNameError(name.trim().length > 0 && !validateName(name))}
         />
         <Input required name="email" type="email" placeholder="Email" />
         {/* Not sent to /auth/register yet — backend RegisterRequest has no phone

@@ -64,10 +64,11 @@ export function DesktopTopBar() {
           className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-70)" }}
         >
-          <Bell size={20} />
-          {unread > 0 && (
-            <span
-              className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+          <span className="relative inline-flex h-5 w-5 items-center justify-center">
+            <Bell size={20} />
+            {unread > 0 && (
+              <span
+                className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
               style={{
                 height: 15,
                 fontSize: 9,
@@ -79,7 +80,8 @@ export function DesktopTopBar() {
             >
               {unread > 9 ? "9+" : unread}
             </span>
-          )}
+            )}
+          </span>
         </Link>
         <Link
           to={ROUTES.messenger}

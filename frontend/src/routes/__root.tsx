@@ -15,7 +15,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
 import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
-import { I18nProvider, useLocaleFade } from "@/components/I18nProvider";
+import { I18nProvider } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
@@ -114,16 +114,11 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * Toasts now anchor under the header instead of the bottom-right corner —
- * bottom placement risked sitting over the fixed BottomNav or over
- * page-level action buttons (submit/FAB) on mobile, which is exactly the
- * "неудобная зона" this was reworked to avoid. Top-center, cleared under
- * the header (mobile: safe-area-inset-top + header row; desktop: a small
- * fixed margin, since desktop pages have no fixed top bar), keeps toasts
- * out of both the header and any bottom-fixed chrome regardless of page.
+ * Toasts anchor top-right — clear of the fixed header/nav and out of the way
+ * of page content. Language-switch toasts must not cover navigation items.
  */
 function useTopToastOffset(): number {
-  const [offset, setOffset] = useState(52 + 16); // SSR/pre-mount fallback: mobile-header-h + margin
+  const [offset, setOffset] = useState(16);
   useEffect(() => {
     const probe = document.createElement("div");
     probe.style.cssText = "position:absolute;visibility:hidden;height:calc(var(--safe-top) + var(--mobile-header-h))";
@@ -136,12 +131,7 @@ function useTopToastOffset(): number {
 }
 
 function FadingOutlet() {
-  const fading = useLocaleFade();
-  return (
-    <div style={{ opacity: fading ? 0 : 1, transition: "opacity 160ms ease" }}>
-      <Outlet />
-    </div>
-  );
+  return <Outlet />;
 }
 
 function RootComponent() {
@@ -150,6 +140,11 @@ function RootComponent() {
   useEffect(() => {
     bindCallAudioUnlock();
     void restoreSession();
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) void restoreSession();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
   return (
     <QueryClientProvider client={queryClient}>
@@ -159,21 +154,12 @@ function RootComponent() {
           <CallScreen />
           <GroupCallScreen />
           <GroupCallInviteDialog />
-          {/* Top-center, cleared under the header on every viewport — never
-              overlaps the fixed BottomNav or page action buttons. Desktop has
-              no fixed top bar, so a small fixed margin is enough there;
-              mobile clears safe-area-inset-top + the header row via
-              useTopToastOffset (must resolve to a plain number, not a raw
-              CSS calc() string — Sonner's offset math does parseInt() on it). */}
-          {/* No richColors: keep toasts in the site's UI Kit style
-              (elevated surface + colored left border), not Sonner's
-              filled green/red boxes that looked like foreign Laravel flashes. */}
           <Toaster
-            position="top-center"
+            position="top-right"
             closeButton
             duration={4000}
-            offset={{ top: 24 }}
-            mobileOffset={{ top: mobileToastOffset, left: 16, right: 16 }}
+            offset={{ top: 16, right: 16 }}
+            mobileOffset={{ top: mobileToastOffset, right: 16, left: 16 }}
           />
         </ThemeProvider>
       </I18nProvider>

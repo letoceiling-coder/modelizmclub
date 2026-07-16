@@ -12,7 +12,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Public media proxy. Streams Ready media from the (private) object storage,
  * so the shared bucket never needs to be made world-readable.
  *
- * Private purposes (e.g. chat attachments) are never served here.
+ * Private purposes are never served here. Chat attachments use the same
+ * unguessable-UUID posture as voice notes so <img>/<audio> can load them
+ * without an Authorization header.
  */
 class ServeMediaController extends Controller
 {
@@ -21,7 +23,7 @@ class ServeMediaController extends Controller
      * addressed by an unguessable UUID (same posture as the rest of the media
      * proxy) so they can be played back via a plain <audio> element.
      */
-    private const PUBLIC_PURPOSES = ['avatar', 'cover', 'post', 'post_video', 'listing', 'banner', 'voice', 'review_video'];
+    private const PUBLIC_PURPOSES = ['avatar', 'cover', 'post', 'post_video', 'listing', 'banner', 'voice', 'review_video', 'chat'];
 
     public function __invoke(Request $request, string $uuid): StreamedResponse
     {

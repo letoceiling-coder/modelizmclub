@@ -8,7 +8,7 @@ import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { uploadMedia } from "@/lib/api/media";
-import { createListing } from "@/lib/api/listings";
+import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
@@ -29,6 +29,9 @@ import {
 
 export const Route = createFileRoute("/ads/new")({
   head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    edit: typeof s.edit === "string" ? s.edit : undefined,
+  }),
   beforeLoad: async ({ location }) => {
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);
@@ -44,6 +47,7 @@ const STEPS = ["Фото", "Данные", "Превью"];
 interface Form {
   photos: string[];
   files: File[];
+  existingMediaIds: string[];
   status: Status;
   title: string;
   description: string;
@@ -60,6 +64,7 @@ interface Form {
 const initial: Form = {
   photos: [],
   files: [],
+  existingMediaIds: [],
   status: "Продаю",
   title: "",
   description: "",
@@ -75,12 +80,14 @@ const initial: Form = {
 
 function NewAdPage() {
   const navigate = useNavigate();
+  const { edit: editId } = Route.useSearch();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
   const [cats, setCats] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
+  const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
   useEffect(() => {
@@ -96,11 +103,50 @@ function NewAdPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!editId) return;
+    let alive = true;
+    setLoadingEdit(true);
+    fetchListing(editId)
+      .then((ad) => {
+        if (!alive) return;
+        setForm({
+          photos: ad.gallery ?? (ad.image ? [ad.image] : []),
+          files: [],
+          existingMediaIds: ad.mediaIds ?? [],
+          status: ad.status,
+          title: ad.title,
+          description: ad.description ?? "",
+          price: String(ad.price || ""),
+          categoryId: ad.categoryId ?? "",
+          subcategoryId: ad.subcategoryId ?? "",
+          condition: ad.condition ?? "Б/у",
+          city: ad.city,
+          cityId: ad.cityId,
+          contact: ad.contact,
+          deliveries: ad.delivery.length ? ad.delivery : ["СДЭК"],
+        });
+      })
+      .catch(() => toast.error("Не удалось загрузить объявление для редактирования"))
+      .finally(() => { if (alive) setLoadingEdit(false); });
+    return () => { alive = false; };
+  }, [editId]);
+
   const cat = useMemo(() => cats.find((c) => c.id === form.categoryId) ?? cats[0], [cats, form.categoryId]);
+  const subcategories = cat?.subcategories ?? [];
 
   const valid = useMemo(() => {
     if (step === 1) return form.photos.length > 0;
-    if (step === 2) return form.title.trim().length >= 4 && form.price && form.city.trim() && form.contact.trim();
+    if (step === 2) {
+      return (
+        form.title.trim().length >= 4
+        && form.description.trim().length >= 20
+        && form.price
+        && form.city.trim().length >= 2
+        && (form.cityId != null || form.city.trim().length >= 3)
+        && form.contact.trim()
+      );
+    }
     return true;
   }, [step, form]);
 
@@ -111,7 +157,7 @@ function NewAdPage() {
     setSubmitting(true);
     setSubmitError(false);
     try {
-      const mediaIds: string[] = [];
+      const mediaIds: string[] = [...form.existingMediaIds];
       for (const file of form.files) {
         const m = await uploadMedia(file, "listing");
         mediaIds.push(m.uuid);
@@ -125,18 +171,32 @@ function NewAdPage() {
         const found = await searchCities(form.city.trim());
         cityId = found[0]?.id;
       }
-      const ad = await createListing({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        priceCents: Number(form.price || 0) * 100,
-        categoryId: Number(form.categoryId),
-        subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
-        cityId,
-        deliveryMethods: form.deliveries,
-        mediaIds,
-        publish: true,
-      });
-      toast.success("Объявление опубликовано");
+      if (editId) {
+        await updateListing(editId, {
+          title: form.title.trim(),
+          description: form.description.trim(),
+          priceCents: Number(form.price || 0) * 100,
+          categoryId: Number(form.categoryId),
+          subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
+          cityId,
+          deliveryMethods: form.deliveries,
+          mediaIds,
+        });
+        toast.success("Объявление обновлено");
+      } else {
+        await createListing({
+          title: form.title.trim(),
+          description: form.description.trim(),
+          priceCents: Number(form.price || 0) * 100,
+          categoryId: Number(form.categoryId),
+          subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
+          cityId,
+          deliveryMethods: form.deliveries,
+          mediaIds,
+          publish: true,
+        });
+        toast.success("Объявление опубликовано");
+      }
       void navigate({ to: "/my-ads" });
     } catch {
       setSubmitError(true);
@@ -171,7 +231,7 @@ function NewAdPage() {
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
           {step === 1 && <StepPhotos form={form} set={set} />}
-          {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} touched={touched} touch={touch} />}
+          {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} subcategories={subcategories} touched={touched} touch={touch} />}
           {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
         </ReducedMotionSwitch>
       </div>
@@ -205,10 +265,10 @@ function NewAdPage() {
             <Button
               onClick={submit}
               loading={submitting}
-              className="h-11 rounded-[var(--r-button)]"
+              className="h-11 min-w-[220px] rounded-[var(--r-button)]"
             >
               {!submitting && <CreditCard size={16} />}
-              {submitting ? "Публикуется…" : "Оплатить 20 ₽ и опубликовать"}
+              {submitting ? (editId ? "Сохраняем…" : "Публикуется…") : (editId ? "Сохранить изменения" : "Оплатить 20 ₽ и опубликовать")}
             </Button>
           )}
         </div>
@@ -269,18 +329,20 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 
 /* ────────── STEP 2: Data ────────── */
 function StepData({
-  form, set, cat, cats, touched, touch,
+  form, set, cat, cats, subcategories, touched, touch,
 }: {
   form: Form;
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
   cat: Category | undefined;
   cats: Category[];
+  subcategories: { id: string; name: string }[];
   touched: Set<string>;
   touch: (name: string) => void;
 }) {
   const titleErr = touched.has("title") && form.title.trim().length < 4;
+  const descErr = touched.has("description") && form.description.trim().length < 20;
   const priceErr = touched.has("price") && !form.price;
-  const cityErr = touched.has("city") && !form.city.trim();
+  const cityErr = touched.has("city") && (form.city.trim().length < 2 || (!form.cityId && form.city.trim().length < 3));
   const contactErr = touched.has("contact") && !form.contact.trim();
 
   // Keep the focused field clear of the mobile soft keyboard + the fixed
@@ -345,10 +407,11 @@ function StepData({
             placeholder="Двигатель Picco .21 для багги 1:8"
           />
         </Field>
-        <Field label="Подробное описание">
+        <Field label="Подробное описание" required error={descErr ? "Минимум 20 символов" : undefined}>
           <Textarea
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
+            onBlur={() => touch("description")}
             placeholder="Состояние, история использования, комплектация…"
             rows={5}
           />
@@ -385,19 +448,21 @@ function StepData({
               options={cats.map((c) => ({ label: c.name, value: c.id }))}
             />
           </Field>
-          <Field label="Подкатегория">
-            <NativeSelect
-              value={form.subcategoryId}
-              onChange={(v) => set("subcategoryId", v)}
-              options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
-            />
-          </Field>
+          {subcategories.length > 0 ? (
+            <Field label="Подкатегория">
+              <NativeSelect
+                value={form.subcategoryId}
+                onChange={(v) => set("subcategoryId", v)}
+                options={subcategories.map((s) => ({ label: s.name, value: s.id }))}
+              />
+            </Field>
+          ) : null}
         </div>
       </Block>
 
       <Block title="Контакты и доставка">
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Город" required error={cityErr ? "Укажите город" : undefined}>
+          <Field label="Город" required error={cityErr ? "Выберите город из списка" : undefined}>
             <CitySelect
               value={form.city}
               cityId={form.cityId}

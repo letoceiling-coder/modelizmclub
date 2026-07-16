@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Pencil, Archive, Trash2, Upload, MoreHorizontal, Zap } from "lucide-react";
+import { Pencil, Archive, Trash2, Upload, MoreHorizontal, Zap, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import type { Ad } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,14 @@ interface Props {
   onArchive?: (id: string) => void;
   onPublish?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onRestore?: (id: string) => void;
 }
 
-export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish, onDelete }: Props) {
+export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish, onDelete, onRestore }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
   const archived = status !== "active" && status !== "moderation";
+  const deleted = status === "deleted";
 
   return (
     <motion.div
@@ -70,7 +72,16 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
                     boxShadow: "var(--shadow-float)",
                   }}
                 >
-                <MenuItem to="/ads/$id" params={{ id: ad.id }} icon={<Pencil size={14} />} label="Редактировать" />
+                {deleted ? (
+                  <MenuItem
+                    onClick={() => onRestore?.(ad.id)}
+                    icon={<RotateCcw size={14} />}
+                    label="Восстановить"
+                    color="var(--success)"
+                  />
+                ) : (
+                  <>
+                <MenuItem to="/ads/new" search={{ edit: ad.id }} icon={<Pencil size={14} />} label="Редактировать" />
                 {status === "active" && !ad.promoted && (
                   <MenuItem
                     onClick={() => { setMenuOpen(false); setBoostOpen(true); }}
@@ -100,6 +111,8 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
                   label="Удалить"
                   color="var(--error)"
                 />
+                  </>
+                )}
                 </div>
               </>
             )}
@@ -122,13 +135,15 @@ function MenuItem({
   onClick,
   to,
   params,
+  search,
   color,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
-  to?: "/ads/$id";
+  to?: "/ads/$id" | "/ads/new";
   params?: { id: string };
+  search?: { edit: string };
   color?: string;
 }) {
   const cls = "flex items-center gap-[10px] px-[14px] py-[8px] text-left text-[13px] font-medium transition-colors";
@@ -143,6 +158,20 @@ function MenuItem({
       <Link
         to={to}
         params={params}
+        className={cls}
+        style={style}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+      >
+        {icon} {label}
+      </Link>
+    );
+  }
+  if (to && search) {
+    return (
+      <Link
+        to={to}
+        search={search}
         className={cls}
         style={style}
         onMouseEnter={onEnter}

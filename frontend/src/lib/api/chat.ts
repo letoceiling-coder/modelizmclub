@@ -35,7 +35,7 @@ export interface ApiMessage {
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
-  attachments?: Array<{ media?: { url?: string | null; mime_type?: string | null; duration?: number | null } | null }>;
+  attachments?: Array<{ media?: { uuid?: string | null; url?: string | null; mime_type?: string | null; duration?: number | null } | null }>;
   created_at: string;
 }
 
@@ -110,6 +110,7 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
       duration: Math.max(1, Math.round(audio.duration ?? 1)),
       waveform: makeMockWaveform(seedFromId(m.uuid)),
       src: audio.url,
+      mediaUuid: audio.uuid ?? undefined,
     };
   }
 
@@ -308,6 +309,19 @@ export async function unpinConversation(conversationUuid: string): Promise<void>
 export async function deleteConversation(conversationUuid: string): Promise<void> {
   if (isDemoMode()) return;
   await api(`/conversations/${conversationUuid}`, { method: "DELETE" });
+}
+
+/** Speech-to-text for a voice note (stub on dev, 503 when STT is not wired). */
+export async function transcribeVoiceMedia(mediaUuid: string): Promise<string | null> {
+  if (isDemoMode()) return "Тестовая расшифровка голосового сообщения.";
+  try {
+    const res = await api<{ text?: string; message?: string }>(`/media/${mediaUuid}/transcribe`, {
+      method: "POST",
+    });
+    return res.text ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function forwardMessage(

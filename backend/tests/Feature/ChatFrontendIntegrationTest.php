@@ -118,10 +118,47 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonStructure(['url', 'type', 'name', 'size', 'media_uuid']);
 
         $this->assertSame('image', $response->json('type'));
+        $mediaUuid = $response->json('media_uuid');
         $this->assertDatabaseHas('media', [
-            'uuid' => $response->json('media_uuid'),
+            'uuid' => $mediaUuid,
             'status' => MediaStatus::Ready->value,
         ]);
+
+        $this->getJson("/api/v1/media/{$mediaUuid}")
+            ->assertOk();
+    }
+
+    public function test_recipient_can_transcribe_received_voice(): void
+    {
+        config(['media.transcription.stub' => true]);
+        [$sender, $recipient] = $this->usersWithProfiles();
+        $conv = $this->directConversation($sender, $recipient);
+
+        $media = Media::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uploaded_by' => $sender->id,
+            'disk' => 'local',
+            'path' => 'media/voice/2026/07/test.ogg',
+            'filename' => 'test.ogg',
+            'mime_type' => 'audio/ogg',
+            'size_bytes' => 1024,
+            'duration_seconds' => 3,
+            'status' => MediaStatus::Ready,
+        ]);
+
+        $message = Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $sender->id,
+            'body' => null,
+            'type' => 'voice',
+            'status' => 'sent',
+        ]);
+        $message->attachments()->create(['media_id' => $media->id]);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->postJson("/api/v1/media/{$media->uuid}/transcribe")
+            ->assertOk()
+            ->assertJsonStructure(['text', 'lang']);
     }
 
     public function test_hide_message_for_current_user_only(): void

@@ -67,6 +67,7 @@ class ListingService
     public function myListings(User $user, array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         $query = Listing::query()
+            ->withTrashed()
             ->with($this->relations())
             ->where('user_id', $user->id)
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
@@ -308,6 +309,34 @@ class ListingService
     {
         $this->assertOwner($listing, $user);
         $listing->delete();
+    }
+
+    public function restore(Listing $listing, User $user): Listing
+    {
+        $this->assertOwner($listing, $user);
+
+        if (! $listing->trashed()) {
+            throw ValidationException::withMessages([
+                'listing' => ['Объявление не удалено.'],
+            ]);
+        }
+
+        $listing->restore();
+
+        return $listing->fresh($this->relations());
+    }
+
+    public function findOwnedTrashed(string $uuid, User $user): Listing
+    {
+        $listing = Listing::onlyTrashed()->where('uuid', $uuid)->first();
+
+        if (! $listing) {
+            throw new NotFoundHttpException('Объявление не найдено.');
+        }
+
+        $this->assertOwner($listing, $user);
+
+        return $listing;
     }
 
     public function findOwned(string $uuid, User $user): Listing

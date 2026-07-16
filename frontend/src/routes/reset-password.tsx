@@ -3,7 +3,10 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
-import { resetPassword } from "@/lib/api/auth";
+import { resetPassword, login } from "@/lib/api/auth";
+import { resetSessionCache } from "@/lib/auth/session";
+import { setCurrentUser } from "@/lib/store";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { ApiError } from "@/lib/api/client";
 
 /** Matches this page's raw `inputStyle` fields (not the shared UI Kit `Input`
@@ -42,14 +45,15 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPasswordPage() {
   const nav = useNavigate();
-  const { token, email: initialEmail } = useSearch({ from: "/reset-password" });
-  const [email, setEmail] = useState(initialEmail ?? "");
+  const { token: rawToken, email: initialEmail } = useSearch({ from: "/reset-password" });
+  const token = rawToken ? decodeURIComponent(rawToken) : "";
+  const [email, setEmail] = useState(initialEmail ? decodeURIComponent(initialEmail) : "");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
     if (password !== passwordConfirmation) {
       return toast.error("Пароли не совпадают");
@@ -59,9 +63,19 @@ function ResetPasswordPage() {
     }
     setLoading(true);
     try {
-      await resetPassword({ email: email.trim(), token, password, passwordConfirmation });
-      toast.success("Пароль изменён. Войдите с новым паролем");
-      nav({ to: "/login" });
+      const normalizedEmail = email.trim().toLowerCase();
+      await resetPassword({ email: normalizedEmail, token, password, passwordConfirmation });
+      try {
+        const user = await login(normalizedEmail, password, true);
+        resetSessionCache();
+        setCurrentUser(user);
+        toast.success("Пароль изменён — вы вошли в аккаунт");
+        nav({ to: "/feed", replace: true });
+        return;
+      } catch {
+        toast.success("Пароль изменён. Войдите с новым паролем");
+        nav({ to: "/login", replace: true });
+      }
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -97,7 +111,15 @@ function ResetPasswordPage() {
           onChange={(e) => setEmail(e.target.value)}
           style={inputStyle}
         />
-        <PasswordFieldWithToggle required name="password" placeholder="Новый пароль (от 8 символов)" minLength={8} />
+        <PasswordFieldWithToggle
+          required
+          name="password"
+          placeholder="Новый пароль (от 8 символов)"
+          minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <PasswordStrengthMeter password={password} />
         <PasswordFieldWithToggle required name="password_confirmation" placeholder="Повторите пароль" minLength={8} />
         <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
           {loading ? "Сохраняем…" : "Сохранить пароль"}

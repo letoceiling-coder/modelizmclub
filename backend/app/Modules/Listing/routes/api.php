@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Listing\Http\Controllers\Api\V1\AiSuggestListingController;
 use Modules\Listing\Http\Controllers\Api\V1\BoostPackagesController;
 use Modules\Listing\Http\Controllers\Api\V1\PromoteListingController;
+use Modules\Listing\Http\Controllers\Api\V1\RestoreListingController;
 use Modules\Listing\Http\Controllers\Api\V1\DestroyListingController;
 use Modules\Listing\Http\Controllers\Api\V1\FavoriteListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\IndexListingsController;
@@ -26,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('listings/ai-suggest', AiSuggestListingController::class);
     Route::patch('listings/{uuid}', UpdateListingController::class);
     Route::delete('listings/{uuid}', DestroyListingController::class);
+    Route::post('listings/{uuid}/restore', RestoreListingController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/reveal-phone', RevealPhoneController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/promote', PromoteListingController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/publish', [ListingStatusController::class, 'publish']);

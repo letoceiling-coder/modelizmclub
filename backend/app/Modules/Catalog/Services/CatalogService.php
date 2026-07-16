@@ -76,8 +76,12 @@ class CatalogService
         return City::query()
             ->where('is_active', true)
             ->when($query, fn ($q) => $q->where(function ($q) use ($query): void {
-                $q->where('name', 'ilike', "%{$query}%")
-                    ->orWhere('region', 'ilike', "%{$query}%");
+                $q->where('name', 'ilike', "%{$query}%");
+                // Region substring match pollutes short queries (e.g. «К» hits
+                // «Самарская»). Only widen to region for 2+ characters.
+                if (mb_strlen($query) >= 2) {
+                    $q->orWhere('region', 'ilike', "%{$query}%");
+                }
             }))
             ->orderBy('sort_order')
             ->orderBy('name')
