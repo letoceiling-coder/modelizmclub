@@ -9,6 +9,7 @@ import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
+import { ApiError } from "@/lib/api/client";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
@@ -200,9 +201,18 @@ function NewAdPage() {
         toast.success("Объявление опубликовано");
       }
       void navigate({ to: "/my-ads" });
-    } catch {
+    } catch (err) {
       setSubmitError(true);
-      toast.error("Не удалось опубликовать объявление");
+      // Surface the real reason instead of a generic message: validation
+      // errors from the API, or its message; fall back to a network hint.
+      let message = editId ? "Не удалось сохранить изменения" : "Не удалось опубликовать объявление";
+      if (err instanceof ApiError) {
+        const firstFieldError = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
+        message = firstFieldError || err.message || message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      toast.error(message);
       setSubmitting(false);
     }
   };

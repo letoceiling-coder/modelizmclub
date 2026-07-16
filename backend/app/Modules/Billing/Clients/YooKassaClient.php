@@ -60,7 +60,14 @@ class YooKassaClient
 
         $pending = Http::withBasicAuth($shopId, $secret)
             ->acceptJson()
-            ->timeout(30);
+            ->connectTimeout(10)
+            ->timeout(30)
+            // Retry transient network/DNS blips (e.g. flaky resolver returning
+            // "Could not resolve host"). Only connection-level failures are
+            // retried; HTTP 4xx/5xx from YooKassa are surfaced immediately.
+            ->retry(3, 700, function (\Throwable $e): bool {
+                return $e instanceof \Illuminate\Http\Client\ConnectionException;
+            }, throw: false);
 
         if ($idempotenceKey) {
             $pending = $pending->withHeaders(['Idempotence-Key' => $idempotenceKey]);
