@@ -37,6 +37,13 @@ CDN/транскодинг). Всё остальное — `Frontend-only`.
   «Авто-публикация ленты» через существующий `PATCH /admin/settings` (новый endpoint
   не нужен). Дефолт на проде — модерация ВКЛ (`enabled` отсутствует/`false`). Тест —
   `FeedModuleTest::test_feed_auto_publish_setting_overrides_config`.
+- **ЮKassa — фискальный чек (54-ФЗ)** — `Done`: боевой магазин с онлайн-кассой
+  возвращал 500 «Receipt is missing or illegal» на `POST /payments`.
+  `YooKassaPaymentGateway::buildReceipt()` добавляет `receipt` (контакт покупателя
+  email/phone + позиция с `vat_code`). Ставка НДС и параметры чека настраиваются через
+  env: `YOOKASSA_RECEIPT_ENABLED`, `YOOKASSA_VAT_CODE` (дефолт 1 «без НДС» — ИП/УСН),
+  `YOOKASSA_PAYMENT_SUBJECT`, `YOOKASSA_PAYMENT_MODE`, `YOOKASSA_TAX_SYSTEM_CODE`.
+  **Требует подтверждения владельца:** корректная ставка НДС/система налогообложения.
 
 **Статус интеграции (2026-07-12):** пункты №2–5, 9–11, 14, 17, 18, 24 (wallet, account, requisites,
 view-history, seller stats, delete conversation, review_video upload, video moderation) закрыты
