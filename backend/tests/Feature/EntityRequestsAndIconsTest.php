@@ -203,7 +203,9 @@ class EntityRequestsAndIconsTest extends TestCase
             'moderator_comment' => 'Название нарушает правила',
         ]);
 
-        $this->assertSame(0, Community::query()->count());
+        $this->assertDatabaseMissing('communities', [
+            'name' => 'Спам-сообщество',
+        ]);
     }
 
     public function test_applications_endpoints_require_moderator_role(): void

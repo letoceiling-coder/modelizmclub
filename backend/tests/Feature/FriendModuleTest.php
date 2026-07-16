@@ -19,12 +19,12 @@ class FriendModuleTest extends TestCase
         $a = $this->userWithProfile('alice', 'alice');
         $b = $this->userWithProfile('bob', 'bob');
 
-        $this->actingAs($a, 'sanctum')
+        $response = $this->actingAs($a, 'sanctum')
             ->postJson("/api/v1/users/{$b->id}/friend-request")
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending');
 
-        $requestId = FriendRequest::query()->value('id');
+        $requestId = $response->json('data.id');
 
         $this->actingAs($b, 'sanctum')
             ->postJson("/api/v1/friend-requests/{$requestId}/accept")

@@ -32,27 +32,31 @@ class BillingModuleTest extends TestCase
 
     private function seedPlan(string $slug = 'year'): SubscriptionPlan
     {
-        return SubscriptionPlan::query()->create([
-            'slug' => $slug,
-            'name' => 'Год',
-            'price_cents' => 99000,
-            'period_days' => 365,
-            'is_active' => true,
-            'sort_order' => 2,
-        ]);
+        return SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => $slug],
+            [
+                'name' => 'Год',
+                'price_cents' => 99000,
+                'period_days' => 365,
+                'is_active' => true,
+                'sort_order' => 2,
+            ],
+        );
     }
 
     public function test_public_plans_list(): void
     {
-        SubscriptionPlan::query()->create([
-            'slug' => 'month',
-            'name' => 'Месяц',
-            'description' => 'Test',
-            'price_cents' => 9900,
-            'period_days' => 30,
-            'is_active' => true,
-            'sort_order' => 1,
-        ]);
+        SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => 'month'],
+            [
+                'name' => 'Месяц',
+                'description' => 'Test',
+                'price_cents' => 9900,
+                'period_days' => 30,
+                'is_active' => true,
+                'sort_order' => 1,
+            ],
+        );
 
         $this->getJson('/api/v1/plans')
             ->assertOk()

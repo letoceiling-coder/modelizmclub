@@ -8,7 +8,6 @@ use App\Models\ConversationParticipant;
 use App\Models\Listing;
 use App\Models\Media;
 use App\Models\Message;
-use App\Models\MessageUserHide;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
@@ -278,12 +277,15 @@ class ChatService
             throw new NotFoundHttpException('Сообщение не найдено.');
         }
 
-        MessageUserHide::query()->firstOrCreate([
-            'user_id' => $user->id,
-            'message_id' => $message->id,
-        ], [
-            'hidden_at' => now(),
-        ]);
+        DB::table('message_user_hides')->updateOrInsert(
+            [
+                'user_id' => $user->id,
+                'message_id' => $message->id,
+            ],
+            [
+                'hidden_at' => now(),
+            ],
+        );
     }
 
     public function pinMessage(Conversation $conversation, Message $message, User $user): void
