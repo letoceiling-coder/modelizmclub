@@ -59,6 +59,24 @@ return [
         'shop_id' => env('YOOKASSA_SHOP_ID'),
         'secret_key' => env('YOOKASSA_SECRET_KEY'),
         'api_url' => rtrim(env('YOOKASSA_API_URL', 'https://api.yookassa.ru/v3'), '/'),
+
+        /*
+        | 54-ФЗ fiscal receipt (чек). Required when the shop has онлайн-касса /
+        | фискализация enabled — YooKassa rejects payments without a receipt
+        | ("Receipt is missing or illegal"). Send a receipt only when enabled.
+        |
+        | vat_code (ставка НДС): 1 — без НДС; 2 — 0%; 3 — 10%; 4 — 20%;
+        |   5 — 10/110; 6 — 20/120. Для ИП/УСН обычно 1 («без НДС»).
+        | payment_subject: service | commodity | payment | ...
+        | payment_mode: full_payment | full_prepayment | ...
+        | tax_system_code: заполнять только если у магазина несколько систем
+        |   налогообложения (1 — ОСН, 2 — УСН доход, 3 — УСН доход-расход, …).
+        */
+        'receipt_enabled' => env('YOOKASSA_RECEIPT_ENABLED', true),
+        'vat_code' => (int) env('YOOKASSA_VAT_CODE', 1),
+        'payment_subject' => env('YOOKASSA_PAYMENT_SUBJECT', 'service'),
+        'payment_mode' => env('YOOKASSA_PAYMENT_MODE', 'full_payment'),
+        'tax_system_code' => env('YOOKASSA_TAX_SYSTEM_CODE'),
     ],
 
     /*

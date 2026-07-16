@@ -54,11 +54,12 @@ class YooKassaPaymentGateway implements PaymentGateway
         ]);
 
         $amountValue = number_format($amountCents / 100, 2, '.', '');
+        $currencyUpper = strtoupper($currency);
 
-        $remote = $this->client->createPayment([
+        $requestPayload = [
             'amount' => [
                 'value' => $amountValue,
-                'currency' => strtoupper($currency),
+                'currency' => $currencyUpper,
             ],
             'capture' => true,
             'confirmation' => [
@@ -71,7 +72,14 @@ class YooKassaPaymentGateway implements PaymentGateway
                 'user_id' => (string) $user->id,
                 'plan_slug' => (string) ($metadata['plan_slug'] ?? ''),
             ],
-        ], $payment->uuid);
+        ];
+
+        $receipt = $this->buildReceipt($user, $description, $amountValue, $currencyUpper);
+        if ($receipt !== null) {
+            $requestPayload['receipt'] = $receipt;
+        }
+
+        $remote = $this->client->createPayment($requestPayload, $payment->uuid);
 
         $providerId = (string) ($remote['id'] ?? '');
         $checkoutUrl = $remote['confirmation']['confirmation_url'] ?? null;
@@ -87,6 +95,55 @@ class YooKassaPaymentGateway implements PaymentGateway
         ]);
 
         return $this->toCheckoutResponse($payment->fresh(), $checkoutUrl);
+    }
+
+    /**
+     * Build a 54-ФЗ fiscal receipt. Required when the shop has онлайн-касса
+     * enabled (otherwise YooKassa returns "Receipt is missing or illegal").
+     * Returns null when receipts are disabled or no customer contact exists.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function buildReceipt(User $user, string $description, string $amountValue, string $currency): ?array
+    {
+        if (! config('billing.yookassa.receipt_enabled', true)) {
+            return null;
+        }
+
+        $email = is_string($user->email) && $user->email !== '' ? $user->email : null;
+        $phoneDigits = is_string($user->phone ?? null) ? preg_replace('/\D/', '', (string) $user->phone) : null;
+
+        $customer = array_filter([
+            'email' => $email,
+            'phone' => $phoneDigits !== null && $phoneDigits !== '' ? $phoneDigits : null,
+        ]);
+
+        // YooKassa requires at least one contact to send the fiscal receipt.
+        if ($customer === []) {
+            return null;
+        }
+
+        $receipt = [
+            'customer' => $customer,
+            'items' => [[
+                'description' => mb_substr($description, 0, 128),
+                'quantity' => '1.00',
+                'amount' => [
+                    'value' => $amountValue,
+                    'currency' => $currency,
+                ],
+                'vat_code' => (int) config('billing.yookassa.vat_code', 1),
+                'payment_mode' => (string) config('billing.yookassa.payment_mode', 'full_payment'),
+                'payment_subject' => (string) config('billing.yookassa.payment_subject', 'service'),
+            ]],
+        ];
+
+        $taxSystem = config('billing.yookassa.tax_system_code');
+        if ($taxSystem !== null && $taxSystem !== '') {
+            $receipt['tax_system_code'] = (int) $taxSystem;
+        }
+
+        return $receipt;
     }
 
     public function handleWebhook(array $payload): void

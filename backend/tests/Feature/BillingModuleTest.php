@@ -210,6 +210,18 @@ class BillingModuleTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.provider', 'yookassa')
             ->assertJsonPath('data.checkout_url', 'https://yookassa.test/pay/1');
+
+        // 54-ФЗ: the payment request must carry a fiscal receipt with a customer
+        // contact and at least one item, or the live shop rejects it.
+        Http::assertSent(function ($request): bool {
+            if (! str_contains($request->url(), '/payments')) {
+                return false;
+            }
+            $body = $request->data();
+            return isset($body['receipt']['customer'])
+                && ! empty($body['receipt']['items'])
+                && isset($body['receipt']['items'][0]['vat_code']);
+        });
     }
 
     public function test_auto_prefers_vtb_over_yookassa(): void
