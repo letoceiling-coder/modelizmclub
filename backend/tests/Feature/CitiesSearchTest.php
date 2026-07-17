@@ -10,18 +10,6 @@ class CitiesSearchTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        /** @var list<array{name: string, region: string, slug: string, sort_order: int}> $cities */
-        $cities = require database_path('data/russian_cities.php');
-
-        foreach ($cities as $city) {
-            City::query()->create(array_merge($city, ['is_active' => true]));
-        }
-    }
-
     public function test_city_search_sa_includes_saratov_samara_and_saint_petersburg(): void
     {
         $response = $this->getJson('/api/v1/cities?q='.urlencode('Са'))
