@@ -16,16 +16,35 @@ interface Props {
   autoOpen?: boolean;
 }
 
-/** Single preview tile — a broken-image fallback (revoked/failed blob URL
- *  never shows the browser's default broken glyph), a "make main" star, a
- *  delete button, and left/right nudge buttons as a drag-free reorder path. */
+const TILE = 104;
+const GAP = 12;
+const LAYOUT_TRANSITION = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+
+function TileImage({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
+        <ImageOff size={22} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      draggable={false}
+      className="pointer-events-none h-full w-full object-cover"
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
+/** In-flow tile — fixed 104×104, never translated during drag (overlay carries the photo). */
 function PreviewTile({
   src,
   index,
   count,
-  lifted,
-  dragDx,
-  dragDy,
   dropTarget,
   onRemove,
   onMakeMain,
@@ -36,11 +55,6 @@ function PreviewTile({
   src: string;
   index: number;
   count: number;
-  /** This tile is the one being carried, and the pointer has moved past the
-   *  lift threshold — render it following the pointer, lifted off the grid. */
-  lifted: boolean;
-  dragDx: number;
-  dragDy: number;
   dropTarget: boolean;
   onRemove: (i: number) => void;
   onMakeMain: (i: number) => void;
@@ -48,7 +62,6 @@ function PreviewTile({
   onMoveRight: (i: number) => void;
   onPointerDownDrag: (i: number, e: React.PointerEvent) => void;
 }) {
-  const [broken, setBroken] = useState(false);
   const isMain = index === 0;
 
   const stopDrag = {
@@ -57,39 +70,20 @@ function PreviewTile({
 
   return (
     <motion.div
-      layout={!lifted}
-      layoutId={src}
-      transition={{ layout: { duration: 0.18, ease: [0.2, 0.8, 0.2, 1] } }}
+      layout="position"
+      transition={{ layout: LAYOUT_TRANSITION }}
       data-tile-index={index}
       onPointerDown={(e) => onPointerDownDrag(index, e)}
-      className="relative shrink-0 cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
+      className="relative cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
       style={{
-        width: 104,
-        height: 104,
+        width: TILE,
+        height: TILE,
         background: "var(--background-surface)",
         border: `2px solid ${dropTarget ? "var(--accent)" : isMain ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
-        // The carried tile follows the pointer 1:1. pointer-events:none so
-        // elementFromPoint sees the tile beneath for live slot swapping.
-        transform: lifted ? `translate(${dragDx}px, ${dragDy}px) scale(1.05)` : undefined,
-        boxShadow: lifted ? "var(--shadow-float)" : "none",
-        zIndex: lifted ? 50 : 1,
-        pointerEvents: lifted ? "none" : "auto",
       }}
     >
-      {broken ? (
-        <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
-          <ImageOff size={22} />
-        </div>
-      ) : (
-        <img
-          src={src}
-          alt=""
-          draggable={false}
-          className="pointer-events-none h-full w-full object-cover"
-          onError={() => setBroken(true)}
-        />
-      )}
+      <TileImage src={src} />
 
       {isMain && (
         <span
@@ -159,14 +153,72 @@ function PreviewTile({
   );
 }
 
-// Pointer must travel this far before a press turns into a lift — keeps a
-// plain tap (or a tap on a tile button) from twitching the photo.
+function DragPlaceholder({ dropTarget }: { dropTarget: boolean }) {
+  return (
+    <motion.div
+      layout="position"
+      transition={{ layout: LAYOUT_TRANSITION }}
+      aria-hidden
+      style={{
+        width: TILE,
+        height: TILE,
+        borderRadius: "var(--r-card-sm)",
+        border: `2px dashed ${dropTarget ? "var(--accent)" : "var(--border-strong)"}`,
+        background: dropTarget ? "var(--accent-soft)" : "var(--background-surface)",
+        opacity: dropTarget ? 0.85 : 0.55,
+      }}
+    />
+  );
+}
+
+function DragOverlay({
+  src,
+  isMain,
+  x,
+  y,
+}: {
+  src: string;
+  isMain: boolean;
+  x: number;
+  y: number;
+}) {
+  return (
+    <div
+      className="pointer-events-none fixed z-[100] overflow-hidden"
+      style={{
+        left: x,
+        top: y,
+        width: TILE,
+        height: TILE,
+        borderRadius: "var(--r-card-sm)",
+        border: "2px solid var(--accent)",
+        boxShadow: "var(--shadow-float)",
+        transform: "scale(1.04)",
+        background: "var(--background-surface)",
+      }}
+    >
+      <TileImage src={src} />
+      {isMain && (
+        <span
+          className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
+          style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
+        >
+          <Star size={9} fill="currentColor" /> Главное
+        </span>
+      )}
+    </div>
+  );
+}
+
 const LIFT_THRESHOLD_PX = 5;
 
 interface DragState {
   index: number;
+  src: string;
   startX: number;
   startY: number;
+  offsetX: number;
+  offsetY: number;
   dx: number;
   dy: number;
   lifted: boolean;
@@ -192,7 +244,7 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     onAdd(files);
-    e.target.value = ""; // allow re-picking the same file
+    e.target.value = "";
   };
 
   const moveTo = (from: number, to: number) => {
@@ -205,8 +257,20 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
   };
 
   const onTilePointerDown = (index: number, e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
     e.currentTarget.setPointerCapture(e.pointerId);
-    const state: DragState = { index, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, lifted: false };
+    const state: DragState = {
+      index,
+      src: photosRef.current[index] ?? "",
+      startX: e.clientX,
+      startY: e.clientY,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      dx: 0,
+      dy: 0,
+      lifted: false,
+    };
     dragRef.current = state;
     setDrag(state);
     overIndexRef.current = index;
@@ -229,20 +293,17 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
     }
 
     const el = document.elementFromPoint(clientX, clientY);
-    const tileEl = el?.closest<HTMLElement>("[data-tile-index]");
+    const tileEl = el?.closest<HTMLElement>("[data-tile-index], [data-placeholder-index]");
     let targetIndex = cur.index;
     if (tileEl) {
-      const idx = Number(tileEl.dataset.tileIndex);
+      const idx = Number(tileEl.dataset.tileIndex ?? tileEl.dataset.placeholderIndex);
       if (!Number.isNaN(idx)) targetIndex = idx;
     }
 
-    // Live reorder: swap as soon as the pointer enters another slot so
-    // siblings slide smoothly (via layout animation) instead of all jumping
-    // on pointer-up. Reset the drag origin after each swap so the carried
-    // tile doesn't visually snap.
     if (targetIndex !== cur.index) {
       moveTo(cur.index, targetIndex);
       const next: DragState = {
+        ...cur,
         index: targetIndex,
         startX: clientX,
         startY: clientY,
@@ -271,8 +332,6 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
     setOverIndex(null);
   };
 
-  // Window-level listeners keep tracking reliable when the pointer leaves
-  // the grid (multi-row wrap) or moves faster than React can re-render.
   useEffect(() => {
     if (!drag) return;
 
@@ -288,6 +347,13 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
       window.removeEventListener("pointercancel", onUp);
     };
   }, [drag]);
+
+  const overlayPos = drag?.lifted
+    ? {
+        x: drag.startX - drag.offsetX + drag.dx,
+        y: drag.startY - drag.offsetY + drag.dy,
+      }
+    : null;
 
   return (
     <div className="space-y-[16px]">
@@ -319,18 +385,30 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
       {photos.length > 0 && (
         <>
           <LayoutGroup id="ad-photo-grid">
-            <div className="flex flex-wrap gap-[12px] py-[2px]">
+            <div
+              className="py-[2px]"
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(auto-fill, ${TILE}px)`,
+                gap: GAP,
+                minHeight: TILE,
+              }}
+            >
               {photos.map((src, i) => {
-                const isDragged = drag?.index === i;
+                const isDragging = drag?.lifted && drag.index === i;
+                if (isDragging) {
+                  return (
+                    <div key={src} data-placeholder-index={i}>
+                      <DragPlaceholder dropTarget={overIndex === i && drag.index === i} />
+                    </div>
+                  );
+                }
                 return (
                   <PreviewTile
                     key={src}
                     src={src}
                     index={i}
                     count={photos.length}
-                    lifted={Boolean(isDragged && drag?.lifted)}
-                    dragDx={isDragged ? drag!.dx : 0}
-                    dragDy={isDragged ? drag!.dy : 0}
                     dropTarget={overIndex === i && drag !== null && drag.lifted && drag.index !== i}
                     onRemove={onRemove}
                     onMakeMain={onMakeMain}
@@ -342,6 +420,9 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
               })}
             </div>
           </LayoutGroup>
+          {overlayPos && drag && (
+            <DragOverlay src={drag.src} isMain={drag.index === 0} x={overlayPos.x} y={overlayPos.y} />
+          )}
           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
             {photos.length} из {max}. Перетащите фото или используйте стрелки, чтобы изменить порядок. Первое — главное в карточке.
           </p>
