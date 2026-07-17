@@ -80,7 +80,8 @@ class AuthFlowTest extends TestCase
             'password_confirmation' => 'NewPassword999!',
         ])
             ->assertOk()
-            ->assertJsonPath('data.message', 'Пароль успешно изменён.');
+            ->assertJsonPath('data.email', 'reset-flow@example.com')
+            ->assertJsonStructure(['meta' => ['token']]);
 
         $this->postJson('/api/v1/auth/login', [
             'email' => 'reset-flow@example.com',

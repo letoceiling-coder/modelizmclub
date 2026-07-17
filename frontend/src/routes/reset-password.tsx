@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
-import { resetPassword, login } from "@/lib/api/auth";
+import { resetPassword } from "@/lib/api/auth";
 import { resetSessionCache } from "@/lib/auth/session";
 import { setCurrentUser } from "@/lib/store";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
@@ -64,18 +64,11 @@ function ResetPasswordPage() {
     setLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      await resetPassword({ email: normalizedEmail, token, password, passwordConfirmation });
-      try {
-        const user = await login(normalizedEmail, password, true);
-        resetSessionCache();
-        setCurrentUser(user);
-        toast.success("Пароль изменён — вы вошли в аккаунт");
-        nav({ to: "/feed", replace: true });
-        return;
-      } catch {
-        toast.success("Пароль изменён. Войдите с новым паролем");
-        nav({ to: "/login", replace: true });
-      }
+      const { user } = await resetPassword({ email: normalizedEmail, token, password, passwordConfirmation });
+      resetSessionCache();
+      setCurrentUser(user);
+      toast.success("Пароль изменён — вы вошли в аккаунт");
+      nav({ to: "/feed", replace: true });
     } catch (err) {
       const msg =
         err instanceof ApiError

@@ -3,35 +3,36 @@
 namespace Modules\Auth\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Endpoint;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Modules\Auth\Http\Requests\ResetPasswordRequest;
+use Modules\Auth\Http\Resources\UserResource;
+use Modules\Auth\Services\AuthService;
 
+#[Group('Auth', weight: 0)]
 class ResetPasswordController extends Controller
 {
-    public function __invoke(ResetPasswordRequest $request): JsonResponse
+    #[Endpoint(title: 'Сброс пароля', description: 'Устанавливает новый пароль по токену из письма и сразу возвращает Bearer-токен в `meta.token`.')]
+    #[BodyParameter('email', description: 'Email аккаунта', example: 'user@example.com')]
+    #[BodyParameter('token', description: 'Токен из ссылки в письме', example: 'abc123')]
+    #[BodyParameter('password', description: 'Новый пароль (от 8 символов)', example: 'newpassword123')]
+    #[BodyParameter('password_confirmation', description: 'Повтор нового пароля', example: 'newpassword123')]
+    public function __invoke(ResetPasswordRequest $request, AuthService $auth): JsonResponse
     {
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, string $password): void {
-                // Plain password — User model casts `password` as `hashed`.
-                $user->forceFill([
-                    'password' => $password,
-                    'remember_token' => Str::random(60),
-                ])->save();
-            }
+        $result = $auth->resetPassword(
+            email: $request->string('email')->toString(),
+            token: $request->string('token')->toString(),
+            password: $request->string('password')->toString(),
+            passwordConfirmation: $request->string('password_confirmation')->toString(),
         );
 
-        if ($status !== Password::PASSWORD_RESET) {
-            return response()->json([
-                'message' => __($status),
-            ], 422);
-        }
-
         return response()->json([
-            'data' => [
-                'message' => 'Пароль успешно изменён.',
+            'data' => new UserResource($result['user']),
+            'meta' => [
+                'token' => $result['token'],
+                'token_type' => 'Bearer',
             ],
         ]);
     }

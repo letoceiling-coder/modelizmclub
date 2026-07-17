@@ -69,7 +69,7 @@ function LoginPage() {
     e.preventDefault();
     setFieldError(false);
     const form = new FormData(e.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const email = String(form.get("email") ?? "").trim().toLowerCase();
     const password = String(form.get("password") ?? "");
     const remember = form.get("remember") === "on";
     setLoading(true);

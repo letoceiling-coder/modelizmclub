@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -108,6 +109,52 @@ class AuthService
 
             return $this->tokenResponse($user);
         });
+    }
+
+    public function resetPassword(
+        string $email,
+        string $token,
+        string $password,
+        string $passwordConfirmation,
+    ): array {
+        $email = Str::lower(trim($email));
+        $user = null;
+
+        $status = Password::reset(
+            [
+                'email' => $email,
+                'token' => $token,
+                'password' => $password,
+                'password_confirmation' => $passwordConfirmation,
+            ],
+            function (User $resetUser, string $plainPassword) use (&$user): void {
+                $user = $resetUser;
+                $resetUser->forceFill([
+                    'password' => $plainPassword,
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'email' => ['Не удалось сбросить пароль.'],
+            ]);
+        }
+
+        if (! $user->profile) {
+            $this->createProfile($user);
+        }
+
+        $user->forceFill(['last_seen_at' => now()])->save();
+
+        return $this->tokenResponse($user);
     }
 
     public function login(string $email, string $password): array

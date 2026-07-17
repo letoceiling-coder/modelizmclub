@@ -139,17 +139,19 @@ export async function resetPassword(input: {
   token: string;
   password: string;
   passwordConfirmation: string;
-}): Promise<void> {
-  await api("/auth/reset-password", {
+}): Promise<{ user: User; token?: string }> {
+  const res = await api<AuthResponse>("/auth/reset-password", {
     method: "POST",
     auth: false,
     json: {
-      email: input.email,
+      email: input.email.trim().toLowerCase(),
       token: input.token,
       password: input.password,
       password_confirmation: input.passwordConfirmation,
     },
   });
+  if (res.meta?.token) setToken(res.meta.token, true);
+  return { user: mapApiUser(res.data), token: res.meta?.token };
 }
 
 export async function fetchMe(): Promise<User | null> {
