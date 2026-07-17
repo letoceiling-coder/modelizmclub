@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
@@ -104,19 +104,69 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
   return <CheckCheck size={12} style={{ color: "white" }} />;
 }
 
-function MessageImage({ src }: { src: string }) {
+const IMAGE_MAX_W = 280;
+const IMAGE_MAX_H = 320;
+const IMAGE_PLACEHOLDER_H = 200;
+
+function fitImageSize(naturalW: number, naturalH: number): { w: number; h: number } {
+  if (naturalW <= 0 || naturalH <= 0) {
+    return { w: IMAGE_MAX_W, h: IMAGE_PLACEHOLDER_H };
+  }
+  const scale = Math.min(IMAGE_MAX_W / naturalW, IMAGE_MAX_H / naturalH, 1);
+  return {
+    w: Math.max(120, Math.round(naturalW * scale)),
+    h: Math.max(90, Math.round(naturalH * scale)),
+  };
+}
+
+function MessageImage({ src, onResize }: { src: string; onResize?: () => void }) {
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [frame, setFrame] = useState({ w: IMAGE_MAX_W, h: IMAGE_PLACEHOLDER_H });
+
+  useEffect(() => {
+    setBroken(false);
+    setLoaded(false);
+    let alive = true;
+    const img = new Image();
+    img.onload = () => {
+      if (!alive) return;
+      setFrame(fitImageSize(img.naturalWidth, img.naturalHeight));
+      setLoaded(true);
+      onResize?.();
+    };
+    img.onerror = () => {
+      if (!alive) return;
+      setBroken(true);
+      onResize?.();
+    };
+    img.src = src;
+    return () => {
+      alive = false;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [src, onResize]);
+
   if (broken) {
     return (
       <div
         className="mb-[6px] grid place-items-center"
-        style={{ width: 240, height: 160, maxWidth: "100%", borderRadius: 12, background: "var(--background-surface)", color: "var(--foreground-30)" }}
+        style={{
+          width: IMAGE_MAX_W,
+          maxWidth: "100%",
+          height: IMAGE_PLACEHOLDER_H,
+          borderRadius: 12,
+          background: "var(--background-surface)",
+          color: "var(--foreground-30)",
+        }}
       >
         <ImageOff size={26} />
       </div>
     );
   }
+
   return (
     <>
       <button
@@ -124,14 +174,36 @@ function MessageImage({ src }: { src: string }) {
         onClick={() => setOpen(true)}
         aria-label="Открыть фото на весь экран"
         className="mb-[6px] block cursor-zoom-in p-0"
+        style={{ width: frame.w, maxWidth: "100%" }}
       >
-        <img
-          src={src}
-          alt=""
-          className="max-h-[320px] w-full object-cover"
-          style={{ borderRadius: "12px", maxWidth: 280 }}
-          onError={() => setBroken(true)}
-        />
+        <div
+          className="relative overflow-hidden"
+          style={{
+            width: "100%",
+            height: frame.h,
+            borderRadius: 12,
+            background: "var(--background-surface)",
+            transition: "height 180ms ease",
+          }}
+        >
+          {!loaded && (
+            <div
+              className="absolute inset-0 animate-pulse"
+              style={{ background: "color-mix(in oklab, var(--foreground) 8%, transparent)" }}
+            />
+          )}
+          <img
+            src={src}
+            alt=""
+            draggable={false}
+            className="h-full w-full object-cover"
+            style={{
+              borderRadius: 12,
+              opacity: loaded ? 1 : 0,
+              transition: "opacity 180ms ease",
+            }}
+          />
+        </div>
       </button>
       {open && <ImageLightbox src={src} onClose={() => setOpen(false)} />}
     </>
@@ -139,7 +211,7 @@ function MessageImage({ src }: { src: string }) {
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onReport,
+  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onReport, onMediaResize,
 }: {
   msg: Message; prev?: Message; allMessages: Message[];
   onReply: (m: Message) => void;
@@ -148,11 +220,13 @@ function MessageBubble({
   onPin: (m: Message) => void;
   onDelete: (m: Message) => void;
   onReport: (m: Message) => void;
+  onMediaResize?: () => void;
 }) {
   const meId = useStore((s) => s.currentUserId);
   const isMe = msg.authorId === meId;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
+  const hasMedia = Boolean(msg.image || msg.file || msg.voice);
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
   const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
@@ -171,9 +245,9 @@ function MessageBubble({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      initial={hasMedia ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: hasMedia ? 0.18 : 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={`group flex items-end gap-[8px] ${isMe ? "justify-end" : "justify-start"}`}
       style={{ marginTop: isFirstInGroup ? 16 : 4 }}
     >
@@ -234,7 +308,7 @@ function MessageBubble({
               <div className="truncate">{reply.text}</div>
             </div>
           )}
-          {msg.image && <MessageImage src={msg.image} />}
+          {msg.image && <MessageImage src={msg.image} onResize={onMediaResize} />}
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
           {msg.text && (
@@ -275,6 +349,18 @@ function MessengerPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesContentRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
+    const el = scrollRef.current;
+    if (!el || !stickToBottomRef.current) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  const handleMediaResize = useCallback(() => {
+    scrollToBottom("auto");
+  }, [scrollToBottom]);
 
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
 
@@ -430,9 +516,30 @@ function MessengerPage() {
   );
 
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [activeId]);
+
+  useEffect(() => {
     if (!scrollRef.current || chatLoading) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [active?.messages.length, chatLoading, activeId]);
+    scrollToBottom(stickToBottomRef.current ? "smooth" : "auto");
+  }, [active?.messages.length, chatLoading, activeId, scrollToBottom]);
+
+  useEffect(() => {
+    const target = messagesContentRef.current;
+    if (!target) return;
+    const ro = new ResizeObserver(() => {
+      if (stickToBottomRef.current) scrollToBottom("auto");
+    });
+    ro.observe(target);
+    return () => ro.disconnect();
+  }, [activeId, active?.messages.length, scrollToBottom]);
 
   const handleSelect = (id: string) => {
     setActiveId(id);
@@ -481,6 +588,7 @@ function MessengerPage() {
     const tempId = `tmp${Date.now()}`;
     const optimistic: Message = {
       id: tempId,
+      clientKey: tempId,
       authorId: meId,
       time: new Date().toISOString(),
       text: body,
@@ -510,6 +618,7 @@ function MessengerPage() {
     const localUrl = URL.createObjectURL(blob);
     const optimistic: Message = {
       id: tempId,
+      clientKey: tempId,
       authorId: meId,
       time: new Date().toISOString(),
       text: "",
@@ -549,6 +658,7 @@ function MessengerPage() {
     const tempId = `tmp${Date.now()}`;
     const base: Message = {
       id: tempId,
+      clientKey: tempId,
       authorId: meId,
       time: new Date().toISOString(),
       text: "",
@@ -917,26 +1027,29 @@ function MessengerPage() {
               )}
 
               {/* Messages */}
-              <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]">
+              <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]" style={{ overflowAnchor: "auto" }}>
                 {chatLoading ? (
                   <MessageSkeleton />
                 ) : (
-                  active.messages
-                    .filter((m) => !m.deletedForMe)
-                    .map((m, i, arr) => (
-                      <MessageBubble
-                        key={m.id}
-                        msg={m}
-                        prev={arr[i - 1]}
-                        allMessages={active.messages}
-                        onReply={setReplyTo}
-                        onCopy={handleCopy}
-                        onForward={setForwardMsg}
-                        onPin={handlePinMessage}
-                        onDelete={handleDeleteMessage}
-                        onReport={handleReportMessage}
-                      />
-                    ))
+                  <div ref={messagesContentRef}>
+                    {active.messages
+                      .filter((m) => !m.deletedForMe)
+                      .map((m, i, arr) => (
+                        <MessageBubble
+                          key={m.clientKey ?? m.id}
+                          msg={m}
+                          prev={arr[i - 1]}
+                          allMessages={active.messages}
+                          onReply={setReplyTo}
+                          onCopy={handleCopy}
+                          onForward={setForwardMsg}
+                          onPin={handlePinMessage}
+                          onDelete={handleDeleteMessage}
+                          onReport={handleReportMessage}
+                          onMediaResize={handleMediaResize}
+                        />
+                      ))}
+                  </div>
                 )}
               </div>
 

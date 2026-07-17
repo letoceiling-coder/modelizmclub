@@ -232,6 +232,8 @@ export interface MessageFile {
 
 export interface Message {
   id: ID;
+  /** Stable React key while an optimistic message is confirmed by the server. */
+  clientKey?: ID;
   authorId: ID;
   time: string;
   text: string;

@@ -32,6 +32,15 @@ class FriendController extends Controller
         ]);
     }
 
+    public function indexOutgoingRequests(Request $request, FriendService $friends): JsonResponse
+    {
+        $items = $friends->listOutgoingPending($request->user());
+
+        return response()->json([
+            'data' => FriendRequestResource::collection($items),
+        ]);
+    }
+
     public function storeRequest(int $id, Request $request, FriendService $friends): JsonResponse
     {
         $target = $this->findUser($id);

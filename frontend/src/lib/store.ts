@@ -566,8 +566,13 @@ export function ingestIncomingMessage(
 export function replaceMessage(dialogId: ID, tempId: ID, message: Message): void {
   const d = state.dialogs[dialogId];
   if (!d) return;
-  const withoutTemp = d.messages.filter((m) => m.id !== tempId && m.id !== message.id);
-  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages: [...withoutTemp, message] });
+  const hasTemp = d.messages.some((m) => m.id === tempId);
+  const messages = hasTemp
+    ? d.messages.map((m) =>
+        m.id === tempId ? { ...message, clientKey: m.clientKey ?? tempId } : m,
+      )
+    : [...d.messages.filter((m) => m.id !== message.id), message];
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
 }
 
 // Imperative helper: find an existing dialog with the given user, or create one.

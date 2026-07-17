@@ -92,6 +92,12 @@ class FriendModuleTest extends TestCase
             ->getJson('/api/v1/users/me/friend-requests')
             ->assertOk()
             ->assertJsonCount(1, 'data');
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson('/api/v1/users/me/friend-requests/sent')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'pending');
     }
 
     private function userWithProfile(string $name, string $slug): User

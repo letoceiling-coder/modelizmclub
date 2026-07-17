@@ -40,6 +40,7 @@ Route::prefix('users')->group(function (): void {
         Route::get('me/friends', [FriendController::class, 'indexFriends']);
         Route::delete('me/friends/{id}', [FriendController::class, 'destroyFriend'])->whereNumber('id');
         Route::get('me/friend-requests', [FriendController::class, 'indexIncomingRequests']);
+        Route::get('me/friend-requests/sent', [FriendController::class, 'indexOutgoingRequests']);
         Route::post('{id}/friend-request', [FriendController::class, 'storeRequest'])->whereNumber('id');
         Route::post('{id}/follow', [FollowController::class, 'store'])->whereNumber('id');
         Route::delete('{id}/follow', [FollowController::class, 'destroy'])->whereNumber('id');

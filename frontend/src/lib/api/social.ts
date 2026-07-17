@@ -80,6 +80,18 @@ export interface IncomingRequest {
   date: string;
 }
 
+export interface OutgoingRequest {
+  id: number;
+  to: User;
+  date: string;
+}
+
+export interface FriendRequestResult {
+  id: number;
+  status: string;
+  to?: User;
+}
+
 export async function searchUsers(q: string): Promise<User[]> {
   if (isDemoMode()) return demoSearchUsers(q);
   const res = await api<Paginated<ApiCompactUser>>("/users/search", {
@@ -108,9 +120,27 @@ export async function fetchIncomingRequests(): Promise<IncomingRequest[]> {
     }));
 }
 
-export async function sendFriendRequest(userId: number): Promise<void> {
-  if (isDemoMode()) return;
-  await api(`/users/${userId}/friend-request`, { method: "POST" });
+export async function fetchOutgoingRequests(): Promise<OutgoingRequest[]> {
+  if (isDemoMode()) return [];
+  const res = await api<{ data: ApiFriendRequest[] }>("/users/me/friend-requests/sent");
+  return (res.data ?? [])
+    .filter((r) => r.to)
+    .map((r) => ({
+      id: r.id,
+      to: mapCompactUser(r.to as ApiCompactUser),
+      date: r.created_at ?? "",
+    }));
+}
+
+export async function sendFriendRequest(userId: number): Promise<FriendRequestResult> {
+  if (isDemoMode()) return { id: Date.now(), status: "pending" };
+  const res = await api<{ data: ApiFriendRequest }>(`/users/${userId}/friend-request`, { method: "POST" });
+  const data = res.data;
+  return {
+    id: data.id,
+    status: data.status,
+    to: data.to ? mapCompactUser(data.to) : undefined,
+  };
 }
 
 export async function removeFriend(userId: number): Promise<void> {
@@ -126,6 +156,11 @@ export async function acceptFriendRequest(requestId: number): Promise<void> {
 export async function declineFriendRequest(requestId: number): Promise<void> {
   if (isDemoMode()) return;
   await api(`/friend-requests/${requestId}/decline`, { method: "POST" });
+}
+
+export async function cancelFriendRequest(requestId: number): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/friend-requests/${requestId}`, { method: "DELETE" });
 }
 
 export async function followUser(userId: number): Promise<void> {

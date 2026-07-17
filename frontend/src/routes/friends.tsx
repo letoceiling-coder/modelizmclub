@@ -12,11 +12,12 @@ import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import {
-  fetchFriends, fetchIncomingRequests, searchUsers,
-  sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest,
+  fetchFriends, fetchIncomingRequests, fetchOutgoingRequests, searchUsers,
+  sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest, cancelFriendRequest,
   blockUser,
   type IncomingRequest,
 } from "@/lib/api/social";
+import { ApiError } from "@/lib/api/client";
 import { createConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
@@ -105,14 +106,13 @@ function FriendCard({
         <Button
           size="sm"
           variant={isAdded || isPending ? "outline" : "default"}
-          disabled={isPending}
           onClick={onToggleFriend}
           className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
         >
           {isAdded
             ? <><Check size={13} /> В друзьях</>
             : isPending
-            ? <><Clock size={13} /> Заявка отправлена</>
+            ? <><Clock size={13} /> Отменить заявку</>
             : <><UserPlus size={13} /> Добавить</>}
         </Button>
         <Button
@@ -143,7 +143,7 @@ function FriendsPage() {
   const [friends, setFriends] = useState<User[]>([]);
   const [requests, setRequests] = useState<IncomingRequest[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [complaintTarget, setComplaintTarget] = useState<User | null>(null);
   const navigateMessenger = useNavigate();
@@ -159,12 +159,14 @@ function FriendsPage() {
     Promise.all([
       fetchFriends().catch(() => [] as User[]),
       fetchIncomingRequests().catch(() => [] as IncomingRequest[]),
+      fetchOutgoingRequests().catch(() => []),
       searchUsers("").catch(() => [] as User[]),
-    ]).then(([fr, rq, us]) => {
+    ]).then(([fr, rq, out, us]) => {
       if (!active) return;
       setFriends(fr);
       setRequests(rq);
       setAllUsers(us);
+      setPending(new Map(out.map((r) => [r.to.id, r.id])));
       setLoading(false);
     });
     return () => { active = false; };
@@ -253,18 +255,47 @@ function FriendsPage() {
       return;
     }
     const isAdded = added.has(u.id);
-    if (!isAdded && pending.has(u.id)) return;
+    const pendingId = pending.get(u.id);
     try {
       if (isAdded) {
         await removeFriend(u.numericId);
         setFriends((fs) => fs.filter((f) => f.id !== u.id));
         toast.success("Удалён из друзей");
-      } else {
-        await sendFriendRequest(u.numericId);
-        setPending((p) => new Set(p).add(u.id));
-        // Inline feedback only: the button itself flips to "Заявка отправлена".
+        return;
       }
-    } catch {
+      if (pendingId != null) {
+        if (pendingId > 0) {
+          await cancelFriendRequest(pendingId);
+        }
+        setPending((p) => {
+          const next = new Map(p);
+          next.delete(u.id);
+          return next;
+        });
+        toast.success("Заявка отменена");
+        return;
+      }
+      const result = await sendFriendRequest(u.numericId);
+      if (result.status === "accepted") {
+        setFriends((fs) => (fs.some((f) => f.id === u.id) ? fs : [u, ...fs]));
+        toast.success("Добавлен в друзья");
+        return;
+      }
+      setPending((p) => new Map(p).set(u.id, result.id));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fieldMsg = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
+        const msg = fieldMsg || err.message;
+        if (err.status === 422 && msg.includes("уже отправлена")) {
+          setPending((p) => new Map(p).set(u.id, p.get(u.id) ?? 0));
+          void fetchOutgoingRequests()
+            .then((out) => setPending(new Map(out.map((r) => [r.to.id, r.id]))))
+            .catch(() => {});
+          return;
+        }
+        toast.error(msg);
+        return;
+      }
       toast.error("Не удалось выполнить действие");
     }
   };

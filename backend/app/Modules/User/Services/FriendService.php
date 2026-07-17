@@ -186,6 +186,17 @@ class FriendService
             ->get();
     }
 
+    /** @return Collection<int, FriendRequest> */
+    public function listOutgoingPending(User $user): Collection
+    {
+        return FriendRequest::query()
+            ->with(['toUser.profile.avatar', 'toUser.profile.city'])
+            ->where('from_user_id', $user->id)
+            ->where('status', FriendRequestStatus::Pending)
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
     public function areFriends(User $a, User $b): bool
     {
         return DB::table('user_friendships')

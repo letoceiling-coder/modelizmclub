@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { CornerUpLeft, Copy, Forward, Pin, PinOff, Trash2, Flag, MoreHorizontal } from "lucide-react";
@@ -20,6 +20,8 @@ interface Props {
 }
 
 const DESKTOP_MENU_WIDTH = 220;
+const VIEWPORT_PAD = 8;
+const MENU_GAP = 6;
 
 export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(function MessageActionsMenu(
   { isMe, pinned, align, onReply, onCopy, onForward, onPin, onDelete, onReport },
@@ -27,23 +29,61 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
 ) {
   const [open, setOpen] = useState(false);
   const [desktopPos, setDesktopPos] = useState<{ top: number; left: number } | null>(null);
+  const [opensAbove, setOpensAbove] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuElRef = useRef<HTMLDivElement>(null);
 
   const computeDesktopPos = () => {
     const btn = triggerRef.current;
+    const menu = menuElRef.current;
     if (!btn) return;
+
     const r = btn.getBoundingClientRect();
-    const left = align === "right" ? r.right - DESKTOP_MENU_WIDTH : r.left;
-    setDesktopPos({ top: r.bottom + 6, left });
+    const menuH = menu?.offsetHeight ?? 0;
+    const menuW = menu?.offsetWidth ?? DESKTOP_MENU_WIDTH;
+
+    let top = r.bottom + MENU_GAP;
+    let above = false;
+
+    if (menuH > 0) {
+      const spaceBelow = window.innerHeight - VIEWPORT_PAD - top;
+      const spaceAbove = r.top - VIEWPORT_PAD;
+      if (spaceBelow < menuH && spaceAbove >= spaceBelow) {
+        top = r.top - MENU_GAP - menuH;
+        above = true;
+      }
+      top = Math.max(VIEWPORT_PAD, Math.min(top, window.innerHeight - VIEWPORT_PAD - menuH));
+    }
+
+    let left = align === "right" ? r.right - menuW : r.left;
+    left = Math.max(VIEWPORT_PAD, Math.min(left, window.innerWidth - VIEWPORT_PAD - menuW));
+
+    setOpensAbove(above);
+    setDesktopPos({ top, left });
   };
 
   const openMenu = () => {
-    computeDesktopPos();
+    const btn = triggerRef.current;
+    if (btn) {
+      const r = btn.getBoundingClientRect();
+      const left = align === "right" ? r.right - DESKTOP_MENU_WIDTH : r.left;
+      setDesktopPos({ top: r.bottom + MENU_GAP, left });
+      setOpensAbove(false);
+    }
     setOpen(true);
   };
 
   useImperativeHandle(ref, () => ({ open: openMenu }));
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const adjust = () => computeDesktopPos();
+    adjust();
+    if (!menuElRef.current?.offsetHeight) requestAnimationFrame(adjust);
+    window.addEventListener("resize", adjust);
+    return () => window.removeEventListener("resize", adjust);
+  }, [open, align, isMe, pinned]);
 
   useEffect(() => {
     if (!open) return;
@@ -68,8 +108,6 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
       window.removeEventListener("resize", onScrollOrResize);
     };
   }, [open]);
-
-  const menuElRef = useRef<HTMLDivElement>(null);
 
   const run = (fn: () => void) => () => {
     setOpen(false);
@@ -101,15 +139,16 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
             <motion.div
               ref={menuElRef}
               role="menu"
-              initial={{ opacity: 0, y: -6, scale: 0.96 }}
+              initial={{ opacity: 0, y: opensAbove ? 6 : -6, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.96 }}
+              exit={{ opacity: 0, y: opensAbove ? 6 : -6, scale: 0.96 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed z-[100] overflow-hidden rounded-[12px] border"
+              className="fixed z-[100] overflow-y-auto rounded-[12px] border"
               style={{
                 top: desktopPos.top,
                 left: desktopPos.left,
                 width: DESKTOP_MENU_WIDTH,
+                maxHeight: `calc(100vh - ${VIEWPORT_PAD * 2}px)`,
                 background: "var(--background-elevated)",
                 borderColor: "var(--border)",
                 boxShadow: "var(--shadow-float)",
