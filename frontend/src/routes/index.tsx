@@ -468,18 +468,19 @@ function QuickSections() {
       </p>
       <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
-          <Link key={key} to={to} className="group flex h-full flex-col p-6 transition hover:-translate-y-1"
+          <Link
+            key={key}
+            to={to}
+            className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
             style={cardStyle}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
           >
             <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
               <Icon size={22} />
             </div>
             <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t(`landing.quick.items.${key}.title`)}</h3>
             <p className="mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.quick.items.${key}.desc`)}</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
-              {t("landing.quick.open")} <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+            <span className="landing-tap-card-arrow mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
+              {t("landing.quick.open")} <ArrowRight size={14} />
             </span>
           </Link>
         ))}
@@ -564,7 +565,7 @@ function ListingCtaPlaceholder({ label }: { label: string }) {
   return (
     <Link
       to="/ads/new"
-      className="group flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col items-center justify-center gap-2 overflow-hidden p-6 text-center transition hover:-translate-y-1 sm:w-auto sm:max-w-none"
+      className="group landing-tap-card landing-tap-card--lift flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col items-center justify-center gap-2 overflow-hidden p-6 text-center sm:w-auto sm:max-w-none"
       style={{ ...cardStyle, borderStyle: "dashed" }}
     >
       <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent)" }}>
@@ -756,10 +757,8 @@ function CategoriesSection() {
               // are sent to auth first, matching the landing's gate pattern
               // (popular-listings card actions).
               <Link key={cat.id} to="/categories/$id" params={{ id: cat.id }}
-                className="group flex items-center gap-[10px] p-3 transition hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+                className="group landing-tap-card landing-tap-card--lift-sm flex items-center gap-[10px] p-3 sm:gap-3 sm:p-4"
                 style={cardStyle}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--neutral-400)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-xs)"; }}
               >
                 <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
                   style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>

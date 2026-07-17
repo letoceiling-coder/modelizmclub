@@ -336,6 +336,48 @@ html, body {
   display: none;                  /* Chrome/Safari */
 }
 
+/* Landing tappable cards — on touch devices iOS applies sticky :hover on the
+   first tap (border/transform via JS or Tailwind hover:*), which consumes the
+   tap and forces a second tap to navigate. Hover lift/border only on fine pointers. */
+.landing-tap-card {
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 120ms ease;
+}
+
+.landing-tap-card:active {
+  opacity: 0.9;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-tap-card--lift:hover {
+    transform: translateY(-4px);
+  }
+
+  .landing-tap-card--lift-sm:hover {
+    transform: translateY(-2px);
+  }
+
+  .landing-tap-card:hover {
+    border-color: var(--neutral-400) !important;
+    box-shadow: var(--shadow-card-hover) !important;
+  }
+
+  .landing-tap-card .landing-tap-card-arrow {
+    transition: transform 180ms ease;
+  }
+
+  .landing-tap-card:hover .landing-tap-card-arrow {
+    transform: translateX(4px);
+  }
+}
+
 /* Shimmer — Framer Motion driven skeleton loading */
 @keyframes shimmer-move {
   0% { transform: translateX(-100%); }
