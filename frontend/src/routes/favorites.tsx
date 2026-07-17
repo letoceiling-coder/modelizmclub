@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -8,6 +8,7 @@ import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { fetchFavoriteListings } from "@/lib/api/listings";
+import { actions, useStore } from "@/lib/store";
 import type { Ad } from "@/lib/mock";
 
 export const Route = createFileRoute("/favorites")({
@@ -24,16 +25,27 @@ function FavoritesPage() {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
+  const favoriteAdIds = useStore((s) => s.favoriteAdIds);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     fetchFavoriteListings()
-      .then((list) => { if (alive) setFavorites(list); })
+      .then((list) => {
+        if (!alive) return;
+        setFavorites(list);
+        // Keep heart state in sync with the server list so unfavorite updates UI.
+        actions.setFavoriteAdIds(list.map((ad) => ad.id));
+      })
       .catch(() => { if (alive) setFavorites([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
+
+  const visibleFavorites = useMemo(
+    () => favorites.filter((ad) => favoriteAdIds.includes(ad.id)),
+    [favorites, favoriteAdIds],
+  );
 
   return (
     <AppLayout rightColumn={false} footer>
@@ -53,7 +65,7 @@ function FavoritesPage() {
               <AdCardSkeleton key={i} />
             ))}
           </div>
-        ) : favorites.length === 0 ? (
+        ) : visibleFavorites.length === 0 ? (
           <EmptyState
             icon={Heart}
             title={t("pages.favorites.emptyTitle")}
@@ -63,7 +75,7 @@ function FavoritesPage() {
           </EmptyState>
         ) : (
           <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-            {favorites.map((ad) => (
+            {visibleFavorites.map((ad) => (
               <CatalogCard key={ad.id} ad={ad} />
             ))}
           </div>

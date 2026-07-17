@@ -183,6 +183,7 @@ type Action =
   | { type: "UNBLOCK_USER"; userId: ID }
   | { type: "HIDE_USER"; userId: ID }
   | { type: "TOGGLE_FAVORITE_AD"; adId: ID }
+  | { type: "SET_FAVORITE_AD_IDS"; ids: ID[] }
   | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef }
   | { type: "QUEUE_PENDING_MESSAGE"; dialogId: ID; text: string }
   | { type: "CLEAR_PENDING_MESSAGE"; dialogId: ID }
@@ -457,6 +458,8 @@ function reducer(s: AppState, a: Action): AppState {
           ? s.favoriteAdIds.filter((id) => id !== a.adId)
           : [...s.favoriteAdIds, a.adId],
       };
+    case "SET_FAVORITE_AD_IDS":
+      return { ...s, favoriteAdIds: a.ids };
     case "SET_DIALOG_AD":
       return { ...s, dialogAdRefs: { ...s.dialogAdRefs, [a.dialogId]: a.ref } };
     case "QUEUE_PENDING_MESSAGE":
@@ -518,6 +521,7 @@ export const actions = {
   unblockUser: (userId: ID) => dispatch({ type: "UNBLOCK_USER", userId }),
   hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
   toggleFavoriteAd: (adId: ID) => dispatch({ type: "TOGGLE_FAVORITE_AD", adId }),
+  setFavoriteAdIds: (ids: ID[]) => dispatch({ type: "SET_FAVORITE_AD_IDS", ids }),
   setDialogAd: (dialogId: ID, ref: DialogAdRef) => dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
   queuePendingMessage: (dialogId: ID, text: string) => dispatch({ type: "QUEUE_PENDING_MESSAGE", dialogId, text }),
   clearPendingMessage: (dialogId: ID) => dispatch({ type: "CLEAR_PENDING_MESSAGE", dialogId }),
