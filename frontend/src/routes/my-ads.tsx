@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
-import { type Ad } from "@/lib/mock";
+import { type Ad, type AdCondition } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
 import { fetchMyListings, publishListing, archiveListing, deleteListing, restoreListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
@@ -40,16 +40,33 @@ function statusToTab(s: AdStatusKey): TabKey {
 type SortKey = "new" | "old" | "views" | "likes" | "price_asc" | "price_desc" | "updated";
 type DateRange = "all" | "today" | "7d" | "30d";
 type QuickChip = "all" | "new" | "used" | "delivery";
+type ConditionFilter = "all" | AdCondition;
+type DeliveryFilter = "all" | "yes" | "no";
+type PhotoFilter = "all" | "yes" | "no";
 
 interface Filters {
   category: string;
+  city: string;
+  condition: ConditionFilter;
+  delivery: DeliveryFilter;
+  hasPhoto: PhotoFilter;
   dateRange: DateRange;
   priceMin: number;
   priceMax: number;
   sort: SortKey;
 }
 
-const DEFAULT_FILTERS: Filters = { category: "all", dateRange: "all", priceMin: 0, priceMax: 0, sort: "new" };
+const DEFAULT_FILTERS: Filters = {
+  category: "all",
+  city: "all",
+  condition: "all",
+  delivery: "all",
+  hasPhoto: "all",
+  dateRange: "all",
+  priceMin: 0,
+  priceMax: 0,
+  sort: "new",
+};
 
 const QUICK_CHIPS: { key: QuickChip; label: string }[] = [
   { key: "all", label: "Все" },
@@ -66,7 +83,35 @@ function MyAdsPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [query, setQuery] = useState("");
-  const [quickChip, setQuickChip] = useState<QuickChip>("all");
+
+  const applyQuickChip = (chip: QuickChip) => {
+    if (chip === "all") {
+      setFilters(DEFAULT_FILTERS);
+      return;
+    }
+    setFilters((f) => ({
+      ...DEFAULT_FILTERS,
+      sort: f.sort,
+      ...(chip === "new" ? { dateRange: "7d" as const } : {}),
+      ...(chip === "used" ? { condition: "Б/у" as const } : {}),
+      ...(chip === "delivery" ? { delivery: "yes" as const } : {}),
+    }));
+  };
+
+  const activeQuickChip = useMemo((): QuickChip => {
+    const isBase = filters.category === "all"
+      && filters.city === "all"
+      && filters.hasPhoto === "all"
+      && filters.priceMin === 0
+      && filters.priceMax === 0
+      && filters.sort === "new";
+
+    if (!isBase) return "all";
+    if (filters.dateRange === "7d" && filters.condition === "all" && filters.delivery === "all") return "new";
+    if (filters.condition === "Б/у" && filters.delivery === "all" && filters.dateRange === "all") return "used";
+    if (filters.delivery === "yes" && filters.condition === "all" && filters.dateRange === "all") return "delivery";
+    return "all";
+  }, [filters]);
 
   useEffect(() => {
     fetchMyListings()
@@ -101,7 +146,13 @@ function MyAdsPage() {
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const { ad } of decorated) if (ad.category) set.add(ad.category);
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ru"));
+  }, [decorated]);
+
+  const cities = useMemo(() => {
+    const set = new Set<string>();
+    for (const { ad } of decorated) if (ad.city) set.add(ad.city);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ru"));
   }, [decorated]);
 
   // Counts derived from store
@@ -114,12 +165,15 @@ function MyAdsPage() {
   const filtersDirty = useMemo(
     () =>
       filters.category !== "all"
+      || filters.city !== "all"
+      || filters.condition !== "all"
+      || filters.delivery !== "all"
+      || filters.hasPhoto !== "all"
       || filters.dateRange !== "all"
       || filters.priceMin > 0
       || filters.priceMax > 0
-      || filters.sort !== "new"
-      || quickChip !== "all",
-    [filters, quickChip],
+      || filters.sort !== "new",
+    [filters],
   );
 
   const visible = useMemo(() => {
@@ -134,18 +188,19 @@ function MyAdsPage() {
     const filtered = decorated.filter(({ ad, status }) => {
       if (statusToTab(status) !== tab) return false;
       if (filters.category !== "all" && ad.category !== filters.category) return false;
+      if (filters.city !== "all" && ad.city !== filters.city) return false;
+      if (filters.condition !== "all" && ad.condition !== filters.condition) return false;
+      if (filters.delivery === "yes" && !(ad.delivery?.length)) return false;
+      if (filters.delivery === "no" && (ad.delivery?.length ?? 0) > 0) return false;
+      const hasPhoto = Boolean(ad.image || ad.gallery?.length);
+      if (filters.hasPhoto === "yes" && !hasPhoto) return false;
+      if (filters.hasPhoto === "no" && hasPhoto) return false;
       if (filters.priceMin > 0 && ad.price < filters.priceMin) return false;
       if (filters.priceMax > 0 && ad.price > filters.priceMax) return false;
       if (filters.dateRange !== "all") {
         const ts = ad.publishedAt ? Date.parse(ad.publishedAt) : NaN;
         if (!isFinite(ts) || now - ts > rangeMs[filters.dateRange]) return false;
       }
-      if (quickChip === "new") {
-        const ts = ad.publishedAt ? Date.parse(ad.publishedAt) : NaN;
-        if (!isFinite(ts) || now - ts > rangeMs["7d"]) return false;
-      }
-      if (quickChip === "used" && ad.condition !== "Б/у") return false;
-      if (quickChip === "delivery" && !(ad.delivery?.length)) return false;
       if (q && !ad.title.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -164,7 +219,7 @@ function MyAdsPage() {
       }
     });
     return sorted.map((x) => ({ ad: x.ad, status: statusToMyAdStatus(x.status) }));
-  }, [decorated, tab, filters, query, quickChip]);
+  }, [decorated, tab, filters, query]);
 
   // Aggregate stats from active ads
   const stats = useMemo(() => {
@@ -190,7 +245,6 @@ function MyAdsPage() {
   const deleteSelected = () => { selected.forEach((id) => doDelete(id)); clearSelection(); };
   const resetFilters = () => {
     setFilters(DEFAULT_FILTERS);
-    setQuickChip("all");
   };
 
   return (
@@ -340,12 +394,12 @@ function MyAdsPage() {
         {/* Quick filter chips */}
         <div className="flex flex-wrap gap-[8px]">
           {QUICK_CHIPS.map((chip) => {
-            const active = quickChip === chip.key;
+            const active = activeQuickChip === chip.key;
             return (
               <button
                 key={chip.key}
                 type="button"
-                onClick={() => setQuickChip(chip.key)}
+                onClick={() => applyQuickChip(chip.key)}
                 className="inline-flex h-[32px] shrink-0 items-center px-[12px] text-[13px] font-medium transition-colors"
                 style={{
                   borderRadius: "var(--r-pill)",
@@ -367,7 +421,7 @@ function MyAdsPage() {
         >
           <div className="overflow-hidden">
             <div
-              className="grid gap-[12px] p-[14px] sm:grid-cols-2 lg:grid-cols-3"
+              className="grid grid-cols-1 gap-[12px] p-[14px] sm:grid-cols-2 lg:grid-cols-3"
               style={{ background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}
             >
               <FilterField label="Категория">
@@ -381,6 +435,17 @@ function MyAdsPage() {
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </FilterField>
+              <FilterField label="Город">
+                <select
+                  value={filters.city}
+                  onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="all">Все города</option>
+                  {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </FilterField>
               <FilterField label="Период">
                 <select
                   value={filters.dateRange}
@@ -392,6 +457,18 @@ function MyAdsPage() {
                   <option value="today">Сегодня</option>
                   <option value="7d">7 дней</option>
                   <option value="30d">30 дней</option>
+                </select>
+              </FilterField>
+              <FilterField label="Состояние">
+                <select
+                  value={filters.condition}
+                  onChange={(e) => setFilters((f) => ({ ...f, condition: e.target.value as ConditionFilter }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="all">Любое</option>
+                  <option value="Новое">Новое</option>
+                  <option value="Б/у">Б/у</option>
                 </select>
               </FilterField>
               <FilterField label="Цена от, ₽">
@@ -415,6 +492,30 @@ function MyAdsPage() {
                   className="w-full text-[13px]"
                   style={selectStyle}
                 />
+              </FilterField>
+              <FilterField label="Доставка">
+                <select
+                  value={filters.delivery}
+                  onChange={(e) => setFilters((f) => ({ ...f, delivery: e.target.value as DeliveryFilter }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="all">Любая</option>
+                  <option value="yes">Есть доставка</option>
+                  <option value="no">Без доставки</option>
+                </select>
+              </FilterField>
+              <FilterField label="Фото">
+                <select
+                  value={filters.hasPhoto}
+                  onChange={(e) => setFilters((f) => ({ ...f, hasPhoto: e.target.value as PhotoFilter }))}
+                  className="w-full text-[13px]"
+                  style={selectStyle}
+                >
+                  <option value="all">Не важно</option>
+                  <option value="yes">С фото</option>
+                  <option value="no">Без фото</option>
+                </select>
               </FilterField>
               <FilterField label="Сортировка">
                 <select
