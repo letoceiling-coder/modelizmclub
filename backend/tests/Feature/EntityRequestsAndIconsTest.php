@@ -446,7 +446,8 @@ class EntityRequestsAndIconsTest extends TestCase
         $this->getJson('/api/v1/public/feature-flags')
             ->assertOk()
             ->assertJsonPath('data.market_enabled', false)
-            ->assertJsonPath('data.escrow_enabled', false);
+            ->assertJsonPath('data.escrow_enabled', false)
+            ->assertJsonPath('data.listing_payment_enabled', false);
 
         SystemSetting::query()->create([
             'key' => 'feature.escrow_enabled',

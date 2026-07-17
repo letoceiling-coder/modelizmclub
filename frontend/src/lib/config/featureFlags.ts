@@ -17,6 +17,9 @@ export interface FeatureFlags {
    *  what actually works. Turn on from /admin once ЮKassa Безопасная сделка is
    *  wired on the backend. Server-controlled, see FeatureFlagsController. */
   escrowEnabled: boolean;
+  /** Off by default — listing placement is free until billing is wired in the
+   *  create-ad wizard. Server-controlled via /admin. */
+  listingPaymentEnabled: boolean;
 }
 
 const DEFAULTS: FeatureFlags = {
@@ -24,6 +27,7 @@ const DEFAULTS: FeatureFlags = {
   reviewsEnabled: true,
   marketEnabled: false,
   escrowEnabled: false,
+  listingPaymentEnabled: false,
 };
 
 const LS_KEY = "modelizm_feature_flags";
@@ -53,13 +57,14 @@ function notify() {
 export async function loadFeatureFlagsFromServer(): Promise<void> {
   if (isDemoMode() || typeof window === "undefined") return;
   try {
-    const res = await api<{ data: { communities_enabled?: boolean; market_enabled?: boolean; escrow_enabled?: boolean } }>("/public/feature-flags", {
+    const res = await api<{ data: { communities_enabled?: boolean; market_enabled?: boolean; escrow_enabled?: boolean; listing_payment_enabled?: boolean } }>("/public/feature-flags", {
       auth: false,
     });
     serverFlags = {
       communitiesEnabled: Boolean(res.data?.communities_enabled),
       marketEnabled: Boolean(res.data?.market_enabled),
       escrowEnabled: Boolean(res.data?.escrow_enabled),
+      listingPaymentEnabled: Boolean(res.data?.listing_payment_enabled),
     };
     notify();
   } catch {

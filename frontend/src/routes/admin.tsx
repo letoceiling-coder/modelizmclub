@@ -2603,6 +2603,7 @@ const SETTING_META: Record<string, { label: string; hint?: string; hidden?: bool
   "feature.market_enabled": { label: "Кнопка «Маркет»", hidden: true },
   "feature.escrow_enabled": { label: "Бейдж «Безопасная сделка»", hidden: true },
   "feature.feed_auto_publish": { label: "Авто-публикация ленты", hidden: true },
+  "feature.listing_payment_enabled": { label: "Платное размещение объявлений", hidden: true },
   // Icon slots are managed visually from the «Дизайн» section.
   icon_overrides: { label: "Иконки", hidden: true },
   site_name: { label: "Название сайта", fieldLabels: { ru: "Название (рус.)", en: "Название (англ.)" } },
@@ -2821,6 +2822,8 @@ function SettingsSection() {
   const [savingMarket, setSavingMarket] = useState(false);
   const escrowEnabled = useFeatureFlag("escrowEnabled");
   const [savingEscrow, setSavingEscrow] = useState(false);
+  const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
+  const [savingListingPayment, setSavingListingPayment] = useState(false);
 
   // Server-persisted (SystemSetting: feature.feed_auto_publish). Not part of the
   // public feature-flags endpoint — it only affects the backend publish path.
@@ -2887,6 +2890,24 @@ function SettingsSection() {
       toast.error("Не удалось сохранить настройку");
     } finally {
       setSavingEscrow(false);
+    }
+  };
+
+  const toggleListingPayment = async (checked: boolean) => {
+    if (isDemoMode()) {
+      setFeatureFlag("listingPaymentEnabled", checked);
+      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      return;
+    }
+    setSavingListingPayment(true);
+    try {
+      await updateAdminSettings([{ key: "feature.listing_payment_enabled", value: { enabled: checked }, group: "feature" }]);
+      setFeatureFlag("listingPaymentEnabled", checked);
+      toast.success(checked ? "Платное размещение объявлений включено" : "Объявления публикуются бесплатно");
+    } catch {
+      toast.error("Не удалось сохранить настройку");
+    } finally {
+      setSavingListingPayment(false);
     }
   };
 
@@ -2964,6 +2985,27 @@ function SettingsSection() {
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать бейдж «Безопасная сделка»</span>
+        </label>
+      </div>
+
+      {/* Server-persisted (SystemSetting: feature.listing_payment_enabled). Off
+          by default — ads publish for free until billing is wired in the wizard. */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Платное размещение объявлений
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Сохраняется на сервере. Выключено — кнопка «Опубликовать» без оплаты (рекомендуется на текущем этапе). Включено — для публикации нужен оплаченный кредит размещения.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingListingPayment ? 0.6 : 1 }}>
+          <input
+            type="checkbox"
+            checked={listingPaymentEnabled}
+            disabled={savingListingPayment}
+            onChange={(e) => void toggleListingPayment(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Требовать оплату за размещение объявления</span>
         </label>
       </div>
 

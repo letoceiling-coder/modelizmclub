@@ -13,5 +13,10 @@ class FeatureFlagsSeeder extends Seeder
             ['key' => 'feature.communities_enabled'],
             ['value' => ['enabled' => false], 'group' => 'features'],
         );
+
+        SystemSetting::query()->updateOrCreate(
+            ['key' => 'feature.listing_payment_enabled'],
+            ['value' => ['enabled' => false], 'group' => 'feature'],
+        );
     }
 }

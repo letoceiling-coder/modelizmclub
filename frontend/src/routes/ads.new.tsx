@@ -10,6 +10,8 @@ import { CitySelect } from "@/components/ads/CitySelect";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
 import { ApiError } from "@/lib/api/client";
+import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
@@ -46,6 +48,8 @@ type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
 const STEPS = ["Фото", "Данные", "Превью"];
+/** Matches backend CreatePaymentController::LISTING_PLACEMENT_CENTS (99 ₽). */
+const LISTING_PLACEMENT_PRICE_RUB = 99;
 
 interface Form {
   photos: string[];
@@ -84,6 +88,7 @@ const initial: Form = {
 function NewAdPage() {
   const navigate = useNavigate();
   const { edit: editId } = Route.useSearch();
+  const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(initial);
   const [cats, setCats] = useState<Category[]>([]);
@@ -157,6 +162,22 @@ function NewAdPage() {
 
   const submit = async () => {
     if (submitting) return;
+
+    const categoryId = Number(form.categoryId);
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+      toast.error("Выберите категорию");
+      return;
+    }
+
+    const priceCents = priceRubToCents(form.price);
+    if (priceCents === null) {
+      toast.error(`Укажите корректную цену — максимум ${MAX_LISTING_PRICE_RUB.toLocaleString("ru-RU")} ₽`);
+      return;
+    }
+
+    const subcategoryId = form.subcategoryId ? Number(form.subcategoryId) : undefined;
+    const cityId = form.cityId != null ? Number(form.cityId) : undefined;
+
     setSubmitting(true);
     setSubmitError(false);
     try {
@@ -169,19 +190,19 @@ function NewAdPage() {
       // CitySelect's autocomplete; fall back to a best-effort name lookup
       // only if they typed a city and dismissed the dropdown without
       // picking (e.g. blurred away), so a valid-looking city still resolves.
-      let cityId: number | undefined = form.cityId;
-      if (!cityId && form.city.trim()) {
+      let resolvedCityId: number | undefined = cityId;
+      if (!resolvedCityId && form.city.trim()) {
         const found = await searchCities(form.city.trim());
-        cityId = found[0]?.id;
+        resolvedCityId = found[0]?.id;
       }
       if (editId) {
         await updateListing(editId, {
           title: form.title.trim(),
           description: form.description.trim(),
-          priceCents: Number(form.price || 0) * 100,
-          categoryId: Number(form.categoryId),
-          subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
-          cityId,
+          priceCents,
+          categoryId,
+          subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+          cityId: resolvedCityId,
           deliveryMethods: form.deliveries,
           mediaIds,
         });
@@ -190,10 +211,10 @@ function NewAdPage() {
         await createListing({
           title: form.title.trim(),
           description: form.description.trim(),
-          priceCents: Number(form.price || 0) * 100,
-          categoryId: Number(form.categoryId),
-          subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
-          cityId,
+          priceCents,
+          categoryId,
+          subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+          cityId: resolvedCityId,
           deliveryMethods: form.deliveries,
           mediaIds,
           publish: true,
@@ -203,12 +224,10 @@ function NewAdPage() {
       void navigate({ to: "/my-ads" });
     } catch (err) {
       setSubmitError(true);
-      // Surface the real reason instead of a generic message: validation
-      // errors from the API, or its message; fall back to a network hint.
-      let message = editId ? "Не удалось сохранить изменения" : "Не удалось опубликовать объявление";
+      const fallback = editId ? "Не удалось сохранить изменения" : "Не удалось опубликовать объявление";
+      let message = fallback;
       if (err instanceof ApiError) {
-        const firstFieldError = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
-        message = firstFieldError || err.message || message;
+        message = firstFieldError(err.errors, err.message || fallback);
       } else if (err instanceof Error && err.message) {
         message = err.message;
       }
@@ -216,6 +235,12 @@ function NewAdPage() {
       setSubmitting(false);
     }
   };
+
+  const publishButtonLabel = editId
+    ? "Сохранить изменения"
+    : listingPaymentEnabled
+      ? `Оплатить ${LISTING_PLACEMENT_PRICE_RUB} ₽ и опубликовать`
+      : "Опубликовать";
 
   return (
     <AppLayout rightColumn={false}>
@@ -229,7 +254,9 @@ function NewAdPage() {
             Новое объявление
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
-            Размещение — 20 ₽. После оплаты объявление пройдёт модерацию.
+            {listingPaymentEnabled
+              ? `Размещение — ${LISTING_PLACEMENT_PRICE_RUB} ₽. После оплаты объявление пройдёт модерацию.`
+              : "Заполните форму и опубликуйте объявление — размещение сейчас бесплатное."}
           </p>
         </header>
 
@@ -244,7 +271,7 @@ function NewAdPage() {
         >
           {step === 1 && <StepPhotos form={form} set={set} />}
           {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} subcategories={subcategories} touched={touched} touch={touch} />}
-          {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} />}
+          {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} listingPaymentEnabled={listingPaymentEnabled} publishButtonLabel={publishButtonLabel} />}
         </ReducedMotionSwitch>
       </div>
 
@@ -279,8 +306,8 @@ function NewAdPage() {
               loading={submitting}
               className="h-11 min-w-[220px] rounded-[var(--r-button)]"
             >
-              {!submitting && <CreditCard size={16} />}
-              {submitting ? (editId ? "Сохраняем…" : "Публикуется…") : (editId ? "Сохранить изменения" : "Оплатить 20 ₽ и опубликовать")}
+              {!submitting && !editId && listingPaymentEnabled && <CreditCard size={16} />}
+              {submitting ? (editId ? "Сохраняем…" : "Публикуется…") : publishButtonLabel}
             </Button>
           )}
         </div>
@@ -435,7 +462,7 @@ function StepData({
           <Field label="Цена, ₽" required error={priceErr ? "Укажите цену" : undefined}>
             <Input
               value={form.price}
-              onChange={(e) => set("price", e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => set("price", e.target.value.replace(/\D/g, "").slice(0, 9))}
               onBlur={() => touch("price")}
               error={priceErr}
               className="h-11"
@@ -515,7 +542,19 @@ function StepData({
 }
 
 /* ────────── STEP 3: Preview ────────── */
-function StepPreview({ form, cat, submitError }: { form: Form; cat: Category | undefined; submitError: boolean }) {
+function StepPreview({
+  form,
+  cat,
+  submitError,
+  listingPaymentEnabled,
+  publishButtonLabel,
+}: {
+  form: Form;
+  cat: Category | undefined;
+  submitError: boolean;
+  listingPaymentEnabled: boolean;
+  publishButtonLabel: string;
+}) {
   const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
 
   return (
@@ -525,7 +564,7 @@ function StepPreview({ form, cat, submitError }: { form: Form; cat: Category | u
       {submitError && (
         <Alert variant="error">
           <AlertDescription>
-            Не удалось опубликовать объявление. Проверьте соединение и нажмите «Оплатить и опубликовать» ещё раз.
+            Не удалось опубликовать объявление. Проверьте данные формы и нажмите «{publishButtonLabel}» ещё раз.
           </AlertDescription>
         </Alert>
       )}
@@ -560,7 +599,9 @@ function StepPreview({ form, cat, submitError }: { form: Form; cat: Category | u
 
       <Alert variant="info">
         <AlertDescription>
-          После оплаты 20 ₽ объявление отправится на модерацию (обычно до 60 минут).
+          {listingPaymentEnabled
+            ? `После оплаты ${LISTING_PLACEMENT_PRICE_RUB} ₽ объявление отправится на модерацию (обычно до 60 минут).`
+            : "После публикации объявление отправится на модерацию (обычно до 60 минут)."}
         </AlertDescription>
       </Alert>
     </section>

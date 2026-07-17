@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Listing\Support\ListingPlacementConfig;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ListingService
@@ -235,6 +236,7 @@ class ListingService
             }
 
             $publish = (bool) ($data['publish'] ?? true);
+            [$status, $publishedAt] = $this->resolveCreateStatus($user, $publish);
 
             $listing = Listing::create([
                 'user_id' => $user->id,
@@ -246,8 +248,8 @@ class ListingService
                 'price_cents' => (int) ($data['price_cents'] ?? 0),
                 'city_id' => $data['city_id'] ?? null,
                 'delivery_methods' => $data['delivery_methods'] ?? [],
-                'status' => $publish ? ListingStatus::Published : ListingStatus::Draft,
-                'published_at' => $publish ? now() : null,
+                'status' => $status,
+                'published_at' => $publishedAt,
             ]);
 
             $this->syncMedia($listing, $user, $data['media_ids'] ?? []);
@@ -401,5 +403,29 @@ class ListingService
                 'category_id' => ['Категория не найдена.'],
             ]);
         }
+    }
+
+    /** @return array{0: ListingStatus, 1: \Illuminate\Support\Carbon|null} */
+    private function resolveCreateStatus(User $user, bool $publish): array
+    {
+        if (! $publish) {
+            return [ListingStatus::Draft, null];
+        }
+
+        if (! ListingPlacementConfig::paymentEnabled()) {
+            return [ListingStatus::Published, now()];
+        }
+
+        $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+        if ($locked->listing_placement_credits < 1) {
+            throw ValidationException::withMessages([
+                'publish' => ['Для публикации объявления нужна оплата. Купите размещение в разделе «Подписка».'],
+            ]);
+        }
+
+        $locked->decrement('listing_placement_credits');
+
+        return [ListingStatus::Published, now()];
     }
 }

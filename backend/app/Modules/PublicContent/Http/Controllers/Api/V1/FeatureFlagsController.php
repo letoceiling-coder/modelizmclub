@@ -15,6 +15,7 @@ class FeatureFlagsController extends Controller
                 'feature.communities_enabled',
                 'feature.market_enabled',
                 'feature.escrow_enabled',
+                'feature.listing_payment_enabled',
             ])
             ->get()
             ->keyBy('key');
@@ -31,6 +32,9 @@ class FeatureFlagsController extends Controller
                 // «Безопасная сделка» badge on listings — only honest once
                 // YooKassa escrow is actually wired up; off by default.
                 'escrow_enabled' => $enabled('feature.escrow_enabled'),
+                // Paid listing placement — off by default so ads publish for free
+                // until billing is fully wired in the create-ad wizard.
+                'listing_payment_enabled' => $enabled('feature.listing_payment_enabled'),
             ],
         ]);
     }
