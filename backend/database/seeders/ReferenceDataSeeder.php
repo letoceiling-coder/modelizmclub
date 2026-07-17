@@ -216,26 +216,14 @@ class ReferenceDataSeeder extends Seeder
 
     private function seedCities(): void
     {
-        $cities = [
-            ['name' => 'Москва', 'region' => 'Москва', 'slug' => 'moscow', 'sort_order' => 1],
-            ['name' => 'Санкт-Петербург', 'region' => 'Ленинградская область', 'slug' => 'saint-petersburg', 'sort_order' => 2],
-            ['name' => 'Новосибирск', 'region' => 'Новосибирская область', 'slug' => 'novosibirsk', 'sort_order' => 3],
-            ['name' => 'Екатеринбург', 'region' => 'Свердловская область', 'slug' => 'yekaterinburg', 'sort_order' => 4],
-            ['name' => 'Казань', 'region' => 'Республика Татарстан', 'slug' => 'kazan', 'sort_order' => 5],
-            ['name' => 'Нижний Новгород', 'region' => 'Нижегородская область', 'slug' => 'nizhny-novgorod', 'sort_order' => 6],
-            ['name' => 'Красноярск', 'region' => 'Красноярский край', 'slug' => 'krasnoyarsk', 'sort_order' => 7],
-            ['name' => 'Самара', 'region' => 'Самарская область', 'slug' => 'samara', 'sort_order' => 8],
-            ['name' => 'Ростов-на-Дону', 'region' => 'Ростовская область', 'slug' => 'rostov-on-don', 'sort_order' => 9],
-            ['name' => 'Краснодар', 'region' => 'Краснодарский край', 'slug' => 'krasnodar', 'sort_order' => 10],
-            ['name' => 'Воронеж', 'region' => 'Воронежская область', 'slug' => 'voronezh', 'sort_order' => 11],
-            ['name' => 'Пермь', 'region' => 'Пермский край', 'slug' => 'perm', 'sort_order' => 12],
-            ['name' => 'Волгоград', 'region' => 'Волгоградская область', 'slug' => 'volgograd', 'sort_order' => 13],
-            ['name' => 'Уфа', 'region' => 'Республика Башкортостан', 'slug' => 'ufa', 'sort_order' => 14],
-            ['name' => 'Тюмень', 'region' => 'Тюменская область', 'slug' => 'tyumen', 'sort_order' => 15],
-        ];
+        /** @var list<array{name: string, region: string, slug: string, sort_order: int}> $cities */
+        $cities = require database_path('data/russian_cities.php');
 
         foreach ($cities as $city) {
-            City::updateOrCreate(['slug' => $city['slug']], array_merge($city, ['is_active' => true]));
+            City::updateOrCreate(
+                ['slug' => $city['slug']],
+                array_merge($city, ['is_active' => true]),
+            );
         }
     }
 
