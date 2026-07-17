@@ -7,13 +7,14 @@ import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } fr
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
-import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
+import { CatalogCardSkeleton } from "@/components/ads/CatalogCardSkeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { Ad } from "@/lib/mock";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ads/")({
   head: () => ({
@@ -70,10 +71,14 @@ function CatalogPage() {
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState(search.q ?? "");
+  const [resultsMinHeight, setResultsMinHeight] = useState<number | undefined>(undefined);
+  const resultsWrapRef = useRef<HTMLDivElement>(null);
+  const hasLoadedOnce = useRef(false);
 
   useEffect(() => {
     setQ(search.q ?? "");
@@ -85,7 +90,15 @@ function CatalogPage() {
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const load = useCallback(async () => {
-    setLoadState("loading");
+    const refreshing = hasLoadedOnce.current;
+    if (refreshing) {
+      if (resultsWrapRef.current) {
+        setResultsMinHeight(resultsWrapRef.current.offsetHeight);
+      }
+      setIsRefreshing(true);
+    } else {
+      setLoadState("loading");
+    }
     try {
       const params = buildParams(q, filters, sort);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: 1 });
@@ -93,8 +106,12 @@ function CatalogPage() {
       setPage(1);
       setHasMore(result.length === PAGE_SIZE);
       setLoadState("ok");
+      hasLoadedOnce.current = true;
     } catch {
-      setLoadState("error");
+      if (!refreshing) setLoadState("error");
+    } finally {
+      setIsRefreshing(false);
+      setResultsMinHeight(undefined);
     }
   }, [q, filters, sort]);
 
@@ -208,6 +225,7 @@ function CatalogPage() {
               onOpenFilters={() => setSheetOpen(true)}
               count={ads.length}
               filterCount={activeFilterCount}
+              refreshing={isRefreshing}
             />
 
             {/* Active filter tags */}
@@ -247,72 +265,116 @@ function CatalogPage() {
               </div>
             )}
 
-            {/* States */}
-            {loadState === "loading" && (
-              <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <AdCardSkeleton key={i} />
-                ))}
-              </div>
-            )}
+            {/* Results — keep the previous grid mounted while filters refresh to avoid layout jumps */}
+            <div
+              ref={resultsWrapRef}
+              className="relative"
+              style={resultsMinHeight ? { minHeight: resultsMinHeight } : undefined}
+            >
+              {isRefreshing && (
+                <div
+                  className="pointer-events-none absolute inset-0 z-[2] flex items-start justify-center rounded-[var(--r-card)] pt-[72px]"
+                  style={{ background: "color-mix(in oklab, var(--background) 55%, transparent)" }}
+                  aria-live="polite"
+                  aria-busy="true"
+                >
+                  <div
+                    className="inline-flex items-center gap-[8px] rounded-full px-[14px] py-[8px] text-[13px] font-medium shadow-[var(--shadow-card)]"
+                    style={{
+                      background: "var(--background-elevated)",
+                      color: "var(--foreground-70)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <span
+                      className="inline-block h-[14px] w-[14px] animate-spin rounded-full border-2 border-transparent"
+                      style={{ borderTopColor: "var(--accent)", borderRightColor: "var(--accent)" }}
+                    />
+                    Обновляем объявления…
+                  </div>
+                </div>
+              )}
 
-            {loadState === "error" && (
-              <div
-                className="flex flex-col items-center gap-[12px] rounded-[var(--r-card)] border py-[48px] text-center"
-                style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
-              >
-                <AlertCircle size={32} style={{ color: "var(--error)" }} />
-                <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
-                  Не удалось загрузить объявления
-                </p>
-                <Button variant="outline" onClick={() => void load()}>
-                  <RefreshCw size={14} className="mr-[6px]" /> Повторить
-                </Button>
-              </div>
-            )}
-
-            {loadState === "ok" && ads.length === 0 && (
-              <EmptyState
-                icon={Megaphone}
-                title={hasAnyFilter ? "Ничего не найдено" : "Объявлений пока нет"}
-                description={
-                  hasAnyFilter
-                    ? "Попробуйте изменить фильтры или поисковый запрос"
-                    : "Станьте первым — разместите объявление"
-                }
-              >
-                {hasAnyFilter ? (
-                  <Button variant="outline" onClick={resetFilters}>
-                    <RotateCcw size={14} className="mr-[6px]" /> Сбросить фильтры
-                  </Button>
-                ) : isAuthed ? (
-                  <Button onClick={() => navigate({ to: ROUTES.adCreate })}>
-                    <Plus size={14} className="mr-[6px]" /> Разместить объявление
-                  </Button>
-                ) : (
-                  <Button onClick={() => navigate({ to: "/login" })}>
-                    Войти и разместить
-                  </Button>
-                )}
-              </EmptyState>
-            )}
-
-            {loadState === "ok" && ads.length > 0 && (
-              <>
+              {loadState === "loading" && !hasLoadedOnce.current && (
                 <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                  {ads.map((ad) => (
-                    <CatalogCard key={ad.id} ad={ad} />
+                  {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <CatalogCardSkeleton key={i} />
                   ))}
                 </div>
-                {hasMore && (
-                  <div className="mt-[16px] flex justify-center">
-                    <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
-                      {loadingMore ? "Загружаем…" : "Показать ещё"}
+              )}
+
+              {loadState === "error" && !hasLoadedOnce.current && (
+                <div
+                  className="flex flex-col items-center gap-[12px] rounded-[var(--r-card)] border py-[48px] text-center"
+                  style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+                >
+                  <AlertCircle size={32} style={{ color: "var(--error)" }} />
+                  <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
+                    Не удалось загрузить объявления
+                  </p>
+                  <Button variant="outline" onClick={() => void load()}>
+                    <RefreshCw size={14} className="mr-[6px]" /> Повторить
+                  </Button>
+                </div>
+              )}
+
+              {(loadState === "ok" || isRefreshing || (loadState === "loading" && hasLoadedOnce.current)) && ads.length === 0 && !isRefreshing && (
+                <EmptyState
+                  icon={Megaphone}
+                  title={hasAnyFilter ? "Ничего не найдено" : "Объявлений пока нет"}
+                  description={
+                    hasAnyFilter
+                      ? "Попробуйте изменить фильтры или поисковый запрос"
+                      : "Станьте первым — разместите объявление"
+                  }
+                >
+                  {hasAnyFilter ? (
+                    <Button variant="outline" onClick={resetFilters}>
+                      <RotateCcw size={14} className="mr-[6px]" /> Сбросить фильтры
                     </Button>
+                  ) : isAuthed ? (
+                    <Button onClick={() => navigate({ to: ROUTES.adCreate })}>
+                      <Plus size={14} className="mr-[6px]" /> Разместить объявление
+                    </Button>
+                  ) : (
+                    <Button onClick={() => navigate({ to: "/login" })}>
+                      Войти и разместить
+                    </Button>
+                  )}
+                </EmptyState>
+              )}
+
+              {isRefreshing && ads.length === 0 && (
+                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <CatalogCardSkeleton key={i} />
+                  ))}
+                </div>
+              )}
+
+              {ads.length > 0 && (
+                <>
+                  <div
+                    className={cn(
+                      "grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5",
+                      "transition-opacity duration-200",
+                      isRefreshing && "pointer-events-none opacity-[0.72]",
+                    )}
+                  >
+                    {ads.map((ad) => (
+                      <CatalogCard key={ad.id} ad={ad} />
+                    ))}
                   </div>
-                )}
-              </>
-            )}
+                  {hasMore && loadState === "ok" && !isRefreshing && (
+                    <div className="mt-[16px] flex justify-center">
+                      <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
+                        {loadingMore ? "Загружаем…" : "Показать ещё"}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

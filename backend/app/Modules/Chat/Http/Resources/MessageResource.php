@@ -32,7 +32,11 @@ class MessageResource extends JsonResource
                 'media' => $attachment->relationLoaded('media') && $attachment->media ? [
                     'uuid' => $attachment->media->uuid,
                     'url' => $attachment->media->url,
+                    'filename' => $attachment->media->filename,
                     'mime_type' => $attachment->media->mime_type,
+                    'size_bytes' => $attachment->media->size_bytes,
+                    'width' => $attachment->media->width,
+                    'height' => $attachment->media->height,
                     'duration' => $attachment->media->duration_seconds,
                 ] : null,
             ])),

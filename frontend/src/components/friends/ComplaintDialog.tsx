@@ -18,7 +18,22 @@ const REASONS = ["Спам", "Оскорбления", "Мошенничеств
  *  reason + target into `subject` since Feedback has no dedicated reason
  *  column, avoiding a backend/migration change for a field the admin UI
  *  already renders as free text. */
-export function ComplaintDialog({ target, onClose }: { target: User | null; onClose: () => void }) {
+export function ComplaintDialog({
+  target,
+  onClose,
+  page = "/friends",
+  subjectSuffix = "",
+  contextNote,
+}: {
+  target: User | null;
+  onClose: () => void;
+  /** Page URL stored with the feedback entry (for admin context). */
+  page?: string;
+  /** Extra detail appended to the subject, e.g. "(сообщение в чате)". */
+  subjectSuffix?: string;
+  /** Optional context appended to the message body (e.g. reported message text). */
+  contextNote?: string;
+}) {
   const [reason, setReason] = useState<(typeof REASONS)[number]>(REASONS[0]);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -34,9 +49,12 @@ export function ComplaintDialog({ target, onClose }: { target: User | null; onCl
     setSending(true);
     try {
       await submitFeedback({
-        subject: `Жалоба на пользователя «${target.name}»: ${reason}`,
-        message: message.trim() || "(без комментария)",
-        page: "/friends",
+        subject: `Жалоба на пользователя «${target.name}»${subjectSuffix}: ${reason}`,
+        message: [
+          message.trim() || "(без комментария)",
+          contextNote ? `\n\n---\n${contextNote}` : "",
+        ].join(""),
+        page,
       });
       toast.success("Спасибо! Обращение принято к рассмотрению");
       reset();

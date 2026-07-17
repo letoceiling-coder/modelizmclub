@@ -17,14 +17,16 @@ import {
   fetchConversations, fetchMessages, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
   uploadChatAttachment, sendAttachmentMessage,
-  hideMessageForMe, pinMessage as apiPinMessage,
+  hideMessageForMe, pinMessage as apiPinMessage, deleteConversation,
 } from "@/lib/api/chat";
+import { chatAttachmentTooLargeMessage, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
 import { isDemoMode } from "@/lib/demo-mode";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
@@ -106,11 +108,10 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
 
 const IMAGE_MAX_W = 280;
 const IMAGE_MAX_H = 320;
-const IMAGE_PLACEHOLDER_H = 200;
 
 function fitImageSize(naturalW: number, naturalH: number): { w: number; h: number } {
   if (naturalW <= 0 || naturalH <= 0) {
-    return { w: IMAGE_MAX_W, h: IMAGE_PLACEHOLDER_H };
+    return { w: IMAGE_MAX_W, h: IMAGE_MAX_H };
   }
   const scale = Math.min(IMAGE_MAX_W / naturalW, IMAGE_MAX_H / naturalH, 1);
   return {
@@ -119,11 +120,28 @@ function fitImageSize(naturalW: number, naturalH: number): { w: number; h: numbe
   };
 }
 
-function MessageImage({ src, onResize }: { src: string; onResize?: () => void }) {
+function resolveImageFrame(naturalWidth?: number, naturalHeight?: number): { w: number; h: number } {
+  if (naturalWidth && naturalHeight) return fitImageSize(naturalWidth, naturalHeight);
+  return { w: IMAGE_MAX_W, h: IMAGE_MAX_H };
+}
+
+function MessageImage({
+  src,
+  naturalWidth,
+  naturalHeight,
+}: {
+  src: string;
+  naturalWidth?: number;
+  naturalHeight?: number;
+}) {
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [frame, setFrame] = useState({ w: IMAGE_MAX_W, h: IMAGE_PLACEHOLDER_H });
+  const frame = useMemo(
+    () => resolveImageFrame(naturalWidth, naturalHeight),
+    [naturalWidth, naturalHeight],
+  );
+  const hasExactFrame = Boolean(naturalWidth && naturalHeight);
 
   useEffect(() => {
     setBroken(false);
@@ -132,14 +150,11 @@ function MessageImage({ src, onResize }: { src: string; onResize?: () => void })
     const img = new Image();
     img.onload = () => {
       if (!alive) return;
-      setFrame(fitImageSize(img.naturalWidth, img.naturalHeight));
       setLoaded(true);
-      onResize?.();
     };
     img.onerror = () => {
       if (!alive) return;
       setBroken(true);
-      onResize?.();
     };
     img.src = src;
     return () => {
@@ -147,16 +162,16 @@ function MessageImage({ src, onResize }: { src: string; onResize?: () => void })
       img.onload = null;
       img.onerror = null;
     };
-  }, [src, onResize]);
+  }, [src]);
 
   if (broken) {
     return (
       <div
         className="mb-[6px] grid place-items-center"
         style={{
-          width: IMAGE_MAX_W,
+          width: frame.w,
           maxWidth: "100%",
-          height: IMAGE_PLACEHOLDER_H,
+          height: frame.h,
           borderRadius: 12,
           background: "var(--background-surface)",
           color: "var(--foreground-30)",
@@ -183,22 +198,31 @@ function MessageImage({ src, onResize }: { src: string; onResize?: () => void })
             height: frame.h,
             borderRadius: 12,
             background: "var(--background-surface)",
-            transition: "height 180ms ease",
           }}
         >
           {!loaded && (
             <div
-              className="absolute inset-0 animate-pulse"
-              style={{ background: "color-mix(in oklab, var(--foreground) 8%, transparent)" }}
-            />
+              className="absolute inset-0 flex items-center justify-center"
+              aria-hidden
+            >
+              <div
+                className="absolute inset-0 animate-pulse"
+                style={{ background: "color-mix(in oklab, var(--foreground) 8%, transparent)" }}
+              />
+              <div
+                className="relative h-[28px] w-[28px] animate-spin rounded-full border-2 border-transparent"
+                style={{ borderTopColor: "var(--accent)", borderRightColor: "var(--accent)" }}
+              />
+            </div>
           )}
           <img
             src={src}
             alt=""
             draggable={false}
-            className="h-full w-full object-cover"
+            className="h-full w-full"
             style={{
               borderRadius: 12,
+              objectFit: hasExactFrame ? "cover" : "contain",
               opacity: loaded ? 1 : 0,
               transition: "opacity 180ms ease",
             }}
@@ -308,7 +332,13 @@ function MessageBubble({
               <div className="truncate">{reply.text}</div>
             </div>
           )}
-          {msg.image && <MessageImage src={msg.image} onResize={onMediaResize} />}
+          {msg.image && (
+            <MessageImage
+              src={msg.image}
+              naturalWidth={msg.imageSize?.w}
+              naturalHeight={msg.imageSize?.h}
+            />
+          )}
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} onResize={onMediaResize} />}
           {msg.text && (
@@ -648,12 +678,29 @@ function MessengerPage() {
 
   const handleAttachment = async (file: File, kind: AttachmentKind) => {
     if (!active) return;
+    const tooLarge = chatAttachmentTooLargeMessage(file);
+    if (tooLarge) {
+      toast.error("Файл слишком большой", { description: tooLarge });
+      return;
+    }
     if (isPartnerBlocked(active.userId)) {
       toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
       return;
     }
+
+    let readyFile: File;
+    let convertedFromHeic = false;
+    try {
+      ({ file: readyFile, convertedFromHeic } = await prepareChatAttachmentFile(file, kind));
+    } catch (err) {
+      toast.error(formatChatAttachmentError(err));
+      return;
+    }
+
+    const imageSize = kind === "image" ? await readImageDimensions(readyFile) : null;
+
     const dialogId = active.id;
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(readyFile);
     const replyId = replyTo?.id;
     const tempId = `tmp${Date.now()}`;
     const base: Message = {
@@ -666,20 +713,26 @@ function MessengerPage() {
       replyTo: replyId,
     };
     const optimistic: Message =
-      kind === "image" ? { ...base, image: url } : { ...base, file: { name: file.name, size: file.size, kind, url } };
+      kind === "image"
+        ? { ...base, image: url, imageSize: imageSize ?? undefined }
+        : { ...base, file: { name: readyFile.name, size: readyFile.size, kind, url } };
     actions.addMessage(dialogId, optimistic);
     setReplyTo(null);
     if (isDemoMode()) {
-      toast("Вложение отправлено (демо)", { description: "Загрузка на сервер появится позже" });
+      toast("Вложение отправлено (демо)", {
+        description: convertedFromHeic ? "HEIC сконвертирован в JPG (демо)" : "Загрузка на сервер появится позже",
+      });
       return;
     }
     try {
-      const uploaded = await uploadChatAttachment(dialogId, file);
+      const uploaded = await uploadChatAttachment(dialogId, readyFile);
       const saved = await sendAttachmentMessage(dialogId, uploaded.media_uuid, uploaded.type, replyId);
       replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Не удалось отправить вложение");
+    } catch (err) {
+      actions.removeMessage(dialogId, tempId);
+      URL.revokeObjectURL(url);
+      toast.error(formatChatAttachmentError(err));
     }
   };
 
@@ -722,11 +775,23 @@ function MessengerPage() {
     }
   };
 
-  const handleReportMessage = () => {
-    toast("Жалоба: будет доступно позже");
+  const handleReportMessage = (m: Message) => {
+    if (!partner) return;
+    const snippet = m.text?.trim()
+      || (m.voice ? "[голосовое сообщение]" : "")
+      || (m.image ? "[изображение]" : "")
+      || (m.file ? `[файл: ${m.file.name}]` : "");
+    setMessageComplaint({
+      target: partner,
+      contextNote: snippet ? `Сообщение: ${snippet.slice(0, 500)}` : undefined,
+    });
   };
 
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
+  const [messageComplaint, setMessageComplaint] = useState<{
+    target: ReturnType<typeof userById>;
+    contextNote?: string;
+  } | null>(null);
 
   return (
     <AppLayout rightColumn={false} hideMobileHeader hideBottomNav={mobileView === "chat"}>
@@ -1159,6 +1224,13 @@ function MessengerPage() {
         </section>
       </div>
       <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
+      <ComplaintDialog
+        target={messageComplaint?.target ?? null}
+        onClose={() => setMessageComplaint(null)}
+        page="/messenger"
+        subjectSuffix=" (сообщение в чате)"
+        contextNote={messageComplaint?.contextNote}
+      />
       <DialogContextMenu
         point={dialogCtxMenu?.point ?? null}
         onClose={() => setDialogCtxMenu(null)}
@@ -1180,11 +1252,21 @@ function MessengerPage() {
           if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
           actions.clearHistory(dialogCtxMenu.dialogId);
         }}
-        onDeleteChat={() => {
+        onDeleteChat={async () => {
           if (!dialogCtxMenu) return;
           if (!window.confirm("Удалить чат? Переписка исчезнет из списка.")) return;
-          actions.setDialogMeta(dialogCtxMenu.dialogId, { deletedLocally: true });
-          if (activeId === dialogCtxMenu.dialogId) deselectDialog(dialogCtxMenu.dialogId);
+          const dialogId = dialogCtxMenu.dialogId;
+          if (!isDemoMode()) {
+            try {
+              await deleteConversation(dialogId);
+            } catch {
+              toast.error("Не удалось удалить чат");
+              return;
+            }
+          }
+          actions.setDialogMeta(dialogId, { deletedLocally: true });
+          if (activeId === dialogId) deselectDialog(dialogId);
+          toast.success("Чат удалён");
         }}
       />
     </AppLayout>

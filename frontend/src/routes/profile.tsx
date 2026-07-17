@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
@@ -513,61 +513,33 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
 }
 
 function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
-  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [indicator, setIndicator] = useState({ x: 0, w: 0 });
-  const reduce = useReducedMotion();
   const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
-
-  useEffect(() => {
-    const el = refs.current[tab];
-    const box = scrollRef.current;
-    if (el) {
-      setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
-      // Keep the active tab centred — the strip overflows on mobile (6 tabs),
-      // so a tab near the end would otherwise stay clipped. Set scrollLeft on
-      // the strip directly (scrollIntoView can hijack the vertical page scroll).
-      // Under reduced motion Chrome silently drops smooth scrolls, so fall
-      // back to an instant jump.
-      if (box) {
-        const target = el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2;
-        box.scrollTo({ left: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
-      }
-    }
-  }, [tab, reduce]);
 
   return (
     <div
-      ref={scrollRef}
-      className="sticky top-0 z-10 overflow-x-auto no-scrollbar"
+      className="sticky top-0 z-10 px-[8px] md:px-[12px]"
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
-      {/* min-w-max lets the scroll container measure total content width */}
-      <div className="relative flex min-w-max">
+      <div className="flex flex-wrap">
         {tabs.map(({ key, label, Icon }) => {
           const active = tab === key;
           return (
             <button
               key={key}
-              ref={(el) => { refs.current[key] = el; }}
+              type="button"
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap px-[14px] font-display transition-colors duration-200 md:px-[20px]"
+              className="inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap px-[10px] py-[12px] font-display transition-colors duration-200 md:px-[14px]"
               style={{
-                height: 48, fontSize: 14,
+                fontSize: 14,
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--accent)" : "var(--foreground-50)",
+                boxShadow: active ? "inset 0 -3px 0 var(--accent)" : "inset 0 -3px 0 transparent",
               }}
             >
-              <Icon size={16} /> {label}
+              <Icon size={16} aria-hidden /> {label}
             </button>
           );
         })}
-        <motion.div
-          className="absolute bottom-0 h-[3px]"
-          style={{ background: "var(--accent)", borderRadius: "3px 3px 0 0" }}
-          animate={{ x: indicator.x, width: indicator.w }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        />
       </div>
     </div>
   );

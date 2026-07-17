@@ -128,6 +128,35 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertOk();
     }
 
+    public function test_upload_chat_docx_attachment(): void
+    {
+        Storage::fake('s3');
+        config(['filesystems.default' => 's3']);
+
+        [$a, $b] = $this->usersWithProfiles();
+        $conv = $this->directConversation($a, $b);
+
+        $response = $this->actingAs($a, 'sanctum')
+            ->post("/api/v1/conversations/{$conv->uuid}/attachments", [
+                'file' => UploadedFile::fake()->create(
+                    'report.docx',
+                    13,
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ),
+            ])
+            ->assertCreated()
+            ->assertJsonPath('type', 'file')
+            ->assertJsonPath('name', 'report.docx');
+
+        $this->actingAs($a, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conv->uuid}/messages", [
+                'type' => 'file',
+                'media_uuids' => [$response->json('media_uuid')],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.attachments.0.media.filename', 'report.docx');
+    }
+
     public function test_recipient_can_transcribe_received_voice(): void
     {
         config(['media.transcription.stub' => true]);
@@ -260,6 +289,39 @@ class ChatFrontendIntegrationTest extends TestCase
             ->deleteJson("/api/v1/conversations/{$conv->uuid}/pin")
             ->assertOk()
             ->assertJsonPath('pinned', false);
+    }
+
+    public function test_delete_conversation_hides_it_from_list(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $conv = $this->directConversation($a, $b);
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->actingAs($a, 'sanctum')
+            ->deleteJson("/api/v1/conversations/{$conv->uuid}")
+            ->assertOk()
+            ->assertJsonPath('message', 'ok');
+
+        $this->assertNotNull(
+            ConversationParticipant::query()
+                ->where('conversation_id', $conv->id)
+                ->where('user_id', $a->id)
+                ->value('left_at'),
+        );
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->actingAs($b, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
     }
 
     public function test_forward_message_to_another_conversation(): void

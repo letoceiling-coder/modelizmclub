@@ -1,10 +1,23 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
-import { getToken, setToken } from "@/lib/api/client";
+import { getToken } from "@/lib/api/client";
+import { fetchFavoriteListings } from "@/lib/api/listings";
 import { shutdownCalls } from "@/lib/calls";
-import { GUEST_USER, setCurrentUser } from "@/lib/store";
+import { actions, GUEST_USER, setCurrentUser } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
+
+/** Replace local favorite IDs with the server list (source of truth for the badge). */
+export async function syncFavoritesFromServer(): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (!getToken() && !isDemoMode()) return;
+  try {
+    const list = await fetchFavoriteListings();
+    actions.setFavoriteAdIds(list.map((ad) => ad.id));
+  } catch {
+    // Transient network error — keep optimistic local state.
+  }
+}
 
 let sessionPromise: Promise<boolean> | null = null;
 
@@ -17,6 +30,7 @@ export async function ensureSession(): Promise<boolean> {
   // Demo mode: no token, no network — seed the store with the mock session.
   if (isDemoMode()) {
     seedDemoStore();
+    await syncFavoritesFromServer();
     return true;
   }
   if (!getToken()) return false;
@@ -47,6 +61,7 @@ async function loadSession(): Promise<boolean> {
   setCurrentUser(me);
   shutdownCalls();
   await startRealtimeHub(me.id);
+  await syncFavoritesFromServer();
   return true;
 }
 
@@ -81,5 +96,6 @@ export function isAuthenticated(): boolean {
 export async function signOut(): Promise<void> {
   await apiLogout();
   resetSessionCache();
+  actions.setFavoriteAdIds([]);
   setCurrentUser(GUEST_USER);
 }

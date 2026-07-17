@@ -14,7 +14,7 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import {
   fetchFriends, fetchIncomingRequests, fetchOutgoingRequests, searchUsers,
   sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest, cancelFriendRequest,
-  blockUser,
+  blockUser, formatSocialActionError,
   type IncomingRequest,
 } from "@/lib/api/social";
 import { ApiError } from "@/lib/api/client";
@@ -112,7 +112,7 @@ function FriendCard({
           {isAdded
             ? <><Check size={13} /> В друзьях</>
             : isPending
-            ? <><Clock size={13} /> Отменить заявку</>
+            ? <><Clock size={13} /> Запрос отправлен</>
             : <><UserPlus size={13} /> Добавить</>}
         </Button>
         <Button
@@ -282,6 +282,7 @@ function FriendsPage() {
         return;
       }
       setPending((p) => new Map(p).set(u.id, result.id));
+      toast.success("Заявка отправлена");
     } catch (err) {
       if (err instanceof ApiError) {
         const fieldMsg = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
@@ -291,12 +292,13 @@ function FriendsPage() {
           void fetchOutgoingRequests()
             .then((out) => setPending(new Map(out.map((r) => [r.to.id, r.id]))))
             .catch(() => {});
+          toast.success("Заявка уже отправлена");
           return;
         }
         toast.error(msg);
         return;
       }
-      toast.error("Не удалось выполнить действие");
+      toast.error(formatSocialActionError(err, "Не удалось отправить заявку в друзья"));
     }
   };
 

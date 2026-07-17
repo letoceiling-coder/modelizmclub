@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Play, Pause, ChevronDown, FileText, Loader2 } from "lucide-react";
 import type { VoiceMessage } from "@/lib/mock";
 import { transcribeVoiceMedia } from "@/lib/api/chat";
@@ -10,12 +11,22 @@ function fmt(s: number): string {
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
-export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolean }) {
+export function VoiceBubble({
+  voice,
+  isMe,
+  onResize,
+}: {
+  voice: VoiceMessage;
+  isMe: boolean;
+  onResize?: () => void;
+}) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [transcript, setTranscript] = useState(voice.transcript ?? "");
   const [loadingTranscript, setLoadingTranscript] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
   // "idle" until fetched; then whether STT is wired and whether speech was found.
   const [transcriptStatus, setTranscriptStatus] = useState<"idle" | "ok" | "empty" | "unavailable">(
     voice.transcript ? "ok" : "idle",
@@ -122,6 +133,32 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
     || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
     || (expanded && isDemoMode() ? "Тестовая расшифровка голосового сообщения." : "");
 
+  const measurePanel = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    setPanelHeight(el.scrollHeight);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!expanded) {
+      setPanelHeight(0);
+      return;
+    }
+    measurePanel();
+    const el = contentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      measurePanel();
+      onResize?.();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [expanded, measurePanel, transcriptText, loadingTranscript, onResize]);
+
+  useEffect(() => {
+    if (expanded) onResize?.();
+  }, [expanded, panelHeight, onResize]);
+
   return (
     <div style={{ minWidth: 220, maxWidth: 280 }}>
       <div className="flex items-center gap-[10px]">
@@ -176,22 +213,25 @@ export function VoiceBubble({ voice, isMe }: { voice: VoiceMessage; isMe: boolea
         />
       </button>
 
-      <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
-        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+      <motion.div
+        initial={false}
+        animate={{ height: expanded ? panelHeight : 0 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        style={{ overflow: "hidden" }}
       >
-        <div className="overflow-hidden">
+        <div ref={contentRef}>
           <div
             className="mt-[6px] rounded-[10px] px-[8px] py-[6px] text-[12px] leading-[1.45]"
             style={{
               background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
               color: transcriptText && !loadingTranscript ? fg : subtle,
+              minHeight: expanded && loadingTranscript ? 36 : undefined,
             }}
           >
-            {transcriptText || "Расшифровка недоступна — распознавание речи подключается на сервере."}
+            {transcriptText || unavailableText}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

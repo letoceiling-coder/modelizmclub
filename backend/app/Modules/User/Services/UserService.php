@@ -344,7 +344,7 @@ class UserService
     {
         if ($this->hasBlockBetween($follower, $target)) {
             throw ValidationException::withMessages([
-                'user' => ['Действие недоступно.'],
+                'user' => ['Нельзя добавить этого пользователя — один из вас заблокировал другого.'],
             ]);
         }
     }

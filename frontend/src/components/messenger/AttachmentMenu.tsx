@@ -2,20 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Paperclip, Image as ImageIcon, Video, File as FileIcon } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { chatAttachmentLimitLabel, chatAttachmentTooLargeMessage, chatPhotoHintLabel, type ChatAttachmentKind } from "@/lib/chat-attachments";
 
-export type AttachmentKind = "image" | "video" | "file";
+export type AttachmentKind = ChatAttachmentKind;
 
 interface Props {
   onPick: (file: File, kind: AttachmentKind) => void;
 }
-
-const MAX_BYTES = 20 * 1024 * 1024;
 
 export function AttachmentMenu({ onPick }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingKind = useRef<AttachmentKind>("file");
+  const limitLabel = chatAttachmentLimitLabel();
 
   useEffect(() => {
     if (!open) return;
@@ -47,8 +47,9 @@ export function AttachmentMenu({ onPick }: Props) {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_BYTES) {
-      toast.error("Файл слишком большой", { description: "Максимум 20 МБ в демо-режиме" });
+    const tooLarge = chatAttachmentTooLargeMessage(file);
+    if (tooLarge) {
+      toast.error("Файл слишком большой", { description: tooLarge });
       return;
     }
     onPick(file, pendingKind.current);
@@ -62,8 +63,9 @@ export function AttachmentMenu({ onPick }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px]"
         style={{ color: "var(--foreground-50)" }}
-        aria-label="Прикрепить"
+        aria-label={`Прикрепить файл (${limitLabel})`}
         aria-expanded={open}
+        title={`Прикрепить (${limitLabel})`}
       >
         <Paperclip size={18} />
       </button>
@@ -75,16 +77,22 @@ export function AttachmentMenu({ onPick }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-full left-0 z-[60] mb-[8px] w-[180px] overflow-hidden rounded-[12px] border"
+            className="absolute bottom-full left-0 z-[60] mb-[8px] w-[210px] overflow-hidden rounded-[12px] border"
             style={{
               background: "var(--background-elevated)",
               borderColor: "var(--border)",
               boxShadow: "var(--shadow-float)",
             }}
           >
-            <MenuItem icon={ImageIcon} label="Фото" onClick={() => openPicker("image")} />
-            <MenuItem icon={Video} label="Видео" onClick={() => openPicker("video")} />
-            <MenuItem icon={FileIcon} label="Файл" onClick={() => openPicker("file")} />
+            <MenuItem icon={ImageIcon} label="Фото" hint={chatPhotoHintLabel()} onClick={() => openPicker("image")} />
+            <MenuItem icon={Video} label="Видео" hint={limitLabel} onClick={() => openPicker("video")} />
+            <MenuItem icon={FileIcon} label="Файл" hint={limitLabel} onClick={() => openPicker("file")} />
+            <div
+              className="border-t px-[14px] py-[8px] text-[11px] leading-snug"
+              style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}
+            >
+              Фото (JPG, PNG, HEIC), видео, документы · {limitLabel}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -95,10 +103,12 @@ export function AttachmentMenu({ onPick }: Props) {
 function MenuItem({
   icon: Icon,
   label,
+  hint,
   onClick,
 }: {
   icon: typeof ImageIcon;
   label: string;
+  hint: string;
   onClick: () => void;
 }) {
   return (
@@ -106,11 +116,14 @@ function MenuItem({
       role="menuitem"
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-[10px] px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+      className="flex w-full items-center gap-[10px] px-[14px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: "var(--foreground)" }}
     >
-      <Icon className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
-      {label}
+      <Icon className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--foreground-70)" }} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px]">{label}</span>
+        <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>{hint}</span>
+      </span>
     </button>
   );
 }

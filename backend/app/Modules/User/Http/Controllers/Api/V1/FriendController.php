@@ -48,15 +48,19 @@ class FriendController extends Controller
         $friendRequest->load(['fromUser.profile.avatar', 'toUser.profile.avatar']);
 
         if ($friendRequest->wasRecentlyCreated) {
-            $name = $request->user()->profile?->display_name ?? $request->user()->name ?? 'Пользователь';
-            InAppNotify::send(
-                $target,
-                new InAppNotification(
-                    type: 'friend_request',
-                    title: $name.' отправил заявку в друзья',
-                    link: '/friends',
-                ),
-            );
+            try {
+                $name = $request->user()->profile?->display_name ?? $request->user()->name ?? 'Пользователь';
+                InAppNotify::send(
+                    $target,
+                    new InAppNotification(
+                        type: 'friend_request',
+                        title: $name.' отправил заявку в друзья',
+                        link: '/friends',
+                    ),
+                );
+            } catch (\Throwable) {
+                // Заявка уже сохранена — сбой уведомления не должен ломать ответ API.
+            }
         }
 
         return (new FriendRequestResource($friendRequest))

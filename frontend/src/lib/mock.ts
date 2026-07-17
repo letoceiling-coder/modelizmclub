@@ -240,6 +240,8 @@ export interface Message {
   status?: "sent" | "delivered" | "read";
   replyTo?: ID;
   image?: string;
+  /** Natural pixel size — used to reserve bubble height before the image loads. */
+  imageSize?: { w: number; h: number };
   voice?: VoiceMessage;
   file?: MessageFile;
   pinned?: boolean;

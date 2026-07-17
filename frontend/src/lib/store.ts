@@ -156,6 +156,7 @@ subscribe(() => {
 
 type Action =
   | { type: "ADD_MESSAGE"; dialogId: ID; message: Message; incrementUnread?: boolean }
+  | { type: "REMOVE_MESSAGE"; dialogId: ID; messageId: ID }
   | { type: "MARK_READ"; dialogId: ID }
   | { type: "MARK_UNREAD"; dialogId: ID }
   | { type: "UPDATE_PROFILE"; userId: ID; data: Partial<User> }
@@ -212,7 +213,9 @@ function reducer(s: AppState, a: Action): AppState {
           ? "🎤 Голосовое сообщение"
           : a.message.image
             ? "📷 Изображение"
-            : "";
+            : a.message.file
+              ? a.message.file.name
+              : "";
       const shouldUnread = Boolean(a.incrementUnread) && a.message.authorId !== s.currentUserId;
       const unread = shouldUnread ? (d.unread ?? 0) + 1 : d.unread ?? 0;
       const nextDialog: Dialog = {
@@ -223,6 +226,26 @@ function reducer(s: AppState, a: Action): AppState {
         unread,
       };
       return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: nextDialog } };
+    }
+    case "REMOVE_MESSAGE": {
+      const d = s.dialogs[a.dialogId];
+      if (!d) return s;
+      const messages = d.messages.filter((m) => m.id !== a.messageId);
+      if (messages.length === d.messages.length) return s;
+      const last = messages[messages.length - 1];
+      const lastMessage = last
+        ? (last.text
+          || (last.voice ? "🎤 Голосовое сообщение" : "")
+          || (last.image ? "📷 Изображение" : "")
+          || (last.file ? last.file.name : ""))
+        : "";
+      return {
+        ...s,
+        dialogs: {
+          ...s.dialogs,
+          [a.dialogId]: { ...d, messages, lastMessage, time: last?.time ?? d.time },
+        },
+      };
     }
     case "MARK_READ": {
       const d = s.dialogs[a.dialogId];
@@ -495,6 +518,7 @@ export function useStore<T>(selector: (s: AppState) => T): T {
 
 export const actions = {
   addMessage: (dialogId: ID, message: Message) => dispatch({ type: "ADD_MESSAGE", dialogId, message }),
+  removeMessage: (dialogId: ID, messageId: ID) => dispatch({ type: "REMOVE_MESSAGE", dialogId, messageId }),
   markRead: (dialogId: ID) => dispatch({ type: "MARK_READ", dialogId }),
   markUnread: (dialogId: ID) => dispatch({ type: "MARK_UNREAD", dialogId }),
   updateProfile: (userId: ID, data: Partial<User>) => dispatch({ type: "UPDATE_PROFILE", userId, data }),
@@ -573,7 +597,13 @@ export function replaceMessage(dialogId: ID, tempId: ID, message: Message): void
   const hasTemp = d.messages.some((m) => m.id === tempId);
   const messages = hasTemp
     ? d.messages.map((m) =>
-        m.id === tempId ? { ...message, clientKey: m.clientKey ?? tempId } : m,
+        m.id === tempId
+          ? {
+              ...message,
+              clientKey: m.clientKey ?? tempId,
+              imageSize: message.imageSize ?? m.imageSize,
+            }
+          : m,
       )
     : [...d.messages.filter((m) => m.id !== message.id), message];
   dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });

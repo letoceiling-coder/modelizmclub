@@ -8,6 +8,7 @@ import { blockUser, unblockUser } from "@/lib/api/social";
 import { pinConversation, unpinConversation, deleteConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { calls, useCalls } from "@/lib/calls";
 import { groupCalls, useGroupCall } from "@/lib/groupCall";
 import { actions, useStore, selectors } from "@/lib/store";
@@ -27,6 +28,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
   const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [complaintOpen, setComplaintOpen] = useState(false);
   const activeCall = useCalls((s) => s.active);
   const groupActive = useGroupCall((s) => !!s.active || s.connecting);
   const callBusy = (!!activeCall && activeCall.status !== "ended") || groupActive;
@@ -142,7 +144,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
 
   const reportUser = () => {
     close();
-    toast("Жалоба: будет доступно позже");
+    setComplaintOpen(true);
   };
 
   const toggleBlock = async () => {
@@ -271,6 +273,11 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
           setConfirmOpen(false);
           void calls.start(partnerId, partnerName, undefined, media);
         }}
+      />
+      <ComplaintDialog
+        target={complaintOpen ? userById(partnerId) : null}
+        onClose={() => setComplaintOpen(false)}
+        page="/messenger"
       />
     </>
   );

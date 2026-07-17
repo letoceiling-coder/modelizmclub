@@ -1,6 +1,51 @@
+import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Ad } from "@/lib/mock";
 import { MapPin, Tag } from "lucide-react";
+
+/** Scroll the nearest vertical scroll container (e.g. AppLayout <main>) or the window. */
+function scrollVerticalFromWheel(origin: HTMLElement, deltaY: number): void {
+  let node: HTMLElement | null = origin.parentElement;
+  while (node) {
+    const { overflowY } = getComputedStyle(node);
+    if (
+      (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay")
+      && node.scrollHeight > node.clientHeight + 1
+    ) {
+      node.scrollTop += deltaY;
+      return;
+    }
+    node = node.parentElement;
+  }
+  window.scrollBy({ top: deltaY, behavior: "auto" });
+}
+
+/** Prevent overflow-x-auto from hijacking vertical mouse wheel over the row. */
+function useVerticalWheelPassthrough<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.shiftKey) return;
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+      if (absY <= absX) return;
+
+      e.preventDefault();
+      scrollVerticalFromWheel(el, e.deltaY);
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  return ref;
+}
 
 /** Single source of truth for how many cards this row always shows — the
  *  caller (ads.$id.tsx) fetches/tiers up to this many real ads, and this
@@ -10,6 +55,7 @@ export const SIMILAR_ADS_SLOTS = 12;
 
 export function SimilarAds({ items }: { items: Ad[] }) {
   const placeholderCount = Math.max(0, SIMILAR_ADS_SLOTS - items.length);
+  const scrollerRef = useVerticalWheelPassthrough<HTMLDivElement>();
 
   return (
     <section className="space-y-[16px]">
@@ -17,8 +63,9 @@ export function SimilarAds({ items }: { items: Ad[] }) {
         Похожие объявления
       </h2>
       <div
+        ref={scrollerRef}
         className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0"
-        style={{ scrollbarWidth: "thin" }}
+        style={{ scrollbarWidth: "thin", overscrollBehaviorX: "contain" }}
       >
         {items.map((a) => (
           <Link

@@ -35,7 +35,7 @@ export interface ApiMessage {
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
-  attachments?: Array<{ media?: { uuid?: string | null; url?: string | null; mime_type?: string | null; duration?: number | null } | null }>;
+  attachments?: Array<{ media?: { uuid?: string | null; url?: string | null; mime_type?: string | null; duration?: number | null; filename?: string | null; size_bytes?: number | null; width?: number | null; height?: number | null } | null }>;
   created_at: string;
 }
 
@@ -98,12 +98,18 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
     authorId: m.author?.uuid ?? "",
     time: m.created_at,
     text: m.body ?? "",
-    image: imageMedia?.url ?? undefined,
     status: "read",
     replyTo: m.reply_to?.uuid,
     pinned: pinnedUuid ? m.uuid === pinnedUuid : undefined,
     forwardedFrom: m.forwarded_from?.author?.uuid,
   };
+
+  if (imageMedia?.url) {
+    base.image = imageMedia.url;
+    if (imageMedia.width && imageMedia.height) {
+      base.imageSize = { w: imageMedia.width, h: imageMedia.height };
+    }
+  }
 
   if (audio?.url) {
     base.voice = {
@@ -115,10 +121,11 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   }
 
   if (fileMedia?.url) {
+    const mime = fileMedia.mime_type ?? "";
     base.file = {
-      name: fileMedia.url.split("/").pop() ?? "file",
-      size: 0,
-      kind: "file",
+      name: fileMedia.filename ?? fileMedia.url.split("/").pop() ?? "file",
+      size: fileMedia.size_bytes ?? 0,
+      kind: mime.startsWith("video/") ? "video" : "file",
       url: fileMedia.url,
     };
   }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { login, completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
-import { resetSessionCache } from "@/lib/auth/session";
+import { resetSessionCache, syncFavoritesFromServer } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ApiError } from "@/lib/api/client";
 
@@ -52,6 +52,7 @@ function LoginPage() {
         if (!alive) return;
         resetSessionCache();
         setCurrentUser(user);
+        void syncFavoritesFromServer();
         toast.success(t("authPages.loginSuccess"));
         const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
         nav({ to: target as "/feed", replace: true });
@@ -77,6 +78,7 @@ function LoginPage() {
       const user = await login(email, password, remember);
       resetSessionCache();
       setCurrentUser(user);
+      void syncFavoritesFromServer();
       toast.success(t("authPages.loginSuccess"));
       const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
       nav({ to: target as "/feed", replace: true });

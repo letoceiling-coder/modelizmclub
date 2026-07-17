@@ -4,7 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { resetPassword } from "@/lib/api/auth";
-import { resetSessionCache } from "@/lib/auth/session";
+import { resetSessionCache, syncFavoritesFromServer } from "@/lib/auth/session";
 import { setCurrentUser } from "@/lib/store";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { ApiError } from "@/lib/api/client";
@@ -67,6 +67,7 @@ function ResetPasswordPage() {
       const { user } = await resetPassword({ email: normalizedEmail, token, password, passwordConfirmation });
       resetSessionCache();
       setCurrentUser(user);
+      void syncFavoritesFromServer();
       toast.success("Пароль изменён — вы вошли в аккаунт");
       nav({ to: "/feed", replace: true });
     } catch (err) {

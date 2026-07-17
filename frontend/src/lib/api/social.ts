@@ -1,8 +1,9 @@
 import type { User } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
-import { api } from "./client";
+import { api, ApiError } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
+import { firstFieldError } from "./validationErrors";
 import {
   demoFriends,
   demoIncomingRequests,
@@ -64,6 +65,9 @@ interface Paginated<T> {
 }
 
 export function mapCompactUser(u: ApiCompactUser): User {
+  if (!u?.uuid) {
+    throw new ApiError(502, "Сервер вернул неполные данные пользователя");
+  }
   const user = mapApiUser({
     id: u.id,
     uuid: u.uuid,
@@ -90,6 +94,30 @@ export interface FriendRequestResult {
   id: number;
   status: string;
   to?: User;
+}
+
+function unwrapFriendRequestPayload(res: unknown): ApiFriendRequest {
+  if (!res || typeof res !== "object") {
+    throw new ApiError(502, "Сервер вернул некорректный ответ при отправке заявки");
+  }
+  const root = res as Record<string, unknown>;
+  const data = (
+    root.data && typeof root.data === "object"
+      ? root.data
+      : res
+  ) as ApiFriendRequest;
+  if (typeof data.id !== "number" || typeof data.status !== "string") {
+    throw new ApiError(502, "Сервер вернул некорректный ответ при отправке заявки");
+  }
+  return data;
+}
+
+export function formatSocialActionError(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    return firstFieldError(err.errors, err.message || fallback);
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 export async function searchUsers(q: string): Promise<User[]> {
@@ -134,12 +162,12 @@ export async function fetchOutgoingRequests(): Promise<OutgoingRequest[]> {
 
 export async function sendFriendRequest(userId: number): Promise<FriendRequestResult> {
   if (isDemoMode()) return { id: Date.now(), status: "pending" };
-  const res = await api<{ data: ApiFriendRequest }>(`/users/${userId}/friend-request`, { method: "POST" });
-  const data = res.data;
+  const res = await api<unknown>(`/users/${userId}/friend-request`, { method: "POST" });
+  const data = unwrapFriendRequestPayload(res);
   return {
     id: data.id,
     status: data.status,
-    to: data.to ? mapCompactUser(data.to) : undefined,
+    to: data.to?.uuid ? mapCompactUser(data.to) : undefined,
   };
 }
 

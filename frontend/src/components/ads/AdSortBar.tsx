@@ -18,9 +18,10 @@ interface Props {
   onOpenFilters: () => void;
   count: number;
   filterCount?: number;
+  refreshing?: boolean;
 }
 
-export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, filterCount = 0 }: Props) {
+export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, filterCount = 0, refreshing = false }: Props) {
   return (
     <div className="flex flex-col gap-[10px]">
       {/* Row 1 — search + compact filter button (icon-only on mobile, Avito-style) */}
@@ -78,7 +79,13 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
       {/* Row 2 — result count (left) + sort (right) */}
       <div className="flex items-center justify-between gap-[8px]">
         <div className="min-w-0 truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Найдено: <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
+          {refreshing ? (
+            <>Обновление списка…</>
+          ) : (
+            <>
+              Найдено: <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
+            </>
+          )}
         </div>
         <select
           value={sort}
