@@ -114,18 +114,26 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * Toasts anchor top-right — clear of the fixed header/nav and out of the way
- * of page content. Language-switch toasts must not cover navigation items.
+ * Toasts anchor bottom-right — out of the way of headers, cards and the main
+ * content grid. On mobile, sit above the fixed bottom nav.
  */
-function useTopToastOffset(): number {
+function useBottomToastOffset(): number {
   const [offset, setOffset] = useState(16);
   useEffect(() => {
     const probe = document.createElement("div");
-    probe.style.cssText = "position:absolute;visibility:hidden;height:calc(var(--safe-top) + var(--mobile-header-h))";
+    probe.style.cssText = "position:absolute;visibility:hidden;height:var(--bottom-nav-space)";
     document.body.appendChild(probe);
-    const px = probe.getBoundingClientRect().height;
+    const navSpace = probe.getBoundingClientRect().height;
     document.body.removeChild(probe);
-    if (px > 0) setOffset(px + 12);
+
+    const sync = () => {
+      const mobile = window.matchMedia("(max-width: 1023px)").matches;
+      setOffset(mobile && navSpace > 0 ? navSpace + 12 : 16);
+    };
+    sync();
+    const mq = window.matchMedia("(max-width: 1023px)");
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
   }, []);
   return offset;
 }
@@ -146,7 +154,7 @@ function FadingOutlet() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const mobileToastOffset = useTopToastOffset();
+  const bottomToastOffset = useBottomToastOffset();
   useEffect(() => {
     bindCallAudioUnlock();
     void restoreSession();
@@ -165,11 +173,12 @@ function RootComponent() {
           <GroupCallScreen />
           <GroupCallInviteDialog />
           <Toaster
-            position="top-right"
+            position="bottom-right"
             closeButton
-            duration={4000}
-            offset={{ top: 16, right: 16 }}
-            mobileOffset={{ top: mobileToastOffset, right: 16, left: 16 }}
+            duration={3500}
+            visibleToasts={3}
+            offset={{ bottom: 16, right: 16 }}
+            mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
           />
         </ThemeProvider>
       </I18nProvider>
