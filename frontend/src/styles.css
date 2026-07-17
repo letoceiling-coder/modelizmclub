@@ -378,6 +378,71 @@ html, body {
   }
 }
 
+/* Landing — reserve vertical space so locale switches don't reflow the page. */
+.landing-nav-link {
+  white-space: nowrap;
+}
+
+.landing-nav-cta-primary {
+  min-width: 9.5rem;
+}
+
+.landing-nav-cta-secondary {
+  min-width: 5.5rem;
+  justify-content: center;
+}
+
+.landing-hero-tagline {
+  min-height: 2.6em;
+}
+
+.landing-hero-subtitle {
+  min-height: 4.65em;
+}
+
+.landing-section-lead {
+  min-height: 3.2em;
+}
+
+.landing-quick-title {
+  min-height: 2.75em;
+}
+
+.landing-quick-desc {
+  min-height: 4.875em;
+}
+
+.landing-hero-cta {
+  min-width: 11.5rem;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .landing-hero-ctas .landing-hero-cta {
+    min-width: 13.5rem;
+  }
+}
+
+/* Compact language-switch toast — short label only, no full-width bar. */
+[data-sonner-toast].lang-switch-toast {
+  width: fit-content !important;
+  max-width: min(168px, calc(100vw - 32px)) !important;
+  min-height: 0 !important;
+  padding: 6px 12px !important;
+  border-left-width: 3px !important;
+}
+
+[data-sonner-toast].lang-switch-toast [data-title] {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+}
+
+[data-sonner-toast].lang-switch-toast [data-icon] {
+  width: 14px !important;
+  height: 14px !important;
+}
+
 /* Shimmer — Framer Motion driven skeleton loading */
 @keyframes shimmer-move {
   0% { transform: translateX(-100%); }

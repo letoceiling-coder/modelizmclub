@@ -39,11 +39,12 @@ export function LanguageSwitcher() {
     setLocale(code);
     setOpen(false);
     const name = LANGS.find((l) => l.code === code)?.native ?? code;
-    toast.success(
-      code === "ru" ? `Язык: ${name}` :
-      code === "en" ? `Language: ${name}` :
-      `语言：${name}`,
-    );
+    toast.success(name, {
+      id: "lang-switch",
+      duration: 1800,
+      closeButton: false,
+      className: "lang-switch-toast",
+    });
   };
 
   const current = LANGS.find((l) => l.code === lang) ?? LANGS[0];

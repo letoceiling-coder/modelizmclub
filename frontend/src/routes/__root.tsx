@@ -15,7 +15,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
 import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
-import { I18nProvider } from "@/components/I18nProvider";
+import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
@@ -131,7 +131,17 @@ function useTopToastOffset(): number {
 }
 
 function FadingOutlet() {
-  return <Outlet />;
+  const fading = useLocaleFade();
+  return (
+    <div
+      style={{
+        opacity: fading ? 0.82 : 1,
+        transition: `opacity ${FADE_MS}ms ease`,
+      }}
+    >
+      <Outlet />
+    </div>
+  );
 }
 
 function RootComponent() {

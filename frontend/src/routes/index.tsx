@@ -106,16 +106,16 @@ function TopNav() {
           <Logo size={40} />
         </Link>
 
-        {/* desktop nav */}
-        <nav className="hidden items-center gap-6 lg:flex">
+        {/* desktop nav — nowrap keeps header width stable across locales */}
+        <nav className="landing-nav hidden items-center gap-5 lg:flex">
           {navLinks.map((l) =>
             l.kind === "hash" ? (
-              <a key={l.label} href={l.href} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              <a key={l.label} href={l.href} className="landing-nav-link text-sm font-medium transition-colors" style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
               >{l.label}</a>
             ) : (
-              <Link key={l.label} to={l.to} className="text-sm font-medium transition-colors" style={navLinkStyle}
+              <Link key={l.label} to={l.to} className="landing-nav-link text-sm font-medium transition-colors" style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
               >{l.label}</Link>
@@ -152,12 +152,12 @@ function TopNav() {
             </>
           ) : (
             <>
-              <Link to={enter.login} className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
+              <Link to={enter.login} className="landing-nav-cta-secondary hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
                 style={{ color: "var(--foreground-70)" }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >{t("landing.nav.login")}</Link>
-              <Link to={enter.register} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
+              <Link to={enter.register} className="landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
               >
                 {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
@@ -366,7 +366,7 @@ function Hero() {
 
               <motion.p
                 variants={fadeUp}
-                className="mt-4"
+                className="landing-hero-tagline mt-4"
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.4vw, 26px)", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}
               >
                 {t("landing.hero.tagline")}
@@ -374,22 +374,22 @@ function Hero() {
 
               <motion.p
                 variants={fadeUp}
-                className="mt-4"
+                className="landing-hero-subtitle mt-4"
                 style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "rgba(235,238,248,0.86)", maxWidth: 560, lineHeight: 1.55 }}
               >
                 {t("landing.hero.subtitle")}
               </motion.p>
 
-              <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <motion.div variants={fadeUp} className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
-                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                  className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
                 >
                   <Search size={18} /> {t("landing.hero.ctaBrowse")}
                 </button>
                 <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
-                  className="h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                  className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                 >
@@ -463,7 +463,7 @@ function QuickSections() {
     <Section bg="var(--background-surface)">
       <Eyebrow>{t("landing.quick.eyebrow")}</Eyebrow>
       <Title>{t("landing.quick.title")}</Title>
-      <p className="mt-3 max-w-[560px]" style={mutedP}>
+      <p className="landing-section-lead mt-3 max-w-[560px]" style={mutedP}>
         {t("landing.quick.subtitle")}
       </p>
       <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -477,8 +477,8 @@ function QuickSections() {
             <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
               <Icon size={22} />
             </div>
-            <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t(`landing.quick.items.${key}.title`)}</h3>
-            <p className="mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.quick.items.${key}.desc`)}</p>
+            <h3 className="landing-quick-title mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t(`landing.quick.items.${key}.title`)}</h3>
+            <p className="landing-quick-desc mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.quick.items.${key}.desc`)}</p>
             <span className="landing-tap-card-arrow mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
               {t("landing.quick.open")} <ArrowRight size={14} />
             </span>
