@@ -310,7 +310,7 @@ function MessageBubble({
           )}
           {msg.image && <MessageImage src={msg.image} onResize={onMediaResize} />}
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
-          {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} />}
+          {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} onResize={onMediaResize} />}
           {msg.text && (
             <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
               {msg.text}
@@ -735,7 +735,7 @@ function MessengerPage() {
           mobileView === "chat"
             ? "h-[calc(100dvh-var(--safe-top)-var(--safe-bottom)-24px)]"
             : "h-[calc(100dvh-var(--safe-top)-var(--bottom-nav-space)-28px)]"
-        } md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[320px_1fr]`}
+        } md:grid-cols-[380px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[400px_1fr]`}
         style={{
           background: "var(--background)",
           border: "1px solid var(--border)",
@@ -759,7 +759,10 @@ function MessengerPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-[16px] overflow-x-auto no-scrollbar" style={{ borderBottom: "1px solid var(--border)" }}>
+            <div
+              className="grid w-full grid-cols-4 gap-[4px]"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
               {([
                 { key: "chats-active" as const, label: "Активные" },
                 { key: "channels" as const, label: "Каналы" },
@@ -782,7 +785,8 @@ function MessengerPage() {
                         setShowArchived(t.key === "chats-archive");
                       }
                     }}
-                    className="shrink-0 text-[13px] transition-colors"
+                    className="min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px]"
+                    title={t.label}
                     style={{
                       height: 32,
                       fontWeight: isActive ? 600 : 500,
@@ -790,7 +794,7 @@ function MessengerPage() {
                       borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
-                    {t.label}
+                    <span className="block truncate">{t.label}</span>
                   </button>
                 );
               })}
@@ -864,9 +868,9 @@ function MessengerPage() {
                                 clipped (or hidden entirely) instead of ellipsizing.
                                 `truncate` on the flex *container* is a no-op, so it
                                 lives only on the text span. */}
-                            <span className="flex min-w-0 items-center gap-[6px] font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                            <span className="flex min-w-0 flex-1 items-center gap-[6px] font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
                               {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                              <span className="min-w-0 truncate" title={u.name}>{u.name}</span>
+                              <span className="min-w-0 flex-1 truncate" title={u.name}>{u.name}</span>
                               {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
                               {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
                               {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
