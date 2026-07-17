@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -193,16 +193,6 @@ function MyAdsPage() {
     setQuickChip("all");
   };
 
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const tabsNavRef = useRef<HTMLElement | null>(null);
-
-  const scrollTabs = (e: React.WheelEvent<HTMLElement>) => {
-    const el = tabsNavRef.current;
-    if (!el || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-    e.preventDefault();
-    el.scrollLeft += e.deltaY;
-  };
-
   return (
     <AppLayout rightColumn={false} footer>
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-[20px]">
@@ -239,12 +229,10 @@ function MyAdsPage() {
           <StatCard icon={<MessageCircle size={14} />} label="На продаже" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
-        {/* Tabs */}
+        {/* Status tabs — equal-width grid, no horizontal scroll */}
         <nav
-          ref={tabsNavRef}
-          onWheel={scrollTabs}
-          className="sticky top-0 z-10 flex snap-x snap-mandatory items-center gap-[4px] overflow-x-auto py-[8px] pr-[16px] scroll-smooth"
-          style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)", scrollbarWidth: "thin" }}
+          className="sticky top-0 z-10 grid w-full grid-cols-7 gap-px py-[6px]"
+          style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
           role="tablist"
         >
           {TABS.map((t) => {
@@ -255,14 +243,13 @@ function MyAdsPage() {
                 key={t.key}
                 role="tab"
                 aria-selected={active}
-                ref={(el) => { tabRefs.current[t.key] = el; }}
                 onClick={() => setTab(t.key)}
-                className="relative inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap px-[16px] py-[10px] text-[14px] font-semibold transition-colors"
+                className="relative flex min-w-0 flex-col items-center justify-end gap-[2px] px-[2px] py-[8px] text-center text-[10px] font-semibold leading-[1.15] transition-colors sm:flex-row sm:justify-center sm:gap-[4px] sm:px-[4px] sm:text-[11px] md:px-[6px] md:text-[12px] lg:text-[13px]"
                 style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
               >
-                {t.label}
+                <span className="max-w-full whitespace-normal">{t.label}</span>
                 <span
-                  className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
+                  className="inline-flex h-[16px] min-w-[16px] shrink-0 items-center justify-center px-[4px] text-[9px] font-bold sm:h-[18px] sm:min-w-[18px] sm:text-[10px]"
                   style={{
                     background: active ? "var(--accent-soft)" : "var(--background-surface)",
                     color: active ? "var(--accent)" : "var(--foreground-50)",
@@ -274,7 +261,7 @@ function MyAdsPage() {
                 {active && (
                   <motion.span
                     layoutId="ads-tab-underline"
-                    className="absolute bottom-0 left-[8px] right-[8px]"
+                    className="absolute bottom-0 left-[4px] right-[4px] sm:left-[6px] sm:right-[6px]"
                     style={{ height: 3, background: "var(--accent)", borderRadius: 2 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
