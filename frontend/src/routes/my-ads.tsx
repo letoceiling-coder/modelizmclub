@@ -9,6 +9,7 @@ import { type AdStatusKey } from "@/lib/store";
 import { fetchMyListings, publishListing, archiveListing, deleteListing, restoreListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 import { Button } from "@/components/ui/button";
+import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/my-ads")({
@@ -283,9 +284,9 @@ function MyAdsPage() {
           <StatCard icon={<MessageCircle size={14} />} label="На продаже" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
-        {/* Status tabs — equal-width grid, no horizontal scroll */}
-        <nav
-          className="sticky top-0 z-10 grid w-full grid-cols-7 gap-px py-[6px]"
+        {/* Status tabs — horizontal strip, hidden scrollbar, drag + wheel on desktop */}
+        <HorizontalScrollNav
+          className="sticky top-0 z-10 py-[6px]"
           style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
           role="tablist"
         >
@@ -298,12 +299,12 @@ function MyAdsPage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(t.key)}
-                className="relative flex min-w-0 flex-col items-center justify-end gap-[2px] px-[2px] py-[8px] text-center text-[10px] font-semibold leading-[1.15] transition-colors sm:flex-row sm:justify-center sm:gap-[4px] sm:px-[4px] sm:text-[11px] md:px-[6px] md:text-[12px] lg:text-[13px]"
+                className="relative inline-flex shrink-0 flex-col items-center justify-end gap-[2px] px-[12px] py-[8px] text-center text-[12px] font-semibold leading-[1.15] transition-colors sm:flex-row sm:justify-center sm:gap-[6px] sm:text-[13px] md:px-[16px]"
                 style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
               >
-                <span className="max-w-full whitespace-normal">{t.label}</span>
+                <span className="whitespace-nowrap">{t.label}</span>
                 <span
-                  className="inline-flex h-[16px] min-w-[16px] shrink-0 items-center justify-center px-[4px] text-[9px] font-bold sm:h-[18px] sm:min-w-[18px] sm:text-[10px]"
+                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center px-[5px] text-[10px] font-bold"
                   style={{
                     background: active ? "var(--accent-soft)" : "var(--background-surface)",
                     color: active ? "var(--accent)" : "var(--foreground-50)",
@@ -315,7 +316,7 @@ function MyAdsPage() {
                 {active && (
                   <motion.span
                     layoutId="ads-tab-underline"
-                    className="absolute bottom-0 left-[4px] right-[4px] sm:left-[6px] sm:right-[6px]"
+                    className="absolute bottom-0 left-[8px] right-[8px] md:left-[12px] md:right-[12px]"
                     style={{ height: 3, background: "var(--accent)", borderRadius: 2 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
@@ -323,7 +324,7 @@ function MyAdsPage() {
               </button>
             );
           })}
-        </nav>
+        </HorizontalScrollNav>
 
         {/* Search + Filter (Avito-style) */}
         <div className="flex items-center gap-[8px]">

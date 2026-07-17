@@ -11,15 +11,21 @@ class ReportResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $typeKey = strtolower(class_basename($this->reportable_type ?? ''));
+
         return [
             'id' => $this->id,
             'reason' => $this->reason,
             'description' => $this->description,
             'status' => $this->status,
-            'reportable_type' => class_basename($this->reportable_type),
-            'reportable_id' => $this->reportable_id,
+            'target_type' => $typeKey,
+            'target_uuid' => $this->when(
+                $this->relationLoaded('reportable') && $this->reportable !== null,
+                fn () => $this->reportable->uuid ?? null,
+            ),
             'reporter' => $this->whenLoaded('reporter', fn () => [
                 'uuid' => $this->reporter?->uuid,
+                'name' => $this->reporter?->name ?? $this->reporter?->email,
                 'email' => $this->reporter?->email,
             ]),
             'resolver' => $this->whenLoaded('resolver', fn () => $this->resolver ? [

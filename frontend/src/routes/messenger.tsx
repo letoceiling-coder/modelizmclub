@@ -783,6 +783,7 @@ function MessengerPage() {
       || (m.file ? `[файл: ${m.file.name}]` : "");
     setMessageComplaint({
       target: partner,
+      messageId: m.id,
       contextNote: snippet ? `Сообщение: ${snippet.slice(0, 500)}` : undefined,
     });
   };
@@ -790,6 +791,7 @@ function MessengerPage() {
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
   const [messageComplaint, setMessageComplaint] = useState<{
     target: ReturnType<typeof userById>;
+    messageId: string;
     contextNote?: string;
   } | null>(null);
 
@@ -1230,6 +1232,7 @@ function MessengerPage() {
         page="/messenger"
         subjectSuffix=" (сообщение в чате)"
         contextNote={messageComplaint?.contextNote}
+        report={messageComplaint ? { type: "message", targetId: messageComplaint.messageId } : undefined}
       />
       <DialogContextMenu
         point={dialogCtxMenu?.point ?? null}

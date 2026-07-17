@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\PostCategory;
 use App\Models\User;
+use App\Notifications\InAppNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -74,6 +75,11 @@ class ReportAndCommentReactionTest extends TestCase
             'id' => $reportId,
             'status' => 'resolved',
             'resolved_by' => $admin->id,
+        ]);
+
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $admin->id,
+            'type' => InAppNotification::class,
         ]);
     }
 

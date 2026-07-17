@@ -8,22 +8,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { submitFeedback } from "@/lib/api/feedback";
+import { COMPLAINT_REASON_TO_API, submitReport, type ReportType } from "@/lib/api/reports";
+import { ApiError } from "@/lib/api/client";
 import type { User } from "@/lib/mock";
 
 const REASONS = ["Спам", "Оскорбления", "Мошенничество", "Нежелательный контент", "Другое"] as const;
 
-/** Reports a friend/recommended user into the same "Книга жалоб и
- *  предложений" pipeline as the general feedback form (src/lib/api/feedback.ts,
- *  reviewed by admins/moderators under Обращения in /admin) — encodes the
- *  reason + target into `subject` since Feedback has no dedicated reason
- *  column, avoiding a backend/migration change for a field the admin UI
- *  already renders as free text. */
 export function ComplaintDialog({
   target,
   onClose,
   page = "/friends",
   subjectSuffix = "",
   contextNote,
+  report,
 }: {
   target: User | null;
   onClose: () => void;
@@ -33,6 +30,8 @@ export function ComplaintDialog({
   subjectSuffix?: string;
   /** Optional context appended to the message body (e.g. reported message text). */
   contextNote?: string;
+  /** When set, submit a moderation report (POST /reports) instead of feedback. */
+  report?: { type: ReportType; targetId: string };
 }) {
   const [reason, setReason] = useState<(typeof REASONS)[number]>(REASONS[0]);
   const [message, setMessage] = useState("");
@@ -48,19 +47,39 @@ export function ComplaintDialog({
     if (!target) return;
     setSending(true);
     try {
-      await submitFeedback({
-        subject: `Жалоба на пользователя «${target.name}»${subjectSuffix}: ${reason}`,
-        message: [
-          message.trim() || "(без комментария)",
-          contextNote ? `\n\n---\n${contextNote}` : "",
-        ].join(""),
-        page,
-      });
-      toast.success("Спасибо! Обращение принято к рассмотрению");
+      const description = [
+        message.trim() || "(без комментария)",
+        contextNote ? `\n\n---\n${contextNote}` : "",
+      ].join("");
+
+      if (report) {
+        const apiReason = COMPLAINT_REASON_TO_API[reason];
+        if (!apiReason) throw new Error("unknown reason");
+        await submitReport({
+          type: report.type,
+          targetId: report.targetId,
+          reason: apiReason,
+          description,
+        });
+        toast.success("Жалоба отправлена на модерацию");
+      } else {
+        await submitFeedback({
+          subject: `Жалоба на пользователя «${target.name}»${subjectSuffix}: ${reason}`,
+          message: description,
+          page,
+        });
+        toast.success("Спасибо! Обращение принято к рассмотрению");
+      }
       reset();
       onClose();
-    } catch {
-      toast.error("Не удалось отправить обращение. Попробуйте позже");
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.errors
+            ? Object.values(err.errors)[0]?.[0] ?? err.message
+            : err.message
+          : "Не удалось отправить обращение. Попробуйте позже";
+      toast.error(msg);
     } finally {
       setSending(false);
     }
@@ -78,7 +97,7 @@ export function ComplaintDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Книга замечаний и предложений</DialogTitle>
+          <DialogTitle>{report ? "Пожаловаться" : "Книга замечаний и предложений"}</DialogTitle>
           <DialogDescription>
             {target ? `Жалоба на пользователя «${target.name}» — выберите причину и опишите ситуацию.` : ""}
           </DialogDescription>

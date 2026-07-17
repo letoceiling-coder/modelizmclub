@@ -620,7 +620,7 @@ function FriendsPage() {
             )}
         </ReducedMotionSwitch>
       </div>
-      <ComplaintDialog target={complaintTarget} onClose={() => setComplaintTarget(null)} />
+      <ComplaintDialog target={complaintTarget} onClose={() => setComplaintTarget(null)} report={complaintTarget ? { type: "user", targetId: complaintTarget.id } : undefined} />
     </AppLayout>
   );
 }

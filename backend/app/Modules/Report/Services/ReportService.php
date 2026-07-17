@@ -2,6 +2,8 @@
 
 namespace Modules\Report\Services;
 
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Models\Comment;
 use App\Models\Conversation;
 use App\Models\Listing;
@@ -10,6 +12,8 @@ use App\Models\Post;
 use App\Models\Report;
 use App\Models\User;
 use App\Models\Video;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -65,7 +69,7 @@ class ReportService
             ]);
         }
 
-        return Report::create([
+        $report = Report::create([
             'reporter_id' => $reporter->id,
             'reportable_type' => $target::class,
             'reportable_id' => $target->getKey(),
@@ -73,6 +77,50 @@ class ReportService
             'description' => $description,
             'status' => 'pending',
         ]);
+
+        $this->notifyModerators($report, $type);
+
+        return $report;
+    }
+
+    private function notifyModerators(Report $report, string $type): void
+    {
+        $targetLabel = match ($type) {
+            'user' => 'пользователя',
+            'message' => 'сообщение',
+            'conversation' => 'чат',
+            'post' => 'публикацию',
+            'listing' => 'объявление',
+            'comment' => 'комментарий',
+            'video' => 'обзор',
+            default => 'контент',
+        };
+
+        $reasonLabels = [
+            'spam' => 'спам',
+            'offensive' => 'оскорбления',
+            'adult' => 'нежелательный контент',
+            'fraud' => 'мошенничество',
+            'violence' => 'насилие',
+            'copyright' => 'авторские права',
+            'other' => 'другое',
+        ];
+        $reasonLabel = $reasonLabels[$report->reason] ?? $report->reason;
+
+        User::query()
+            ->whereIn('role', [UserRole::Admin, UserRole::Moderator])
+            ->where('status', UserStatus::Active)
+            ->each(function (User $moderator) use ($targetLabel, $reasonLabel): void {
+                InAppNotify::send(
+                    $moderator,
+                    new InAppNotification(
+                        'report',
+                        'Новая жалоба',
+                        "Жалоба на {$targetLabel} ({$reasonLabel})",
+                        '/admin',
+                    ),
+                );
+            });
     }
 
     public function resolve(Report $report, User $actor, string $status): Report

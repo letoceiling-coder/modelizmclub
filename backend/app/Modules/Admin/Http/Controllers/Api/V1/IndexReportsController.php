@@ -16,7 +16,7 @@ class IndexReportsController extends Controller
     public function __invoke(): AnonymousResourceCollection
     {
         $reports = Report::query()
-            ->with('reporter')
+            ->with(['reporter', 'reportable'])
             ->when(request()->filled('status'), fn ($q) => $q->where('status', request('status')))
             ->latest()
             ->paginate((int) request()->integer('per_page', 20));

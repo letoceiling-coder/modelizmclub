@@ -637,6 +637,56 @@ export async function updateAdminFeedbackStatus(id: number, status: FeedbackStat
   await api(`/admin/feedback/${id}`, { method: "PATCH", json: { status } });
 }
 
+// ---- Reports (жалобы пользователей) ----
+export type ReportStatus = "pending" | "reviewing" | "resolved" | "rejected" | "dismissed";
+
+export interface AdminReportRow {
+  id: number;
+  reason: string;
+  description: string;
+  status: ReportStatus;
+  targetType: string;
+  targetUuid: string | null;
+  reporterName: string;
+  reporterEmail: string;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+interface ApiAdminReport {
+  id: number;
+  reason?: string;
+  description?: string | null;
+  status?: string;
+  target_type?: string;
+  target_uuid?: string | null;
+  reporter?: { uuid?: string; name?: string | null; email?: string | null } | null;
+  created_at?: string | null;
+  resolved_at?: string | null;
+}
+
+export async function fetchAdminReports(status?: ReportStatus): Promise<AdminReportRow[]> {
+  const res = await api<Paginated<ApiAdminReport>>("/admin/reports", {
+    query: { per_page: 50, ...(status ? { status } : {}) },
+  });
+  return (res.data ?? []).map((r) => ({
+    id: r.id,
+    reason: r.reason ?? "",
+    description: r.description ?? "",
+    status: (r.status as ReportStatus) ?? "pending",
+    targetType: r.target_type ?? "",
+    targetUuid: r.target_uuid ?? null,
+    reporterName: r.reporter?.name ?? "Пользователь",
+    reporterEmail: r.reporter?.email ?? "",
+    createdAt: r.created_at ?? "",
+    resolvedAt: r.resolved_at ?? null,
+  }));
+}
+
+export async function updateAdminReportStatus(id: number, status: ReportStatus): Promise<void> {
+  await api(`/admin/reports/${id}`, { method: "PATCH", json: { status } });
+}
+
 // ---- Delivery (СДЭК / Яндекс) ----
 export interface AdminDeliveryStats {
   shipmentsTotal: number;

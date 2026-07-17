@@ -30,14 +30,17 @@ import {
   fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
   broadcastNotification,
   fetchAdminFeedback, updateAdminFeedbackStatus,
+  fetchAdminReports, updateAdminReportStatus,
   fetchAdminDeliveryStats, fetchAdminShipments, updateAdminShipment,
   type AdminUserRow, type AuditEntry, type AuditLogDetailEntry, type ModerationItem,
   type AdminCategory, type CategoryKind, type AdminSetting,
   type AdminPostRow, type AdminListingRow,
   type FeedbackRow, type FeedbackStatus,
+  type AdminReportRow, type ReportStatus,
   type AdminDeliveryStats, type AdminShipmentRow,
 } from "@/lib/api/admin";
 import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
+import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import {
   fetchIconAssets, uploadIconAsset, deleteIconAsset,
@@ -1817,7 +1820,8 @@ function ModerationSection() {
   return (
     <div>
       <H>Модерация</H>
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px" }}>
+      <ReportsSection />
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px", marginTop: "24px" }}>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
             Публикации на модерации ({postQueue.length})
@@ -1868,6 +1872,160 @@ function EmptyQueue({ label }: { label: string }) {
     <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
       <ShieldCheck size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
       {label}
+    </div>
+  );
+}
+
+const REPORT_FILTERS: { id: ReportStatus | "all"; label: string }[] = [
+  { id: "all", label: "Все" },
+  { id: "pending", label: "Новые" },
+  { id: "reviewing", label: "На рассмотрении" },
+  { id: "resolved", label: "Решено" },
+  { id: "rejected", label: "Отклонено" },
+  { id: "dismissed", label: "Без действий" },
+];
+
+const REPORT_STATUS_META: Record<ReportStatus, { label: string; bg: string; color: string }> = {
+  pending: { label: "Новая", bg: "var(--accent-soft)", color: "var(--accent)" },
+  reviewing: { label: "На рассмотрении", bg: "var(--warning-soft)", color: "var(--warning)" },
+  resolved: { label: "Решено", bg: "color-mix(in oklab, var(--success) 18%, transparent)", color: "var(--success)" },
+  rejected: { label: "Отклонено", bg: "color-mix(in oklab, var(--error) 15%, transparent)", color: "var(--error)" },
+  dismissed: { label: "Без действий", bg: "var(--background-subtle)", color: "var(--foreground-50)" },
+};
+
+const REPORT_TARGET_LABELS: Record<string, string> = {
+  user: "Пользователь",
+  message: "Сообщение",
+  conversation: "Чат",
+  post: "Публикация",
+  listing: "Объявление",
+  comment: "Комментарий",
+  video: "Обзор",
+};
+
+function ReportsSection() {
+  const [filter, setFilter] = useState<ReportStatus | "all">("pending");
+  const [items, setItems] = useState<AdminReportRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchAdminReports(filter === "all" ? undefined : filter)
+      .then((rows) => active && setItems(rows))
+      .catch(() => active && toast.error("Не удалось загрузить жалобы"))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [filter]);
+
+  const setStatus = async (row: AdminReportRow, status: ReportStatus) => {
+    const prev = row.status;
+    setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status } : x)));
+    try {
+      await updateAdminReportStatus(row.id, status);
+      toast.success("Статус жалобы обновлён");
+    } catch {
+      setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
+      toast.error("Не удалось обновить статус");
+    }
+  };
+
+  return (
+    <div>
+      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
+        Жалобы пользователей
+      </h4>
+      <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "12px" }}>
+        {REPORT_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            style={{
+              height: "32px",
+              padding: "0 14px",
+              fontSize: "12px",
+              fontWeight: 600,
+              borderRadius: "var(--r-button)",
+              border: "1px solid var(--border)",
+              background: filter === f.id ? "var(--accent)" : "transparent",
+              color: filter === f.id ? "var(--accent-foreground)" : "var(--foreground-70)",
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
+          Загрузка…
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyQueue label="Жалоб нет" />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {items.map((row) => {
+            const meta = REPORT_STATUS_META[row.status];
+            const reasonLabel = REPORT_REASON_LABELS[row.reason as ReportReason] ?? row.reason;
+            const targetLabel = REPORT_TARGET_LABELS[row.targetType] ?? row.targetType;
+            return (
+              <div key={row.id} style={{ ...card, padding: "16px" }}>
+                <div className="flex items-center justify-between flex-wrap gap-[8px]">
+                  <div className="flex items-center gap-[8px] flex-wrap">
+                    <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--foreground)" }}>
+                      {targetLabel}
+                      {row.targetUuid && row.targetType === "user" ? (
+                        <> · <Link to="/user/$id" params={{ id: row.targetUuid }} style={{ color: "var(--accent)" }}>открыть профиль</Link></>
+                      ) : null}
+                    </span>
+                    <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>
+                      {meta.label}
+                    </span>
+                    <span style={{ fontSize: "11px", fontWeight: 500, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--background-subtle)", color: "var(--foreground-70)" }}>
+                      {reasonLabel}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                    {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : ""}
+                  </span>
+                </div>
+                {row.description && (
+                  <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>
+                    {row.description}
+                  </p>
+                )}
+                <div className="flex items-center justify-between flex-wrap gap-[8px]" style={{ marginTop: "10px" }}>
+                  <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
+                    От: {row.reporterName}{row.reporterEmail ? ` (${row.reporterEmail})` : ""}
+                  </span>
+                  <div className="flex flex-wrap gap-[8px]">
+                    {row.status === "pending" && (
+                      <button onClick={() => setStatus(row, "reviewing")} style={feedbackBtn("var(--warning-soft)", "var(--warning)")}>
+                        Взять в работу
+                      </button>
+                    )}
+                    {row.status !== "resolved" && (
+                      <button onClick={() => setStatus(row, "resolved")} style={feedbackBtn("var(--success)", "#fff")}>
+                        Решено
+                      </button>
+                    )}
+                    {row.status !== "dismissed" && (
+                      <button onClick={() => setStatus(row, "dismissed")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
+                        Без действий
+                      </button>
+                    )}
+                    {row.status !== "rejected" && (
+                      <button onClick={() => setStatus(row, "rejected")} style={feedbackBtn("var(--error)", "#fff")}>
+                        Отклонить
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

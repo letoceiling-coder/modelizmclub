@@ -336,6 +336,20 @@ html, body {
   display: none;                  /* Chrome/Safari */
 }
 
+/* Horizontal scroll strips — grab cursor on mouse, native swipe on touch. */
+@media (pointer: fine) {
+  .drag-scroll-x {
+    cursor: grab;
+    user-select: none;
+  }
+  .drag-scroll-x.is-dragging {
+    cursor: grabbing;
+  }
+  .drag-scroll-x.is-dragging * {
+    pointer-events: none;
+  }
+}
+
 /* Landing tappable cards — on touch devices iOS applies sticky :hover on the
    first tap (border/transform via JS or Tailwind hover:*), which consumes the
    tap and forces a second tap to navigate. Hover lift/border only on fine pointers. */

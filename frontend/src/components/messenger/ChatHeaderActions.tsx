@@ -278,6 +278,7 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
         target={complaintOpen ? userById(partnerId) : null}
         onClose={() => setComplaintOpen(false)}
         page="/messenger"
+        report={complaintOpen ? { type: "user", targetId: partnerId } : undefined}
       />
     </>
   );
