@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { ImagePlus, X, Star, ImageOff, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -18,7 +18,17 @@ interface Props {
 
 const TILE = 104;
 const GAP = 12;
+const GRID_COLS = 5;
+/** 5×104 + 4×12 — full row of five tiles at desktop width. */
+const GRID_MAX_W = GRID_COLS * TILE + (GRID_COLS - 1) * GAP;
 const LAYOUT_TRANSITION = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+
+const tileBoxStyle: CSSProperties = {
+  width: "100%",
+  maxWidth: TILE,
+  aspectRatio: "1",
+  justifySelf: "center",
+};
 
 function TileImage({ src }: { src: string }) {
   const [broken, setBroken] = useState(false);
@@ -76,8 +86,7 @@ function PreviewTile({
       onPointerDown={(e) => onPointerDownDrag(index, e)}
       className="relative cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
       style={{
-        width: TILE,
-        height: TILE,
+        ...tileBoxStyle,
         background: "var(--background-surface)",
         border: `2px solid ${dropTarget ? "var(--accent)" : isMain ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--r-card-sm)",
@@ -160,8 +169,7 @@ function DragPlaceholder({ dropTarget }: { dropTarget: boolean }) {
       transition={{ layout: LAYOUT_TRANSITION }}
       aria-hidden
       style={{
-        width: TILE,
-        height: TILE,
+        ...tileBoxStyle,
         borderRadius: "var(--r-card-sm)",
         border: `2px dashed ${dropTarget ? "var(--accent)" : "var(--border-strong)"}`,
         background: dropTarget ? "var(--accent-soft)" : "var(--background-surface)",
@@ -389,9 +397,10 @@ export function ImageUploadGrid({ photos, max, onAdd, onRemove, onMakeMain, onRe
               className="py-[2px]"
               style={{
                 display: "grid",
-                gridTemplateColumns: `repeat(auto-fill, ${TILE}px)`,
+                gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
                 gap: GAP,
-                minHeight: TILE,
+                width: "100%",
+                maxWidth: GRID_MAX_W,
               }}
             >
               {photos.map((src, i) => {
