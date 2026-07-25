@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Channel\Http\Controllers\Api\V1\ApplyChannelController;
 use Modules\Channel\Http\Controllers\Api\V1\ChannelController;
+use Modules\Channel\Http\Controllers\Api\V1\DeleteChannelController;
 use Modules\Channel\Http\Controllers\Api\V1\UpdateChannelController;
 
 Route::middleware('auth:sanctum')->prefix('channels')->group(function (): void {
