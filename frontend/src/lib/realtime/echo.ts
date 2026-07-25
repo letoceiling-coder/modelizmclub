@@ -172,6 +172,7 @@ export async function getEcho(): Promise<any> {
 export async function subscribeConversation(
   uuid: string,
   onMessage: (m: Message) => void,
+  onMessageDeleted?: (messageUuid: string) => void,
 ): Promise<() => void> {
   if (!getToken()) return () => {};
   const e = await getEcho();
@@ -181,6 +182,11 @@ export async function subscribeConversation(
     channel.listen(".message.sent", (payload: { message: any }) => {
       if (payload?.message) onMessage(mapMessage(payload.message));
     });
+    if (onMessageDeleted) {
+      channel.listen(".message.deleted", (payload: { message_uuid?: string }) => {
+        if (payload?.message_uuid) onMessageDeleted(payload.message_uuid);
+      });
+    }
   } catch {
     return () => {};
   }

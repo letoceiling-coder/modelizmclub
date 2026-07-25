@@ -4,8 +4,8 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight, ChevronDown, Plus,
-  Newspaper, Megaphone, Users2, Radio, MessageSquare, Heart, MoreVertical,
-  MapPin, Search, Compass, ImageOff, Clapperboard,
+  Users2, Heart, MoreVertical,
+  MapPin, Search, Compass, ImageOff,
   Target, HeartHandshake, LayoutGrid, Send,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -18,14 +18,14 @@ import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
 import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
 import { getToken } from "@/lib/api/client";
 import { toast } from "@/lib/toast";
-import { fetchPostCategories } from "@/lib/api/categories";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
-import { resolveLucideIcon } from "@/lib/lucide-icon";
-import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { fetchLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
+import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
-import type { Ad, Category } from "@/lib/mock";
+import type { Ad } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
-import { SOCIAL_LINKS } from "@/lib/footer-links";
+import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
+import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
 import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 
 const HERO_VIDEO = "/videos/herovideo.mp4";
@@ -388,13 +388,6 @@ function Hero() {
                 >
                   <Search size={18} /> {t("landing.hero.ctaBrowse")}
                 </button>
-                <button onClick={() => navigate({ to: enter.register })} style={ctaGhost}
-                  className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.16)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
-                >
-                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")} <ArrowRight size={18} className="hidden shrink-0 sm:block" />
-                </button>
               </motion.div>
 
               <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
@@ -432,12 +425,6 @@ const ctaPrimary: React.CSSProperties = {
   background: "var(--accent)", color: "var(--accent-foreground)", fontWeight: 700,
   border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
 };
-const ctaGhost: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-  borderRadius: "var(--r-pill)",
-  background: "rgba(255,255,255,0.08)", color: "#fff", fontWeight: 700,
-  border: "2px solid rgba(255,255,255,0.28)", cursor: "pointer", backdropFilter: "blur(8px)", transition: "background 180ms",
-};
 const ctaText: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center",
   height: 54, padding: "0 20px", borderRadius: "var(--r-pill)",
@@ -447,44 +434,101 @@ const ctaText: React.CSSProperties = {
 
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
-const QUICK_KEYS = [
-  { icon: Megaphone, key: "ads", to: "/ads" },
-  { icon: Newspaper, key: "feed", to: "/feed" },
-  { icon: Users2, key: "communities", to: "/communities" },
-  { icon: Radio, key: "channels", to: "/channels" },
-  { icon: MessageSquare, key: "messenger", to: "/messenger" },
-  { icon: Clapperboard, key: "reviews", to: "/reviews" },
-] as const;
+function useLandingSection(slug: string) {
+  const [section, setSection] = useState<LandingSectionPublic | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchLandingBlocks()
+      .then((data) => { if (alive) setSection(sectionBySlug(data, slug) ?? null); })
+      .catch(() => { if (alive) setSection(null); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [slug]);
+
+  return { section, loading };
+}
+
+function LandingBlockLink({
+  card,
+  className,
+  style,
+  children,
+}: {
+  card: LandingCardPublic;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const categoryMatch = card.post_category_id != null
+    ? { to: "/categories/$id" as const, params: { id: String(card.post_category_id) } }
+    : null;
+  const href = card.link_url ?? (categoryMatch ? undefined : "/");
+
+  if (categoryMatch) {
+    return (
+      <Link to={categoryMatch.to} params={categoryMatch.params} className={className} style={style}>
+        {children}
+      </Link>
+    );
+  }
+
+  if (href && href.startsWith("/") && !href.startsWith("//")) {
+    return (
+      <Link to={href} className={className} style={style}>
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <a href={href || "#"} className={className} style={style} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
 
 function QuickSections() {
   const { t } = useTranslation();
-  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const { section, loading } = useLandingSection("ecosystem");
+  const cards = section?.cards ?? [];
+
+  if (!loading && cards.length === 0) return null;
+
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.quick.eyebrow")}</Eyebrow>
-      <Title>{t("landing.quick.title")}</Title>
+      <Eyebrow>{section?.eyebrow ?? t("landing.quick.eyebrow")}</Eyebrow>
+      <Title>{section?.title ?? t("landing.quick.title")}</Title>
       <p className="landing-section-lead mt-3 max-w-[560px]" style={mutedP}>
-        {t("landing.quick.subtitle")}
+        {section?.subtitle ?? t("landing.quick.subtitle")}
       </p>
-      <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {QUICK_KEYS.filter((q) => q.key !== "communities" || communitiesEnabled).map(({ icon: Icon, key, to }) => (
-          <Link
-            key={key}
-            to={to}
-            className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
-            style={cardStyle}
-          >
-            <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
-              <Icon size={22} />
-            </div>
-            <h3 className="landing-quick-title mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{t(`landing.quick.items.${key}.title`)}</h3>
-            <p className="landing-quick-desc mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.quick.items.${key}.desc`)}</p>
-            <span className="landing-tap-card-arrow mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
-              {t("landing.quick.open")} <ArrowRight size={14} />
-            </span>
-          </Link>
-        ))}
-      </div>
+      {loading ? (
+        <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.loading")}</p>
+      ) : (
+        <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((card) => (
+              <LandingBlockLink
+                key={card.id}
+                card={card}
+                className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
+                style={cardStyle}
+              >
+                <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+                  <LandingCardIcon icon={card.icon} iconUrl={card.icon_url} size={22} />
+                </div>
+                <h3 className="landing-quick-title mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{card.title}</h3>
+                {card.description && (
+                  <p className="landing-quick-desc mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{card.description}</p>
+                )}
+                <span className="landing-tap-card-arrow mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
+                  {t("landing.quick.open")} <ArrowRight size={14} />
+                </span>
+              </LandingBlockLink>
+          ))}
+        </div>
+      )}
     </Section>
   );
 }
@@ -717,69 +761,43 @@ const STEP_ICONS = [Compass, Search, Users2] as const;
 
 function CategoriesSection() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { section, loading } = useLandingSection("directions");
+  const cards = section?.cards ?? [];
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    // Single source of truth: fetchPostCategories() is the same call (and
-    // same module-level cache) FeedRightRail uses on /feed for its
-    // "Направления" list — so the landing and /feed are guaranteed to show
-    // identical names/order, not two independently-fetched lists that can
-    // drift apart (fetchListingCategories hits a different backend endpoint,
-    // /categories/listings vs /categories/posts, with its own cache).
-    fetchPostCategories()
-      .then((list) => { if (alive) setCategories(list); })
-      .catch(() => { if (alive) setCategories([]); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, []);
+  if (!loading && cards.length === 0) return null;
 
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.categories.eyebrow")}</Eyebrow>
-      <Title>{t("landing.categories.title")}</Title>
+      <Eyebrow>{section?.eyebrow ?? t("landing.categories.eyebrow")}</Eyebrow>
+      <Title>{section?.title ?? t("landing.categories.title")}</Title>
       {loading ? (
         <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.loading")}</p>
-      ) : categories.length === 0 ? (
-        <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.empty")}</p>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {categories.map((cat) => {
-            const Icon = resolveLucideIcon(cat.icon);
-            const count = cat.listingsCount ?? cat.members ?? 0;
+          {cards.map((card) => {
+            const count = card.listings_count ?? 0;
             return (
-              // Same destination as the /feed «Направления» right-rail item —
-              // the category page (/categories/$id), not a filtered feed — so
-              // both entry points land in one place for logged-in users. Guests
-              // are sent to auth first, matching the landing's gate pattern
-              // (popular-listings card actions).
-              <Link key={cat.id} to="/categories/$id" params={{ id: cat.id }}
+              <LandingBlockLink
+                key={card.id}
+                card={card}
                 className="group landing-tap-card landing-tap-card--lift-sm flex items-center gap-[10px] p-3 sm:gap-3 sm:p-4"
                 style={cardStyle}
               >
                 <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
                   style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-                  <Icon size={19} />
+                  <LandingCardIcon icon={card.icon} iconUrl={card.icon_url} size={19} />
                 </div>
                 <div className="min-w-0">
-                  {/* hyphens:auto (with lang=ru on <html>) lets long single-word
-                      names like "Радиоаппаратура"/"Робототехника" break at a
-                      real syllable with a hyphen instead of an ugly mid-word
-                      split — break-words alone forced a raw character-level
-                      break with no hyphen. */}
                   <div
                     className="text-[13px] font-semibold leading-tight sm:text-sm"
                     style={{ color: "var(--foreground)", hyphens: "auto", overflowWrap: "break-word" }}
                     lang="ru"
                   >
-                    {cat.name}
+                    {card.title}
                   </div>
                   <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
                 </div>
-              </Link>
+              </LandingBlockLink>
             );
           })}
         </div>
@@ -947,6 +965,7 @@ const FOOTER_LINK_TO: Record<string, string> = {
 
 function Footer() {
   const { t } = useTranslation();
+  const contacts = useFooterContacts();
   return (
     <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
       <div className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8" style={{ maxWidth: 1240 }}>
@@ -976,21 +995,7 @@ function Footer() {
           </div>
         ))}
 
-        <div>
-          <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t("landing.footer.contacts")}</div>
-          <ul className="mt-4 flex flex-col gap-2.5 text-sm" style={{ color: "var(--foreground-50)" }}>
-            <li><a href="mailto:support@modelizmclub.ru" style={{ color: "inherit" }}>support@modelizmclub.ru</a></li>
-            <li><a href="tel:+78000000000" style={{ color: "inherit" }}>8 800 000-00-00</a></li>
-            <li>{t("landing.footer.hours")}</li>
-          </ul>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {SOCIAL_LINKS.map((s) => (
-              <span key={s.label} title={t("landing.footer.soon")} className="inline-flex items-center rounded-[var(--r-pill)] px-[10px] py-[4px] text-[11px] font-semibold"
-                style={{ background: "var(--background-surface)", color: "var(--foreground-50)", border: "1px solid var(--border)" }}
-              >{s.label}</span>
-            ))}
-          </div>
-        </div>
+        <FooterContactsBlock contacts={contacts} title={t("landing.footer.contacts")} />
       </div>
     </footer>
   );

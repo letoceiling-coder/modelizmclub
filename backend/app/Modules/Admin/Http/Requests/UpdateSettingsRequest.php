@@ -16,7 +16,8 @@ class UpdateSettingsRequest extends FormRequest
         return [
             'settings' => ['required', 'array'],
             'settings.*.key' => ['required', 'string', 'max:120'],
-            'settings.*.value' => ['required'],
+            // Empty object/array is valid (e.g. clearing icon_overrides).
+            'settings.*.value' => ['present'],
             'settings.*.group' => ['nullable', 'string', 'max:64'],
         ];
     }

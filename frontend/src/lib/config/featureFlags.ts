@@ -17,8 +17,7 @@ export interface FeatureFlags {
    *  what actually works. Turn on from /admin once ЮKassa Безопасная сделка is
    *  wired on the backend. Server-controlled, see FeatureFlagsController. */
   escrowEnabled: boolean;
-  /** Off by default — listing placement is free until billing is wired in the
-   *  create-ad wizard. Server-controlled via /admin. */
+  /** On by default once billing is wired in the create-ad wizard. Server-controlled via /admin. */
   listingPaymentEnabled: boolean;
 }
 
@@ -27,11 +26,19 @@ const DEFAULTS: FeatureFlags = {
   reviewsEnabled: true,
   marketEnabled: false,
   escrowEnabled: false,
-  listingPaymentEnabled: false,
+  listingPaymentEnabled: true,
 };
 
 const LS_KEY = "modelizm_feature_flags";
 const EVENT = "modelizm:feature-flags-changed";
+
+/** Flags controlled only via /admin/settings + GET /public/feature-flags. */
+const SERVER_CONTROLLED: (keyof FeatureFlags)[] = [
+  "communitiesEnabled",
+  "marketEnabled",
+  "escrowEnabled",
+  "listingPaymentEnabled",
+];
 
 let serverFlags: Partial<FeatureFlags> | null = null;
 let serverFetchStarted = false;
@@ -41,7 +48,11 @@ function readFromStorage(): FeatureFlags {
   try {
     const raw = window.localStorage.getItem(LS_KEY);
     const local = raw ? JSON.parse(raw) : {};
-    return { ...DEFAULTS, ...serverFlags, ...local };
+    // Drop stale local overrides for server-controlled flags.
+    for (const key of SERVER_CONTROLLED) {
+      delete local[key];
+    }
+    return { ...DEFAULTS, ...local, ...serverFlags };
   } catch {
     return { ...DEFAULTS, ...serverFlags };
   }
@@ -82,11 +93,21 @@ export function getFeatureFlags(): FeatureFlags {
   return typeof window === "undefined" ? { ...DEFAULTS, ...serverFlags } : cache;
 }
 
-/** Write a flag (used by the /admin toggle). Persists to localStorage. */
+/** Write a client-only flag (e.g. reviews preview in /admin). */
 export function setFeatureFlag<K extends keyof FeatureFlags>(key: K, value: FeatureFlags[K]): void {
   if (typeof window === "undefined") return;
-  const next = { ...readFromStorage(), [key]: value };
-  window.localStorage.setItem(LS_KEY, JSON.stringify(next));
+  if (SERVER_CONTROLLED.includes(key)) return;
+  try {
+    const raw = window.localStorage.getItem(LS_KEY);
+    const local: Partial<FeatureFlags> = raw ? JSON.parse(raw) : {};
+    for (const k of SERVER_CONTROLLED) {
+      delete local[k];
+    }
+    local[key] = value;
+    window.localStorage.setItem(LS_KEY, JSON.stringify(local));
+  } catch {
+    window.localStorage.setItem(LS_KEY, JSON.stringify({ [key]: value }));
+  }
   notify();
 }
 

@@ -24,6 +24,8 @@ export const en: TranslationSchema = {
     subscriptionActive: "Year · active",
   },
   nav: {
+    sectionCommunity: "Community",
+    sectionAds: "Listings",
     feed: "Feed",
     communities: "Communities",
     channels: "Channels",
@@ -77,7 +79,7 @@ export const en: TranslationSchema = {
       brand: "Modelizm",
       tagline: "A marketplace, feed and community for modelers",
       subtitle: "Buy models and parts, share your builds, find clubs and connect with modelers across the country.",
-      ctaBrowse: "Browse listings",
+      ctaBrowse: "Listings",
       scroll: "Scroll",
       videoAlt: "RC model builds",
       stats: {

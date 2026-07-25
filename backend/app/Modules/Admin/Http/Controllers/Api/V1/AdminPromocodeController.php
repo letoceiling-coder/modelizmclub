@@ -12,6 +12,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\UpsertPromocodeRequest;
 use Modules\Admin\Services\AuditService;
+use Modules\Admin\Services\PromocodeNotificationService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Admin — Billing', weight: 60)]
@@ -19,7 +20,7 @@ class AdminPromocodeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Promocode::query()->latest()->paginate(20);
+        $items = Promocode::query()->withCount('usages')->latest()->paginate(20);
 
         return response()->json(['data' => $items]);
     }
@@ -30,12 +31,25 @@ class AdminPromocodeController extends Controller
     #[BodyParameter('value', example: 25)]
     #[BodyParameter('max_usages', example: 50)]
     #[BodyParameter('is_active', example: true)]
-    public function store(UpsertPromocodeRequest $request, AuditService $audit): JsonResponse
+    public function store(UpsertPromocodeRequest $request, AuditService $audit, PromocodeNotificationService $notify): JsonResponse
     {
-        $promocode = Promocode::query()->create($request->validated());
+        $validated = $request->validated();
+        $notifyMode = $validated['notify_mode'] ?? 'none';
+        unset($validated['notify_mode'], $validated['notify_title'], $validated['notify_body'], $validated['notify_user_ids']);
+
+        $promocode = Promocode::query()->create($validated);
         $audit->log($request->user(), 'admin.promocodes.create', $promocode, null, $promocode->toArray(), $request);
 
-        return response()->json(['data' => $promocode], 201);
+        $sent = 0;
+        if ($notifyMode !== 'none') {
+            $sent = $notify->sendForPromocode($promocode, $notifyMode, [
+                'title' => $request->input('notify_title'),
+                'body' => $request->input('notify_body'),
+                'user_ids' => $request->input('notify_user_ids', []),
+            ]);
+        }
+
+        return response()->json(['data' => $promocode, 'notifications_sent' => $sent], 201);
     }
 
     #[PathParameter('code', example: SwaggerFixtures::PROMO_CODE)]
@@ -60,8 +74,11 @@ class AdminPromocodeController extends Controller
             throw new NotFoundHttpException('Промокод не найден.');
         }
 
+        $validated = $request->validated();
+        unset($validated['notify_mode'], $validated['notify_title'], $validated['notify_body'], $validated['notify_user_ids']);
+
         $old = $promocode->toArray();
-        $promocode->update($request->validated());
+        $promocode->update($validated);
         $audit->log($request->user(), 'admin.promocodes.update', $promocode, $old, $promocode->fresh()->toArray(), $request);
 
         return response()->json(['data' => $promocode->fresh()]);

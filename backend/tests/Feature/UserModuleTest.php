@@ -14,6 +14,36 @@ class UserModuleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_profile_includes_friendship_status_for_viewer(): void
+    {
+        $viewer = User::factory()->create(['status' => UserStatus::Active]);
+        $friend = User::factory()->create(['status' => UserStatus::Active]);
+
+        UserProfile::create([
+            'user_id' => $viewer->id,
+            'display_name' => 'Viewer',
+            'slug' => 'viewer-user',
+            'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
+        ]);
+        UserProfile::create([
+            'user_id' => $friend->id,
+            'display_name' => 'Friend User',
+            'slug' => 'friend-user',
+            'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
+        ]);
+
+        \DB::table('user_friendships')->insert([
+            ['user_id' => $viewer->id, 'friend_id' => $friend->id, 'created_at' => now()],
+            ['user_id' => $friend->id, 'friend_id' => $viewer->id, 'created_at' => now()],
+        ]);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->getJson('/api/v1/users/friend-user')
+            ->assertOk()
+            ->assertJsonPath('data.is_friend', true)
+            ->assertJsonPath('data.uuid', $friend->uuid);
+    }
+
     public function test_public_profile_by_slug(): void
     {
         $user = User::factory()->create([

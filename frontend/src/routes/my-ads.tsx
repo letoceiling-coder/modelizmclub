@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Inbox, Eye, Heart, TrendingUp, MessageCircle, X, Filter, RotateCcw, Search } from "lucide-react";
+import { Plus, Inbox, Eye, Heart, TrendingUp, Tag, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type Ad, type AdCondition } from "@/lib/mock";
@@ -14,10 +14,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/my-ads")({
   head: () => ({ meta: [{ title: "Мои объявления — МоДелизМ" }] }),
-  beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
-  },
   component: MyAdsPage,
 });
 
@@ -281,7 +277,7 @@ function MyAdsPage() {
               Раньше называлось "Сумма", что читалось как "заработано".
               Продавец не должен думать, что заработал то, чего не заработал
               (реальной монетизации/дохода в системе пока нет). */}
-          <StatCard icon={<MessageCircle size={14} />} label="На продаже" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
+          <StatCard icon={<Tag size={14} />} label="На продаже" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
         {/* Status tabs — horizontal strip, hidden scrollbar, drag + wheel on desktop */}

@@ -2,7 +2,9 @@
 
 namespace Modules\User\Services;
 
+use App\Enums\FriendRequestStatus;
 use App\Enums\UserStatus;
+use App\Models\FriendRequest;
 use App\Models\Media;
 use App\Models\NotificationPreference;
 use App\Models\PostCategory;
@@ -20,9 +22,16 @@ class UserService
     public function getPublicProfile(string $slug, ?User $viewer = null): UserProfile
     {
         $profile = UserProfile::query()
-            ->with(['user', 'city', 'avatar'])
+            ->with(['user', 'city', 'avatar', 'cover'])
             ->where('slug', $slug)
             ->first();
+
+        if (! $profile) {
+            $profile = UserProfile::query()
+                ->with(['user', 'city', 'avatar', 'cover'])
+                ->whereHas('user', fn ($q) => $q->where('uuid', $slug))
+                ->first();
+        }
 
         if (! $profile || ! $profile->user || $profile->user->status !== UserStatus::Active) {
             throw new NotFoundHttpException('Профиль не найден.');
@@ -33,6 +42,30 @@ class UserService
                 'is_following',
                 $profile->user->followers()->where('users.id', $viewer->id)->exists(),
             );
+            $isFriend = DB::table('user_friendships')
+                ->where('user_id', $viewer->id)
+                ->where('friend_id', $profile->user_id)
+                ->exists();
+            $profile->setAttribute('is_friend', $isFriend);
+
+            if (! $isFriend) {
+                $outgoing = FriendRequest::query()
+                    ->where('from_user_id', $viewer->id)
+                    ->where('to_user_id', $profile->user_id)
+                    ->where('status', FriendRequestStatus::Pending)
+                    ->exists();
+                $incoming = FriendRequest::query()
+                    ->where('from_user_id', $profile->user_id)
+                    ->where('to_user_id', $viewer->id)
+                    ->where('status', FriendRequestStatus::Pending)
+                    ->exists();
+
+                if ($outgoing) {
+                    $profile->setAttribute('friend_request_status', 'outgoing');
+                } elseif ($incoming) {
+                    $profile->setAttribute('friend_request_status', 'incoming');
+                }
+            }
         }
 
         if ($viewer && $this->hasBlockBetween($viewer, $profile->user)) {
@@ -140,9 +173,7 @@ class UserService
         }
 
         if (array_key_exists('phone', $data)) {
-            $phone = $data['phone'];
             unset($data['phone']);
-            $user->forceFill(['phone' => $phone === '' ? null : $phone])->save();
         }
 
         $profile->fill($data)->save();

@@ -306,6 +306,8 @@ export interface CreateListingInput {
   deliveryMethods?: string[];
   mediaIds?: string[];
   publish?: boolean;
+  promocode?: string;
+  placementPaymentUuid?: string;
 }
 
 export async function createListing(input: CreateListingInput): Promise<Ad> {
@@ -347,6 +349,8 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       delivery_methods: input.deliveryMethods ?? [],
       media_ids: input.mediaIds ?? [],
       publish: input.publish ?? true,
+      promocode: input.promocode?.trim() || undefined,
+      placement_payment_uuid: input.placementPaymentUuid,
     },
   });
   return mapListing(res.data);

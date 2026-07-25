@@ -7,7 +7,9 @@ use Modules\Community\Http\Controllers\Api\V1\CommunityPostsController;
 use Modules\Community\Http\Controllers\Api\V1\IndexCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\JoinCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\LeaveCommunityController;
+use Modules\Community\Http\Controllers\Api\V1\DeleteCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\ShowCommunityController;
+use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityBrandingController;
 
 Route::prefix('communities')->group(function (): void {
     Route::get('/', IndexCommunityController::class);
@@ -15,9 +17,11 @@ Route::prefix('communities')->group(function (): void {
     Route::get('{slug}/members', CommunityMembersController::class);
     Route::get('{slug}/posts', CommunityPostsController::class);
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
         Route::post('apply', ApplyCommunityController::class);
         Route::post('{slug}/join', JoinCommunityController::class);
         Route::delete('{slug}/leave', LeaveCommunityController::class);
+        Route::patch('{slug}/branding', UpdateCommunityBrandingController::class);
+        Route::delete('{slug}', DeleteCommunityController::class);
     });
 });

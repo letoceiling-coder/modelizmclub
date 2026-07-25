@@ -10,6 +10,8 @@ import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useMySubscription, formatSubscriptionEndDate, invalidateMySubscription } from "@/lib/subscription";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
+import { requireVerifiedForAction } from "@/lib/auth/verification";
 import {
   createSubscriptionPayment,
   createListingPlacementPayment,
@@ -61,6 +63,7 @@ async function startSubscriptionCheckout(
   navigate: ReturnType<typeof useNavigate>,
 ) {
   if (!requireAuthForCheckout(navigate)) return;
+  if (!(await requireVerifiedForAction(navigate))) return;
   if (isDemoMode()) {
     toast("Оплата будет доступна после подключения эквайринга", {
       description: `Тариф: ${plan.name}`,
@@ -87,6 +90,7 @@ async function startSubscriptionCheckout(
 /** One-time 99 ₽ listing placement — real checkout on the production backend. */
 async function startPlacementCheckout(navigate: ReturnType<typeof useNavigate>) {
   if (!requireAuthForCheckout(navigate)) return;
+  if (!(await requireVerifiedForAction(navigate))) return;
   if (isDemoMode()) {
     toast("Оплата будет доступна после подключения эквайринга", {
       description: "Разовое размещение — 99 ₽",
@@ -134,6 +138,7 @@ function SubscriptionPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
+        <VerificationBanner />
         {/* Header */}
         <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
           <span

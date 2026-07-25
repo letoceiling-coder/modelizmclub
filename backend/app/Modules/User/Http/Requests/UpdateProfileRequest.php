@@ -19,7 +19,6 @@ class UpdateProfileRequest extends FormRequest
             'slug' => ['sometimes', 'string', 'min:2', 'max:64', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'bio' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'city_id' => ['sometimes', 'nullable', 'integer', Rule::exists('cities', 'id')],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'vk_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
             'telegram_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
             'website_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],

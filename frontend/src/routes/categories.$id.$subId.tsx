@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronDown,
@@ -9,11 +9,11 @@ import {
   Reply,
   Search,
   Send,
-  Smile,
   Tag,
   Users,
   X,
 } from "lucide-react";
+import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import * as Icons from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
@@ -21,9 +21,21 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { userById } from "@/lib/mock";
 import type { Category, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { useStore, selectors } from "@/lib/store";
+import { setHubConversation } from "@/lib/realtime/hub";
+import { toast } from "@/lib/toast";
+import { isDemoMode } from "@/lib/demo-mode";
+import { useStore, selectors, GUEST_USER } from "@/lib/store";
 import { searchUsers } from "@/lib/api/social";
 import { fetchListings } from "@/lib/api/listings";
+import {
+  fetchRoomMessages,
+  mapMessageToRoom,
+  resolveRoomConversation,
+  sendRoomMessage,
+  uploadRoomAttachment,
+  type RoomMessage,
+} from "@/lib/api/room-chat";
+import { navigateToPartnerChat } from "@/lib/api/chat";
 
 type Tab = "chat" | "ads" | "members";
 
@@ -36,9 +48,9 @@ function seedFrom(s: string): number {
   return s.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
 }
 
-interface RoomMessage extends Message {
-  replyToId?: string;
-  attachments?: string[];
+interface PendingAttachment {
+  file: File;
+  preview: string;
 }
 
 /** Превращает URL в кликабельные ссылки. Безопасно для XSS — рендер через React. */
@@ -425,33 +437,126 @@ function TabBtn({
 
 function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
   const me = useStore(selectors.currentUser);
-  const [messages, setMessages] = useState<RoomMessage[]>(() => buildMessages(category, subName, pool));
+  const navigate = useNavigate();
+  const openPrivateChat = useCallback(async (partner: User) => {
+    try {
+      await navigateToPartnerChat(navigate, partner, me.id);
+    } catch {
+      toast.error("Не удалось открыть диалог");
+    }
+  }, [me.id, navigate]);
+  const [messages, setMessages] = useState<RoomMessage[]>(() =>
+    isDemoMode() ? buildMessages(category, subName, pool) : [],
+  );
+  const [conversationUuid, setConversationUuid] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!isDemoMode());
+  const [sending, setSending] = useState(false);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<RoomMessage | null>(null);
-  const [pendingAttachments, setPendingAttachments] = useState<string[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [exactMatch, setExactMatch] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // reset when room changes
+  const upsertRoomMessage = (incoming: RoomMessage) => {
+    setMessages((prev) => {
+      const idx = prev.findIndex(
+        (m) => m.id === incoming.id || (m.clientKey && m.clientKey === incoming.clientKey),
+      );
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = incoming;
+        return next;
+      }
+      return [...prev, incoming];
+    });
+  };
+
+  // Load room conversation + history from API (prod only).
   useEffect(() => {
-    setMessages(buildMessages(category, subName, pool));
+    if (isDemoMode()) {
+      setMessages(buildMessages(category, subName, pool));
+      setConversationUuid(null);
+      setLoading(false);
+      return;
+    }
+    if (me.id === GUEST_USER.id) {
+      setLoading(false);
+      return;
+    }
+
+    let alive = true;
+    setLoading(true);
+    setConversationUuid(null);
+    setMessages([]);
+
+    resolveRoomConversation(category.id, subId)
+      .then((uuid) => {
+        if (!alive) return uuid;
+        setConversationUuid(uuid);
+        return fetchRoomMessages(uuid);
+      })
+      .then((msgs) => {
+        if (alive && msgs) setMessages(msgs);
+      })
+      .catch(() => {
+        if (alive) toast.error("Не удалось загрузить чат");
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [category.id, subId, subName, pool, me.id]);
+
+  // Realtime: new messages from other users in the same room.
+  useEffect(() => {
+    if (isDemoMode() || !conversationUuid || me.id === GUEST_USER.id) {
+      setHubConversation(null);
+      return;
+    }
+    setHubConversation(conversationUuid, (m) => upsertRoomMessage(mapMessageToRoom(m)));
+    return () => setHubConversation(null);
+  }, [conversationUuid, me.id]);
+
+  // reset local UI when room changes
+  useEffect(() => {
     setText("");
     setReplyTo(null);
     setPendingAttachments((prev) => {
-      prev.forEach((u) => URL.revokeObjectURL(u));
+      prev.forEach((a) => URL.revokeObjectURL(a.preview));
       return [];
     });
     setQuery("");
     setSearchOpen(false);
     setActiveMatch(0);
-  }, [category, subId, subName, pool]);
+  }, [category.id, subId]);
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = composerRef.current;
+    if (!el) {
+      setText((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + emoji.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }, [text]);
 
   const trimmedQuery = query.trim();
   const matchIds = useMemo(() => {
@@ -496,36 +601,83 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
 
   const onPickFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const urls = Array.from(files)
+    const picked = Array.from(files)
       .filter((f) => f.type.startsWith("image/"))
-      .slice(0, 6)
-      .map((f) => URL.createObjectURL(f));
-    setPendingAttachments((prev) => [...prev, ...urls].slice(0, 6));
+      .slice(0, 6 - pendingAttachments.length)
+      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    setPendingAttachments((prev) => [...prev, ...picked].slice(0, 6));
   };
 
-  const removeAttachment = (url: string) => {
-    setPendingAttachments((prev) => prev.filter((u) => u !== url));
-    URL.revokeObjectURL(url);
+  const removeAttachment = (preview: string) => {
+    setPendingAttachments((prev) => {
+      const item = prev.find((a) => a.preview === preview);
+      if (item) URL.revokeObjectURL(item.preview);
+      return prev.filter((a) => a.preview !== preview);
+    });
   };
 
-  const send = () => {
+  const send = async () => {
     const v = text.trim();
     if (!v && pendingAttachments.length === 0) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `local-${Date.now()}`,
-        authorId: me.id,
-        time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
-        text: v,
-        status: "sent",
-        replyToId: replyTo?.id,
-        attachments: pendingAttachments.length ? pendingAttachments : undefined,
-      },
-    ]);
+    if (sending) return;
+
+    if (isDemoMode() || !conversationUuid) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `local-${Date.now()}`,
+          authorId: me.id,
+          time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
+          text: v,
+          status: "sent",
+          replyToId: replyTo?.id,
+          attachments: pendingAttachments.length ? pendingAttachments.map((a) => a.preview) : undefined,
+        },
+      ]);
+      setText("");
+      setReplyTo(null);
+      pendingAttachments.forEach((a) => URL.revokeObjectURL(a.preview));
+      setPendingAttachments([]);
+      return;
+    }
+
+    const clientKey = `local-${Date.now()}`;
+    const previewUrls = pendingAttachments.map((a) => a.preview);
+    const optimistic: RoomMessage = {
+      id: clientKey,
+      clientKey,
+      authorId: me.id,
+      time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
+      text: v,
+      status: "sent",
+      replyToId: replyTo?.id,
+      attachments: previewUrls.length ? previewUrls : undefined,
+    };
+
+    setSending(true);
+    setMessages((prev) => [...prev, optimistic]);
     setText("");
+    const replyUuid = replyTo?.id;
     setReplyTo(null);
+    const files = pendingAttachments.map((a) => a.file);
     setPendingAttachments([]);
+
+    try {
+      const mediaUuids: string[] = [];
+      for (const file of files) {
+        mediaUuids.push(await uploadRoomAttachment(conversationUuid, file));
+      }
+      const saved = await sendRoomMessage(conversationUuid, v, replyUuid, mediaUuids.length ? mediaUuids : undefined);
+      setMessages((prev) =>
+        prev.map((m) => (m.clientKey === clientKey ? saved : m)),
+      );
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.clientKey !== clientKey));
+      toast.error("Не удалось отправить сообщение");
+    } finally {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      setSending(false);
+    }
   };
 
   const closeSearch = () => {
@@ -642,7 +794,19 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
       </div>
 
       <div ref={scrollRef} className="flex-1 space-y-[10px] overflow-y-auto px-[14px] py-[14px]">
-        {messages.map((m) => {
+        {loading ? (
+          <div className="flex h-full items-center justify-center py-[40px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            Загрузка чата…
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-[8px] py-[40px] text-center">
+            <MessageCircle className="h-[28px] w-[28px]" style={{ color: "var(--foreground-30)" }} />
+            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              Пока нет сообщений. Напишите первым!
+            </p>
+          </div>
+        ) : (
+        messages.map((m) => {
           const u = userById(m.authorId);
           const mine = m.authorId === me.id;
           const replied = m.replyToId ? messages.find((x) => x.id === m.replyToId) : undefined;
@@ -737,21 +901,22 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                   </button>
                 </div>
                 {!mine && (
-                  <Link
-                    to="/messenger"
-                    search={{ chat: u.id }}
+                  <button
+                    type="button"
+                    onClick={() => void openPrivateChat(u)}
                     aria-label="Написать в личку"
                     title="Написать в личку"
                     className="mt-[2px] grid h-[22px] w-[22px] place-items-center rounded-full transition-colors hover:bg-[var(--accent-soft)]"
                     style={{ color: "var(--accent)" }}
                   >
                     <MessageCircle size={13} />
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>
           );
-        })}
+        })
+        )}
       </div>
 
       {/* Reply preview */}
@@ -786,16 +951,16 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           className="flex gap-[8px] overflow-x-auto border-t px-[12px] py-[10px] no-scrollbar"
           style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
         >
-          {pendingAttachments.map((src) => (
+          {pendingAttachments.map((item) => (
             <div
-              key={src}
+              key={item.preview}
               className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[10px] border"
               style={{ borderColor: "var(--border)", background: "var(--background)" }}
             >
-              <img src={src} alt="Превью" className="h-full w-full object-cover" />
+              <img src={item.preview} alt="Превью" className="h-full w-full object-cover" />
               <button
                 type="button"
-                onClick={() => removeAttachment(src)}
+                onClick={() => removeAttachment(item.preview)}
                 aria-label="Удалить вложение"
                 className="absolute right-[2px] top-[2px] grid h-[18px] w-[18px] place-items-center rounded-full"
                 style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
@@ -833,6 +998,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           <Paperclip className="h-[16px] w-[16px]" style={{ color: "var(--foreground-50)" }} />
         </button>
         <textarea
+          ref={composerRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -859,17 +1025,11 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
             color: "var(--foreground)",
           }}
         />
+        <EmojiPicker onPick={insertEmoji} align="end" compact />
         <button
           type="button"
-          className="hidden h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)] sm:grid"
-          aria-label="Эмодзи"
-        >
-          <Smile className="h-[16px] w-[16px]" style={{ color: "var(--foreground-50)" }} />
-        </button>
-        <button
-          type="button"
-          onClick={send}
-          disabled={!text.trim() && pendingAttachments.length === 0}
+          onClick={() => void send()}
+          disabled={sending || (!text.trim() && pendingAttachments.length === 0) || (!isDemoMode() && !conversationUuid)}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
           style={{ background: "var(--accent)", color: "#fff" }}
           aria-label="Отправить"
@@ -919,6 +1079,15 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
 /* --------------------------- MEMBERS TAB --------------------------- */
 
 function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> }) {
+  const me = useStore(selectors.currentUser);
+  const navigate = useNavigate();
+  const openPrivateChat = useCallback(async (partner: User) => {
+    try {
+      await navigateToPartnerChat(navigate, partner, me.id);
+    } catch {
+      toast.error("Не удалось открыть диалог");
+    }
+  }, [me.id, navigate]);
   const sorted = [...members].sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
   return (
     <div className="h-full overflow-y-auto px-[10px] py-[10px]">
@@ -961,14 +1130,14 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
                 {u.isOnline ? "онлайн" : "не в сети"} · {u.city}
               </p>
             </div>
-            <Link
-              to="/messenger"
-              search={{ chat: u.id }}
+            <button
+              type="button"
+              onClick={() => void openPrivateChat(u)}
               className="shrink-0 rounded-[8px] px-[10px] py-[6px] text-[12px] font-medium transition-colors"
               style={{ background: "var(--accent)", color: "#fff" }}
             >
               Написать
-            </Link>
+            </button>
           </li>
         ))}
       </ul>

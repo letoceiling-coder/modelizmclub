@@ -4,10 +4,11 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import type { User } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import {
-  fetchPublicProfile, sendFriendRequest, followUser, unfollowUser,
+  fetchPublicProfile, fetchFriends, sendFriendRequest, removeFriend, followUser, unfollowUser,
   type PublicProfile,
 } from "@/lib/api/social";
-import { createConversation } from "@/lib/api/chat";
+import { openConversation } from "@/lib/api/chat";
+import { getToken } from "@/lib/api/client";
 import { recordView } from "@/lib/view-history";
 import { ProfileView } from "./profile";
 import { toast } from "@/lib/toast";
@@ -30,12 +31,23 @@ function UserPage() {
     setLoading(true);
     setNotFound(false);
     fetchPublicProfile(id)
-      .then((p) => {
-        if (active) {
-          setProfile(p);
-          setLoading(false);
-          recordView({ id: p.user.slug ?? p.user.id, kind: "profile", title: p.user.name, thumb: p.user.avatar });
+      .then(async (p) => {
+        if (!active) return;
+        let next = p;
+        if (getToken() && !p.isFriend) {
+          try {
+            const friends = await fetchFriends();
+            const isFriend = friends.some(
+              (f) => f.id === p.user.id || f.slug === id || f.slug === p.user.slug,
+            );
+            if (isFriend) next = { ...p, isFriend: true, friendRequestStatus: null };
+          } catch {
+            /* friends list optional */
+          }
         }
+        setProfile(next);
+        setLoading(false);
+        recordView({ id: next.user.slug ?? next.user.id, kind: "profile", title: next.user.name, thumb: next.user.avatar });
       })
       .catch(() => { if (active) { setNotFound(true); setLoading(false); } });
     return () => { active = false; };
@@ -64,11 +76,25 @@ function UserPage() {
     );
   }
 
-  const user: User = profile.user;
+  const user: User = {
+    ...profile.user,
+    city: profile.city || profile.user.city,
+    bio: profile.bio || profile.user.bio,
+  };
 
   const toggleFriend = async () => {
     if (!user.numericId) return;
-    await sendFriendRequest(user.numericId);
+    if (profile.isFriend) {
+      await removeFriend(user.numericId);
+      setProfile((p) => (p ? { ...p, isFriend: false, friendRequestStatus: null } : p));
+      return;
+    }
+    const result = await sendFriendRequest(user.numericId);
+    if (result.status === "accepted") {
+      setProfile((p) => (p ? { ...p, isFriend: true, friendRequestStatus: null } : p));
+    } else {
+      setProfile((p) => (p ? { ...p, friendRequestStatus: "outgoing" } : p));
+    }
   };
 
   const toggleFollow = async (next: boolean) => {
@@ -82,7 +108,7 @@ function UserPage() {
       toast.error("Не удалось открыть диалог");
       return;
     }
-    const dialog = await createConversation(user.numericId, me.id);
+    const dialog = await openConversation(user.numericId, me.id, user.id);
     navigate({ to: "/messenger", search: { chat: dialog.id } });
   };
 
@@ -91,6 +117,8 @@ function UserPage() {
       user={user}
       isOwn={false}
       stats={{ publications: profile.stats.publications }}
+      isFriendInitial={profile.isFriend}
+      friendRequestStatusInitial={profile.friendRequestStatus}
       isFollowingInitial={profile.isFollowing}
       onToggleFriend={toggleFriend}
       onToggleFollow={toggleFollow}

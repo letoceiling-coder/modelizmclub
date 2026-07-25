@@ -105,8 +105,6 @@ class AuthService
                 $user->assignRole('user');
             }
 
-            $user->load('profile');
-
             return $this->tokenResponse($user);
         });
     }
@@ -118,21 +116,52 @@ class AuthService
         string $passwordConfirmation,
     ): array {
         $email = Str::lower(trim($email));
+        $account = User::query()->whereRaw('lower(email) = ?', [$email])->first();
+
+        if (! $account) {
+            throw ValidationException::withMessages([
+                'email' => [__('passwords.user')],
+            ]);
+        }
+
         $user = null;
 
         $status = Password::reset(
             [
-                'email' => $email,
+                // Password broker matches email exactly — always pass the canonical
+                // DB value so mixed-case legacy rows can't break reset/login.
+                'email' => $account->email,
                 'token' => $token,
                 'password' => $password,
                 'password_confirmation' => $passwordConfirmation,
             ],
             function (User $resetUser, string $plainPassword) use (&$user): void {
                 $user = $resetUser;
-                $resetUser->forceFill([
+
+                $updates = [
                     'password' => $plainPassword,
                     'remember_token' => Str::random(60),
-                ])->save();
+                ];
+
+                // Clicking the reset link proves mailbox access — same as verify-email.
+                if ($resetUser->status === UserStatus::PendingVerification || ! $resetUser->email_verified_at) {
+                    $updates['email_verified_at'] = now();
+                    $updates['status'] = UserStatus::Active;
+                }
+
+                $resetUser->forceFill($updates)->save();
+
+                $resetUser->refresh();
+
+                if (! Hash::check($plainPassword, (string) $resetUser->password)) {
+                    throw ValidationException::withMessages([
+                        'password' => ['Не удалось сохранить новый пароль. Попробуйте ещё раз.'],
+                    ]);
+                }
+
+                if (! $resetUser->hasRole('user')) {
+                    $resetUser->assignRole('user');
+                }
             }
         );
 
@@ -159,8 +188,8 @@ class AuthService
 
     public function login(string $email, string $password): array
     {
-        $email = Str::lower($email);
-        $user = User::where('email', $email)->first();
+        $email = Str::lower(trim($email));
+        $user = User::query()->whereRaw('lower(email) = ?', [$email])->first();
 
         if (! $user || ! Hash::check($password, (string) $user->password)) {
             throw ValidationException::withMessages([
@@ -223,7 +252,12 @@ class AuthService
 
     private function tokenResponse(User $user): array
     {
-        $user->loadMissing('profile');
+        $user->loadMissing([
+            'profile.city',
+            'profile.avatar',
+            'profile.cover',
+            'interests',
+        ]);
 
         return [
             'user' => $user,

@@ -11,6 +11,9 @@ class ChannelPostResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $viewer = $request->user();
+        $isOwner = $viewer !== null && $this->author_id === $viewer->id;
+
         return [
             'id' => $this->uuid,
             'channel_id' => $this->whenLoaded('channel', fn () => $this->channel->uuid),
@@ -18,6 +21,10 @@ class ChannelPostResource extends JsonResource
             'text' => $this->text,
             'kind' => $this->kind,
             'status' => $this->status,
+            'rejection_reason' => $this->when(
+                $isOwner && $this->status === 'rejected',
+                $this->rejection_reason,
+            ),
             'likes' => $this->likes_count,
             'views' => $this->views_count,
             'media' => ChannelPostMediaResource::collection($this->whenLoaded('media')),

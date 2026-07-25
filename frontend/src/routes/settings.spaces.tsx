@@ -1,8 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { useChannels } from "@/lib/channels";
+import { useOwnedCommunities } from "@/lib/api/communities";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
+import { useStore, selectors } from "@/lib/store";
+import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
 import type { EntityKind } from "@/lib/api/entity-requests";
 
 export const Route = createFileRoute("/settings/spaces")({
@@ -11,18 +16,32 @@ export const Route = createFileRoute("/settings/spaces")({
 });
 
 function SettingsSpacesPage() {
+  const navigate = useNavigate();
+  const me = useStore(selectors.currentUser);
   const { channels } = useChannels();
   const myChannel = channels.find((c) => c.isOwner);
+  const { communities: ownedCommunities } = useOwnedCommunities();
+  const myCommunity = ownedCommunities[0];
   const [requestKind, setRequestKind] = useState<EntityKind | null>(null);
+
+  const openRequest = (kind: EntityKind) => {
+    if (!isFullyVerified(me)) {
+      toast.error(verificationMessage(me));
+      navigate({ to: "/settings/account" });
+      return;
+    }
+    setRequestKind(kind);
+  };
 
   return (
     <div className="flex flex-col gap-[16px]">
+      <VerificationBanner />
       <h1 className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
         Мой канал и сообщество
       </h1>
 
       {/* Канал */}
-      <Card
+      <SpaceCard
         icon={<Radio size={20} />}
         title="Канал"
         subtitle={myChannel ? myChannel.name : "У вас пока нет канала"}
@@ -31,17 +50,17 @@ function SettingsSpacesPage() {
             <Link
               to="/channel/$id"
               params={{ id: myChannel.slug }}
-              className="inline-flex h-10 items-center gap-1 rounded-[10px] border px-4 text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface)]"
-              style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+              className={secondaryActionClass}
+              style={secondaryActionStyle}
             >
               Мой канал <ChevronRight size={16} />
             </Link>
           ) : (
             <button
               type="button"
-              onClick={() => setRequestKind("channel")}
-              className="inline-flex h-10 items-center gap-1 rounded-[10px] px-4 text-[14px] font-semibold transition-opacity hover:opacity-90"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              onClick={() => openRequest("channel")}
+              className={primaryActionClass}
+              style={primaryActionStyle}
             >
               <Plus size={16} /> Создать канал
             </button>
@@ -49,22 +68,31 @@ function SettingsSpacesPage() {
         }
       />
 
-      {/* Сообщество — владение сообществом фронт определить не может
-          (нет роли owner; см. backend-endpoints-needed.md §27). До появления
-          бэка всегда показываем ветку «Создать». */}
-      <Card
+      {/* Сообщество */}
+      <SpaceCard
         icon={<Users2 size={20} />}
         title="Сообщество"
-        subtitle="Создайте своё сообщество по городу или узкой теме"
+        subtitle={myCommunity ? myCommunity.name : "Создайте своё сообщество по городу или узкой теме"}
         action={
-          <button
-            type="button"
-            onClick={() => setRequestKind("community")}
-            className="inline-flex h-10 items-center gap-1 rounded-[10px] px-4 text-[14px] font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-          >
-            <Plus size={16} /> Создать сообщество
-          </button>
+          myCommunity ? (
+            <Link
+              to="/communities/$id"
+              params={{ id: myCommunity.id }}
+              className={secondaryActionClass}
+              style={secondaryActionStyle}
+            >
+              Моё сообщество <ChevronRight size={16} />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openRequest("community")}
+              className={primaryActionClass}
+              style={primaryActionStyle}
+            >
+              <Plus size={16} /> Создать сообщество
+            </button>
+          )
         }
       />
 
@@ -79,20 +107,46 @@ function SettingsSpacesPage() {
   );
 }
 
-function Card({ icon, title, subtitle, action }: { icon: React.ReactNode; title: string; subtitle: string; action: React.ReactNode }) {
+const primaryActionClass =
+  "inline-flex h-10 w-full min-w-[220px] items-center justify-center gap-1.5 rounded-[10px] px-4 text-[14px] font-semibold whitespace-nowrap transition-opacity hover:opacity-90 sm:w-[220px]";
+
+const secondaryActionClass =
+  "inline-flex h-10 w-full min-w-[220px] items-center justify-center gap-1.5 rounded-[10px] border px-4 text-[14px] font-semibold whitespace-nowrap transition-colors hover:bg-[var(--background-surface)] sm:w-[220px]";
+
+const primaryActionStyle = { background: "var(--accent)", color: "var(--accent-foreground)" } as const;
+const secondaryActionStyle = { borderColor: "var(--border)", color: "var(--foreground)" } as const;
+
+function SpaceCard({
+  icon,
+  title,
+  subtitle,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  action: React.ReactNode;
+}) {
   return (
     <div
-      className="flex flex-col gap-3 rounded-[14px] border p-4 sm:flex-row sm:items-center"
+      className="grid grid-cols-1 gap-4 rounded-[14px] border p-4 sm:grid-cols-[44px_minmax(0,1fr)_220px] sm:items-start sm:gap-x-4"
       style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+      <div
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-full sm:mt-[1px]"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
         {icon}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{title}</div>
-        <div className="truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>{subtitle}</div>
+      <div className="min-w-0 sm:col-start-2 sm:row-start-1">
+        <div className="text-[15px] font-semibold leading-tight" style={{ color: "var(--foreground)" }}>
+          {title}
+        </div>
+        <div className="mt-1 text-[13px] leading-snug" style={{ color: "var(--foreground-50)" }}>
+          {subtitle}
+        </div>
       </div>
-      <div className="shrink-0">{action}</div>
+      <div className="sm:col-start-3 sm:row-start-1 sm:mt-[1px]">{action}</div>
     </div>
   );
 }

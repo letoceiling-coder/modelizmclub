@@ -9,11 +9,19 @@ import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
+import { fetchPlacementQuote, formatQuoteRub, type PlacementQuote } from "@/lib/api/listing-placement";
+import { confirmStubPayment, createListingPlacementPayment } from "@/lib/api/payment";
 import { ApiError } from "@/lib/api/client";
+import { isDemoMode } from "@/lib/demo-mode";
 import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
-import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag } from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import {
+  LISTING_IMAGE_ACCEPT,
+  validateListingImageFile,
+  verifyListingImageDecodable,
+} from "@/lib/listing-image";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
@@ -30,16 +38,17 @@ import {
   ArrowLeftRight, MapPin, Truck, CreditCard,
 } from "lucide-react";
 
-type NewAdSearch = { edit?: string };
+type NewAdSearch = { edit?: string; promo?: string };
 
 export const Route = createFileRoute("/ads/new")({
   head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ" }] }),
   validateSearch: (s: Record<string, unknown>): NewAdSearch => ({
     edit: typeof s.edit === "string" ? s.edit : undefined,
+    promo: typeof s.promo === "string" ? s.promo : undefined,
   }),
   beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
+    const { requireVerified } = await import("@/lib/auth/verification");
+    await requireVerified(location);
   },
   component: NewAdPage,
 });
@@ -47,14 +56,37 @@ export const Route = createFileRoute("/ads/new")({
 type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
+
+const PHOTOS_REQUIRED_TOAST = {
+  title: "Добавьте хотя бы одно фото",
+  description: "Для публикации объявления необходимо загрузить минимум 1 фотографию.",
+} as const;
+
+function notifyPhotosRequired(setStep: (fn: (s: number) => number) => void) {
+  toast.error(PHOTOS_REQUIRED_TOAST.title, { description: PHOTOS_REQUIRED_TOAST.description });
+  setStep(() => 1);
+}
+
+function hasListingPhotos(form: Form): boolean {
+  return form.photoItems.length > 0;
+}
 const STEPS = ["Фото", "Данные", "Превью"];
-/** Matches backend CreatePaymentController::LISTING_PLACEMENT_CENTS (99 ₽). */
-const LISTING_PLACEMENT_PRICE_RUB = 99;
+
+type PhotoItem = {
+  id: string;
+  preview: string;
+  file?: File;
+  mediaId?: string;
+};
+
+function newPhotoId(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  return `photo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 interface Form {
-  photos: string[];
-  files: File[];
-  existingMediaIds: string[];
+  photoItems: PhotoItem[];
   status: Status;
   title: string;
   description: string;
@@ -66,12 +98,11 @@ interface Form {
   cityId?: number;
   contact: string;
   deliveries: string[];
+  promocode: string;
 }
 
 const initial: Form = {
-  photos: [],
-  files: [],
-  existingMediaIds: [],
+  photoItems: [],
   status: "Продаю",
   title: "",
   description: "",
@@ -83,19 +114,22 @@ const initial: Form = {
   cityId: undefined,
   contact: "",
   deliveries: ["СДЭК"],
+  promocode: "",
 };
 
 function NewAdPage() {
   const navigate = useNavigate();
-  const { edit: editId } = Route.useSearch();
+  const { edit: editId, promo: promoFromUrl } = Route.useSearch();
   const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<Form>(initial);
+  const [form, setForm] = useState<Form>({ ...initial, promocode: promoFromUrl?.toUpperCase() ?? "" });
   const [cats, setCats] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
+  const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
   useEffect(() => {
@@ -119,9 +153,11 @@ function NewAdPage() {
       .then((ad) => {
         if (!alive) return;
         setForm({
-          photos: ad.gallery ?? (ad.image ? [ad.image] : []),
-          files: [],
-          existingMediaIds: ad.mediaIds ?? [],
+          photoItems: (ad.gallery ?? (ad.image ? [ad.image] : [])).map((url, i) => ({
+            id: `existing-${i}-${url}`,
+            preview: url,
+            mediaId: ad.mediaIds?.[i],
+          })),
           status: ad.status,
           title: ad.title,
           description: ad.description ?? "",
@@ -143,11 +179,30 @@ function NewAdPage() {
   const cat = useMemo(() => cats.find((c) => c.id === form.categoryId) ?? cats[0], [cats, form.categoryId]);
   const subcategories = cat?.subcategories ?? [];
 
+  useEffect(() => {
+    if (!listingPaymentEnabled || editId || step < 2) return;
+    const categoryId = Number(form.categoryId);
+    if (!Number.isInteger(categoryId) || categoryId <= 0) return;
+    let alive = true;
+    setQuoteLoading(true);
+    fetchPlacementQuote({
+      categoryId,
+      subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
+      promocode: form.promocode,
+    })
+      .then((q) => { if (alive) setPlacementQuote(q); })
+      .catch(() => { if (alive) setPlacementQuote(null); })
+      .finally(() => { if (alive) setQuoteLoading(false); });
+    return () => { alive = false; };
+  }, [listingPaymentEnabled, editId, step, form.categoryId, form.subcategoryId, form.promocode]);
+
   const valid = useMemo(() => {
-    if (step === 1) return form.photos.length > 0;
+    const photosOk = hasListingPhotos(form);
+    if (step === 1) return photosOk;
     if (step === 2) {
       return (
-        form.title.trim().length >= 4
+        photosOk
+        && form.title.trim().length >= 4
         && form.description.trim().length >= 20
         && form.price
         && form.city.trim().length >= 2
@@ -155,13 +210,18 @@ function NewAdPage() {
         && form.contact.trim()
       );
     }
-    return true;
+    return photosOk;
   }, [step, form]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
     if (submitting) return;
+
+    if (!hasListingPhotos(form)) {
+      notifyPhotosRequired(setStep);
+      return;
+    }
 
     const categoryId = Number(form.categoryId);
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
@@ -181,10 +241,20 @@ function NewAdPage() {
     setSubmitting(true);
     setSubmitError(false);
     try {
-      const mediaIds: string[] = [...form.existingMediaIds];
-      for (const file of form.files) {
-        const m = await uploadMedia(file, "listing");
-        mediaIds.push(m.uuid);
+      const mediaIds: string[] = [];
+      for (const item of form.photoItems) {
+        if (item.file) {
+          const m = await uploadMedia(item.file, "listing");
+          mediaIds.push(m.uuid);
+        } else if (item.mediaId) {
+          mediaIds.push(item.mediaId);
+        }
+      }
+      if (mediaIds.length === 0) {
+        toast.error(PHOTOS_REQUIRED_TOAST.title, { description: PHOTOS_REQUIRED_TOAST.description });
+        setStep(1);
+        setSubmitting(false);
+        return;
       }
       // Prefer the id captured when the user picked a suggestion from
       // CitySelect's autocomplete; fall back to a best-effort name lookup
@@ -208,18 +278,83 @@ function NewAdPage() {
         });
         toast.success("Объявление обновлено");
       } else {
-        await createListing({
-          title: form.title.trim(),
-          description: form.description.trim(),
-          priceCents,
-          categoryId,
-          subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
-          cityId: resolvedCityId,
-          deliveryMethods: form.deliveries,
-          mediaIds,
-          publish: true,
-        });
-        toast.success("Объявление опубликовано");
+        await loadFeatureFlagsFromServer();
+        const paymentEnabled = getFeatureFlags().listingPaymentEnabled;
+        const promocode = form.promocode.trim() || undefined;
+
+        let quote: PlacementQuote | null = null;
+        if (paymentEnabled) {
+          try {
+            quote = await fetchPlacementQuote({
+              categoryId,
+              subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+              promocode,
+            });
+            setPlacementQuote(quote);
+          } catch {
+            toast.error("Не удалось рассчитать стоимость размещения. Попробуйте ещё раз.");
+            setSubmitting(false);
+            return;
+          }
+          if (quote.promocode?.error) {
+            toast.error(quote.promocode.error);
+            setSubmitting(false);
+            return;
+          }
+        }
+
+        const needsPayment = paymentEnabled && quote !== null && quote.final_cents > 0;
+
+        if (needsPayment && isDemoMode()) {
+          toast("Оплата будет доступна после подключения эквайринга");
+          setSubmitting(false);
+          return;
+        }
+
+        if (needsPayment) {
+          const draft = await createListing({
+            title: form.title.trim(),
+            description: form.description.trim(),
+            priceCents,
+            categoryId,
+            subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+            cityId: resolvedCityId,
+            deliveryMethods: form.deliveries,
+            mediaIds,
+            publish: false,
+            promocode,
+          });
+          const checkout = await createListingPlacementPayment({
+            categoryId,
+            subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+            promocode,
+            listingUuid: draft.id,
+          });
+          if (checkout.checkout_url) {
+            window.location.href = checkout.checkout_url;
+            return;
+          }
+          await confirmStubPayment(checkout.payment_uuid);
+          toast.success("Оплата прошла — объявление отправлено на публикацию");
+        } else {
+          const created = await createListing({
+            title: form.title.trim(),
+            description: form.description.trim(),
+            priceCents,
+            categoryId,
+            subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+            cityId: resolvedCityId,
+            deliveryMethods: form.deliveries,
+            mediaIds,
+            publish: true,
+            promocode,
+          });
+          toast.success(
+            created.moderation === "moderation"
+              ? "Объявление отправлено на модерацию"
+              : "Объявление опубликовано",
+          );
+        }
       }
       void navigate({ to: "/my-ads" });
     } catch (err) {
@@ -236,11 +371,21 @@ function NewAdPage() {
     }
   };
 
+  const placementPriceLabel = placementQuote
+    ? (placementQuote.is_free ? "Бесплатно" : `${formatQuoteRub(placementQuote.final_cents)} ₽`)
+    : "…";
+
   const publishButtonLabel = editId
     ? "Сохранить изменения"
     : listingPaymentEnabled
-      ? `Оплатить ${LISTING_PLACEMENT_PRICE_RUB} ₽ и опубликовать`
+      ? quoteLoading
+        ? "Рассчитываем…"
+        : placementQuote?.is_free
+          ? "Опубликовать бесплатно"
+          : `Оплатить ${placementPriceLabel} и опубликовать`
       : "Опубликовать";
+
+  const paymentGatePending = listingPaymentEnabled && !editId && (quoteLoading || !placementQuote);
 
   return (
     <AppLayout rightColumn={false}>
@@ -255,7 +400,7 @@ function NewAdPage() {
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
             {listingPaymentEnabled
-              ? `Размещение — ${LISTING_PLACEMENT_PRICE_RUB} ₽. После оплаты объявление пройдёт модерацию.`
+              ? (quoteLoading ? "Рассчитываем стоимость размещения…" : `Размещение — ${placementPriceLabel}. После оплаты объявление пройдёт модерацию.`)
               : "Заполните форму и опубликуйте объявление — размещение сейчас бесплатное."}
           </p>
         </header>
@@ -271,7 +416,18 @@ function NewAdPage() {
         >
           {step === 1 && <StepPhotos form={form} set={set} />}
           {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} subcategories={subcategories} touched={touched} touch={touch} />}
-          {step === 3 && <StepPreview form={form} cat={cat} submitError={submitError} listingPaymentEnabled={listingPaymentEnabled} publishButtonLabel={publishButtonLabel} />}
+          {step === 3 && (
+            <StepPreview
+              form={form}
+              set={set}
+              cat={cat}
+              submitError={submitError}
+              listingPaymentEnabled={listingPaymentEnabled}
+              publishButtonLabel={publishButtonLabel}
+              placementQuote={placementQuote}
+              quoteLoading={quoteLoading}
+            />
+          )}
         </ReducedMotionSwitch>
       </div>
 
@@ -294,19 +450,33 @@ function NewAdPage() {
           </Button>
           {step < 3 ? (
             <Button
-              disabled={!valid}
-              onClick={() => setStep((s) => Math.min(3, s + 1))}
+              disabled={step === 2 && !valid}
+              onClick={() => {
+                if (!hasListingPhotos(form)) {
+                  notifyPhotosRequired(setStep);
+                  return;
+                }
+                if (step === 2 && !valid) return;
+                setStep((s) => Math.min(3, s + 1));
+              }}
               className="h-11 rounded-[var(--r-button)]"
             >
               Далее <ChevronRight size={16} />
             </Button>
           ) : (
             <Button
-              onClick={submit}
+              onClick={() => {
+                if (!hasListingPhotos(form)) {
+                  notifyPhotosRequired(setStep);
+                  return;
+                }
+                void submit();
+              }}
               loading={submitting}
+              disabled={paymentGatePending}
               className="h-11 min-w-[220px] rounded-[var(--r-button)]"
             >
-              {!submitting && !editId && listingPaymentEnabled && <CreditCard size={16} />}
+              {!submitting && !editId && listingPaymentEnabled && !paymentGatePending && <CreditCard size={16} />}
               {submitting ? (editId ? "Сохраняем…" : "Публикуется…") : publishButtonLabel}
             </Button>
           )}
@@ -317,49 +487,101 @@ function NewAdPage() {
   );
 }
 
-/* ────────── STEP 1: Photos ────────── */
-function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
-  const addPhoto = (picked: File[]) => {
-    const room = MAX_PHOTOS - form.photos.length;
-    const files = picked.slice(0, room);
-    const urls = files.map((f) => URL.createObjectURL(f));
-    set("photos", [...form.photos, ...urls]);
-    set("files", [...form.files, ...files]);
-  };
-  const remove = (i: number) => {
-    set("photos", form.photos.filter((_, j) => j !== i));
-    set("files", form.files.filter((_, j) => j !== i));
-  };
-  const makeMain = (i: number) => {
-    const next = [...form.photos];
-    const [m] = next.splice(i, 1);
-    next.unshift(m);
-    set("photos", next);
-    const nf = [...form.files];
-    const [mf] = nf.splice(i, 1);
-    nf.unshift(mf);
-    set("files", nf);
-  };
-  const reorder = (newPhotos: string[]) => {
-    const newFiles = newPhotos.map((url) => form.files[form.photos.indexOf(url)]);
-    set("photos", newPhotos);
-    set("files", newFiles);
+/* ────────── Photo helpers ────────── */
+function usePhotoGridHandlers(
+  photoItems: PhotoItem[],
+  setPhotoItems: (next: PhotoItem[]) => void,
+) {
+  const photos = photoItems.map((p) => p.preview);
+  const photoIds = photoItems.map((p) => p.id);
+
+  const reorderByUrls = (newPhotos: string[]) => {
+    const byPreview = new Map(photoItems.map((p) => [p.preview, p]));
+    const next = newPhotos.map((url) => byPreview.get(url)).filter((p): p is PhotoItem => p != null);
+    if (next.length === photoItems.length) setPhotoItems(next);
   };
 
+  return {
+    photos,
+    photoIds,
+    onAdd: (picked: File[]) => {
+      void (async () => {
+        const room = MAX_PHOTOS - photoItems.length;
+        if (room <= 0) return;
+
+        const accepted: PhotoItem[] = [];
+        for (const file of picked.slice(0, room)) {
+          const formatError = validateListingImageFile(file);
+          if (formatError) {
+            toast.error(formatError);
+            continue;
+          }
+          const decodeError = await verifyListingImageDecodable(file);
+          if (decodeError) {
+            toast.error(decodeError);
+            continue;
+          }
+          accepted.push({ id: newPhotoId(), preview: URL.createObjectURL(file), file });
+        }
+
+        if (accepted.length > 0) {
+          setPhotoItems([...photoItems, ...accepted]);
+        }
+      })();
+    },
+    onRemove: (i: number) => setPhotoItems(photoItems.filter((_, j) => j !== i)),
+    onMakeMain: (i: number) => {
+      const next = [...photoItems];
+      const [m] = next.splice(i, 1);
+      next.unshift(m);
+      setPhotoItems(next);
+    },
+    onReorder: reorderByUrls,
+  };
+}
+
+function ListingPhotoGrid({
+  photoItems,
+  setPhotoItems,
+  variant = "default",
+  hideUploader = false,
+}: {
+  photoItems: PhotoItem[];
+  setPhotoItems: (next: PhotoItem[]) => void;
+  variant?: "default" | "compact";
+  hideUploader?: boolean;
+}) {
+  const handlers = usePhotoGridHandlers(photoItems, setPhotoItems);
+  return (
+    <ImageUploadGrid
+      photos={handlers.photos}
+      photoIds={handlers.photoIds}
+      max={MAX_PHOTOS}
+      accept={LISTING_IMAGE_ACCEPT}
+      variant={variant}
+      hideUploader={hideUploader}
+      controls="minimal"
+      sizeScale={1.25}
+      onAdd={handlers.onAdd}
+      onRemove={handlers.onRemove}
+      onMakeMain={handlers.onMakeMain}
+      onReorder={handlers.onReorder}
+    />
+  );
+}
+
+/* ────────── STEP 1: Photos ────────── */
+function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
   return (
     <section className="space-y-[16px]">
-      <StepHeading title="Фотографии" description={`До ${MAX_PHOTOS} фото. Первое — главное в карточке.`} />
+      <StepHeading title="Фотографии" description={`Минимум 1 фото, до ${MAX_PHOTOS}. Первое — главное в карточке. Перетащите для изменения порядка.`} />
       <Card
         className="p-[16px] sm:p-[20px]"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
       >
-        <ImageUploadGrid
-          photos={form.photos}
-          max={MAX_PHOTOS}
-          onAdd={addPhoto}
-          onRemove={remove}
-          onMakeMain={makeMain}
-          onReorder={reorder}
+        <ListingPhotoGrid
+          photoItems={form.photoItems}
+          setPhotoItems={(next) => set("photoItems", next)}
         />
       </Card>
     </section>
@@ -396,31 +618,14 @@ function StepData({
 
   return (
     <section className="space-y-[16px]" onFocusCapture={keepFieldVisible}>
-      {form.photos.length > 0 && (
+      {form.photoItems.length > 0 && (
         <Block title="Фотографии">
-          <div className="flex gap-[8px] overflow-x-auto pb-[2px] no-scrollbar">
-            {form.photos.map((src, i) => (
-              <div key={i} className="relative shrink-0">
-                <img
-                  src={src}
-                  alt=""
-                  className="h-[64px] w-[64px] rounded-[10px] object-cover"
-                  style={{ border: "1px solid var(--border)" }}
-                />
-                {i === 0 && (
-                  <span
-                    className="absolute left-[4px] top-[4px] rounded-[4px] px-[4px] py-[1px] text-[9px] font-semibold"
-                    style={{ background: "var(--accent)", color: "#fff" }}
-                  >
-                    Главное
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="mt-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Изменить фото можно на шаге «Фото».
-          </p>
+          <ListingPhotoGrid
+            photoItems={form.photoItems}
+            setPhotoItems={(next) => set("photoItems", next)}
+            variant="compact"
+            hideUploader
+          />
         </Block>
       )}
 
@@ -544,16 +749,22 @@ function StepData({
 /* ────────── STEP 3: Preview ────────── */
 function StepPreview({
   form,
+  set,
   cat,
   submitError,
   listingPaymentEnabled,
   publishButtonLabel,
+  placementQuote,
+  quoteLoading,
 }: {
   form: Form;
+  set: <K extends keyof Form>(k: K, v: Form[K]) => void;
   cat: Category | undefined;
   submitError: boolean;
   listingPaymentEnabled: boolean;
   publishButtonLabel: string;
+  placementQuote: PlacementQuote | null;
+  quoteLoading: boolean;
 }) {
   const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
 
@@ -573,7 +784,7 @@ function StepPreview({
         <ListingPreviewCard
           title={form.title}
           price={form.price}
-          images={form.photos}
+          images={form.photoItems.map((p) => p.preview)}
           status={form.status}
           category={cat?.name}
           subcategory={sub?.name}
@@ -599,11 +810,41 @@ function StepPreview({
 
       <Alert variant="info">
         <AlertDescription>
-          {listingPaymentEnabled
-            ? `После оплаты ${LISTING_PLACEMENT_PRICE_RUB} ₽ объявление отправится на модерацию (обычно до 60 минут).`
-            : "После публикации объявление отправится на модерацию (обычно до 60 минут)."}
+          {listingPaymentEnabled ? (
+            quoteLoading ? "Рассчитываем стоимость…" : placementQuote?.is_free
+              ? "Размещение бесплатное — объявление отправится на модерацию после публикации."
+              : `К оплате ${formatQuoteRub(placementQuote?.final_cents ?? 0)} ₽. После оплаты объявление отправится на модерацию (обычно до 60 минут).`
+          ) : "После публикации объявление отправится на модерацию (обычно до 60 минут)."}
         </AlertDescription>
       </Alert>
+
+      {listingPaymentEnabled && (
+        <Card className="space-y-[10px] p-[16px]" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+          <label className="grid gap-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+            Промокод
+            <Input
+              value={form.promocode}
+              onChange={(e) => set("promocode", e.target.value.toUpperCase())}
+              placeholder="SUMMER2026"
+              className="h-11"
+            />
+          </label>
+          {placementQuote?.promocode?.error && (
+            <p className="text-[12px]" style={{ color: "var(--destructive, #c0392b)" }}>{placementQuote.promocode.error}</p>
+          )}
+          {placementQuote && !quoteLoading && (
+            <div className="text-[12px] space-y-[4px]" style={{ color: "var(--foreground-50)" }}>
+              <div>Базовая цена: {formatQuoteRub(placementQuote.base_cents)} ₽</div>
+              {placementQuote.promo_discount_cents > 0 && (
+                <div>Скидка по промокоду: −{formatQuoteRub(placementQuote.promo_discount_cents)} ₽</div>
+              )}
+              {placementQuote.has_active_subscription && placementQuote.free_listings_remaining != null && (
+                <div>Бесплатных размещений в этом месяце: {placementQuote.free_listings_remaining}</div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
     </section>
   );
 }

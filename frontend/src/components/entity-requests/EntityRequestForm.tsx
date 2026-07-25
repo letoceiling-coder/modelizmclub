@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
   applyChannel, applyCommunity, fetchCommunityCategories,
   type EntityKind, type CommunityCategoryOption,
 } from "@/lib/api/entity-requests";
+import { uploadMedia } from "@/lib/api/media";
+import { prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
+import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
+import { usePostCategories } from "@/lib/hooks/useCategories";
+const OTHER_DIRECTION = "Другое";
 
 interface Props {
   kind: EntityKind;
@@ -26,11 +31,18 @@ const inputStyle = {
 export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");            // channel: free string
+  const [category, setCategory] = useState("");            // channel: direction name
+  const [customCategory, setCustomCategory] = useState(""); // channel: when «Другое»
   const [categoryId, setCategoryId] = useState<number | "">(""); // community
   const [cats, setCats] = useState<CommunityCategoryOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
+  const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
+  const [pendingBanner, setPendingBanner] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const directions = usePostCategories();
   useEffect(() => {
     if (kind !== "community") return;
     fetchCommunityCategories().then((list) => {
@@ -53,8 +65,28 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
         if (!categoryId) { toast.error("Выберите категорию"); setSubmitting(false); return; }
         await applyCommunity({ proposedName: name.trim(), description: description.trim() || undefined, categoryId: Number(categoryId) });
       } else {
-        if (!category.trim()) { toast.error("Укажите тематику"); setSubmitting(false); return; }
-        await applyChannel({ name: name.trim(), description: description.trim() || undefined, category: category.trim() });
+        if (!category) { toast.error("Выберите направление"); setSubmitting(false); return; }
+        const resolvedCategory = category === OTHER_DIRECTION ? customCategory.trim() : category;
+        if (!resolvedCategory) { toast.error("Укажите тематику"); setSubmitting(false); return; }
+
+        let avatarUuid: string | null = null;
+        let bannerUuid: string | null = null;
+        if (pendingAvatar) {
+          const media = await uploadMedia(pendingAvatar, "avatar");
+          avatarUuid = media.uuid;
+        }
+        if (pendingBanner) {
+          const media = await uploadMedia(pendingBanner, "banner");
+          bannerUuid = media.uuid;
+        }
+
+        await applyChannel({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          category: resolvedCategory,
+          avatar_media_uuid: avatarUuid,
+          banner_media_uuid: bannerUuid,
+        });
       }
       toast.success("Заявка отправлена на рассмотрение");
       onSubmitted();
@@ -64,7 +96,6 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
       setSubmitting(false);
     }
   };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -121,14 +152,85 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
               </select>
             </label>
           ) : (
-            <label className="flex flex-col gap-1">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Тематика</span>
-              <input
-                value={category} onChange={(e) => setCategory(e.target.value)} maxLength={120}
-                placeholder="Например: Стендовые модели"
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle}
-              />
-            </label>
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Направление</span>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                  style={inputStyle}
+                >
+                  <option value="">Выберите направление</option>
+                  {directions.map((d) => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                  <option value={OTHER_DIRECTION}>{OTHER_DIRECTION}</option>
+                </select>
+              </label>
+              {category === OTHER_DIRECTION && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Уточните тематику</span>
+                  <input
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    maxLength={120}
+                    placeholder="Например: Стендовые модели"
+                    className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                    style={inputStyle}
+                  />
+                </label>
+              )}
+            </>
+          )}
+
+          {kind === "channel" && (
+            <div className="rounded-[12px] border p-3" style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}>
+              <p className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+                Оформление <span style={{ color: "var(--foreground-50)" }}>(необязательно)</span>
+              </p>
+              <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                Аватар 480×480 · обложка 1400×400 · JPG, PNG, WEBP
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="rounded-[8px] border px-3 py-2 text-[12px] font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                >
+                  {avatarPreview ? "Изменить аватар" : "Загрузить аватар"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="rounded-[8px] border px-3 py-2 text-[12px] font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                >
+                  {bannerPreview ? "Изменить обложку" : "Загрузить обложку"}
+                </button>
+              </div>
+              <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                try {
+                  setPendingAvatar(await prepareProfileImageFile(file));
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+                }
+              }} />
+              <input ref={bannerInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                try {
+                  setPendingBanner(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+                }
+              }} />
+            </div>
           )}
         </div>
 
@@ -142,6 +244,33 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
           </button>
         </div>
       </div>
+
+      <ImageCropDialog
+        file={pendingAvatar}
+        aspect={1}
+        outputWidth={480}
+        outputHeight={480}
+        title="Аватар канала"
+        onCancel={() => setPendingAvatar(null)}
+        onCropped={(blob) => {
+          const file = new File([blob], "channel-avatar.jpg", { type: "image/jpeg" });
+          setPendingAvatar(file);
+          setAvatarPreview(URL.createObjectURL(file));
+        }}
+      />
+      <ImageCropDialog
+        file={pendingBanner}
+        aspect={3.5}
+        outputWidth={1400}
+        outputHeight={400}
+        title="Обложка канала"
+        onCancel={() => setPendingBanner(null)}
+        onCropped={(blob) => {
+          const file = new File([blob], "channel-banner.jpg", { type: "image/jpeg" });
+          setPendingBanner(file);
+          setBannerPreview(URL.createObjectURL(file));
+        }}
+      />
     </div>
   );
 }

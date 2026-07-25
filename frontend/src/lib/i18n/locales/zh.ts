@@ -77,7 +77,7 @@ export const zh: TranslationSchema = {
       brand: "Modelizm",
       tagline: "面向模型爱好者的市场、动态与社区",
       subtitle: "购买模型和配件，分享你的作品，寻找俱乐部，与各地的模型爱好者交流。",
-      ctaBrowse: "浏览广告",
+      ctaBrowse: "广告",
       scroll: "向下滑动",
       videoAlt: "遥控模型制作",
       stats: {

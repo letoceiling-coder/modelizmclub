@@ -37,7 +37,22 @@ class AdminListingController extends Controller
         return ListingResource::collection($items);
     }
 
-    #[Endpoint(title: 'Изменить статус объявления')]
+    #[PathParameter('uuid', description: 'UUID объявления')]
+    public function show(string $uuid): ListingResource
+    {
+        $listing = Listing::query()
+            ->with(['author.profile', 'category', 'subcategory', 'city', 'mediaItems.media'])
+            ->where('uuid', $uuid)
+            ->first();
+
+        if (! $listing) {
+            throw new NotFoundHttpException('Объявление не найдено.');
+        }
+
+        return new ListingResource($listing);
+    }
+
+    #[Endpoint(title: 'Изменить объявление')]
     #[PathParameter('uuid', description: 'UUID объявления')]
     #[BodyParameter('status', description: 'Новый статус', example: 'unpublished')]
     public function update(string $uuid, AuditService $audit): ListingResource
@@ -49,21 +64,44 @@ class AdminListingController extends Controller
         }
 
         $data = request()->validate([
-            'status' => ['required', Rule::enum(ListingStatus::class)],
+            'status' => ['sometimes', Rule::enum(ListingStatus::class)],
+            'title' => ['sometimes', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'price_cents' => ['sometimes', 'integer', 'min:0'],
+            'rejection_reason' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
 
-        $old = $listing->toArray();
-        $status = ListingStatus::from($data['status']);
-
-        $listing->status = $status;
-        if ($status === ListingStatus::Published && $listing->published_at === null) {
-            $listing->published_at = now();
+        if ($data === []) {
+            abort(422, 'Укажите хотя бы одно поле для изменения.');
         }
+
+        $old = $listing->toArray();
+
+        if (array_key_exists('title', $data)) {
+            $listing->title = $data['title'];
+        }
+        if (array_key_exists('description', $data)) {
+            $listing->description = $data['description'];
+        }
+        if (array_key_exists('price_cents', $data)) {
+            $listing->price_cents = $data['price_cents'];
+        }
+        if (array_key_exists('rejection_reason', $data)) {
+            $listing->rejection_reason = $data['rejection_reason'];
+        }
+        if (array_key_exists('status', $data)) {
+            $status = ListingStatus::from($data['status']);
+            $listing->status = $status;
+            if ($status === ListingStatus::Published && $listing->published_at === null) {
+                $listing->published_at = now();
+            }
+        }
+
         $listing->save();
 
         $audit->log(request()->user(), 'admin.listings.update', $listing, $old, $listing->fresh()->toArray(), request());
 
-        return new ListingResource($listing->fresh(['author.profile', 'category', 'city']));
+        return new ListingResource($listing->fresh(['author.profile', 'category', 'subcategory', 'city', 'mediaItems.media']));
     }
 
     #[PathParameter('uuid', description: 'UUID объявления')]

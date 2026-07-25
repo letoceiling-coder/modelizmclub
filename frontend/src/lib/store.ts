@@ -81,6 +81,8 @@ export interface AppState {
    *  page load should never have the number already available, matching
    *  the click-to-reveal anti-scraping intent (see backend-endpoints-needed.md #22). */
   revealedPhones: Record<ID, string>;
+  /** Partner user ids whose chat the current user deleted — used to clear stale history on reopen. */
+  deletedChatPartnerIds: ID[];
   currentUserId: ID;
 }
 
@@ -118,6 +120,7 @@ export function createInitialState(): AppState {
     dialogAdRefs: {},
     pendingDialogMessages: {},
     revealedPhones: {},
+    deletedChatPartnerIds: [],
     currentUserId: GUEST_USER.id,
   };
 }
@@ -175,6 +178,8 @@ type Action =
   | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
   | { type: "SET_CURRENT_USER"; user: User }
   | { type: "SET_DIALOGS"; dialogs: Dialog[] }
+  | { type: "RESTORE_DIALOG"; dialog: Dialog }
+  | { type: "MARK_DIALOG_DELETED"; dialogId: ID; partnerId: ID }
   | { type: "SET_DIALOG_MESSAGES"; dialogId: ID; messages: Message[] }
   | { type: "PIN_MESSAGE"; dialogId: ID; messageId: ID }
   | { type: "DELETE_MESSAGE_FOR_ME"; dialogId: ID; messageId: ID }
@@ -397,11 +402,40 @@ function reducer(s: AppState, a: Action): AppState {
     case "SET_DIALOGS": {
       const dialogs: Record<ID, Dialog> = {};
       for (const d of a.dialogs) {
-        // Preserve already-loaded messages when refreshing the list.
         const prev = s.dialogs[d.id];
-        dialogs[d.id] = prev ? { ...d, messages: prev.messages.length ? prev.messages : d.messages } : d;
+        const keepMessages = prev && prev.messages.length > 0 && !s.dialogMeta[d.id]?.deletedLocally;
+        dialogs[d.id] = keepMessages ? { ...d, messages: prev.messages } : d;
       }
       return { ...s, dialogs };
+    }
+    case "RESTORE_DIALOG": {
+      const meta = s.dialogMeta[a.dialog.id] ?? { archived: false, muted: false, blocked: false };
+      return {
+        ...s,
+        dialogs: {
+          ...s.dialogs,
+          [a.dialog.id]: { ...a.dialog, messages: [], unread: 0 },
+        },
+        dialogMeta: {
+          ...s.dialogMeta,
+          [a.dialog.id]: { ...meta, deletedLocally: false },
+        },
+        deletedChatPartnerIds: s.deletedChatPartnerIds.filter((id) => id !== a.dialog.userId),
+      };
+    }
+    case "MARK_DIALOG_DELETED": {
+      const meta = s.dialogMeta[a.dialogId] ?? { archived: false, muted: false, blocked: false };
+      const trackPartner = a.partnerId && !s.deletedChatPartnerIds.includes(a.partnerId);
+      return {
+        ...s,
+        dialogMeta: {
+          ...s.dialogMeta,
+          [a.dialogId]: { ...meta, deletedLocally: true },
+        },
+        deletedChatPartnerIds: trackPartner
+          ? [...s.deletedChatPartnerIds, a.partnerId]
+          : s.deletedChatPartnerIds,
+      };
     }
     case "SET_DIALOG_MESSAGES": {
       const d = s.dialogs[a.dialogId];
@@ -441,7 +475,13 @@ function reducer(s: AppState, a: Action): AppState {
     case "CLEAR_HISTORY": {
       const d = s.dialogs[a.dialogId];
       if (!d) return s;
-      return { ...s, dialogs: { ...s.dialogs, [a.dialogId]: { ...d, messages: [] } } };
+      return {
+        ...s,
+        dialogs: {
+          ...s.dialogs,
+          [a.dialogId]: { ...d, messages: [], lastMessage: "", time: "" },
+        },
+      };
     }
     case "BLOCK_USER": {
       if (s.blockedUserIds.includes(a.userId)) return s;
@@ -519,7 +559,14 @@ export function useStore<T>(selector: (s: AppState) => T): T {
 export const actions = {
   addMessage: (dialogId: ID, message: Message) => dispatch({ type: "ADD_MESSAGE", dialogId, message }),
   removeMessage: (dialogId: ID, messageId: ID) => dispatch({ type: "REMOVE_MESSAGE", dialogId, messageId }),
-  markRead: (dialogId: ID) => dispatch({ type: "MARK_READ", dialogId }),
+  markRead: (dialogId: ID) => {
+    dispatch({ type: "MARK_READ", dialogId });
+    if (typeof window !== "undefined") {
+      void import("./api/chat").then(({ markConversationRead }) => {
+        markConversationRead(dialogId).catch(() => {});
+      });
+    }
+  },
   markUnread: (dialogId: ID) => dispatch({ type: "MARK_UNREAD", dialogId }),
   updateProfile: (userId: ID, data: Partial<User>) => dispatch({ type: "UPDATE_PROFILE", userId, data }),
   sendFriendRequest: (fromId: ID, toId: ID) => dispatch({ type: "SEND_FRIEND_REQUEST", fromId, toId }),
@@ -559,10 +606,65 @@ export function setCurrentUser(user: User): void {
 }
 
 export function setDialogs(dialogs: Dialog[]): void {
-  dispatch({ type: "SET_DIALOGS", dialogs });
+  dispatch({ type: "SET_DIALOGS", dialogs: dedupeDialogsFromApi(dialogs) });
+}
+
+export function restoreDialog(dialog: Dialog): void {
+  dispatch({ type: "RESTORE_DIALOG", dialog });
+}
+
+export function markDialogDeleted(dialogId: ID, partnerId: ID): void {
+  dispatch({ type: "MARK_DIALOG_DELETED", dialogId, partnerId });
+}
+
+export function wasChatWithPartnerDeleted(partnerId: ID): boolean {
+  const s = getState();
+  if (s.deletedChatPartnerIds.includes(partnerId)) return true;
+  return Object.entries(s.dialogs).some(
+    ([id, d]) => d.userId === partnerId && s.dialogMeta[id]?.deletedLocally,
+  );
+}
+
+function dedupeDialogsFromApi(dialogs: Dialog[]): Dialog[] {
+  const seen = new Set<string>();
+  const result: Dialog[] = [];
+  for (const d of dialogs) {
+    if (!d.userId) {
+      result.push(d);
+      continue;
+    }
+    if (seen.has(d.userId)) continue;
+    seen.add(d.userId);
+    result.push(d);
+  }
+  return result;
 }
 
 export function setDialogMessages(dialogId: ID, messages: Message[]): void {
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
+}
+
+/** Mark the sender's messages as read when the recipient opens the dialog. */
+export function markOwnMessagesRead(dialogId: ID): void {
+  const d = state.dialogs[dialogId];
+  if (!d) return;
+  const meId = state.currentUserId;
+  const messages = d.messages.map((m) =>
+    m.authorId === meId && m.status !== "read" ? { ...m, status: "read" as const } : m,
+  );
+  if (messages.every((m, i) => m === d.messages[i])) return;
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
+}
+
+/** Upgrade sent → delivered when the recipient is online or was active after send. */
+export function markOwnMessagesDelivered(dialogId: ID): void {
+  const d = state.dialogs[dialogId];
+  if (!d) return;
+  const meId = state.currentUserId;
+  const messages = d.messages.map((m) =>
+    m.authorId === meId && m.status === "sent" ? { ...m, status: "delivered" as const } : m,
+  );
+  if (messages.every((m, i) => m === d.messages[i])) return;
   dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
 }
 

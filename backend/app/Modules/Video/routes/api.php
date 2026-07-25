@@ -18,7 +18,7 @@ Route::get('videos/{uuid}', ShowVideoController::class)->where('uuid', '[0-9a-f-
 Route::post('videos/{uuid}/view', VideoViewController::class)->where('uuid', '[0-9a-f-]{36}');
 Route::get('videos/{uuid}/comments', VideoCommentsController::class)->where('uuid', '[0-9a-f-]{36}');
 
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('videos', StoreVideoController::class);
     Route::patch('videos/{uuid}', UpdateVideoController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::delete('videos/{uuid}', DestroyVideoController::class)->where('uuid', '[0-9a-f-]{36}');

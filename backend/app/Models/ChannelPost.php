@@ -21,6 +21,7 @@ class ChannelPost extends Model
         'text',
         'kind',
         'status',
+        'rejection_reason',
         'likes_count',
         'views_count',
         'published_at',

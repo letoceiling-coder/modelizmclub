@@ -42,6 +42,18 @@ export async function fetchDashboard(): Promise<AdminDashboard> {
   };
 }
 
+/** Moderator-safe dashboard counters (no admin-only /admin/dashboard). */
+export async function fetchModeratorDashboardStats(): Promise<Pick<AdminDashboard, "moderationPending" | "reportsPending">> {
+  const [modRes, repRes] = await Promise.all([
+    api<Paginated<unknown>>("/admin/moderation/queue", { query: { status: "pending", per_page: 1 } }),
+    api<Paginated<unknown>>("/admin/reports", { query: { status: "pending", per_page: 1 } }),
+  ]);
+  return {
+    moderationPending: modRes.meta?.total ?? modRes.data?.length ?? 0,
+    reportsPending: repRes.meta?.total ?? repRes.data?.length ?? 0,
+  };
+}
+
 export interface AuditEntry {
   id: string;
   user: string;
@@ -177,7 +189,7 @@ export async function updateAdminUser(
   return mapAdminUser(res.data);
 }
 
-export type ModerationType = "posts" | "communities" | "videos";
+export type ModerationType = "posts" | "communities" | "videos" | "channel_posts";
 
 export interface ModerationItem {
   id: number;
@@ -206,6 +218,7 @@ interface ApiModerationItem {
 function moderationTypeFromClass(cls?: string): ModerationType {
   if (cls === "Community") return "communities";
   if (cls === "Video") return "videos";
+  if (cls === "ChannelPost") return "channel_posts";
   return "posts";
 }
 
@@ -236,23 +249,52 @@ interface ApiPlan {
   features?: string[] | null;
   is_active?: boolean;
   sort_order?: number | null;
+  free_listings_per_month?: number;
+  listing_discount_percent?: number;
 }
 
-export async function fetchAdminPlans(): Promise<Tariff[]> {
+export interface AdminPlanRow {
+  slug: string;
+  name: string;
+  priceCents: number;
+  periodDays: number;
+  freeListingsPerMonth: number;
+  listingDiscountPercent: number;
+}
+
+export async function fetchAdminPlansDetailed(): Promise<AdminPlanRow[]> {
   const res = await api<{ data: Paginated<ApiPlan> }>("/admin/plans");
   const rows = res.data?.data ?? [];
   return rows.map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    priceCents: p.price_cents ?? 0,
+    periodDays: p.period_days ?? 30,
+    freeListingsPerMonth: p.free_listings_per_month ?? 0,
+    listingDiscountPercent: p.listing_discount_percent ?? 0,
+  }));
+}
+
+export async function fetchAdminPlans(): Promise<Tariff[]> {
+  const rows = await fetchAdminPlansDetailed();
+  return rows.map((p) => ({
     id: p.slug,
     name: p.name,
-    price: Math.round((p.price_cents ?? 0) / 100),
-    period: p.period_days ? `${p.period_days} дней` : "",
-    features: p.features ?? [],
+    price: Math.round(p.priceCents / 100),
+    period: p.periodDays ? `${p.periodDays} дней` : "",
+    features: [],
   }));
 }
 
 export async function updateAdminPlan(
   slug: string,
-  patch: { name?: string; price_cents?: number; period_days?: number },
+  patch: {
+    name?: string;
+    price_cents?: number;
+    period_days?: number;
+    free_listings_per_month?: number;
+    listing_discount_percent?: number;
+  },
 ): Promise<void> {
   await api(`/admin/plans/${slug}`, { method: "PATCH", json: patch });
 }
@@ -262,9 +304,12 @@ interface ApiPromocode {
   id?: number;
   code: string;
   type?: string;
+  scope?: string;
   value?: number;
   used_count?: number;
+  usages_count?: number;
   max_usages?: number | null;
+  listing_category_id?: number | null;
   valid_until?: string | null;
   is_active?: boolean;
 }
@@ -281,7 +326,7 @@ export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
       id: p.code,
       code: p.code,
       discount: p.value ?? 0,
-      usedCount: p.used_count ?? 0,
+      usedCount: p.usages_count ?? p.used_count ?? 0,
       limit: p.max_usages ?? 0,
       expiresAt,
       status,
@@ -291,21 +336,35 @@ export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
 
 export async function createPromocode(input: {
   code: string;
+  type?: "percent" | "fixed" | "free";
+  scope?: "listing_placement" | "subscription" | "boost" | "all";
   value: number;
   max_usages: number;
   valid_until: string;
-}): Promise<void> {
-  await api("/admin/promocodes", {
+  listing_category_id?: number | null;
+  notify_mode?: "none" | "all" | "selected";
+  notify_title?: string;
+  notify_body?: string;
+  notify_user_ids?: number[];
+}): Promise<{ notifications_sent?: number }> {
+  const res = await api<{ data: unknown; notifications_sent?: number }>("/admin/promocodes", {
     method: "POST",
     json: {
       code: input.code,
-      type: "percent",
+      type: input.type ?? "percent",
+      scope: input.scope ?? "listing_placement",
       value: input.value,
       max_usages: input.max_usages,
       valid_until: input.valid_until,
+      listing_category_id: input.listing_category_id ?? null,
       is_active: true,
+      notify_mode: input.notify_mode ?? "none",
+      notify_title: input.notify_title,
+      notify_body: input.notify_body,
+      notify_user_ids: input.notify_user_ids,
     },
   });
+  return { notifications_sent: res.notifications_sent };
 }
 
 export async function deletePromocode(code: string): Promise<void> {
@@ -313,44 +372,169 @@ export async function deletePromocode(code: string): Promise<void> {
 }
 
 // ---- Banners ----
+export interface BannerCarouselSettings {
+  enabled: boolean;
+  placement: string;
+  autoplay_seconds: number;
+  max_slides: number;
+}
+
+export interface AdminBannerRow {
+  id: string;
+  placement: string;
+  title: string;
+  text: string;
+  ctaText: string;
+  kind: "event" | "news" | "promo" | "";
+  untilLabel: string;
+  linkUrl: string;
+  imageUrl: string | null;
+  imageMediaUuid: string | null;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  forceVisible: boolean;
+  isPinned: boolean;
+  priority: number;
+  sortOrder: number;
+  impressionsCount: number;
+  clicksCount: number;
+}
+
 interface ApiBanner {
   id: number;
   placement?: string;
   title: string;
   text?: string | null;
+  cta_text?: string | null;
+  kind?: string | null;
+  until_label?: string | null;
   link_url?: string | null;
+  image_url?: string | null;
   starts_at?: string | null;
   ends_at?: string | null;
   is_active?: boolean;
+  force_visible?: boolean;
+  is_pinned?: boolean;
+  priority?: number;
+  sort_order?: number;
+  impressions_count?: number;
+  clicks_count?: number;
 }
 
-export async function fetchAdminBanners(): Promise<Banner[]> {
-  const res = await api<{ data: Paginated<ApiBanner> }>("/admin/banners");
-  const rows = res.data?.data ?? [];
-  return rows.map((b) => ({
+function mapAdminBanner(b: ApiBanner): AdminBannerRow {
+  return {
     id: String(b.id),
+    placement: b.placement ?? "events",
     title: b.title,
     text: b.text ?? "",
-    cta: "",
-    until: "",
+    ctaText: b.cta_text?.trim() || "Подробнее",
+    kind: (b.kind === "event" || b.kind === "news" || b.kind === "promo" ? b.kind : "") as AdminBannerRow["kind"],
+    untilLabel: b.until_label ?? "",
+    linkUrl: b.link_url ?? "",
+    imageUrl: b.image_url ?? null,
+    imageMediaUuid: null,
+    startsAt: b.starts_at ? b.starts_at.slice(0, 10) : "",
+    endsAt: b.ends_at ? b.ends_at.slice(0, 10) : "",
+    isActive: b.is_active ?? true,
+    forceVisible: b.force_visible ?? false,
+    isPinned: b.is_pinned ?? false,
+    priority: b.priority ?? 0,
+    sortOrder: b.sort_order ?? 0,
+    impressionsCount: b.impressions_count ?? 0,
+    clicksCount: b.clicks_count ?? 0,
+  };
+}
+
+export async function fetchAdminBanners(): Promise<{ banners: AdminBannerRow[]; carousel: BannerCarouselSettings }> {
+  const res = await api<{ data: Paginated<ApiBanner>; meta?: { carousel?: BannerCarouselSettings } }>("/admin/banners");
+  const rows = res.data?.data ?? [];
+  return {
+    banners: rows.map(mapAdminBanner),
+    carousel: res.meta?.carousel ?? {
+      enabled: true,
+      placement: "events",
+      autoplay_seconds: 10,
+      max_slides: 5,
+    },
+  };
+}
+
+/** @deprecated Use AdminBannerRow via fetchAdminBanners */
+export async function fetchAdminBannersLegacy(): Promise<Banner[]> {
+  const { banners } = await fetchAdminBanners();
+  return banners.map((b) => ({
+    id: b.id,
+    title: b.title,
+    text: b.text,
+    cta: b.ctaText,
+    until: b.untilLabel,
     color: "from-slate-700 to-slate-900",
-    pinned: false,
-    priority: 0,
-    scheduleFrom: b.starts_at ? b.starts_at.slice(0, 10) : "",
-    scheduleTo: b.ends_at ? b.ends_at.slice(0, 10) : "",
-    active: b.is_active ?? true,
+    pinned: b.isPinned,
+    priority: b.priority,
+    scheduleFrom: b.startsAt,
+    scheduleTo: b.endsAt,
+    active: b.isActive,
   }));
+}
+
+export async function createAdminBanner(input: {
+  placement: string;
+  title: string;
+  text?: string;
+  cta_text?: string;
+  kind?: string;
+  until_label?: string;
+  link_url?: string;
+  image_media_uuid?: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  is_active?: boolean;
+  force_visible?: boolean;
+  is_pinned?: boolean;
+  priority?: number;
+  sort_order?: number;
+}): Promise<AdminBannerRow> {
+  const res = await api<{ data: ApiBanner }>("/admin/banners", { method: "POST", json: input });
+  return mapAdminBanner(res.data);
 }
 
 export async function updateAdminBanner(
   id: string,
-  patch: { title?: string; text?: string; starts_at?: string | null; ends_at?: string | null; is_active?: boolean },
-): Promise<void> {
-  await api(`/admin/banners/${id}`, { method: "PATCH", json: patch });
+  patch: {
+    placement?: string;
+    title?: string;
+    text?: string;
+    cta_text?: string;
+    kind?: string | null;
+    until_label?: string | null;
+    link_url?: string | null;
+    image_media_uuid?: string | null;
+    starts_at?: string | null;
+    ends_at?: string | null;
+    is_active?: boolean;
+    force_visible?: boolean;
+    is_pinned?: boolean;
+    priority?: number;
+    sort_order?: number;
+  },
+): Promise<AdminBannerRow> {
+  const res = await api<{ data: ApiBanner }>(`/admin/banners/${id}`, { method: "PATCH", json: patch });
+  return mapAdminBanner(res.data);
 }
 
 export async function deleteAdminBanner(id: string): Promise<void> {
   await api(`/admin/banners/${id}`, { method: "DELETE" });
+}
+
+export async function updateBannerCarouselSettings(
+  patch: Partial<BannerCarouselSettings>,
+): Promise<BannerCarouselSettings> {
+  const res = await api<{ data: BannerCarouselSettings }>("/admin/banners/carousel/settings", {
+    method: "PATCH",
+    json: patch,
+  });
+  return res.data;
 }
 
 // ---- Notifications broadcast ----
@@ -374,21 +558,41 @@ export async function broadcastNotification(input: {
 export interface AdminPostRow {
   uuid: string;
   title: string;
+  body: string;
   author: string;
   category: string;
   community: string | null;
   status: string;
   createdAt: string;
+  images: string[];
+  video?: string;
 }
 
 interface ApiAdminPost {
   uuid: string;
   title?: string | null;
+  body?: string | null;
   status?: string;
   author?: { display_name?: string | null; name?: string | null } | null;
   category?: { name?: string | null } | null;
   community?: { name?: string | null } | null;
   created_at?: string;
+  media?: Array<{
+    type?: string;
+    media?: { url?: string | null; mime_type?: string | null } | null;
+  }>;
+}
+
+function mapAdminPostMedia(p: ApiAdminPost): { images: string[]; video?: string } {
+  const media = p.media ?? [];
+  const isVideo = (m: (typeof media)[number]) =>
+    m.type === "video" || (m.media?.mime_type ?? "").startsWith("video/");
+  const images = media
+    .filter((m) => !isVideo(m))
+    .map((m) => m.media?.url)
+    .filter((u): u is string => Boolean(u));
+  const video = media.find(isVideo)?.media?.url ?? undefined;
+  return { images, video };
 }
 
 export async function fetchAdminPosts(params?: { status?: string; q?: string }): Promise<AdminPostRow[]> {
@@ -399,15 +603,21 @@ export async function fetchAdminPosts(params?: { status?: string; q?: string }):
       ...(params?.q ? { q: params.q } : {}),
     },
   });
-  return (res.data ?? []).map((p) => ({
-    uuid: p.uuid,
-    title: p.title ?? "Без названия",
-    author: p.author?.display_name ?? p.author?.name ?? "—",
-    category: p.category?.name ?? "—",
-    community: p.community?.name ?? null,
-    status: p.status ?? "",
-    createdAt: p.created_at ?? "",
-  }));
+  return (res.data ?? []).map((p) => {
+    const { images, video } = mapAdminPostMedia(p);
+    return {
+      uuid: p.uuid,
+      title: p.title ?? "Без названия",
+      body: p.body ?? "",
+      author: p.author?.display_name ?? p.author?.name ?? "—",
+      category: p.category?.name ?? "—",
+      community: p.community?.name ?? null,
+      status: p.status ?? "",
+      createdAt: p.created_at ?? "",
+      images,
+      video,
+    };
+  });
 }
 
 export async function updateAdminPostStatus(uuid: string, status: string): Promise<void> {
@@ -462,6 +672,85 @@ export async function updateAdminListingStatus(uuid: string, status: string): Pr
   await api(`/admin/listings/${uuid}`, { method: "PATCH", json: { status } });
 }
 
+export interface AdminListingDetail {
+  uuid: string;
+  title: string;
+  description: string;
+  price: number;
+  status: string;
+  author: string;
+  authorUuid: string;
+  category: string;
+  subcategory: string;
+  city: string;
+  images: string[];
+  viewsCount: number;
+  favoritesCount: number;
+  rejectionReason: string;
+  publishedAt: string;
+  createdAt: string;
+}
+
+interface ApiListingDetail {
+  uuid: string;
+  title?: string | null;
+  description?: string | null;
+  price_cents?: number | null;
+  status?: string;
+  rejection_reason?: string | null;
+  views_count?: number;
+  favorites_count?: number;
+  published_at?: string | null;
+  created_at?: string;
+  author?: { uuid?: string; display_name?: string | null; name?: string | null } | null;
+  category?: { name?: string | null } | null;
+  subcategory?: { name?: string | null } | null;
+  city?: { name?: string | null } | null;
+  media?: Array<{ url?: string | null }> | null;
+}
+
+function mapAdminListingDetail(l: ApiListingDetail): AdminListingDetail {
+  return {
+    uuid: l.uuid,
+    title: l.title ?? "",
+    description: l.description ?? "",
+    price: Math.round((l.price_cents ?? 0) / 100),
+    status: l.status ?? "",
+    author: l.author?.display_name ?? l.author?.name ?? "—",
+    authorUuid: l.author?.uuid ?? "",
+    category: l.category?.name ?? "—",
+    subcategory: l.subcategory?.name ?? "",
+    city: l.city?.name ?? "",
+    images: (l.media ?? []).map((m) => m.url).filter((url): url is string => Boolean(url)),
+    viewsCount: l.views_count ?? 0,
+    favoritesCount: l.favorites_count ?? 0,
+    rejectionReason: l.rejection_reason ?? "",
+    publishedAt: l.published_at ?? "",
+    createdAt: l.created_at ?? "",
+  };
+}
+
+export async function fetchAdminListing(uuid: string): Promise<AdminListingDetail> {
+  const res = await api<{ data: ApiListingDetail }>(`/admin/listings/${uuid}`);
+  return mapAdminListingDetail(res.data);
+}
+
+export interface AdminListingUpdatePayload {
+  status?: string;
+  title?: string;
+  description?: string;
+  price_cents?: number;
+  rejection_reason?: string | null;
+}
+
+export async function updateAdminListing(uuid: string, payload: AdminListingUpdatePayload): Promise<AdminListingDetail> {
+  const res = await api<{ data: ApiListingDetail }>(`/admin/listings/${uuid}`, {
+    method: "PATCH",
+    json: payload,
+  });
+  return mapAdminListingDetail(res.data);
+}
+
 export async function deleteAdminListing(uuid: string): Promise<void> {
   await api(`/admin/listings/${uuid}`, { method: "DELETE" });
 }
@@ -477,6 +766,8 @@ export interface AdminCategory {
   icon: string | null;
   sortOrder: number;
   isActive: boolean;
+  listingPriceCents: number | null;
+  subscriberListingPriceCents: number | null;
 }
 
 interface ApiAdminCategory {
@@ -487,6 +778,8 @@ interface ApiAdminCategory {
   icon?: string | null;
   sort_order?: number | null;
   is_active?: boolean;
+  listing_price_cents?: number | null;
+  subscriber_listing_price_cents?: number | null;
 }
 
 function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
@@ -498,6 +791,8 @@ function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
     icon: c.icon ?? null,
     sortOrder: c.sort_order ?? 0,
     isActive: c.is_active ?? true,
+    listingPriceCents: c.listing_price_cents ?? null,
+    subscriberListingPriceCents: c.subscriber_listing_price_cents ?? null,
   };
 }
 
@@ -518,6 +813,8 @@ export interface UpsertCategoryInput {
   icon?: string | null;
   sortOrder?: number;
   isActive?: boolean;
+  listingPriceCents?: number | null;
+  subscriberListingPriceCents?: number | null;
 }
 
 function categoryBody(input: UpsertCategoryInput): Record<string, unknown> {
@@ -528,6 +825,8 @@ function categoryBody(input: UpsertCategoryInput): Record<string, unknown> {
     icon: input.icon ?? null,
     sort_order: input.sortOrder ?? 0,
     is_active: input.isActive ?? true,
+    listing_price_cents: input.listingPriceCents ?? null,
+    subscriber_listing_price_cents: input.subscriberListingPriceCents ?? null,
   };
 }
 
@@ -784,4 +1083,72 @@ export async function updateAdminShipment(
     json: patch,
   });
   return mapAdminShipment(res.data);
+}
+
+// ---- Landing page blocks ----
+export interface AdminLandingSection {
+  id: number;
+  slug: string;
+  eyebrow: string | null;
+  title: string;
+  subtitle: string | null;
+  is_enabled: boolean;
+}
+
+export interface AdminLandingCard {
+  id: number;
+  section_slug: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  icon_url: string | null;
+  link_url: string | null;
+  post_category_id: number | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export async function fetchAdminLandingBlocks(): Promise<{
+  sections: AdminLandingSection[];
+  cards: AdminLandingCard[];
+}> {
+  const res = await api<{ data: { sections: AdminLandingSection[]; cards: AdminLandingCard[] } }>("/admin/landing/blocks");
+  return res.data ?? { sections: [], cards: [] };
+}
+
+export async function updateAdminLandingSection(
+  slug: string,
+  patch: Partial<Pick<AdminLandingSection, "eyebrow" | "title" | "subtitle" | "is_enabled">>,
+): Promise<void> {
+  await api(`/admin/landing/sections/${slug}`, { method: "PATCH", json: patch });
+}
+
+export async function createAdminLandingCard(input: {
+  section_slug: string;
+  title: string;
+  description?: string;
+  icon?: string;
+  icon_url?: string | null;
+  link_url?: string;
+  post_category_id?: number | null;
+  is_active?: boolean;
+}): Promise<AdminLandingCard> {
+  const res = await api<{ data: AdminLandingCard }>("/admin/landing/cards", { method: "POST", json: input });
+  return res.data;
+}
+
+export async function updateAdminLandingCard(
+  id: number,
+  patch: Partial<Omit<AdminLandingCard, "id">>,
+): Promise<AdminLandingCard> {
+  const res = await api<{ data: AdminLandingCard }>(`/admin/landing/cards/${id}`, { method: "PATCH", json: patch });
+  return res.data;
+}
+
+export async function deleteAdminLandingCard(id: number): Promise<void> {
+  await api(`/admin/landing/cards/${id}`, { method: "DELETE" });
+}
+
+export async function reorderAdminLandingCards(sectionSlug: string, ids: number[]): Promise<void> {
+  await api("/admin/landing/cards/reorder", { method: "PATCH", json: { section_slug: sectionSlug, ids } });
 }

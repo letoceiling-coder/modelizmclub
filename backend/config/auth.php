@@ -114,4 +114,14 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auth endpoint rate limits (requests per minute)
+    |--------------------------------------------------------------------------
+    */
+    'rate_limits' => [
+        'forgot_password_per_minute' => (int) env('AUTH_FORGOT_PASSWORD_PER_MINUTE', 12),
+        'reset_password_per_minute' => (int) env('AUTH_RESET_PASSWORD_PER_MINUTE', 20),
+    ],
+
 ];

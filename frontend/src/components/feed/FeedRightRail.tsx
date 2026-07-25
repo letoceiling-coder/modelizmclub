@@ -4,6 +4,7 @@ import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown } from "luci
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { onlineFor } from "@/lib/category-online";
 import { CategoryIcon } from "@/components/ui/Icon";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 
 const COLLAPSE_KEY = "modelizm:feedrail:collapsed";
 
@@ -24,20 +25,31 @@ function RailCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CardHeader({ title, to, onCollapse }: { title: string; to: string; onCollapse?: () => void }) {
+function CardHeader({ title, to, onCollapse, allActionKey }: { title: string; to: string; onCollapse?: () => void; allActionKey?: string }) {
   return (
     <div className="flex items-center justify-between gap-2 border-b px-[14px] py-[11px]" style={{ borderColor: "var(--border)" }}>
       <h3 className="text-[13.5px] font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
         {title}
       </h3>
       <div className="flex items-center gap-[2px]">
-        <Link
-          to={to}
-          className="flex items-center gap-[2px] text-[12px] transition-colors hover:opacity-80"
-          style={{ color: "var(--accent)" }}
-        >
-          Все <ChevronRight className="h-[13px] w-[13px]" />
-        </Link>
+        {allActionKey ? (
+          <GuestGuardLink
+            actionKey={allActionKey}
+            to={to}
+            className="flex items-center gap-[2px] text-[12px] transition-colors hover:opacity-80"
+            style={{ color: "var(--accent)" }}
+          >
+            Все <ChevronRight className="h-[13px] w-[13px]" />
+          </GuestGuardLink>
+        ) : (
+          <Link
+            to={to}
+            className="flex items-center gap-[2px] text-[12px] transition-colors hover:opacity-80"
+            style={{ color: "var(--accent)" }}
+          >
+            Все <ChevronRight className="h-[13px] w-[13px]" />
+          </Link>
+        )}
         {onCollapse && (
           <button
             type="button"
@@ -111,7 +123,7 @@ export function FeedRightRail() {
             (usePostCategories -> fetchPostCategories, same module-level
             cache the landing now reads from too). */}
         <RailCard>
-          <CardHeader title="Направления" to="/categories" onCollapse={() => setCollapsed(true)} />
+          <CardHeader title="Направления" to="/categories" allActionKey="feed.rail.all_categories" onCollapse={() => setCollapsed(true)} />
           <ul className="p-[6px]">
             {sortedCategories.map((c) => {
               const online = onlineFor(c);
@@ -120,9 +132,9 @@ export function FeedRightRail() {
               return (
                 <li key={c.id}>
                   <div className="flex items-stretch">
-                    <Link
-                      to="/categories/$id"
-                      params={{ id: c.id }}
+                    <GuestGuardLink
+                      actionKey="feed.rail.category"
+                      to={`/categories/${c.id}`}
                       className={`flex flex-1 items-center gap-[10px] py-[8px] pl-[10px] transition-colors hover:bg-[var(--background-surface)] ${hasSubs ? "rounded-l-[10px] pr-[4px]" : "rounded-[10px] pr-[10px]"}`}
                     >
                       <span
@@ -140,7 +152,7 @@ export function FeedRightRail() {
                           {online} онлайн
                         </span>
                       </span>
-                    </Link>
+                    </GuestGuardLink>
                     {hasSubs && (
                       <button
                         type="button"
@@ -164,14 +176,14 @@ export function FeedRightRail() {
                     >
                       {c.subcategories.map((s) => (
                         <li key={s.id}>
-                          <Link
-                            to="/categories/$id/$subId"
-                            params={{ id: c.id, subId: s.id }}
+                          <GuestGuardLink
+                            actionKey="feed.rail.subcategory"
+                            to={`/categories/${c.id}/${s.id}`}
                             className="block rounded-[6px] px-[8px] py-[5px] text-[12.5px] transition-colors hover:bg-[var(--background-surface)]"
                             style={{ color: "var(--foreground-70)" }}
                           >
                             {s.name}
-                          </Link>
+                          </GuestGuardLink>
                         </li>
                       ))}
                     </ul>

@@ -28,7 +28,7 @@ class AdminPostController extends Controller
         $q = trim((string) request()->query('q', ''));
 
         $items = Post::query()
-            ->with(['author.profile', 'category', 'community'])
+            ->with(['author.profile', 'category', 'community', 'mediaItems.media'])
             ->when(ContentStatus::tryFrom($status), fn ($query, $s) => $query->where('status', $s))
             ->when($q !== '', fn ($query) => $query->where('title', 'ilike', '%'.$q.'%'))
             ->latest()
@@ -65,7 +65,7 @@ class AdminPostController extends Controller
 
         $audit->log(request()->user(), 'admin.posts.update', $post, $old, $post->fresh()->toArray(), request());
 
-        return new PostResource($post->fresh(['author.profile', 'category', 'community']));
+        return new PostResource($post->fresh(['author.profile', 'category', 'community', 'mediaItems.media']));
     }
 
     #[PathParameter('uuid', description: 'UUID публикации')]

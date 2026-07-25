@@ -14,4 +14,13 @@ final class ListingPlacementConfig
 
         return (bool) ($value['enabled'] ?? false);
     }
+
+    public static function defaultPriceCents(): int
+    {
+        $value = SystemSetting::query()
+            ->where('key', 'listing.placement.default_price_cents')
+            ->value('value');
+
+        return max(0, (int) ($value['cents'] ?? 3000));
+    }
 }

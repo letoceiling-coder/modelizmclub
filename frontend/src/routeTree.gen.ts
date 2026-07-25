@@ -64,7 +64,9 @@ import { Route as AdsNewRouteImport } from './routes/ads.new'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
 import { Route as AdminDesignSystemRouteImport } from './routes/admin.design-system'
 import { Route as CategoriesIdIndexRouteImport } from './routes/categories.$id.index'
+import { Route as OauthVkCallbackRouteImport } from './routes/oauth.vk.callback'
 import { Route as CategoriesIdSubIdRouteImport } from './routes/categories.$id.$subId'
+import { Route as AdminListingsUuidRouteImport } from './routes/admin.listings.$uuid'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -341,10 +343,20 @@ const CategoriesIdIndexRoute = CategoriesIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CategoriesIdRoute,
 } as any)
+const OauthVkCallbackRoute = OauthVkCallbackRouteImport.update({
+  id: '/oauth/vk/callback',
+  path: '/oauth/vk/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoriesIdSubIdRoute = CategoriesIdSubIdRouteImport.update({
   id: '/$subId',
   path: '/$subId',
   getParentRoute: () => CategoriesIdRoute,
+} as any)
+const AdminListingsUuidRoute = AdminListingsUuidRouteImport.update({
+  id: '/listings/$uuid',
+  path: '/listings/$uuid',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -402,7 +414,9 @@ export interface FileRoutesByFullPath {
   '/communities/': typeof CommunitiesIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/admin/listings/$uuid': typeof AdminListingsUuidRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
+  '/oauth/vk/callback': typeof OauthVkCallbackRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -454,7 +468,9 @@ export interface FileRoutesByTo {
   '/communities': typeof CommunitiesIndexRoute
   '/reviews': typeof ReviewsIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/admin/listings/$uuid': typeof AdminListingsUuidRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
+  '/oauth/vk/callback': typeof OauthVkCallbackRoute
   '/categories/$id': typeof CategoriesIdIndexRoute
 }
 export interface FileRoutesById {
@@ -513,7 +529,9 @@ export interface FileRoutesById {
   '/communities/': typeof CommunitiesIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/admin/listings/$uuid': typeof AdminListingsUuidRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
+  '/oauth/vk/callback': typeof OauthVkCallbackRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -573,7 +591,9 @@ export interface FileRouteTypes {
     | '/communities/'
     | '/reviews/'
     | '/settings/'
+    | '/admin/listings/$uuid'
     | '/categories/$id/$subId'
+    | '/oauth/vk/callback'
     | '/categories/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -625,7 +645,9 @@ export interface FileRouteTypes {
     | '/communities'
     | '/reviews'
     | '/settings'
+    | '/admin/listings/$uuid'
     | '/categories/$id/$subId'
+    | '/oauth/vk/callback'
     | '/categories/$id'
   id:
     | '__root__'
@@ -683,7 +705,9 @@ export interface FileRouteTypes {
     | '/communities/'
     | '/reviews/'
     | '/settings/'
+    | '/admin/listings/$uuid'
     | '/categories/$id/$subId'
+    | '/oauth/vk/callback'
     | '/categories/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -719,6 +743,7 @@ export interface RootRouteChildren {
   LegalRulesRoute: typeof LegalRulesRoute
   UserIdRoute: typeof UserIdRoute
   ChannelsIndexRoute: typeof ChannelsIndexRoute
+  OauthVkCallbackRoute: typeof OauthVkCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1108,6 +1133,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesIdIndexRouteImport
       parentRoute: typeof CategoriesIdRoute
     }
+    '/oauth/vk/callback': {
+      id: '/oauth/vk/callback'
+      path: '/oauth/vk/callback'
+      fullPath: '/oauth/vk/callback'
+      preLoaderRoute: typeof OauthVkCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/categories/$id/$subId': {
       id: '/categories/$id/$subId'
       path: '/$subId'
@@ -1115,15 +1147,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesIdSubIdRouteImport
       parentRoute: typeof CategoriesIdRoute
     }
+    '/admin/listings/$uuid': {
+      id: '/admin/listings/$uuid'
+      path: '/listings/$uuid'
+      fullPath: '/admin/listings/$uuid'
+      preLoaderRoute: typeof AdminListingsUuidRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
   AdminDesignSystemRoute: typeof AdminDesignSystemRoute
+  AdminListingsUuidRoute: typeof AdminListingsUuidRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDesignSystemRoute: AdminDesignSystemRoute,
+  AdminListingsUuidRoute: AdminListingsUuidRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1265,6 +1306,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalRulesRoute: LegalRulesRoute,
   UserIdRoute: UserIdRoute,
   ChannelsIndexRoute: ChannelsIndexRoute,
+  OauthVkCallbackRoute: OauthVkCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

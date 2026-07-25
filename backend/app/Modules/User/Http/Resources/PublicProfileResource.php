@@ -21,6 +21,7 @@ class PublicProfileResource extends JsonResource
 
         return [
             'id' => $this->user_id,
+            'uuid' => $this->user?->uuid,
             'display_name' => $this->display_name,
             'slug' => $this->slug,
             'bio' => $this->bio,
@@ -33,6 +34,10 @@ class PublicProfileResource extends JsonResource
                 'uuid' => $this->avatar->uuid,
                 'url' => $this->avatar->url ?? null,
             ] : null),
+            'cover' => $this->whenLoaded('cover', fn () => $this->cover ? [
+                'uuid' => $this->cover->uuid,
+                'url' => $this->cover->url ?? null,
+            ] : null),
             'stats' => [
                 'publications_count' => $this->publications_count,
                 'followers_count' => $this->followers_count,
@@ -43,6 +48,14 @@ class PublicProfileResource extends JsonResource
             'is_following' => $this->when(
                 $this->getAttribute('is_following') !== null,
                 (bool) $this->getAttribute('is_following'),
+            ),
+            'is_friend' => $this->when(
+                $this->getAttribute('is_friend') !== null,
+                (bool) $this->getAttribute('is_friend'),
+            ),
+            'friend_request_status' => $this->when(
+                $this->getAttribute('friend_request_status') !== null,
+                $this->getAttribute('friend_request_status'),
             ),
             'permissions' => [
                 'can_view_email' => $isOwner || ($privacy['show_email'] ?? false),

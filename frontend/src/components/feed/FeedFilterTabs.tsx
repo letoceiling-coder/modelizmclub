@@ -1,3 +1,6 @@
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { FEED_FILTER_ACTIONS } from "@/lib/feed-guest-access/registry";
+
 export type FeedFilter = "all" | "following" | "categories" | "saved";
 
 interface Props {
@@ -5,10 +8,6 @@ interface Props {
   onChange: (v: FeedFilter) => void;
 }
 
-// Labels kept short so all four tabs fit a 360px viewport WITHOUT horizontal
-// scroll: the strip is sticky (always under the finger while scrolling), and
-// an overflowing strip pans sideways on diagonal gestures — the reported
-// "feed drifts left-right" jank.
 const items: { id: FeedFilter; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "following", label: "Подписки" },
@@ -17,6 +16,8 @@ const items: { id: FeedFilter; label: string }[] = [
 ];
 
 export function FeedFilterTabs({ value, onChange }: Props) {
+  const { guardAction } = useGuestAccess();
+
   return (
     <div
       className="sticky top-0 z-20 -mx-3 border-y px-[12px] backdrop-blur lg:mx-0 lg:rounded-[12px] lg:border"
@@ -31,12 +32,11 @@ export function FeedFilterTabs({ value, onChange }: Props) {
           return (
             <button
               key={it.id}
-              onClick={() => onChange(it.id)}
+              onClick={() => guardAction(FEED_FILTER_ACTIONS[it.id], () => onChange(it.id))}
               className="shrink-0 whitespace-nowrap px-[6px] py-[12px] text-[13.5px] transition-colors sm:px-[16px] sm:text-[14px]"
               style={{
                 color: active ? "var(--accent)" : "var(--foreground-70)",
                 fontWeight: active ? 600 : 500,
-                // Static underline — no cross-strip flight animation.
                 boxShadow: active ? "inset 0 -2px 0 var(--accent)" : "none",
               }}
             >

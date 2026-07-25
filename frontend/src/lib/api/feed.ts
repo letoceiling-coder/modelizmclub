@@ -15,7 +15,7 @@ interface ApiPostAuthor {
 
 interface ApiPostMedia {
   type?: string;
-  media?: { url?: string | null } | null;
+  media?: { url?: string | null; mime_type?: string | null } | null;
 }
 
 export interface ApiPost {
@@ -29,6 +29,7 @@ export interface ApiPost {
   hashtags?: string[];
   stats?: { views?: number; reactions?: number; comments?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean };
+  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean };
   published_at?: string | null;
   created_at?: string;
 }
@@ -53,11 +54,25 @@ function registerAuthor(a?: ApiPostAuthor | null): User | null {
   return user;
 }
 
-export function mapPost(p: ApiPost): Post {
-  const author = registerAuthor(p.author);
-  const images = (p.media ?? [])
+function isVideoMedia(m: ApiPostMedia): boolean {
+  if (m.type === "video") return true;
+  const mime = m.media?.mime_type ?? "";
+  return mime.startsWith("video/");
+}
+
+export function mapPostMedia(p: ApiPost): { images: string[]; video?: string } {
+  const media = p.media ?? [];
+  const images = media
+    .filter((m) => !isVideoMedia(m))
     .map((m) => m.media?.url)
     .filter((u): u is string => Boolean(u));
+  const video = media.find(isVideoMedia)?.media?.url ?? undefined;
+  return { images, video };
+}
+
+export function mapPost(p: ApiPost): Post {
+  const author = registerAuthor(p.author);
+  const { images, video } = mapPostMedia(p);
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
@@ -67,6 +82,7 @@ export function mapPost(p: ApiPost): Post {
     text: p.body ?? "",
     image: images[0],
     images,
+    video,
     tags: p.hashtags ?? [],
     views: p.stats?.views ?? 0,
     likes: p.stats?.reactions ?? 0,
@@ -76,6 +92,7 @@ export function mapPost(p: ApiPost): Post {
     status: p.status === "published" ? "published" : "moderation",
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
+    canDelete: p.permissions?.can_delete ?? false,
   };
 }
 
@@ -231,4 +248,9 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
 export async function publishPost(uuid: string): Promise<Post> {
   const res = await api<{ data: ApiPost }>(`/posts/${uuid}/publish`, { method: "POST" });
   return mapPost(res.data);
+}
+
+export async function deletePost(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/posts/${uuid}`, { method: "DELETE" });
 }

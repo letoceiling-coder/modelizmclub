@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { SUPPORT_LINKS, COMPANY_LINKS, DOCS_LINKS, SOCIAL_LINKS } from "@/lib/footer-links";
+import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
+import { SUPPORT_LINKS, COMPANY_LINKS, DOCS_LINKS } from "@/lib/footer-links";
+import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
 
 const COLUMNS: { title: string; links: typeof SUPPORT_LINKS }[] = [
   { title: "Поддержка", links: SUPPORT_LINKS },
@@ -8,12 +10,14 @@ const COLUMNS: { title: string; links: typeof SUPPORT_LINKS }[] = [
 ];
 
 export function AppFooter() {
+  const contacts = useFooterContacts();
+
   return (
     <footer
       className="mt-[32px] w-full"
       style={{ borderTop: "1px solid var(--border)" }}
     >
-      <div className="grid gap-[24px] py-[24px] sm:grid-cols-3">
+      <div className="grid gap-[24px] py-[24px] sm:grid-cols-2 lg:grid-cols-4">
         {COLUMNS.map((col) => (
           <div key={col.title}>
             <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
@@ -36,23 +40,12 @@ export function AppFooter() {
             </ul>
           </div>
         ))}
-      </div>
 
-      <div className="flex flex-wrap items-center gap-[10px] pb-[16px]">
-        {SOCIAL_LINKS.map((s) => (
-          <span
-            key={s.label}
-            title="Скоро"
-            className="inline-flex items-center rounded-[var(--r-pill)] px-[10px] py-[4px] text-[11px] font-semibold"
-            style={{
-              background: "var(--background-surface)",
-              color: "var(--foreground-50)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            {s.label}
-          </span>
-        ))}
+        <FooterContactsBlock
+          contacts={contacts}
+          listClassName="mt-[10px] flex flex-col gap-[8px] text-[13px]"
+          titleClassName="text-[13px] font-semibold"
+        />
       </div>
 
       <div className="pb-[24px] text-[11px]" style={{ color: "var(--foreground-30)" }}>

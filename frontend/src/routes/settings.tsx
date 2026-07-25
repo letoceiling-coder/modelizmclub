@@ -5,10 +5,6 @@ import { SettingsDesktopRail } from "@/components/settings/SettingsDesktopRail";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Настройки — МоДелизМ" }] }),
-  beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
-  },
   component: SettingsLayout,
 });
 

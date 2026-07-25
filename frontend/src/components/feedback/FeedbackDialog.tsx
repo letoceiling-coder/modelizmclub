@@ -10,12 +10,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { submitFeedback } from "@/lib/api/feedback";
+import { usePostCategories } from "@/lib/hooks/useCategories";
+
+const OTHER_DIRECTION = "Другое";
 
 export function FeedbackDialog() {
   const [open, setOpen] = useState(false);
-  const [subject, setSubject] = useState("");
+  const [direction, setDirection] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const categories = usePostCategories();
+
+  function resetForm() {
+    setDirection("");
+    setMessage("");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,13 +36,12 @@ export function FeedbackDialog() {
     setSending(true);
     try {
       await submitFeedback({
-        subject: subject.trim() || undefined,
+        subject: direction || undefined,
         message: text,
         page: typeof window !== "undefined" ? window.location.pathname : undefined,
       });
       toast.success("Спасибо! Ваше сообщение отправлено");
-      setSubject("");
-      setMessage("");
+      resetForm();
       setOpen(false);
     } catch {
       toast.error("Не удалось отправить. Попробуйте позже");
@@ -43,7 +51,13 @@ export function FeedbackDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
         <button
           type="button"
@@ -61,14 +75,19 @@ export function FeedbackDialog() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Тема (необязательно)"
-            maxLength={120}
+          <select
+            value={direction}
+            onChange={(e) => setDirection(e.target.value)}
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
-          />
+          >
+            <option value="">Направление (необязательно)</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+            <option value={OTHER_DIRECTION}>{OTHER_DIRECTION}</option>
+          </select>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}

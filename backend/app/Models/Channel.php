@@ -24,6 +24,8 @@ class Channel extends Model
         'kind',
         'avatar_color',
         'banner_color',
+        'avatar_media_id',
+        'banner_media_id',
         'subscribers_count',
         'is_active',
     ];
@@ -39,6 +41,16 @@ class Channel extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function avatar(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'avatar_media_id');
+    }
+
+    public function banner(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'banner_media_id');
     }
 
     public function posts(): HasMany

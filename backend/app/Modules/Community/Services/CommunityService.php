@@ -31,7 +31,15 @@ class CommunityService
                 });
             })
             ->when(isset($filters['official']), fn ($q) => $q->where('is_official', (bool) $filters['official']))
-            ->when(($filters['owned'] ?? false) && $viewer, fn ($q) => $q->where('created_by', $viewer->id));
+            ->when(($filters['owned'] ?? false) && $viewer, function ($q) use ($viewer): void {
+                $q->where(function ($q) use ($viewer): void {
+                    $q->where('created_by', $viewer->id)
+                        ->orWhereHas('members', function ($q) use ($viewer): void {
+                            $q->where('users.id', $viewer->id)
+                                ->where('community_members.role', CommunityMemberRole::Owner->value);
+                        });
+                });
+            });
 
         // Варианты сортировки: popular (участники), newest, name; по умолчанию — официальные и крупные вперёд.
         match ($filters['sort'] ?? null) {
@@ -202,6 +210,22 @@ class CommunityService
             ->with('profile')
             ->orderByDesc('community_members.joined_at')
             ->paginate($perPage);
+    }
+
+    /**
+     * Удалить сообщество (soft delete). Только владелец.
+     *
+     * @throws ValidationException
+     */
+    public function delete(Community $community, User $actor, string $confirmName): void
+    {
+        if (trim($confirmName) !== $community->name) {
+            throw ValidationException::withMessages([
+                'confirm_name' => ['Введите точное название сообщества для подтверждения.'],
+            ]);
+        }
+
+        $community->delete();
     }
 
     public function findActiveBySlug(string $slug): Community

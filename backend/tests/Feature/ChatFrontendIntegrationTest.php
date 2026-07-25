@@ -12,6 +12,7 @@ use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\Media;
 use App\Models\Message;
+use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\UserProfile;
@@ -224,6 +225,86 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
+    public function test_delete_message_for_everyone_removes_it_for_both_participants(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $conv = $this->directConversation($a, $b);
+
+        $message = Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $a->id,
+            'body' => 'Oops',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+
+        $this->actingAs($a, 'sanctum')
+            ->deleteJson("/api/v1/conversations/{$conv->uuid}/messages/{$message->uuid}/everyone")
+            ->assertOk()
+            ->assertJsonPath('message', 'ok');
+
+        $this->assertSoftDeleted('messages', ['id' => $message->id]);
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->actingAs($b, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_delete_message_for_everyone_rejects_non_author(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $conv = $this->directConversation($a, $b);
+
+        $message = Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $a->id,
+            'body' => 'Mine',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+
+        $this->actingAs($b, 'sanctum')
+            ->deleteJson("/api/v1/conversations/{$conv->uuid}/messages/{$message->uuid}/everyone")
+            ->assertUnprocessable();
+    }
+
+    public function test_clear_conversation_history_for_current_user_only(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $conv = $this->directConversation($a, $b);
+
+        foreach (['First', 'Second'] as $body) {
+            Message::create([
+                'conversation_id' => $conv->id,
+                'user_id' => $a->id,
+                'body' => $body,
+                'type' => 'text',
+                'status' => 'sent',
+            ]);
+        }
+
+        $this->actingAs($a, 'sanctum')
+            ->deleteJson("/api/v1/conversations/{$conv->uuid}/history")
+            ->assertOk()
+            ->assertJsonPath('message', 'ok');
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->actingAs($b, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
     public function test_pin_and_unpin_message(): void
     {
         [$a, $b] = $this->usersWithProfiles();
@@ -319,6 +400,65 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonCount(0, 'data');
 
         $this->actingAs($b, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_reopening_chat_after_delete_reuses_same_conversation(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $conv = $this->directConversation($a, $b);
+
+        $this->actingAs($a, 'sanctum')
+            ->deleteJson("/api/v1/conversations/{$conv->uuid}")
+            ->assertOk();
+
+        $reopened = $this->actingAs($a, 'sanctum')
+            ->postJson('/api/v1/conversations', ['user_id' => $b->id])
+            ->assertCreated();
+
+        $this->assertSame($conv->uuid, $reopened->json('data.uuid'));
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->actingAs($b, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $conv->uuid);
+    }
+
+    public function test_reopening_chat_hides_duplicate_direct_conversations(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $conv1 = $this->directConversation($a, $b);
+
+        ConversationParticipant::query()
+            ->where('conversation_id', $conv1->id)
+            ->where('user_id', $a->id)
+            ->update(['left_at' => now()]);
+
+        $conv2 = $this->directConversation($a, $b);
+
+        $this->actingAs($b, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->actingAs($a, 'sanctum')
+            ->postJson('/api/v1/conversations', ['user_id' => $b->id])
+            ->assertCreated();
+
+        $this->actingAs($b, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->actingAs($a, 'sanctum')
             ->getJson('/api/v1/conversations')
             ->assertOk()
             ->assertJsonCount(1, 'data');
@@ -426,5 +566,172 @@ class ChatFrontendIntegrationTest extends TestCase
             'user_id' => $user->id,
             'avatar_media_id' => $media->id,
         ]);
+    }
+
+    public function test_conversation_list_includes_unread_count_and_mark_read_clears_it(): void
+    {
+        [$sender, $recipient] = $this->usersWithProfiles();
+        $conv = $this->directConversation($sender, $recipient);
+
+        Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $sender->id,
+            'body' => 'Hello',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+        $second = Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $sender->id,
+            'body' => 'Second',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $conv->uuid)
+            ->assertJsonPath('data.0.unread_count', 2);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conv->uuid}/read")
+            ->assertOk()
+            ->assertJsonPath('read', true);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonPath('data.0.unread_count', 0);
+
+        $participant = ConversationParticipant::query()
+            ->where('conversation_id', $conv->id)
+            ->where('user_id', $recipient->id)
+            ->first();
+
+        $this->assertSame($second->id, $participant?->last_read_message_id);
+    }
+
+    public function test_sent_message_is_not_read_until_recipient_opens_dialog(): void
+    {
+        [$sender, $recipient] = $this->usersWithProfiles();
+        $conv = $this->directConversation($sender, $recipient);
+
+        $created = $this->actingAs($sender, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conv->uuid}/messages", [
+                'body' => 'Привет',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'sent');
+
+        $messageUuid = $created->json('data.uuid');
+
+        $this->assertSame(
+            0,
+            $recipient->fresh()->notifications()->where('data->type', 'message')->count(),
+        );
+
+        $this->actingAs($recipient, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conv->uuid}/read")
+            ->assertOk();
+
+        $this->actingAs($sender, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $messageUuid)
+            ->assertJsonPath('data.0.status', 'read');
+    }
+
+    public function test_message_is_delivered_when_recipient_was_active_after_send(): void
+    {
+        [$sender, $recipient] = $this->usersWithProfiles();
+        $conv = $this->directConversation($sender, $recipient);
+
+        $recipient->forceFill(['last_seen_at' => now()->subHour()])->save();
+
+        $created = $this->actingAs($sender, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conv->uuid}/messages", [
+                'body' => 'Ping',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'sent');
+
+        $messageUuid = $created->json('data.uuid');
+
+        $recipient->forceFill(['last_seen_at' => now()])->save();
+
+        $this->actingAs($sender, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $messageUuid)
+            ->assertJsonPath('data.0.status', 'delivered');
+    }
+
+    public function test_category_room_conversation_is_excluded_from_messenger_list(): void
+    {
+        [$a, $b] = $this->usersWithProfiles();
+        $direct = $this->directConversation($a, $b);
+
+        $parent = PostCategory::create([
+            'name' => 'Aviation',
+            'slug' => 'aviation',
+            'sort_order' => 10,
+            'depth' => 0,
+            'path' => 'aviation',
+            'is_active' => true,
+        ]);
+
+        $sub = PostCategory::create([
+            'parent_id' => $parent->id,
+            'name' => 'WWII',
+            'slug' => 'wwii',
+            'sort_order' => 10,
+            'depth' => 1,
+            'path' => 'aviation/wwii',
+            'is_active' => true,
+        ]);
+
+        $room = Conversation::create([
+            'type' => ConversationType::Room,
+            'post_category_id' => $sub->id,
+            'title' => $sub->name,
+            'last_message_at' => now(),
+        ]);
+
+        foreach ([$a, $b] as $user) {
+            ConversationParticipant::create([
+                'conversation_id' => $room->id,
+                'user_id' => $user->id,
+                'role' => 'member',
+                'joined_at' => now(),
+            ]);
+        }
+
+        Message::create([
+            'conversation_id' => $room->id,
+            'user_id' => $a->id,
+            'body' => 'ПИШУ В НАПРАВЛЕНИЯ',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $direct->uuid)
+            ->assertJsonPath('data.0.type', ConversationType::Direct->value);
+
+        $this->actingAs($a, 'sanctum')
+            ->postJson("/api/v1/conversations/{$room->uuid}/messages", [
+                'body' => 'Ещё одно сообщение в комнату',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($a, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $direct->uuid);
     }
 }

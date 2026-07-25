@@ -2,9 +2,12 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User, UserPlus } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
-import { getActiveSection } from "@/lib/routes";
-import { useStore } from "@/lib/store";
+import { getActiveSection, ROUTES } from "@/lib/routes";
+import { useStore, selectors } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
+import { getToken } from "@/lib/api/client";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
@@ -25,8 +28,6 @@ export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
-  // Обзоры (reviews) lives in the mobile "…" menu, not the tab bar; Друзья
-  // takes the tab-bar slot. Only communities remains flag-gated here.
   const ITEMS = ALL_ITEMS.filter((i) => i.to !== "/communities" || communitiesEnabled);
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
@@ -63,38 +64,57 @@ export function BottomNav() {
 }
 
 function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: number }) {
+  const isGuest = !getToken();
+  const actionKey = NAV_ROUTE_TO_ACTION[item.to];
+  const content = (
+    <>
+      <span className="relative inline-flex">
+        <SlotIcon slot={navSlotKey(item.section)} inheritColor size={22} strokeWidth={active ? 2.4 : 2} />
+        {badge > 0 && (
+          <span
+            className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
+            style={{
+              height: 15,
+              fontSize: 9,
+              fontWeight: 700,
+              color: "var(--accent-foreground)",
+              background: "var(--accent)",
+              boxShadow: "0 0 0 2px var(--background)",
+            }}
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </span>
+      <span
+        className="font-medium"
+        style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}
+      >
+        {item.label}
+      </span>
+    </>
+  );
+
   return (
     <li className="flex">
-      <Link
-        to={item.to}
-        className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
-        style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
-      >
-        <span className="relative inline-flex">
-          <SlotIcon slot={navSlotKey(item.section)} inheritColor size={22} strokeWidth={active ? 2.4 : 2} />
-          {badge > 0 && (
-            <span
-              className="absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
-              style={{
-                height: 15,
-                fontSize: 9,
-                fontWeight: 700,
-                color: "var(--accent-foreground)",
-                background: "var(--accent)",
-                boxShadow: "0 0 0 2px var(--background)",
-              }}
-            >
-              {badge > 9 ? "9+" : badge}
-            </span>
-          )}
-        </span>
-        <span
-          className="font-medium"
-          style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}
+      {isGuest && actionKey ? (
+        <GuestGuardLink
+          actionKey={actionKey}
+          to={item.to}
+          className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
+          style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
         >
-          {item.label}
-        </span>
-      </Link>
+          {content}
+        </GuestGuardLink>
+      ) : (
+        <Link
+          to={item.to}
+          className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
+          style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
+        >
+          {content}
+        </Link>
+      )}
     </li>
   );
 }

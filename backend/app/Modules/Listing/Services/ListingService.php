@@ -7,6 +7,10 @@ use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\ListingMedia;
 use App\Models\Media;
+use App\Models\ModerationQueue;
+use App\Models\Payment;
+use App\Models\Promocode;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -236,7 +240,7 @@ class ListingService
             }
 
             $publish = (bool) ($data['publish'] ?? true);
-            [$status, $publishedAt] = $this->resolveCreateStatus($user, $publish);
+            [$status, $publishedAt, $placementMeta] = $this->resolveCreateStatus($user, $publish, $data);
 
             $listing = Listing::create([
                 'user_id' => $user->id,
@@ -250,9 +254,22 @@ class ListingService
                 'delivery_methods' => $data['delivery_methods'] ?? [],
                 'status' => $status,
                 'published_at' => $publishedAt,
+                'placement_payment_id' => $placementMeta['placement_payment_id'] ?? null,
+                'placement_amount_cents' => $placementMeta['placement_amount_cents'] ?? null,
+                'placement_was_free' => $placementMeta['placement_was_free'] ?? false,
+                'placement_promocode_id' => $placementMeta['placement_promocode_id'] ?? null,
             ]);
 
+            if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
+                app(\Modules\Billing\Services\PromocodeService::class)
+                    ->recordUsage($placementMeta['record_promocode'], $user, $placementMeta['placement_payment_id'] ?? null);
+            }
+
             $this->syncMedia($listing, $user, $data['media_ids'] ?? []);
+
+            if ($status === ListingStatus::PendingModeration) {
+                $this->enqueueModeration($listing);
+            }
 
             return $listing->fresh($this->relations());
         });
@@ -294,9 +311,32 @@ class ListingService
         });
     }
 
-    public function setStatus(Listing $listing, User $user, ListingStatus $status): Listing
+    public function setStatus(Listing $listing, User $user, ListingStatus $status, array $context = []): Listing
     {
         $this->assertOwner($listing, $user);
+
+        if ($status === ListingStatus::Published && $listing->status !== ListingStatus::Published) {
+            [$resolvedStatus, $publishedAt, $placementMeta] = $this->resolveCreateStatus($user, true, array_merge([
+                'category_id' => $listing->category_id,
+                'subcategory_id' => $listing->subcategory_id,
+            ], $context));
+            $listing->placement_payment_id = $placementMeta['placement_payment_id'] ?? $listing->placement_payment_id;
+            $listing->placement_amount_cents = $placementMeta['placement_amount_cents'] ?? $listing->placement_amount_cents;
+            $listing->placement_was_free = $placementMeta['placement_was_free'] ?? $listing->placement_was_free;
+            $listing->placement_promocode_id = $placementMeta['placement_promocode_id'] ?? $listing->placement_promocode_id;
+
+            if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
+                app(\Modules\Billing\Services\PromocodeService::class)
+                    ->recordUsage($placementMeta['record_promocode'], $user, $placementMeta['placement_payment_id'] ?? null);
+            }
+
+            $status = $resolvedStatus;
+            if ($publishedAt !== null) {
+                $listing->published_at = $publishedAt;
+            } elseif ($status === ListingStatus::PendingModeration) {
+                $listing->published_at = null;
+            }
+        }
 
         $listing->status = $status;
         if ($status === ListingStatus::Published && $listing->published_at === null) {
@@ -304,7 +344,72 @@ class ListingService
         }
         $listing->save();
 
+        if ($status === ListingStatus::PendingModeration) {
+            $this->enqueueModeration($listing);
+        }
+
         return $listing->fresh($this->relations());
+    }
+
+    /**
+     * Whether new listings should be auto-published (moderation OFF).
+     * Controlled by admin `moderation_auto_publish` SystemSetting (JSON `{ "enabled": bool }`).
+     */
+    public function autoPublishEnabled(): bool
+    {
+        $setting = SystemSetting::query()
+            ->where('key', 'moderation_auto_publish')
+            ->value('value');
+
+        if (is_array($setting) && array_key_exists('enabled', $setting)) {
+            return (bool) $setting['enabled'];
+        }
+
+        return false;
+    }
+
+    public function markPublished(Listing $listing): void
+    {
+        $listing->update([
+            'status' => ListingStatus::Published,
+            'published_at' => $listing->published_at ?? now(),
+        ]);
+
+        ModerationQueue::query()
+            ->where('moderatable_type', Listing::class)
+            ->where('moderatable_id', $listing->id)
+            ->update(['status' => 'approved']);
+    }
+
+    /** Apply moderation gate after placement/payment is resolved. */
+    public function finalizeAfterPlacement(Listing $listing): Listing
+    {
+        if ($this->autoPublishEnabled()) {
+            $this->markPublished($listing);
+        } else {
+            $listing->update([
+                'status' => ListingStatus::PendingModeration,
+                'published_at' => null,
+            ]);
+            $this->enqueueModeration($listing);
+        }
+
+        return $listing->fresh();
+    }
+
+    public function enqueueModeration(Listing $listing): void
+    {
+        ModerationQueue::query()->updateOrCreate(
+            [
+                'moderatable_type' => Listing::class,
+                'moderatable_id' => $listing->id,
+            ],
+            [
+                'queue' => 'listings',
+                'priority' => 0,
+                'status' => 'pending',
+            ],
+        );
     }
 
     public function delete(Listing $listing, User $user): void
@@ -405,27 +510,107 @@ class ListingService
         }
     }
 
-    /** @return array{0: ListingStatus, 1: \Illuminate\Support\Carbon|null} */
-    private function resolveCreateStatus(User $user, bool $publish): array
+    /** @return array{0: ListingStatus, 1: \Illuminate\Support\Carbon|null, 2: array<string, mixed>} */
+    private function resolveCreateStatus(User $user, bool $publish, array $data = []): array
     {
         if (! $publish) {
-            return [ListingStatus::Draft, null];
+            return [ListingStatus::Draft, null, []];
         }
 
         if (! ListingPlacementConfig::paymentEnabled()) {
-            return [ListingStatus::Published, now()];
+            [$status, $publishedAt] = $this->gatePublishStatus();
+
+            return [$status, $publishedAt, ['placement_was_free' => true, 'placement_amount_cents' => 0]];
+        }
+
+        $pricing = app(ListingPlacementPricingService::class);
+        $quote = $pricing->quote(
+            $user,
+            isset($data['category_id']) ? (int) $data['category_id'] : null,
+            isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
+            $data['promocode'] ?? null,
+        );
+
+        if (($quote['promocode']['error'] ?? null) !== null) {
+            throw ValidationException::withMessages([
+                'promocode' => [$quote['promocode']['error']],
+            ]);
+        }
+
+        $promocode = null;
+        if (isset($quote['promocode']['id'])) {
+            $promocode = Promocode::query()->find($quote['promocode']['id']);
+        }
+
+        if ($quote['final_cents'] === 0) {
+            [$status, $publishedAt] = $this->gatePublishStatus();
+
+            return [
+                $status,
+                $publishedAt,
+                [
+                    'placement_was_free' => true,
+                    'placement_amount_cents' => 0,
+                    'placement_promocode_id' => $promocode?->id,
+                    'record_promocode' => $promocode,
+                ],
+            ];
+        }
+
+        $paymentUuid = $data['placement_payment_uuid'] ?? null;
+        if ($paymentUuid) {
+            $payment = Payment::query()
+                ->where('uuid', $paymentUuid)
+                ->where('user_id', $user->id)
+                ->where('status', 'paid')
+                ->first();
+
+            if ($payment && ($payment->metadata['payable_type'] ?? null) === 'listing_placement') {
+                [$status, $publishedAt] = $this->gatePublishStatus();
+
+                return [
+                    $status,
+                    $publishedAt,
+                    [
+                        'placement_payment_id' => $payment->id,
+                        'placement_amount_cents' => $payment->amount_cents,
+                        'placement_was_free' => false,
+                        'placement_promocode_id' => $promocode?->id ?? ($payment->metadata['promocode_id'] ?? null),
+                        'record_promocode' => $promocode,
+                    ],
+                ];
+            }
         }
 
         $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        if ($locked->listing_placement_credits < 1) {
-            throw ValidationException::withMessages([
-                'publish' => ['Для публикации объявления нужна оплата. Купите размещение в разделе «Подписка».'],
-            ]);
+        if ($locked->listing_placement_credits >= 1) {
+            $locked->decrement('listing_placement_credits');
+
+            [$status, $publishedAt] = $this->gatePublishStatus();
+
+            return [
+                $status,
+                $publishedAt,
+                [
+                    'placement_was_free' => false,
+                    'placement_amount_cents' => $quote['final_cents'],
+                ],
+            ];
         }
 
-        $locked->decrement('listing_placement_credits');
+        throw ValidationException::withMessages([
+            'publish' => ['Для публикации объявления нужна оплата.'],
+        ])->errorBag('default');
+    }
 
-        return [ListingStatus::Published, now()];
+    /** @return array{0: ListingStatus, 1: \Illuminate\Support\Carbon|null} */
+    private function gatePublishStatus(): array
+    {
+        if ($this->autoPublishEnabled()) {
+            return [ListingStatus::Published, now()];
+        }
+
+        return [ListingStatus::PendingModeration, null];
     }
 }

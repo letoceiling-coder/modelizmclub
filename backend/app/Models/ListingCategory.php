@@ -18,6 +18,7 @@ class ListingCategory extends Model
         'depth',
         'path',
         'listing_price_cents',
+        'subscriber_listing_price_cents',
     ];
 
     protected function casts(): array

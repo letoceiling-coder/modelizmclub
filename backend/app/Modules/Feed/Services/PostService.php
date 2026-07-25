@@ -118,6 +118,26 @@ class PostService
 
     public function delete(Post $post, User $user): void
     {
+        if ($post->user_id === $user->id) {
+            if (! in_array($post->status, [
+                ContentStatus::Draft,
+                ContentStatus::Revision,
+                ContentStatus::Published,
+                ContentStatus::PendingModeration,
+                ContentStatus::Rejected,
+                ContentStatus::Hidden,
+                ContentStatus::Archived,
+            ], true)) {
+                throw ValidationException::withMessages([
+                    'post' => ['Удаление недоступно для этой публикации.'],
+                ]);
+            }
+
+            $post->delete();
+
+            return;
+        }
+
         if (! $user->can('delete', $post)) {
             throw ValidationException::withMessages([
                 'post' => ['Удаление недоступно.'],

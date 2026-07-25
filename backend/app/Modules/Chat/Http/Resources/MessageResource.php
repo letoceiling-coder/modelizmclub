@@ -2,7 +2,10 @@
 
 namespace Modules\Chat\Http\Resources;
 
+use App\Models\ConversationParticipant;
 use App\Models\Message;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\User\Http\Resources\UserCompactResource;
@@ -16,7 +19,7 @@ class MessageResource extends JsonResource
             'uuid' => $this->uuid,
             'body' => $this->body,
             'type' => $this->type,
-            'status' => $this->status,
+            'status' => $this->resolveStatus($request),
             'author' => new UserCompactResource($this->whenLoaded('author')),
             'reply_to' => $this->whenLoaded('replyTo', fn () => $this->replyTo ? [
                 'uuid' => $this->replyTo->uuid,
@@ -43,5 +46,53 @@ class MessageResource extends JsonResource
             'created_at' => $this->created_at->toIso8601String(),
             'edited_at' => $this->edited_at?->toIso8601String(),
         ];
+    }
+
+    private function resolveStatus(Request $request): string
+    {
+        $stored = $this->status ?? 'sent';
+        $user = $request->user();
+
+        if (! $user || $this->user_id !== $user->id) {
+            return $stored;
+        }
+
+        $otherLastRead = $request->attributes->get('chat_other_last_read_message_id');
+        if ($otherLastRead === null && $this->conversation_id) {
+            $otherLastRead = ConversationParticipant::query()
+                ->where('conversation_id', $this->conversation_id)
+                ->where('user_id', '!=', $user->id)
+                ->whereNull('left_at')
+                ->value('last_read_message_id');
+        }
+
+        if ($otherLastRead !== null && $otherLastRead >= $this->id) {
+            return 'read';
+        }
+
+        $otherLastSeen = $request->attributes->get('chat_other_last_seen_at');
+        if ($otherLastSeen === null && $this->conversation_id) {
+            $otherLastSeen = User::query()
+                ->whereIn(
+                    'id',
+                    ConversationParticipant::query()
+                        ->where('conversation_id', $this->conversation_id)
+                        ->where('user_id', '!=', $user->id)
+                        ->whereNull('left_at')
+                        ->select('user_id'),
+                )
+                ->value('last_seen_at');
+        }
+
+        if ($otherLastSeen !== null && $this->created_at !== null) {
+            $seenAt = $otherLastSeen instanceof Carbon
+                ? $otherLastSeen
+                : Carbon::parse($otherLastSeen);
+            if ($seenAt->greaterThanOrEqualTo($this->created_at)) {
+                return 'delivered';
+            }
+        }
+
+        return 'sent';
     }
 }

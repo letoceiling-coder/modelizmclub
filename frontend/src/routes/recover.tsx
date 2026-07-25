@@ -16,7 +16,7 @@ function RecoverPage() {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const email = String(form.get("email") ?? "").trim().toLowerCase();
     setLoading(true);
     try {
       await forgotPassword(email);
@@ -57,7 +57,7 @@ function RecoverPage() {
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-[12px]">
-          <input required name="email" type="email" placeholder="Ваш email" style={inputStyle} />
+          <input required name="email" type="email" autoComplete="email" placeholder="Ваш email" style={inputStyle} />
           <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
             {loading ? "Отправляем…" : "Отправить ссылку"}
           </button>

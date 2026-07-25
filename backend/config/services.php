@@ -34,6 +34,14 @@ return [
     'vkontakte' => [
         'client_id' => env('VKONTAKTE_CLIENT_ID'),
         'client_secret' => env('VKONTAKTE_CLIENT_SECRET'),
+        'service_token' => env('VKONTAKTE_SERVICE_TOKEN', env('VKONTAKTE_CLIENT_SECRET')),
+        'redirect' => env('VKONTAKTE_REDIRECT_URI'),
+    ],
+
+    'vkid' => [
+        'client_id' => env('VKONTAKTE_CLIENT_ID'),
+        'client_secret' => env('VKONTAKTE_CLIENT_SECRET'),
+        'service_token' => env('VKONTAKTE_SERVICE_TOKEN', env('VKONTAKTE_CLIENT_SECRET')),
         'redirect' => env('VKONTAKTE_REDIRECT_URI'),
     ],
 

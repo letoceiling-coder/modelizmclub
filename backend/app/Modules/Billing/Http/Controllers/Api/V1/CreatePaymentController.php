@@ -9,29 +9,57 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Listing\Services\ListingPlacementPricingService;
 
 class CreatePaymentController extends Controller
 {
-    private const LISTING_PLACEMENT_CENTS = 9900;
-
-    public function __invoke(Request $request, PaymentGateway $gateway): JsonResponse
+    public function __invoke(Request $request, PaymentGateway $gateway, ListingPlacementPricingService $pricing): JsonResponse
     {
         $data = $request->validate([
             'plan_slug' => ['required_without:payable_type', 'nullable', 'string', 'exists:subscription_plans,slug'],
             'payable_type' => ['sometimes', 'nullable', 'string', Rule::in(['listing_placement'])],
+            'category_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
+            'subcategory_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
+            'promocode' => ['nullable', 'string', 'max:64'],
+            'listing_uuid' => ['nullable', 'uuid'],
             'idempotency_key' => ['nullable', 'string', 'max:128'],
         ]);
 
         $payableType = $data['payable_type'] ?? null;
 
         if ($payableType === 'listing_placement') {
+            $quote = $pricing->quote(
+                $request->user(),
+                $data['category_id'] ?? null,
+                $data['subcategory_id'] ?? null,
+                $data['promocode'] ?? null,
+            );
+
+            if (($quote['promocode']['error'] ?? null) !== null) {
+                throw ValidationException::withMessages([
+                    'promocode' => [$quote['promocode']['error']],
+                ]);
+            }
+
+            if ($quote['final_cents'] <= 0) {
+                throw ValidationException::withMessages([
+                    'payable_type' => ['Размещение бесплатное — оплата не требуется.'],
+                ]);
+            }
+
+            $categoryName = $quote['category_name'] ?? 'объявление';
             $result = $gateway->createCheckout(
                 $request->user(),
-                self::LISTING_PLACEMENT_CENTS,
+                (int) $quote['final_cents'],
                 config('billing.currency', 'RUB'),
-                'Разовое размещение объявления',
+                "Размещение объявления: {$categoryName}",
                 [
                     'payable_type' => 'listing_placement',
+                    'category_id' => $data['category_id'] ?? null,
+                    'subcategory_id' => $data['subcategory_id'] ?? null,
+                    'promocode_id' => $quote['promocode']['id'] ?? null,
+                    'listing_uuid' => $data['listing_uuid'] ?? null,
+                    'quote' => $quote,
                     'idempotency_key' => $data['idempotency_key'] ?? null,
                 ],
             );

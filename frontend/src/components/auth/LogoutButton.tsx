@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { signOut } from "@/lib/auth/session";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   className?: string;
@@ -18,23 +19,15 @@ export function LogoutButton({ className, variant = "sidebar" }: Props) {
 
   if (variant === "profile") {
     return (
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={handleClick}
-        className={`inline-flex flex-1 items-center justify-center gap-[8px] font-medium transition-colors duration-150 hover:bg-muted md:flex-none ${className ?? ""}`}
-        style={{
-          height: 40,
-          padding: "0 18px",
-          borderRadius: 10,
-          border: "1px solid var(--border)",
-          background: "transparent",
-          color: "var(--foreground-70)",
-          fontSize: 14,
-        }}
+        className={`h-[40px] flex-1 rounded-[10px] md:flex-none ${className ?? ""}`}
       >
         <LogOut size={14} />
         {t("auth.logout")}
-      </button>
+      </Button>
     );
   }
 

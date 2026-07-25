@@ -3,10 +3,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import type { Banner } from "@/lib/mock";
-import { fetchBanners } from "@/lib/api/banners";
+import { fetchBannersWithSettings, recordBannerEvent } from "@/lib/api/banners";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
-
-const AUTOPLAY_MS = 10_000;
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 function sortBanners(list: Banner[]): Banner[] {
   return [...list].sort((a, b) => {
@@ -23,43 +22,50 @@ const KIND_LABEL: Record<NonNullable<Banner["kind"]>, { label: string; Icon: typ
 
 export function EventsHero() {
   const navigate = useNavigate();
+  const { guardAction } = useGuestAccess();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [allBanners, setAllBanners] = useState<Banner[]>([]);
+  const [autoplayMs, setAutoplayMs] = useState(10_000);
+  const [enabled, setEnabled] = useState(true);
   const [signup, setSignup] = useState<Banner | null>(null);
-
   useEffect(() => {
     let active = true;
-    fetchBanners("events")
-      .then((b) => active && setAllBanners(b))
+    fetchBannersWithSettings()
+      .then(({ banners, carousel }) => {
+        if (!active) return;
+        setAllBanners(banners);
+        setAutoplayMs(Math.max(3000, (carousel.autoplay_seconds ?? 10) * 1000));
+        setEnabled(carousel.enabled !== false);
+      })
       .catch(() => {});
     return () => { active = false; };
   }, []);
 
-  // Видимость баннера управляется только из /admin (переключатель «Показывать»),
-  // обычный пользователь не может закрыть баннер вручную.
   const list = useMemo(
-    () => sortBanners(allBanners.filter((b) => b.active !== false)).slice(0, 3),
+    () => sortBanners(allBanners.filter((b) => b.active !== false)),
     [allBanners],
   );
 
   useEffect(() => {
     if (list.length <= 1 || paused) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % list.length), AUTOPLAY_MS);
+    const id = setInterval(() => setIndex((i) => (i + 1) % list.length), autoplayMs);
     return () => clearInterval(id);
-  }, [list.length, paused]);
+  }, [list.length, paused, autoplayMs]);
 
   useEffect(() => {
     if (index >= list.length) setIndex(0);
   }, [index, list.length]);
 
-  // Whole-slide tap/swipe navigation state — must be declared before the
-  // `list.length === 0` early return below, since hooks can't be called
-  // conditionally (a hook only reached once list finishes loading would
-  // change the hook count between renders and crash with React error #310).
+  useEffect(() => {
+    const current = list[index];
+    if (!current) return;
+    void recordBannerEvent(current.id, "impression");
+  }, [index, list]);
+
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
-  if (list.length === 0) return null;
+  if (!enabled || list.length === 0) return null;
 
   const current = list[index];
   const kind = KIND_LABEL[current.kind ?? "news"];
@@ -67,17 +73,8 @@ export function EventsHero() {
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
 
-  // Whole-slide tap/swipe navigation — the dot indicators are a tiny target,
-  // so the entire photo area doubles as the primary control: swipe left/right
-  // pages like a carousel, and a plain tap (no meaningful drag) advances by
-  // side (left half = prev, right half = next), story-style. Interactive
-  // children (arrows, CTA button) stop propagation so they keep their own
-  // single action instead of also paging.
   const onSlidePointerDown = (e: React.PointerEvent) => {
     dragStart.current = { x: e.clientX, y: e.clientY };
-    // Capture so the gesture keeps tracking even if the finger drifts off the
-    // slide before release — otherwise a fast swipe that leaves the element
-    // never delivers its pointerup here and silently does nothing.
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onSlidePointerUp = (e: React.PointerEvent) => {
@@ -86,9 +83,6 @@ export function EventsHero() {
     if (start === null || list.length <= 1) return;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
-    // A vertically-dominant gesture is the user scrolling the page over the
-    // banner (touch-action:pan-y lets that scroll happen natively) — never
-    // treat it as a slide change or a tap-to-page.
     if (Math.abs(dy) > Math.abs(dx)) return;
     const SWIPE_THRESHOLD = 40;
     if (Math.abs(dx) > SWIPE_THRESHOLD) {
@@ -104,18 +98,19 @@ export function EventsHero() {
     onPointerUp: (e: React.PointerEvent) => e.stopPropagation(),
   };
   const openCta = (b: Banner) => {
-    const link = b.link?.trim();
-    // Real external link → open it. Otherwise show the event signup dialog
-    // (the demo stand has no events backend to route to).
-    if (link && /^https?:\/\//i.test(link)) {
-      window.open(link, "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (link) {
-      void navigate({ to: link });
-      return;
-    }
-    setSignup(b);
+    guardAction("feed.banner.navigate", () => {
+      void recordBannerEvent(b.id, "click");
+      const link = b.link?.trim();
+      if (link && /^https?:\/\//i.test(link)) {
+        window.open(link, "_blank", "noopener,noreferrer");
+        return;
+      }
+      if (link) {
+        void navigate({ to: link });
+        return;
+      }
+      setSignup(b);
+    });
   };
   return (
     <>
@@ -128,10 +123,6 @@ export function EventsHero() {
     >
       <div
         className="relative h-[200px] cursor-pointer sm:h-[220px] md:h-[240px]"
-        // pan-y: vertical page scroll stays native, horizontal drags are
-        // delivered to our pointer handlers as a reliable swipe instead of
-        // being swallowed/cancelled by the browser's default gesture handling
-        // (the reason full-area swipe felt broken on mobile before).
         style={{ touchAction: "pan-y" }}
         onPointerDown={onSlidePointerDown}
         onPointerUp={onSlidePointerUp}
@@ -157,7 +148,6 @@ export function EventsHero() {
               }}
             />
 
-            {/* sm+ side padding keeps text/CTA clear of the prev/next arrows */}
             <div className="absolute inset-x-0 bottom-0 flex flex-col gap-[10px] p-[18px] sm:p-[22px] sm:px-[56px]">
               <span
                 className="inline-flex w-fit items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white"
@@ -165,7 +155,9 @@ export function EventsHero() {
               >
                 <kind.Icon className="h-[12px] w-[12px]" />
                 {kind.label}
-                <span className="opacity-70">· {current.until}</span>
+                {current.until ? (
+                  <span className="opacity-70">· {current.until}</span>
+                ) : null}
               </span>
               <h2
                 className="max-w-[90%] text-[20px] font-semibold leading-tight text-white sm:text-[22px]"
@@ -238,8 +230,6 @@ export function EventsHero() {
   );
 }
 
-/** Lightweight event-signup confirmation. Demo stand has no events backend,
- *  so this records the intent in-session and confirms to the user. */
 function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose: () => void }) {
   useEffect(() => {
     if (!banner) return;
@@ -285,7 +275,7 @@ function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose:
               {banner.title}
             </p>
             <p className="mt-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              Demo mode: заявка на событие сохранена. На боевой версии здесь будет форма записи и подтверждение по email.
+              Заявка будет доступна после подключения модуля мероприятий.
             </p>
             <button
               type="button"

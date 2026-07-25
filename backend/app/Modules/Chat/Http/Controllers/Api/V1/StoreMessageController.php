@@ -22,6 +22,7 @@ class StoreMessageController extends Controller
         ]);
 
         $conversation = $chat->findConversation($uuid, $request->user());
+        $chat->attachMessageStatusContext($request, $conversation, $request->user());
         $message = $chat->sendMessage(
             $conversation,
             $request->user(),

@@ -20,6 +20,7 @@ class UpsertCommunityRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'status' => ['nullable', 'string', 'max:32'],
             'is_official' => ['nullable', 'boolean'],
+            'owner_user_uuid' => ['nullable', 'uuid', 'exists:users,uuid'],
         ];
     }
 }

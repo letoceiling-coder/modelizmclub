@@ -50,6 +50,7 @@ class ChannelPostMediaTest extends TestCase
         $response->assertJsonPath('data.media.0.media.uuid', $media->uuid);
 
         $channelPost = ChannelPost::query()->firstOrFail();
+        $this->assertSame('published', $channelPost->status);
         $this->assertNotNull($channelPost->feed_post_id);
         $this->assertDatabaseHas('channel_post_media', [
             'channel_post_id' => $channelPost->id,
@@ -87,5 +88,45 @@ class ChannelPostMediaTest extends TestCase
                 'text' => 'Пробую опубликовать чужой канал',
             ])
             ->assertStatus(403);
+    }
+
+    public function test_channel_post_goes_to_moderation_when_auto_publish_disabled(): void
+    {
+        config(['feed.auto_publish' => false]);
+
+        $owner = User::factory()->create(['status' => UserStatus::Active]);
+        $channel = Channel::create([
+            'owner_id' => $owner->id,
+            'name' => 'Moderated Channel',
+            'slug' => 'moderated-channel',
+            'kind' => 'author',
+        ]);
+
+        $response = $this->actingAs($owner, 'sanctum')
+            ->postJson("/api/v1/channels/{$channel->slug}/posts", [
+                'text' => 'Пост на проверку',
+                'kind' => 'news',
+            ])
+            ->assertCreated();
+
+        $response->assertJsonPath('data.status', 'moderation');
+
+        $channelPost = ChannelPost::query()->firstOrFail();
+        $this->assertSame('moderation', $channelPost->status);
+        $this->assertNull($channelPost->published_at);
+        $this->assertNotNull($channelPost->feed_post_id);
+        $this->assertSame(ContentStatus::Draft, $channelPost->feedPost->status);
+
+        $this->assertDatabaseHas('moderation_queues', [
+            'moderatable_type' => ChannelPost::class,
+            'moderatable_id' => $channelPost->id,
+            'queue' => 'channel_posts',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs(User::factory()->create(['status' => UserStatus::Active]), 'sanctum')
+            ->getJson("/api/v1/channels/{$channel->slug}/posts")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
     }
 }

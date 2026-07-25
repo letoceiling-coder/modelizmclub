@@ -4,6 +4,7 @@ import { GUEST_USER } from "@/lib/store";
 import { calls, syncIncomingOffer } from "@/lib/calls";
 import { initUserRealtime, resetUserRealtime } from "@/lib/realtime/user";
 import { initPresence, resetPresence } from "@/lib/realtime/presence";
+import { startPresenceHeartbeat, stopPresenceHeartbeat } from "@/lib/presence-heartbeat";
 import {
   getEcho,
   isEchoConnected,
@@ -22,6 +23,7 @@ let reconnectHooked = false;
 
 let convId: string | null = null;
 let convHandler: ((m: Message) => void) | null = null;
+let convDeleteHandler: ((messageUuid: string) => void) | null = null;
 let convUnsub: (() => void) | null = null;
 
 async function bindConversation(): Promise<void> {
@@ -30,7 +32,7 @@ async function bindConversation(): Promise<void> {
     convUnsub = null;
   }
   if (!convId || !convHandler || !getToken()) return;
-  convUnsub = await subscribeConversation(convId, convHandler);
+  convUnsub = await subscribeConversation(convId, convHandler, convDeleteHandler ?? undefined);
 }
 
 /** Re-subscribe personal channels after socket (re)connect. */
@@ -39,7 +41,9 @@ export async function resubscribeRealtime(): Promise<void> {
   await getEcho();
   await calls.init(hubUser);
   await initUserRealtime(hubUser);
+  resetPresence();
   await initPresence(hubUser);
+  startPresenceHeartbeat();
   await bindConversation();
   syncIncomingOffer();
 }
@@ -88,9 +92,14 @@ export async function startRealtimeHub(userUuid: string): Promise<void> {
 }
 
 /** Active chat — re-bound automatically after reconnect. */
-export function setHubConversation(id: string | null, onMessage?: (m: Message) => void): void {
+export function setHubConversation(
+  id: string | null,
+  onMessage?: (m: Message) => void,
+  onMessageDeleted?: (messageUuid: string) => void,
+): void {
   convId = id;
   convHandler = onMessage ?? null;
+  convDeleteHandler = onMessageDeleted ?? null;
   void bindConversation();
 }
 
@@ -106,7 +115,9 @@ export function stopRealtimeHub(): void {
   }
   convId = null;
   convHandler = null;
+  convDeleteHandler = null;
   resetUserRealtime();
   resetPresence();
+  stopPresenceHeartbeat();
   resetEcho();
 }

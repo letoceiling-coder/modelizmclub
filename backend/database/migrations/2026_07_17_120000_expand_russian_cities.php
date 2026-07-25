@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\City;
+use App\Support\RussianCitiesImporter;
 use Illuminate\Database\Migrations\Migration;
 use Modules\Catalog\Services\CatalogService;
 
@@ -8,17 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        /** @var list<array{name: string, region: string, slug: string, sort_order: int}> $cities */
-        $cities = require database_path('data/russian_cities.php');
-
-        foreach ($cities as $city) {
-            City::query()->updateOrCreate(
-                ['slug' => $city['slug']],
-                array_merge($city, ['is_active' => true]),
-            );
-        }
-
-        CatalogService::flushCache();
+        RussianCitiesImporter::import();
     }
 
     public function down(): void

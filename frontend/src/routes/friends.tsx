@@ -11,6 +11,7 @@ import { formatRelativeTime, type User } from "@/lib/mock";
 import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
+import { isUserOnline } from "@/lib/presence-status";
 import {
   fetchFriends, fetchIncomingRequests, fetchOutgoingRequests, searchUsers,
   sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest, cancelFriendRequest,
@@ -18,7 +19,7 @@ import {
   type IncomingRequest,
 } from "@/lib/api/social";
 import { ApiError } from "@/lib/api/client";
-import { createConversation } from "@/lib/api/chat";
+import { openConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
@@ -32,8 +33,8 @@ import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: "Друзья — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
+    const { requireVerified } = await import("@/lib/auth/verification");
+    await requireVerified(location);
   },
   component: FriendsPage,
 });
@@ -97,7 +98,11 @@ function FriendCard({
             {user.name}
           </Link>
           <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            <MapPin size={11} /> <span className="truncate">{user.city}</span>
+            {user.city ? (
+              <>
+                <MapPin size={11} /> <span className="truncate">{user.city}</span>
+              </>
+            ) : null}
           </div>
           <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
         </div>
@@ -148,7 +153,7 @@ function FriendsPage() {
   const [complaintTarget, setComplaintTarget] = useState<User | null>(null);
   const navigateMessenger = useNavigate();
   const onlineSet = useOnlineSet();
-  const isOnline = (u: User) => onlineSet.has(u.id) || !!u.online;
+  const isOnline = (u: User) => isUserOnline(u.id, onlineSet, u);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
   const hiddenUserIds = useStore((s) => s.hiddenUserIds);
   const isBlockedUser = (id: string) => blockedUserIds.includes(id);
@@ -305,7 +310,7 @@ function FriendsPage() {
   const writeTo = async (u: User) => {
     if (!u.numericId || !me) return;
     try {
-      const dialog = await createConversation(u.numericId, me.id);
+      const dialog = await openConversation(u.numericId, me.id, u.id);
       navigateMessenger({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
       toast.error("Не удалось открыть диалог");

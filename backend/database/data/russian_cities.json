@@ -1,0 +1,6704 @@
+[
+    {
+        "name": "Москва",
+        "region": "Москва",
+        "slug": "moscow",
+        "sort_order": 1
+    },
+    {
+        "name": "Санкт-Петербург",
+        "region": "Санкт-Петербург",
+        "slug": "saint-petersburg",
+        "sort_order": 2
+    },
+    {
+        "name": "Новосибирск",
+        "region": "Новосибирская область",
+        "slug": "novosibirsk",
+        "sort_order": 3
+    },
+    {
+        "name": "Екатеринбург",
+        "region": "Свердловская область",
+        "slug": "yekaterinburg",
+        "sort_order": 4
+    },
+    {
+        "name": "Казань",
+        "region": "Республика Татарстан",
+        "slug": "kazan",
+        "sort_order": 5
+    },
+    {
+        "name": "Нижний Новгород",
+        "region": "Нижегородская область",
+        "slug": "nizhny-novgorod",
+        "sort_order": 6
+    },
+    {
+        "name": "Челябинск",
+        "region": "Челябинская область",
+        "slug": "chelyabinsk",
+        "sort_order": 7
+    },
+    {
+        "name": "Самара",
+        "region": "Самарская область",
+        "slug": "samara",
+        "sort_order": 8
+    },
+    {
+        "name": "Омск",
+        "region": "Омская область",
+        "slug": "omsk",
+        "sort_order": 9
+    },
+    {
+        "name": "Ростов-на-Дону",
+        "region": "Ростовская область",
+        "slug": "rostov-on-don",
+        "sort_order": 10
+    },
+    {
+        "name": "Уфа",
+        "region": "Республика Башкортостан",
+        "slug": "ufa",
+        "sort_order": 11
+    },
+    {
+        "name": "Красноярск",
+        "region": "Красноярский край",
+        "slug": "krasnoyarsk",
+        "sort_order": 12
+    },
+    {
+        "name": "Воронеж",
+        "region": "Воронежская область",
+        "slug": "voronezh",
+        "sort_order": 13
+    },
+    {
+        "name": "Пермь",
+        "region": "Пермский край",
+        "slug": "perm",
+        "sort_order": 14
+    },
+    {
+        "name": "Волгоград",
+        "region": "Волгоградская область",
+        "slug": "volgograd",
+        "sort_order": 15
+    },
+    {
+        "name": "Краснодар",
+        "region": "Краснодарский край",
+        "slug": "krasnodar",
+        "sort_order": 16
+    },
+    {
+        "name": "Саратов",
+        "region": "Саратовская область",
+        "slug": "saratov",
+        "sort_order": 17
+    },
+    {
+        "name": "Тюмень",
+        "region": "Тюменская область",
+        "slug": "tyumen",
+        "sort_order": 18
+    },
+    {
+        "name": "Тольятти",
+        "region": "Самарская область",
+        "slug": "tolyatti",
+        "sort_order": 19
+    },
+    {
+        "name": "Ижевск",
+        "region": "Удмуртская Республика",
+        "slug": "izhevsk",
+        "sort_order": 20
+    },
+    {
+        "name": "Барнаул",
+        "region": "Алтайский край",
+        "slug": "barnaul",
+        "sort_order": 21
+    },
+    {
+        "name": "Ульяновск",
+        "region": "Ульяновская область",
+        "slug": "ulyanovsk",
+        "sort_order": 22
+    },
+    {
+        "name": "Иркутск",
+        "region": "Иркутская область",
+        "slug": "irkutsk",
+        "sort_order": 23
+    },
+    {
+        "name": "Хабаровск",
+        "region": "Хабаровский край",
+        "slug": "khabarovsk",
+        "sort_order": 24
+    },
+    {
+        "name": "Ярославль",
+        "region": "Ярославская область",
+        "slug": "yaroslavl",
+        "sort_order": 25
+    },
+    {
+        "name": "Владивосток",
+        "region": "Приморский край",
+        "slug": "vladivostok",
+        "sort_order": 26
+    },
+    {
+        "name": "Махачкала",
+        "region": "Республика Дагестан",
+        "slug": "makhachkala",
+        "sort_order": 27
+    },
+    {
+        "name": "Томск",
+        "region": "Томская область",
+        "slug": "tomsk",
+        "sort_order": 28
+    },
+    {
+        "name": "Оренбург",
+        "region": "Оренбургская область",
+        "slug": "orenburg",
+        "sort_order": 29
+    },
+    {
+        "name": "Кемерово",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "kemerovo",
+        "sort_order": 30
+    },
+    {
+        "name": "Новокузнецк",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "novokuznetsk",
+        "sort_order": 31
+    },
+    {
+        "name": "Рязань",
+        "region": "Рязанская область",
+        "slug": "ryazan",
+        "sort_order": 32
+    },
+    {
+        "name": "Набережные Челны",
+        "region": "Республика Татарстан",
+        "slug": "naberezhnye-chelny",
+        "sort_order": 33
+    },
+    {
+        "name": "Астрахань",
+        "region": "Астраханская область",
+        "slug": "astrakhan",
+        "sort_order": 34
+    },
+    {
+        "name": "Пенза",
+        "region": "Пензенская область",
+        "slug": "penza",
+        "sort_order": 35
+    },
+    {
+        "name": "Киров",
+        "region": "Кировская область",
+        "slug": "kirov",
+        "sort_order": 36
+    },
+    {
+        "name": "Севастополь",
+        "region": "Севастополь",
+        "slug": "sevastopol",
+        "sort_order": 37
+    },
+    {
+        "name": "Липецк",
+        "region": "Липецкая область",
+        "slug": "lipetsk",
+        "sort_order": 38
+    },
+    {
+        "name": "Балашиха",
+        "region": "Московская область",
+        "slug": "balashikha-moskovskaya-oblast",
+        "sort_order": 39
+    },
+    {
+        "name": "Чебоксары",
+        "region": "Чувашская Республика",
+        "slug": "cheboksary",
+        "sort_order": 40
+    },
+    {
+        "name": "Калининград",
+        "region": "Калининградская область",
+        "slug": "kaliningrad",
+        "sort_order": 41
+    },
+    {
+        "name": "Тула",
+        "region": "Тульская область",
+        "slug": "tula",
+        "sort_order": 42
+    },
+    {
+        "name": "Курск",
+        "region": "Курская область",
+        "slug": "kursk",
+        "sort_order": 43
+    },
+    {
+        "name": "Ставрополь",
+        "region": "Ставропольский край",
+        "slug": "stavropol",
+        "sort_order": 44
+    },
+    {
+        "name": "Сочи",
+        "region": "Краснодарский край",
+        "slug": "sochi",
+        "sort_order": 45
+    },
+    {
+        "name": "Улан-Удэ",
+        "region": "Республика Бурятия",
+        "slug": "ulan-ude-respublika-buryatiya",
+        "sort_order": 46
+    },
+    {
+        "name": "Тверь",
+        "region": "Тверская область",
+        "slug": "tver",
+        "sort_order": 47
+    },
+    {
+        "name": "Магнитогорск",
+        "region": "Челябинская область",
+        "slug": "magnitogorsk",
+        "sort_order": 48
+    },
+    {
+        "name": "Иваново",
+        "region": "Ивановская область",
+        "slug": "ivanovo",
+        "sort_order": 49
+    },
+    {
+        "name": "Брянск",
+        "region": "Брянская область",
+        "slug": "bryansk",
+        "sort_order": 50
+    },
+    {
+        "name": "Белгород",
+        "region": "Белгородская область",
+        "slug": "belgorod",
+        "sort_order": 51
+    },
+    {
+        "name": "Сургут",
+        "region": "Тюменская область",
+        "slug": "surgut-tyumenskaya-oblast",
+        "sort_order": 52
+    },
+    {
+        "name": "Владимир",
+        "region": "Владимирская область",
+        "slug": "vladimir",
+        "sort_order": 53
+    },
+    {
+        "name": "Чита",
+        "region": "Забайкальский край",
+        "slug": "chita",
+        "sort_order": 54
+    },
+    {
+        "name": "Нижний Тагил",
+        "region": "Свердловская область",
+        "slug": "nizhny-tagil",
+        "sort_order": 55
+    },
+    {
+        "name": "Архангельск",
+        "region": "Архангельская область",
+        "slug": "arkhangelsk",
+        "sort_order": 56
+    },
+    {
+        "name": "Симферополь",
+        "region": "Республика Крым",
+        "slug": "simferopol",
+        "sort_order": 57
+    },
+    {
+        "name": "Калуга",
+        "region": "Калужская область",
+        "slug": "kaluga",
+        "sort_order": 58
+    },
+    {
+        "name": "Смоленск",
+        "region": "Смоленская область",
+        "slug": "smolensk",
+        "sort_order": 59
+    },
+    {
+        "name": "Волжский",
+        "region": "Волгоградская область",
+        "slug": "volzhskiy-volgogradskaya-oblast",
+        "sort_order": 60
+    },
+    {
+        "name": "Якутск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "yakutsk-respublika-sakha-yakutiya",
+        "sort_order": 61
+    },
+    {
+        "name": "Саранск",
+        "region": "Республика Мордовия",
+        "slug": "saransk",
+        "sort_order": 62
+    },
+    {
+        "name": "Череповец",
+        "region": "Вологодская область",
+        "slug": "cherepovets-vologodskaya-oblast",
+        "sort_order": 63
+    },
+    {
+        "name": "Курган",
+        "region": "Курганская область",
+        "slug": "kurgan",
+        "sort_order": 64
+    },
+    {
+        "name": "Вологда",
+        "region": "Вологодская область",
+        "slug": "vologda-vologodskaya-oblast",
+        "sort_order": 65
+    },
+    {
+        "name": "Орел",
+        "region": "Орловская область",
+        "slug": "orel-orlovskaya-oblast",
+        "sort_order": 66
+    },
+    {
+        "name": "Подольск",
+        "region": "Московская область",
+        "slug": "podolsk",
+        "sort_order": 67
+    },
+    {
+        "name": "Грозный",
+        "region": "Чеченская Республика",
+        "slug": "grozny",
+        "sort_order": 68
+    },
+    {
+        "name": "Владикавказ",
+        "region": "Республика Северная Осетия – Алания",
+        "slug": "vladikavkaz",
+        "sort_order": 69
+    },
+    {
+        "name": "Тамбов",
+        "region": "Тамбовская область",
+        "slug": "tambov",
+        "sort_order": 70
+    },
+    {
+        "name": "Мурманск",
+        "region": "Мурманская область",
+        "slug": "murmansk",
+        "sort_order": 71
+    },
+    {
+        "name": "Петрозаводск",
+        "region": "Республика Карелия",
+        "slug": "petrozavodsk",
+        "sort_order": 72
+    },
+    {
+        "name": "Нижневартовск",
+        "region": "Тюменская область",
+        "slug": "nizhnevartovsk",
+        "sort_order": 73
+    },
+    {
+        "name": "Кострома",
+        "region": "Костромская область",
+        "slug": "kostroma",
+        "sort_order": 74
+    },
+    {
+        "name": "Стерлитамак",
+        "region": "Республика Башкортостан",
+        "slug": "sterlitamak",
+        "sort_order": 75
+    },
+    {
+        "name": "Новороссийск",
+        "region": "Краснодарский край",
+        "slug": "novorossiysk-krasnodarskiy-kray",
+        "sort_order": 76
+    },
+    {
+        "name": "Йошкар-Ола",
+        "region": "Республика Марий Эл",
+        "slug": "yoshkar-ola",
+        "sort_order": 77
+    },
+    {
+        "name": "Химки",
+        "region": "Московская область",
+        "slug": "khimki-moskovskaya-oblast",
+        "sort_order": 78
+    },
+    {
+        "name": "Таганрог",
+        "region": "Ростовская область",
+        "slug": "taganrog-rostovskaya-oblast",
+        "sort_order": 79
+    },
+    {
+        "name": "Комсомольск-на-Амуре",
+        "region": "Хабаровский край",
+        "slug": "komsomolsk-na-amure-khabarovskiy-kray",
+        "sort_order": 80
+    },
+    {
+        "name": "Сыктывкар",
+        "region": "Республика Коми",
+        "slug": "syktyvkar-respublika-komi",
+        "sort_order": 81
+    },
+    {
+        "name": "Нижнекамск",
+        "region": "Республика Татарстан",
+        "slug": "nizhnekamsk-respublika-tatarstan",
+        "sort_order": 82
+    },
+    {
+        "name": "Нальчик",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "nalchik-kabardino-balkarskaya-respublika",
+        "sort_order": 83
+    },
+    {
+        "name": "Мытищи",
+        "region": "Московская область",
+        "slug": "mytishchi-moskovskaya-oblast",
+        "sort_order": 84
+    },
+    {
+        "name": "Шахты",
+        "region": "Ростовская область",
+        "slug": "shakhty-rostovskaya-oblast",
+        "sort_order": 85
+    },
+    {
+        "name": "Дзержинск",
+        "region": "Нижегородская область",
+        "slug": "dzerzhinsk-nizhegorodskaya-oblast",
+        "sort_order": 86
+    },
+    {
+        "name": "Энгельс",
+        "region": "Саратовская область",
+        "slug": "engels-saratovskaya-oblast",
+        "sort_order": 87
+    },
+    {
+        "name": "Орск",
+        "region": "Оренбургская область",
+        "slug": "orsk-orenburgskaya-oblast",
+        "sort_order": 88
+    },
+    {
+        "name": "Благовещенск",
+        "region": "Амурская область",
+        "slug": "blagoveshchensk",
+        "sort_order": 89
+    },
+    {
+        "name": "Братск",
+        "region": "Иркутская область",
+        "slug": "bratsk-irkutskaya-oblast",
+        "sort_order": 90
+    },
+    {
+        "name": "Королев",
+        "region": "Московская область",
+        "slug": "korolev-moskovskaya-oblast",
+        "sort_order": 91
+    },
+    {
+        "name": "Великий Новгород",
+        "region": "Новгородская область",
+        "slug": "velikiy-novgorod-novgorodskaya-oblast",
+        "sort_order": 92
+    },
+    {
+        "name": "Ангарск",
+        "region": "Иркутская область",
+        "slug": "angarsk-irkutskaya-oblast",
+        "sort_order": 93
+    },
+    {
+        "name": "Старый Оскол",
+        "region": "Белгородская область",
+        "slug": "staryy-oskol-belgorodskaya-oblast",
+        "sort_order": 94
+    },
+    {
+        "name": "Псков",
+        "region": "Псковская область",
+        "slug": "pskov-pskovskaya-oblast",
+        "sort_order": 95
+    },
+    {
+        "name": "Люберцы",
+        "region": "Московская область",
+        "slug": "lyubertsy-moskovskaya-oblast",
+        "sort_order": 96
+    },
+    {
+        "name": "Южно-Сахалинск",
+        "region": "Сахалинская область",
+        "slug": "yuzhno-sakhalinsk-sakhalinskaya-oblast",
+        "sort_order": 97
+    },
+    {
+        "name": "Бийск",
+        "region": "Алтайский край",
+        "slug": "biysk-altayskiy-kray",
+        "sort_order": 98
+    },
+    {
+        "name": "Прокопьевск",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "prokopevsk-kemerovskaya-oblast-kuzbass",
+        "sort_order": 99
+    },
+    {
+        "name": "Армавир",
+        "region": "Краснодарский край",
+        "slug": "armavir-krasnodarskiy-kray",
+        "sort_order": 100
+    },
+    {
+        "name": "Балаково",
+        "region": "Саратовская область",
+        "slug": "balakovo-saratovskaya-oblast",
+        "sort_order": 101
+    },
+    {
+        "name": "Абакан",
+        "region": "Республика Хакасия",
+        "slug": "abakan-respublika-khakasiya",
+        "sort_order": 102
+    },
+    {
+        "name": "Рыбинск",
+        "region": "Ярославская область",
+        "slug": "rybinsk-yaroslavskaya-oblast",
+        "sort_order": 103
+    },
+    {
+        "name": "Северодвинск",
+        "region": "Архангельская область",
+        "slug": "severodvinsk",
+        "sort_order": 104
+    },
+    {
+        "name": "Норильск",
+        "region": "Красноярский край",
+        "slug": "norilsk-krasnoyarskiy-kray",
+        "sort_order": 105
+    },
+    {
+        "name": "Петропавловск-Камчатский",
+        "region": "Камчатский край",
+        "slug": "petropavlovsk-kamchatskiy-kamchatskiy-kray",
+        "sort_order": 106
+    },
+    {
+        "name": "Красногорск",
+        "region": "Московская область",
+        "slug": "krasnogorsk-moskovskaya-oblast",
+        "sort_order": 107
+    },
+    {
+        "name": "Уссурийск",
+        "region": "Приморский край",
+        "slug": "ussuriysk-primorskiy-kray",
+        "sort_order": 108
+    },
+    {
+        "name": "Волгодонск",
+        "region": "Ростовская область",
+        "slug": "volgodonsk-rostovskaya-oblast",
+        "sort_order": 109
+    },
+    {
+        "name": "Новочеркасск",
+        "region": "Ростовская область",
+        "slug": "novocherkassk-rostovskaya-oblast",
+        "sort_order": 110
+    },
+    {
+        "name": "Сызрань",
+        "region": "Самарская область",
+        "slug": "syzran-samarskaya-oblast",
+        "sort_order": 111
+    },
+    {
+        "name": "Каменск-Уральский",
+        "region": "Свердловская область",
+        "slug": "kamensk-uralskiy-sverdlovskaya-oblast",
+        "sort_order": 112
+    },
+    {
+        "name": "Златоуст",
+        "region": "Челябинская область",
+        "slug": "zlatoust-chelyabinskaya-oblast",
+        "sort_order": 113
+    },
+    {
+        "name": "Альметьевск",
+        "region": "Республика Татарстан",
+        "slug": "almetevsk-respublika-tatarstan",
+        "sort_order": 114
+    },
+    {
+        "name": "Электросталь",
+        "region": "Московская область",
+        "slug": "elektrostal-moskovskaya-oblast",
+        "sort_order": 115
+    },
+    {
+        "name": "Керчь",
+        "region": "Республика Крым",
+        "slug": "kerch-respublika-krym",
+        "sort_order": 116
+    },
+    {
+        "name": "Миасс",
+        "region": "Челябинская область",
+        "slug": "miass-chelyabinskaya-oblast",
+        "sort_order": 117
+    },
+    {
+        "name": "Салават",
+        "region": "Республика Башкортостан",
+        "slug": "salavat",
+        "sort_order": 118
+    },
+    {
+        "name": "Пятигорск",
+        "region": "Ставропольский край",
+        "slug": "pyatigorsk-stavropolskiy-kray",
+        "sort_order": 119
+    },
+    {
+        "name": "Копейск",
+        "region": "Челябинская область",
+        "slug": "kopeysk-chelyabinskaya-oblast",
+        "sort_order": 120
+    },
+    {
+        "name": "Находка",
+        "region": "Приморский край",
+        "slug": "nakhodka-primorskiy-kray",
+        "sort_order": 121
+    },
+    {
+        "name": "Хасавюрт",
+        "region": "Республика Дагестан",
+        "slug": "khasavyurt-respublika-dagestan",
+        "sort_order": 122
+    },
+    {
+        "name": "Рубцовск",
+        "region": "Алтайский край",
+        "slug": "rubtsovsk-altayskiy-kray",
+        "sort_order": 123
+    },
+    {
+        "name": "Майкоп",
+        "region": "Республика Адыгея",
+        "slug": "maykop-respublika-adygeya",
+        "sort_order": 124
+    },
+    {
+        "name": "Коломна",
+        "region": "Московская область",
+        "slug": "kolomna-moskovskaya-oblast",
+        "sort_order": 125
+    },
+    {
+        "name": "Березники",
+        "region": "Пермский край",
+        "slug": "berezniki-permskiy-kray",
+        "sort_order": 126
+    },
+    {
+        "name": "Домодедово",
+        "region": "Московская область",
+        "slug": "domodedovo-moskovskaya-oblast",
+        "sort_order": 127
+    },
+    {
+        "name": "Ковров",
+        "region": "Владимирская область",
+        "slug": "kovrov-vladimirskaya-oblast",
+        "sort_order": 128
+    },
+    {
+        "name": "Одинцово",
+        "region": "Московская область",
+        "slug": "odintsovo-moskovskaya-oblast",
+        "sort_order": 129
+    },
+    {
+        "name": "Нефтекамск",
+        "region": "Республика Башкортостан",
+        "slug": "neftekamsk-respublika-bashkortostan",
+        "sort_order": 130
+    },
+    {
+        "name": "Кисловодск",
+        "region": "Ставропольский край",
+        "slug": "kislovodsk-stavropolskiy-kray",
+        "sort_order": 131
+    },
+    {
+        "name": "Батайск",
+        "region": "Ростовская область",
+        "slug": "bataysk-rostovskaya-oblast",
+        "sort_order": 132
+    },
+    {
+        "name": "Нефтеюганск",
+        "region": "Тюменская область",
+        "slug": "nefteyugansk-tyumenskaya-oblast",
+        "sort_order": 133
+    },
+    {
+        "name": "Новочебоксарск",
+        "region": "Чувашская Республика",
+        "slug": "novocheboksarsk-chuvashskaya-respublika",
+        "sort_order": 134
+    },
+    {
+        "name": "Серпухов",
+        "region": "Московская область",
+        "slug": "serpukhov-moskovskaya-oblast",
+        "sort_order": 135
+    },
+    {
+        "name": "Щелково",
+        "region": "Московская область",
+        "slug": "shchelkovo-moskovskaya-oblast",
+        "sort_order": 136
+    },
+    {
+        "name": "Дербент",
+        "region": "Республика Дагестан",
+        "slug": "derbent-respublika-dagestan",
+        "sort_order": 137
+    },
+    {
+        "name": "Каспийск",
+        "region": "Республика Дагестан",
+        "slug": "kaspiysk-respublika-dagestan",
+        "sort_order": 138
+    },
+    {
+        "name": "Черкесск",
+        "region": "Карачаево-Черкесская Республика",
+        "slug": "cherkessk-karachaevo-cherkesskaya-respublika",
+        "sort_order": 139
+    },
+    {
+        "name": "Назрань",
+        "region": "Республика Ингушетия",
+        "slug": "nazran-respublika-ingushetiya",
+        "sort_order": 140
+    },
+    {
+        "name": "Новомосковск",
+        "region": "Тульская область",
+        "slug": "novomoskovsk-tulskaya-oblast",
+        "sort_order": 141
+    },
+    {
+        "name": "Раменское",
+        "region": "Московская область",
+        "slug": "ramenskoe-moskovskaya-oblast",
+        "sort_order": 142
+    },
+    {
+        "name": "Первоуральск",
+        "region": "Свердловская область",
+        "slug": "pervouralsk-sverdlovskaya-oblast",
+        "sort_order": 143
+    },
+    {
+        "name": "Кызыл",
+        "region": "Республика Тыва",
+        "slug": "kyzyl-respublika-tyva",
+        "sort_order": 144
+    },
+    {
+        "name": "Орехово-Зуево",
+        "region": "Московская область",
+        "slug": "orekhovo-zuevo-moskovskaya-oblast",
+        "sort_order": 145
+    },
+    {
+        "name": "Новый Уренгой",
+        "region": "Тюменская область",
+        "slug": "novyy-urengoy-tyumenskaya-oblast",
+        "sort_order": 146
+    },
+    {
+        "name": "Обнинск",
+        "region": "Калужская область",
+        "slug": "obninsk-kaluzhskaya-oblast",
+        "sort_order": 147
+    },
+    {
+        "name": "Невинномысск",
+        "region": "Ставропольский край",
+        "slug": "nevinnomyssk-stavropolskiy-kray",
+        "sort_order": 148
+    },
+    {
+        "name": "Долгопрудный",
+        "region": "Московская область",
+        "slug": "dolgoprudnyy-moskovskaya-oblast",
+        "sort_order": 149
+    },
+    {
+        "name": "Октябрьский",
+        "region": "Республика Башкортостан",
+        "slug": "oktyabrskiy-respublika-bashkortostan",
+        "sort_order": 150
+    },
+    {
+        "name": "Димитровград",
+        "region": "Ульяновская область",
+        "slug": "dimitrovgrad-ulyanovskaya-oblast",
+        "sort_order": 151
+    },
+    {
+        "name": "Ессентуки",
+        "region": "Ставропольский край",
+        "slug": "essentuki-stavropolskiy-kray",
+        "sort_order": 152
+    },
+    {
+        "name": "Камышин",
+        "region": "Волгоградская область",
+        "slug": "kamyshin-volgogradskaya-oblast",
+        "sort_order": 153
+    },
+    {
+        "name": "Евпатория",
+        "region": "Республика Крым",
+        "slug": "evpatoriya-respublika-krym",
+        "sort_order": 154
+    },
+    {
+        "name": "Реутов",
+        "region": "Московская область",
+        "slug": "reutov-moskovskaya-oblast",
+        "sort_order": 155
+    },
+    {
+        "name": "Жуковский",
+        "region": "Московская область",
+        "slug": "zhukovskiy-moskovskaya-oblast",
+        "sort_order": 156
+    },
+    {
+        "name": "Пушкино",
+        "region": "Московская область",
+        "slug": "pushkino-moskovskaya-oblast",
+        "sort_order": 157
+    },
+    {
+        "name": "Муром",
+        "region": "Владимирская область",
+        "slug": "murom-vladimirskaya-oblast",
+        "sort_order": 158
+    },
+    {
+        "name": "Ноябрьск",
+        "region": "Тюменская область",
+        "slug": "noyabrsk-tyumenskaya-oblast",
+        "sort_order": 159
+    },
+    {
+        "name": "Новошахтинск",
+        "region": "Ростовская область",
+        "slug": "novoshakhtinsk-rostovskaya-oblast",
+        "sort_order": 160
+    },
+    {
+        "name": "Северск",
+        "region": "Томская область",
+        "slug": "seversk-tomskaya-oblast",
+        "sort_order": 161
+    },
+    {
+        "name": "Артем",
+        "region": "Приморский край",
+        "slug": "artem-primorskiy-kray",
+        "sort_order": 162
+    },
+    {
+        "name": "Ачинск",
+        "region": "Красноярский край",
+        "slug": "achinsk-krasnoyarskiy-kray",
+        "sort_order": 163
+    },
+    {
+        "name": "Бердск",
+        "region": "Новосибирская область",
+        "slug": "berdsk-novosibirskaya-oblast",
+        "sort_order": 164
+    },
+    {
+        "name": "Ногинск",
+        "region": "Московская область",
+        "slug": "noginsk-moskovskaya-oblast",
+        "sort_order": 165
+    },
+    {
+        "name": "Арзамас",
+        "region": "Нижегородская область",
+        "slug": "arzamas-nizhegorodskaya-oblast",
+        "sort_order": 166
+    },
+    {
+        "name": "Элиста",
+        "region": "Республика Калмыкия",
+        "slug": "elista-respublika-kalmykiya",
+        "sort_order": 167
+    },
+    {
+        "name": "Елец",
+        "region": "Липецкая область",
+        "slug": "elets-lipetskaya-oblast",
+        "sort_order": 168
+    },
+    {
+        "name": "Ханты-Мансийск",
+        "region": "Тюменская область",
+        "slug": "khanty-mansiysk-tyumenskaya-oblast",
+        "sort_order": 169
+    },
+    {
+        "name": "Новокуйбышевск",
+        "region": "Самарская область",
+        "slug": "novokuybyshevsk-samarskaya-oblast",
+        "sort_order": 170
+    },
+    {
+        "name": "Железногорск",
+        "region": "Курская область",
+        "slug": "zheleznogorsk-kurskaya-oblast",
+        "sort_order": 171
+    },
+    {
+        "name": "Сергиев Посад",
+        "region": "Московская область",
+        "slug": "sergiev-posad-moskovskaya-oblast",
+        "sort_order": 172
+    },
+    {
+        "name": "Зеленодольск",
+        "region": "Республика Татарстан",
+        "slug": "zelenodolsk-respublika-tatarstan",
+        "sort_order": 173
+    },
+    {
+        "name": "Тобольск",
+        "region": "Тюменская область",
+        "slug": "tobolsk-tyumenskaya-oblast",
+        "sort_order": 174
+    },
+    {
+        "name": "Воткинск",
+        "region": "Удмуртская Республика",
+        "slug": "votkinsk-udmurtskaya-respublika",
+        "sort_order": 175
+    },
+    {
+        "name": "Междуреченск",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "mezhdurechensk-kemerovskaya-oblast-kuzbass",
+        "sort_order": 176
+    },
+    {
+        "name": "Саров",
+        "region": "Нижегородская область",
+        "slug": "sarov-nizhegorodskaya-oblast",
+        "sort_order": 177
+    },
+    {
+        "name": "Серов",
+        "region": "Свердловская область",
+        "slug": "serov-sverdlovskaya-oblast",
+        "sort_order": 178
+    },
+    {
+        "name": "Михайловск",
+        "region": "Ставропольский край",
+        "slug": "mikhaylovsk-stavropolskiy-kray",
+        "sort_order": 179
+    },
+    {
+        "name": "Сарапул",
+        "region": "Удмуртская Республика",
+        "slug": "sarapul-udmurtskaya-respublika",
+        "sort_order": 180
+    },
+    {
+        "name": "Ленинск-Кузнецкий",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "leninsk-kuznetskiy-kemerovskaya-oblast-kuzbass",
+        "sort_order": 181
+    },
+    {
+        "name": "Ухта",
+        "region": "Республика Коми",
+        "slug": "ukhta-respublika-komi",
+        "sort_order": 182
+    },
+    {
+        "name": "Воскресенск",
+        "region": "Московская область",
+        "slug": "voskresensk-moskovskaya-oblast",
+        "sort_order": 183
+    },
+    {
+        "name": "Соликамск",
+        "region": "Пермский край",
+        "slug": "solikamsk-permskiy-kray",
+        "sort_order": 184
+    },
+    {
+        "name": "Глазов",
+        "region": "Удмуртская Республика",
+        "slug": "glazov-udmurtskaya-respublika",
+        "sort_order": 185
+    },
+    {
+        "name": "Магадан",
+        "region": "Магаданская область",
+        "slug": "magadan-magadanskaya-oblast",
+        "sort_order": 186
+    },
+    {
+        "name": "Гатчина",
+        "region": "Ленинградская область",
+        "slug": "gatchina-leningradskaya-oblast",
+        "sort_order": 187
+    },
+    {
+        "name": "Великие Луки",
+        "region": "Псковская область",
+        "slug": "velikie-luki-pskovskaya-oblast",
+        "sort_order": 188
+    },
+    {
+        "name": "Мичуринск",
+        "region": "Тамбовская область",
+        "slug": "michurinsk-tambovskaya-oblast",
+        "sort_order": 189
+    },
+    {
+        "name": "Лобня",
+        "region": "Московская область",
+        "slug": "lobnya-moskovskaya-oblast",
+        "sort_order": 190
+    },
+    {
+        "name": "Анапа",
+        "region": "Краснодарский край",
+        "slug": "anapa-krasnodarskiy-kray",
+        "sort_order": 191
+    },
+    {
+        "name": "Канск",
+        "region": "Красноярский край",
+        "slug": "kansk-krasnoyarskiy-kray",
+        "sort_order": 192
+    },
+    {
+        "name": "Каменск-Шахтинский",
+        "region": "Ростовская область",
+        "slug": "kamensk-shakhtinskiy-rostovskaya-oblast",
+        "sort_order": 193
+    },
+    {
+        "name": "Киселевск",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "kiselevsk-kemerovskaya-oblast-kuzbass",
+        "sort_order": 194
+    },
+    {
+        "name": "Губкин",
+        "region": "Белгородская область",
+        "slug": "gubkin-belgorodskaya-oblast",
+        "sort_order": 195
+    },
+    {
+        "name": "Бузулук",
+        "region": "Оренбургская область",
+        "slug": "buzuluk-orenburgskaya-oblast",
+        "sort_order": 196
+    },
+    {
+        "name": "Новотроицк",
+        "region": "Оренбургская область",
+        "slug": "novotroitsk-orenburgskaya-oblast",
+        "sort_order": 197
+    },
+    {
+        "name": "Ейск",
+        "region": "Краснодарский край",
+        "slug": "eysk-krasnodarskiy-kray",
+        "sort_order": 198
+    },
+    {
+        "name": "Железногорск",
+        "region": "Красноярский край",
+        "slug": "zheleznogorsk-krasnoyarskiy-kray",
+        "sort_order": 199
+    },
+    {
+        "name": "Бугульма",
+        "region": "Республика Татарстан",
+        "slug": "bugulma-respublika-tatarstan",
+        "sort_order": 200
+    },
+    {
+        "name": "Чайковский",
+        "region": "Пермский край",
+        "slug": "chaykovskiy-permskiy-kray",
+        "sort_order": 201
+    },
+    {
+        "name": "Ивантеевка",
+        "region": "Московская область",
+        "slug": "ivanteevka-moskovskaya-oblast",
+        "sort_order": 202
+    },
+    {
+        "name": "Кинешма",
+        "region": "Ивановская область",
+        "slug": "kineshma-ivanovskaya-oblast",
+        "sort_order": 203
+    },
+    {
+        "name": "Юрга",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "yurga-kemerovskaya-oblast-kuzbass",
+        "sort_order": 204
+    },
+    {
+        "name": "Кузнецк",
+        "region": "Пензенская область",
+        "slug": "kuznetsk-penzenskaya-oblast",
+        "sort_order": 205
+    },
+    {
+        "name": "Усть-Илимск",
+        "region": "Иркутская область",
+        "slug": "ust-ilimsk-irkutskaya-oblast",
+        "sort_order": 206
+    },
+    {
+        "name": "Азов",
+        "region": "Ростовская область",
+        "slug": "azov-rostovskaya-oblast",
+        "sort_order": 207
+    },
+    {
+        "name": "Новоуральск",
+        "region": "Свердловская область",
+        "slug": "novouralsk-sverdlovskaya-oblast",
+        "sort_order": 208
+    },
+    {
+        "name": "Клин",
+        "region": "Московская область",
+        "slug": "klin-moskovskaya-oblast",
+        "sort_order": 209
+    },
+    {
+        "name": "Ялта",
+        "region": "Республика Крым",
+        "slug": "yalta-respublika-krym",
+        "sort_order": 210
+    },
+    {
+        "name": "Озерск",
+        "region": "Челябинская область",
+        "slug": "ozersk-chelyabinskaya-oblast",
+        "sort_order": 211
+    },
+    {
+        "name": "Кропоткин",
+        "region": "Краснодарский край",
+        "slug": "kropotkin-krasnodarskiy-kray",
+        "sort_order": 212
+    },
+    {
+        "name": "Видное",
+        "region": "Московская область",
+        "slug": "vidnoe-moskovskaya-oblast",
+        "sort_order": 213
+    },
+    {
+        "name": "Бор",
+        "region": "Нижегородская область",
+        "slug": "bor-nizhegorodskaya-oblast",
+        "sort_order": 214
+    },
+    {
+        "name": "Геленджик",
+        "region": "Краснодарский край",
+        "slug": "gelendzhik-krasnodarskiy-kray",
+        "sort_order": 215
+    },
+    {
+        "name": "Усолье-Сибирское",
+        "region": "Иркутская область",
+        "slug": "usole-sibirskoe-irkutskaya-oblast",
+        "sort_order": 216
+    },
+    {
+        "name": "Балашов",
+        "region": "Саратовская область",
+        "slug": "balashov-saratovskaya-oblast",
+        "sort_order": 217
+    },
+    {
+        "name": "Выборг",
+        "region": "Ленинградская область",
+        "slug": "vyborg-leningradskaya-oblast",
+        "sort_order": 218
+    },
+    {
+        "name": "Черногорск",
+        "region": "Республика Хакасия",
+        "slug": "chernogorsk-respublika-khakasiya",
+        "sort_order": 219
+    },
+    {
+        "name": "Дубна",
+        "region": "Московская область",
+        "slug": "dubna-moskovskaya-oblast",
+        "sort_order": 220
+    },
+    {
+        "name": "Шадринск",
+        "region": "Курганская область",
+        "slug": "shadrinsk-kurganskaya-oblast",
+        "sort_order": 221
+    },
+    {
+        "name": "Всеволожск",
+        "region": "Ленинградская область",
+        "slug": "vsevolozhsk-leningradskaya-oblast",
+        "sort_order": 222
+    },
+    {
+        "name": "Новоалтайск",
+        "region": "Алтайский край",
+        "slug": "novoaltaysk-altayskiy-kray",
+        "sort_order": 223
+    },
+    {
+        "name": "Елабуга",
+        "region": "Республика Татарстан",
+        "slug": "elabuga-respublika-tatarstan",
+        "sort_order": 224
+    },
+    {
+        "name": "Минеральные Воды",
+        "region": "Ставропольский край",
+        "slug": "mineralnye-vody-stavropolskiy-kray",
+        "sort_order": 225
+    },
+    {
+        "name": "Троицк",
+        "region": "Челябинская область",
+        "slug": "troitsk-chelyabinskaya-oblast",
+        "sort_order": 226
+    },
+    {
+        "name": "Егорьевск",
+        "region": "Московская область",
+        "slug": "egorevsk-moskovskaya-oblast",
+        "sort_order": 227
+    },
+    {
+        "name": "Верхняя Пышма",
+        "region": "Свердловская область",
+        "slug": "verkhnyaya-pyshma-sverdlovskaya-oblast",
+        "sort_order": 228
+    },
+    {
+        "name": "Чехов",
+        "region": "Московская область",
+        "slug": "chekhov-moskovskaya-oblast",
+        "sort_order": 229
+    },
+    {
+        "name": "Биробиджан",
+        "region": "Еврейская автономная область",
+        "slug": "birobidzhan-evreyskaya-avtonomnaya-oblast",
+        "sort_order": 230
+    },
+    {
+        "name": "Чапаевск",
+        "region": "Самарская область",
+        "slug": "chapaevsk-samarskaya-oblast",
+        "sort_order": 231
+    },
+    {
+        "name": "Белово",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "belovo-kemerovskaya-oblast-kuzbass",
+        "sort_order": 232
+    },
+    {
+        "name": "Кирово-Чепецк",
+        "region": "Кировская область",
+        "slug": "kirovo-chepetsk-kirovskaya-oblast",
+        "sort_order": 233
+    },
+    {
+        "name": "Дмитров",
+        "region": "Московская область",
+        "slug": "dmitrov-moskovskaya-oblast",
+        "sort_order": 234
+    },
+    {
+        "name": "Туймазы",
+        "region": "Республика Башкортостан",
+        "slug": "tuymazy-respublika-bashkortostan",
+        "sort_order": 235
+    },
+    {
+        "name": "Анжеро-Судженск",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "anzhero-sudzhensk-kemerovskaya-oblast-kuzbass",
+        "sort_order": 236
+    },
+    {
+        "name": "Феодосия",
+        "region": "Республика Крым",
+        "slug": "feodosiya-respublika-krym",
+        "sort_order": 237
+    },
+    {
+        "name": "Славянск-на-Кубани",
+        "region": "Краснодарский край",
+        "slug": "slavyansk-na-kubani-krasnodarskiy-kray",
+        "sort_order": 238
+    },
+    {
+        "name": "Минусинск",
+        "region": "Красноярский край",
+        "slug": "minusinsk-krasnoyarskiy-kray",
+        "sort_order": 239
+    },
+    {
+        "name": "Кстово",
+        "region": "Нижегородская область",
+        "slug": "kstovo-nizhegorodskaya-oblast",
+        "sort_order": 240
+    },
+    {
+        "name": "Сосновый Бор",
+        "region": "Ленинградская область",
+        "slug": "sosnovyy-bor-leningradskaya-oblast",
+        "sort_order": 241
+    },
+    {
+        "name": "Когалым",
+        "region": "Тюменская область",
+        "slug": "kogalym-tyumenskaya-oblast",
+        "sort_order": 242
+    },
+    {
+        "name": "Георгиевск",
+        "region": "Ставропольский край",
+        "slug": "georgievsk-stavropolskiy-kray",
+        "sort_order": 243
+    },
+    {
+        "name": "Сунжа",
+        "region": "Республика Ингушетия",
+        "slug": "sunzha-respublika-ingushetiya",
+        "sort_order": 244
+    },
+    {
+        "name": "Ступино",
+        "region": "Московская область",
+        "slug": "stupino-moskovskaya-oblast",
+        "sort_order": 245
+    },
+    {
+        "name": "Буйнакск",
+        "region": "Республика Дагестан",
+        "slug": "buynaksk-respublika-dagestan",
+        "sort_order": 246
+    },
+    {
+        "name": "Заречный",
+        "region": "Пензенская область",
+        "slug": "zarechnyy-penzenskaya-oblast",
+        "sort_order": 247
+    },
+    {
+        "name": "Белогорск",
+        "region": "Амурская область",
+        "slug": "belogorsk-amurskaya-oblast",
+        "sort_order": 248
+    },
+    {
+        "name": "Мурино",
+        "region": "Ленинградская область",
+        "slug": "murino-leningradskaya-oblast",
+        "sort_order": 249
+    },
+    {
+        "name": "Наро-Фоминск",
+        "region": "Московская область",
+        "slug": "naro-fominsk-moskovskaya-oblast",
+        "sort_order": 250
+    },
+    {
+        "name": "Кунгур",
+        "region": "Пермский край",
+        "slug": "kungur-permskiy-kray",
+        "sort_order": 251
+    },
+    {
+        "name": "Белорецк",
+        "region": "Республика Башкортостан",
+        "slug": "beloretsk-respublika-bashkortostan",
+        "sort_order": 252
+    },
+    {
+        "name": "Горно-Алтайск",
+        "region": "Республика Алтай",
+        "slug": "gorno-altaysk-respublika-altay",
+        "sort_order": 253
+    },
+    {
+        "name": "Ишимбай",
+        "region": "Республика Башкортостан",
+        "slug": "ishimbay-respublika-bashkortostan",
+        "sort_order": 254
+    },
+    {
+        "name": "Ишим",
+        "region": "Тюменская область",
+        "slug": "ishim-tyumenskaya-oblast",
+        "sort_order": 255
+    },
+    {
+        "name": "Павловский Посад",
+        "region": "Московская область",
+        "slug": "pavlovskiy-posad-moskovskaya-oblast",
+        "sort_order": 256
+    },
+    {
+        "name": "Гуково",
+        "region": "Ростовская область",
+        "slug": "gukovo-rostovskaya-oblast",
+        "sort_order": 257
+    },
+    {
+        "name": "Клинцы",
+        "region": "Брянская область",
+        "slug": "klintsy-bryanskaya-oblast",
+        "sort_order": 258
+    },
+    {
+        "name": "Асбест",
+        "region": "Свердловская область",
+        "slug": "asbest-sverdlovskaya-oblast",
+        "sort_order": 259
+    },
+    {
+        "name": "Урус-Мартан",
+        "region": "Чеченская Республика",
+        "slug": "urus-martan-chechenskaya-respublika",
+        "sort_order": 260
+    },
+    {
+        "name": "Россошь",
+        "region": "Воронежская область",
+        "slug": "rossosh-voronezhskaya-oblast",
+        "sort_order": 261
+    },
+    {
+        "name": "Донской",
+        "region": "Тульская область",
+        "slug": "donskoy-tulskaya-oblast",
+        "sort_order": 262
+    },
+    {
+        "name": "Котлас",
+        "region": "Архангельская область",
+        "slug": "kotlas-arkhangelskaya-oblast",
+        "sort_order": 263
+    },
+    {
+        "name": "Вольск",
+        "region": "Саратовская область",
+        "slug": "volsk-saratovskaya-oblast",
+        "sort_order": 264
+    },
+    {
+        "name": "Лениногорск",
+        "region": "Республика Татарстан",
+        "slug": "leninogorsk-respublika-tatarstan",
+        "sort_order": 265
+    },
+    {
+        "name": "Зеленогорск",
+        "region": "Красноярский край",
+        "slug": "zelenogorsk-krasnoyarskiy-kray",
+        "sort_order": 266
+    },
+    {
+        "name": "Ревда",
+        "region": "Свердловская область",
+        "slug": "revda-sverdlovskaya-oblast",
+        "sort_order": 267
+    },
+    {
+        "name": "Буденновск",
+        "region": "Ставропольский край",
+        "slug": "budennovsk-stavropolskiy-kray",
+        "sort_order": 268
+    },
+    {
+        "name": "Туапсе",
+        "region": "Краснодарский край",
+        "slug": "tuapse-krasnodarskiy-kray",
+        "sort_order": 269
+    },
+    {
+        "name": "Полевской",
+        "region": "Свердловская область",
+        "slug": "polevskoy-sverdlovskaya-oblast",
+        "sort_order": 270
+    },
+    {
+        "name": "Сибай",
+        "region": "Республика Башкортостан",
+        "slug": "sibay-respublika-bashkortostan",
+        "sort_order": 271
+    },
+    {
+        "name": "Избербаш",
+        "region": "Республика Дагестан",
+        "slug": "izberbash-respublika-dagestan",
+        "sort_order": 272
+    },
+    {
+        "name": "Лысьва",
+        "region": "Пермский край",
+        "slug": "lysva-permskiy-kray",
+        "sort_order": 273
+    },
+    {
+        "name": "Борисоглебск",
+        "region": "Воронежская область",
+        "slug": "borisoglebsk-voronezhskaya-oblast",
+        "sort_order": 274
+    },
+    {
+        "name": "Фрязино",
+        "region": "Московская область",
+        "slug": "fryazino-moskovskaya-oblast",
+        "sort_order": 275
+    },
+    {
+        "name": "Кумертау",
+        "region": "Республика Башкортостан",
+        "slug": "kumertau-respublika-bashkortostan",
+        "sort_order": 276
+    },
+    {
+        "name": "Чистополь",
+        "region": "Республика Татарстан",
+        "slug": "chistopol-respublika-tatarstan",
+        "sort_order": 277
+    },
+    {
+        "name": "Лабинск",
+        "region": "Краснодарский край",
+        "slug": "labinsk-krasnodarskiy-kray",
+        "sort_order": 278
+    },
+    {
+        "name": "Лесосибирск",
+        "region": "Красноярский край",
+        "slug": "lesosibirsk-krasnoyarskiy-kray",
+        "sort_order": 279
+    },
+    {
+        "name": "Лыткарино",
+        "region": "Московская область",
+        "slug": "lytkarino-moskovskaya-oblast",
+        "sort_order": 280
+    },
+    {
+        "name": "Белебей",
+        "region": "Республика Башкортостан",
+        "slug": "belebey-respublika-bashkortostan",
+        "sort_order": 281
+    },
+    {
+        "name": "Березовский",
+        "region": "Свердловская область",
+        "slug": "berezovskiy-sverdlovskaya-oblast",
+        "sort_order": 282
+    },
+    {
+        "name": "Нягань",
+        "region": "Тюменская область",
+        "slug": "nyagan-tyumenskaya-oblast",
+        "sort_order": 283
+    },
+    {
+        "name": "Прохладный",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "prokhladnyy-kabardino-balkarskaya-respublika",
+        "sort_order": 284
+    },
+    {
+        "name": "Тихвин",
+        "region": "Ленинградская область",
+        "slug": "tikhvin-leningradskaya-oblast",
+        "sort_order": 285
+    },
+    {
+        "name": "Александров",
+        "region": "Владимирская область",
+        "slug": "aleksandrov-vladimirskaya-oblast",
+        "sort_order": 286
+    },
+    {
+        "name": "Крымск",
+        "region": "Краснодарский край",
+        "slug": "krymsk-krasnodarskiy-kray",
+        "sort_order": 287
+    },
+    {
+        "name": "Нерюнгри",
+        "region": "Республика Саха (Якутия)",
+        "slug": "neryungri-respublika-sakha-yakutiya",
+        "sort_order": 288
+    },
+    {
+        "name": "Ржев",
+        "region": "Тверская область",
+        "slug": "rzhev-tverskaya-oblast",
+        "sort_order": 289
+    },
+    {
+        "name": "Алексин",
+        "region": "Тульская область",
+        "slug": "aleksin-tulskaya-oblast",
+        "sort_order": 290
+    },
+    {
+        "name": "Михайловка",
+        "region": "Волгоградская область",
+        "slug": "mikhaylovka-volgogradskaya-oblast",
+        "sort_order": 291
+    },
+    {
+        "name": "Тихорецк",
+        "region": "Краснодарский край",
+        "slug": "tikhoretsk-krasnodarskiy-kray",
+        "sort_order": 292
+    },
+    {
+        "name": "Щекино",
+        "region": "Тульская область",
+        "slug": "shchekino-tulskaya-oblast",
+        "sort_order": 293
+    },
+    {
+        "name": "Шуя",
+        "region": "Ивановская область",
+        "slug": "shuya-ivanovskaya-oblast",
+        "sort_order": 294
+    },
+    {
+        "name": "Сальск",
+        "region": "Ростовская область",
+        "slug": "salsk-rostovskaya-oblast",
+        "sort_order": 295
+    },
+    {
+        "name": "Павлово",
+        "region": "Нижегородская область",
+        "slug": "pavlovo-nizhegorodskaya-oblast",
+        "sort_order": 296
+    },
+    {
+        "name": "Мелеуз",
+        "region": "Республика Башкортостан",
+        "slug": "meleuz-respublika-bashkortostan",
+        "sort_order": 297
+    },
+    {
+        "name": "Сертолово",
+        "region": "Ленинградская область",
+        "slug": "sertolovo-leningradskaya-oblast",
+        "sort_order": 298
+    },
+    {
+        "name": "Дзержинский",
+        "region": "Московская область",
+        "slug": "dzerzhinskiy-moskovskaya-oblast",
+        "sort_order": 299
+    },
+    {
+        "name": "Краснотурьинск",
+        "region": "Свердловская область",
+        "slug": "krasnoturinsk-sverdlovskaya-oblast",
+        "sort_order": 300
+    },
+    {
+        "name": "Искитим",
+        "region": "Новосибирская область",
+        "slug": "iskitim-novosibirskaya-oblast",
+        "sort_order": 301
+    },
+    {
+        "name": "Гудермес",
+        "region": "Чеченская Республика",
+        "slug": "gudermes-chechenskaya-respublika",
+        "sort_order": 302
+    },
+    {
+        "name": "Шали",
+        "region": "Чеченская Республика",
+        "slug": "shali-chechenskaya-respublika",
+        "sort_order": 303
+    },
+    {
+        "name": "Апатиты",
+        "region": "Мурманская область",
+        "slug": "apatity-murmanskaya-oblast",
+        "sort_order": 304
+    },
+    {
+        "name": "Свободный",
+        "region": "Амурская область",
+        "slug": "svobodnyy-amurskaya-oblast",
+        "sort_order": 305
+    },
+    {
+        "name": "Североморск",
+        "region": "Мурманская область",
+        "slug": "severomorsk-murmanskaya-oblast",
+        "sort_order": 306
+    },
+    {
+        "name": "Лиски",
+        "region": "Воронежская область",
+        "slug": "liski-voronezhskaya-oblast",
+        "sort_order": 307
+    },
+    {
+        "name": "Волжск",
+        "region": "Республика Марий Эл",
+        "slug": "volzhsk-respublika-mariy-el",
+        "sort_order": 308
+    },
+    {
+        "name": "Выкса",
+        "region": "Нижегородская область",
+        "slug": "vyksa-nizhegorodskaya-oblast",
+        "sort_order": 309
+    },
+    {
+        "name": "Гусь-Хрустальный",
+        "region": "Владимирская область",
+        "slug": "gus-khrustalnyy-vladimirskaya-oblast",
+        "sort_order": 310
+    },
+    {
+        "name": "Воркута",
+        "region": "Республика Коми",
+        "slug": "vorkuta-respublika-komi",
+        "sort_order": 311
+    },
+    {
+        "name": "Краснокамск",
+        "region": "Пермский край",
+        "slug": "krasnokamsk-permskiy-kray",
+        "sort_order": 312
+    },
+    {
+        "name": "Вязьма",
+        "region": "Смоленская область",
+        "slug": "vyazma-smolenskaya-oblast",
+        "sort_order": 313
+    },
+    {
+        "name": "Арсеньев",
+        "region": "Приморский край",
+        "slug": "arsenev-primorskiy-kray",
+        "sort_order": 314
+    },
+    {
+        "name": "Снежинск",
+        "region": "Челябинская область",
+        "slug": "snezhinsk-chelyabinskaya-oblast",
+        "sort_order": 315
+    },
+    {
+        "name": "Белореченск",
+        "region": "Краснодарский край",
+        "slug": "belorechensk-krasnodarskiy-kray",
+        "sort_order": 316
+    },
+    {
+        "name": "Жигулевск",
+        "region": "Самарская область",
+        "slug": "zhigulevsk-samarskaya-oblast",
+        "sort_order": 317
+    },
+    {
+        "name": "Краснокаменск",
+        "region": "Забайкальский край",
+        "slug": "krasnokamensk-zabaykalskiy-kray",
+        "sort_order": 318
+    },
+    {
+        "name": "Салехард",
+        "region": "Тюменская область",
+        "slug": "salekhard-tyumenskaya-oblast",
+        "sort_order": 319
+    },
+    {
+        "name": "Тимашевск",
+        "region": "Краснодарский край",
+        "slug": "timashevsk-krasnodarskiy-kray",
+        "sort_order": 320
+    },
+    {
+        "name": "Кириши",
+        "region": "Ленинградская область",
+        "slug": "kirishi-leningradskaya-oblast",
+        "sort_order": 321
+    },
+    {
+        "name": "Солнечногорск",
+        "region": "Московская область",
+        "slug": "solnechnogorsk-moskovskaya-oblast",
+        "sort_order": 322
+    },
+    {
+        "name": "Черемхово",
+        "region": "Иркутская область",
+        "slug": "cheremkhovo-irkutskaya-oblast",
+        "sort_order": 323
+    },
+    {
+        "name": "Назарово",
+        "region": "Красноярский край",
+        "slug": "nazarovo-krasnoyarskiy-kray",
+        "sort_order": 324
+    },
+    {
+        "name": "Узловая",
+        "region": "Тульская область",
+        "slug": "uzlovaya-tulskaya-oblast",
+        "sort_order": 325
+    },
+    {
+        "name": "Кизляр",
+        "region": "Республика Дагестан",
+        "slug": "kizlyar-respublika-dagestan",
+        "sort_order": 326
+    },
+    {
+        "name": "Лесной",
+        "region": "Свердловская область",
+        "slug": "lesnoy-sverdlovskaya-oblast",
+        "sort_order": 327
+    },
+    {
+        "name": "Котельники",
+        "region": "Московская область",
+        "slug": "kotelniki-moskovskaya-oblast",
+        "sort_order": 328
+    },
+    {
+        "name": "Боровичи",
+        "region": "Новгородская область",
+        "slug": "borovichi-novgorodskaya-oblast",
+        "sort_order": 329
+    },
+    {
+        "name": "Можга",
+        "region": "Удмуртская Республика",
+        "slug": "mozhga-udmurtskaya-respublika",
+        "sort_order": 330
+    },
+    {
+        "name": "Рославль",
+        "region": "Смоленская область",
+        "slug": "roslavl-smolenskaya-oblast",
+        "sort_order": 331
+    },
+    {
+        "name": "Балахна",
+        "region": "Нижегородская область",
+        "slug": "balakhna-nizhegorodskaya-oblast",
+        "sort_order": 332
+    },
+    {
+        "name": "Бугуруслан",
+        "region": "Оренбургская область",
+        "slug": "buguruslan-orenburgskaya-oblast",
+        "sort_order": 333
+    },
+    {
+        "name": "Шелехов",
+        "region": "Иркутская область",
+        "slug": "shelekhov-irkutskaya-oblast",
+        "sort_order": 334
+    },
+    {
+        "name": "Курганинск",
+        "region": "Краснодарский край",
+        "slug": "kurganinsk-krasnodarskiy-kray",
+        "sort_order": 335
+    },
+    {
+        "name": "Кашира",
+        "region": "Московская область",
+        "slug": "kashira-moskovskaya-oblast",
+        "sort_order": 336
+    },
+    {
+        "name": "Ливны",
+        "region": "Орловская область",
+        "slug": "livny-orlovskaya-oblast",
+        "sort_order": 337
+    },
+    {
+        "name": "Отрадный",
+        "region": "Самарская область",
+        "slug": "otradnyy-samarskaya-oblast",
+        "sort_order": 338
+    },
+    {
+        "name": "Грязи",
+        "region": "Липецкая область",
+        "slug": "gryazi-lipetskaya-oblast",
+        "sort_order": 339
+    },
+    {
+        "name": "Донецк",
+        "region": "Ростовская область",
+        "slug": "donetsk-rostovskaya-oblast",
+        "sort_order": 340
+    },
+    {
+        "name": "Мегион",
+        "region": "Тюменская область",
+        "slug": "megion-tyumenskaya-oblast",
+        "sort_order": 341
+    },
+    {
+        "name": "Бирск",
+        "region": "Республика Башкортостан",
+        "slug": "birsk-respublika-bashkortostan",
+        "sort_order": 342
+    },
+    {
+        "name": "Саяногорск",
+        "region": "Республика Хакасия",
+        "slug": "sayanogorsk-respublika-khakasiya",
+        "sort_order": 343
+    },
+    {
+        "name": "Аксай",
+        "region": "Ростовская область",
+        "slug": "aksay-rostovskaya-oblast",
+        "sort_order": 344
+    },
+    {
+        "name": "Заринск",
+        "region": "Алтайский край",
+        "slug": "zarinsk-altayskiy-kray",
+        "sort_order": 345
+    },
+    {
+        "name": "Березовский",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "berezovskiy-kemerovskaya-oblast-kuzbass",
+        "sort_order": 346
+    },
+    {
+        "name": "Вышний Волочек",
+        "region": "Тверская область",
+        "slug": "vyshniy-volochek-tverskaya-oblast",
+        "sort_order": 347
+    },
+    {
+        "name": "Кингисепп",
+        "region": "Ленинградская область",
+        "slug": "kingisepp-leningradskaya-oblast",
+        "sort_order": 348
+    },
+    {
+        "name": "Надым",
+        "region": "Тюменская область",
+        "slug": "nadym-tyumenskaya-oblast",
+        "sort_order": 349
+    },
+    {
+        "name": "Канаш",
+        "region": "Чувашская Республика",
+        "slug": "kanash-chuvashskaya-respublika",
+        "sort_order": 350
+    },
+    {
+        "name": "Лангепас",
+        "region": "Тюменская область",
+        "slug": "langepas-tyumenskaya-oblast",
+        "sort_order": 351
+    },
+    {
+        "name": "Торжок",
+        "region": "Тверская область",
+        "slug": "torzhok-tverskaya-oblast",
+        "sort_order": 352
+    },
+    {
+        "name": "Волхов",
+        "region": "Ленинградская область",
+        "slug": "volkhov-leningradskaya-oblast",
+        "sort_order": 353
+    },
+    {
+        "name": "Рузаевка",
+        "region": "Республика Мордовия",
+        "slug": "ruzaevka-respublika-mordoviya",
+        "sort_order": 354
+    },
+    {
+        "name": "Чусовой",
+        "region": "Пермский край",
+        "slug": "chusovoy-permskiy-kray",
+        "sort_order": 355
+    },
+    {
+        "name": "Радужный",
+        "region": "Тюменская область",
+        "slug": "raduzhnyy-tyumenskaya-oblast",
+        "sort_order": 356
+    },
+    {
+        "name": "Куйбышев",
+        "region": "Новосибирская область",
+        "slug": "kuybyshev-novosibirskaya-oblast",
+        "sort_order": 357
+    },
+    {
+        "name": "Краснознаменск",
+        "region": "Московская область",
+        "slug": "krasnoznamensk-moskovskaya-oblast",
+        "sort_order": 358
+    },
+    {
+        "name": "Кимры",
+        "region": "Тверская область",
+        "slug": "kimry-tverskaya-oblast",
+        "sort_order": 359
+    },
+    {
+        "name": "Карабулак",
+        "region": "Республика Ингушетия",
+        "slug": "karabulak-respublika-ingushetiya",
+        "sort_order": 360
+    },
+    {
+        "name": "Ярцево",
+        "region": "Смоленская область",
+        "slug": "yartsevo-smolenskaya-oblast",
+        "sort_order": 361
+    },
+    {
+        "name": "Рассказово",
+        "region": "Тамбовская область",
+        "slug": "rasskazovo-tambovskaya-oblast",
+        "sort_order": 362
+    },
+    {
+        "name": "Кореновск",
+        "region": "Краснодарский край",
+        "slug": "korenovsk-krasnodarskiy-kray",
+        "sort_order": 363
+    },
+    {
+        "name": "Кольчугино",
+        "region": "Владимирская область",
+        "slug": "kolchugino-vladimirskaya-oblast",
+        "sort_order": 364
+    },
+    {
+        "name": "Моздок",
+        "region": "Республика Северная Осетия – Алания",
+        "slug": "mozdok-respublika-severnaya-osetiya-alaniya",
+        "sort_order": 365
+    },
+    {
+        "name": "Осинники",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "osinniki-kemerovskaya-oblast-kuzbass",
+        "sort_order": 366
+    },
+    {
+        "name": "Темрюк",
+        "region": "Краснодарский край",
+        "slug": "temryuk-krasnodarskiy-kray",
+        "sort_order": 367
+    },
+    {
+        "name": "Сатка",
+        "region": "Челябинская область",
+        "slug": "satka-chelyabinskaya-oblast",
+        "sort_order": 368
+    },
+    {
+        "name": "Чебаркуль",
+        "region": "Челябинская область",
+        "slug": "chebarkul-chelyabinskaya-oblast",
+        "sort_order": 369
+    },
+    {
+        "name": "Мончегорск",
+        "region": "Мурманская область",
+        "slug": "monchegorsk-murmanskaya-oblast",
+        "sort_order": 370
+    },
+    {
+        "name": "Верхняя Салда",
+        "region": "Свердловская область",
+        "slug": "verkhnyaya-salda-sverdlovskaya-oblast",
+        "sort_order": 371
+    },
+    {
+        "name": "Лянтор",
+        "region": "Тюменская область",
+        "slug": "lyantor-tyumenskaya-oblast",
+        "sort_order": 372
+    },
+    {
+        "name": "Сосновоборск",
+        "region": "Красноярский край",
+        "slug": "sosnovoborsk-krasnoyarskiy-kray",
+        "sort_order": 373
+    },
+    {
+        "name": "Кудрово",
+        "region": "Ленинградская область",
+        "slug": "kudrovo-leningradskaya-oblast",
+        "sort_order": 374
+    },
+    {
+        "name": "Сафоново",
+        "region": "Смоленская область",
+        "slug": "safonovo-smolenskaya-oblast",
+        "sort_order": 375
+    },
+    {
+        "name": "Шебекино",
+        "region": "Белгородская область",
+        "slug": "shebekino-belgorodskaya-oblast",
+        "sort_order": 376
+    },
+    {
+        "name": "Усть-Кут",
+        "region": "Иркутская область",
+        "slug": "ust-kut-irkutskaya-oblast",
+        "sort_order": 377
+    },
+    {
+        "name": "Мыски",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "myski-kemerovskaya-oblast-kuzbass",
+        "sort_order": 378
+    },
+    {
+        "name": "Стрежевой",
+        "region": "Томская область",
+        "slug": "strezhevoy-tomskaya-oblast",
+        "sort_order": 379
+    },
+    {
+        "name": "Пугачев",
+        "region": "Саратовская область",
+        "slug": "pugachev-saratovskaya-oblast",
+        "sort_order": 380
+    },
+    {
+        "name": "Камень-на-Оби",
+        "region": "Алтайский край",
+        "slug": "kamen-na-obi-altayskiy-kray",
+        "sort_order": 381
+    },
+    {
+        "name": "Урай",
+        "region": "Тюменская область",
+        "slug": "uray-tyumenskaya-oblast",
+        "sort_order": 382
+    },
+    {
+        "name": "Горячий Ключ",
+        "region": "Краснодарский край",
+        "slug": "goryachiy-klyuch-krasnodarskiy-kray",
+        "sort_order": 383
+    },
+    {
+        "name": "Ялуторовск",
+        "region": "Тюменская область",
+        "slug": "yalutorovsk-tyumenskaya-oblast",
+        "sort_order": 384
+    },
+    {
+        "name": "Спасск-Дальний",
+        "region": "Приморский край",
+        "slug": "spassk-dalniy-primorskiy-kray",
+        "sort_order": 385
+    },
+    {
+        "name": "Тутаев",
+        "region": "Ярославская область",
+        "slug": "tutaev-yaroslavskaya-oblast",
+        "sort_order": 386
+    },
+    {
+        "name": "Тулун",
+        "region": "Иркутская область",
+        "slug": "tulun-irkutskaya-oblast",
+        "sort_order": 387
+    },
+    {
+        "name": "Заинск",
+        "region": "Республика Татарстан",
+        "slug": "zainsk-respublika-tatarstan",
+        "sort_order": 388
+    },
+    {
+        "name": "Пыть-Ях",
+        "region": "Тюменская область",
+        "slug": "pyt-yakh-tyumenskaya-oblast",
+        "sort_order": 389
+    },
+    {
+        "name": "Новозыбков",
+        "region": "Брянская область",
+        "slug": "novozybkov-bryanskaya-oblast",
+        "sort_order": 390
+    },
+    {
+        "name": "Апшеронск",
+        "region": "Краснодарский край",
+        "slug": "apsheronsk-krasnodarskiy-kray",
+        "sort_order": 391
+    },
+    {
+        "name": "Усть-Лабинск",
+        "region": "Краснодарский край",
+        "slug": "ust-labinsk-krasnodarskiy-kray",
+        "sort_order": 392
+    },
+    {
+        "name": "Елизово",
+        "region": "Камчатский край",
+        "slug": "elizovo-kamchatskiy-kray",
+        "sort_order": 393
+    },
+    {
+        "name": "Белая Калитва",
+        "region": "Ростовская область",
+        "slug": "belaya-kalitva-rostovskaya-oblast",
+        "sort_order": 394
+    },
+    {
+        "name": "Аргун",
+        "region": "Чеченская Республика",
+        "slug": "argun-chechenskaya-respublika",
+        "sort_order": 395
+    },
+    {
+        "name": "Абинск",
+        "region": "Краснодарский край",
+        "slug": "abinsk-krasnodarskiy-kray",
+        "sort_order": 396
+    },
+    {
+        "name": "Большой Камень",
+        "region": "Приморский край",
+        "slug": "bolshoy-kamen-primorskiy-kray",
+        "sort_order": 397
+    },
+    {
+        "name": "Советск",
+        "region": "Калининградская область",
+        "slug": "sovetsk-kaliningradskaya-oblast",
+        "sort_order": 398
+    },
+    {
+        "name": "Амурск",
+        "region": "Хабаровский край",
+        "slug": "amursk-khabarovskiy-kray",
+        "sort_order": 399
+    },
+    {
+        "name": "Саянск",
+        "region": "Иркутская область",
+        "slug": "sayansk-irkutskaya-oblast",
+        "sort_order": 400
+    },
+    {
+        "name": "Малгобек",
+        "region": "Республика Ингушетия",
+        "slug": "malgobek-respublika-ingushetiya",
+        "sort_order": 401
+    },
+    {
+        "name": "Баксан",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "baksan-kabardino-balkarskaya-respublika",
+        "sort_order": 402
+    },
+    {
+        "name": "Ртищево",
+        "region": "Саратовская область",
+        "slug": "rtishchevo-saratovskaya-oblast",
+        "sort_order": 403
+    },
+    {
+        "name": "Печора",
+        "region": "Республика Коми",
+        "slug": "pechora-respublika-komi",
+        "sort_order": 404
+    },
+    {
+        "name": "Курчатов",
+        "region": "Курская область",
+        "slug": "kurchatov-kurskaya-oblast",
+        "sort_order": 405
+    },
+    {
+        "name": "Качканар",
+        "region": "Свердловская область",
+        "slug": "kachkanar-sverdlovskaya-oblast",
+        "sort_order": 406
+    },
+    {
+        "name": "Джанкой",
+        "region": "Республика Крым",
+        "slug": "dzhankoy-respublika-krym",
+        "sort_order": 407
+    },
+    {
+        "name": "Моршанск",
+        "region": "Тамбовская область",
+        "slug": "morshansk-tambovskaya-oblast",
+        "sort_order": 408
+    },
+    {
+        "name": "Югорск",
+        "region": "Тюменская область",
+        "slug": "yugorsk-tyumenskaya-oblast",
+        "sort_order": 409
+    },
+    {
+        "name": "Мариинск",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "mariinsk-kemerovskaya-oblast-kuzbass",
+        "sort_order": 410
+    },
+    {
+        "name": "Учалы",
+        "region": "Республика Башкортостан",
+        "slug": "uchaly-respublika-bashkortostan",
+        "sort_order": 411
+    },
+    {
+        "name": "Переславль-Залесский",
+        "region": "Ярославская область",
+        "slug": "pereslavl-zalesskiy-yaroslavskaya-oblast",
+        "sort_order": 412
+    },
+    {
+        "name": "Алексеевка",
+        "region": "Белгородская область",
+        "slug": "alekseevka-belgorodskaya-oblast",
+        "sort_order": 413
+    },
+    {
+        "name": "Изобильный",
+        "region": "Ставропольский край",
+        "slug": "izobilnyy-stavropolskiy-kray",
+        "sort_order": 414
+    },
+    {
+        "name": "Новодвинск",
+        "region": "Архангельская область",
+        "slug": "novodvinsk-arkhangelskaya-oblast",
+        "sort_order": 415
+    },
+    {
+        "name": "Кизилюрт",
+        "region": "Республика Дагестан",
+        "slug": "kizilyurt-respublika-dagestan",
+        "sort_order": 416
+    },
+    {
+        "name": "Красноуфимск",
+        "region": "Свердловская область",
+        "slug": "krasnoufimsk-sverdlovskaya-oblast",
+        "sort_order": 417
+    },
+    {
+        "name": "Заволжье",
+        "region": "Нижегородская область",
+        "slug": "zavolzhe-nizhegorodskaya-oblast",
+        "sort_order": 418
+    },
+    {
+        "name": "Красный Сулин",
+        "region": "Ростовская область",
+        "slug": "krasnyy-sulin-rostovskaya-oblast",
+        "sort_order": 419
+    },
+    {
+        "name": "Южноуральск",
+        "region": "Челябинская область",
+        "slug": "yuzhnouralsk-chelyabinskaya-oblast",
+        "sort_order": 420
+    },
+    {
+        "name": "Беслан",
+        "region": "Республика Северная Осетия – Алания",
+        "slug": "beslan-respublika-severnaya-osetiya-alaniya",
+        "sort_order": 421
+    },
+    {
+        "name": "Людиново",
+        "region": "Калужская область",
+        "slug": "lyudinovo-kaluzhskaya-oblast",
+        "sort_order": 422
+    },
+    {
+        "name": "Усинск",
+        "region": "Республика Коми",
+        "slug": "usinsk-respublika-komi",
+        "sort_order": 423
+    },
+    {
+        "name": "Алапаевск",
+        "region": "Свердловская область",
+        "slug": "alapaevsk-sverdlovskaya-oblast",
+        "sort_order": 424
+    },
+    {
+        "name": "Реж",
+        "region": "Свердловская область",
+        "slug": "rezh-sverdlovskaya-oblast",
+        "sort_order": 425
+    },
+    {
+        "name": "Урюпинск",
+        "region": "Волгоградская область",
+        "slug": "uryupinsk-volgogradskaya-oblast",
+        "sort_order": 426
+    },
+    {
+        "name": "Шарыпово",
+        "region": "Красноярский край",
+        "slug": "sharypovo-krasnoyarskiy-kray",
+        "sort_order": 427
+    },
+    {
+        "name": "Мценск",
+        "region": "Орловская область",
+        "slug": "mtsensk-orlovskaya-oblast",
+        "sort_order": 428
+    },
+    {
+        "name": "Партизанск",
+        "region": "Приморский край",
+        "slug": "partizansk-primorskiy-kray",
+        "sort_order": 429
+    },
+    {
+        "name": "Ахтубинск",
+        "region": "Астраханская область",
+        "slug": "akhtubinsk-astrakhanskaya-oblast",
+        "sort_order": 430
+    },
+    {
+        "name": "Ирбит",
+        "region": "Свердловская область",
+        "slug": "irbit-sverdlovskaya-oblast",
+        "sort_order": 431
+    },
+    {
+        "name": "Конаково",
+        "region": "Тверская область",
+        "slug": "konakovo-tverskaya-oblast",
+        "sort_order": 432
+    },
+    {
+        "name": "Сокол",
+        "region": "Вологодская область",
+        "slug": "sokol-vologodskaya-oblast",
+        "sort_order": 433
+    },
+    {
+        "name": "Тосно",
+        "region": "Ленинградская область",
+        "slug": "tosno-leningradskaya-oblast",
+        "sort_order": 434
+    },
+    {
+        "name": "Фролово",
+        "region": "Волгоградская область",
+        "slug": "frolovo-volgogradskaya-oblast",
+        "sort_order": 435
+    },
+    {
+        "name": "Кыштым",
+        "region": "Челябинская область",
+        "slug": "kyshtym-chelyabinskaya-oblast",
+        "sort_order": 436
+    },
+    {
+        "name": "Кинель",
+        "region": "Самарская область",
+        "slug": "kinel-samarskaya-oblast",
+        "sort_order": 437
+    },
+    {
+        "name": "Коряжма",
+        "region": "Архангельская область",
+        "slug": "koryazhma-arkhangelskaya-oblast",
+        "sort_order": 438
+    },
+    {
+        "name": "Черняховск",
+        "region": "Калининградская область",
+        "slug": "chernyakhovsk-kaliningradskaya-oblast",
+        "sort_order": 439
+    },
+    {
+        "name": "Протвино",
+        "region": "Московская область",
+        "slug": "protvino-moskovskaya-oblast",
+        "sort_order": 440
+    },
+    {
+        "name": "Мирный",
+        "region": "Республика Саха (Якутия)",
+        "slug": "mirnyy-respublika-sakha-yakutiya",
+        "sort_order": 441
+    },
+    {
+        "name": "Светлоград",
+        "region": "Ставропольский край",
+        "slug": "svetlograd-stavropolskiy-kray",
+        "sort_order": 442
+    },
+    {
+        "name": "Новокубанск",
+        "region": "Краснодарский край",
+        "slug": "novokubansk-krasnodarskiy-kray",
+        "sort_order": 443
+    },
+    {
+        "name": "Лесозаводск",
+        "region": "Приморский край",
+        "slug": "lesozavodsk-primorskiy-kray",
+        "sort_order": 444
+    },
+    {
+        "name": "Благовещенск",
+        "region": "Республика Башкортостан",
+        "slug": "blagoveshchensk-2",
+        "sort_order": 445
+    },
+    {
+        "name": "Луга",
+        "region": "Ленинградская область",
+        "slug": "luga-leningradskaya-oblast",
+        "sort_order": 446
+    },
+    {
+        "name": "Каменка",
+        "region": "Пензенская область",
+        "slug": "kamenka-penzenskaya-oblast",
+        "sort_order": 447
+    },
+    {
+        "name": "Вязники",
+        "region": "Владимирская область",
+        "slug": "vyazniki-vladimirskaya-oblast",
+        "sort_order": 448
+    },
+    {
+        "name": "Миллерово",
+        "region": "Ростовская область",
+        "slug": "millerovo-rostovskaya-oblast",
+        "sort_order": 449
+    },
+    {
+        "name": "Ефремов",
+        "region": "Тульская область",
+        "slug": "efremov-tulskaya-oblast",
+        "sort_order": 450
+    },
+    {
+        "name": "Гулькевичи",
+        "region": "Краснодарский край",
+        "slug": "gulkevichi-krasnodarskiy-kray",
+        "sort_order": 451
+    },
+    {
+        "name": "Валуйки",
+        "region": "Белгородская область",
+        "slug": "valuyki-belgorodskaya-oblast",
+        "sort_order": 452
+    },
+    {
+        "name": "Азнакаево",
+        "region": "Республика Татарстан",
+        "slug": "aznakaevo-respublika-tatarstan",
+        "sort_order": 453
+    },
+    {
+        "name": "Дальнегорск",
+        "region": "Приморский край",
+        "slug": "dalnegorsk-primorskiy-kray",
+        "sort_order": 454
+    },
+    {
+        "name": "Зеленокумск",
+        "region": "Ставропольский край",
+        "slug": "zelenokumsk-stavropolskiy-kray",
+        "sort_order": 455
+    },
+    {
+        "name": "Корсаков",
+        "region": "Сахалинская область",
+        "slug": "korsakov-sakhalinskaya-oblast",
+        "sort_order": 456
+    },
+    {
+        "name": "Коркино",
+        "region": "Челябинская область",
+        "slug": "korkino-chelyabinskaya-oblast",
+        "sort_order": 457
+    },
+    {
+        "name": "Богородск",
+        "region": "Нижегородская область",
+        "slug": "bogorodsk-nizhegorodskaya-oblast",
+        "sort_order": 458
+    },
+    {
+        "name": "Гай",
+        "region": "Оренбургская область",
+        "slug": "gay-orenburgskaya-oblast",
+        "sort_order": 459
+    },
+    {
+        "name": "Алатырь",
+        "region": "Чувашская Республика",
+        "slug": "alatyr-chuvashskaya-respublika",
+        "sort_order": 460
+    },
+    {
+        "name": "Балтийск",
+        "region": "Калининградская область",
+        "slug": "baltiysk-kaliningradskaya-oblast",
+        "sort_order": 461
+    },
+    {
+        "name": "Нижнеудинск",
+        "region": "Иркутская область",
+        "slug": "nizhneudinsk-irkutskaya-oblast",
+        "sort_order": 462
+    },
+    {
+        "name": "Истра",
+        "region": "Московская область",
+        "slug": "istra-moskovskaya-oblast",
+        "sort_order": 463
+    },
+    {
+        "name": "Сухой Лог",
+        "region": "Свердловская область",
+        "slug": "sukhoy-log-sverdlovskaya-oblast",
+        "sort_order": 464
+    },
+    {
+        "name": "Вичуга",
+        "region": "Ивановская область",
+        "slug": "vichuga-ivanovskaya-oblast",
+        "sort_order": 465
+    },
+    {
+        "name": "Тында",
+        "region": "Амурская область",
+        "slug": "tynda-amurskaya-oblast",
+        "sort_order": 466
+    },
+    {
+        "name": "Фурманов",
+        "region": "Ивановская область",
+        "slug": "furmanov-ivanovskaya-oblast",
+        "sort_order": 467
+    },
+    {
+        "name": "Чернушка",
+        "region": "Пермский край",
+        "slug": "chernushka-permskiy-kray",
+        "sort_order": 468
+    },
+    {
+        "name": "Мирный",
+        "region": "Архангельская область",
+        "slug": "mirnyy-arkhangelskaya-oblast",
+        "sort_order": 469
+    },
+    {
+        "name": "Тайшет",
+        "region": "Иркутская область",
+        "slug": "tayshet-irkutskaya-oblast",
+        "sort_order": 470
+    },
+    {
+        "name": "Трехгорный",
+        "region": "Челябинская область",
+        "slug": "trekhgornyy-chelyabinskaya-oblast",
+        "sort_order": 471
+    },
+    {
+        "name": "Тавда",
+        "region": "Свердловская область",
+        "slug": "tavda-sverdlovskaya-oblast",
+        "sort_order": 472
+    },
+    {
+        "name": "Приморско-Ахтарск",
+        "region": "Краснодарский край",
+        "slug": "primorsko-akhtarsk-krasnodarskiy-kray",
+        "sort_order": 473
+    },
+    {
+        "name": "Сланцы",
+        "region": "Ленинградская область",
+        "slug": "slantsy-leningradskaya-oblast",
+        "sort_order": 474
+    },
+    {
+        "name": "Добрянка",
+        "region": "Пермский край",
+        "slug": "dobryanka-permskiy-kray",
+        "sort_order": 475
+    },
+    {
+        "name": "Шатура",
+        "region": "Московская область",
+        "slug": "shatura-moskovskaya-oblast",
+        "sort_order": 476
+    },
+    {
+        "name": "Нурлат",
+        "region": "Республика Татарстан",
+        "slug": "nurlat-respublika-tatarstan",
+        "sort_order": 477
+    },
+    {
+        "name": "Вятские Поляны",
+        "region": "Кировская область",
+        "slug": "vyatskie-polyany-kirovskaya-oblast",
+        "sort_order": 478
+    },
+    {
+        "name": "Слободской",
+        "region": "Кировская область",
+        "slug": "slobodskoy-kirovskaya-oblast",
+        "sort_order": 479
+    },
+    {
+        "name": "Острогожск",
+        "region": "Воронежская область",
+        "slug": "ostrogozhsk-voronezhskaya-oblast",
+        "sort_order": 480
+    },
+    {
+        "name": "Тейково",
+        "region": "Ивановская область",
+        "slug": "teykovo-ivanovskaya-oblast",
+        "sort_order": 481
+    },
+    {
+        "name": "Кулебаки",
+        "region": "Нижегородская область",
+        "slug": "kulebaki-nizhegorodskaya-oblast",
+        "sort_order": 482
+    },
+    {
+        "name": "Углич",
+        "region": "Ярославская область",
+        "slug": "uglich-yaroslavskaya-oblast",
+        "sort_order": 483
+    },
+    {
+        "name": "Муравленко",
+        "region": "Тюменская область",
+        "slug": "muravlenko-tyumenskaya-oblast",
+        "sort_order": 484
+    },
+    {
+        "name": "Нововоронеж",
+        "region": "Воронежская область",
+        "slug": "novovoronezh-voronezhskaya-oblast",
+        "sort_order": 485
+    },
+    {
+        "name": "Великий Устюг",
+        "region": "Вологодская область",
+        "slug": "velikiy-ustyug-vologodskaya-oblast",
+        "sort_order": 486
+    },
+    {
+        "name": "Дюртюли",
+        "region": "Республика Башкортостан",
+        "slug": "dyurtyuli-respublika-bashkortostan",
+        "sort_order": 487
+    },
+    {
+        "name": "Сердобск",
+        "region": "Пензенская область",
+        "slug": "serdobsk-penzenskaya-oblast",
+        "sort_order": 488
+    },
+    {
+        "name": "Апрелевка",
+        "region": "Московская область",
+        "slug": "aprelevka-moskovskaya-oblast",
+        "sort_order": 489
+    },
+    {
+        "name": "Нарткала",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "nartkala-kabardino-balkarskaya-respublika",
+        "sort_order": 490
+    },
+    {
+        "name": "Усть-Джегута",
+        "region": "Карачаево-Черкесская Республика",
+        "slug": "ust-dzheguta-karachaevo-cherkesskaya-respublika",
+        "sort_order": 491
+    },
+    {
+        "name": "Зима",
+        "region": "Иркутская область",
+        "slug": "zima-irkutskaya-oblast",
+        "sort_order": 492
+    },
+    {
+        "name": "Дедовск",
+        "region": "Московская область",
+        "slug": "dedovsk-moskovskaya-oblast",
+        "sort_order": 493
+    },
+    {
+        "name": "Ростов",
+        "region": "Ярославская область",
+        "slug": "rostov-yaroslavskaya-oblast",
+        "sort_order": 494
+    },
+    {
+        "name": "Луховицы",
+        "region": "Московская область",
+        "slug": "lukhovitsy-moskovskaya-oblast",
+        "sort_order": 495
+    },
+    {
+        "name": "Кандалакша",
+        "region": "Мурманская область",
+        "slug": "kandalaksha-murmanskaya-oblast",
+        "sort_order": 496
+    },
+    {
+        "name": "Кудымкар",
+        "region": "Пермский край",
+        "slug": "kudymkar-permskiy-kray",
+        "sort_order": 497
+    },
+    {
+        "name": "Благодарный",
+        "region": "Ставропольский край",
+        "slug": "blagodarnyy-stavropolskiy-kray",
+        "sort_order": 498
+    },
+    {
+        "name": "Богородицк",
+        "region": "Тульская область",
+        "slug": "bogoroditsk-tulskaya-oblast",
+        "sort_order": 499
+    },
+    {
+        "name": "Кохма",
+        "region": "Ивановская область",
+        "slug": "kokhma-ivanovskaya-oblast",
+        "sort_order": 500
+    },
+    {
+        "name": "Можайск",
+        "region": "Московская область",
+        "slug": "mozhaysk-moskovskaya-oblast",
+        "sort_order": 501
+    },
+    {
+        "name": "Артемовский",
+        "region": "Свердловская область",
+        "slug": "artemovskiy-sverdlovskaya-oblast",
+        "sort_order": 502
+    },
+    {
+        "name": "Алушта",
+        "region": "Республика Крым",
+        "slug": "alushta-respublika-krym",
+        "sort_order": 503
+    },
+    {
+        "name": "Маркс",
+        "region": "Саратовская область",
+        "slug": "marks-saratovskaya-oblast",
+        "sort_order": 504
+    },
+    {
+        "name": "Киров",
+        "region": "Калужская область",
+        "slug": "kirov-2",
+        "sort_order": 505
+    },
+    {
+        "name": "Обь",
+        "region": "Новосибирская область",
+        "slug": "ob-novosibirskaya-oblast",
+        "sort_order": 506
+    },
+    {
+        "name": "Городец",
+        "region": "Нижегородская область",
+        "slug": "gorodets-nizhegorodskaya-oblast",
+        "sort_order": 507
+    },
+    {
+        "name": "Дагестанские Огни",
+        "region": "Республика Дагестан",
+        "slug": "dagestanskie-ogni-respublika-dagestan",
+        "sort_order": 508
+    },
+    {
+        "name": "Костомукша",
+        "region": "Республика Карелия",
+        "slug": "kostomuksha-respublika-kareliya",
+        "sort_order": 509
+    },
+    {
+        "name": "Богданович",
+        "region": "Свердловская область",
+        "slug": "bogdanovich-sverdlovskaya-oblast",
+        "sort_order": 510
+    },
+    {
+        "name": "Советский",
+        "region": "Тюменская область",
+        "slug": "sovetskiy-tyumenskaya-oblast",
+        "sort_order": 511
+    },
+    {
+        "name": "Борзя",
+        "region": "Забайкальский край",
+        "slug": "borzya-zabaykalskiy-kray",
+        "sort_order": 512
+    },
+    {
+        "name": "Дивногорск",
+        "region": "Красноярский край",
+        "slug": "divnogorsk-krasnoyarskiy-kray",
+        "sort_order": 513
+    },
+    {
+        "name": "Кондопога",
+        "region": "Республика Карелия",
+        "slug": "kondopoga-respublika-kareliya",
+        "sort_order": 514
+    },
+    {
+        "name": "Касимов",
+        "region": "Рязанская область",
+        "slug": "kasimov-ryazanskaya-oblast",
+        "sort_order": 515
+    },
+    {
+        "name": "Губкинский",
+        "region": "Тюменская область",
+        "slug": "gubkinskiy-tyumenskaya-oblast",
+        "sort_order": 516
+    },
+    {
+        "name": "Славгород",
+        "region": "Алтайский край",
+        "slug": "slavgorod-altayskiy-kray",
+        "sort_order": 517
+    },
+    {
+        "name": "Аша",
+        "region": "Челябинская область",
+        "slug": "asha-chelyabinskaya-oblast",
+        "sort_order": 518
+    },
+    {
+        "name": "Алейск",
+        "region": "Алтайский край",
+        "slug": "aleysk-altayskiy-kray",
+        "sort_order": 519
+    },
+    {
+        "name": "Гагарин",
+        "region": "Смоленская область",
+        "slug": "gagarin-smolenskaya-oblast",
+        "sort_order": 520
+    },
+    {
+        "name": "Котовск",
+        "region": "Тамбовская область",
+        "slug": "kotovsk-tambovskaya-oblast",
+        "sort_order": 521
+    },
+    {
+        "name": "Ликино-Дулево",
+        "region": "Московская область",
+        "slug": "likino-dulevo-moskovskaya-oblast",
+        "sort_order": 522
+    },
+    {
+        "name": "Барабинск",
+        "region": "Новосибирская область",
+        "slug": "barabinsk-novosibirskaya-oblast",
+        "sort_order": 523
+    },
+    {
+        "name": "Гусев",
+        "region": "Калининградская область",
+        "slug": "gusev-kaliningradskaya-oblast",
+        "sort_order": 524
+    },
+    {
+        "name": "Шумерля",
+        "region": "Чувашская Республика",
+        "slug": "shumerlya-chuvashskaya-respublika",
+        "sort_order": 525
+    },
+    {
+        "name": "Тара",
+        "region": "Омская область",
+        "slug": "tara-omskaya-oblast",
+        "sort_order": 526
+    },
+    {
+        "name": "Петровск",
+        "region": "Саратовская область",
+        "slug": "petrovsk-saratovskaya-oblast",
+        "sort_order": 527
+    },
+    {
+        "name": "Еманжелинск",
+        "region": "Челябинская область",
+        "slug": "emanzhelinsk-chelyabinskaya-oblast",
+        "sort_order": 528
+    },
+    {
+        "name": "Карталы",
+        "region": "Челябинская область",
+        "slug": "kartaly-chelyabinskaya-oblast",
+        "sort_order": 529
+    },
+    {
+        "name": "Похвистнево",
+        "region": "Самарская область",
+        "slug": "pokhvistnevo-samarskaya-oblast",
+        "sort_order": 530
+    },
+    {
+        "name": "Заречный",
+        "region": "Свердловская область",
+        "slug": "zarechnyy-sverdlovskaya-oblast",
+        "sort_order": 531
+    },
+    {
+        "name": "Малоярославец",
+        "region": "Калужская область",
+        "slug": "maloyaroslavets-kaluzhskaya-oblast",
+        "sort_order": 532
+    },
+    {
+        "name": "Топки",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "topki-kemerovskaya-oblast-kuzbass",
+        "sort_order": 533
+    },
+    {
+        "name": "Старая Русса",
+        "region": "Новгородская область",
+        "slug": "staraya-russa-novgorodskaya-oblast",
+        "sort_order": 534
+    },
+    {
+        "name": "Кушва",
+        "region": "Свердловская область",
+        "slug": "kushva-sverdlovskaya-oblast",
+        "sort_order": 535
+    },
+    {
+        "name": "Десногорск",
+        "region": "Смоленская область",
+        "slug": "desnogorsk-smolenskaya-oblast",
+        "sort_order": 536
+    },
+    {
+        "name": "Удомля",
+        "region": "Тверская область",
+        "slug": "udomlya-tverskaya-oblast",
+        "sort_order": 537
+    },
+    {
+        "name": "Сорочинск",
+        "region": "Оренбургская область",
+        "slug": "sorochinsk-orenburgskaya-oblast",
+        "sort_order": 538
+    },
+    {
+        "name": "Холмск",
+        "region": "Сахалинская область",
+        "slug": "kholmsk-sakhalinskaya-oblast",
+        "sort_order": 539
+    },
+    {
+        "name": "Семилуки",
+        "region": "Воронежская область",
+        "slug": "semiluki-voronezhskaya-oblast",
+        "sort_order": 540
+    },
+    {
+        "name": "Кировск",
+        "region": "Ленинградская область",
+        "slug": "kirovsk-leningradskaya-oblast",
+        "sort_order": 541
+    },
+    {
+        "name": "Соль-Илецк",
+        "region": "Оренбургская область",
+        "slug": "sol-iletsk-orenburgskaya-oblast",
+        "sort_order": 542
+    },
+    {
+        "name": "Карасук",
+        "region": "Новосибирская область",
+        "slug": "karasuk-novosibirskaya-oblast",
+        "sort_order": 543
+    },
+    {
+        "name": "Знаменск",
+        "region": "Астраханская область",
+        "slug": "znamensk-astrakhanskaya-oblast",
+        "sort_order": 544
+    },
+    {
+        "name": "Киржач",
+        "region": "Владимирская область",
+        "slug": "kirzhach-vladimirskaya-oblast",
+        "sort_order": 545
+    },
+    {
+        "name": "Майский",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "mayskiy-kabardino-balkarskaya-respublika",
+        "sort_order": 546
+    },
+    {
+        "name": "Бахчисарай",
+        "region": "Республика Крым",
+        "slug": "bakhchisaray-respublika-krym",
+        "sort_order": 547
+    },
+    {
+        "name": "Верхний Уфалей",
+        "region": "Челябинская область",
+        "slug": "verkhniy-ufaley-chelyabinskaya-oblast",
+        "sort_order": 548
+    },
+    {
+        "name": "Курчалой",
+        "region": "Чеченская Республика",
+        "slug": "kurchaloy-chechenskaya-respublika",
+        "sort_order": 549
+    },
+    {
+        "name": "Новоалександровск",
+        "region": "Ставропольский край",
+        "slug": "novoaleksandrovsk-stavropolskiy-kray",
+        "sort_order": 550
+    },
+    {
+        "name": "Заводоуковск",
+        "region": "Тюменская область",
+        "slug": "zavodoukovsk-tyumenskaya-oblast",
+        "sort_order": 551
+    },
+    {
+        "name": "Красноармейск",
+        "region": "Московская область",
+        "slug": "krasnoarmeysk-moskovskaya-oblast",
+        "sort_order": 552
+    },
+    {
+        "name": "Октябрьск",
+        "region": "Самарская область",
+        "slug": "oktyabrsk-samarskaya-oblast",
+        "sort_order": 553
+    },
+    {
+        "name": "Киреевск",
+        "region": "Тульская область",
+        "slug": "kireevsk-tulskaya-oblast",
+        "sort_order": 554
+    },
+    {
+        "name": "Лабытнанги",
+        "region": "Тюменская область",
+        "slug": "labytnangi-tyumenskaya-oblast",
+        "sort_order": 555
+    },
+    {
+        "name": "Дятьково",
+        "region": "Брянская область",
+        "slug": "dyatkovo-bryanskaya-oblast",
+        "sort_order": 556
+    },
+    {
+        "name": "Новопавловск",
+        "region": "Ставропольский край",
+        "slug": "novopavlovsk-stavropolskiy-kray",
+        "sort_order": 557
+    },
+    {
+        "name": "Кировск",
+        "region": "Мурманская область",
+        "slug": "kirovsk-murmanskaya-oblast",
+        "sort_order": 558
+    },
+    {
+        "name": "Сегежа",
+        "region": "Республика Карелия",
+        "slug": "segezha-respublika-kareliya",
+        "sort_order": 559
+    },
+    {
+        "name": "Сосногорск",
+        "region": "Республика Коми",
+        "slug": "sosnogorsk-respublika-komi",
+        "sort_order": 560
+    },
+    {
+        "name": "Полысаево",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "polysaevo-kemerovskaya-oblast-kuzbass",
+        "sort_order": 561
+    },
+    {
+        "name": "Карпинск",
+        "region": "Свердловская область",
+        "slug": "karpinsk-sverdlovskaya-oblast",
+        "sort_order": 562
+    },
+    {
+        "name": "Отрадное",
+        "region": "Ленинградская область",
+        "slug": "otradnoe-leningradskaya-oblast",
+        "sort_order": 563
+    },
+    {
+        "name": "Камышлов",
+        "region": "Свердловская область",
+        "slug": "kamyshlov-sverdlovskaya-oblast",
+        "sort_order": 564
+    },
+    {
+        "name": "Скопин",
+        "region": "Рязанская область",
+        "slug": "skopin-ryazanskaya-oblast",
+        "sort_order": 565
+    },
+    {
+        "name": "Балабаново",
+        "region": "Калужская область",
+        "slug": "balabanovo-kaluzhskaya-oblast",
+        "sort_order": 566
+    },
+    {
+        "name": "Североуральск",
+        "region": "Свердловская область",
+        "slug": "severouralsk-sverdlovskaya-oblast",
+        "sort_order": 567
+    },
+    {
+        "name": "Кимовск",
+        "region": "Тульская область",
+        "slug": "kimovsk-tulskaya-oblast",
+        "sort_order": 568
+    },
+    {
+        "name": "Лосино-Петровский",
+        "region": "Московская область",
+        "slug": "losino-petrovskiy-moskovskaya-oblast",
+        "sort_order": 569
+    },
+    {
+        "name": "Нарьян-Мар",
+        "region": "Архангельская область",
+        "slug": "naryan-mar-arkhangelskaya-oblast",
+        "sort_order": 570
+    },
+    {
+        "name": "Дальнереченск",
+        "region": "Приморский край",
+        "slug": "dalnerechensk-primorskiy-kray",
+        "sort_order": 571
+    },
+    {
+        "name": "Янаул",
+        "region": "Республика Башкортостан",
+        "slug": "yanaul-respublika-bashkortostan",
+        "sort_order": 572
+    },
+    {
+        "name": "Красноперекопск",
+        "region": "Республика Крым",
+        "slug": "krasnoperekopsk-respublika-krym",
+        "sort_order": 573
+    },
+    {
+        "name": "Железноводск",
+        "region": "Ставропольский край",
+        "slug": "zheleznovodsk-stavropolskiy-kray",
+        "sort_order": 574
+    },
+    {
+        "name": "Озеры",
+        "region": "Московская область",
+        "slug": "ozery-moskovskaya-oblast",
+        "sort_order": 575
+    },
+    {
+        "name": "Саки",
+        "region": "Республика Крым",
+        "slug": "saki-respublika-krym",
+        "sort_order": 576
+    },
+    {
+        "name": "Медногорск",
+        "region": "Оренбургская область",
+        "slug": "mednogorsk-orenburgskaya-oblast",
+        "sort_order": 577
+    },
+    {
+        "name": "Морозовск",
+        "region": "Ростовская область",
+        "slug": "morozovsk-rostovskaya-oblast",
+        "sort_order": 578
+    },
+    {
+        "name": "Павловск",
+        "region": "Воронежская область",
+        "slug": "pavlovsk-voronezhskaya-oblast",
+        "sort_order": 579
+    },
+    {
+        "name": "Нефтекумск",
+        "region": "Ставропольский край",
+        "slug": "neftekumsk-stavropolskiy-kray",
+        "sort_order": 580
+    },
+    {
+        "name": "Асино",
+        "region": "Томская область",
+        "slug": "asino-tomskaya-oblast",
+        "sort_order": 581
+    },
+    {
+        "name": "Старая Купавна",
+        "region": "Московская область",
+        "slug": "staraya-kupavna-moskovskaya-oblast",
+        "sort_order": 582
+    },
+    {
+        "name": "Строитель",
+        "region": "Белгородская область",
+        "slug": "stroitel-belgorodskaya-oblast",
+        "sort_order": 583
+    },
+    {
+        "name": "Семенов",
+        "region": "Нижегородская область",
+        "slug": "semenov-nizhegorodskaya-oblast",
+        "sort_order": 584
+    },
+    {
+        "name": "Инта",
+        "region": "Республика Коми",
+        "slug": "inta-respublika-komi",
+        "sort_order": 585
+    },
+    {
+        "name": "Зерноград",
+        "region": "Ростовская область",
+        "slug": "zernograd-rostovskaya-oblast",
+        "sort_order": 586
+    },
+    {
+        "name": "Аткарск",
+        "region": "Саратовская область",
+        "slug": "atkarsk-saratovskaya-oblast",
+        "sort_order": 587
+    },
+    {
+        "name": "Бутурлиновка",
+        "region": "Воронежская область",
+        "slug": "buturlinovka-voronezhskaya-oblast",
+        "sort_order": 588
+    },
+    {
+        "name": "Родники",
+        "region": "Ивановская область",
+        "slug": "rodniki-ivanovskaya-oblast",
+        "sort_order": 589
+    },
+    {
+        "name": "Сасово",
+        "region": "Рязанская область",
+        "slug": "sasovo-ryazanskaya-oblast",
+        "sort_order": 590
+    },
+    {
+        "name": "Среднеуральск",
+        "region": "Свердловская область",
+        "slug": "sredneuralsk-sverdlovskaya-oblast",
+        "sort_order": 591
+    },
+    {
+        "name": "Калач-на-Дону",
+        "region": "Волгоградская область",
+        "slug": "kalach-na-donu-volgogradskaya-oblast",
+        "sort_order": 592
+    },
+    {
+        "name": "Советская Гавань",
+        "region": "Хабаровский край",
+        "slug": "sovetskaya-gavan-khabarovskiy-kray",
+        "sort_order": 593
+    },
+    {
+        "name": "Шарья",
+        "region": "Костромская область",
+        "slug": "sharya-kostromskaya-oblast",
+        "sort_order": 594
+    },
+    {
+        "name": "Татарск",
+        "region": "Новосибирская область",
+        "slug": "tatarsk-novosibirskaya-oblast",
+        "sort_order": 595
+    },
+    {
+        "name": "Давлеканово",
+        "region": "Республика Башкортостан",
+        "slug": "davlekanovo-respublika-bashkortostan",
+        "sort_order": 596
+    },
+    {
+        "name": "Кувандык",
+        "region": "Оренбургская область",
+        "slug": "kuvandyk-orenburgskaya-oblast",
+        "sort_order": 597
+    },
+    {
+        "name": "Буй",
+        "region": "Костромская область",
+        "slug": "buy-kostromskaya-oblast",
+        "sort_order": 598
+    },
+    {
+        "name": "Северобайкальск",
+        "region": "Республика Бурятия",
+        "slug": "severobaykalsk-respublika-buryatiya",
+        "sort_order": 599
+    },
+    {
+        "name": "Ленск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "lensk-respublika-sakha-yakutiya",
+        "sort_order": 600
+    },
+    {
+        "name": "Ипатово",
+        "region": "Ставропольский край",
+        "slug": "ipatovo-stavropolskiy-kray",
+        "sort_order": 601
+    },
+    {
+        "name": "Тайга",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "tayga-kemerovskaya-oblast-kuzbass",
+        "sort_order": 602
+    },
+    {
+        "name": "Уварово",
+        "region": "Тамбовская область",
+        "slug": "uvarovo-tambovskaya-oblast",
+        "sort_order": 603
+    },
+    {
+        "name": "Зея",
+        "region": "Амурская область",
+        "slug": "zeya-amurskaya-oblast",
+        "sort_order": 604
+    },
+    {
+        "name": "Гусиноозерск",
+        "region": "Республика Бурятия",
+        "slug": "gusinoozersk-respublika-buryatiya",
+        "sort_order": 605
+    },
+    {
+        "name": "Железногорск-Илимский",
+        "region": "Иркутская область",
+        "slug": "zheleznogorsk-ilimskiy-irkutskaya-oblast",
+        "sort_order": 606
+    },
+    {
+        "name": "Таштагол",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "tashtagol-kemerovskaya-oblast-kuzbass",
+        "sort_order": 607
+    },
+    {
+        "name": "Котельнич",
+        "region": "Кировская область",
+        "slug": "kotelnich-kirovskaya-oblast",
+        "sort_order": 608
+    },
+    {
+        "name": "Фокино",
+        "region": "Приморский край",
+        "slug": "fokino-primorskiy-kray",
+        "sort_order": 609
+    },
+    {
+        "name": "Лермонтов",
+        "region": "Ставропольский край",
+        "slug": "lermontov-stavropolskiy-kray",
+        "sort_order": 610
+    },
+    {
+        "name": "Колпашево",
+        "region": "Томская область",
+        "slug": "kolpashevo-tomskaya-oblast",
+        "sort_order": 611
+    },
+    {
+        "name": "Унеча",
+        "region": "Брянская область",
+        "slug": "unecha-bryanskaya-oblast",
+        "sort_order": 612
+    },
+    {
+        "name": "Зарайск",
+        "region": "Московская область",
+        "slug": "zaraysk-moskovskaya-oblast",
+        "sort_order": 613
+    },
+    {
+        "name": "Невьянск",
+        "region": "Свердловская область",
+        "slug": "nevyansk-sverdlovskaya-oblast",
+        "sort_order": 614
+    },
+    {
+        "name": "Электрогорск",
+        "region": "Московская область",
+        "slug": "elektrogorsk-moskovskaya-oblast",
+        "sort_order": 615
+    },
+    {
+        "name": "Калачинск",
+        "region": "Омская область",
+        "slug": "kalachinsk-omskaya-oblast",
+        "sort_order": 616
+    },
+    {
+        "name": "Бронницы",
+        "region": "Московская область",
+        "slug": "bronnitsy-moskovskaya-oblast",
+        "sort_order": 617
+    },
+    {
+        "name": "Красноуральск",
+        "region": "Свердловская область",
+        "slug": "krasnouralsk-sverdlovskaya-oblast",
+        "sort_order": 618
+    },
+    {
+        "name": "Гурьевск",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "gurevsk-kemerovskaya-oblast-kuzbass",
+        "sort_order": 619
+    },
+    {
+        "name": "Никольское",
+        "region": "Ленинградская область",
+        "slug": "nikolskoe-leningradskaya-oblast",
+        "sort_order": 620
+    },
+    {
+        "name": "Исилькуль",
+        "region": "Омская область",
+        "slug": "isilkul-omskaya-oblast",
+        "sort_order": 621
+    },
+    {
+        "name": "Вельск",
+        "region": "Архангельская область",
+        "slug": "velsk-arkhangelskaya-oblast",
+        "sort_order": 622
+    },
+    {
+        "name": "Звенигород",
+        "region": "Московская область",
+        "slug": "zvenigorod-moskovskaya-oblast",
+        "sort_order": 623
+    },
+    {
+        "name": "Красноармейск",
+        "region": "Саратовская область",
+        "slug": "krasnoarmeysk-saratovskaya-oblast",
+        "sort_order": 624
+    },
+    {
+        "name": "Вилючинск",
+        "region": "Камчатский край",
+        "slug": "vilyuchinsk-kamchatskiy-kray",
+        "sort_order": 625
+    },
+    {
+        "name": "Хадыженск",
+        "region": "Краснодарский край",
+        "slug": "khadyzhensk-krasnodarskiy-kray",
+        "sort_order": 626
+    },
+    {
+        "name": "Коммунар",
+        "region": "Ленинградская область",
+        "slug": "kommunar-leningradskaya-oblast",
+        "sort_order": 627
+    },
+    {
+        "name": "Бавлы",
+        "region": "Республика Татарстан",
+        "slug": "bavly-respublika-tatarstan",
+        "sort_order": 628
+    },
+    {
+        "name": "Менделеевск",
+        "region": "Республика Татарстан",
+        "slug": "mendeleevsk-respublika-tatarstan",
+        "sort_order": 629
+    },
+    {
+        "name": "Семикаракорск",
+        "region": "Ростовская область",
+        "slug": "semikarakorsk-rostovskaya-oblast",
+        "sort_order": 630
+    },
+    {
+        "name": "Усть-Катав",
+        "region": "Челябинская область",
+        "slug": "ust-katav-chelyabinskaya-oblast",
+        "sort_order": 631
+    },
+    {
+        "name": "Светлый",
+        "region": "Калининградская область",
+        "slug": "svetlyy-kaliningradskaya-oblast",
+        "sort_order": 632
+    },
+    {
+        "name": "Омутнинск",
+        "region": "Кировская область",
+        "slug": "omutninsk-kirovskaya-oblast",
+        "sort_order": 633
+    },
+    {
+        "name": "Тарко-Сале",
+        "region": "Тюменская область",
+        "slug": "tarko-sale-tyumenskaya-oblast",
+        "sort_order": 634
+    },
+    {
+        "name": "Котово",
+        "region": "Волгоградская область",
+        "slug": "kotovo-volgogradskaya-oblast",
+        "sort_order": 635
+    },
+    {
+        "name": "Армянск",
+        "region": "Республика Крым",
+        "slug": "armyansk-respublika-krym",
+        "sort_order": 636
+    },
+    {
+        "name": "Хотьково",
+        "region": "Московская область",
+        "slug": "khotkovo-moskovskaya-oblast",
+        "sort_order": 637
+    },
+    {
+        "name": "Черноголовка",
+        "region": "Московская область",
+        "slug": "chernogolovka-moskovskaya-oblast",
+        "sort_order": 638
+    },
+    {
+        "name": "Электроугли",
+        "region": "Московская область",
+        "slug": "elektrougli-moskovskaya-oblast",
+        "sort_order": 639
+    },
+    {
+        "name": "Верещагино",
+        "region": "Пермский край",
+        "slug": "vereshchagino-permskiy-kray",
+        "sort_order": 640
+    },
+    {
+        "name": "Лысково",
+        "region": "Нижегородская область",
+        "slug": "lyskovo-nizhegorodskaya-oblast",
+        "sort_order": 641
+    },
+    {
+        "name": "Сысерть",
+        "region": "Свердловская область",
+        "slug": "sysert-sverdlovskaya-oblast",
+        "sort_order": 642
+    },
+    {
+        "name": "Нерехта",
+        "region": "Костромская область",
+        "slug": "nerekhta-kostromskaya-oblast",
+        "sort_order": 643
+    },
+    {
+        "name": "Ряжск",
+        "region": "Рязанская область",
+        "slug": "ryazhsk-ryazanskaya-oblast",
+        "sort_order": 644
+    },
+    {
+        "name": "Вихоревка",
+        "region": "Иркутская область",
+        "slug": "vikhorevka-irkutskaya-oblast",
+        "sort_order": 645
+    },
+    {
+        "name": "Карачаевск",
+        "region": "Карачаево-Черкесская Республика",
+        "slug": "karachaevsk-karachaevo-cherkesskaya-respublika",
+        "sort_order": 646
+    },
+    {
+        "name": "Дудинка",
+        "region": "Красноярский край",
+        "slug": "dudinka-krasnoyarskiy-kray",
+        "sort_order": 647
+    },
+    {
+        "name": "Тогучин",
+        "region": "Новосибирская область",
+        "slug": "toguchin-novosibirskaya-oblast",
+        "sort_order": 648
+    },
+    {
+        "name": "Оса",
+        "region": "Пермский край",
+        "slug": "osa-permskiy-kray",
+        "sort_order": 649
+    },
+    {
+        "name": "Пущино",
+        "region": "Московская область",
+        "slug": "pushchino-moskovskaya-oblast",
+        "sort_order": 650
+    },
+    {
+        "name": "Рыбное",
+        "region": "Рязанская область",
+        "slug": "rybnoe-ryazanskaya-oblast",
+        "sort_order": 651
+    },
+    {
+        "name": "Тырныауз",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "tyrnyauz-kabardino-balkarskaya-respublika",
+        "sort_order": 652
+    },
+    {
+        "name": "Куровское",
+        "region": "Московская область",
+        "slug": "kurovskoe-moskovskaya-oblast",
+        "sort_order": 653
+    },
+    {
+        "name": "Алдан",
+        "region": "Республика Саха (Якутия)",
+        "slug": "aldan-respublika-sakha-yakutiya",
+        "sort_order": 654
+    },
+    {
+        "name": "Нижний Ломов",
+        "region": "Пензенская область",
+        "slug": "nizhniy-lomov-penzenskaya-oblast",
+        "sort_order": 655
+    },
+    {
+        "name": "Остров",
+        "region": "Псковская область",
+        "slug": "ostrov-pskovskaya-oblast",
+        "sort_order": 656
+    },
+    {
+        "name": "Бологое",
+        "region": "Тверская область",
+        "slug": "bologoe-tverskaya-oblast",
+        "sort_order": 657
+    },
+    {
+        "name": "Котельниково",
+        "region": "Волгоградская область",
+        "slug": "kotelnikovo-volgogradskaya-oblast",
+        "sort_order": 658
+    },
+    {
+        "name": "Калтан",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "kaltan-kemerovskaya-oblast-kuzbass",
+        "sort_order": 659
+    },
+    {
+        "name": "Арск",
+        "region": "Республика Татарстан",
+        "slug": "arsk-respublika-tatarstan",
+        "sort_order": 660
+    },
+    {
+        "name": "Буинск",
+        "region": "Республика Татарстан",
+        "slug": "buinsk-respublika-tatarstan",
+        "sort_order": 661
+    },
+    {
+        "name": "Бежецк",
+        "region": "Тверская область",
+        "slug": "bezhetsk-tverskaya-oblast",
+        "sort_order": 662
+    },
+    {
+        "name": "Оленегорск",
+        "region": "Мурманская область",
+        "slug": "olenegorsk-murmanskaya-oblast",
+        "sort_order": 663
+    },
+    {
+        "name": "Кяхта",
+        "region": "Республика Бурятия",
+        "slug": "kyakhta-respublika-buryatiya",
+        "sort_order": 664
+    },
+    {
+        "name": "Кубинка",
+        "region": "Московская область",
+        "slug": "kubinka-moskovskaya-oblast",
+        "sort_order": 665
+    },
+    {
+        "name": "Козьмодемьянск",
+        "region": "Республика Марий Эл",
+        "slug": "kozmodemyansk-respublika-mariy-el",
+        "sort_order": 666
+    },
+    {
+        "name": "Бобров",
+        "region": "Воронежская область",
+        "slug": "bobrov-voronezhskaya-oblast",
+        "sort_order": 667
+    },
+    {
+        "name": "Рошаль",
+        "region": "Московская область",
+        "slug": "roshal-moskovskaya-oblast",
+        "sort_order": 668
+    },
+    {
+        "name": "Оха",
+        "region": "Сахалинская область",
+        "slug": "okha-sakhalinskaya-oblast",
+        "sort_order": 669
+    },
+    {
+        "name": "Сергач",
+        "region": "Нижегородская область",
+        "slug": "sergach-nizhegorodskaya-oblast",
+        "sort_order": 670
+    },
+    {
+        "name": "Пикалево",
+        "region": "Ленинградская область",
+        "slug": "pikalevo-leningradskaya-oblast",
+        "sort_order": 671
+    },
+    {
+        "name": "Шахунья",
+        "region": "Нижегородская область",
+        "slug": "shakhunya-nizhegorodskaya-oblast",
+        "sort_order": 672
+    },
+    {
+        "name": "Алагир",
+        "region": "Республика Северная Осетия – Алания",
+        "slug": "alagir-respublika-severnaya-osetiya-alaniya",
+        "sort_order": 673
+    },
+    {
+        "name": "Агрыз",
+        "region": "Республика Татарстан",
+        "slug": "agryz-respublika-tatarstan",
+        "sort_order": 674
+    },
+    {
+        "name": "Боготол",
+        "region": "Красноярский край",
+        "slug": "bogotol-krasnoyarskiy-kray",
+        "sort_order": 675
+    },
+    {
+        "name": "Усмань",
+        "region": "Липецкая область",
+        "slug": "usman-lipetskaya-oblast",
+        "sort_order": 676
+    },
+    {
+        "name": "Никольск",
+        "region": "Пензенская область",
+        "slug": "nikolsk-penzenskaya-oblast",
+        "sort_order": 677
+    },
+    {
+        "name": "Белоярский",
+        "region": "Тюменская область",
+        "slug": "beloyarskiy-tyumenskaya-oblast",
+        "sort_order": 678
+    },
+    {
+        "name": "Терек",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "terek-kabardino-balkarskaya-respublika",
+        "sort_order": 679
+    },
+    {
+        "name": "Нижняя Тура",
+        "region": "Свердловская область",
+        "slug": "nizhnyaya-tura-sverdlovskaya-oblast",
+        "sort_order": 680
+    },
+    {
+        "name": "Гурьевск",
+        "region": "Калининградская область",
+        "slug": "gurevsk-kaliningradskaya-oblast",
+        "sort_order": 681
+    },
+    {
+        "name": "Ардон",
+        "region": "Республика Северная Осетия – Алания",
+        "slug": "ardon-respublika-severnaya-osetiya-alaniya",
+        "sort_order": 682
+    },
+    {
+        "name": "Лебедянь",
+        "region": "Липецкая область",
+        "slug": "lebedyan-lipetskaya-oblast",
+        "sort_order": 683
+    },
+    {
+        "name": "Няндома",
+        "region": "Архангельская область",
+        "slug": "nyandoma-arkhangelskaya-oblast",
+        "sort_order": 684
+    },
+    {
+        "name": "Черепаново",
+        "region": "Новосибирская область",
+        "slug": "cherepanovo-novosibirskaya-oblast",
+        "sort_order": 685
+    },
+    {
+        "name": "Губаха",
+        "region": "Пермский край",
+        "slug": "gubakha-permskiy-kray",
+        "sort_order": 686
+    },
+    {
+        "name": "Лодейное Поле",
+        "region": "Ленинградская область",
+        "slug": "lodeynoe-pole-leningradskaya-oblast",
+        "sort_order": 687
+    },
+    {
+        "name": "Ковылкино",
+        "region": "Республика Мордовия",
+        "slug": "kovylkino-respublika-mordoviya",
+        "sort_order": 688
+    },
+    {
+        "name": "Сортавала",
+        "region": "Республика Карелия",
+        "slug": "sortavala-respublika-kareliya",
+        "sort_order": 689
+    },
+    {
+        "name": "Ершов",
+        "region": "Саратовская область",
+        "slug": "ershov-saratovskaya-oblast",
+        "sort_order": 690
+    },
+    {
+        "name": "Данков",
+        "region": "Липецкая область",
+        "slug": "dankov-lipetskaya-oblast",
+        "sort_order": 691
+    },
+    {
+        "name": "Пролетарск",
+        "region": "Ростовская область",
+        "slug": "proletarsk-rostovskaya-oblast",
+        "sort_order": 692
+    },
+    {
+        "name": "Кировград",
+        "region": "Свердловская область",
+        "slug": "kirovgrad-sverdlovskaya-oblast",
+        "sort_order": 693
+    },
+    {
+        "name": "Бакал",
+        "region": "Челябинская область",
+        "slug": "bakal-chelyabinskaya-oblast",
+        "sort_order": 694
+    },
+    {
+        "name": "Шимановск",
+        "region": "Амурская область",
+        "slug": "shimanovsk-amurskaya-oblast",
+        "sort_order": 695
+    },
+    {
+        "name": "Абдулино",
+        "region": "Оренбургская область",
+        "slug": "abdulino-orenburgskaya-oblast",
+        "sort_order": 696
+    },
+    {
+        "name": "Онега",
+        "region": "Архангельская область",
+        "slug": "onega-arkhangelskaya-oblast",
+        "sort_order": 697
+    },
+    {
+        "name": "Новый Оскол",
+        "region": "Белгородская область",
+        "slug": "novyy-oskol-belgorodskaya-oblast",
+        "sort_order": 698
+    },
+    {
+        "name": "Чегем",
+        "region": "Кабардино-Балкарская Республика",
+        "slug": "chegem-kabardino-balkarskaya-respublika",
+        "sort_order": 699
+    },
+    {
+        "name": "Волоколамск",
+        "region": "Московская область",
+        "slug": "volokolamsk-moskovskaya-oblast",
+        "sort_order": 700
+    },
+    {
+        "name": "Радужный",
+        "region": "Владимирская область",
+        "slug": "raduzhnyy-vladimirskaya-oblast",
+        "sort_order": 701
+    },
+    {
+        "name": "Стародуб",
+        "region": "Брянская область",
+        "slug": "starodub-bryanskaya-oblast",
+        "sort_order": 702
+    },
+    {
+        "name": "Суровикино",
+        "region": "Волгоградская область",
+        "slug": "surovikino-volgogradskaya-oblast",
+        "sort_order": 703
+    },
+    {
+        "name": "Калач",
+        "region": "Воронежская область",
+        "slug": "kalach-voronezhskaya-oblast",
+        "sort_order": 704
+    },
+    {
+        "name": "Слюдянка",
+        "region": "Иркутская область",
+        "slug": "slyudyanka-irkutskaya-oblast",
+        "sort_order": 705
+    },
+    {
+        "name": "Яровое",
+        "region": "Алтайский край",
+        "slug": "yarovoe-altayskiy-kray",
+        "sort_order": 706
+    },
+    {
+        "name": "Юрьев-Польский",
+        "region": "Владимирская область",
+        "slug": "yurev-polskiy-vladimirskaya-oblast",
+        "sort_order": 707
+    },
+    {
+        "name": "Льгов",
+        "region": "Курская область",
+        "slug": "lgov-kurskaya-oblast",
+        "sort_order": 708
+    },
+    {
+        "name": "Нытва",
+        "region": "Пермский край",
+        "slug": "nytva-permskiy-kray",
+        "sort_order": 709
+    },
+    {
+        "name": "Нелидово",
+        "region": "Тверская область",
+        "slug": "nelidovo-tverskaya-oblast",
+        "sort_order": 710
+    },
+    {
+        "name": "Покачи",
+        "region": "Тюменская область",
+        "slug": "pokachi-tyumenskaya-oblast",
+        "sort_order": 711
+    },
+    {
+        "name": "Зверево",
+        "region": "Ростовская область",
+        "slug": "zverevo-rostovskaya-oblast",
+        "sort_order": 712
+    },
+    {
+        "name": "Нефтегорск",
+        "region": "Самарская область",
+        "slug": "neftegorsk-samarskaya-oblast",
+        "sort_order": 713
+    },
+    {
+        "name": "Николаевск-на-Амуре",
+        "region": "Хабаровский край",
+        "slug": "nikolaevsk-na-amure-khabarovskiy-kray",
+        "sort_order": 714
+    },
+    {
+        "name": "Белоозерский",
+        "region": "Московская область",
+        "slug": "beloozerskiy-moskovskaya-oblast",
+        "sort_order": 715
+    },
+    {
+        "name": "Енисейск",
+        "region": "Красноярский край",
+        "slug": "eniseysk-krasnoyarskiy-kray",
+        "sort_order": 716
+    },
+    {
+        "name": "Приозерск",
+        "region": "Ленинградская область",
+        "slug": "priozersk-leningradskaya-oblast",
+        "sort_order": 717
+    },
+    {
+        "name": "Кукмор",
+        "region": "Республика Татарстан",
+        "slug": "kukmor-respublika-tatarstan",
+        "sort_order": 718
+    },
+    {
+        "name": "Харабали",
+        "region": "Астраханская область",
+        "slug": "kharabali-astrakhanskaya-oblast",
+        "sort_order": 719
+    },
+    {
+        "name": "Голицыно",
+        "region": "Московская область",
+        "slug": "golitsyno-moskovskaya-oblast",
+        "sort_order": 720
+    },
+    {
+        "name": "Полярный",
+        "region": "Мурманская область",
+        "slug": "polyarnyy-murmanskaya-oblast",
+        "sort_order": 721
+    },
+    {
+        "name": "Собинка",
+        "region": "Владимирская область",
+        "slug": "sobinka-vladimirskaya-oblast",
+        "sort_order": 722
+    },
+    {
+        "name": "Нижняя Салда",
+        "region": "Свердловская область",
+        "slug": "nizhnyaya-salda-sverdlovskaya-oblast",
+        "sort_order": 723
+    },
+    {
+        "name": "Пласт",
+        "region": "Челябинская область",
+        "slug": "plast-chelyabinskaya-oblast",
+        "sort_order": 724
+    },
+    {
+        "name": "Карачев",
+        "region": "Брянская область",
+        "slug": "karachev-bryanskaya-oblast",
+        "sort_order": 725
+    },
+    {
+        "name": "Шумиха",
+        "region": "Курганская область",
+        "slug": "shumikha-kurganskaya-oblast",
+        "sort_order": 726
+    },
+    {
+        "name": "Баймак",
+        "region": "Республика Башкортостан",
+        "slug": "baymak-respublika-bashkortostan",
+        "sort_order": 727
+    },
+    {
+        "name": "Суворов",
+        "region": "Тульская область",
+        "slug": "suvorov-tulskaya-oblast",
+        "sort_order": 728
+    },
+    {
+        "name": "Инза",
+        "region": "Ульяновская область",
+        "slug": "inza-ulyanovskaya-oblast",
+        "sort_order": 729
+    },
+    {
+        "name": "Краснослободск",
+        "region": "Волгоградская область",
+        "slug": "krasnoslobodsk-volgogradskaya-oblast",
+        "sort_order": 730
+    },
+    {
+        "name": "Туринск",
+        "region": "Свердловская область",
+        "slug": "turinsk-sverdlovskaya-oblast",
+        "sort_order": 731
+    },
+    {
+        "name": "Мензелинск",
+        "region": "Республика Татарстан",
+        "slug": "menzelinsk-respublika-tatarstan",
+        "sort_order": 732
+    },
+    {
+        "name": "Константиновск",
+        "region": "Ростовская область",
+        "slug": "konstantinovsk-rostovskaya-oblast",
+        "sort_order": 733
+    },
+    {
+        "name": "Райчихинск",
+        "region": "Амурская область",
+        "slug": "raychikhinsk-amurskaya-oblast",
+        "sort_order": 734
+    },
+    {
+        "name": "Галич",
+        "region": "Костромская область",
+        "slug": "galich-kostromskaya-oblast",
+        "sort_order": 735
+    },
+    {
+        "name": "Покров",
+        "region": "Владимирская область",
+        "slug": "pokrov-vladimirskaya-oblast",
+        "sort_order": 736
+    },
+    {
+        "name": "Поворино",
+        "region": "Воронежская область",
+        "slug": "povorino-voronezhskaya-oblast",
+        "sort_order": 737
+    },
+    {
+        "name": "Подпорожье",
+        "region": "Ленинградская область",
+        "slug": "podporozhe-leningradskaya-oblast",
+        "sort_order": 738
+    },
+    {
+        "name": "Куса",
+        "region": "Челябинская область",
+        "slug": "kusa-chelyabinskaya-oblast",
+        "sort_order": 739
+    },
+    {
+        "name": "Зеленоградск",
+        "region": "Калининградская область",
+        "slug": "zelenogradsk-kaliningradskaya-oblast",
+        "sort_order": 740
+    },
+    {
+        "name": "Куртамыш",
+        "region": "Курганская область",
+        "slug": "kurtamysh-kurganskaya-oblast",
+        "sort_order": 741
+    },
+    {
+        "name": "Судак",
+        "region": "Республика Крым",
+        "slug": "sudak-respublika-krym",
+        "sort_order": 742
+    },
+    {
+        "name": "Новомичуринск",
+        "region": "Рязанская область",
+        "slug": "novomichurinsk-ryazanskaya-oblast",
+        "sort_order": 743
+    },
+    {
+        "name": "Гаврилов-Ям",
+        "region": "Ярославская область",
+        "slug": "gavrilov-yam-yaroslavskaya-oblast",
+        "sort_order": 744
+    },
+    {
+        "name": "Жуковка",
+        "region": "Брянская область",
+        "slug": "zhukovka-bryanskaya-oblast",
+        "sort_order": 745
+    },
+    {
+        "name": "Почеп",
+        "region": "Брянская область",
+        "slug": "pochep-bryanskaya-oblast",
+        "sort_order": 746
+    },
+    {
+        "name": "Сельцо",
+        "region": "Брянская область",
+        "slug": "seltso-bryanskaya-oblast",
+        "sort_order": 747
+    },
+    {
+        "name": "Козельск",
+        "region": "Калужская область",
+        "slug": "kozelsk-kaluzhskaya-oblast",
+        "sort_order": 748
+    },
+    {
+        "name": "Белогорск",
+        "region": "Республика Крым",
+        "slug": "belogorsk-respublika-krym",
+        "sort_order": 749
+    },
+    {
+        "name": "Волгореченск",
+        "region": "Костромская область",
+        "slug": "volgorechensk-kostromskaya-oblast",
+        "sort_order": 750
+    },
+    {
+        "name": "Ковдор",
+        "region": "Мурманская область",
+        "slug": "kovdor-murmanskaya-oblast",
+        "sort_order": 751
+    },
+    {
+        "name": "Бородино",
+        "region": "Красноярский край",
+        "slug": "borodino-krasnoyarskiy-kray",
+        "sort_order": 752
+    },
+    {
+        "name": "Кирсанов",
+        "region": "Тамбовская область",
+        "slug": "kirsanov-tambovskaya-oblast",
+        "sort_order": 753
+    },
+    {
+        "name": "Бикин",
+        "region": "Хабаровский край",
+        "slug": "bikin-khabarovskiy-kray",
+        "sort_order": 754
+    },
+    {
+        "name": "Рыльск",
+        "region": "Курская область",
+        "slug": "rylsk-kurskaya-oblast",
+        "sort_order": 755
+    },
+    {
+        "name": "Новоаннинский",
+        "region": "Волгоградская область",
+        "slug": "novoanninskiy-volgogradskaya-oblast",
+        "sort_order": 756
+    },
+    {
+        "name": "Мамадыш",
+        "region": "Республика Татарстан",
+        "slug": "mamadysh-respublika-tatarstan",
+        "sort_order": 757
+    },
+    {
+        "name": "Петровск-Забайкальский",
+        "region": "Забайкальский край",
+        "slug": "petrovsk-zabaykalskiy-zabaykalskiy-kray",
+        "sort_order": 758
+    },
+    {
+        "name": "Анадырь",
+        "region": "Чукотский автономный округ",
+        "slug": "anadyr-chukotskiy-avtonomnyy-okrug",
+        "sort_order": 759
+    },
+    {
+        "name": "Камызяк",
+        "region": "Астраханская область",
+        "slug": "kamyzyak-astrakhanskaya-oblast",
+        "sort_order": 760
+    },
+    {
+        "name": "Кодинск",
+        "region": "Красноярский край",
+        "slug": "kodinsk-krasnoyarskiy-kray",
+        "sort_order": 761
+    },
+    {
+        "name": "Плавск",
+        "region": "Тульская область",
+        "slug": "plavsk-tulskaya-oblast",
+        "sort_order": 762
+    },
+    {
+        "name": "Касли",
+        "region": "Челябинская область",
+        "slug": "kasli-chelyabinskaya-oblast",
+        "sort_order": 763
+    },
+    {
+        "name": "Калининск",
+        "region": "Саратовская область",
+        "slug": "kalininsk-saratovskaya-oblast",
+        "sort_order": 764
+    },
+    {
+        "name": "Поронайск",
+        "region": "Сахалинская область",
+        "slug": "poronaysk-sakhalinskaya-oblast",
+        "sort_order": 765
+    },
+    {
+        "name": "Дегтярск",
+        "region": "Свердловская область",
+        "slug": "degtyarsk-sverdlovskaya-oblast",
+        "sort_order": 766
+    },
+    {
+        "name": "Талица",
+        "region": "Свердловская область",
+        "slug": "talitsa-sverdlovskaya-oblast",
+        "sort_order": 767
+    },
+    {
+        "name": "Жирновск",
+        "region": "Волгоградская область",
+        "slug": "zhirnovsk-volgogradskaya-oblast",
+        "sort_order": 768
+    },
+    {
+        "name": "Яранск",
+        "region": "Кировская область",
+        "slug": "yaransk-kirovskaya-oblast",
+        "sort_order": 769
+    },
+    {
+        "name": "Болотное",
+        "region": "Новосибирская область",
+        "slug": "bolotnoe-novosibirskaya-oblast",
+        "sort_order": 770
+    },
+    {
+        "name": "Межгорье",
+        "region": "Республика Башкортостан",
+        "slug": "mezhgore-respublika-bashkortostan",
+        "sort_order": 771
+    },
+    {
+        "name": "Барыш",
+        "region": "Ульяновская область",
+        "slug": "barysh-ulyanovskaya-oblast",
+        "sort_order": 772
+    },
+    {
+        "name": "Катав-Ивановск",
+        "region": "Челябинская область",
+        "slug": "katav-ivanovsk-chelyabinskaya-oblast",
+        "sort_order": 773
+    },
+    {
+        "name": "Арамиль",
+        "region": "Свердловская область",
+        "slug": "aramil-sverdlovskaya-oblast",
+        "sort_order": 774
+    },
+    {
+        "name": "Ивдель",
+        "region": "Свердловская область",
+        "slug": "ivdel-sverdlovskaya-oblast",
+        "sort_order": 775
+    },
+    {
+        "name": "Осташков",
+        "region": "Тверская область",
+        "slug": "ostashkov-tverskaya-oblast",
+        "sort_order": 776
+    },
+    {
+        "name": "Ясногорск",
+        "region": "Тульская область",
+        "slug": "yasnogorsk-tulskaya-oblast",
+        "sort_order": 777
+    },
+    {
+        "name": "Приволжск",
+        "region": "Ивановская область",
+        "slug": "privolzhsk-ivanovskaya-oblast",
+        "sort_order": 778
+    },
+    {
+        "name": "Ужур",
+        "region": "Красноярский край",
+        "slug": "uzhur-krasnoyarskiy-kray",
+        "sort_order": 779
+    },
+    {
+        "name": "Ясный",
+        "region": "Оренбургская область",
+        "slug": "yasnyy-orenburgskaya-oblast",
+        "sort_order": 780
+    },
+    {
+        "name": "Белокуриха",
+        "region": "Алтайский край",
+        "slug": "belokurikha-altayskiy-kray",
+        "sort_order": 781
+    },
+    {
+        "name": "Светлогорск",
+        "region": "Калининградская область",
+        "slug": "svetlogorsk-kaliningradskaya-oblast",
+        "sort_order": 782
+    },
+    {
+        "name": "Советск",
+        "region": "Кировская область",
+        "slug": "sovetsk-kirovskaya-oblast",
+        "sort_order": 783
+    },
+    {
+        "name": "Светогорск",
+        "region": "Ленинградская область",
+        "slug": "svetogorsk-leningradskaya-oblast",
+        "sort_order": 784
+    },
+    {
+        "name": "Бокситогорск",
+        "region": "Ленинградская область",
+        "slug": "boksitogorsk-leningradskaya-oblast",
+        "sort_order": 785
+    },
+    {
+        "name": "Новоузенск",
+        "region": "Саратовская область",
+        "slug": "novouzensk-saratovskaya-oblast",
+        "sort_order": 786
+    },
+    {
+        "name": "Мантурово",
+        "region": "Костромская область",
+        "slug": "manturovo-kostromskaya-oblast",
+        "sort_order": 787
+    },
+    {
+        "name": "Щигры",
+        "region": "Курская область",
+        "slug": "shchigry-kurskaya-oblast",
+        "sort_order": 788
+    },
+    {
+        "name": "Пестово",
+        "region": "Новгородская область",
+        "slug": "pestovo-novgorodskaya-oblast",
+        "sort_order": 789
+    },
+    {
+        "name": "Абаза",
+        "region": "Республика Хакасия",
+        "slug": "abaza-respublika-khakasiya",
+        "sort_order": 790
+    },
+    {
+        "name": "Цивильск",
+        "region": "Чувашская Республика",
+        "slug": "tsivilsk-chuvashskaya-respublika",
+        "sort_order": 791
+    },
+    {
+        "name": "Карабаново",
+        "region": "Владимирская область",
+        "slug": "karabanovo-vladimirskaya-oblast",
+        "sort_order": 792
+    },
+    {
+        "name": "Иланский",
+        "region": "Красноярский край",
+        "slug": "ilanskiy-krasnoyarskiy-kray",
+        "sort_order": 793
+    },
+    {
+        "name": "Шлиссельбург",
+        "region": "Ленинградская область",
+        "slug": "shlisselburg-leningradskaya-oblast",
+        "sort_order": 794
+    },
+    {
+        "name": "Грязовец",
+        "region": "Вологодская область",
+        "slug": "gryazovets-vologodskaya-oblast",
+        "sort_order": 795
+    },
+    {
+        "name": "Сухиничи",
+        "region": "Калужская область",
+        "slug": "sukhinichi-kaluzhskaya-oblast",
+        "sort_order": 796
+    },
+    {
+        "name": "Красновишерск",
+        "region": "Пермский край",
+        "slug": "krasnovishersk-permskiy-kray",
+        "sort_order": 797
+    },
+    {
+        "name": "Нерчинск",
+        "region": "Забайкальский край",
+        "slug": "nerchinsk-zabaykalskiy-kray",
+        "sort_order": 798
+    },
+    {
+        "name": "Заполярный",
+        "region": "Мурманская область",
+        "slug": "zapolyarnyy-murmanskaya-oblast",
+        "sort_order": 799
+    },
+    {
+        "name": "Кондрово",
+        "region": "Калужская область",
+        "slug": "kondrovo-kaluzhskaya-oblast",
+        "sort_order": 800
+    },
+    {
+        "name": "Навашино",
+        "region": "Нижегородская область",
+        "slug": "navashino-nizhegorodskaya-oblast",
+        "sort_order": 801
+    },
+    {
+        "name": "Палласовка",
+        "region": "Волгоградская область",
+        "slug": "pallasovka-volgogradskaya-oblast",
+        "sort_order": 802
+    },
+    {
+        "name": "Невель",
+        "region": "Псковская область",
+        "slug": "nevel-pskovskaya-oblast",
+        "sort_order": 803
+    },
+    {
+        "name": "Данилов",
+        "region": "Ярославская область",
+        "slug": "danilov-yaroslavskaya-oblast",
+        "sort_order": 804
+    },
+    {
+        "name": "Ленинск",
+        "region": "Волгоградская область",
+        "slug": "leninsk-volgogradskaya-oblast",
+        "sort_order": 805
+    },
+    {
+        "name": "Цимлянск",
+        "region": "Ростовская область",
+        "slug": "tsimlyansk-rostovskaya-oblast",
+        "sort_order": 806
+    },
+    {
+        "name": "Полярные Зори",
+        "region": "Мурманская область",
+        "slug": "polyarnye-zori-murmanskaya-oblast",
+        "sort_order": 807
+    },
+    {
+        "name": "Очер",
+        "region": "Пермский край",
+        "slug": "ocher-permskiy-kray",
+        "sort_order": 808
+    },
+    {
+        "name": "Агидель",
+        "region": "Республика Башкортостан",
+        "slug": "agidel-respublika-bashkortostan",
+        "sort_order": 809
+    },
+    {
+        "name": "Лакинск",
+        "region": "Владимирская область",
+        "slug": "lakinsk-vladimirskaya-oblast",
+        "sort_order": 810
+    },
+    {
+        "name": "Яхрома",
+        "region": "Московская область",
+        "slug": "yakhroma-moskovskaya-oblast",
+        "sort_order": 811
+    },
+    {
+        "name": "Медвежьегорск",
+        "region": "Республика Карелия",
+        "slug": "medvezhegorsk-respublika-kareliya",
+        "sort_order": 812
+    },
+    {
+        "name": "Красный Кут",
+        "region": "Саратовская область",
+        "slug": "krasnyy-kut-saratovskaya-oblast",
+        "sort_order": 813
+    },
+    {
+        "name": "Валдай",
+        "region": "Новгородская область",
+        "slug": "valday-novgorodskaya-oblast",
+        "sort_order": 814
+    },
+    {
+        "name": "Жердевка",
+        "region": "Тамбовская область",
+        "slug": "zherdevka-tambovskaya-oblast",
+        "sort_order": 815
+    },
+    {
+        "name": "Чудово",
+        "region": "Новгородская область",
+        "slug": "chudovo-novgorodskaya-oblast",
+        "sort_order": 816
+    },
+    {
+        "name": "Венев",
+        "region": "Тульская область",
+        "slug": "venev-tulskaya-oblast",
+        "sort_order": 817
+    },
+    {
+        "name": "Лукоянов",
+        "region": "Нижегородская область",
+        "slug": "lukoyanov-nizhegorodskaya-oblast",
+        "sort_order": 818
+    },
+    {
+        "name": "Купино",
+        "region": "Новосибирская область",
+        "slug": "kupino-novosibirskaya-oblast",
+        "sort_order": 819
+    },
+    {
+        "name": "Кашин",
+        "region": "Тверская область",
+        "slug": "kashin-tverskaya-oblast",
+        "sort_order": 820
+    },
+    {
+        "name": "Новоульяновск",
+        "region": "Ульяновская область",
+        "slug": "novoulyanovsk-ulyanovskaya-oblast",
+        "sort_order": 821
+    },
+    {
+        "name": "Дубовка",
+        "region": "Волгоградская область",
+        "slug": "dubovka-volgogradskaya-oblast",
+        "sort_order": 822
+    },
+    {
+        "name": "Жуков",
+        "region": "Калужская область",
+        "slug": "zhukov-kaluzhskaya-oblast",
+        "sort_order": 823
+    },
+    {
+        "name": "Трубчевск",
+        "region": "Брянская область",
+        "slug": "trubchevsk-bryanskaya-oblast",
+        "sort_order": 824
+    },
+    {
+        "name": "Ак-Довурак",
+        "region": "Республика Тыва",
+        "slug": "ak-dovurak-respublika-tyva",
+        "sort_order": 825
+    },
+    {
+        "name": "Меленки",
+        "region": "Владимирская область",
+        "slug": "melenki-vladimirskaya-oblast",
+        "sort_order": 826
+    },
+    {
+        "name": "Кизел",
+        "region": "Пермский край",
+        "slug": "kizel-permskiy-kray",
+        "sort_order": 827
+    },
+    {
+        "name": "Николаевск",
+        "region": "Волгоградская область",
+        "slug": "nikolaevsk-volgogradskaya-oblast",
+        "sort_order": 828
+    },
+    {
+        "name": "Пересвет",
+        "region": "Московская область",
+        "slug": "peresvet-moskovskaya-oblast",
+        "sort_order": 829
+    },
+    {
+        "name": "Гвардейск",
+        "region": "Калининградская область",
+        "slug": "gvardeysk-kaliningradskaya-oblast",
+        "sort_order": 830
+    },
+    {
+        "name": "Первомайск",
+        "region": "Нижегородская область",
+        "slug": "pervomaysk-nizhegorodskaya-oblast",
+        "sort_order": 831
+    },
+    {
+        "name": "Обоянь",
+        "region": "Курская область",
+        "slug": "oboyan-kurskaya-oblast",
+        "sort_order": 832
+    },
+    {
+        "name": "Гаджиево",
+        "region": "Мурманская область",
+        "slug": "gadzhievo-murmanskaya-oblast",
+        "sort_order": 833
+    },
+    {
+        "name": "Могоча",
+        "region": "Забайкальский край",
+        "slug": "mogocha-zabaykalskiy-kray",
+        "sort_order": 834
+    },
+    {
+        "name": "Вяземский",
+        "region": "Хабаровский край",
+        "slug": "vyazemskiy-khabarovskiy-kray",
+        "sort_order": 835
+    },
+    {
+        "name": "Струнино",
+        "region": "Владимирская область",
+        "slug": "strunino-vladimirskaya-oblast",
+        "sort_order": 836
+    },
+    {
+        "name": "Фокино",
+        "region": "Брянская область",
+        "slug": "fokino-bryanskaya-oblast",
+        "sort_order": 837
+    },
+    {
+        "name": "Краснозаводск",
+        "region": "Московская область",
+        "slug": "krasnozavodsk-moskovskaya-oblast",
+        "sort_order": 838
+    },
+    {
+        "name": "Снежногорск",
+        "region": "Мурманская область",
+        "slug": "snezhnogorsk-murmanskaya-oblast",
+        "sort_order": 839
+    },
+    {
+        "name": "Лагань",
+        "region": "Республика Калмыкия",
+        "slug": "lagan-respublika-kalmykiya",
+        "sort_order": 840
+    },
+    {
+        "name": "Свирск",
+        "region": "Иркутская область",
+        "slug": "svirsk-irkutskaya-oblast",
+        "sort_order": 841
+    },
+    {
+        "name": "Руза",
+        "region": "Московская область",
+        "slug": "ruza-moskovskaya-oblast",
+        "sort_order": 842
+    },
+    {
+        "name": "Адыгейск",
+        "region": "Республика Адыгея",
+        "slug": "adygeysk-respublika-adygeya",
+        "sort_order": 843
+    },
+    {
+        "name": "Гороховец",
+        "region": "Владимирская область",
+        "slug": "gorokhovets-vladimirskaya-oblast",
+        "sort_order": 844
+    },
+    {
+        "name": "Талдом",
+        "region": "Московская область",
+        "slug": "taldom-moskovskaya-oblast",
+        "sort_order": 845
+    },
+    {
+        "name": "Белев",
+        "region": "Тульская область",
+        "slug": "belev-tulskaya-oblast",
+        "sort_order": 846
+    },
+    {
+        "name": "Петушки",
+        "region": "Владимирская область",
+        "slug": "petushki-vladimirskaya-oblast",
+        "sort_order": 847
+    },
+    {
+        "name": "Шилка",
+        "region": "Забайкальский край",
+        "slug": "shilka-zabaykalskiy-kray",
+        "sort_order": 848
+    },
+    {
+        "name": "Байкальск",
+        "region": "Иркутская область",
+        "slug": "baykalsk-irkutskaya-oblast",
+        "sort_order": 849
+    },
+    {
+        "name": "Сим",
+        "region": "Челябинская область",
+        "slug": "sim-chelyabinskaya-oblast",
+        "sort_order": 850
+    },
+    {
+        "name": "Петров Вал",
+        "region": "Волгоградская область",
+        "slug": "petrov-val-volgogradskaya-oblast",
+        "sort_order": 851
+    },
+    {
+        "name": "Катайск",
+        "region": "Курганская область",
+        "slug": "kataysk-kurganskaya-oblast",
+        "sort_order": 852
+    },
+    {
+        "name": "Сясьстрой",
+        "region": "Ленинградская область",
+        "slug": "syasstroy-leningradskaya-oblast",
+        "sort_order": 853
+    },
+    {
+        "name": "Емва",
+        "region": "Республика Коми",
+        "slug": "emva-respublika-komi",
+        "sort_order": 854
+    },
+    {
+        "name": "Горняк",
+        "region": "Алтайский край",
+        "slug": "gornyak-altayskiy-kray",
+        "sort_order": 855
+    },
+    {
+        "name": "Урень",
+        "region": "Нижегородская область",
+        "slug": "uren-nizhegorodskaya-oblast",
+        "sort_order": 856
+    },
+    {
+        "name": "Хвалынск",
+        "region": "Саратовская область",
+        "slug": "khvalynsk-saratovskaya-oblast",
+        "sort_order": 857
+    },
+    {
+        "name": "Калязин",
+        "region": "Тверская область",
+        "slug": "kalyazin-tverskaya-oblast",
+        "sort_order": 858
+    },
+    {
+        "name": "Южа",
+        "region": "Ивановская область",
+        "slug": "yuzha-ivanovskaya-oblast",
+        "sort_order": 859
+    },
+    {
+        "name": "Пионерский",
+        "region": "Калининградская область",
+        "slug": "pionerskiy-kaliningradskaya-oblast",
+        "sort_order": 860
+    },
+    {
+        "name": "Далматово",
+        "region": "Курганская область",
+        "slug": "dalmatovo-kurganskaya-oblast",
+        "sort_order": 861
+    },
+    {
+        "name": "Магас",
+        "region": "Республика Ингушетия",
+        "slug": "magas-respublika-ingushetiya",
+        "sort_order": 862
+    },
+    {
+        "name": "Камешково",
+        "region": "Владимирская область",
+        "slug": "kameshkovo-vladimirskaya-oblast",
+        "sort_order": 863
+    },
+    {
+        "name": "Бодайбо",
+        "region": "Иркутская область",
+        "slug": "bodaybo-irkutskaya-oblast",
+        "sort_order": 864
+    },
+    {
+        "name": "Удачный",
+        "region": "Республика Саха (Якутия)",
+        "slug": "udachnyy-respublika-sakha-yakutiya",
+        "sort_order": 865
+    },
+    {
+        "name": "Уяр",
+        "region": "Красноярский край",
+        "slug": "uyar-krasnoyarskiy-kray",
+        "sort_order": 866
+    },
+    {
+        "name": "Александровск",
+        "region": "Пермский край",
+        "slug": "aleksandrovsk-permskiy-kray",
+        "sort_order": 867
+    },
+    {
+        "name": "Долинск",
+        "region": "Сахалинская область",
+        "slug": "dolinsk-sakhalinskaya-oblast",
+        "sort_order": 868
+    },
+    {
+        "name": "Волосово",
+        "region": "Ленинградская область",
+        "slug": "volosovo-leningradskaya-oblast",
+        "sort_order": 869
+    },
+    {
+        "name": "Чаплыгин",
+        "region": "Липецкая область",
+        "slug": "chaplygin-lipetskaya-oblast",
+        "sort_order": 870
+    },
+    {
+        "name": "Торопец",
+        "region": "Тверская область",
+        "slug": "toropets-tverskaya-oblast",
+        "sort_order": 871
+    },
+    {
+        "name": "Новая Ляля",
+        "region": "Свердловская область",
+        "slug": "novaya-lyalya-sverdlovskaya-oblast",
+        "sort_order": 872
+    },
+    {
+        "name": "Аркадак",
+        "region": "Саратовская область",
+        "slug": "arkadak-saratovskaya-oblast",
+        "sort_order": 873
+    },
+    {
+        "name": "Бабаево",
+        "region": "Вологодская область",
+        "slug": "babaevo-vologodskaya-oblast",
+        "sort_order": 874
+    },
+    {
+        "name": "Лихославль",
+        "region": "Тверская область",
+        "slug": "likhoslavl-tverskaya-oblast",
+        "sort_order": 875
+    },
+    {
+        "name": "Нязепетровск",
+        "region": "Челябинская область",
+        "slug": "nyazepetrovsk-chelyabinskaya-oblast",
+        "sort_order": 876
+    },
+    {
+        "name": "Дрезна",
+        "region": "Московская область",
+        "slug": "drezna-moskovskaya-oblast",
+        "sort_order": 877
+    },
+    {
+        "name": "Чкаловск",
+        "region": "Нижегородская область",
+        "slug": "chkalovsk-nizhegorodskaya-oblast",
+        "sort_order": 878
+    },
+    {
+        "name": "Вилюйск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "vilyuysk-respublika-sakha-yakutiya",
+        "sort_order": 879
+    },
+    {
+        "name": "Горнозаводск",
+        "region": "Пермский край",
+        "slug": "gornozavodsk-permskiy-kray",
+        "sort_order": 880
+    },
+    {
+        "name": "Закаменск",
+        "region": "Республика Бурятия",
+        "slug": "zakamensk-respublika-buryatiya",
+        "sort_order": 881
+    },
+    {
+        "name": "Шагонар",
+        "region": "Республика Тыва",
+        "slug": "shagonar-respublika-tyva",
+        "sort_order": 882
+    },
+    {
+        "name": "Сорск",
+        "region": "Республика Хакасия",
+        "slug": "sorsk-respublika-khakasiya",
+        "sort_order": 883
+    },
+    {
+        "name": "Кораблино",
+        "region": "Рязанская область",
+        "slug": "korablino-ryazanskaya-oblast",
+        "sort_order": 884
+    },
+    {
+        "name": "Богучар",
+        "region": "Воронежская область",
+        "slug": "boguchar-voronezhskaya-oblast",
+        "sort_order": 885
+    },
+    {
+        "name": "Киренск",
+        "region": "Иркутская область",
+        "slug": "kirensk-irkutskaya-oblast",
+        "sort_order": 886
+    },
+    {
+        "name": "Чулым",
+        "region": "Новосибирская область",
+        "slug": "chulym-novosibirskaya-oblast",
+        "sort_order": 887
+    },
+    {
+        "name": "Тетюши",
+        "region": "Республика Татарстан",
+        "slug": "tetyushi-respublika-tatarstan",
+        "sort_order": 888
+    },
+    {
+        "name": "Называевск",
+        "region": "Омская область",
+        "slug": "nazyvaevsk-omskaya-oblast",
+        "sort_order": 889
+    },
+    {
+        "name": "Болхов",
+        "region": "Орловская область",
+        "slug": "bolkhov-orlovskaya-oblast",
+        "sort_order": 890
+    },
+    {
+        "name": "Звенигово",
+        "region": "Республика Марий Эл",
+        "slug": "zvenigovo-respublika-mariy-el",
+        "sort_order": 891
+    },
+    {
+        "name": "Юрюзань",
+        "region": "Челябинская область",
+        "slug": "yuryuzan-chelyabinskaya-oblast",
+        "sort_order": 892
+    },
+    {
+        "name": "Нариманов",
+        "region": "Астраханская область",
+        "slug": "narimanov-astrakhanskaya-oblast",
+        "sort_order": 893
+    },
+    {
+        "name": "Неман",
+        "region": "Калининградская область",
+        "slug": "neman-kaliningradskaya-oblast",
+        "sort_order": 894
+    },
+    {
+        "name": "Карабаш",
+        "region": "Челябинская область",
+        "slug": "karabash-chelyabinskaya-oblast",
+        "sort_order": 895
+    },
+    {
+        "name": "Сураж",
+        "region": "Брянская область",
+        "slug": "surazh-bryanskaya-oblast",
+        "sort_order": 896
+    },
+    {
+        "name": "Балей",
+        "region": "Забайкальский край",
+        "slug": "baley-zabaykalskiy-kray",
+        "sort_order": 897
+    },
+    {
+        "name": "Сосновка",
+        "region": "Кировская область",
+        "slug": "sosnovka-kirovskaya-oblast",
+        "sort_order": 898
+    },
+    {
+        "name": "Южно-Сухокумск",
+        "region": "Республика Дагестан",
+        "slug": "yuzhno-sukhokumsk-respublika-dagestan",
+        "sort_order": 899
+    },
+    {
+        "name": "Кемь",
+        "region": "Республика Карелия",
+        "slug": "kem-respublika-kareliya",
+        "sort_order": 900
+    },
+    {
+        "name": "Верхний Тагил",
+        "region": "Свердловская область",
+        "slug": "verkhniy-tagil-sverdlovskaya-oblast",
+        "sort_order": 901
+    },
+    {
+        "name": "Сосенский",
+        "region": "Калужская область",
+        "slug": "sosenskiy-kaluzhskaya-oblast",
+        "sort_order": 902
+    },
+    {
+        "name": "Высоковск",
+        "region": "Московская область",
+        "slug": "vysokovsk-moskovskaya-oblast",
+        "sort_order": 903
+    },
+    {
+        "name": "Хилок",
+        "region": "Забайкальский край",
+        "slug": "khilok-zabaykalskiy-kray",
+        "sort_order": 904
+    },
+    {
+        "name": "Боровск",
+        "region": "Калужская область",
+        "slug": "borovsk-kaluzhskaya-oblast",
+        "sort_order": 905
+    },
+    {
+        "name": "Кременки",
+        "region": "Калужская область",
+        "slug": "kremenki-kaluzhskaya-oblast",
+        "sort_order": 906
+    },
+    {
+        "name": "Ворсма",
+        "region": "Нижегородская область",
+        "slug": "vorsma-nizhegorodskaya-oblast",
+        "sort_order": 907
+    },
+    {
+        "name": "Малая Вишера",
+        "region": "Новгородская область",
+        "slug": "malaya-vishera-novgorodskaya-oblast",
+        "sort_order": 908
+    },
+    {
+        "name": "Тюкалинск",
+        "region": "Омская область",
+        "slug": "tyukalinsk-omskaya-oblast",
+        "sort_order": 909
+    },
+    {
+        "name": "Змеиногорск",
+        "region": "Алтайский край",
+        "slug": "zmeinogorsk-altayskiy-kray",
+        "sort_order": 910
+    },
+    {
+        "name": "Завитинск",
+        "region": "Амурская область",
+        "slug": "zavitinsk-amurskaya-oblast",
+        "sort_order": 911
+    },
+    {
+        "name": "Вытегра",
+        "region": "Вологодская область",
+        "slug": "vytegra-vologodskaya-oblast",
+        "sort_order": 912
+    },
+    {
+        "name": "Белоусово",
+        "region": "Калужская область",
+        "slug": "belousovo-kaluzhskaya-oblast",
+        "sort_order": 913
+    },
+    {
+        "name": "Зуевка",
+        "region": "Кировская область",
+        "slug": "zuevka-kirovskaya-oblast",
+        "sort_order": 914
+    },
+    {
+        "name": "Заозерный",
+        "region": "Красноярский край",
+        "slug": "zaozernyy-krasnoyarskiy-kray",
+        "sort_order": 915
+    },
+    {
+        "name": "Питкяранта",
+        "region": "Республика Карелия",
+        "slug": "pitkyaranta-respublika-kareliya",
+        "sort_order": 916
+    },
+    {
+        "name": "Щелкино",
+        "region": "Республика Крым",
+        "slug": "shchelkino-respublika-krym",
+        "sort_order": 917
+    },
+    {
+        "name": "Судогда",
+        "region": "Владимирская область",
+        "slug": "sudogda-vladimirskaya-oblast",
+        "sort_order": 918
+    },
+    {
+        "name": "Эртиль",
+        "region": "Воронежская область",
+        "slug": "ertil-voronezhskaya-oblast",
+        "sort_order": 919
+    },
+    {
+        "name": "Ермолино",
+        "region": "Калужская область",
+        "slug": "ermolino-kaluzhskaya-oblast",
+        "sort_order": 920
+    },
+    {
+        "name": "Белая Холуница",
+        "region": "Кировская область",
+        "slug": "belaya-kholunitsa-kirovskaya-oblast",
+        "sort_order": 921
+    },
+    {
+        "name": "Дигора",
+        "region": "Республика Северная Осетия – Алания",
+        "slug": "digora-respublika-severnaya-osetiya-alaniya",
+        "sort_order": 922
+    },
+    {
+        "name": "Камбарка",
+        "region": "Удмуртская Республика",
+        "slug": "kambarka-udmurtskaya-respublika",
+        "sort_order": 923
+    },
+    {
+        "name": "Каргополь",
+        "region": "Архангельская область",
+        "slug": "kargopol-arkhangelskaya-oblast",
+        "sort_order": 924
+    },
+    {
+        "name": "Петухово",
+        "region": "Курганская область",
+        "slug": "petukhovo-kurganskaya-oblast",
+        "sort_order": 925
+    },
+    {
+        "name": "Луза",
+        "region": "Кировская область",
+        "slug": "luza-kirovskaya-oblast",
+        "sort_order": 926
+    },
+    {
+        "name": "Володарск",
+        "region": "Нижегородская область",
+        "slug": "volodarsk-nizhegorodskaya-oblast",
+        "sort_order": 927
+    },
+    {
+        "name": "Михайлов",
+        "region": "Рязанская область",
+        "slug": "mikhaylov-ryazanskaya-oblast",
+        "sort_order": 928
+    },
+    {
+        "name": "Уржум",
+        "region": "Кировская область",
+        "slug": "urzhum-kirovskaya-oblast",
+        "sort_order": 929
+    },
+    {
+        "name": "Окуловка",
+        "region": "Новгородская область",
+        "slug": "okulovka-novgorodskaya-oblast",
+        "sort_order": 930
+    },
+    {
+        "name": "Невельск",
+        "region": "Сахалинская область",
+        "slug": "nevelsk-sakhalinskaya-oblast",
+        "sort_order": 931
+    },
+    {
+        "name": "Тотьма",
+        "region": "Вологодская область",
+        "slug": "totma-vologodskaya-oblast",
+        "sort_order": 932
+    },
+    {
+        "name": "Кола",
+        "region": "Мурманская область",
+        "slug": "kola-murmanskaya-oblast",
+        "sort_order": 933
+    },
+    {
+        "name": "Вуктыл",
+        "region": "Республика Коми",
+        "slug": "vuktyl-respublika-komi",
+        "sort_order": 934
+    },
+    {
+        "name": "Нюрба",
+        "region": "Республика Саха (Якутия)",
+        "slug": "nyurba-respublika-sakha-yakutiya",
+        "sort_order": 935
+    },
+    {
+        "name": "Суздаль",
+        "region": "Владимирская область",
+        "slug": "suzdal-vladimirskaya-oblast",
+        "sort_order": 936
+    },
+    {
+        "name": "Заволжск",
+        "region": "Ивановская область",
+        "slug": "zavolzhsk-ivanovskaya-oblast",
+        "sort_order": 937
+    },
+    {
+        "name": "Нолинск",
+        "region": "Кировская область",
+        "slug": "nolinsk-kirovskaya-oblast",
+        "sort_order": 938
+    },
+    {
+        "name": "Микунь",
+        "region": "Республика Коми",
+        "slug": "mikun-respublika-komi",
+        "sort_order": 939
+    },
+    {
+        "name": "Щучье",
+        "region": "Курганская область",
+        "slug": "shchuche-kurganskaya-oblast",
+        "sort_order": 940
+    },
+    {
+        "name": "Ивангород",
+        "region": "Ленинградская область",
+        "slug": "ivangorod-leningradskaya-oblast",
+        "sort_order": 941
+    },
+    {
+        "name": "Задонск",
+        "region": "Липецкая область",
+        "slug": "zadonsk-lipetskaya-oblast",
+        "sort_order": 942
+    },
+    {
+        "name": "Опочка",
+        "region": "Псковская область",
+        "slug": "opochka-pskovskaya-oblast",
+        "sort_order": 943
+    },
+    {
+        "name": "Старый Крым",
+        "region": "Республика Крым",
+        "slug": "staryy-krym-respublika-krym",
+        "sort_order": 944
+    },
+    {
+        "name": "Рудня",
+        "region": "Смоленская область",
+        "slug": "rudnya-smolenskaya-oblast",
+        "sort_order": 945
+    },
+    {
+        "name": "Покровск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "pokrovsk-respublika-sakha-yakutiya",
+        "sort_order": 946
+    },
+    {
+        "name": "Чадан",
+        "region": "Республика Тыва",
+        "slug": "chadan-respublika-tyva",
+        "sort_order": 947
+    },
+    {
+        "name": "Анива",
+        "region": "Сахалинская область",
+        "slug": "aniva-sakhalinskaya-oblast",
+        "sort_order": 948
+    },
+    {
+        "name": "Дорогобуж",
+        "region": "Смоленская область",
+        "slug": "dorogobuzh-smolenskaya-oblast",
+        "sort_order": 949
+    },
+    {
+        "name": "Заозерск",
+        "region": "Мурманская область",
+        "slug": "zaozersk-murmanskaya-oblast",
+        "sort_order": 950
+    },
+    {
+        "name": "Печоры",
+        "region": "Псковская область",
+        "slug": "pechory-pskovskaya-oblast",
+        "sort_order": 951
+    },
+    {
+        "name": "Верхнеуральск",
+        "region": "Челябинская область",
+        "slug": "verkhneuralsk-chelyabinskaya-oblast",
+        "sort_order": 952
+    },
+    {
+        "name": "Таруса",
+        "region": "Калужская область",
+        "slug": "tarusa-kaluzhskaya-oblast",
+        "sort_order": 953
+    },
+    {
+        "name": "Кирс",
+        "region": "Кировская область",
+        "slug": "kirs-kirovskaya-oblast",
+        "sort_order": 954
+    },
+    {
+        "name": "Беломорск",
+        "region": "Республика Карелия",
+        "slug": "belomorsk-respublika-kareliya",
+        "sort_order": 955
+    },
+    {
+        "name": "Краснослободск",
+        "region": "Республика Мордовия",
+        "slug": "krasnoslobodsk-respublika-mordoviya",
+        "sort_order": 956
+    },
+    {
+        "name": "Олекминск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "olekminsk-respublika-sakha-yakutiya",
+        "sort_order": 957
+    },
+    {
+        "name": "Наволоки",
+        "region": "Ивановская область",
+        "slug": "navoloki-ivanovskaya-oblast",
+        "sort_order": 958
+    },
+    {
+        "name": "Александровск-Сахалинский",
+        "region": "Сахалинская область",
+        "slug": "aleksandrovsk-sakhalinskiy-sakhalinskaya-oblast",
+        "sort_order": 959
+    },
+    {
+        "name": "Каргат",
+        "region": "Новосибирская область",
+        "slug": "kargat-novosibirskaya-oblast",
+        "sort_order": 960
+    },
+    {
+        "name": "Верхняя Тура",
+        "region": "Свердловская область",
+        "slug": "verkhnyaya-tura-sverdlovskaya-oblast",
+        "sort_order": 961
+    },
+    {
+        "name": "Нижние Серги",
+        "region": "Свердловская область",
+        "slug": "nizhnie-sergi-sverdlovskaya-oblast",
+        "sort_order": 962
+    },
+    {
+        "name": "Сковородино",
+        "region": "Амурская область",
+        "slug": "skovorodino-amurskaya-oblast",
+        "sort_order": 963
+    },
+    {
+        "name": "Кувшиново",
+        "region": "Тверская область",
+        "slug": "kuvshinovo-tverskaya-oblast",
+        "sort_order": 964
+    },
+    {
+        "name": "Миньяр",
+        "region": "Челябинская область",
+        "slug": "minyar-chelyabinskaya-oblast",
+        "sort_order": 965
+    },
+    {
+        "name": "Харовск",
+        "region": "Вологодская область",
+        "slug": "kharovsk-vologodskaya-oblast",
+        "sort_order": 966
+    },
+    {
+        "name": "Лаишево",
+        "region": "Республика Татарстан",
+        "slug": "laishevo-respublika-tatarstan",
+        "sort_order": 967
+    },
+    {
+        "name": "Михайловск",
+        "region": "Свердловская область",
+        "slug": "mikhaylovsk-sverdlovskaya-oblast",
+        "sort_order": 968
+    },
+    {
+        "name": "Болохово",
+        "region": "Тульская область",
+        "slug": "bolokhovo-tulskaya-oblast",
+        "sort_order": 969
+    },
+    {
+        "name": "Перевоз",
+        "region": "Нижегородская область",
+        "slug": "perevoz-nizhegorodskaya-oblast",
+        "sort_order": 970
+    },
+    {
+        "name": "Суоярви",
+        "region": "Республика Карелия",
+        "slug": "suoyarvi-respublika-kareliya",
+        "sort_order": 971
+    },
+    {
+        "name": "Углегорск",
+        "region": "Сахалинская область",
+        "slug": "uglegorsk-sakhalinskaya-oblast",
+        "sort_order": 972
+    },
+    {
+        "name": "Ельня",
+        "region": "Смоленская область",
+        "slug": "elnya-smolenskaya-oblast",
+        "sort_order": 973
+    },
+    {
+        "name": "Серафимович",
+        "region": "Волгоградская область",
+        "slug": "serafimovich-volgogradskaya-oblast",
+        "sort_order": 974
+    },
+    {
+        "name": "Белозерск",
+        "region": "Вологодская область",
+        "slug": "belozersk-vologodskaya-oblast",
+        "sort_order": 975
+    },
+    {
+        "name": "Теберда",
+        "region": "Карачаево-Черкесская Республика",
+        "slug": "teberda-karachaevo-cherkesskaya-respublika",
+        "sort_order": 976
+    },
+    {
+        "name": "Нея",
+        "region": "Костромская область",
+        "slug": "neya-kostromskaya-oblast",
+        "sort_order": 977
+    },
+    {
+        "name": "Городовиковск",
+        "region": "Республика Калмыкия",
+        "slug": "gorodovikovsk-respublika-kalmykiya",
+        "sort_order": 978
+    },
+    {
+        "name": "Пудож",
+        "region": "Республика Карелия",
+        "slug": "pudozh-respublika-kareliya",
+        "sort_order": 979
+    },
+    {
+        "name": "Верхотурье",
+        "region": "Свердловская область",
+        "slug": "verkhoture-sverdlovskaya-oblast",
+        "sort_order": 980
+    },
+    {
+        "name": "Козловка",
+        "region": "Чувашская Республика",
+        "slug": "kozlovka-chuvashskaya-respublika",
+        "sort_order": 981
+    },
+    {
+        "name": "Сольцы",
+        "region": "Новгородская область",
+        "slug": "soltsy-novgorodskaya-oblast",
+        "sort_order": 982
+    },
+    {
+        "name": "Волчанск",
+        "region": "Свердловская область",
+        "slug": "volchansk-sverdlovskaya-oblast",
+        "sort_order": 983
+    },
+    {
+        "name": "Мариинский Посад",
+        "region": "Чувашская Республика",
+        "slug": "mariinskiy-posad-chuvashskaya-respublika",
+        "sort_order": 984
+    },
+    {
+        "name": "Устюжна",
+        "region": "Вологодская область",
+        "slug": "ustyuzhna-vologodskaya-oblast",
+        "sort_order": 985
+    },
+    {
+        "name": "Облучье",
+        "region": "Еврейская автономная область",
+        "slug": "obluche-evreyskaya-avtonomnaya-oblast",
+        "sort_order": 986
+    },
+    {
+        "name": "Бирюсинск",
+        "region": "Иркутская область",
+        "slug": "biryusinsk-irkutskaya-oblast",
+        "sort_order": 987
+    },
+    {
+        "name": "Ветлуга",
+        "region": "Нижегородская область",
+        "slug": "vetluga-nizhegorodskaya-oblast",
+        "sort_order": 988
+    },
+    {
+        "name": "Порхов",
+        "region": "Псковская область",
+        "slug": "porkhov-pskovskaya-oblast",
+        "sort_order": 989
+    },
+    {
+        "name": "Ардатов",
+        "region": "Республика Мордовия",
+        "slug": "ardatov-respublika-mordoviya",
+        "sort_order": 990
+    },
+    {
+        "name": "Починок",
+        "region": "Смоленская область",
+        "slug": "pochinok-smolenskaya-oblast",
+        "sort_order": 991
+    },
+    {
+        "name": "Сычевка",
+        "region": "Смоленская область",
+        "slug": "sychevka-smolenskaya-oblast",
+        "sort_order": 992
+    },
+    {
+        "name": "Медынь",
+        "region": "Калужская область",
+        "slug": "medyn-kaluzhskaya-oblast",
+        "sort_order": 993
+    },
+    {
+        "name": "Гремячинск",
+        "region": "Пермский край",
+        "slug": "gremyachinsk-permskiy-kray",
+        "sort_order": 994
+    },
+    {
+        "name": "Болгар",
+        "region": "Республика Татарстан",
+        "slug": "bolgar-respublika-tatarstan",
+        "sort_order": 995
+    },
+    {
+        "name": "Ядрин",
+        "region": "Чувашская Республика",
+        "slug": "yadrin-chuvashskaya-respublika",
+        "sort_order": 996
+    },
+    {
+        "name": "Костерево",
+        "region": "Владимирская область",
+        "slug": "kosterevo-vladimirskaya-oblast",
+        "sort_order": 997
+    },
+    {
+        "name": "Липки",
+        "region": "Тульская область",
+        "slug": "lipki-tulskaya-oblast",
+        "sort_order": 998
+    },
+    {
+        "name": "Комсомольск",
+        "region": "Ивановская область",
+        "slug": "komsomolsk-ivanovskaya-oblast",
+        "sort_order": 999
+    },
+    {
+        "name": "Мамоново",
+        "region": "Калининградская область",
+        "slug": "mamonovo-kaliningradskaya-oblast",
+        "sort_order": 1000
+    },
+    {
+        "name": "Новая Ладога",
+        "region": "Ленинградская область",
+        "slug": "novaya-ladoga-leningradskaya-oblast",
+        "sort_order": 1001
+    },
+    {
+        "name": "Олонец",
+        "region": "Республика Карелия",
+        "slug": "olonets-respublika-kareliya",
+        "sort_order": 1002
+    },
+    {
+        "name": "Алупка",
+        "region": "Республика Крым",
+        "slug": "alupka-respublika-krym",
+        "sort_order": 1003
+    },
+    {
+        "name": "Никольск",
+        "region": "Вологодская область",
+        "slug": "nikolsk-vologodskaya-oblast",
+        "sort_order": 1004
+    },
+    {
+        "name": "Юрьевец",
+        "region": "Ивановская область",
+        "slug": "yurevets-ivanovskaya-oblast",
+        "sort_order": 1005
+    },
+    {
+        "name": "Западная Двина",
+        "region": "Тверская область",
+        "slug": "zapadnaya-dvina-tverskaya-oblast",
+        "sort_order": 1006
+    },
+    {
+        "name": "Макушино",
+        "region": "Курганская область",
+        "slug": "makushino-kurganskaya-oblast",
+        "sort_order": 1007
+    },
+    {
+        "name": "Городище",
+        "region": "Пензенская область",
+        "slug": "gorodishche-penzenskaya-oblast",
+        "sort_order": 1008
+    },
+    {
+        "name": "Инсар",
+        "region": "Республика Мордовия",
+        "slug": "insar-respublika-mordoviya",
+        "sort_order": 1009
+    },
+    {
+        "name": "Бирюч",
+        "region": "Белгородская область",
+        "slug": "biryuch-belgorodskaya-oblast",
+        "sort_order": 1010
+    },
+    {
+        "name": "Кириллов",
+        "region": "Вологодская область",
+        "slug": "kirillov-vologodskaya-oblast",
+        "sort_order": 1011
+    },
+    {
+        "name": "Белинский",
+        "region": "Пензенская область",
+        "slug": "belinskiy-penzenskaya-oblast",
+        "sort_order": 1012
+    },
+    {
+        "name": "Дно",
+        "region": "Псковская область",
+        "slug": "dno-pskovskaya-oblast",
+        "sort_order": 1013
+    },
+    {
+        "name": "Старица",
+        "region": "Тверская область",
+        "slug": "staritsa-tverskaya-oblast",
+        "sort_order": 1014
+    },
+    {
+        "name": "Салаир",
+        "region": "Кемеровская область - Кузбасс",
+        "slug": "salair-kemerovskaya-oblast-kuzbass",
+        "sort_order": 1015
+    },
+    {
+        "name": "Советск",
+        "region": "Тульская область",
+        "slug": "sovetsk-tulskaya-oblast",
+        "sort_order": 1016
+    },
+    {
+        "name": "Циолковский",
+        "region": "Амурская область",
+        "slug": "tsiolkovskiy-amurskaya-oblast",
+        "sort_order": 1017
+    },
+    {
+        "name": "Малмыж",
+        "region": "Кировская область",
+        "slug": "malmyzh-kirovskaya-oblast",
+        "sort_order": 1018
+    },
+    {
+        "name": "Мглин",
+        "region": "Брянская область",
+        "slug": "mglin-bryanskaya-oblast",
+        "sort_order": 1019
+    },
+    {
+        "name": "Лахденпохья",
+        "region": "Республика Карелия",
+        "slug": "lakhdenpokhya-respublika-kareliya",
+        "sort_order": 1020
+    },
+    {
+        "name": "Спасск",
+        "region": "Пензенская область",
+        "slug": "spassk-penzenskaya-oblast",
+        "sort_order": 1021
+    },
+    {
+        "name": "Оханск",
+        "region": "Пермский край",
+        "slug": "okhansk-permskiy-kray",
+        "sort_order": 1022
+    },
+    {
+        "name": "Новосокольники",
+        "region": "Псковская область",
+        "slug": "novosokolniki-pskovskaya-oblast",
+        "sort_order": 1023
+    },
+    {
+        "name": "Полесск",
+        "region": "Калининградская область",
+        "slug": "polessk-kaliningradskaya-oblast",
+        "sort_order": 1024
+    },
+    {
+        "name": "Томмот",
+        "region": "Республика Саха (Якутия)",
+        "slug": "tommot-respublika-sakha-yakutiya",
+        "sort_order": 1025
+    },
+    {
+        "name": "Андреаполь",
+        "region": "Тверская область",
+        "slug": "andreapol-tverskaya-oblast",
+        "sort_order": 1026
+    },
+    {
+        "name": "Севск",
+        "region": "Брянская область",
+        "slug": "sevsk-bryanskaya-oblast",
+        "sort_order": 1027
+    },
+    {
+        "name": "Спасск-Рязанский",
+        "region": "Рязанская область",
+        "slug": "spassk-ryazanskiy-ryazanskaya-oblast",
+        "sort_order": 1028
+    },
+    {
+        "name": "Велиж",
+        "region": "Смоленская область",
+        "slug": "velizh-smolenskaya-oblast",
+        "sort_order": 1029
+    },
+    {
+        "name": "Грайворон",
+        "region": "Белгородская область",
+        "slug": "grayvoron-belgorodskaya-oblast",
+        "sort_order": 1030
+    },
+    {
+        "name": "Княгинино",
+        "region": "Нижегородская область",
+        "slug": "knyaginino-nizhegorodskaya-oblast",
+        "sort_order": 1031
+    },
+    {
+        "name": "Сретенск",
+        "region": "Забайкальский край",
+        "slug": "sretensk-zabaykalskiy-kray",
+        "sort_order": 1032
+    },
+    {
+        "name": "Багратионовск",
+        "region": "Калининградская область",
+        "slug": "bagrationovsk-kaliningradskaya-oblast",
+        "sort_order": 1033
+    },
+    {
+        "name": "Орлов",
+        "region": "Кировская область",
+        "slug": "orlov-kirovskaya-oblast",
+        "sort_order": 1034
+    },
+    {
+        "name": "Макарьев",
+        "region": "Костромская область",
+        "slug": "makarev-kostromskaya-oblast",
+        "sort_order": 1035
+    },
+    {
+        "name": "Пучеж",
+        "region": "Ивановская область",
+        "slug": "puchezh-ivanovskaya-oblast",
+        "sort_order": 1036
+    },
+    {
+        "name": "Дмитриев-Льговский",
+        "region": "Курская область",
+        "slug": "dmitriev-lgovskiy-kurskaya-oblast",
+        "sort_order": 1037
+    },
+    {
+        "name": "Каменногорск",
+        "region": "Ленинградская область",
+        "slug": "kamennogorsk-leningradskaya-oblast",
+        "sort_order": 1038
+    },
+    {
+        "name": "Усолье",
+        "region": "Пермский край",
+        "slug": "usole-permskiy-kray",
+        "sort_order": 1039
+    },
+    {
+        "name": "Макаров",
+        "region": "Сахалинская область",
+        "slug": "makarov-sakhalinskaya-oblast",
+        "sort_order": 1040
+    },
+    {
+        "name": "Сенгилей",
+        "region": "Ульяновская область",
+        "slug": "sengiley-ulyanovskaya-oblast",
+        "sort_order": 1041
+    },
+    {
+        "name": "Фатеж",
+        "region": "Курская область",
+        "slug": "fatezh-kurskaya-oblast",
+        "sort_order": 1042
+    },
+    {
+        "name": "Демидов",
+        "region": "Смоленская область",
+        "slug": "demidov-smolenskaya-oblast",
+        "sort_order": 1043
+    },
+    {
+        "name": "Зубцов",
+        "region": "Тверская область",
+        "slug": "zubtsov-tverskaya-oblast",
+        "sort_order": 1044
+    },
+    {
+        "name": "Весьегонск",
+        "region": "Тверская область",
+        "slug": "vesegonsk-tverskaya-oblast",
+        "sort_order": 1045
+    },
+    {
+        "name": "Красавино",
+        "region": "Вологодская область",
+        "slug": "krasavino-vologodskaya-oblast",
+        "sort_order": 1046
+    },
+    {
+        "name": "Новохоперск",
+        "region": "Воронежская область",
+        "slug": "novokhopersk-voronezhskaya-oblast",
+        "sort_order": 1047
+    },
+    {
+        "name": "Мураши",
+        "region": "Кировская область",
+        "slug": "murashi-kirovskaya-oblast",
+        "sort_order": 1048
+    },
+    {
+        "name": "Солигалич",
+        "region": "Костромская область",
+        "slug": "soligalich-kostromskaya-oblast",
+        "sort_order": 1049
+    },
+    {
+        "name": "Сурск",
+        "region": "Пензенская область",
+        "slug": "sursk-penzenskaya-oblast",
+        "sort_order": 1050
+    },
+    {
+        "name": "Короча",
+        "region": "Белгородская область",
+        "slug": "korocha-belgorodskaya-oblast",
+        "sort_order": 1051
+    },
+    {
+        "name": "Курлово",
+        "region": "Владимирская область",
+        "slug": "kurlovo-vladimirskaya-oblast",
+        "sort_order": 1052
+    },
+    {
+        "name": "Юхнов",
+        "region": "Калужская область",
+        "slug": "yukhnov-kaluzhskaya-oblast",
+        "sort_order": 1053
+    },
+    {
+        "name": "Темников",
+        "region": "Республика Мордовия",
+        "slug": "temnikov-respublika-mordoviya",
+        "sort_order": 1054
+    },
+    {
+        "name": "Шацк",
+        "region": "Рязанская область",
+        "slug": "shatsk-ryazanskaya-oblast",
+        "sort_order": 1055
+    },
+    {
+        "name": "Алзамай",
+        "region": "Иркутская область",
+        "slug": "alzamay-irkutskaya-oblast",
+        "sort_order": 1056
+    },
+    {
+        "name": "Пошехонье",
+        "region": "Ярославская область",
+        "slug": "poshekhone-yaroslavskaya-oblast",
+        "sort_order": 1057
+    },
+    {
+        "name": "Гаврилов Посад",
+        "region": "Ивановская область",
+        "slug": "gavrilov-posad-ivanovskaya-oblast",
+        "sort_order": 1058
+    },
+    {
+        "name": "Суджа",
+        "region": "Курская область",
+        "slug": "sudzha-kurskaya-oblast",
+        "sort_order": 1059
+    },
+    {
+        "name": "Приморск",
+        "region": "Ленинградская область",
+        "slug": "primorsk-leningradskaya-oblast",
+        "sort_order": 1060
+    },
+    {
+        "name": "Билибино",
+        "region": "Чукотский автономный округ",
+        "slug": "bilibino-chukotskiy-avtonomnyy-okrug",
+        "sort_order": 1061
+    },
+    {
+        "name": "Мышкин",
+        "region": "Ярославская область",
+        "slug": "myshkin-yaroslavskaya-oblast",
+        "sort_order": 1062
+    },
+    {
+        "name": "Жиздра",
+        "region": "Калужская область",
+        "slug": "zhizdra-kaluzhskaya-oblast",
+        "sort_order": 1063
+    },
+    {
+        "name": "Пыталово",
+        "region": "Псковская область",
+        "slug": "pytalovo-pskovskaya-oblast",
+        "sort_order": 1064
+    },
+    {
+        "name": "Шиханы",
+        "region": "Саратовская область",
+        "slug": "shikhany-saratovskaya-oblast",
+        "sort_order": 1065
+    },
+    {
+        "name": "Злынка",
+        "region": "Брянская область",
+        "slug": "zlynka-bryanskaya-oblast",
+        "sort_order": 1066
+    },
+    {
+        "name": "Себеж",
+        "region": "Псковская область",
+        "slug": "sebezh-pskovskaya-oblast",
+        "sort_order": 1067
+    },
+    {
+        "name": "Спас-Клепики",
+        "region": "Рязанская область",
+        "slug": "spas-klepiki-ryazanskaya-oblast",
+        "sort_order": 1068
+    },
+    {
+        "name": "Верея",
+        "region": "Московская область",
+        "slug": "vereya-moskovskaya-oblast",
+        "sort_order": 1069
+    },
+    {
+        "name": "Дмитровск",
+        "region": "Орловская область",
+        "slug": "dmitrovsk-orlovskaya-oblast",
+        "sort_order": 1070
+    },
+    {
+        "name": "Красный Холм",
+        "region": "Тверская область",
+        "slug": "krasnyy-kholm-tverskaya-oblast",
+        "sort_order": 1071
+    },
+    {
+        "name": "Любим",
+        "region": "Ярославская область",
+        "slug": "lyubim-yaroslavskaya-oblast",
+        "sort_order": 1072
+    },
+    {
+        "name": "Чухлома",
+        "region": "Костромская область",
+        "slug": "chukhloma-kostromskaya-oblast",
+        "sort_order": 1073
+    },
+    {
+        "name": "Туран",
+        "region": "Республика Тыва",
+        "slug": "turan-respublika-tyva",
+        "sort_order": 1074
+    },
+    {
+        "name": "Шенкурск",
+        "region": "Архангельская область",
+        "slug": "shenkursk-arkhangelskaya-oblast",
+        "sort_order": 1075
+    },
+    {
+        "name": "Чердынь",
+        "region": "Пермский край",
+        "slug": "cherdyn-permskiy-kray",
+        "sort_order": 1076
+    },
+    {
+        "name": "Кадников",
+        "region": "Вологодская область",
+        "slug": "kadnikov-vologodskaya-oblast",
+        "sort_order": 1077
+    },
+    {
+        "name": "Бабушкин",
+        "region": "Республика Бурятия",
+        "slug": "babushkin-respublika-buryatiya",
+        "sort_order": 1078
+    },
+    {
+        "name": "Певек",
+        "region": "Чукотский автономный округ",
+        "slug": "pevek-chukotskiy-avtonomnyy-okrug",
+        "sort_order": 1079
+    },
+    {
+        "name": "Любань",
+        "region": "Ленинградская область",
+        "slug": "lyuban-leningradskaya-oblast",
+        "sort_order": 1080
+    },
+    {
+        "name": "Сусуман",
+        "region": "Магаданская область",
+        "slug": "susuman-magadanskaya-oblast",
+        "sort_order": 1081
+    },
+    {
+        "name": "Спас-Деменск",
+        "region": "Калужская область",
+        "slug": "spas-demensk-kaluzhskaya-oblast",
+        "sort_order": 1082
+    },
+    {
+        "name": "Игарка",
+        "region": "Красноярский край",
+        "slug": "igarka-krasnoyarskiy-kray",
+        "sort_order": 1083
+    },
+    {
+        "name": "Мосальск",
+        "region": "Калужская область",
+        "slug": "mosalsk-kaluzhskaya-oblast",
+        "sort_order": 1084
+    },
+    {
+        "name": "Правдинск",
+        "region": "Калининградская область",
+        "slug": "pravdinsk-kaliningradskaya-oblast",
+        "sort_order": 1085
+    },
+    {
+        "name": "Славск",
+        "region": "Калининградская область",
+        "slug": "slavsk-kaliningradskaya-oblast",
+        "sort_order": 1086
+    },
+    {
+        "name": "Ладушкин",
+        "region": "Калининградская область",
+        "slug": "ladushkin-kaliningradskaya-oblast",
+        "sort_order": 1087
+    },
+    {
+        "name": "Нестеров",
+        "region": "Калининградская область",
+        "slug": "nesterov-kaliningradskaya-oblast",
+        "sort_order": 1088
+    },
+    {
+        "name": "Пустошка",
+        "region": "Псковская область",
+        "slug": "pustoshka-pskovskaya-oblast",
+        "sort_order": 1089
+    },
+    {
+        "name": "Духовщина",
+        "region": "Смоленская область",
+        "slug": "dukhovshchina-smolenskaya-oblast",
+        "sort_order": 1090
+    },
+    {
+        "name": "Озерск",
+        "region": "Калининградская область",
+        "slug": "ozersk-kaliningradskaya-oblast",
+        "sort_order": 1091
+    },
+    {
+        "name": "Мещовск",
+        "region": "Калужская область",
+        "slug": "meshchovsk-kaluzhskaya-oblast",
+        "sort_order": 1092
+    },
+    {
+        "name": "Томари",
+        "region": "Сахалинская область",
+        "slug": "tomari-sakhalinskaya-oblast",
+        "sort_order": 1093
+    },
+    {
+        "name": "Среднеколымск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "srednekolymsk-respublika-sakha-yakutiya",
+        "sort_order": 1094
+    },
+    {
+        "name": "Холм",
+        "region": "Новгородская область",
+        "slug": "kholm-novgorodskaya-oblast",
+        "sort_order": 1095
+    },
+    {
+        "name": "Чермоз",
+        "region": "Пермский край",
+        "slug": "chermoz-permskiy-kray",
+        "sort_order": 1096
+    },
+    {
+        "name": "Гдов",
+        "region": "Псковская область",
+        "slug": "gdov-pskovskaya-oblast",
+        "sort_order": 1097
+    },
+    {
+        "name": "Мезень",
+        "region": "Архангельская область",
+        "slug": "mezen-arkhangelskaya-oblast",
+        "sort_order": 1098
+    },
+    {
+        "name": "Малоархангельск",
+        "region": "Орловская область",
+        "slug": "maloarkhangelsk-orlovskaya-oblast",
+        "sort_order": 1099
+    },
+    {
+        "name": "Краснознаменск",
+        "region": "Калининградская область",
+        "slug": "krasnoznamensk-kaliningradskaya-oblast",
+        "sort_order": 1100
+    },
+    {
+        "name": "Новосиль",
+        "region": "Орловская область",
+        "slug": "novosil-orlovskaya-oblast",
+        "sort_order": 1101
+    },
+    {
+        "name": "Новоржев",
+        "region": "Псковская область",
+        "slug": "novorzhev-pskovskaya-oblast",
+        "sort_order": 1102
+    },
+    {
+        "name": "Белый",
+        "region": "Тверская область",
+        "slug": "belyy-tverskaya-oblast",
+        "sort_order": 1103
+    },
+    {
+        "name": "Кологрив",
+        "region": "Костромская область",
+        "slug": "kologriv-kostromskaya-oblast",
+        "sort_order": 1104
+    },
+    {
+        "name": "Северо-Курильск",
+        "region": "Сахалинская область",
+        "slug": "severo-kurilsk-sakhalinskaya-oblast",
+        "sort_order": 1105
+    },
+    {
+        "name": "Сольвычегодск",
+        "region": "Архангельская область",
+        "slug": "solvychegodsk-arkhangelskaya-oblast",
+        "sort_order": 1106
+    },
+    {
+        "name": "Приморск",
+        "region": "Калининградская область",
+        "slug": "primorsk-kaliningradskaya-oblast",
+        "sort_order": 1107
+    },
+    {
+        "name": "Кедровый",
+        "region": "Томская область",
+        "slug": "kedrovyy-tomskaya-oblast",
+        "sort_order": 1108
+    },
+    {
+        "name": "Горбатов",
+        "region": "Нижегородская область",
+        "slug": "gorbatov-nizhegorodskaya-oblast",
+        "sort_order": 1109
+    },
+    {
+        "name": "Плес",
+        "region": "Ивановская область",
+        "slug": "ples-ivanovskaya-oblast",
+        "sort_order": 1110
+    },
+    {
+        "name": "Островной",
+        "region": "Мурманская область",
+        "slug": "ostrovnoy-murmanskaya-oblast",
+        "sort_order": 1111
+    },
+    {
+        "name": "Артемовск",
+        "region": "Красноярский край",
+        "slug": "artemovsk-krasnoyarskiy-kray",
+        "sort_order": 1112
+    },
+    {
+        "name": "Курильск",
+        "region": "Сахалинская область",
+        "slug": "kurilsk-sakhalinskaya-oblast",
+        "sort_order": 1113
+    },
+    {
+        "name": "Высоцк",
+        "region": "Ленинградская область",
+        "slug": "vysotsk-leningradskaya-oblast",
+        "sort_order": 1114
+    },
+    {
+        "name": "Верхоянск",
+        "region": "Республика Саха (Якутия)",
+        "slug": "verkhoyansk-respublika-sakha-yakutiya",
+        "sort_order": 1115
+    },
+    {
+        "name": "Чекалин",
+        "region": "Тульская область",
+        "slug": "chekalin-tulskaya-oblast",
+        "sort_order": 1116
+    },
+    {
+        "name": "Иннополис",
+        "region": "Республика Татарстан",
+        "slug": "innopolis-respublika-tatarstan",
+        "sort_order": 1117
+    }
+]

@@ -27,7 +27,16 @@ class OAuthController extends Controller
             ], 503);
         }
 
-        return Socialite::driver($provider)->stateless()->redirect();
+        $driver = Socialite::driver($this->socialiteDriver($provider));
+
+        if ($provider === 'yandex') {
+            $driver = $driver->stateless();
+        }
+
+        return $driver->redirect()->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+        ]);
     }
 
     public function callback(Request $request, string $provider, OAuthService $oauth): RedirectResponse|JsonResponse
@@ -44,8 +53,16 @@ class OAuthController extends Controller
             return $this->redirectToFrontend(['oauth_error' => (string) $request->query('error')]);
         }
 
+        if (! $request->filled('code') && ! $request->filled('payload')) {
+            return $this->redirectToFrontend(['oauth_error' => 'auth_failed']);
+        }
+
         try {
-            $socialUser = Socialite::driver($provider)->stateless()->user();
+            $driver = Socialite::driver($this->socialiteDriver($provider));
+            if ($provider === 'yandex') {
+                $driver = $driver->stateless();
+            }
+            $socialUser = $driver->user();
             $result = $oauth->resolveUser($provider, $socialUser);
         } catch (\Throwable $e) {
             report($e);
@@ -70,6 +87,14 @@ class OAuthController extends Controller
             'vk' => filled(config('services.vkontakte.client_id')),
             'yandex' => filled(config('services.yandex.client_id')),
             default => false,
+        };
+    }
+
+    private function socialiteDriver(string $provider): string
+    {
+        return match ($provider) {
+            'vk' => 'vkid',
+            default => $provider,
         };
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CommunityMemberRole;
 use App\Enums\CommunityStatus;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
@@ -81,5 +82,28 @@ class Community extends Model
     public function scopeActive($query)
     {
         return $query->where('status', CommunityStatus::Active);
+    }
+
+    public function isOwnedBy(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        if ($this->created_by !== null && (int) $this->created_by === (int) $user->id) {
+            return true;
+        }
+
+        if ($this->relationLoaded('members')) {
+            return $this->members->contains(
+                fn (User $member) => (int) $member->id === (int) $user->id
+                    && ($member->pivot->role ?? null) === CommunityMemberRole::Owner->value,
+            );
+        }
+
+        return $this->members()
+            ->where('users.id', $user->id)
+            ->where('community_members.role', CommunityMemberRole::Owner->value)
+            ->exists();
     }
 }

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff, SwitchCamera, Volume2, VolumeX } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus } from "@/lib/calls";
+import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus, type CallResult } from "@/lib/calls";
 import { GUEST_USER, useStore, selectors } from "@/lib/store";
 
 const STATUS_LABEL: Record<CallStatus, string> = {
@@ -12,6 +12,14 @@ const STATUS_LABEL: Record<CallStatus, string> = {
   connected: "В разговоре",
   reconnecting: "Переподключение…",
   ended: "Звонок завершён",
+};
+
+const RESULT_LABEL: Record<CallResult, string> = {
+  rejected: "Вызов отклонён",
+  busy: "Абонент занят",
+  missed: "Нет ответа",
+  ended: "Звонок завершён",
+  answered: "Завершён",
 };
 
 export function CallScreen() {
@@ -40,11 +48,19 @@ export function CallScreen() {
   useEffect(() => {
     const unsub = onCallEvent({
       onEnded: (rec) => {
-        if (rec.result === "missed") toast.error(`Нет ответа — ${rec.peerName}`);
-        else if (rec.result === "rejected") toast.error(`Звонок отклонён — ${rec.peerName}`);
-        else if (rec.result === "busy") toast.error(`Занято — ${rec.peerName}`);
-        else if (rec.result === "answered") toast.success(`Звонок завершён · ${formatCallDuration(rec.durationSec)}`);
-        else toast("Звонок завершён");
+        if (rec.direction === "incoming" && rec.result === "ended") {
+          toast("Вы отклонили звонок");
+        } else if (rec.result === "missed") {
+          toast.error(rec.direction === "outgoing" ? `Нет ответа — ${rec.peerName}` : `Пропущенный звонок — ${rec.peerName}`);
+        } else if (rec.result === "rejected") {
+          toast.error(`Звонок отклонён — ${rec.peerName}`);
+        } else if (rec.result === "busy") {
+          toast.error(`Занято — ${rec.peerName}`);
+        } else if (rec.result === "answered") {
+          toast.success(`Звонок завершён · ${formatCallDuration(rec.durationSec)}`);
+        } else {
+          toast("Звонок завершён");
+        }
       },
     });
     return unsub;
@@ -152,7 +168,12 @@ function CallBody({ elapsed }: { elapsed: number }) {
   const active = useCalls((s) => s.active);
   if (!active) return null;
   const isVideoConnected = active.media === "video" && active.status === "connected";
-  const statusText = active.status === "connected" ? formatCallDuration(elapsed) : STATUS_LABEL[active.status];
+  const statusText =
+    active.status === "connected"
+      ? formatCallDuration(elapsed)
+      : active.status === "ended" && active.result
+        ? RESULT_LABEL[active.result] ?? STATUS_LABEL.ended
+        : STATUS_LABEL[active.status];
   const incomingRinging = active.direction === "incoming" && active.status === "ringing";
 
   if (isVideoConnected) {
@@ -182,21 +203,7 @@ function CallBody({ elapsed }: { elapsed: number }) {
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       >
         <span className="absolute inset-0 rounded-full" style={{ background: "color-mix(in oklab, var(--accent) 30%, transparent)", filter: "blur(28px)" }} />
-        {active.peerAvatar ? (
-          <img
-            src={active.peerAvatar}
-            alt=""
-            className="relative h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] rounded-full object-cover"
-            style={{ boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
-          />
-        ) : (
-          <div
-            className="relative grid h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] place-items-center rounded-full font-display text-[44px] sm:text-[56px] font-bold text-white"
-            style={{ background: "var(--accent)", boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
-          >
-            {initial}
-          </div>
-        )}
+        <PeerAvatar avatar={active.peerAvatar} name={active.peerName} initial={initial} />
       </motion.div>
 
       <h2 className="mt-4 sm:mt-6 font-display text-[22px] sm:text-[26px] font-bold leading-tight">{active.peerName}</h2>
@@ -236,7 +243,7 @@ function CallControls() {
           <div className="flex flex-col items-center gap-2">
             <button
               type="button"
-              onClick={() => calls.decline()}
+              onClick={() => void calls.decline()}
               aria-label="Отклонить"
               className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
               style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
@@ -312,6 +319,32 @@ function CallControls() {
       >
         <PhoneOff size={28} />
       </button>
+    </div>
+  );
+}
+
+function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; initial: string }) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(avatar?.trim()) && !failed;
+
+  if (showImage) {
+    return (
+      <img
+        src={avatar}
+        alt={name}
+        onError={() => setFailed(true)}
+        className="relative h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] rounded-full object-cover"
+        style={{ boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="relative grid h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] place-items-center rounded-full font-display text-[44px] sm:text-[56px] font-bold text-white"
+      style={{ background: "var(--accent)", boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
+    >
+      {initial}
     </div>
   );
 }

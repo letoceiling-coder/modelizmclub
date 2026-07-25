@@ -16,6 +16,8 @@ import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
 import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
 import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider";
+import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
+import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { restoreSession } from "@/lib/auth/session";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
@@ -71,6 +73,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ location }) => {
+    const { requireGuestRouteAccess } = await import("@/lib/auth/requireGuestRouteAccess");
+    await requireGuestRouteAccess(location);
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -168,7 +174,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <ThemeProvider>
-          <FadingOutlet />
+          <GuestAccessProvider>
+            <RouteAccessEnforcer />
+            <FadingOutlet />
+          </GuestAccessProvider>
           <CallScreen />
           <GroupCallScreen />
           <GroupCallInviteDialog />

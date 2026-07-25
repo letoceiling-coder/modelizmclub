@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { login, completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
-import { resetSessionCache, syncFavoritesFromServer } from "@/lib/auth/session";
+import { resetSessionCache, syncFavoritesFromServer, ensureSession } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ApiError } from "@/lib/api/client";
 
@@ -28,6 +29,10 @@ export const Route = createFileRoute("/login")({
     oauth_error: typeof s.oauth_error === "string" ? s.oauth_error : undefined,
     oauth_provider: typeof s.oauth_provider === "string" ? s.oauth_provider : undefined,
   }),
+  beforeLoad: async ({ search }) => {
+    const { redirectIfAuthenticated } = await import("@/lib/auth/requireAuth");
+    await redirectIfAuthenticated(search.redirect);
+  },
   component: LoginPage,
 });
 
@@ -37,6 +42,29 @@ function LoginPage() {
   const { redirect: redirectTo, oauth_token, oauth_error } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    if (oauth_token || oauth_error || isDemoMode()) {
+      setCheckingSession(false);
+      return;
+    }
+    let alive = true;
+    void ensureSession()
+      .then((ok) => {
+        if (!alive) return;
+        if (ok) {
+          const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
+          nav({ to: target as "/feed", replace: true });
+          return;
+        }
+        setCheckingSession(false);
+      })
+      .catch(() => {
+        if (alive) setCheckingSession(false);
+      });
+    return () => { alive = false; };
+  }, [nav, redirectTo, oauth_token, oauth_error]);
 
   useEffect(() => {
     if (oauth_error) {
@@ -86,8 +114,8 @@ function LoginPage() {
       setFieldError(true);
       const msg =
         err instanceof ApiError
-          ? err.status === 401 || err.status === 422
-            ? t("authPages.loginInvalid")
+          ? err.errors
+            ? Object.values(err.errors)[0]?.[0] ?? err.message
             : err.message
           : t("authPages.loginFailed");
       toast.error(msg);
@@ -122,6 +150,8 @@ function LoginPage() {
     </>
   );
 
+  if (checkingSession) return null;
+
   return (
     <AuthShell
       title={t("auth.login")}
@@ -152,7 +182,8 @@ function LoginPage() {
           {loading ? t("common.loading") : t("auth.login")}
         </Button>
       </form>
-      {/* OAuth VK/Yandex скрыты до подключения ключей — компонент оставлен в коде. */}
+      <OAuthDivider />
+      <OAuthButtons />
       {isDemoMode() && (
         <Link
           to="/feed"

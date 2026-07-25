@@ -14,7 +14,14 @@ const DRAG_THRESHOLD_PX = 4;
  */
 export function HorizontalScrollNav({ as: Tag = "nav", className, style, children, ...rest }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const drag = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0, pointerId: -1 });
+  const drag = useRef({
+    pending: false,
+    dragging: false,
+    suppressClick: false,
+    startX: 0,
+    scrollLeft: 0,
+    pointerId: -1,
+  });
 
   useEffect(() => {
     const el = ref.current;
@@ -32,45 +39,57 @@ export function HorizontalScrollNav({ as: Tag = "nav", className, style, childre
     };
 
     const endDrag = () => {
-      if (!drag.current.active) return;
-      drag.current.active = false;
-      el.classList.remove("is-dragging");
-      if (drag.current.pointerId >= 0) {
-        try {
-          el.releasePointerCapture(drag.current.pointerId);
-        } catch {
-          /* already released */
+      const state = drag.current;
+      if (!state.pending && !state.dragging) return;
+      state.pending = false;
+      if (state.dragging) {
+        state.dragging = false;
+        el.classList.remove("is-dragging");
+        if (state.pointerId >= 0) {
+          try {
+            el.releasePointerCapture(state.pointerId);
+          } catch {
+            /* already released */
+          }
         }
+        state.pointerId = -1;
       }
-      drag.current.pointerId = -1;
     };
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
       if (e.button !== 0) return;
       drag.current = {
-        active: true,
-        moved: false,
+        pending: true,
+        dragging: false,
+        suppressClick: false,
         startX: e.pageX,
         scrollLeft: el.scrollLeft,
         pointerId: e.pointerId,
       };
-      el.setPointerCapture(e.pointerId);
-      el.classList.add("is-dragging");
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!drag.current.active) return;
-      const dx = e.pageX - drag.current.startX;
-      if (Math.abs(dx) > DRAG_THRESHOLD_PX) drag.current.moved = true;
-      el.scrollLeft = drag.current.scrollLeft - dx;
+      const state = drag.current;
+      if (!state.pending && !state.dragging) return;
+      const dx = e.pageX - state.startX;
+      if (!state.dragging && Math.abs(dx) > DRAG_THRESHOLD_PX) {
+        state.dragging = true;
+        state.suppressClick = true;
+        el.setPointerCapture(e.pointerId);
+        el.classList.add("is-dragging");
+        state.pointerId = e.pointerId;
+      }
+      if (state.dragging) {
+        el.scrollLeft = state.scrollLeft - dx;
+      }
     };
 
     const onClickCapture = (e: MouseEvent) => {
-      if (drag.current.moved) {
+      if (drag.current.suppressClick) {
         e.preventDefault();
         e.stopPropagation();
-        drag.current.moved = false;
+        drag.current.suppressClick = false;
       }
     };
 

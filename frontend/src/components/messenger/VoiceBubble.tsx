@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Play, Pause, ChevronDown, FileText, Loader2 } from "lucide-react";
 import type { VoiceMessage } from "@/lib/mock";
 import { transcribeVoiceMedia } from "@/lib/api/chat";
@@ -9,6 +8,15 @@ function fmt(s: number): string {
   const m = Math.floor(s / 60);
   const r = Math.floor(s % 60);
   return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
+function TranscriptSkeleton({ subtle }: { subtle: string }) {
+  return (
+    <div className="flex flex-col gap-[6px] py-[2px]" aria-hidden="true">
+      <span className="h-[10px] w-[92%] animate-pulse rounded-[4px]" style={{ background: subtle, opacity: 0.35 }} />
+      <span className="h-[10px] w-[68%] animate-pulse rounded-[4px]" style={{ background: subtle, opacity: 0.25 }} />
+    </div>
+  );
 }
 
 export function VoiceBubble({
@@ -25,9 +33,6 @@ export function VoiceBubble({
   const [expanded, setExpanded] = useState(false);
   const [transcript, setTranscript] = useState(voice.transcript ?? "");
   const [loadingTranscript, setLoadingTranscript] = useState(false);
-  const [panelHeight, setPanelHeight] = useState(0);
-  const contentRef = useRef<HTMLDivElement>(null);
-  // "idle" until fetched; then whether STT is wired and whether speech was found.
   const [transcriptStatus, setTranscriptStatus] = useState<"idle" | "ok" | "empty" | "unavailable">(
     voice.transcript ? "ok" : "idle",
   );
@@ -35,7 +40,20 @@ export function VoiceBubble({
   const startRef = useRef<number>(0);
   const startProgRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const resizeRaf = useRef<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const gridTransitioning = useRef(false);
   const hasAudio = Boolean(voice.src);
+  const needsFetch = Boolean(voice.mediaUuid) && !voice.transcript && transcriptStatus === "idle";
+
+  const notifyResize = useCallback(() => {
+    if (!onResize) return;
+    if (resizeRaf.current) cancelAnimationFrame(resizeRaf.current);
+    resizeRaf.current = requestAnimationFrame(() => {
+      resizeRaf.current = null;
+      onResize();
+    });
+  }, [onResize]);
 
   useEffect(() => {
     if (!hasAudio) return;
@@ -62,7 +80,6 @@ export function VoiceBubble({
   useEffect(() => {
     if (!expanded || transcript || !voice.mediaUuid || transcriptStatus !== "idle") return;
     let alive = true;
-    setLoadingTranscript(true);
     transcribeVoiceMedia(voice.mediaUuid)
       .then((res) => {
         if (!alive) return;
@@ -82,6 +99,27 @@ export function VoiceBubble({
       alive = false;
     };
   }, [expanded, transcript, voice.mediaUuid, transcriptStatus]);
+
+  useEffect(() => {
+    if (!expanded || !onResize || !panelRef.current || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (gridTransitioning.current) return;
+      notifyResize();
+    });
+    ro.observe(panelRef.current);
+    return () => ro.disconnect();
+  }, [expanded, onResize, notifyResize]);
+
+  const toggleTranscript = () => {
+    setExpanded((open) => {
+      const next = !open;
+      if (next && needsFetch && !transcript) {
+        setLoadingTranscript(true);
+      }
+      if (!next) setLoadingTranscript(false);
+      return next;
+    });
+  };
 
   const toggle = () => {
     if (hasAudio) {
@@ -126,38 +164,23 @@ export function VoiceBubble({
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
   const unavailableText = "Расшифровка недоступна — распознавание речи подключается на сервере.";
-  const transcriptText = transcript
-    || (loadingTranscript ? "Загрузка расшифровки…" : "")
+  const demoText = "Тестовая расшифровка голосового сообщения.";
+  const showSkeleton = expanded && loadingTranscript;
+  const transcriptBody = transcript
     || (transcriptStatus === "empty" ? "Речь не распознана." : "")
     || (transcriptStatus === "unavailable" ? unavailableText : "")
     || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
-    || (expanded && isDemoMode() ? "Тестовая расшифровка голосового сообщения." : "");
+    || (expanded && isDemoMode() ? demoText : "");
 
-  const measurePanel = useCallback(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    setPanelHeight(el.scrollHeight);
-  }, []);
+  const handleGridTransitionStart = () => {
+    gridTransitioning.current = true;
+  };
 
-  useLayoutEffect(() => {
-    if (!expanded) {
-      setPanelHeight(0);
-      return;
-    }
-    measurePanel();
-    const el = contentRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      measurePanel();
-      onResize?.();
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [expanded, measurePanel, transcriptText, loadingTranscript, onResize]);
-
-  useEffect(() => {
-    if (expanded) onResize?.();
-  }, [expanded, panelHeight, onResize]);
+  const handleGridTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (e.propertyName !== "grid-template-rows") return;
+    gridTransitioning.current = false;
+    notifyResize();
+  };
 
   return (
     <div style={{ minWidth: 220, maxWidth: 280 }}>
@@ -196,7 +219,7 @@ export function VoiceBubble({
       </div>
 
       <button
-        onClick={() => setExpanded((e) => !e)}
+        onClick={toggleTranscript}
         className="mt-[8px] flex w-full items-center gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
         style={{
           background: isMe ? "rgba(255,255,255,0.12)" : "color-mix(in oklab, var(--accent) 8%, transparent)",
@@ -206,32 +229,38 @@ export function VoiceBubble({
       >
         <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
         <span className="flex-1 text-[12px] font-medium">{expanded ? "Скрыть текст" : "Показать текст"}</span>
-        {loadingTranscript && <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />}
+        {showSkeleton && <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />}
         <ChevronDown
           size={12}
           style={{ color: subtle, flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
         />
       </button>
 
-      <motion.div
-        initial={false}
-        animate={{ height: expanded ? panelHeight : 0 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        style={{ overflow: "hidden" }}
+      <div
+        className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+        onTransitionStart={handleGridTransitionStart}
+        onTransitionEnd={handleGridTransitionEnd}
       >
-        <div ref={contentRef}>
+        <div className="min-h-0 overflow-hidden">
           <div
-            className="mt-[6px] rounded-[10px] px-[8px] py-[6px] text-[12px] leading-[1.45]"
+            ref={panelRef}
+            className="mt-[6px] rounded-[10px] px-[8px] py-[8px] text-[12px] leading-[1.45] transition-[min-height,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{
               background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
-              color: transcriptText && !loadingTranscript ? fg : subtle,
-              minHeight: expanded && loadingTranscript ? 36 : undefined,
+              color: transcriptBody && !showSkeleton ? fg : subtle,
+              opacity: expanded ? 1 : 0,
+              minHeight: expanded ? (showSkeleton ? 52 : undefined) : 0,
             }}
           >
-            {transcriptText || unavailableText}
+            {showSkeleton ? (
+              <TranscriptSkeleton subtle={subtle} />
+            ) : (
+              transcriptBody || unavailableText
+            )}
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

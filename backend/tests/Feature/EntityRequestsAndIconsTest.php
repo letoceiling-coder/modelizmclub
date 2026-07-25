@@ -170,11 +170,42 @@ class EntityRequestsAndIconsTest extends TestCase
         ]);
 
         // Владелец видит is_owner=true в карточке сообщества. Guard кэширует
-        // пользователя в рамках одного теста — сбрасываем перед сменой токена.
         $this->app['auth']->forgetGuards();
         $this->getJson("/api/v1/communities/{$community->slug}", $this->authHeaders($applicant))
             ->assertOk()
             ->assertJsonPath('data.is_owner', true);
+    }
+
+    public function test_is_owner_true_when_member_role_owner_even_if_created_by_mismatch(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $owner = User::factory()->create();
+        $category = $this->makeCategory();
+
+        $community = Community::query()->create([
+            'category_id' => $category->id,
+            'name' => 'Mismatch Club',
+            'slug' => 'mismatch-club',
+            'description' => 'Desc',
+            'status' => \App\Enums\CommunityStatus::Active,
+            'approved_at' => now(),
+            'created_by' => $admin->id,
+            'members_count' => 1,
+        ]);
+
+        $community->members()->attach($owner->id, [
+            'role' => 'owner',
+            'joined_at' => now(),
+        ]);
+
+        $this->app['auth']->forgetGuards();
+        $this->getJson("/api/v1/communities/{$community->slug}", $this->authHeaders($owner))
+            ->assertOk()
+            ->assertJsonPath('data.is_owner', true);
+
+        $this->getJson('/api/v1/communities?owned=1', $this->authHeaders($owner))
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', $community->slug);
     }
 
     public function test_admin_can_reject_community_application_with_reason(): void
@@ -439,6 +470,23 @@ class EntityRequestsAndIconsTest extends TestCase
         $this->assertSame('accent', $log->old_values['icon_overrides']['nav.home']['token']);
     }
 
+    public function test_settings_update_accepts_empty_icon_overrides_map(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $headers = $this->authHeaders($admin);
+
+        $this->patchJson('/api/v1/admin/settings', [
+            'settings' => [[
+                'key' => 'icon_overrides',
+                'value' => [],
+                'group' => 'design',
+            ]],
+        ], $headers)->assertOk()
+            ->assertJsonPath('data.0.key', 'icon_overrides');
+
+        $this->assertSame([], SystemSetting::query()->where('key', 'icon_overrides')->value('value'));
+    }
+
     // --- feature flags ---
 
     public function test_feature_flags_include_market_and_escrow(): void
@@ -447,7 +495,7 @@ class EntityRequestsAndIconsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.market_enabled', false)
             ->assertJsonPath('data.escrow_enabled', false)
-            ->assertJsonPath('data.listing_payment_enabled', false);
+            ->assertJsonPath('data.listing_payment_enabled', true);
 
         SystemSetting::query()->create([
             'key' => 'feature.escrow_enabled',

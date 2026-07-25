@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { ChevronDown, MessageCircle, Users } from "lucide-react";
 import * as Icons from "lucide-react";
 import {
@@ -14,6 +13,8 @@ import {
 import type { Category } from "@/lib/mock";
 import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon =
@@ -30,13 +31,24 @@ export function FindYourPeopleSheet() {
   const [open, setOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const categories = usePostCategories();
+  const { guardAction } = useGuestAccess();
 
   return (
     <div className="xl:hidden">
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open} onOpenChange={(next) => {
+        if (next) {
+          guardAction("feed.find_people.open", () => setOpen(true));
+          return;
+        }
+        setOpen(false);
+      }}>
         <SheetTrigger asChild>
           <button
             type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              guardAction("feed.find_people.open", () => setOpen(true));
+            }}
             className="flex w-full items-center gap-[12px] rounded-[var(--r-card)] border px-[14px] py-[12px] text-left transition-colors hover:bg-[var(--background-surface)]"
             style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
           >
@@ -91,9 +103,9 @@ export function FindYourPeopleSheet() {
                 <li key={c.id}>
                   <div className="flex items-stretch">
                     <SheetClose asChild>
-                      <Link
-                        to="/categories/$id"
-                        params={{ id: c.id }}
+                      <GuestGuardLink
+                        actionKey="feed.find_people.category"
+                        to={`/categories/${c.id}`}
                         className="group flex flex-1 items-center gap-[12px] rounded-l-[12px] px-[12px] py-[10px] transition-colors hover:bg-[var(--background-surface)]"
                       >
                         <span
@@ -120,7 +132,7 @@ export function FindYourPeopleSheet() {
                             {online} онлайн
                           </span>
                         </span>
-                      </Link>
+                      </GuestGuardLink>
                     </SheetClose>
                     {c.subcategories.length > 0 && (
                       <button
@@ -146,14 +158,14 @@ export function FindYourPeopleSheet() {
                       {c.subcategories.map((s) => (
                         <li key={s.id}>
                           <SheetClose asChild>
-                            <Link
-                              to="/categories/$id/$subId"
-                              params={{ id: c.id, subId: s.id }}
+                            <GuestGuardLink
+                              actionKey="feed.find_people.category"
+                              to={`/categories/${c.id}/${s.id}`}
                               className="block rounded-[8px] px-[10px] py-[7px] text-[13px] transition-colors hover:bg-[var(--background-surface)]"
                               style={{ color: "var(--foreground-70)" }}
                             >
                               {s.name}
-                            </Link>
+                            </GuestGuardLink>
                           </SheetClose>
                         </li>
                       ))}

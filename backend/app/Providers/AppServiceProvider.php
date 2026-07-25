@@ -10,9 +10,15 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
+use App\Models\Post;
+use App\Policies\PostPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Modules\Auth\Socialite\VkIdProvider;
+use Modules\Auth\Socialite\YandexProvider;
+use SocialiteProviders\Manager\SocialiteWasCalled;
 use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbAcquiringClient;
 use Modules\Billing\Clients\YooKassaClient;
@@ -67,6 +73,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(function (SocialiteWasCalled $event): void {
+            $event->extendSocialite('yandex', YandexProvider::class);
+            $event->extendSocialite('vkid', VkIdProvider::class);
+        });
+
         Broadcast::routes(['middleware' => ['auth:sanctum'], 'prefix' => 'api/v1']);
 
         // This is an API-only backend: the password-reset link must point at the
@@ -87,11 +98,32 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
         RateLimiter::for('auth-verify', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip().'|'.$request->input('email')));
+        RateLimiter::for('auth-forgot-password', fn (Request $request) => Limit::perMinute(
+            (int) config('auth.rate_limits.forgot_password_per_minute', 12)
+        )->by($request->ip().'|'.Str::lower((string) $request->input('email'))));
+        RateLimiter::for('auth-reset-password', fn (Request $request) => Limit::perMinute(
+            (int) config('auth.rate_limits.reset_password_per_minute', 20)
+        )->by($request->ip().'|'.Str::lower((string) $request->input('email'))));
+
+        RateLimiter::for('auth-phone-send', fn (Request $request) => Limit::perMinute(6)->by(
+            ($request->user()?->id ?? 'guest').'|'.$request->ip()
+        ));
+        RateLimiter::for('auth-phone-verify', fn (Request $request) => Limit::perMinute(15)->by(
+            ($request->user()?->id ?? 'guest').'|'.$request->ip()
+        ));
 
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.
         RateLimiter::for('api', function (Request $request) {
-            if ($request->is('api/v1/media/*') || $request->is('api/v1/payments/webhooks/*') || $request->is('api/v1/webhooks/*') || $request->is('api/v1/health')) {
+            if ($request->is('api/v1/media/*')
+                || $request->is('api/v1/payments/webhooks/*')
+                || $request->is('api/v1/webhooks/*')
+                || $request->is('api/v1/health')
+                // Public site config — loaded once on app boot; must not be throttled
+                // alongside media/image traffic or a transient loop can 429 the whole UI.
+                || $request->is('api/v1/icon-overrides')
+                || $request->is('api/v1/public/feature-flags')
+                || $request->is('api/v1/public/feed-guest-access')) {
                 return Limit::none();
             }
 
@@ -99,6 +131,8 @@ class AppServiceProvider extends ServiceProvider
                 ? Limit::perMinute(300)->by('u:'.$request->user()->id)
                 : Limit::perMinute(120)->by('ip:'.$request->ip());
         });
+
+        Gate::policy(Post::class, PostPolicy::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {

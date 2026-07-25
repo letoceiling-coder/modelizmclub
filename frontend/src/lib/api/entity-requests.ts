@@ -50,15 +50,22 @@ export async function applyCommunity(input: { proposedName: string; description?
   });
 }
 
-export async function applyChannel(input: { name: string; description?: string; category: string }): Promise<void> {
+export async function applyChannel(input: {
+  name: string;
+  description?: string;
+  category: string;
+  avatar_media_uuid?: string | null;
+  banner_media_uuid?: string | null;
+}): Promise<void> {
   if (isDemoMode()) return;
-  // Documented, not yet implemented — see backend-endpoints-needed.md §27.
   await api("/channels/apply", {
     method: "POST",
     json: {
       name: input.name,
       description: input.description || null,
       category: input.category,
+      avatar_media_uuid: input.avatar_media_uuid ?? null,
+      banner_media_uuid: input.banner_media_uuid ?? null,
     },
   });
 }

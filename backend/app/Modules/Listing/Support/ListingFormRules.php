@@ -21,6 +21,8 @@ final class ListingFormRules
             'media_ids' => ['nullable', 'array'],
             'media_ids.*' => ['string'],
             'publish' => ['nullable', 'boolean'],
+            'promocode' => ['nullable', 'string', 'max:64'],
+            'placement_payment_uuid' => ['nullable', 'uuid'],
         ];
     }
 

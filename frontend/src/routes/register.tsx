@@ -6,14 +6,12 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
-import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-
-// Letters (Cyrillic + Latin), space, hyphen, apostrophe (straight or curly)
-const NAME_PATTERN = /^[A-Za-zА-ЯЁа-яё\s'’-]+$/;
+import { isValidEmail, isValidPersonName, sanitizePersonName } from "@/lib/validation";
 
 export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>): { ref?: string } => ({
@@ -30,28 +28,29 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [emailError, setEmailError] = useState(false);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const validateName = (value: string) => {
-    const v = value.trim();
-    return v.length > 0 && NAME_PATTERN.test(v) && v.length <= 120;
-  };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFieldError(false);
     setNameError(false);
+    setEmailError(false);
     if (!agree) return toast.error("Подтвердите согласие с правилами");
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
-    const email = String(form.get("email") ?? "").trim();
+    const email = String(form.get("email") ?? "").trim().toLowerCase();
     const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
-    const phone = String(form.get("phone") ?? "").trim();
-    if (!NAME_PATTERN.test(name) || name.length > 120) {
+    if (!isValidPersonName(name)) {
       setNameError(true);
-      return toast.error("Имя может содержать только буквы, пробел, дефис и апостроф (до 120 символов)");
+      return toast.error("Имя: только буквы, пробел, дефис и апостроф (от 2 до 120 символов)");
+    }
+    if (!isValidEmail(email)) {
+      setEmailError(true);
+      return toast.error("Укажите корректный email");
     }
     if (password !== passwordConfirmation) {
       setFieldError(true);
@@ -59,7 +58,7 @@ function RegisterPage() {
     }
     setLoading(true);
     try {
-      await register({ name, email, password, passwordConfirmation, referralCode: ref, phone });
+      await register({ name, email, password, passwordConfirmation, referralCode: ref });
       toast.success("Аккаунт создан. Введите код из письма");
       nav({ to: "/verify-email", search: { email } });
     } catch (err) {
@@ -169,17 +168,28 @@ function RegisterPage() {
           value={name}
           error={nameError}
           onChange={(e) => {
-            const v = e.target.value;
+            const v = sanitizePersonName(e.target.value);
             setName(v);
-            if (nameError) setNameError(!validateName(v));
+            if (nameError) setNameError(!isValidPersonName(v));
           }}
-          onBlur={() => setNameError(name.trim().length > 0 && !validateName(name))}
+          onBlur={() => setNameError(name.trim().length > 0 && !isValidPersonName(name))}
         />
-        <Input required name="email" type="email" placeholder="Email" />
-        {/* Not sent to /auth/register yet — backend RegisterRequest has no phone
-            field (see backend-endpoints-needed.md). Collected for UX now so the
-            field/mask exist; wire it into submit() once the backend adds support. */}
-        <PhoneInput name="phone" />
+        <Input
+          required
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="Email"
+          value={email}
+          error={emailError}
+          onChange={(e) => {
+            const v = e.target.value;
+            setEmail(v);
+            if (emailError) setEmailError(!isValidEmail(v));
+          }}
+          onBlur={() => setEmailError(email.trim().length > 0 && !isValidEmail(email))}
+        />
         <PasswordInput
           required
           name="password"
@@ -203,7 +213,8 @@ function RegisterPage() {
           {loading ? "Создаём…" : "Создать аккаунт"}
         </Button>
       </form>
-      {/* OAuth VK/Yandex скрыты до подключения ключей — компонент оставлен в коде. */}
+      <OAuthDivider />
+      <OAuthButtons />
     </AuthShell>
   );
 }

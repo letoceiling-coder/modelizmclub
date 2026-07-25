@@ -5,8 +5,7 @@ namespace Modules\Channel\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
 use App\Models\ChannelPost;
-use App\Models\Post;
-use App\Models\PostCategory;
+use App\Models\Media;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -15,18 +14,17 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Modules\Channel\Http\Resources\ChannelPostResource;
 use Modules\Channel\Http\Resources\ChannelResource;
-use Modules\Channel\Support\ChannelPostMediaSync;
-use Modules\Feed\Services\PostService;
+use Modules\Channel\Services\ChannelPostService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Channels', weight: 35)]
 class ChannelController extends Controller
 {
     public function __construct(
-        private readonly ChannelPostMediaSync $channelMediaSync,
-        private readonly PostService $postService,
+        private readonly ChannelPostService $channelPosts,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -34,7 +32,7 @@ class ChannelController extends Controller
         $viewer = $request->user();
 
         $channels = Channel::query()
-            ->with('owner.profile')
+            ->with(['owner.profile.avatar', 'avatar', 'banner'])
             ->where('is_active', true)
             ->orderByDesc('subscribers_count')
             ->get();
@@ -53,7 +51,7 @@ class ChannelController extends Controller
     public function show(Request $request, string $slug): JsonResponse
     {
         $channel = $this->findChannel($slug);
-        $channel->loadMissing('owner.profile');
+        $channel->loadMissing(['owner.profile.avatar', 'avatar', 'banner']);
 
         $viewer = $request->user();
         $channel->is_subscribed = $viewer
@@ -123,21 +121,7 @@ class ChannelController extends Controller
         $mediaIds = $data['media_ids'] ?? [];
 
         $post = DB::transaction(function () use ($channel, $user, $data, $mediaIds): ChannelPost {
-            $channelPost = ChannelPost::query()->create([
-                'channel_id' => $channel->id,
-                'author_id' => $user->id,
-                'text' => $data['text'],
-                'kind' => $data['kind'] ?? 'news',
-                'status' => 'published',
-                'published_at' => now(),
-            ]);
-
-            $this->channelMediaSync->sync($channelPost, $user, $mediaIds);
-
-            $feedPost = $this->duplicateToFeed($channel, $user, $channelPost, $mediaIds);
-            $channelPost->update(['feed_post_id' => $feedPost->id]);
-
-            return $channelPost;
+            return $this->channelPosts->create($channel, $user, $data, $mediaIds);
         });
 
         $post->load(['author.profile', 'channel', 'media.media']);
@@ -147,31 +131,43 @@ class ChannelController extends Controller
             ->setStatusCode(201);
     }
 
-    /**
-     * Channel posts are a one-way publishing surface, but readers still
-     * browse them through the main feed like any other post — so every
-     * channel post is mirrored into a feed Post (same pipeline the regular
-     * composer uses: create then publish, subject to the normal moderation
-     * queue) under a dedicated "Каналы" category, since feed posts require
-     * a category and a channel post's `kind` isn't one.
-     */
-    private function duplicateToFeed(Channel $channel, User $user, ChannelPost $channelPost, array $mediaIds): Post
+    public function updateBranding(Request $request, string $slug): JsonResponse
     {
-        $category = PostCategory::query()->firstOrCreate(
-            ['slug' => 'channels'],
-            ['name' => 'Каналы', 'is_active' => true, 'sort_order' => 999],
-        );
+        $channel = $this->findChannel($slug);
+        $user = $request->user();
 
-        $title = Str::limit(trim($channelPost->text), 80, '…');
+        if ($channel->owner_id !== $user->id) {
+            return response()->json(['message' => 'Изменять оформление может только владелец канала.'], 403);
+        }
 
-        $post = $this->postService->create($user, [
-            'title' => $title !== '' ? $title : $channel->name,
-            'body' => $channelPost->text,
-            'category_id' => $category->id,
-            'media_ids' => $mediaIds,
+        $data = $request->validate([
+            'avatar_media_uuid' => ['nullable', 'uuid'],
+            'banner_media_uuid' => ['nullable', 'uuid'],
         ]);
 
-        return $this->postService->publish($post, $user);
+        $updates = [];
+        if (array_key_exists('avatar_media_uuid', $data)) {
+            $updates['avatar_media_id'] = $this->resolveOwnedMediaId(
+                $user,
+                $data['avatar_media_uuid'],
+                'avatar_media_uuid',
+            );
+        }
+        if (array_key_exists('banner_media_uuid', $data)) {
+            $updates['banner_media_id'] = $this->resolveOwnedMediaId(
+                $user,
+                $data['banner_media_uuid'],
+                'banner_media_uuid',
+            );
+        }
+
+        if ($updates !== []) {
+            $channel->update($updates);
+        }
+
+        $channel->load(['owner.profile.avatar', 'avatar', 'banner']);
+
+        return (new ChannelResource($channel))->response();
     }
 
     private function findChannel(string $slug): Channel
@@ -187,5 +183,25 @@ class ChannelController extends Controller
         }
 
         return $channel;
+    }
+
+    private function resolveOwnedMediaId(User $user, ?string $uuid, string $field): ?int
+    {
+        if ($uuid === null || $uuid === '') {
+            return null;
+        }
+
+        $media = Media::query()
+            ->where('uuid', $uuid)
+            ->where('uploaded_by', $user->id)
+            ->first();
+
+        if (! $media) {
+            throw ValidationException::withMessages([
+                $field => ['Изображение недоступно.'],
+            ]);
+        }
+
+        return $media->id;
     }
 }

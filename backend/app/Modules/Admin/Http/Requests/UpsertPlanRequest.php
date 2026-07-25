@@ -22,6 +22,8 @@ class UpsertPlanRequest extends FormRequest
             'features' => ['nullable', 'array'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'free_listings_per_month' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'listing_discount_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
         ];
     }
 }

@@ -11,7 +11,12 @@ class MeController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $user = $request->user()->load('profile');
+        $user = $request->user()->load([
+            'profile.city',
+            'profile.avatar',
+            'profile.cover',
+            'interests',
+        ]);
 
         return response()->json([
             'data' => new UserResource($user),

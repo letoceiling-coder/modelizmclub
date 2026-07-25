@@ -2,7 +2,9 @@
 
 namespace Modules\Billing\Services;
 
+use App\Models\Listing;
 use App\Models\Payment;
+use App\Models\Promocode;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
@@ -41,9 +43,42 @@ class PaymentFulfillmentService
             }
 
             if (($locked->metadata['payable_type'] ?? null) === 'listing_placement') {
-                $locked->user->increment('listing_placement_credits');
+                $this->fulfillListingPlacement($locked);
             }
         });
+    }
+
+    private function fulfillListingPlacement(Payment $payment): void
+    {
+        $listingUuid = $payment->metadata['listing_uuid'] ?? null;
+
+        if ($listingUuid) {
+            $listing = Listing::query()->where('uuid', $listingUuid)->first();
+
+            if ($listing && (int) $listing->user_id === (int) $payment->user_id) {
+                $listing->update([
+                    'placement_payment_id' => $payment->id,
+                    'placement_amount_cents' => $payment->amount_cents,
+                    'placement_was_free' => false,
+                ]);
+
+                $promocodeId = $payment->metadata['promocode_id'] ?? null;
+                if ($promocodeId) {
+                    $promocode = Promocode::query()->find($promocodeId);
+                    if ($promocode) {
+                        $listing->update(['placement_promocode_id' => $promocode->id]);
+                        app(\Modules\Billing\Services\PromocodeService::class)
+                            ->recordUsage($promocode, $payment->user, $payment->id);
+                    }
+                }
+
+                app(\Modules\Listing\Services\ListingService::class)->finalizeAfterPlacement($listing);
+
+                return;
+            }
+        }
+
+        $payment->user->increment('listing_placement_credits');
     }
 
     private function activateListingBoost(Payment $payment): void

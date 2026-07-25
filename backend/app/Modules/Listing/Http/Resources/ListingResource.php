@@ -53,6 +53,7 @@ class ListingResource extends JsonResource
                 ->filter(fn ($m) => $m['url'] !== null)
                 ->values()),
             'published_at' => $this->published_at?->toIso8601String(),
+            'rejection_reason' => $this->rejection_reason,
             'deleted_at' => $this->deleted_at?->toIso8601String(),
             'is_promoted' => $promotedUntil !== null,
             'promoted_until' => $promotedUntil?->toIso8601String(),

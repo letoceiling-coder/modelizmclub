@@ -5,25 +5,26 @@ import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRes
 import { toast } from "@/lib/toast";
 import { userById } from "@/lib/mock";
 import { blockUser, unblockUser } from "@/lib/api/social";
-import { pinConversation, unpinConversation, deleteConversation } from "@/lib/api/chat";
+import { pinConversation, unpinConversation, deleteConversation, clearConversationHistory } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { calls, useCalls } from "@/lib/calls";
 import { groupCalls, useGroupCall } from "@/lib/groupCall";
-import { actions, useStore, selectors } from "@/lib/store";
+import { actions, useStore, selectors, markDialogDeleted } from "@/lib/store";
 
 interface Props {
   partnerId: string;
   partnerName: string;
+  partnerAvatar?: string;
   dialogId?: string;
   pinned?: boolean;
-  onSearch?: () => void;
+  onSearch: () => void;
   /** Called after "Удалить чат" — parent should deselect this dialog. */
   onDeleted?: () => void;
 }
 
-export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, onSearch, onDeleted }: Props) {
+export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialogId, pinned, onSearch, onDeleted }: Props) {
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
   const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
@@ -77,7 +78,8 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
 
   const goProfile = () => {
     close();
-    navigate({ to: "/user/$id", params: { id: partnerId } });
+    const profilePath = userById(partnerId)?.slug ?? partnerId;
+    navigate({ to: "/user/$id", params: { id: profilePath } });
   };
 
   const toggleMute = () => {
@@ -122,10 +124,18 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
     }
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     close();
     if (!dialogId) return;
     if (!window.confirm(`Очистить историю переписки с ${partnerName}? Это действие нельзя отменить.`)) return;
+    if (!isDemoMode()) {
+      try {
+        await clearConversationHistory(dialogId);
+      } catch {
+        toast.error("Не удалось очистить историю");
+        return;
+      }
+    }
     actions.clearHistory(dialogId);
     toast.success("История очищена");
   };
@@ -135,9 +145,16 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
     if (!dialogId) return;
     if (!window.confirm(`Удалить чат с ${partnerName}? Переписка исчезнет из списка.`)) return;
     if (!isDemoMode()) {
-      try { await deleteConversation(dialogId); } catch { toast.error("Не удалось удалить чат"); return; }
+      try {
+        await clearConversationHistory(dialogId);
+        await deleteConversation(dialogId);
+      } catch {
+        toast.error("Не удалось удалить чат");
+        return;
+      }
     }
-    actions.setDialogMeta(dialogId, { deletedLocally: true });
+    actions.clearHistory(dialogId);
+    markDialogDeleted(dialogId, partnerId);
     toast.success("Чат удалён");
     onDeleted?.();
   };
@@ -168,6 +185,16 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
 
   return (
     <>
+      <button
+        type="button"
+        onClick={onSearch}
+        className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+        style={{ color: "var(--foreground-50)" }}
+        aria-label="Поиск по сообщениям"
+      >
+        <Search size={19} />
+      </button>
+
       <button
         type="button"
         onClick={() => {
@@ -271,7 +298,8 @@ export function ChatHeaderActions({ partnerId, partnerName, dialogId, pinned, on
         onCancel={() => setConfirmOpen(false)}
         onConfirm={(media) => {
           setConfirmOpen(false);
-          void calls.start(partnerId, partnerName, undefined, media);
+          const avatar = partnerAvatar || userById(partnerId)?.avatar;
+          void calls.start(partnerId, partnerName, avatar || undefined, media);
         }}
       />
       <ComplaintDialog

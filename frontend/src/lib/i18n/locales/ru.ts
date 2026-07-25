@@ -22,6 +22,8 @@ export const ru = {
     subscriptionActive: "Год · активна",
   },
   nav: {
+    sectionCommunity: "Сообщество",
+    sectionAds: "Объявления",
     feed: "Лента",
     communities: "Сообщества",
     channels: "Каналы",
@@ -75,7 +77,7 @@ export const ru = {
       brand: "МоДелизМ",
       tagline: "Маркетплейс, лента и сообщество для моделистов",
       subtitle: "Покупайте модели и запчасти, публикуйте сборки, находите клубы и общайтесь с моделистами по всей России.",
-      ctaBrowse: "Смотреть объявления",
+      ctaBrowse: "Объявления",
       scroll: "Листайте",
       videoAlt: "Сборка RC-моделей",
       stats: {

@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
 export const Route = createFileRoute("/communities/")({
   head: () => ({ meta: [{ title: "Сообщества — МоДелизМ" }] }),
@@ -22,7 +23,7 @@ const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging,
 };
 
-function CommunityCard({ c }: { c: Community }) {
+function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void }) {
   const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
   const [brokenCover, setBrokenCover] = useState(false);
   const [brokenAvatar, setBrokenAvatar] = useState(false);
@@ -109,11 +110,16 @@ function CommunityCard({ c }: { c: Community }) {
               активны сегодня
             </span>
           </div>
-          <Button asChild size="sm" className=" gap-[6px]">
-            <Link to="/communities/$id" params={{ id: c.id }}>
-              Перейти <ArrowRight size={14} />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-[6px]">
+            {c.isOwner && onDeleted && (
+              <DeleteCommunityDialog slug={c.id} name={c.name} onDeleted={onDeleted} compact />
+            )}
+            <Button asChild size="sm" className=" gap-[6px]">
+              <Link to="/communities/$id" params={{ id: c.id }}>
+                Перейти <ArrowRight size={14} />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
@@ -150,8 +156,12 @@ function CommunitiesPage() {
     fetchCommunities().then(setAll).catch(() => {});
   }, []);
 
-  const myCommunities = useMemo(() => all.filter((c) => c.joined), [all]);
-  const recommended = useMemo(() => all.filter((c) => !c.joined), [all]);
+  const myCommunities = useMemo(() => all.filter((c) => c.joined || c.isOwner), [all]);
+  const recommended = useMemo(() => all.filter((c) => !c.joined && !c.isOwner), [all]);
+
+  const reloadCommunities = () => {
+    fetchCommunities().then(setAll).catch(() => {});
+  };
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
@@ -249,7 +259,7 @@ function CommunitiesPage() {
           <AnimatePresence mode="popLayout">
             <motion.div key={section} className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
               {visible.map((c) => (
-                <CommunityCard key={c.id} c={c} />
+                <CommunityCard key={c.id} c={c} onDeleted={reloadCommunities} />
               ))}
             </motion.div>
           </AnimatePresence>

@@ -1,7 +1,7 @@
 // API-backed module for the "Каналы" (Channels) section.
 // Channels are one-way publishing surfaces: only owners post, users subscribe.
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoChannels, demoChannel, demoChannelPosts, setDemoChannelSubscription } from "@/lib/demo-data";
 
@@ -28,6 +28,7 @@ export interface ChannelPost {
   kind?: PostKind;
   images: string[];
   video?: string;
+  rejectionReason?: string;
 }
 
 export interface Channel {
@@ -42,8 +43,14 @@ export interface Channel {
   subscribers: number;
   createdAt: string;
   ownerName: string;
+  ownerAvatar?: string;
+  ownerSlug?: string;
+  ownerId?: string;
+  avatarImage?: string;
+  bannerImage?: string;
   isOwner?: boolean;
   isSubscribed?: boolean;
+  postsRequireModeration?: boolean;
 }
 
 const KIND_LABEL: Record<ChannelKind, string> = {
@@ -68,11 +75,20 @@ interface ApiChannel {
   kind?: string;
   avatar_color?: string;
   banner_color?: string | null;
+  avatar?: { uuid?: string; url?: string | null } | null;
+  banner?: { uuid?: string; url?: string | null } | null;
   subscribers?: number;
   created_at?: string;
   owner_name?: string;
+  owner?: {
+    uuid?: string;
+    display_name?: string | null;
+    slug?: string | null;
+    avatar?: { url?: string | null } | null;
+  } | null;
   is_owner?: boolean;
   is_subscribed?: boolean;
+  posts_require_moderation?: boolean;
 }
 
 interface ApiChannelPostMedia {
@@ -91,6 +107,7 @@ interface ApiChannelPost {
   views?: number;
   created_at?: string;
   media?: ApiChannelPostMedia[];
+  rejection_reason?: string | null;
 }
 
 function mapChannel(c: ApiChannel): Channel {
@@ -103,11 +120,17 @@ function mapChannel(c: ApiChannel): Channel {
     kind: (c.kind as ChannelKind) ?? "author",
     avatarColor: c.avatar_color ?? "#2563eb",
     bannerColor: c.banner_color ?? "linear-gradient(135deg,#1e3a8a,#2563eb)",
+    avatarImage: c.avatar?.url ?? undefined,
+    bannerImage: c.banner?.url ?? undefined,
     subscribers: c.subscribers ?? 0,
     createdAt: c.created_at ?? "",
-    ownerName: c.owner_name ?? "",
+    ownerName: c.owner?.display_name ?? c.owner_name ?? "",
+    ownerAvatar: c.owner?.avatar?.url ?? undefined,
+    ownerSlug: c.owner?.slug ?? undefined,
+    ownerId: c.owner?.uuid ?? undefined,
     isOwner: Boolean(c.is_owner),
     isSubscribed: Boolean(c.is_subscribed),
+    postsRequireModeration: Boolean(c.posts_require_moderation),
   };
 }
 
@@ -131,6 +154,7 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
     kind: (p.kind as PostKind) ?? undefined,
     images: media.filter((m) => m.type !== "video" && m.media?.url).map((m) => m.media!.url!),
     video: media.find((m) => m.type === "video" && m.media?.url)?.media?.url ?? undefined,
+    rejectionReason: p.rejection_reason ?? undefined,
   };
 }
 
@@ -155,6 +179,39 @@ export async function fetchChannelPosts(slug: string): Promise<ChannelPost[]> {
   if (isDemoMode()) return demoChannelPosts(slug) as ChannelPost[];
   const res = await api<{ data: ApiChannelPost[] }>(`/channels/${slug}/posts`, { query: { per_page: 50 } });
   return (res.data ?? []).map((p) => mapPost(p, slug));
+}
+
+export async function updateChannelBranding(
+  slug: string,
+  input: { avatar_media_uuid?: string | null; banner_media_uuid?: string | null },
+): Promise<Channel> {
+  if (isDemoMode()) {
+    const current = await fetchChannel(slug);
+    if (!current) throw new Error("Channel not found");
+    return {
+      ...current,
+      avatarImage: input.avatar_media_uuid === null ? undefined : current.avatarImage,
+      bannerImage: input.banner_media_uuid === null ? undefined : current.bannerImage,
+    };
+  }
+  const res = await api<{ data: ApiChannel }>(`/channels/${slug}/branding`, {
+    method: "PATCH",
+    json: {
+      avatar_media_uuid: input.avatar_media_uuid,
+      banner_media_uuid: input.banner_media_uuid,
+    },
+  });
+  return mapChannel(res.data);
+}
+
+export async function deleteChannel(slug: string, confirmName: string): Promise<void> {
+  if (isDemoMode()) {
+    return;
+  }
+  await api(`/channels/${slug}`, {
+    method: "DELETE",
+    json: { confirm_name: confirmName },
+  });
 }
 
 export async function setChannelSubscription(slug: string, subscribe: boolean): Promise<void> {
@@ -203,10 +260,15 @@ export function useChannels(): { channels: Channel[]; loading: boolean; reload: 
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(() => {
+    if (!isDemoMode() && !getToken()) {
+      setChannels([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetchChannels()
       .then(setChannels)
-      .catch(() => {})
+      .catch(() => setChannels([]))
       .finally(() => setLoading(false));
   }, []);
 

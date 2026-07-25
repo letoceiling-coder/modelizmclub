@@ -73,7 +73,7 @@ class CatalogService
     /** @return Collection<int, City> */
     private function fetchCities(?string $query): Collection
     {
-        return City::query()
+        $builder = City::query()
             ->where('is_active', true)
             ->when($query, fn ($q) => $q->where(function ($q) use ($query): void {
                 $q->where('name', 'ilike', "%{$query}%");
@@ -84,8 +84,12 @@ class CatalogService
                 }
             }))
             ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        // Empty query → popular cities; search → capped result set for autocomplete UX.
+        $limit = ($query === null || $query === '') ? 30 : 50;
+
+        return $builder->limit($limit)->get();
     }
 
     /** @return Collection<int, Tag> */

@@ -16,7 +16,7 @@ class FeatureFlagsSeeder extends Seeder
 
         SystemSetting::query()->updateOrCreate(
             ['key' => 'feature.listing_payment_enabled'],
-            ['value' => ['enabled' => false], 'group' => 'feature'],
+            ['value' => ['enabled' => true], 'group' => 'feature'],
         );
     }
 }

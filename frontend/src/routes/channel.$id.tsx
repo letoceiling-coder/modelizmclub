@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -17,6 +17,9 @@ import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
+import { ChatAvatar } from "@/components/messenger/ChatAvatar";
+import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
+import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
 
 
 export const Route = createFileRoute("/channel/$id")({
@@ -29,7 +32,7 @@ type ChannelTab = "posts" | "about";
 
 function NotFoundView() {
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div className="py-[40px]">
         <EmptyState
           icon={Radio}
@@ -47,6 +50,7 @@ function NotFoundView() {
 
 function ChannelPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>("posts");
@@ -55,8 +59,8 @@ function ChannelPage() {
 
   if (loading) {
     return (
-      <AppLayout rightColumn={false}>
-        <div className="space-y-4">
+      <AppLayout rightColumn={false} footer>
+        <div className="space-y-4 pb-8">
           <Card className="overflow-hidden shadow-none" style={{ borderColor: "var(--border)", borderRadius: 16, background: "var(--background)" }}>
             <Skeleton className="h-28 sm:h-36 rounded-none" />
             <div className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
@@ -93,8 +97,8 @@ function ChannelPage() {
   };
 
   return (
-    <AppLayout rightColumn={false}>
-      <div className="space-y-4">
+    <AppLayout rightColumn={false} footer>
+      <div className="space-y-4 pb-8">
         {/* back */}
         <Link
           to="/channels"
@@ -109,19 +113,14 @@ function ChannelPage() {
           className="overflow-hidden shadow-none"
           style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}
         >
-          <div className="h-28 sm:h-36" style={{ background: channel.bannerColor }} />
-          <div className="px-4 pb-4 sm:px-5 sm:pb-5">
-            <div className="-mt-8 sm:-mt-10 grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3">
-              <div
-                className="grid h-16 w-16 sm:h-20 sm:w-20 shrink-0 place-items-center font-display text-[24px] sm:text-[28px] font-bold text-white"
-                style={{ background: channel.avatarColor, borderRadius: 16, border: "3px solid var(--background)" }}
-              >
-                {channel.name.slice(0, 1)}
-              </div>
-            </div>
+          <ChannelBrandingHeader
+            channel={channel}
+            editable={Boolean(channel.isOwner)}
+            onUpdated={() => reloadChannel()}
+          />
 
-            <div className="mt-3">
-              <div className="flex flex-wrap items-center gap-1.5">
+          <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 <h1 className="font-display text-[20px] sm:text-[24px] font-bold" style={{ color: "var(--foreground)" }}>
                   {channel.name}
                 </h1>
@@ -151,7 +150,7 @@ function ChannelPage() {
                 </span>
               </div>
 
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 {!channel.isOwner && (
                   <Button
                     variant={subscribed ? "outline" : "default"}
@@ -169,6 +168,16 @@ function ChannelPage() {
                   >
                     Вы — владелец канала
                   </div>
+                )}
+                {channel.isOwner && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="rounded-[12px] gap-2"
+                    onClick={() => setTab("about")}
+                  >
+                    Управление
+                  </Button>
                 )}
               </div>
 
@@ -193,7 +202,6 @@ function ChannelPage() {
                   Это публичный канал: посты публикует только владелец. Подписчики читают и не могут писать в ленту канала.
                 </span>
               </div>
-            </div>
           </div>
         </Card>
 
@@ -253,7 +261,16 @@ function ChannelPage() {
             )}
 
             {/* composer (owner only) */}
-            {channel.isOwner && <Composer channelSlug={channel.slug} onPosted={reloadPosts} />}
+            {channel.isOwner && (
+              <Composer
+                channelSlug={channel.slug}
+                requiresModeration={Boolean(channel.postsRequireModeration)}
+                onPosted={() => {
+                  setShowOwnerView(true);
+                  reloadPosts();
+                }}
+              />
+            )}
 
             {list.length === 0 ? (
               <div className="grid place-items-center gap-2 py-12 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}>
@@ -271,6 +288,8 @@ function ChannelPage() {
           <AboutPanel
             channel={channel}
             publishedCount={visiblePublic.length}
+            requiresModeration={Boolean(channel.postsRequireModeration)}
+            onDeleted={() => navigate({ to: "/channels" })}
           />
         )}
 
@@ -320,6 +339,53 @@ const STATUS: Record<PostStatus, { label: string; bg: string; color: string; Ico
   rejected: { label: "Отклонено", bg: "rgba(239,68,68,0.12)", color: "rgb(239,68,68)", Icon: AlertTriangle },
 };
 
+function ChannelPostMedia({ post }: { post: ChannelPost }) {
+  const images = post.images ?? [];
+  const hasVideo = Boolean(post.video);
+  if (!hasVideo && images.length === 0) return null;
+
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      {hasVideo && (
+        <div className="mx-auto w-fit max-w-full overflow-hidden rounded-[10px] bg-black">
+          <video
+            src={post.video}
+            controls
+            preload="metadata"
+            playsInline
+            className="block max-h-[420px] max-w-[min(520px,100%)] object-contain"
+          />
+        </div>
+      )}
+      {images.length > 0 && (
+        <div
+          className={`mx-auto grid w-full max-w-[520px] gap-2 ${
+            images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+          }`}
+        >
+          {images.map((src, i) => (
+            <a
+              key={`${post.id}-img-${i}`}
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-[10px]"
+              style={{ background: "var(--background-surface)" }}
+            >
+              <img
+                src={src}
+                alt=""
+                loading="lazy"
+                className={`w-full ${images.length === 1 ? "max-h-[360px] object-contain" : "max-h-[220px] object-cover"}`}
+              />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
   const s = STATUS[post.status];
   return (
@@ -364,18 +430,18 @@ function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
       <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground)" }}>
         {post.text}
       </p>
-      {post.video && (
-        <video src={post.video} controls preload="metadata" className="mt-3 w-full" style={{ maxHeight: 320, borderRadius: 10, background: "#000" }} />
-      )}
-      {(post.images ?? []).length > 0 && (
-        <div className={`mt-3 grid gap-[6px] ${post.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-          {post.images.map((src, i) => (
-            <img key={`${post.id}-img-${i}`} src={src} alt="" className="w-full object-cover" style={{ maxHeight: 260, borderRadius: 10 }} />
-          ))}
+      <ChannelPostMedia post={post} />
+      {post.status === "rejected" && post.rejectionReason && (
+        <div
+          className="mt-3 rounded-[10px] p-3 text-[12px] leading-relaxed"
+          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "rgb(185,28,28)" }}
+        >
+          <div className="font-semibold">Причина отклонения</div>
+          <div className="mt-1">{post.rejectionReason}</div>
         </div>
       )}
       {post.status === "published" && (
-        <div className="mt-3 flex items-center gap-4 text-[12px]" style={{ color: "var(--foreground-50)" }}>
+        <div className="mt-4 flex items-center gap-4 border-t pt-3 text-[12px]" style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}>
           <span className="inline-flex items-center gap-1"><Heart size={13} /> {post.likes}</span>
           <span className="inline-flex items-center gap-1"><Eye size={13} /> {post.views}</span>
         </div>
@@ -398,7 +464,7 @@ function KindIcon({ kind }: { kind: PostKind }) {
 
 const MAX_PHOTOS = 10;
 
-function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: () => void }) {
+function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: string; requiresModeration: boolean; onPosted: () => void }) {
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -453,7 +519,11 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
       setVideoUrl(null);
       setVideoFile(null);
       setJustSent({ id: post.id });
-      toast.success("Пост опубликован");
+      toast.success(
+        post.status === "moderation"
+          ? "Пост отправлен на модерацию"
+          : "Пост опубликован",
+      );
       onPosted();
       window.setTimeout(() => setJustSent(null), 6000);
     } catch {
@@ -474,9 +544,15 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
         </h3>
         <span
           className="inline-flex items-center gap-1 text-[11px] font-semibold"
-          style={{ background: "rgba(16,185,129,0.12)", color: "rgb(16,185,129)", padding: "4px 8px", borderRadius: 6 }}
+          style={{
+            background: requiresModeration ? "rgba(245,158,11,0.14)" : "rgba(16,185,129,0.12)",
+            color: requiresModeration ? "rgb(217,119,6)" : "rgb(16,185,129)",
+            padding: "4px 8px",
+            borderRadius: 6,
+          }}
         >
-          <ShieldCheck size={11} /> Публикуется сразу
+          {requiresModeration ? <Clock size={11} /> : <ShieldCheck size={11} />}
+          {requiresModeration ? "На модерации после отправки" : "Публикуется сразу"}
         </span>
       </div>
 
@@ -568,13 +644,22 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
       {justSent && (
         <div
           className="mt-3 flex items-start gap-2 p-3 text-[12px]"
-          style={{ background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.35)", borderRadius: 10, color: "rgb(6,95,70)" }}
+          style={{
+            background: requiresModeration ? "rgba(245,158,11,0.10)" : "rgba(16,185,129,0.10)",
+            border: requiresModeration ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(16,185,129,0.35)",
+            borderRadius: 10,
+            color: requiresModeration ? "rgb(146,64,14)" : "rgb(6,95,70)",
+          }}
         >
-          <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+          {requiresModeration ? <Clock size={14} className="mt-0.5 shrink-0" /> : <ShieldCheck size={14} className="mt-0.5 shrink-0" />}
           <div>
-            <div className="font-semibold">Пост опубликован</div>
-            <div style={{ color: "rgb(4,120,87)" }}>
-              Публикация уже видна подписчикам в ленте канала и продублирована в общую ленту сайта.
+            <div className="font-semibold">
+              {requiresModeration ? "Пост отправлен на модерацию" : "Пост опубликован"}
+            </div>
+            <div style={{ color: requiresModeration ? "rgb(180,83,9)" : "rgb(4,120,87)" }}>
+              {requiresModeration
+                ? "Подписчики увидят публикацию после одобрения модератором. Вы можете отслеживать статус во вкладке «Посты»."
+                : "Публикация уже видна подписчикам в ленте канала и продублирована в общую ленту сайта."}
             </div>
           </div>
         </div>
@@ -583,11 +668,41 @@ function Composer({ channelSlug, onPosted }: { channelSlug: string; onPosted: ()
   );
 }
 
-function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCount: number }) {
+function AboutPanel({
+  channel,
+  publishedCount,
+  requiresModeration,
+  onDeleted,
+}: {
+  channel: Channel;
+  publishedCount: number;
+  requiresModeration: boolean;
+  onDeleted: () => void;
+}) {
   const created = new Date(channel.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-  const ownerInitial = channel.ownerName.slice(0, 1).toUpperCase();
+  const ownerProfileId = channel.ownerSlug ?? channel.ownerId;
+  const ownerNameEl = ownerProfileId ? (
+    <Link
+      to="/user/$id"
+      params={{ id: ownerProfileId }}
+      className="truncate text-[14px] font-semibold hover:underline"
+      style={{ color: "var(--foreground)" }}
+    >
+      {channel.ownerName}
+    </Link>
+  ) : (
+    <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+      {channel.ownerName}
+    </span>
+  );
   const rules: { Icon: typeof FileCheck2; title: string; text: string }[] = [
-    { Icon: FileCheck2, title: "Премодерация", text: "Каждый пост проходит проверку модератором перед публикацией." },
+    {
+      Icon: FileCheck2,
+      title: requiresModeration ? "Премодерация" : "Публикация",
+      text: requiresModeration
+        ? "Каждый пост проходит проверку модератором перед публикацией. До одобрения подписчики его не видят."
+        : "Посты владельца публикуются сразу и сразу видны подписчикам.",
+    },
     { Icon: MessageSquareOff, title: "Без чата", text: "Подписчики не могут писать в ленту — это односторонний канал." },
     { Icon: Ban, title: "Без спама и рекламы вне правил", text: "Сторонние ссылки и реклама без согласования отклоняются." },
   ];
@@ -624,17 +739,16 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
           Владелец
         </h3>
         <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-          <div
-            className="grid h-11 w-11 shrink-0 place-items-center font-display text-[16px] font-bold text-white"
-            style={{ background: channel.avatarColor, borderRadius: 12 }}
-          >
-            {ownerInitial}
-          </div>
+          {ownerProfileId ? (
+            <Link to="/user/$id" params={{ id: ownerProfileId }} aria-label={`Профиль ${channel.ownerName}`}>
+              <ChatAvatar src={channel.ownerAvatar} name={channel.ownerName} size={44} className="rounded-[12px]" />
+            </Link>
+          ) : (
+            <ChatAvatar src={channel.ownerAvatar} name={channel.ownerName} size={44} className="rounded-[12px]" />
+          )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-                {channel.ownerName}
-              </span>
+              {ownerNameEl}
               {channel.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
             </div>
             <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
@@ -678,6 +792,23 @@ function AboutPanel({ channel, publishedCount }: { channel: Channel; publishedCo
           ))}
         </ul>
       </section>
+
+      {channel.isOwner && (
+        <section
+          className="p-4 sm:p-5"
+          style={{ background: "var(--background)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}
+        >
+          <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+            Управление каналом
+          </h3>
+          <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+            Удаление необратимо: канал исчезнет из списка, подписчики потеряют доступ ко всем постам.
+          </p>
+          <div className="mt-4">
+            <DeleteChannelDialog slug={channel.slug} name={channel.name} onDeleted={onDeleted} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

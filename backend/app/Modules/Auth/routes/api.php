@@ -16,8 +16,8 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('throttle:auth-register')->post('register', RegisterController::class);
     Route::middleware('throttle:auth-verify')->post('verify-email', VerifyEmailController::class);
     Route::middleware('throttle:auth-login')->post('login', LoginController::class);
-    Route::middleware('throttle:auth-register')->post('forgot-password', ForgotPasswordController::class);
-    Route::middleware('throttle:auth-register')->post('reset-password', ResetPasswordController::class);
+    Route::middleware('throttle:auth-forgot-password')->post('forgot-password', ForgotPasswordController::class);
+    Route::middleware('throttle:auth-reset-password')->post('reset-password', ResetPasswordController::class);
 
     Route::get('oauth/{provider}/redirect', [OAuthController::class, 'redirect']);
     Route::get('oauth/{provider}/callback', [OAuthController::class, 'callback']);

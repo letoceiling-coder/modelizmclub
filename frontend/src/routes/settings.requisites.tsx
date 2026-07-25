@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -9,8 +9,8 @@ import { InnInput } from "@/components/ui/inn-input";
 import { CardNumberInput } from "@/components/ui/card-number-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
-import { getRequisites, setRequisites, type Requisites } from "@/lib/settings-prefs";
 import { isDemoMode } from "@/lib/demo-mode";
+import { fetchMe } from "@/lib/api/auth";
 import { fetchPayoutRequisites, savePayoutRequisites } from "@/lib/api/payout-requisites";
 import { fetchDocumentRequisites, saveDocumentRequisites } from "@/lib/api/account";
 
@@ -27,20 +27,33 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+interface RequisitesForm {
+  fullName: string;
+  inn: string;
+  phone: string;
+  address: string;
+}
+
 function RequisitesSection() {
-  const [form, setForm] = useState<Requisites>(getRequisites);
+  const [form, setForm] = useState<RequisitesForm>({ fullName: "", inn: "", phone: "", address: "" });
+  const [accountPhone, setAccountPhone] = useState("");
   const [loading, setLoading] = useState(!isDemoMode());
 
   useEffect(() => {
-    if (isDemoMode()) return;
+    if (isDemoMode()) {
+      setLoading(false);
+      return;
+    }
     let alive = true;
-    fetchDocumentRequisites()
-      .then((r) => {
+    Promise.all([fetchDocumentRequisites(), fetchMe()])
+      .then(([r, me]) => {
         if (!alive) return;
+        const mePhone = me?.phone ?? "";
+        setAccountPhone(mePhone);
         setForm({
-          fullName: r.full_name ?? "",
+          fullName: r.full_name?.trim() || me?.name?.trim() || "",
           inn: r.inn ?? "",
-          phone: r.phone ?? "",
+          phone: r.phone?.trim() || mePhone,
           address: r.address ?? "",
         });
       })
@@ -58,19 +71,23 @@ function RequisitesSection() {
         phone: form.phone,
         address: form.address,
       });
-      setRequisites(form);
       toast.success("Реквизиты сохранены");
     } catch {
       toast.error("Не удалось сохранить реквизиты");
     }
   };
 
-  const set = (patch: Partial<Requisites>) => setForm((f) => ({ ...f, ...patch }));
+  const set = (patch: Partial<RequisitesForm>) => setForm((f) => ({ ...f, ...patch }));
 
   return (
     <SettingsSectionShell title="Реквизиты">
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Данные сохраняются на этом устройстве и используются при оформлении документов по сделкам.
+        Данные хранятся в аккаунте и используются при оформлении документов по сделкам.
+        Телефон подтягивается из{" "}
+        <Link to="/settings/account" className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
+          профиля и аккаунта
+        </Link>
+        .
       </p>
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         {loading ? (
@@ -79,13 +96,26 @@ function RequisitesSection() {
           </div>
         ) : (
           <form onSubmit={save} className="space-y-[12px]">
-            <Field label="Полное имя (ФИО)"><Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" /></Field>
-            <Field label="ИНН (необязательно)"><InnInput value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" /></Field>
-            {/* keyed on `loading` so the uncontrolled PhoneInput reseeds once
-                the async fetchDocumentRequisites() result lands (its defaultValue
-                only seeds initial state on mount, not on later prop changes) */}
-            <Field label="Телефон"><PhoneInput key={loading ? "phone-loading" : "phone-loaded"} defaultValue={form.phone} onValueChange={(formatted) => set({ phone: formatted })} /></Field>
-            <Field label="Адрес"><Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" /></Field>
+            <Field label="Полное имя (ФИО)">
+              <Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" />
+            </Field>
+            <Field label="ИНН (необязательно)">
+              <InnInput value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" />
+            </Field>
+            <Field label="Телефон">
+              <PhoneInput key={`req-phone-${form.phone}`} defaultValue={form.phone} onValueChange={(formatted) => set({ phone: formatted })} />
+            </Field>
+            {accountPhone && form.phone.replace(/\D/g, "") !== accountPhone.replace(/\D/g, "") && (
+              <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                В аккаунте указан другой номер ({accountPhone}).{" "}
+                <Link to="/settings/account" className="underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
+                  Изменить в профиле
+                </Link>
+              </p>
+            )}
+            <Field label="Адрес">
+              <Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" />
+            </Field>
             <Button type="submit">Сохранить</Button>
           </form>
         )}
@@ -96,10 +126,6 @@ function RequisitesSection() {
   );
 }
 
-/** Card number for manual payouts — an admin reads it and sends money by
- *  hand. No escrow/marketplace API on the backend; the number is stored in
- *  one encrypted column. GET only ever returns the last 4 digits, so the
- *  field always starts blank — re-entering replaces the stored number. */
 function PayoutCard() {
   const [last4, setLast4] = useState<string | null>(null);
   const [cardNumber, setCardNumber] = useState("");

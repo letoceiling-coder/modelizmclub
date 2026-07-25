@@ -23,6 +23,15 @@ class UserCompactResource extends JsonResource
                     'url' => $this->profile->avatar->url ?? null,
                 ] : null,
             ),
+            'city' => $this->when(
+                $this->relationLoaded('profile') && $this->profile?->relationLoaded('city'),
+                fn () => $this->profile?->city ? [
+                    'id' => $this->profile->city->id,
+                    'name' => $this->profile->city->name,
+                    'slug' => $this->profile->city->slug,
+                ] : null,
+            ),
+            'last_seen_at' => $this->last_seen_at?->toIso8601String(),
         ];
     }
 }

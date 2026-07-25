@@ -12,8 +12,14 @@ use Illuminate\Validation\ValidationException;
 
 class ChannelApplicationService
 {
-    public function apply(User $user, string $name, ?string $description, ?string $category): ChannelApplication
-    {
+    public function apply(
+        User $user,
+        string $name,
+        ?string $description,
+        ?string $category,
+        ?int $avatarMediaId = null,
+        ?int $bannerMediaId = null,
+    ): ChannelApplication {
         $hasPending = ChannelApplication::query()
             ->where('user_id', $user->id)
             ->where('status', ChannelApplicationStatus::Pending)
@@ -30,6 +36,8 @@ class ChannelApplicationService
             'proposed_name' => $name,
             'description' => $description,
             'category' => $category,
+            'avatar_media_id' => $avatarMediaId,
+            'banner_media_id' => $bannerMediaId,
             'status' => ChannelApplicationStatus::Pending,
         ]);
     }
@@ -50,6 +58,8 @@ class ChannelApplicationService
                 'description' => $application->description,
                 'category' => $application->category,
                 'kind' => 'author',
+                'avatar_media_id' => $application->avatar_media_id,
+                'banner_media_id' => $application->banner_media_id,
                 'is_active' => true,
             ]);
 

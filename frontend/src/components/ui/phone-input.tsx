@@ -22,6 +22,12 @@ function formatRuPhone(raw: string): string {
 const PhoneInput = React.forwardRef<HTMLInputElement, Omit<InputProps, "type" | "onChange"> & { onValueChange?: (formatted: string) => void }>(
   ({ defaultValue, onValueChange, ...props }, ref) => {
     const [value, setValue] = React.useState(() => (defaultValue ? formatRuPhone(String(defaultValue)) : ""));
+
+    React.useEffect(() => {
+      if (defaultValue == null || String(defaultValue).trim() === "") return;
+      setValue(formatRuPhone(String(defaultValue)));
+    }, [defaultValue]);
+
     return (
       <Input
         {...props}

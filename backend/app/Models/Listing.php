@@ -33,6 +33,10 @@ class Listing extends Model
         'favorites_count',
         'published_at',
         'paid_until',
+        'placement_payment_id',
+        'placement_amount_cents',
+        'placement_was_free',
+        'placement_promocode_id',
     ];
 
     protected function casts(): array
@@ -43,6 +47,7 @@ class Listing extends Model
             'contact_via_messenger' => 'boolean',
             'published_at' => 'datetime',
             'paid_until' => 'datetime',
+            'placement_was_free' => 'boolean',
         ];
     }
 

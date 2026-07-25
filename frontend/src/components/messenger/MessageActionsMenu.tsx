@@ -16,6 +16,7 @@ interface Props {
   onForward: () => void;
   onPin: () => void;
   onDelete: () => void;
+  onDeleteForEveryone: () => void;
   onReport: () => void;
 }
 
@@ -24,7 +25,7 @@ const VIEWPORT_PAD = 8;
 const MENU_GAP = 6;
 
 export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(function MessageActionsMenu(
-  { isMe, pinned, align, onReply, onCopy, onForward, onPin, onDelete, onReport },
+  { isMe, pinned, align, onReply, onCopy, onForward, onPin, onDelete, onDeleteForEveryone, onReport },
   ref,
 ) {
   const [open, setOpen] = useState(false);
@@ -162,6 +163,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
                 onForward={run(onForward)}
                 onPin={run(onPin)}
                 onDelete={run(onDelete)}
+                onDeleteForEveryone={run(onDeleteForEveryone)}
                 onReport={run(onReport)}
               />
             </motion.div>
@@ -207,6 +209,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(fu
                   onForward={run(onForward)}
                   onPin={run(onPin)}
                   onDelete={run(onDelete)}
+                  onDeleteForEveryone={run(onDeleteForEveryone)}
                   onReport={run(onReport)}
                 />
               </motion.div>
@@ -227,6 +230,7 @@ function MenuItems({
   onForward,
   onPin,
   onDelete,
+  onDeleteForEveryone,
   onReport,
 }: {
   isMe: boolean;
@@ -236,6 +240,7 @@ function MenuItems({
   onForward: () => void;
   onPin: () => void;
   onDelete: () => void;
+  onDeleteForEveryone: () => void;
   onReport: () => void;
 }) {
   return (
@@ -244,7 +249,12 @@ function MenuItems({
       <Item icon={Copy} label="Копировать" onClick={onCopy} />
       <Item icon={Forward} label="Переслать" onClick={onForward} />
       <Item icon={pinned ? PinOff : Pin} label={pinned ? "Открепить" : "Закрепить"} onClick={onPin} />
-      {isMe && <Item icon={Trash2} label="Удалить у себя" onClick={onDelete} danger />}
+      {isMe && (
+        <>
+          <Item icon={Trash2} label="Удалить у всех" onClick={onDeleteForEveryone} danger />
+          <Item icon={Trash2} label="Удалить у себя" onClick={onDelete} danger />
+        </>
+      )}
       {!isMe && <Item icon={Flag} label="Пожаловаться" onClick={onReport} />}
     </>
   );

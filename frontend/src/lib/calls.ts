@@ -153,6 +153,8 @@ let initGen = 0;
 let pendingLocalCandidates: RTCIceCandidateInit[] = [];
 let incomingPollTimer: ReturnType<typeof setInterval> | null = null;
 let echoConnUnsub: (() => void) | null = null;
+/** Set when a terminal signal ends the call before initiateCall HTTP returns. */
+let outgoingEndedDuringPending = false;
 
 // ---- reconnection / stability (ported from agent.neeklo.ru rtc-runtime) ----
 let reconnectAttempts = 0;
@@ -615,9 +617,14 @@ function finish(result: CallResult): void {
   if (wasConnected) {
     finalResult = "answered";
   } else if (result !== "rejected" && result !== "busy") {
-    if (active.direction === "incoming") finalResult = "missed";
-    else if (result === "answered") finalResult = "answered";
-    else if (result !== "missed") finalResult = "ended";
+    if (active.direction === "incoming") {
+      // Explicit decline/timeout — do not mark a user-initiated decline as "missed".
+      finalResult = result === "missed" ? "missed" : "ended";
+    } else if (result === "answered") {
+      finalResult = "answered";
+    } else if (result !== "missed") {
+      finalResult = "ended";
+    }
   }
   const record = recordFrom(active, finalResult);
 
@@ -687,6 +694,21 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate([300, 120, 300]);
     }
+    return;
+  }
+
+  // Reject/hangup/busy can arrive over WS before initiateCall HTTP returns (id still pending_*).
+  if (
+    (type === "reject" || type === "hangup" || type === "busy") &&
+    payload.call_uuid &&
+    state.active?.direction === "outgoing" &&
+    state.active.id.startsWith("pending_")
+  ) {
+    outgoingEndedDuringPending = true;
+    patchActive({ id: payload.call_uuid });
+    if (type === "busy") finish("busy");
+    else if (type === "reject") finish("rejected");
+    else finish("ended");
     return;
   }
 
@@ -812,6 +834,7 @@ export const calls = {
     media: CallMedia = "audio",
   ): Promise<void> {
     if (state.active && state.active.status !== "ended") return;
+    outgoingEndedDuringPending = false;
     clearTimers();
     unlockCallAudio();
     setState({
@@ -836,7 +859,13 @@ export const calls = {
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: media === "video" });
       await pc.setLocalDescription(offer);
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
+      // Callee may have declined while HTTP was in flight — reject already handled via WS.
+      if (outgoingEndedDuringPending || !state.active || state.active.status === "ended") {
+        outgoingEndedDuringPending = false;
+        return;
+      }
       patchActive({ id: callUuid });
+      if (!state.active || state.active.status === "ended") return;
       flushPendingLocalIce(callUuid);
       startRingback();
       ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
@@ -880,10 +909,23 @@ export const calls = {
     }
   },
 
-  decline(): void {
+  async decline(): Promise<void> {
     const active = state.active;
     if (!active) return;
-    void rejectCall(active.id, "declined").catch(() => {});
+    clearTimers();
+    stopCallSounds();
+    try {
+      await rejectCall(active.id, "declined");
+    } catch {
+      toast.error("Не удалось отклонить звонок");
+      // Restore ringing UI if the server never received the reject.
+      if (state.active?.id === active.id && state.active.status !== "ended") {
+        patchActive({ status: "ringing" });
+        startRingtone();
+        ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
+      }
+      return;
+    }
     finish("ended");
   },
 

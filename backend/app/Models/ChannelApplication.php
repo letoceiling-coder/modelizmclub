@@ -13,6 +13,8 @@ class ChannelApplication extends Model
         'proposed_name',
         'description',
         'category',
+        'avatar_media_id',
+        'banner_media_id',
         'status',
         'moderator_comment',
         'reviewed_by',

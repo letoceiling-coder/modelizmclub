@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
-import { createConversation } from "@/lib/api/chat";
+import { openConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
@@ -138,12 +138,13 @@ function AdDetailPage() {
 
   const proceedToConversation = async (queuedMessage: string | null) => {
     const sellerId = ad?.seller?.numericId;
-    if (!sellerId || !me) {
+    const sellerUuid = ad?.seller?.id;
+    if (!sellerId || !sellerUuid || !me) {
       toast.error("Не удалось открыть диалог с продавцом");
       return;
     }
     try {
-      const dialog = await createConversation(sellerId, me.id, ad.id);
+      const dialog = await openConversation(sellerId, me.id, sellerUuid, ad.id);
       if (ad) {
         actions.setDialogAd(dialog.id, {
           id: ad.id,

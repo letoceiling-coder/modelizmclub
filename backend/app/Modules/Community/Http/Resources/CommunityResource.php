@@ -44,8 +44,7 @@ class CommunityResource extends JsonResource
                 (bool) $this->getAttribute('is_member'),
             ),
             'is_owner' => $request->user('sanctum') !== null
-                && $this->created_by !== null
-                && $this->created_by === $request->user('sanctum')->id,
+                && $this->isOwnedBy($request->user('sanctum')),
             'approved_at' => $this->approved_at?->toIso8601String(),
         ];
     }

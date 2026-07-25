@@ -17,6 +17,7 @@ class Conversation extends Model
         'uuid',
         'type',
         'community_id',
+        'post_category_id',
         'listing_id',
         'title',
         'last_message_at',
@@ -36,6 +37,11 @@ class Conversation extends Model
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);
+    }
+
+    public function postCategory(): BelongsTo
+    {
+        return $this->belongsTo(PostCategory::class);
     }
 
     public function listing(): BelongsTo

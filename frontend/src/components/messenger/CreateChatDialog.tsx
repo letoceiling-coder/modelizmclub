@@ -5,6 +5,8 @@ import type { User } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { searchUsers } from "@/lib/api/social";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useOnlineSet } from "@/lib/realtime/presence";
+import { presenceLabel } from "@/lib/presence-status";
 
 interface Props {
   open: boolean;
@@ -14,6 +16,7 @@ interface Props {
 
 export function CreateChatDialog({ open, onClose, onPick }: Props) {
   const me = useStore(selectors.currentUser);
+  const onlineSet = useOnlineSet();
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
   const [highlight, setHighlight] = useState(0);
@@ -144,7 +147,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{u.name}</div>
                           <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                            {u.online ? "В сети" : "Был(а) недавно"}
+                            {presenceLabel(u.id, onlineSet, u).text}
                           </div>
                         </div>
                       </button>

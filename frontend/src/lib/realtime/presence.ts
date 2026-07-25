@@ -19,6 +19,13 @@ function emit(): void {
   listeners.forEach((l) => l());
 }
 
+function memberUuid(m: { uuid?: string; id?: string | number; info?: { uuid?: string } }): string | null {
+  if (m.uuid) return m.uuid;
+  if (m.info?.uuid) return m.info.uuid;
+  if (typeof m.id === "string" && m.id.includes("-")) return m.id;
+  return null;
+}
+
 export async function initPresence(userUuid: string): Promise<void> {
   if (!userUuid || userUuid === GUEST_USER.id || !getToken()) return;
   if (unsub || joining) return;
@@ -26,19 +33,28 @@ export async function initPresence(userUuid: string): Promise<void> {
   try {
     unsub = await joinOnlinePresence({
       here: (members) => {
-        online = new Set(members.map((m) => m.uuid).filter(Boolean));
+        online = new Set(members.map((m) => memberUuid(m)).filter(Boolean) as string[]);
         emit();
       },
       joining: (m) => {
-        if (m.uuid) {
-          online.add(m.uuid);
+        const uuid = memberUuid(m);
+        if (uuid) {
+          online.add(uuid);
           emit();
+          void import("@/lib/store").then(({ actions }) => {
+            actions.updateProfile(uuid, { online: true });
+          });
         }
       },
       leaving: (m) => {
-        if (m.uuid) {
-          online.delete(m.uuid);
+        const uuid = memberUuid(m);
+        if (uuid) {
+          online.delete(uuid);
           emit();
+          const leftAt = new Date().toISOString();
+          void import("@/lib/store").then(({ actions }) => {
+            actions.updateProfile(uuid, { online: false, lastSeenAt: leftAt });
+          });
         }
       },
     });

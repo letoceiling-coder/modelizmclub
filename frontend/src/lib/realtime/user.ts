@@ -2,7 +2,7 @@ import { toast } from "@/lib/toast";
 import type { AppNotification } from "@/lib/api/notifications";
 import { mapMessage, type ApiMessage } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
-import { GUEST_USER, ingestIncomingMessage } from "@/lib/store";
+import { GUEST_USER, ingestIncomingMessage, markOwnMessagesRead } from "@/lib/store";
 import { ingestCallSignal } from "@/lib/calls";
 import { subscribeUser } from "@/lib/realtime/echo";
 import { playMessagePing } from "@/lib/callAudio";
@@ -77,9 +77,17 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     return;
   }
 
+  if (type === "conversation.read") {
+    const p = data as { conversation_uuid?: string };
+    if (!p.conversation_uuid) return;
+    markOwnMessagesRead(p.conversation_uuid);
+    return;
+  }
+
   if (type === "notification") {
     const p = data as { notification?: ApiNotificationPayload };
     if (!p.notification) return;
+    if (p.notification.type === "message") return;
     const n = mapRealtimeNotification(p.notification);
     notificationListeners.forEach((cb) => cb(n));
     unreadBumpListeners.forEach((cb) => cb());

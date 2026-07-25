@@ -1,8 +1,9 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken } from "@/lib/api/client";
 import { fetchFavoriteListings } from "@/lib/api/listings";
+import { fetchConversations } from "@/lib/api/chat";
 import { shutdownCalls } from "@/lib/calls";
-import { actions, GUEST_USER, setCurrentUser } from "@/lib/store";
+import { actions, GUEST_USER, setCurrentUser, setDialogs } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
@@ -16,6 +17,22 @@ export async function syncFavoritesFromServer(): Promise<void> {
     actions.setFavoriteAdIds(list.map((ad) => ad.id));
   } catch {
     // Transient network error — keep optimistic local state.
+  }
+}
+
+/** Load conversations so messenger unread badges work outside /messenger. */
+export async function syncDialogsFromServer(meUuid: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (!getToken() && !isDemoMode()) return;
+  if (!meUuid || meUuid === GUEST_USER.id) return;
+  try {
+    const list = await fetchConversations(meUuid);
+    setDialogs(list);
+    list.forEach((d) => {
+      if (d.listing) actions.setDialogAd(d.id, d.listing);
+    });
+  } catch {
+    // Transient network error — realtime may still update the badge.
   }
 }
 
@@ -61,7 +78,7 @@ async function loadSession(): Promise<boolean> {
   setCurrentUser(me);
   shutdownCalls();
   await startRealtimeHub(me.id);
-  await syncFavoritesFromServer();
+  await Promise.all([syncFavoritesFromServer(), syncDialogsFromServer(me.id)]);
   return true;
 }
 
@@ -74,6 +91,13 @@ export function resetSessionCache(): void {
 
 // Restore the authenticated user into the store on app boot.
 export async function restoreSession(): Promise<void> {
+  if (!getToken() && !isDemoMode()) {
+    resetSessionCache();
+    actions.setFavoriteAdIds([]);
+    setCurrentUser(GUEST_USER);
+    return;
+  }
+
   const ok = await ensureSession();
   // Root-mount is the *only* unconditional session check — most pages
   // (e.g. /feed) never call ensureSession() themselves, they just read the

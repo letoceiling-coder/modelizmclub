@@ -11,10 +11,13 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminChannelApplicationsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityApplicationsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIconAssetController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIconMediaController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
@@ -74,13 +77,25 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::delete('posts/{uuid}', [AdminPostController::class, 'destroy']);
 
         Route::get('listings', [AdminListingController::class, 'index']);
+        Route::get('listings/{uuid}', [AdminListingController::class, 'show']);
         Route::patch('listings/{uuid}', [AdminListingController::class, 'update']);
         Route::delete('listings/{uuid}', [AdminListingController::class, 'destroy']);
 
         Route::apiResource('communities', AdminCommunityController::class)->parameters(['communities' => 'slug']);
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
         Route::apiResource('promocodes', AdminPromocodeController::class)->parameters(['promocodes' => 'code']);
+        Route::patch('banners/carousel/settings', [AdminBannerController::class, 'updateCarousel']);
         Route::apiResource('banners', AdminBannerController::class);
+
+        Route::get('landing/blocks', [AdminLandingBlocksController::class, 'index']);
+        Route::patch('landing/sections/{slug}', [AdminLandingBlocksController::class, 'updateSection']);
+        Route::post('landing/cards', [AdminLandingBlocksController::class, 'storeCard']);
+        Route::patch('landing/cards/reorder', [AdminLandingBlocksController::class, 'reorderCards']);
+        Route::patch('landing/cards/{id}', [AdminLandingBlocksController::class, 'updateCard'])->whereNumber('id');
+        Route::delete('landing/cards/{id}', [AdminLandingBlocksController::class, 'destroyCard'])->whereNumber('id');
+
+        Route::get('feed/guest-access', [AdminFeedGuestAccessController::class, 'show']);
+        Route::put('feed/guest-access', [AdminFeedGuestAccessController::class, 'update']);
 
         Route::post('notifications', AdminNotificationController::class);
 
@@ -90,6 +105,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('icon-assets/from-media', [AdminIconAssetController::class, 'storeFromMedia']);
         Route::delete('icon-assets/{id}', [AdminIconAssetController::class, 'destroy'])->whereNumber('id');
         Route::get('icon-media', AdminIconMediaController::class);
+
+        Route::get('media', [AdminMediaController::class, 'index']);
+        Route::post('media', [AdminMediaController::class, 'store']);
 
         Route::prefix('delivery')->group(function (): void {
             Route::get('stats', AdminDeliveryStatsController::class);

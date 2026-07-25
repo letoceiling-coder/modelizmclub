@@ -6,12 +6,13 @@ export interface ApiProfile {
   display_name?: string | null;
   slug?: string | null;
   bio?: string | null;
-  city?: { name?: string | null } | null;
+  city?: { id?: number; name?: string | null; slug?: string | null } | null;
   city_id?: number | null;
   vk_url?: string | null;
   telegram_url?: string | null;
   website_url?: string | null;
-  avatar?: { url?: string | null } | null;
+  avatar?: { uuid?: string; url?: string | null } | null;
+  cover?: { uuid?: string; url?: string | null } | null;
   avatar_media_id?: number | null;
 }
 
@@ -24,12 +25,20 @@ export interface ApiUser {
   status?: string;
   phone?: string | null;
   email_verified?: boolean;
+  phone_verified?: boolean;
+  phone_verified_at?: string | null;
   profile?: ApiProfile | null;
-  interests?: Array<{ name?: string }> | null;
+  interests?: Array<{ id?: number; name?: string }> | null;
+  last_seen_at?: string | null;
 }
 
 function avatarFallback(name: string): string {
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
+}
+
+function profileAvatarUrl(profile: ApiProfile | null | undefined, name: string): string {
+  const url = profile?.avatar?.url?.trim();
+  return url || avatarFallback(name);
 }
 
 export function mapApiUser(u: ApiUser): User {
@@ -44,8 +53,10 @@ export function mapApiUser(u: ApiUser): User {
     slug: u.profile?.slug ?? undefined,
     name,
     city: u.profile?.city?.name ?? "",
+    cityId: u.profile?.city_id ?? u.profile?.city?.id ?? undefined,
     interests,
-    avatar: u.profile?.avatar?.url ?? avatarFallback(name),
+    avatar: profileAvatarUrl(u.profile ?? null, name),
+    coverImage: u.profile?.cover?.url?.trim() || undefined,
     email: u.email ?? undefined,
     bio: u.profile?.bio ?? undefined,
     isAdmin: u.role === "admin",
@@ -58,7 +69,9 @@ export function mapApiUser(u: ApiUser): User {
         }
       : undefined,
     email_verified: u.email_verified,
+    phone_verified: u.phone_verified,
     role: (u.role as User["role"]) ?? undefined,
+    lastSeenAt: u.last_seen_at ?? undefined,
   };
 }
 

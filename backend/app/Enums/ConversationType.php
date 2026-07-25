@@ -7,4 +7,5 @@ enum ConversationType: string
     case Direct = 'direct';
     case Group = 'group';
     case Community = 'community';
+    case Room = 'room';
 }

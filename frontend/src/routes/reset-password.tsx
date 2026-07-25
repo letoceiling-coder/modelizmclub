@@ -46,24 +46,30 @@ export const Route = createFileRoute("/reset-password")({
 function ResetPasswordPage() {
   const nav = useNavigate();
   const { token: rawToken, email: initialEmail } = useSearch({ from: "/reset-password" });
-  const token = rawToken ? decodeURIComponent(rawToken) : "";
-  const [email, setEmail] = useState(initialEmail ? decodeURIComponent(initialEmail) : "");
-  const [password, setPassword] = useState("");
+  const token = rawToken ?? "";
+  const [email, setEmail] = useState(initialEmail ?? "");
+  const [passwordPreview, setPasswordPreview] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
+    const normalizedEmail = String(form.get("email") ?? email).trim().toLowerCase();
+
     if (password !== passwordConfirmation) {
       return toast.error("Пароли не совпадают");
+    }
+    if (!password || password.length < 8) {
+      return toast.error("Пароль должен быть не короче 8 символов");
     }
     if (!token) {
       return toast.error("Ссылка для сброса недействительна. Запросите новую");
     }
+
     setLoading(true);
     try {
-      const normalizedEmail = email.trim().toLowerCase();
       const { user } = await resetPassword({ email: normalizedEmail, token, password, passwordConfirmation });
       resetSessionCache();
       setCurrentUser(user);
@@ -96,25 +102,34 @@ function ResetPasswordPage() {
         </>
       }
     >
-      <form onSubmit={submit} className="space-y-[12px]">
+      <form onSubmit={submit} className="space-y-[12px]" autoComplete="on">
         <input
           required
+          name="email"
           type="email"
+          autoComplete="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          readOnly={Boolean(initialEmail)}
           style={inputStyle}
         />
         <PasswordFieldWithToggle
           required
           name="password"
+          autoComplete="new-password"
           placeholder="Новый пароль (от 8 символов)"
           minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => setPasswordPreview(e.target.value)}
         />
-        <PasswordStrengthMeter password={password} />
-        <PasswordFieldWithToggle required name="password_confirmation" placeholder="Повторите пароль" minLength={8} />
+        <PasswordStrengthMeter password={passwordPreview} />
+        <PasswordFieldWithToggle
+          required
+          name="password_confirmation"
+          autoComplete="new-password"
+          placeholder="Повторите пароль"
+          minLength={8}
+        />
         <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
           {loading ? "Сохраняем…" : "Сохранить пароль"}
         </button>

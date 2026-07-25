@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { CreatePostMenu, type ComposerSelection } from "@/components/feed/CreatePostMenu";
+import { CreatePostMenu, type ComposerDraft, type ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
@@ -18,6 +18,9 @@ import { fetchPostCategories, categoryIdByName } from "@/lib/api/categories";
 import { fetchBanners } from "@/lib/api/banners";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import { FeedRightRail } from "@/components/feed/FeedRightRail";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { FEED_FILTER_ACTIONS } from "@/lib/feed-guest-access/registry";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -53,7 +56,21 @@ function FeedPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerSelection, setComposerSelection] = useState<ComposerSelection | undefined>(undefined);
+  const [composerDraft, setComposerDraft] = useState<ComposerDraft>({ text: "", files: [] });
+  const [composerSession, setComposerSession] = useState(0);
+  const [draftClearToken, setDraftClearToken] = useState(0);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const { guardAction, isGuest, isAllowed, loading: guestAccessLoading } = useGuestAccess();
+
+  // Direct URL /feed?category=… must not bypass admin filter settings.
+  useEffect(() => {
+    if (!isGuest || guestAccessLoading) return;
+    if (categoryFromUrl && !isAllowed("feed.category.select")) {
+      setFilter("all");
+      setActiveCategory(null);
+      navigate({ to: "/feed", search: {}, replace: true });
+    }
+  }, [isGuest, guestAccessLoading, categoryFromUrl, isAllowed, navigate]);
 
   useEffect(() => {
     if (composer === "open") {
@@ -79,6 +96,11 @@ function FeedPage() {
 
   useEffect(() => {
     let alive = true;
+    if (isGuest && !guestAccessLoading && !isAllowed(FEED_FILTER_ACTIONS[filter])) {
+      setPosts([]);
+      setInitialLoading(false);
+      return;
+    }
     if (filter === "categories" && !activeCategory) {
       setPosts([]);
       setInitialLoading(false);
@@ -110,7 +132,7 @@ function FeedPage() {
     return () => {
       alive = false;
     };
-  }, [filter, activeCategory]);
+  }, [filter, activeCategory, isGuest, guestAccessLoading, isAllowed]);
 
   const filtered = useMemo(() => {
     if (filter === "saved") return posts.filter((p) => savedIds.has(p.id) || p.isSaved);
@@ -153,7 +175,17 @@ function FeedPage() {
   // never touched the network at all, so nothing was ever actually saved).
   const addPost = (post: Post) => {
     setComposerOpen(false);
+    setComposerDraft({ text: "", files: [] });
+    setDraftClearToken((t) => t + 1);
     setPosts((cur) => [{ ...post, isFollowing: true }, ...cur]);
+  };
+
+  const removePost = (id: string) => {
+    setPosts((cur) => cur.filter((p) => p.id !== id));
+  };
+
+  const patchPost = (id: string, patch: Partial<Post>) => {
+    setPosts((cur) => cur.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   };
 
   const slice = filtered.slice(0, visible);
@@ -161,9 +193,21 @@ function FeedPage() {
   return (
     <AppLayout footer rightColumn={<FeedRightRail />}>
       <div className="space-y-[16px]">
+        <VerificationBanner />
         <EventsHero />
 
-        <CreatePostMenu me={me} onSelect={(sel) => { setComposerSelection(sel); setComposerOpen(true); }} />
+        <CreatePostMenu
+          me={me}
+          draftClearToken={draftClearToken}
+          onCompose={(sel, draft) => {
+            guardAction("feed.compose.open", () => {
+              setComposerSelection(sel);
+              setComposerDraft(draft);
+              setComposerSession((s) => s + 1);
+              setComposerOpen(true);
+            });
+          }}
+        />
 
         <FindYourPeopleSheet />
 
@@ -176,7 +220,7 @@ function FeedPage() {
               return (
                 <button
                   key={c.id}
-                  onClick={() => setActiveCategory(active ? null : c.name)}
+                  onClick={() => guardAction("feed.category.select", () => setActiveCategory(active ? null : c.name))}
                   className="shrink-0 rounded-[var(--r-pill)] border px-[14px] py-[6px] text-[13px] transition-colors"
                   style={{
                     background: active ? "var(--accent)" : "var(--background-elevated)",
@@ -201,7 +245,7 @@ function FeedPage() {
                 icon={UserPlus}
                 title="Здесь пока пусто"
                 description="Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте."
-                action={{ label: "Найти авторов", onClick: () => setFilter("all") }}
+                action={{ label: "Найти авторов", onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
               />
             ) : filter === "categories" && !activeCategory ? (
               <EmptyState
@@ -214,14 +258,14 @@ function FeedPage() {
                 icon={Bookmark}
                 title="Нет сохранённых публикаций"
                 description="Нажмите на иконку закладки у понравившейся публикации."
-                action={{ label: "Вернуться в ленту", onClick: () => setFilter("all") }}
+                action={{ label: "Вернуться в ленту", onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
               />
             ) : (
               <EmptyState
                 icon={Newspaper}
                 title="Публикаций не найдено"
                 description="В этой категории пока никто ничего не опубликовал."
-                action={{ label: "Показать все", onClick: () => { setFilter("all"); setActiveCategory(null); } }}
+                action={{ label: "Показать все", onClick: () => guardAction("feed.empty.action", () => { setFilter("all"); setActiveCategory(null); }) }}
               />
             )
           ) : (
@@ -232,6 +276,8 @@ function FeedPage() {
                   post={post}
                   isSavedExternal={savedIds.has(post.id)}
                   onToggleSave={toggleSave}
+                  onDelete={removePost}
+                  onTogglePost={patchPost}
                 />,
               ];
               // Каждые 4 поста — нативный рекламный пост
@@ -265,7 +311,14 @@ function FeedPage() {
         </div>
       </div>
 
-      <CreatePostModal open={composerOpen} selection={composerSelection} onClose={() => setComposerOpen(false)} onCreate={addPost} />
+      <CreatePostModal
+        open={composerOpen}
+        selection={composerSelection}
+        initialDraft={composerDraft}
+        formKey={composerSession}
+        onClose={() => setComposerOpen(false)}
+        onCreate={addPost}
+      />
     </AppLayout>
   );
 }

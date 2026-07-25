@@ -19,10 +19,6 @@ import { onRealtimeNotification } from "@/lib/realtime/user";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({ meta: [{ title: "Уведомления — МоДелизМ" }] }),
-  beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
-  },
   component: NotificationsPage,
 });
 

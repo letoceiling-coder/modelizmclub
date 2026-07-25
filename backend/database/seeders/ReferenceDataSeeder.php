@@ -22,6 +22,7 @@ use App\Models\SystemSetting;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Support\RussianCitiesImporter;
 use App\Support\SwaggerFixtures;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
@@ -216,15 +217,7 @@ class ReferenceDataSeeder extends Seeder
 
     private function seedCities(): void
     {
-        /** @var list<array{name: string, region: string, slug: string, sort_order: int}> $cities */
-        $cities = require database_path('data/russian_cities.php');
-
-        foreach ($cities as $city) {
-            City::updateOrCreate(
-                ['slug' => $city['slug']],
-                array_merge($city, ['is_active' => true]),
-            );
-        }
+        RussianCitiesImporter::import(flushCache: false);
     }
 
     private function seedTags(): void

@@ -4,13 +4,15 @@ import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMedia, validatePostVideoFile } from "@/lib/api/media";
 import { createPost, publishPost } from "@/lib/api/feed";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
 import { createChannelPost, POST_KIND_LABEL, type PostKind } from "@/lib/channels";
 import type { Post } from "@/lib/mock";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
-import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
+import type { ComposerDraft, ComposerSelection } from "@/components/feed/CreatePostMenu";
 
 const MAX_PHOTOS = 10;
 
@@ -54,7 +56,7 @@ function ChipSelect({
   );
 }
 
-export function CreatePostForm({ onCreate, onClose, selection }: {
+export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   /** Fired once the post is actually created (and, outside demo mode,
    *  published) on the backend — the real Post the API returned, not a
    *  locally-fabricated stand-in. Only called for selection.source ===
@@ -62,6 +64,7 @@ export function CreatePostForm({ onCreate, onClose, selection }: {
   onCreate?: (p: Post) => void;
   onClose?: () => void;
   selection?: ComposerSelection;
+  initialDraft?: ComposerDraft;
 }) {
   // selection is only briefly undefined during CreatePostModal's closing
   // CSS transition (content stays mounted while fading out) — this
@@ -88,6 +91,24 @@ export function CreatePostForm({ onCreate, onClose, selection }: {
     }
   }, [categories, catId]);
 
+  useEffect(() => {
+    if (!initialDraft) return;
+    if (initialDraft.text) setText(initialDraft.text);
+    if (!initialDraft.files.length) return;
+
+    const images = initialDraft.files.filter((f) => f.type.startsWith("image/"));
+    const video = initialDraft.files.find((f) => f.type.startsWith("video/"));
+
+    if (sel.kind === "photo" && images.length) {
+      const urls = images.map((f) => URL.createObjectURL(f));
+      setPhotos(urls);
+      setPhotoFiles(images);
+    } else if (sel.kind === "video" && video) {
+      setVideoFile(video);
+      setVideoUrl(URL.createObjectURL(video));
+    }
+  }, [initialDraft, sel.kind]);
+
   const cat = useMemo(() => categories.find((c) => c.id === catId), [categories, catId]);
 
   const addPhotos = (picked: File[]) => {
@@ -109,7 +130,16 @@ export function CreatePostForm({ onCreate, onClose, selection }: {
   const publish = async () => {
     if (sel.source === "profile" && !title.trim()) { toast.error("Введите заголовок"); return; }
     if (!text.trim()) { toast.error("Введите текст публикации"); return; }
-    if (sel.source === "profile" && !cat) { toast.error("Выберите категорию"); return; }
+    if (sel.source === "profile" && !cat) { toast.error("Выберите направление"); return; }
+    if (sel.kind === "video" && !videoFile) { toast.error("Добавьте видео"); return; }
+    if (sel.kind === "video" && videoFile) {
+      const videoErr = validatePostVideoFile(videoFile);
+      if (videoErr) { toast.error(videoErr); return; }
+    }
+    if (sel.source === "profile" && !isFullyVerified(me)) {
+      toast.error(verificationMessage(me));
+      return;
+    }
     setPublishing(true);
     try {
       const mediaIds: string[] = [];
@@ -150,8 +180,8 @@ export function CreatePostForm({ onCreate, onClose, selection }: {
         // GET /feed, exactly like today's channel Composer.
       }
       onClose?.();
-    } catch {
-      toast.error("Не удалось опубликовать. Попробуйте позже");
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, "Не удалось опубликовать. Попробуйте позже."));
     } finally {
       setPublishing(false);
     }
@@ -266,14 +296,15 @@ export function CreatePostForm({ onCreate, onClose, selection }: {
             onRemove={removePhoto}
             onMakeMain={() => {}}
             onReorder={reorderPhotos}
-            autoOpen
           />
         ) : (
           <VideoUploadField
             fileUrl={videoUrl}
-            accept="video/*"
-            label="Добавить видео"
+            accept="video/mp4,video/webm,.mp4,.webm"
+            label="Добавить видео (MP4 или WebM, до 100 МБ)"
             onPick={(file) => {
+              const err = validatePostVideoFile(file);
+              if (err) { toast.error(err); return; }
               setVideoFile(file);
               setVideoUrl(URL.createObjectURL(file));
             }}
@@ -281,7 +312,6 @@ export function CreatePostForm({ onCreate, onClose, selection }: {
               setVideoFile(null);
               setVideoUrl(null);
             }}
-            autoOpen
           />
         )}
       </div>

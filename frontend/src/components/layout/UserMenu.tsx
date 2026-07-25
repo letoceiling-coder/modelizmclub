@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { User, ClipboardList, Crown, LogOut, Sun, Moon, ShieldCheck } from "lucide-react";
+import { User, ClipboardList, Crown, LogOut, LogIn, Sun, Moon, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useStore, selectors } from "@/lib/store";
-import { signOut } from "@/lib/auth/session";
+import { signOut, isAuthenticated } from "@/lib/auth/session";
+import { isDemoMode } from "@/lib/demo-mode";
 import { ROUTES } from "@/lib/routes";
 import { useTheme } from "@/components/ThemeProvider";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
@@ -28,6 +29,21 @@ export function UserMenu() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
   const { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter } = useHoverDropdown();
+
+  const isGuest = me.id === "guest" || (!isAuthenticated() && !isDemoMode());
+
+  if (isGuest) {
+    return (
+      <Link
+        to="/login"
+        aria-label={t("auth.login")}
+        className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+        style={{ color: "var(--foreground-70)" }}
+      >
+        <LogIn size={20} />
+      </Link>
+    );
+  }
 
   const hasAvatar = Boolean(me.avatar && me.avatar.trim());
 

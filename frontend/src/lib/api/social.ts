@@ -17,6 +17,7 @@ export interface ApiCompactUser {
   display_name?: string | null;
   slug?: string | null;
   avatar?: { url?: string | null } | null;
+  city?: { id?: number; name?: string | null; slug?: string | null } | null;
 }
 
 export interface ApiFriendRequest {
@@ -30,11 +31,13 @@ export interface ApiFriendRequest {
 
 interface ApiPublicProfile {
   id: number;
+  uuid?: string | null;
   display_name?: string | null;
   slug?: string | null;
   bio?: string | null;
   city?: { id?: number; name?: string | null; slug?: string | null } | null;
   avatar?: { uuid?: string; url?: string | null } | null;
+  cover?: { uuid?: string; url?: string | null } | null;
   stats?: {
     publications_count?: number;
     followers_count?: number;
@@ -43,6 +46,8 @@ interface ApiPublicProfile {
   };
   member_since?: string | null;
   is_following?: boolean;
+  is_friend?: boolean;
+  friend_request_status?: "outgoing" | "incoming" | null;
 }
 
 export interface PublicProfile {
@@ -57,6 +62,8 @@ export interface PublicProfile {
   };
   memberSince?: string;
   isFollowing: boolean;
+  isFriend: boolean;
+  friendRequestStatus?: "outgoing" | "incoming" | null;
 }
 
 interface Paginated<T> {
@@ -72,7 +79,12 @@ export function mapCompactUser(u: ApiCompactUser): User {
     id: u.id,
     uuid: u.uuid,
     name: u.display_name ?? undefined,
-    profile: { display_name: u.display_name, slug: u.slug, avatar: u.avatar ?? null },
+    profile: {
+      display_name: u.display_name,
+      slug: u.slug,
+      avatar: u.avatar ?? null,
+      city: u.city ?? null,
+    },
   } as ApiUser);
   registerUser(user);
   return user;
@@ -212,9 +224,45 @@ export async function updateOwnProfile(input: {
   website_url?: string | null;
   avatar_media_id?: string | null;
   cover_media_id?: string | null;
-}): Promise<void> {
-  if (isDemoMode()) return;
-  await api("/users/me", { method: "PATCH", json: input });
+}): Promise<ApiOwnProfile> {
+  if (isDemoMode()) return {};
+  const res = await api<{ data: ApiOwnProfile }>("/users/me", { method: "PATCH", json: input });
+  return res.data ?? {};
+}
+
+export interface ApiOwnProfile {
+  display_name?: string | null;
+  slug?: string | null;
+  bio?: string | null;
+  city_id?: number | null;
+  city?: { id?: number; name?: string | null; slug?: string | null } | null;
+  avatar?: { uuid?: string; url?: string | null } | null;
+  cover?: { uuid?: string; url?: string | null } | null;
+}
+
+export function applyOwnProfilePatch(user: User, profile: ApiOwnProfile): User {
+  const name = profile.display_name ?? user.name;
+  const avatarUrl = profile.avatar?.url?.trim();
+  const coverUrl = profile.cover?.url?.trim();
+  return {
+    ...user,
+    name,
+    slug: profile.slug ?? user.slug,
+    bio: profile.bio ?? user.bio,
+    city: profile.city?.name ?? user.city,
+    cityId: profile.city_id ?? profile.city?.id ?? user.cityId,
+    avatar: avatarUrl || user.avatar,
+    coverImage: coverUrl || user.coverImage,
+  };
+}
+
+export async function syncOwnInterests(categoryIds: number[]): Promise<string> {
+  if (isDemoMode()) return "";
+  const res = await api<{ data: Array<{ id: number; name: string }> }>("/users/me/interests", {
+    method: "PUT",
+    json: { category_ids: categoryIds },
+  });
+  return (res.data ?? []).map((c) => c.name).join(", ");
 }
 
 export async function blockUser(userId: number, reason?: string): Promise<void> {
@@ -241,15 +289,23 @@ export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
   const p = res.data;
   const user = mapCompactUser({
     id: p.id,
-    uuid: p.slug ?? String(p.id),
+    uuid: p.uuid ?? String(p.id),
     display_name: p.display_name,
     slug: p.slug,
     avatar: p.avatar ?? null,
-  });
+  } as ApiCompactUser);
+  const cityName = p.city?.name ?? "";
+  const bio = p.bio ?? "";
   return {
-    user,
-    bio: p.bio ?? "",
-    city: p.city?.name ?? "",
+    user: {
+      ...user,
+      coverImage: p.cover?.url?.trim() || user.coverImage,
+      city: cityName,
+      cityId: p.city?.id ?? user.cityId,
+      bio,
+    },
+    bio,
+    city: cityName,
     stats: {
       publications: p.stats?.publications_count ?? 0,
       followers: p.stats?.followers_count ?? 0,
@@ -258,5 +314,7 @@ export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
     },
     memberSince: p.member_since ?? undefined,
     isFollowing: Boolean(p.is_following),
+    isFriend: Boolean(p.is_friend),
+    friendRequestStatus: p.friend_request_status ?? null,
   };
 }

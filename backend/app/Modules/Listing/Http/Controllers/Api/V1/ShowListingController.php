@@ -5,6 +5,7 @@ namespace Modules\Listing\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Modules\Listing\Http\Resources\ListingResource;
 use Modules\Listing\Services\ListingService;
 
@@ -12,7 +13,7 @@ class ShowListingController extends Controller
 {
     public function __invoke(string $uuid, Request $request, ListingService $listings): JsonResponse
     {
-        $viewer = $request->user();
+        $viewer = Auth::guard('sanctum')->user();
         $listing = $listings->show($uuid, $viewer);
         $listings->recordView($listing, $viewer);
 

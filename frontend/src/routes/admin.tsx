@@ -1,29 +1,29 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, selectors, getState } from "@/lib/store";
-import { useFeatureFlag, setFeatureFlag } from "@/lib/config/featureFlags";
+import { useFeatureFlag, setFeatureFlag, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
-import type { Tariff, PromoCode, Banner, Video } from "@/lib/mock";
+import type { Tariff, PromoCode, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
-  fetchDashboard, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser,
+  fetchDashboard, fetchModeratorDashboardStats, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser,
   fetchModerationQueue, approveModeration, rejectModeration,
-  fetchAdminPlans, updateAdminPlan,
+  fetchAdminPlans, fetchAdminPlansDetailed, updateAdminPlan,
   fetchAdminPromocodes, createPromocode, deletePromocode,
-  fetchAdminBanners, updateAdminBanner, deleteAdminBanner,
   fetchAdminCategories, createAdminCategory, updateAdminCategory, deleteAdminCategory,
   fetchAdminSettings, updateAdminSettings,
   fetchAdminPosts, updateAdminPostStatus, deleteAdminPost,
@@ -37,16 +37,16 @@ import {
   type AdminPostRow, type AdminListingRow,
   type FeedbackRow, type FeedbackStatus,
   type AdminReportRow, type ReportStatus,
-  type AdminDeliveryStats, type AdminShipmentRow,
+  type AdminPlanRow,
 } from "@/lib/api/admin";
 import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
 import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import {
-  fetchIconAssets, uploadIconAsset, deleteIconAsset,
-  fetchIconMedia, registerIconFromMedia, assetToOverride,
+  fetchIconAssets, deleteIconAsset,
+  registerIconFromMedia, assetToOverride,
   publishIconOverrides, fetchLastPublishedIconOverrides,
-  type IconAsset, type IconOverrideMap, type IconMediaItem,
+  type IconAsset, type IconOverrideMap,
 } from "@/lib/api/icons";
 import {
   getMergedMap, setDraftOverride, resetDraft, applyPublishedMap,
@@ -56,20 +56,29 @@ import {
 } from "@/lib/icon-slots";
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminCard";
+import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
+import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
+import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
+import { MediaManagerCard, MediaPickerDialog } from "@/components/admin/MediaManagerCard";
+import { uploadAdminMedia } from "@/lib/api/admin-media";
+
+type Section =
+  | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
+  | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "media" | "feedback" | "settings"
+  | "auditLog" | "applications";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
+  validateSearch: (search: Record<string, unknown>): { section?: Section } => ({
+    section: typeof search.section === "string" ? (search.section as Section) : undefined,
+  }),
   beforeLoad: async ({ location }) => {
     const { requireAdmin } = await import("@/lib/auth/requireAdmin");
     await requireAdmin(location);
   },
   component: AdminPage,
 });
-
-type Section =
-  | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
-  | "monetization" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "feedback" | "settings"
-  | "auditLog" | "applications";
 
 type AdminRole = "admin" | "moderator";
 
@@ -82,22 +91,29 @@ const navItems: { id: Section; label: string; icon: typeof Users; roles: AdminRo
   { id: "moderation", label: "Модерация", icon: ShieldCheck, roles: ["admin", "moderator"] },
   { id: "applications", label: "Заявки", icon: Inbox, roles: ["admin"] },
   { id: "monetization", label: "Монетизация", icon: DollarSign, roles: ["admin"] },
+  { id: "feedBanners", label: "Рекламный блок", icon: Megaphone, roles: ["admin"] },
+  { id: "feedGuestAccess", label: "Права гостей /feed", icon: ShieldCheck, roles: ["admin"] },
+  { id: "landingBlocks", label: "Главная страница", icon: Home, roles: ["admin"] },
   { id: "categories", label: "Категории", icon: FolderTree, roles: ["admin"] },
   { id: "reviews", label: "Обзоры", icon: Clapperboard, roles: ["admin"] },
   { id: "notifications", label: "Уведомления", icon: Bell, roles: ["admin"] },
   { id: "analytics", label: "Аналитика", icon: BarChart3, roles: ["admin"] },
   { id: "feedback", label: "Обращения", icon: Inbox, roles: ["admin", "moderator"] },
   { id: "design", label: "Design System", icon: Palette, roles: ["admin"] },
+  { id: "media", label: "Медиа", icon: Image, roles: ["admin"] },
   { id: "settings", label: "Настройки", icon: Settings, roles: ["admin"] },
   { id: "auditLog", label: "История изменений", icon: Search, roles: ["admin"] },
 ];
 
 function AdminPage() {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isNestedAdminRoute = pathname.startsWith("/admin/") && pathname !== "/admin";
+  const { section: sectionFromUrl } = Route.useSearch();
   const me = useStore(selectors.currentUser);
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
-  const [section, setSection] = useState<Section>("dashboard");
+  const [section, setSection] = useState<Section>(sectionFromUrl ?? "dashboard");
 
   // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
   // F5 it resolves during SSR (where there is no token) and does not re-run on
@@ -138,11 +154,19 @@ function AdminPage() {
   const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
 
   useEffect(() => {
+    if (sectionFromUrl) setSection(sectionFromUrl);
+  }, [sectionFromUrl]);
+
+  useEffect(() => {
     if (adminRole === null) return;
     if (!visibleNavItems.some((n) => n.id === section)) {
       setSection(visibleNavItems[0]?.id ?? "dashboard");
     }
   }, [adminRole, section, visibleNavItems]);
+
+  if (isNestedAdminRoute) {
+    return <Outlet />;
+  }
 
   if (access === "checking") {
     return (
@@ -377,12 +401,16 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "moderation") return <ModerationSection />;
   if (section === "applications") return <ApplicationsSection />;
   if (section === "monetization") return <MonetizationSection />;
+  if (section === "feedBanners") return <FeedBannersSection />;
+  if (section === "feedGuestAccess") return <FeedGuestAccessSection />;
+  if (section === "landingBlocks") return <LandingBlocksSection />;
   if (section === "categories") return <CategoriesSection />;
   if (section === "reviews") return <ReviewsSection />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
   if (section === "feedback") return <FeedbackSection />;
   if (section === "design") return <DesignSystemSection />;
+  if (section === "media") return <MediaSection />;
   if (section === "auditLog") return <AuditLogSection />;
   return <SettingsSection />;
 }
@@ -395,6 +423,14 @@ import {
   ACCENT_PRESET_LIST, ACCENT_PRESETS, DEFAULT_ACCENT_ID, isAccentPresetId,
   type Mode, type AccentSwatch, type AccentPreset, type AccentPresetId,
 } from "@/lib/theme-manager";
+
+function MediaSection() {
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <MediaManagerCard />
+    </div>
+  );
+}
 
 function DesignSystemSection() {
   const initial = loadTheme();
@@ -526,13 +562,11 @@ interface SlotOption { key: string; label: string; group: string; }
 function IconsPanel() {
   const categories = usePostCategories();
   const [assets, setAssets] = useState<IconAsset[]>([]);
-  const [mediaItems, setMediaItems] = useState<IconMediaItem[]>([]);
-  const [showMedia, setShowMedia] = useState(false);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [slotKey, setSlotKey] = useState<string>(ICON_SLOTS[0]?.key ?? "");
   const [assetId, setAssetId] = useState<string>("");           // "" = по умолчанию (lucide)
   const [token, setToken] = useState<TokenKey>("foreground");
   const [uploading, setUploading] = useState(false);
-  const [registeringMedia, setRegisteringMedia] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [canRollback, setCanRollback] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -573,10 +607,11 @@ function IconsPanel() {
   async function onUpload(file: File) {
     setUploading(true);
     try {
-      const asset = await uploadIconAsset(file);
+      const media = await uploadAdminMedia(file, "icon");
+      const asset = await registerIconFromMedia(media.uuid);
       setAssets((prev) => [asset, ...prev]);
       setAssetId(asset.id);
-      toast.success("Иконка загружена");
+      toast.success("Иконка загружена в медиаменеджер и добавлена в библиотеку");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось загрузить иконку");
     } finally {
@@ -585,29 +620,17 @@ function IconsPanel() {
     }
   }
 
-  async function loadMediaLibrary() {
-    try {
-      const items = await fetchIconMedia({ unregistered: true });
-      setMediaItems(items);
-      setShowMedia(true);
-    } catch {
-      toast.error("Не удалось загрузить медиа");
+  async function onPickFromMedia(item: { uuid: string }) {
+    const existing = assets.find((a) => a.mediaUuid === item.uuid);
+    if (existing) {
+      setAssetId(existing.id);
+      toast.success("Иконка уже в библиотеке");
+      return;
     }
-  }
-
-  async function onRegisterFromMedia(item: IconMediaItem) {
-    setRegisteringMedia(item.uuid);
-    try {
-      const asset = await registerIconFromMedia(item.uuid);
-      setAssets((prev) => [asset, ...prev]);
-      setAssetId(asset.id);
-      setMediaItems((prev) => prev.filter((m) => m.uuid !== item.uuid));
-      toast.success("Иконка добавлена из медиа");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось добавить из медиа");
-    } finally {
-      setRegisteringMedia(null);
-    }
+    const asset = await registerIconFromMedia(item.uuid);
+    setAssets((prev) => [asset, ...prev]);
+    setAssetId(asset.id);
+    toast.success("Иконка добавлена из медиаменеджера");
   }
 
   function renderAssetThumb(a: IconAsset) {
@@ -646,18 +669,30 @@ function IconsPanel() {
     toast("Применено в превью — опубликуйте, чтобы увидели все");
   }
 
+  function buildPublishMap(): IconOverrideMap {
+    const map = getMergedMap();
+    if (!slotKey) return map;
+    if (assetId === "") {
+      delete map[slotKey];
+      return map;
+    }
+    const asset = assets.find((a) => a.id === assetId);
+    if (asset) map[slotKey] = assetToOverride(asset, token);
+    return map;
+  }
+
   async function onPublish() {
     setPublishing(true);
     try {
-      const map: IconOverrideMap = getMergedMap();
+      const map: IconOverrideMap = buildPublishMap();
       await publishIconOverrides(map);
       applyPublishedMap(map); // published := map, draft очищается
       setCanRollback(true);
       toast.success(isDemoMode()
         ? "Опубликовано (demo — только в этом браузере)"
         : "Иконки опубликованы для всех");
-    } catch {
-      toast.error("Не удалось опубликовать");
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, "Не удалось опубликовать"));
     } finally {
       setPublishing(false);
     }
@@ -670,8 +705,8 @@ function IconsPanel() {
       await publishIconOverrides(prev);
       applyPublishedMap(prev);
       toast.success("Откат выполнен");
-    } catch {
-      toast.error("Не удалось откатить");
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, "Не удалось откатить"));
     }
   }
 
@@ -681,7 +716,7 @@ function IconsPanel() {
         Иконки
       </h4>
       <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 16 }}>
-        Загрузите SVG (монохромный) или PNG, либо добавьте файл из медиаменеджера (назначение icon).
+        Загрузите SVG (монохромный) или PNG, либо выберите файл из раздела «Медиа» или кнопки «Из медиа».
         Назначьте на место в интерфейсе и выберите цвет из палитры токенов (для PNG цвет не перекрашивается).
         Превью применяется только у вас; «Опубликовать» — для всех пользователей.
       </p>
@@ -713,7 +748,7 @@ function IconsPanel() {
             {uploading ? "…" : "+ SVG/PNG"}
           </button>
           {!isDemoMode() && (
-            <button type="button" onClick={() => void loadMediaLibrary()}
+            <button type="button" onClick={() => setMediaPickerOpen(true)}
               style={{ aspectRatio: "1", border: "1px dashed var(--border)", borderRadius: 10,
                 color: "var(--foreground-50)", fontSize: 11, padding: 4 }}>
               Из медиа
@@ -722,35 +757,13 @@ function IconsPanel() {
         </div>
         <input ref={fileRef} type="file" accept="image/svg+xml,.svg,image/png,.png" hidden
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onUpload(f); }} />
-        {showMedia && (
-          <div style={{ marginTop: 12, padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--background-surface)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)" }}>Медиаменеджер (icon)</span>
-              <button type="button" onClick={() => setShowMedia(false)} style={{ fontSize: 12, color: "var(--foreground-50)" }}>Скрыть</button>
-            </div>
-            {mediaItems.length === 0 ? (
-              <p style={{ fontSize: 12, color: "var(--foreground-50)", margin: 0 }}>
-                Нет незарегистрированных файлов. Загрузите PNG/SVG в медиаменеджер с назначением icon.
-              </p>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 8 }}>
-                {mediaItems.map((m) => (
-                  <div key={m.uuid} style={{ textAlign: "center" }}>
-                    {m.mimeType === "image/png"
-                      ? <img src={m.url} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />
-                      : <img src={m.url} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />}
-                    <button type="button" disabled={registeringMedia === m.uuid}
-                      onClick={() => void onRegisterFromMedia(m)}
-                      style={{ display: "block", width: "100%", marginTop: 4, fontSize: 11, padding: "4px 0",
-                        borderRadius: 6, border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
-                      {registeringMedia === m.uuid ? "…" : "Добавить"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <MediaPickerDialog
+          open={mediaPickerOpen}
+          onClose={() => setMediaPickerOpen(false)}
+          purpose="icon"
+          title="Выбор иконки из медиаменеджера"
+          onSelect={onPickFromMedia}
+        />
       </div>
 
       {/* Назначение */}
@@ -1045,10 +1058,28 @@ function Dashboard({ role }: { role: AdminRole }) {
 
   useEffect(() => {
     let active = true;
-    fetchDashboard().then((d) => active && setData(d)).catch(() => {});
-    fetchAuditLogs().then((a) => active && setAudit(a)).catch(() => {});
+    if (role === "admin") {
+      fetchDashboard().then((d) => active && setData(d)).catch(() => {});
+      fetchAuditLogs().then((a) => active && setAudit(a)).catch(() => {});
+    } else {
+      fetchModeratorDashboardStats()
+        .then((stats) => {
+          if (!active) return;
+          setData({
+            usersTotal: 0,
+            postsTotal: 0,
+            communitiesTotal: 0,
+            moderationPending: stats.moderationPending,
+            reportsPending: stats.reportsPending,
+            plansActive: 0,
+            promocodesActive: 0,
+            bannersActive: 0,
+          });
+        })
+        .catch(() => {});
+    }
     return () => { active = false; };
-  }, []);
+  }, [role]);
 
   const allStats = [
     { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: "Всего пользователей", icon: Users, ch: "", up: true, adminOnly: true },
@@ -1380,6 +1411,7 @@ function ContentSection() {
   const [status, setStatus] = useState("all");
   const [rows, setRows] = useState<AdminPostRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState<AdminPostRow | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -1448,9 +1480,9 @@ function ContentSection() {
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <div className="flex gap-[6px]">
-                        <IconBtn success onClick={() => changeStatus(p.uuid, "published")}><Check size={14} /></IconBtn>
-                        <IconBtn onClick={() => changeStatus(p.uuid, "hidden")}><Eye size={14} /></IconBtn>
-                        <IconBtn danger onClick={() => remove(p.uuid)}><Trash2 size={14} /></IconBtn>
+                        <IconBtn success onClick={() => changeStatus(p.uuid, "published")} title="Одобрить"><Check size={14} /></IconBtn>
+                        <IconBtn onClick={() => setPreview(p)} title="Просмотр"><Eye size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => remove(p.uuid)} title="Удалить"><Trash2 size={14} /></IconBtn>
                       </div>
                     </td>
                   </tr>
@@ -1460,12 +1492,90 @@ function ContentSection() {
           </table>
         </div>
       </div>
+      {preview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Просмотр публикации"
+          onClick={() => setPreview(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              ...card,
+              width: "min(720px, 100%)",
+              maxHeight: "90vh",
+              overflow: "auto",
+              padding: "20px",
+            }}
+          >
+            <div className="flex items-start justify-between gap-[12px]">
+              <div>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 600, color: "var(--foreground)" }}>
+                  {preview.title}
+                </h3>
+                <p style={{ marginTop: "6px", fontSize: "13px", color: "var(--foreground-50)" }}>
+                  {preview.author} · {preview.category}
+                </p>
+              </div>
+              <button type="button" onClick={() => setPreview(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>
+                Закрыть
+              </button>
+            </div>
+            {preview.body && (
+              <p style={{ marginTop: "16px", whiteSpace: "pre-wrap", fontSize: "14px", lineHeight: 1.6, color: "var(--foreground-90)" }}>
+                {preview.body}
+              </p>
+            )}
+            {preview.video ? (
+              <video
+                src={preview.video}
+                controls
+                preload="metadata"
+                playsInline
+                style={{ marginTop: "16px", width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }}
+              />
+            ) : preview.images[0] ? (
+              <img
+                src={preview.images[0]}
+                alt={preview.title}
+                style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }}
+              />
+            ) : (
+              <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>Медиа не прикреплено</p>
+            )}
+            <div className="flex flex-wrap gap-[8px]" style={{ marginTop: "20px" }}>
+              <button type="button" style={primaryBtn} onClick={() => { void changeStatus(preview.uuid, "published"); setPreview(null); }}>
+                Одобрить и опубликовать
+              </button>
+              <button
+                type="button"
+                style={{ ...inputStyle, height: "40px", padding: "0 16px", fontWeight: 600 }}
+                onClick={() => { void changeStatus(preview.uuid, "rejected"); setPreview(null); }}
+              >
+                Отклонить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ============ ADS ============ */
 function AdsSection() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [rows, setRows] = useState<AdminListingRow[]>([]);
@@ -1539,9 +1649,14 @@ function AdsSection() {
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <div className="flex gap-[6px]">
-                        <IconBtn success onClick={() => changeStatus(a.uuid, "published")}><Check size={14} /></IconBtn>
-                        <IconBtn onClick={() => changeStatus(a.uuid, "unpublished")}><Eye size={14} /></IconBtn>
-                        <IconBtn danger onClick={() => remove(a.uuid)}><Trash2 size={14} /></IconBtn>
+                        <IconBtn success onClick={() => changeStatus(a.uuid, "published")} title="Опубликовать"><Check size={14} /></IconBtn>
+                        <IconBtn
+                          onClick={() => navigate({ to: "/admin/listings/$uuid", params: { uuid: a.uuid } })}
+                          title="Просмотр и редактирование"
+                        >
+                          <Eye size={14} />
+                        </IconBtn>
+                        <IconBtn danger onClick={() => remove(a.uuid)} title="Удалить"><Trash2 size={14} /></IconBtn>
                       </div>
                     </td>
                   </tr>
@@ -1804,6 +1919,7 @@ function ModerationSection() {
   }, []);
 
   const postQueue = queue.filter((q) => q.type === "posts");
+  const channelPostQueue = queue.filter((q) => q.type === "channel_posts");
   const communityQueue = queue.filter((q) => q.type === "communities");
 
   const decide = async (item: ModerationItem, ok: boolean) => {
@@ -1840,6 +1956,26 @@ function ModerationSection() {
               ))}
             </AnimatePresence>
             {postQueue.length === 0 && <EmptyQueue label="Нет постов на модерации" />}
+          </div>
+        </div>
+        <div>
+          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
+            Публикации каналов на модерации ({channelPostQueue.length})
+          </h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <AnimatePresence>
+              {channelPostQueue.map((p) => (
+                <ModerationCard
+                  key={p.id}
+                  title={p.title}
+                  author={p.author}
+                  category={p.category}
+                  onApprove={() => decide(p, true)}
+                  onReject={() => decide(p, false)}
+                />
+              ))}
+            </AnimatePresence>
+            {channelPostQueue.length === 0 && <EmptyQueue label="Нет постов каналов на модерации" />}
           </div>
         </div>
         <div>
@@ -2196,28 +2332,36 @@ function feedbackBtn(bg: string, color: string): React.CSSProperties {
 
 /* ============ MONETIZATION ============ */
 function MonetizationSection() {
-  const [editedTariffs, setEditedTariffs] = useState<Tariff[]>([]);
+  const [plans, setPlans] = useState<AdminPlanRow[]>([]);
   const [promos, setPromos] = useState<PromoCode[]>([]);
-  const [bannerList, setBannerList] = useState<Banner[]>([]);
+  const [defaultPlacementRub, setDefaultPlacementRub] = useState(30);
+  const [savingDefault, setSavingDefault] = useState(false);
 
   const reloadPromos = () => fetchAdminPromocodes().then(setPromos).catch(() => {});
 
   useEffect(() => {
     let active = true;
-    fetchAdminPlans().then((p) => active && setEditedTariffs(p)).catch(() => {});
+    fetchAdminPlansDetailed().then((p) => active && setPlans(p)).catch(() => {});
     fetchAdminPromocodes().then((p) => active && setPromos(p)).catch(() => {});
-    fetchAdminBanners().then((b) => active && setBannerList(b)).catch(() => {});
+    fetchAdminSettings().then((s) => {
+      if (!active) return;
+      const row = s.find((x) => x.key === "listing.placement.default_price_cents");
+      const cents = (row?.value as { cents?: number } | undefined)?.cents;
+      if (typeof cents === "number") setDefaultPlacementRub(Math.round(cents / 100));
+    }).catch(() => {});
     return () => { active = false; };
   }, []);
 
-  const saveTariffs = async () => {
+  const savePlans = async () => {
     try {
       await Promise.all(
-        editedTariffs.map((t) =>
-          updateAdminPlan(t.id, {
+        plans.map((t) =>
+          updateAdminPlan(t.slug, {
             name: t.name,
-            price_cents: Math.round(t.price * 100),
-            period_days: parseInt(t.period, 10) || undefined,
+            price_cents: t.priceCents,
+            period_days: t.periodDays,
+            free_listings_per_month: t.freeListingsPerMonth,
+            listing_discount_percent: t.listingDiscountPercent,
           }),
         ),
       );
@@ -2227,194 +2371,104 @@ function MonetizationSection() {
     }
   };
 
-  const updateBanner = (id: string, patch: Partial<Banner>) => {
-    setBannerList((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-  };
-  const removeBanner = async (id: string) => {
+  const saveDefaultPlacement = async () => {
+    setSavingDefault(true);
     try {
-      await deleteAdminBanner(id);
-      setBannerList((prev) => prev.filter((b) => b.id !== id));
-      toast.success("Баннер удалён");
+      await updateAdminSettings([{
+        key: "listing.placement.default_price_cents",
+        value: { cents: Math.max(0, Math.round(defaultPlacementRub * 100)) },
+        group: "billing",
+      }]);
+      toast.success("Базовая цена размещения сохранена");
     } catch {
-      toast.error("Не удалось удалить баннер");
+      toast.error("Не удалось сохранить цену");
+    } finally {
+      setSavingDefault(false);
     }
   };
-  const saveBanners = async () => {
-    try {
-      await Promise.all(
-        bannerList.map((b) =>
-          updateAdminBanner(b.id, {
-            title: b.title,
-            text: b.text,
-            starts_at: b.scheduleFrom || null,
-            ends_at: b.scheduleTo || null,
-            is_active: b.active ?? true,
-          }),
-        ),
-      );
-      toast.success("Настройки баннеров сохранены");
-    } catch {
-      toast.error("Не удалось сохранить баннеры");
-    }
-  };
-  const sortedBanners = [...bannerList].sort((a, b) => {
-    if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
-    return (b.priority ?? 0) - (a.priority ?? 0);
-  });
-
 
   return (
     <div>
       <H>Монетизация</H>
 
+      <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Размещение объявлений</h4>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>
+          Базовая цена, если в категории не задана своя. Цены по категориям — в разделе «Категории» → «Объявления».
+        </p>
+        <div className="flex flex-wrap items-end gap-[10px]" style={{ marginTop: "12px" }}>
+          <label style={{ display: "grid", gap: "4px" }}>
+            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>Базовая цена, ₽</span>
+            <input type="number" min={0} value={defaultPlacementRub} onChange={(e) => setDefaultPlacementRub(+e.target.value)} style={{ ...inputStyle, width: 140 }} />
+          </label>
+          <button onClick={saveDefaultPlacement} disabled={savingDefault} style={primaryBtn}>{savingDefault ? "…" : "Сохранить"}</button>
+        </div>
+      </div>
+
       {/* Tariffs */}
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Управление тарифами</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "12px", marginTop: "12px" }}>
-          {editedTariffs.map((t, i) => (
-            <div key={t.id} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4" style={{ gap: "12px", marginTop: "12px" }}>
+          {plans.map((t, i) => (
+            <div key={t.slug} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px" }}>
               <input
                 value={t.name}
-                onChange={(e) => setEditedTariffs((p) => p.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                 className="w-full outline-none"
                 style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)", background: "transparent", border: "none", padding: 0 }}
               />
               <input
                 type="number"
-                value={t.price}
-                onChange={(e) => setEditedTariffs((p) => p.map((x, j) => j === i ? { ...x, price: +e.target.value } : x))}
+                value={Math.round(t.priceCents / 100)}
+                onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, priceCents: Math.max(0, +e.target.value) * 100 } : x))}
                 className="w-full outline-none"
                 style={{ fontSize: "20px", fontWeight: 700, color: "var(--accent)", background: "transparent", border: "none", padding: "4px 0", fontFamily: "var(--font-display)" }}
               />
-              <input
-                value={t.period}
-                onChange={(e) => setEditedTariffs((p) => p.map((x, j) => j === i ? { ...x, period: e.target.value } : x))}
-                className="w-full outline-none"
-                style={{ fontSize: "12px", color: "var(--foreground-50)", background: "transparent", border: "none", padding: 0 }}
-              />
+              <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
+                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>Бесплатных объявлений / мес.</span>
+                <input type="number" min={0} value={t.freeListingsPerMonth} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x))} style={inputStyle} />
+              </label>
+              <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
+                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>Скидка на размещение, %</span>
+                <input type="number" min={0} max={100} value={t.listingDiscountPercent} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, listingDiscountPercent: +e.target.value } : x))} style={inputStyle} />
+              </label>
             </div>
           ))}
         </div>
-        <button onClick={saveTariffs} style={{ ...primaryBtn, marginTop: "12px" }}>Сохранить тарифы</button>
+        <button onClick={savePlans} style={{ ...primaryBtn, marginTop: "12px" }}>Сохранить тарифы</button>
       </div>
 
       {/* Promocodes */}
       <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
+    </div>
+  );
+}
 
+function FeedBannersSection() {
+  return (
+    <div>
+      <H>Рекламный блок</H>
+      <BannersAdminCard cardStyle={card} />
+    </div>
+  );
+}
 
-      {/* Banners */}
-      <div style={{ ...card, padding: "20px" }}>
-        <div className="flex items-center justify-between flex-wrap gap-[8px]">
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Рекламные баннеры</h4>
-          <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>Приоритет, закрепление и расписание показа</span>
-        </div>
-        <div
-          style={{
-            border: "2px dashed var(--border)",
-            borderRadius: "var(--r-card)",
-            height: "100px",
-            marginTop: "12px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            gap: "6px",
-          }}
-        >
-          <Upload size={26} style={{ color: "var(--foreground-30)" }} />
-          <span style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузить новый баннер</span>
-        </div>
+function LandingBlocksSection() {
+  return (
+    <div>
+      <H>Главная страница</H>
+      <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+        Блоки «Что есть в МоДелизМ» и «Всё, что движется и летает»: заголовки, карточки, иконки и ссылки. Перетаскивайте карточки для изменения порядка.
+      </p>
+      <LandingBlocksAdminCard cardStyle={card} />
+    </div>
+  );
+}
 
-        <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          {sortedBanners.map((b) => (
-            <div
-              key={b.id}
-              style={{
-                padding: "14px",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-card-sm)",
-                background: b.pinned ? "var(--accent-soft)" : "transparent",
-              }}
-            >
-              <div className="flex items-start justify-between gap-[12px]">
-                <div className="min-w-0 flex-1">
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--foreground)" }}>{b.title}</div>
-                  <div style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: 2 }}>{b.text}</div>
-                </div>
-                <IconBtn danger onClick={() => removeBanner(b.id)}><Trash2 size={14} /></IconBtn>
-              </div>
-
-              <div
-                className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr_auto_auto]"
-                style={{ gap: "10px", marginTop: "12px", alignItems: "end" }}
-              >
-                <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Приоритет</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={b.priority ?? 0}
-                    onChange={(e) => updateBanner(b.id, { priority: Math.max(0, Math.min(100, +e.target.value || 0)) })}
-                    className="outline-none"
-                    style={{ ...inputStyle, height: 36 }}
-                  />
-                </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Показывать с</span>
-                  <input
-                    type="date"
-                    value={b.scheduleFrom ?? ""}
-                    onChange={(e) => updateBanner(b.id, { scheduleFrom: e.target.value })}
-                    className="outline-none"
-                    style={{ ...inputStyle, height: 36 }}
-                  />
-                </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Показывать по</span>
-                  <input
-                    type="date"
-                    value={b.scheduleTo ?? ""}
-                    onChange={(e) => updateBanner(b.id, { scheduleTo: e.target.value })}
-                    className="outline-none"
-                    style={{ ...inputStyle, height: 36 }}
-                  />
-                </label>
-                <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
-                  <input
-                    type="checkbox"
-                    checked={!!b.pinned}
-                    onChange={(e) => updateBanner(b.id, { pinned: e.target.checked })}
-                    style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
-                  />
-                  <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Закрепить</span>
-                </label>
-                <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
-                  <input
-                    type="checkbox"
-                    checked={b.active ?? true}
-                    onChange={(e) => updateBanner(b.id, { active: e.target.checked })}
-                    style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
-                  />
-                  <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать</span>
-                </label>
-              </div>
-            </div>
-          ))}
-          {sortedBanners.length === 0 && (
-            <div style={{ padding: "24px 12px", textAlign: "center", fontSize: "13px", color: "var(--foreground-50)" }}>
-              Нет активных баннеров
-            </div>
-          )}
-        </div>
-        <button
-          onClick={saveBanners}
-          style={{ ...primaryBtn, marginTop: "14px" }}
-        >
-          Сохранить баннеры
-        </button>
-      </div>
+function FeedGuestAccessSection() {
+  return (
+    <div>
+      <FeedGuestAccessAdminCard />
     </div>
   );
 }
@@ -2498,10 +2552,69 @@ function CategoriesSection() {
     try {
       const updated = await updateAdminCategory(kind, c.id, {
         name, slug, parentId: c.parentId, icon: c.icon, sortOrder: c.sortOrder, isActive: c.isActive,
+        listingPriceCents: c.listingPriceCents,
+        subscriberListingPriceCents: c.subscriberListingPriceCents,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success("Сохранено");
     } catch { toast.error("Не удалось обновить категорию"); }
+  };
+
+  const patchCategoryPrices = async (c: AdminCategory) => {
+    try {
+      const updated = await updateAdminCategory(kind, c.id, {
+        name: c.name,
+        slug: c.slug,
+        parentId: c.parentId,
+        icon: c.icon,
+        sortOrder: c.sortOrder,
+        isActive: c.isActive,
+        listingPriceCents: c.listingPriceCents,
+        subscriberListingPriceCents: c.subscriberListingPriceCents,
+      });
+      setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
+      toast.success("Цены сохранены");
+    } catch {
+      toast.error("Не удалось сохранить цены");
+    }
+  };
+
+  const listingPriceFields = (c: AdminCategory) => {
+    if (kind !== "listing") return null;
+    return (
+      <div className="flex flex-wrap items-center gap-[6px] ml-[24px] mt-[4px] mb-[6px]">
+        <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+          ₽ обыч.
+          <input
+            type="number"
+            min={0}
+            placeholder="—"
+            style={{ ...inputStyle, width: 72, height: 30, padding: "0 8px", fontSize: 12 }}
+            value={c.listingPriceCents != null ? Math.round(c.listingPriceCents / 100) : ""}
+            onChange={(e) => {
+              const rub = e.target.value === "" ? null : Math.max(0, +e.target.value);
+              setItems((p) => p.map((x) => x.id === c.id ? { ...x, listingPriceCents: rub == null ? null : rub * 100 } : x));
+            }}
+            onBlur={() => patchCategoryPrices(c)}
+          />
+        </label>
+        <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+          ₽ подписч.
+          <input
+            type="number"
+            min={0}
+            placeholder="—"
+            style={{ ...inputStyle, width: 72, height: 30, padding: "0 8px", fontSize: 12 }}
+            value={c.subscriberListingPriceCents != null ? Math.round(c.subscriberListingPriceCents / 100) : ""}
+            onChange={(e) => {
+              const rub = e.target.value === "" ? null : Math.max(0, +e.target.value);
+              setItems((p) => p.map((x) => x.id === c.id ? { ...x, subscriberListingPriceCents: rub == null ? null : rub * 100 } : x));
+            }}
+            onBlur={() => patchCategoryPrices(c)}
+          />
+        </label>
+      </div>
+    );
   };
 
   const remove = async (c: AdminCategory) => {
@@ -2568,6 +2681,7 @@ function CategoriesSection() {
                     <IconBtn danger onClick={() => remove(c)}><Trash2 size={14} /></IconBtn>
                   </div>
                 </div>
+                {listingPriceFields(c)}
                 <AnimatePresence>
                   {open[c.id] && subs.length > 0 && (
                     <motion.div
@@ -2578,12 +2692,15 @@ function CategoriesSection() {
                       style={{ overflow: "hidden", borderLeft: "1px solid var(--border)", marginLeft: "8px", paddingLeft: "16px" }}
                     >
                       {subs.map((s) => (
-                        <div key={s.id} className="flex items-center justify-between" style={{ padding: "6px 0" }}>
-                          <span style={{ fontSize: "14px", color: "var(--foreground-70)" }}>{s.name}</span>
-                          <div className="flex gap-[4px]">
-                            <IconBtn onClick={() => edit(s)}><Pencil size={14} /></IconBtn>
-                            <IconBtn danger onClick={() => remove(s)}><Trash2 size={14} /></IconBtn>
+                        <div key={s.id}>
+                          <div className="flex items-center justify-between" style={{ padding: "6px 0" }}>
+                            <span style={{ fontSize: "14px", color: "var(--foreground-70)" }}>{s.name}</span>
+                            <div className="flex gap-[4px]">
+                              <IconBtn onClick={() => edit(s)}><Pencil size={14} /></IconBtn>
+                              <IconBtn danger onClick={() => remove(s)}><Trash2 size={14} /></IconBtn>
+                            </div>
                           </div>
+                          {listingPriceFields(s)}
                         </div>
                       ))}
                     </motion.div>
@@ -2756,7 +2873,11 @@ function ReviewsSection() {
    back by value shape (boolean → тумблер, string/number → инпут, plain
    object → labeled per-field inputs). */
 const SETTING_META: Record<string, { label: string; hint?: string; hidden?: boolean; fieldLabels?: Record<string, string> }> = {
-  "feature.communities_enabled": { label: "Раздел «Сообщества» виден всем", hint: "Показывает/скрывает раздел для всех пользователей" },
+  "feature.communities_enabled": {
+    label: "Показывать раздел «Сообщества» всем пользователям",
+    hint: "Единственный переключатель раздела — управляется карточкой выше, не localStorage",
+    hidden: true,
+  },
   // Managed by the dedicated cards above — hidden here to avoid duplicates.
   "feature.market_enabled": { label: "Кнопка «Маркет»", hidden: true },
   "feature.escrow_enabled": { label: "Бейдж «Безопасная сделка»", hidden: true },
@@ -2764,6 +2885,7 @@ const SETTING_META: Record<string, { label: string; hint?: string; hidden?: bool
   "feature.listing_payment_enabled": { label: "Платное размещение объявлений", hidden: true },
   // Icon slots are managed visually from the «Дизайн» section.
   icon_overrides: { label: "Иконки", hidden: true },
+  "footer.contacts": { label: "Контакты футера", hidden: true },
   site_name: { label: "Название сайта", fieldLabels: { ru: "Название (рус.)", en: "Название (англ.)" } },
   first_hundred_stats: { label: "Счётчик «Первая сотня»", fieldLabels: { taken: "Занято мест", total: "Всего мест" } },
   moderation_auto_publish: { label: "Автопубликация объявлений", hint: "Публиковать объявления сразу, без ручной модерации" },
@@ -2775,6 +2897,7 @@ const SETTING_GROUP_LABELS: Record<string, string> = {
   marketing: "Маркетинг",
   moderation: "Модерация",
   design: "Дизайн",
+  footer: "Футер",
 };
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -2828,6 +2951,7 @@ function SettingsSection() {
       const d: Record<string, unknown> = {};
       for (const s of updated) d[s.key] = structuredClone(s.value);
       setDrafts(d);
+      await loadFeatureFlagsFromServer();
       toast.success("Настройки сохранены");
     } catch {
       toast.error("Не удалось сохранить настройки");
@@ -2974,9 +3098,13 @@ function SettingsSection() {
     );
   };
 
-  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const communitiesEnabled = (() => {
+    const row = settings.find((s) => s.key === "feature.communities_enabled");
+    return isEnabledShape(row?.value) ? row.value.enabled : false;
+  })();
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
+  const [savingCommunities, setSavingCommunities] = useState(false);
   const [savingMarket, setSavingMarket] = useState(false);
   const escrowEnabled = useFeatureFlag("escrowEnabled");
   const [savingEscrow, setSavingEscrow] = useState(false);
@@ -3015,6 +3143,29 @@ function SettingsSection() {
     }
   };
 
+  const toggleCommunities = async (checked: boolean) => {
+    if (isDemoMode()) {
+      toast("В демо-режиме настройка не сохраняется на сервере");
+      return;
+    }
+    setSavingCommunities(true);
+    try {
+      const [updated] = await updateAdminSettings([
+        { key: "feature.communities_enabled", value: { enabled: checked }, group: "features" },
+      ]);
+      setSettings((prev) => {
+        const rest = prev.filter((s) => s.key !== "feature.communities_enabled");
+        return updated ? [...rest, updated] : rest;
+      });
+      await loadFeatureFlagsFromServer();
+      toast.success(checked ? "Раздел «Сообщества» включён для всех" : "Раздел «Сообщества» отключён для всех");
+    } catch {
+      toast.error("Не удалось сохранить настройку");
+    } finally {
+      setSavingCommunities(false);
+    }
+  };
+
   const toggleMarket = async (checked: boolean) => {
     if (isDemoMode()) {
       setFeatureFlag("marketEnabled", checked);
@@ -3024,7 +3175,7 @@ function SettingsSection() {
     setSavingMarket(true);
     try {
       await updateAdminSettings([{ key: "feature.market_enabled", value: { enabled: checked }, group: "feature" }]);
-      setFeatureFlag("marketEnabled", checked);
+      await loadFeatureFlagsFromServer();
       toast.success(checked ? "Кнопка «Маркет» включена для всех" : "Кнопка «Маркет» отключена для всех");
     } catch {
       toast.error("Не удалось сохранить настройку");
@@ -3042,7 +3193,7 @@ function SettingsSection() {
     setSavingEscrow(true);
     try {
       await updateAdminSettings([{ key: "feature.escrow_enabled", value: { enabled: checked }, group: "feature" }]);
-      setFeatureFlag("escrowEnabled", checked);
+      await loadFeatureFlagsFromServer();
       toast.success(checked ? "Бейдж «Безопасная сделка» включён для всех" : "Бейдж «Безопасная сделка» отключён для всех");
     } catch {
       toast.error("Не удалось сохранить настройку");
@@ -3060,7 +3211,7 @@ function SettingsSection() {
     setSavingListingPayment(true);
     try {
       await updateAdminSettings([{ key: "feature.listing_payment_enabled", value: { enabled: checked }, group: "feature" }]);
-      setFeatureFlag("listingPaymentEnabled", checked);
+      await loadFeatureFlagsFromServer();
       toast.success(checked ? "Платное размещение объявлений включено" : "Объявления публикуются бесплатно");
     } catch {
       toast.error("Не удалось сохранить настройку");
@@ -3073,24 +3224,14 @@ function SettingsSection() {
     <div>
       <H>Настройки</H>
 
-      {/* Client-only feature flags — see backend-endpoints-needed.md #17 for
-          the persistent server-side version once it exists. */}
+      {/* Client-only feature flags — reviews preview for this browser only. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
           Feature flags (демо)
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Хранятся локально в браузере (localStorage), не синхронизируются между устройствами.
+          Локальные флаги только для этого браузера. Раздел «Сообщества» и другие публичные переключатели ниже сохраняются на сервере и действуют для всех пользователей.
         </p>
-        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
-          <input
-            type="checkbox"
-            checked={communitiesEnabled}
-            onChange={(e) => setFeatureFlag("communitiesEnabled", e.target.checked)}
-            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
-          />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Сообщества»</span>
-        </label>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
           <input
             type="checkbox"
@@ -3099,6 +3240,26 @@ function SettingsSection() {
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Обзоры»</span>
+        </label>
+      </div>
+
+      {/* Server-persisted (SystemSetting: feature.communities_enabled). */}
+      <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
+          Раздел «Сообщества»
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
+          Единственная настройка видимости раздела. Сохраняется на сервере и сразу включает или скрывает пункт «Сообщества» в меню для всех пользователей и устройств.
+        </p>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingCommunities ? 0.6 : 1 }}>
+          <input
+            type="checkbox"
+            checked={communitiesEnabled}
+            disabled={savingCommunities}
+            onChange={(e) => void toggleCommunities(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Сообщества» всем пользователям</span>
         </label>
       </div>
 
@@ -3153,7 +3314,7 @@ function SettingsSection() {
           Платное размещение объявлений
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Сохраняется на сервере. Выключено — кнопка «Опубликовать» без оплаты (рекомендуется на текущем этапе). Включено — для публикации нужен оплаченный кредит размещения.
+          Сохраняется на сервере. Включено — перед публикацией объявления требуется оплата размещения (или бесплатная квота по подписке / промокод).
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingListingPayment ? 0.6 : 1 }}>
           <input
@@ -3175,7 +3336,7 @@ function SettingsSection() {
           Авто-публикация ленты
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Сохраняется на сервере. Выключено — новые посты уходят на модерацию (рекомендуется). Включено — публикуются сразу, без ручной проверки.
+          Сохраняется на сервере. Выключено — новые посты ленты и каналов уходят на модерацию (рекомендуется). Включено — публикуются сразу, без ручной проверки.
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingFeedAutoPublish ? 0.6 : 1 }}>
           <input
@@ -3187,6 +3348,10 @@ function SettingsSection() {
           />
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Публиковать посты ленты сразу</span>
         </label>
+      </div>
+
+      <div style={{ marginBottom: "20px" }}>
+        <FooterContactsAdminCard cardStyle={card} />
       </div>
 
       <div style={{ ...card, padding: "24px", maxWidth: "640px" }}>
@@ -3386,7 +3551,14 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
-  const [form, setForm] = useState({ code: "", discount: 10, expiresAt: "", limit: 100 });
+  const [form, setForm] = useState({
+    code: "", discount: 10, expiresAt: "", limit: 100,
+    type: "percent" as "percent" | "fixed" | "free",
+    notifyAll: false,
+    notifyUserIds: "",
+    notifyTitle: "",
+    notifyBody: "",
+  });
 
   const today = new Date().toISOString().slice(0, 10);
   const enriched = promos.map((p) => ({
@@ -3403,19 +3575,35 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
   const create = async () => {
     if (!form.code.trim()) return toast.error("Введите название");
     if (!form.expiresAt) return toast.error("Укажите срок действия");
-    if (form.discount < 1 || form.discount > 100) return toast.error("Скидка от 1 до 100%");
+    if (form.type === "percent" && (form.discount < 1 || form.discount > 100)) return toast.error("Скидка от 1 до 100%");
     if (form.limit < 1) return toast.error("Лимит должен быть больше 0");
     try {
-      await createPromocode({
+      const notifyMode = form.notifyUserIds.trim()
+        ? "selected"
+        : form.notifyAll
+          ? "all"
+          : "none";
+      const result = await createPromocode({
         code: form.code.toUpperCase(),
-        value: form.discount,
+        type: form.type,
+        scope: "listing_placement",
+        value: form.type === "free" ? 100 : form.discount,
         max_usages: form.limit,
         valid_until: form.expiresAt,
+        notify_mode: notifyMode,
+        notify_title: form.notifyTitle.trim() || undefined,
+        notify_body: form.notifyBody.trim() || undefined,
+        notify_user_ids: form.notifyUserIds
+          .split(/[\s,;]+/)
+          .map((x) => +x)
+          .filter((x) => Number.isInteger(x) && x > 0),
       });
-      setForm({ code: "", discount: 10, expiresAt: "", limit: 100 });
+      setForm({ code: "", discount: 10, expiresAt: "", limit: 100, type: "percent", notifyAll: false, notifyUserIds: "", notifyTitle: "", notifyBody: "" });
       setOpen(false);
       reload?.();
-      toast.success("Промокод создан");
+      toast.success(result.notifications_sent
+        ? `Промокод создан. Уведомления отправлены: ${result.notifications_sent}`
+        : "Промокод создан");
     } catch {
       toast.error("Не удалось создать промокод");
     }
@@ -3445,8 +3633,16 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                   <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="SUMMER2026" className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Тип</span>
+                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "percent" | "fixed" | "free" })} style={inputStyle}>
+                    <option value="percent">Процент</option>
+                    <option value="fixed">Фикс. сумма (коп.)</option>
+                    <option value="free">Бесплатно</option>
+                  </select>
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Скидка, %</span>
-                  <input type="number" min={1} max={100} value={form.discount} onChange={(e) => setForm({ ...form, discount: +e.target.value })} className="outline-none" style={inputStyle} />
+                  <input type="number" min={1} max={100} value={form.discount} disabled={form.type !== "percent"} onChange={(e) => setForm({ ...form, discount: +e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Срок действия</span>
@@ -3456,6 +3652,26 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                   <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Лимит использований</span>
                   <input type="number" min={1} value={form.limit} onChange={(e) => setForm({ ...form, limit: +e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
+                <label className="md:col-span-2 flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                  <input type="checkbox" checked={form.notifyAll} onChange={(e) => setForm({ ...form, notifyAll: e.target.checked, notifyUserIds: e.target.checked ? "" : form.notifyUserIds })} />
+                  Отправить всем пользователям уведомление с промокодом
+                </label>
+                <label className="md:col-span-2" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Или ID пользователей (через запятую)</span>
+                  <input value={form.notifyUserIds} onChange={(e) => setForm({ ...form, notifyUserIds: e.target.value, notifyAll: false })} placeholder="12, 45, 78" style={inputStyle} />
+                </label>
+                {form.notifyAll && (
+                  <>
+                    <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Заголовок уведомления</span>
+                      <input value={form.notifyTitle} onChange={(e) => setForm({ ...form, notifyTitle: e.target.value })} placeholder="Промокод на размещение" style={inputStyle} />
+                    </label>
+                    <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Текст уведомления</span>
+                      <input value={form.notifyBody} onChange={(e) => setForm({ ...form, notifyBody: e.target.value })} placeholder="Используйте код при размещении объявления" style={inputStyle} />
+                    </label>
+                  </>
+                )}
               </div>
               <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
                 <button onClick={create} style={primaryBtn}>Создать</button>

@@ -8,14 +8,15 @@ use App\Models\ConversationParticipant;
 use App\Models\Listing;
 use App\Models\Media;
 use App\Models\Message;
+use App\Models\PostCategory;
 use App\Models\User;
-use App\Notifications\InAppNotification;
-use App\Services\InAppNotify;
+use App\Events\UserRealtimeEvent;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Chat\Events\MessageDeleted;
 use Modules\Chat\Events\MessageSent;
 use Modules\Chat\Http\Resources\MessageResource;
 use Modules\Media\Services\MediaUploadService;
@@ -36,13 +37,31 @@ class ChatService
             ->whereNull('left_at')
             ->pluck('conversation_id');
 
-        return Conversation::query()
+        $paginator = Conversation::query()
             ->whereIn('conversations.id', $conversationIds)
+            ->where('conversations.type', '!=', ConversationType::Room)
             ->join('conversation_participants as cp', function ($join) use ($user): void {
                 $join->on('cp.conversation_id', '=', 'conversations.id')
                     ->where('cp.user_id', $user->id)
                     ->whereNull('cp.left_at');
             })
+            ->select('conversations.*')
+            ->selectRaw('(
+                SELECT COUNT(*)
+                FROM messages
+                WHERE messages.conversation_id = conversations.id
+                AND messages.user_id != ?
+                AND messages.deleted_at IS NULL
+                AND NOT EXISTS (
+                    SELECT 1 FROM message_user_hides
+                    WHERE message_user_hides.message_id = messages.id
+                    AND message_user_hides.user_id = ?
+                )
+                AND (
+                    cp.last_read_message_id IS NULL
+                    OR messages.id > cp.last_read_message_id
+                )
+            ) as unread_count', [$user->id, $user->id])
             ->with([
                 'participants.user.profile.avatar',
                 'listing.mediaItems.media',
@@ -53,8 +72,13 @@ class ChatService
             ->orderByRaw('cp.pinned_at IS NULL')
             ->orderByDesc('cp.pinned_at')
             ->orderByDesc('conversations.last_message_at')
-            ->select('conversations.*')
             ->paginate($perPage);
+
+        $paginator->setCollection(
+            $this->dedupeDirectConversationsForUser($paginator->getCollection(), $user),
+        );
+
+        return $paginator;
     }
 
     public function showConversation(string $uuid, User $user): Conversation
@@ -81,6 +105,65 @@ class ChatService
     public function findConversation(string $uuid, User $user): Conversation
     {
         return $this->showConversation($uuid, $user);
+    }
+
+    /**
+     * Resolve (or create) the shared chat room for a post-category subcategory.
+     * Any authenticated user is auto-joined as a participant on first visit.
+     */
+    public function findOrCreateCategoryRoom(int $parentCategoryId, int $subCategoryId, User $user): Conversation
+    {
+        $sub = PostCategory::query()
+            ->whereKey($subCategoryId)
+            ->where('parent_id', $parentCategoryId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $sub) {
+            throw new NotFoundHttpException('Подкатегория не найдена.');
+        }
+
+        $conversation = Conversation::query()
+            ->where('type', ConversationType::Room)
+            ->where('post_category_id', $sub->id)
+            ->first();
+
+        if (! $conversation) {
+            $conversation = DB::transaction(function () use ($sub): Conversation {
+                return Conversation::create([
+                    'type' => ConversationType::Room,
+                    'post_category_id' => $sub->id,
+                    'title' => $sub->name,
+                ]);
+            });
+        }
+
+        $this->ensureParticipant($conversation, $user);
+
+        return $conversation;
+    }
+
+    private function ensureParticipant(Conversation $conversation, User $user): void
+    {
+        $existing = ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existing) {
+            if ($existing->left_at !== null) {
+                $existing->update(['left_at' => null, 'joined_at' => now()]);
+            }
+
+            return;
+        }
+
+        ConversationParticipant::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => $user->id,
+            'role' => 'member',
+            'joined_at' => now(),
+        ]);
     }
 
     public function listMessages(string $conversationUuid, User $user, int $perPage = 50): LengthAwarePaginator
@@ -121,9 +204,11 @@ class ChatService
             throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
         }
 
-        $otherParticipant = $this->otherParticipant($conversation, $user);
-        if ($otherParticipant) {
-            $this->users->assertCanInteract($user, $otherParticipant);
+        if ($conversation->type !== ConversationType::Room) {
+            $otherParticipant = $this->otherParticipant($conversation, $user);
+            if ($otherParticipant) {
+                $this->users->assertCanInteract($user, $otherParticipant);
+            }
         }
 
         $replyToId = null;
@@ -214,18 +299,14 @@ class ChatService
 
         $this->users->assertCanInteract($from, $to);
 
-        $existing = Conversation::query()
-            ->where('type', ConversationType::Direct)
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $from->id)->whereNull('left_at'))
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $to->id)->whereNull('left_at'))
-            ->first();
+        $existing = $this->findDirectBetweenUsers($from, $to);
 
         if ($existing) {
-            if ($listing && $existing->listing_id !== $listing->id) {
-                $existing->update(['listing_id' => $listing->id]);
-            }
+            $all = $this->allDirectBetweenUsers($from, $to);
+            $this->rejoinDirectConversation($existing, $from, $to);
+            $this->hideDuplicateDirectConversations($all, $existing, $from, $to);
 
-            return $existing->load(['participants.user.profile', 'listing.mediaItems.media']);
+            return $this->finalizeDirectConversation($existing, $listing);
         }
 
         return DB::transaction(function () use ($from, $to, $listing): Conversation {
@@ -288,6 +369,83 @@ class ChatService
         );
     }
 
+    public function deleteMessageForEveryone(Conversation $conversation, Message $message, User $user): void
+    {
+        if (! $this->isParticipant($conversation, $user)) {
+            throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
+        }
+
+        if ($message->conversation_id !== $conversation->id) {
+            throw new NotFoundHttpException('Сообщение не найдено.');
+        }
+
+        if ((int) $message->user_id !== (int) $user->id) {
+            throw ValidationException::withMessages([
+                'message' => ['Можно удалить только своё сообщение.'],
+            ]);
+        }
+
+        $conversationUuid = $conversation->uuid;
+
+        DB::transaction(function () use ($conversation, $message): void {
+            if ((int) $conversation->pinned_message_id === (int) $message->id) {
+                $conversation->update(['pinned_message_id' => null]);
+            }
+
+            $message->delete();
+        });
+
+        try {
+            broadcast(new MessageDeleted($message, $conversationUuid));
+        } catch (\Throwable) {
+            // Reverb may be unavailable during tests or maintenance
+        }
+    }
+
+    public function clearHistoryForUser(Conversation $conversation, User $user): void
+    {
+        if (! $this->isParticipant($conversation, $user)) {
+            throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
+        }
+
+        DB::transaction(function () use ($conversation, $user): void {
+            $now = now();
+
+            DB::insert(
+                'INSERT INTO message_user_hides (user_id, message_id, hidden_at)
+                 SELECT ?, m.id, ?
+                 FROM messages m
+                 WHERE m.conversation_id = ?
+                 AND NOT EXISTS (
+                     SELECT 1 FROM message_user_hides h
+                     WHERE h.message_id = m.id AND h.user_id = ?
+                 )',
+                [$user->id, $now, $conversation->id, $user->id],
+            );
+
+            $latestId = Message::query()
+                ->where('conversation_id', $conversation->id)
+                ->orderByDesc('id')
+                ->value('id');
+
+            if ($latestId) {
+                ConversationParticipant::query()
+                    ->where('conversation_id', $conversation->id)
+                    ->where('user_id', $user->id)
+                    ->whereNull('left_at')
+                    ->update(['last_read_message_id' => $latestId]);
+            }
+        });
+    }
+
+    public function isMessageHiddenForUser(Message $message, User $user): bool
+    {
+        return DB::table('message_user_hides')
+            ->where('user_id', $user->id)
+            ->where('message_id', $message->id)
+            ->exists();
+    }
+
     public function pinMessage(Conversation $conversation, Message $message, User $user): void
     {
         if (! $this->isParticipant($conversation, $user)) {
@@ -326,6 +484,88 @@ class ChatService
             ->where('user_id', $user->id)
             ->whereNull('left_at')
             ->update(['pinned_at' => null]);
+    }
+
+    public function markConversationRead(Conversation $conversation, User $user): void
+    {
+        if (! $this->isParticipant($conversation, $user)) {
+            throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
+        }
+
+        $latestId = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->orderByDesc('id')
+            ->value('id');
+
+        if (! $latestId) {
+            return;
+        }
+
+        ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', $user->id)
+            ->whereNull('left_at')
+            ->update(['last_read_message_id' => $latestId]);
+
+        $this->notifyConversationRead($conversation, $user);
+    }
+
+    public function otherParticipantLastReadMessageId(Conversation $conversation, User $user): ?int
+    {
+        $value = ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $user->id)
+            ->whereNull('left_at')
+            ->value('last_read_message_id');
+
+        return $value !== null ? (int) $value : null;
+    }
+
+    /** Preload peer read cursor + last_seen for MessageResource status resolution. */
+    public function attachMessageStatusContext(\Illuminate\Http\Request $request, Conversation $conversation, User $user): void
+    {
+        $other = ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $user->id)
+            ->whereNull('left_at')
+            ->with('user:id,last_seen_at')
+            ->first();
+
+        $request->attributes->set(
+            'chat_other_last_read_message_id',
+            $other?->last_read_message_id,
+        );
+        $request->attributes->set(
+            'chat_other_last_seen_at',
+            $other?->user?->last_seen_at,
+        );
+    }
+
+    public function unreadCountFor(Conversation $conversation, User $user, ?int $lastReadMessageId = null): int
+    {
+        if ($lastReadMessageId === null) {
+            $lastReadMessageId = ConversationParticipant::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('user_id', $user->id)
+                ->whereNull('left_at')
+                ->value('last_read_message_id');
+        }
+
+        $query = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $user->id)
+            ->whereNotExists(function ($q) use ($user): void {
+                $q->select(DB::raw(1))
+                    ->from('message_user_hides')
+                    ->whereColumn('message_user_hides.message_id', 'messages.id')
+                    ->where('message_user_hides.user_id', $user->id);
+            });
+
+        if ($lastReadMessageId) {
+            $query->where('id', '>', $lastReadMessageId);
+        }
+
+        return (int) $query->count();
     }
 
     public function findMessageInConversation(Conversation $conversation, string $messageUuid): Message
@@ -370,12 +610,10 @@ class ChatService
         ?string $body,
         string $type,
     ): void {
-        $author->loadMissing('profile');
-        $authorName = $author->profile?->display_name ?? $author->name ?? 'Пользователь';
-
-        $preview = $body !== null && $body !== ''
-            ? Str::limit($body, 80)
-            : ($type === 'voice' ? 'Голосовое сообщение' : 'Новое сообщение');
+        // Room chats are scoped to category pages; conversation-channel events cover live updates.
+        if ($conversation->type === ConversationType::Room) {
+            return;
+        }
 
         $messagePayload = (new MessageResource($message))->resolve();
 
@@ -393,22 +631,45 @@ class ChatService
             }
 
             try {
-                InAppNotify::send(
-                    $recipient,
-                    new InAppNotification(
-                        'message',
-                        $authorName,
-                        $preview,
-                        '/messenger?chat='.$conversation->uuid,
-                    ),
+                broadcast(new UserRealtimeEvent(
+                    $recipient->uuid,
                     'message',
                     [
                         'conversation_uuid' => $conversation->uuid,
                         'message' => $messagePayload,
                     ],
-                );
+                ));
             } catch (\Throwable) {
-                // Reverb / notifications may be unavailable during maintenance
+                // Reverb may be unavailable during tests or maintenance
+            }
+        }
+    }
+
+    private function notifyConversationRead(Conversation $conversation, User $reader): void
+    {
+        $others = ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $reader->id)
+            ->whereNull('left_at')
+            ->with('user')
+            ->get();
+
+        foreach ($others as $participant) {
+            $user = $participant->user;
+            if (! $user) {
+                continue;
+            }
+
+            try {
+                broadcast(new UserRealtimeEvent(
+                    $user->uuid,
+                    'conversation.read',
+                    [
+                        'conversation_uuid' => $conversation->uuid,
+                    ],
+                ));
+            } catch (\Throwable) {
+                // Reverb may be unavailable during tests or maintenance
             }
         }
     }
@@ -422,5 +683,92 @@ class ChatService
             ->where('user_id', $user->id)
             ->whereNull('left_at')
             ->update(['left_at' => now()]);
+    }
+
+    /** @return Collection<int, Conversation> */
+    private function allDirectBetweenUsers(User $a, User $b): Collection
+    {
+        return Conversation::query()
+            ->where('type', ConversationType::Direct)
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $a->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $b->id))
+            ->withCount('messages')
+            ->orderByDesc('messages_count')
+            ->orderByDesc('last_message_at')
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function findDirectBetweenUsers(User $a, User $b): ?Conversation
+    {
+        return $this->allDirectBetweenUsers($a, $b)->first();
+    }
+
+    private function rejoinDirectConversation(Conversation $conversation, User $a, User $b): void
+    {
+        ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->whereIn('user_id', [$a->id, $b->id])
+            ->update(['left_at' => null]);
+    }
+
+    /** @param  Collection<int, Conversation>  $all */
+    private function hideDuplicateDirectConversations(
+        Collection $all,
+        Conversation $primary,
+        User $a,
+        User $b,
+    ): void {
+        $duplicateIds = $all
+            ->where('id', '!=', $primary->id)
+            ->pluck('id');
+
+        if ($duplicateIds->isEmpty()) {
+            return;
+        }
+
+        ConversationParticipant::query()
+            ->whereIn('conversation_id', $duplicateIds)
+            ->whereIn('user_id', [$a->id, $b->id])
+            ->update(['left_at' => now()]);
+    }
+
+    private function finalizeDirectConversation(Conversation $conversation, ?Listing $listing): Conversation
+    {
+        if ($listing && $conversation->listing_id !== $listing->id) {
+            $conversation->update(['listing_id' => $listing->id]);
+        }
+
+        return $conversation->load(['participants.user.profile', 'listing.mediaItems.media']);
+    }
+
+    /** @param  Collection<int, Conversation>  $conversations */
+    private function dedupeDirectConversationsForUser(Collection $conversations, User $user): Collection
+    {
+        $seenPartners = [];
+
+        return $conversations
+            ->filter(function (Conversation $conv) use ($user, &$seenPartners): bool {
+                if ($conv->type !== ConversationType::Direct) {
+                    return true;
+                }
+
+                $otherId = $conv->participants
+                    ->first(fn (ConversationParticipant $p) => $p->user_id !== $user->id)
+                    ?->user_id;
+
+                if ($otherId === null) {
+                    return true;
+                }
+
+                if (isset($seenPartners[$otherId])) {
+                    return false;
+                }
+
+                $seenPartners[$otherId] = true;
+
+                return true;
+            })
+            ->values();
     }
 }

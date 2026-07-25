@@ -1,29 +1,29 @@
-import type { ReactNode } from "react";
-import { startOAuthLogin, oauthProviderLabel, type OAuthProvider } from "@/lib/api/oauth";
+import type { CSSProperties, ReactNode } from "react";
+import { oauthRedirectUrl, oauthProviderLabel, type OAuthProvider } from "@/lib/api/oauth";
 
 const PROVIDERS: OAuthProvider[] = ["vk", "yandex"];
+
+const oauthLinkStyle: CSSProperties = {
+  background: "var(--background-surface)",
+  border: "1px solid var(--border)",
+  padding: "10px 14px",
+  borderRadius: "var(--r-button)",
+  fontSize: "var(--fs-sm)",
+  color: "var(--foreground)",
+  fontWeight: 500,
+  cursor: "pointer",
+  textAlign: "center",
+  textDecoration: "none",
+  display: "block",
+};
 
 export function OAuthButtons({ className }: { className?: string }) {
   return (
     <div className={className ?? "mt-[16px] grid grid-cols-2 gap-[8px]"}>
       {PROVIDERS.map((provider) => (
-        <button
-          key={provider}
-          type="button"
-          onClick={() => startOAuthLogin(provider)}
-          style={{
-            background: "var(--background-surface)",
-            border: "1px solid var(--border)",
-            padding: "10px 14px",
-            borderRadius: "var(--r-button)",
-            fontSize: "var(--fs-sm)",
-            color: "var(--foreground)",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
+        <a key={provider} href={oauthRedirectUrl(provider)} style={oauthLinkStyle}>
           {oauthProviderLabel(provider)}
-        </button>
+        </a>
       ))}
     </div>
   );

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Bell, Heart, MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -5,8 +6,10 @@ import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { useStore } from "@/lib/store";
+import { getToken } from "@/lib/api/client";
 import { ROUTES } from "@/lib/routes";
 
 export function DesktopTopBar() {
@@ -16,6 +19,21 @@ export function DesktopTopBar() {
     Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
   );
   const { t } = useTranslation();
+  const isGuest = !getToken();
+
+  const iconClass = "relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]";
+  const iconStyle = { color: "var(--foreground-70)" };
+
+  const NavIcon = ({ actionKey, to, label, children }: { actionKey: string; to: string; label: string; children: ReactNode }) =>
+    isGuest ? (
+      <GuestGuardLink actionKey={actionKey} to={to} aria-label={label} className={iconClass} style={iconStyle}>
+        {children}
+      </GuestGuardLink>
+    ) : (
+      <Link to={to as "/feed"} aria-label={label} className={iconClass} style={iconStyle}>
+        {children}
+      </Link>
+    );
 
   return (
     <header
@@ -35,12 +53,7 @@ export function DesktopTopBar() {
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />
-        <Link
-          to={ROUTES.favorites}
-          aria-label="Избранное"
-          className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-          style={{ color: "var(--foreground-70)" }}
-        >
+        <NavIcon actionKey="layout.nav.favorites" to={ROUTES.favorites} label="Избранное">
           <Heart size={20} />
           {favCount > 0 && (
             <span
@@ -57,13 +70,8 @@ export function DesktopTopBar() {
               {favCount > 9 ? "9+" : favCount}
             </span>
           )}
-        </Link>
-        <Link
-          to={ROUTES.notifications}
-          aria-label={t("nav.notifications")}
-          className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-          style={{ color: "var(--foreground-70)" }}
-        >
+        </NavIcon>
+        <NavIcon actionKey="layout.header.notifications" to={ROUTES.notifications} label={t("nav.notifications")}>
           <span className="relative inline-flex h-5 w-5 items-center justify-center">
             <Bell size={20} />
             {unread > 0 && (
@@ -82,13 +90,8 @@ export function DesktopTopBar() {
             </span>
             )}
           </span>
-        </Link>
-        <Link
-          to={ROUTES.messenger}
-          aria-label="Сообщения"
-          className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-          style={{ color: "var(--foreground-70)" }}
-        >
+        </NavIcon>
+        <NavIcon actionKey="layout.nav.messenger" to={ROUTES.messenger} label="Сообщения">
           <MessageSquare size={20} />
           {unreadMessages > 0 && (
             <span
@@ -105,7 +108,7 @@ export function DesktopTopBar() {
               {unreadMessages > 9 ? "9+" : unreadMessages}
             </span>
           )}
-        </Link>
+        </NavIcon>
         <UserMenu />
       </div>
       </div>

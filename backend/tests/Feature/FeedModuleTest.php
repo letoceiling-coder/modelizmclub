@@ -206,6 +206,40 @@ class FeedModuleTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
+    public function test_user_can_delete_own_published_post(): void
+    {
+        config(['feed.auto_publish' => true]);
+
+        $category = PostCategory::create([
+            'name' => 'Aviation',
+            'slug' => 'aviation-delete',
+            'sort_order' => 1,
+            'depth' => 0,
+            'is_active' => true,
+        ]);
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'Delete me',
+                'body' => 'Temporary post.',
+                'category_id' => $category->id,
+            ])
+            ->json('data.uuid');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/publish")
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/posts/{$uuid}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Публикация удалена.');
+
+        $this->assertSoftDeleted('posts', ['uuid' => $uuid]);
+    }
+
     public function test_media_upload_session_and_confirm(): void
     {
         Storage::fake('s3');

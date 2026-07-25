@@ -23,7 +23,7 @@ class IndexUsersController extends Controller
         $perPage = min((int) $request->integer('per_page', 20), 50);
 
         $query = User::query()
-            ->with('profile.avatar')
+            ->with(['profile.avatar', 'profile.city'])
             ->where('status', UserStatus::Active)
             ->when($viewer, fn ($q) => $q->where('id', '!=', $viewer->id))
             ->whereHas('profile', function ($q) use ($term, $cityId): void {

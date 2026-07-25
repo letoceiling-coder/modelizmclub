@@ -13,6 +13,9 @@ use Illuminate\Validation\ValidationException;
 
 class MediaUploadService
 {
+    /** 1 GiB — messenger photo / video / file attachments. */
+    private const CHAT_MAX_SIZE = 1_073_741_824;
+
     /** @var array<string, array{max_files: int, max_size: int, mimes: list<string>}> */
     private const LIMITS = [
         'avatar' => ['max_files' => 1, 'max_size' => 5_242_880, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
@@ -22,7 +25,7 @@ class MediaUploadService
         'banner' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'cover' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'review_video' => ['max_files' => 1, 'max_size' => 209_715_200, 'mimes' => ['video/mp4', 'video/webm', 'video/quicktime']],
-        'chat' => ['max_files' => 10, 'max_size' => 104_857_600, 'mimes' => [
+        'chat' => ['max_files' => 10, 'max_size' => self::CHAT_MAX_SIZE, 'mimes' => [
             'image/jpeg', 'image/png', 'image/webp',
             'video/mp4', 'video/webm', 'video/quicktime',
             'application/pdf',

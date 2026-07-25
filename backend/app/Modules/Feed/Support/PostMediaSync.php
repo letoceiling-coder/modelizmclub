@@ -29,7 +29,7 @@ class PostMediaSync
 
             if (! $media || $media->uploaded_by !== $user->id || ! $media->isReady()) {
                 throw ValidationException::withMessages([
-                    'media_ids' => ["Медиафайл {$uuid} недоступен."],
+                    'media_ids' => ['Прикреплённый файл недоступен. Дождитесь окончания загрузки или прикрепите его заново.'],
                 ]);
             }
 

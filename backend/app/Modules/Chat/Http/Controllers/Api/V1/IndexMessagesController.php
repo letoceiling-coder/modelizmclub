@@ -12,6 +12,9 @@ class IndexMessagesController extends Controller
 {
     public function __invoke(string $uuid, Request $request, ChatService $chat): JsonResponse
     {
+        $conversation = $chat->findConversation($uuid, $request->user());
+        $chat->attachMessageStatusContext($request, $conversation, $request->user());
+
         $paginator = $chat->listMessages(
             $uuid,
             $request->user(),

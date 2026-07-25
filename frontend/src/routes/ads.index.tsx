@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
@@ -72,6 +72,7 @@ function CatalogPage() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPendingRefresh, setIsPendingRefresh] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -89,12 +90,11 @@ function CatalogPage() {
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
+  const isFilterBusy = isRefreshing || isPendingRefresh;
+
   const load = useCallback(async () => {
     const refreshing = hasLoadedOnce.current;
     if (refreshing) {
-      if (resultsWrapRef.current) {
-        setResultsMinHeight(resultsWrapRef.current.offsetHeight);
-      }
       setIsRefreshing(true);
     } else {
       setLoadState("loading");
@@ -111,7 +111,7 @@ function CatalogPage() {
       if (!refreshing) setLoadState("error");
     } finally {
       setIsRefreshing(false);
-      setResultsMinHeight(undefined);
+      setIsPendingRefresh(false);
     }
   }, [q, filters, sort]);
 
@@ -139,9 +139,29 @@ function CatalogPage() {
   // The very first load (mount) skips the debounce so the page doesn't sit
   // blank for 350ms before showing the loading skeleton.
   const isFirstLoad = useRef(true);
+  const filterSnapshot = useRef({ q, filters, sort });
+
+  // Lock results height and show refresh UI immediately — debounce only the API call.
+  useEffect(() => {
+    if (isFirstLoad.current) return;
+    const prev = filterSnapshot.current;
+    const changed =
+      prev.q !== q ||
+      prev.sort !== sort ||
+      prev.filters !== filters;
+    if (!changed) return;
+
+    filterSnapshot.current = { q, filters, sort };
+    if (resultsWrapRef.current) {
+      setResultsMinHeight(resultsWrapRef.current.offsetHeight);
+    }
+    setIsPendingRefresh(true);
+  }, [q, filters, sort]);
+
   useEffect(() => {
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
+      filterSnapshot.current = { q, filters, sort };
       void load();
       return;
     }
@@ -150,6 +170,12 @@ function CatalogPage() {
     }, 350);
     return () => clearTimeout(timer);
   }, [load]);
+
+  useLayoutEffect(() => {
+    if (!isFilterBusy) {
+      setResultsMinHeight(undefined);
+    }
+  }, [ads, isFilterBusy]);
 
   function resetFilters() {
     setFilters(DEFAULT_FILTERS);
@@ -225,45 +251,47 @@ function CatalogPage() {
               onOpenFilters={() => setSheetOpen(true)}
               count={ads.length}
               filterCount={activeFilterCount}
-              refreshing={isRefreshing}
+              refreshing={isFilterBusy}
             />
 
-            {/* Active filter tags */}
-            {hasAnyFilter && (
-              <div className="flex flex-wrap gap-[6px]">
-                {q && (
-                  <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />
-                )}
-                {filters.category !== "Все" && (
-                  <FilterTag
-                    label={filters.category}
-                    onRemove={() => setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))}
-                  />
-                )}
-                {filters.city && (
-                  <FilterTag
-                    label={filters.city}
-                    onRemove={() => setFilters((p) => ({ ...p, city: "", cityId: undefined }))}
-                  />
-                )}
-                {filters.status !== "Все" && (
-                  <FilterTag
-                    label={filters.status}
-                    onRemove={() => setFilters((p) => ({ ...p, status: "Все" }))}
-                  />
-                )}
-                {(activeFilterCount > 1 || (activeFilterCount === 1 && q)) && (
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="inline-flex items-center gap-[4px] text-[11.5px] font-medium transition-colors"
-                    style={{ color: "var(--accent)", padding: "0 4px" }}
-                  >
-                    <RotateCcw size={11} /> Сбросить всё
-                  </button>
-                )}
-              </div>
-            )}
+            {/* Active filter tags — fixed min-height prevents layout jump when tags appear */}
+            <div className="flex min-h-[32px] flex-wrap items-center gap-[6px]">
+              {hasAnyFilter && (
+                <>
+                  {q && (
+                    <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />
+                  )}
+                  {filters.category !== "Все" && (
+                    <FilterTag
+                      label={filters.category}
+                      onRemove={() => setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))}
+                    />
+                  )}
+                  {filters.city && (
+                    <FilterTag
+                      label={filters.city}
+                      onRemove={() => setFilters((p) => ({ ...p, city: "", cityId: undefined }))}
+                    />
+                  )}
+                  {filters.status !== "Все" && (
+                    <FilterTag
+                      label={filters.status}
+                      onRemove={() => setFilters((p) => ({ ...p, status: "Все" }))}
+                    />
+                  )}
+                  {(activeFilterCount > 1 || (activeFilterCount === 1 && q)) && (
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="inline-flex items-center gap-[4px] text-[11.5px] font-medium transition-colors"
+                      style={{ color: "var(--accent)", padding: "0 4px" }}
+                    >
+                      <RotateCcw size={11} /> Сбросить всё
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
 
             {/* Results — keep the previous grid mounted while filters refresh to avoid layout jumps */}
             <div
@@ -271,7 +299,7 @@ function CatalogPage() {
               className="relative"
               style={resultsMinHeight ? { minHeight: resultsMinHeight } : undefined}
             >
-              {isRefreshing && (
+              {isFilterBusy && (
                 <div
                   className="pointer-events-none absolute inset-0 z-[2] flex items-start justify-center rounded-[var(--r-card)] pt-[72px]"
                   style={{ background: "color-mix(in oklab, var(--background) 55%, transparent)" }}
@@ -297,7 +325,7 @@ function CatalogPage() {
 
               {loadState === "loading" && !hasLoadedOnce.current && (
                 <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                  {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                  {Array.from({ length: 12 }).map((_, i) => (
                     <CatalogCardSkeleton key={i} />
                   ))}
                 </div>
@@ -318,7 +346,7 @@ function CatalogPage() {
                 </div>
               )}
 
-              {(loadState === "ok" || isRefreshing || (loadState === "loading" && hasLoadedOnce.current)) && ads.length === 0 && !isRefreshing && (
+              {(loadState === "ok" || (loadState === "loading" && hasLoadedOnce.current)) && ads.length === 0 && !isFilterBusy && (
                 <EmptyState
                   icon={Megaphone}
                   title={hasAnyFilter ? "Ничего не найдено" : "Объявлений пока нет"}
@@ -344,7 +372,7 @@ function CatalogPage() {
                 </EmptyState>
               )}
 
-              {isRefreshing && ads.length === 0 && (
+              {isFilterBusy && ads.length === 0 && (
                 <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
                   {Array.from({ length: 8 }).map((_, i) => (
                     <CatalogCardSkeleton key={i} />
@@ -358,14 +386,14 @@ function CatalogPage() {
                     className={cn(
                       "grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5",
                       "transition-opacity duration-200",
-                      isRefreshing && "pointer-events-none opacity-[0.72]",
+                      isFilterBusy && "pointer-events-none opacity-[0.72]",
                     )}
                   >
                     {ads.map((ad) => (
                       <CatalogCard key={ad.id} ad={ad} />
                     ))}
                   </div>
-                  {hasMore && loadState === "ok" && !isRefreshing && (
+                  {hasMore && loadState === "ok" && !isFilterBusy && (
                     <div className="mt-[16px] flex justify-center">
                       <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
                         {loadingMore ? "Загружаем…" : "Показать ещё"}

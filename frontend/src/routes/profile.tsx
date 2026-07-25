@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
-  Camera, Trash2,
+  Camera, Trash2, Clock,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
@@ -17,11 +17,14 @@ import { toast } from "@/lib/toast";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
 import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
 import { LogoutButton } from "@/components/auth/LogoutButton";
-import { fetchMyListings } from "@/lib/api/listings";
+import { fetchMe } from "@/lib/api/auth";
+import { getToken } from "@/lib/api/client";
 import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
-import { fetchFriends, updateOwnProfile } from "@/lib/api/social";
-import { createConversation } from "@/lib/api/chat";
+import { fetchMyListings } from "@/lib/api/listings";
+import { fetchFriends, updateOwnProfile, syncOwnInterests, applyOwnProfilePatch } from "@/lib/api/social";
+import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
+import { openConversation } from "@/lib/api/chat";
 import { uploadMedia } from "@/lib/api/media";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,14 +34,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { prepareProfileImageFile, PROFILE_IMAGE_ACCEPT, PROFILE_COVER_MAX_BYTES } from "@/lib/profile-image";
+import { ApiError } from "@/lib/api/client";
+import { firstFieldError } from "@/lib/api/validationErrors";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),
-  beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
-  },
   component: ProfilePage,
 });
 
@@ -66,6 +75,15 @@ function ProfilePage() {
 
   useEffect(() => {
     let active = true;
+    if (!getToken()) return;
+    void fetchMe().then((me) => {
+      if (active && me) setCurrentUser(me);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     if (!currentUser?.id) return;
     setLoading(true);
     const settle = Promise.allSettled([
@@ -78,13 +96,31 @@ function ProfilePage() {
     return () => { active = false; };
   }, [currentUser?.id]);
 
+  const removePost = (id: string) => {
+    setMyPosts((prev) => prev.filter((p) => p.id !== id));
+  };
+
   const saveProfile = async (draft: User, cityId?: number) => {
-    await updateOwnProfile({
+    if (!currentUser) return;
+    const resolvedCityId = cityId ?? draft.cityId ?? null;
+    const profile = await updateOwnProfile({
       display_name: draft.name,
       bio: draft.bio ?? "",
-      city_id: cityId ?? null,
+      city_id: resolvedCityId,
     });
-    setCurrentUser({ ...currentUser, name: draft.name, bio: draft.bio, city: draft.city, interests: draft.interests });
+
+    await fetchPostCategories();
+    const interestNames = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const categoryIds = interestNames
+      .map((name) => categoryIdByName(name))
+      .filter((id): id is number => id !== undefined);
+    const interests = await syncOwnInterests(categoryIds);
+
+    setCurrentUser({
+      ...applyOwnProfilePatch(currentUser, profile),
+      city: profile.city?.name ?? draft.city,
+      interests,
+    });
   };
 
   return (
@@ -97,6 +133,7 @@ function ProfilePage() {
       communitiesOverride={myCommunities}
       loading={loading}
       onSaveProfile={saveProfile}
+      onDeletePost={removePost}
     />
   );
 }
@@ -142,16 +179,18 @@ export interface ProfileViewProps {
   /** First-load flag for own profile — shows a content skeleton instead of a false-empty flash. */
   loading?: boolean;
   isFriendInitial?: boolean;
+  friendRequestStatusInitial?: "outgoing" | "incoming" | null;
   isFollowingInitial?: boolean;
-  onToggleFriend?: (next: boolean) => void | Promise<void>;
+  onToggleFriend?: () => void | Promise<void>;
   onToggleFollow?: (next: boolean) => void | Promise<void>;
   onWrite?: () => void | Promise<void>;
   onSaveProfile?: (draft: User, cityId?: number) => void | Promise<void>;
+  onDeletePost?: (id: string) => void;
 }
 
 export function ProfileView({
   user, isOwn, stats, postsOverride, adsOverride, communitiesOverride, loading = false,
-  isFriendInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile,
+  isFriendInitial, friendRequestStatusInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile, onDeletePost,
 }: ProfileViewProps) {
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
@@ -163,11 +202,13 @@ export function ProfileView({
   const [isFriend, setIsFriend] = useState(
     isFriendInitial ?? (!isOwn && storeFriendIds.includes(user.id)),
   );
+  const [friendRequestStatus, setFriendRequestStatus] = useState(friendRequestStatusInitial ?? null);
   const [subscribed, setSubscribed] = useState(isFollowingInitial ?? false);
   const [draft, setDraft] = useState<User>(user);
 
   useEffect(() => { setDraft(user); }, [user]);
   useEffect(() => { if (isFriendInitial !== undefined) setIsFriend(isFriendInitial); }, [isFriendInitial]);
+  useEffect(() => { if (friendRequestStatusInitial !== undefined) setFriendRequestStatus(friendRequestStatusInitial); }, [friendRequestStatusInitial]);
   useEffect(() => { if (isFollowingInitial !== undefined) setSubscribed(isFollowingInitial); }, [isFollowingInitial]);
 
   const userPosts = postsOverride ?? [];
@@ -195,7 +236,7 @@ export function ProfileView({
         {/* Identity */}
         <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:gap-[24px] md:px-[32px]">
           <div
-            className="relative shrink-0"
+            className="relative shrink-0 overflow-visible"
             style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
           >
             <ProfileAvatar src={user.avatar} name={user.name} editable={isOwn} />
@@ -247,15 +288,21 @@ export function ProfileView({
                   >
                     <BadgeCheck size={14} style={{ color: "var(--success)" }} /> В друзьях
                   </Button>
+                ) : friendRequestStatus === "outgoing" ? (
+                  <Button
+                    variant="outline"
+                    disabled
+                    className="h-[40px] flex-1 rounded-[10px] disabled:opacity-100 md:flex-none"
+                  >
+                    <Clock size={14} /> Запрос отправлен
+                  </Button>
                 ) : (
                   <Button
                     onClick={async () => {
-                      setIsFriend(true);
                       try {
-                        await onToggleFriend?.(true);
+                        await onToggleFriend?.();
                         toast.success("Заявка отправлена");
                       } catch {
-                        setIsFriend(false);
                         toast.error("Не удалось отправить заявку");
                       }
                     }}
@@ -277,7 +324,7 @@ export function ProfileView({
                       return;
                     }
                     try {
-                      const dialog = await createConversation(user.numericId, currentUser.id);
+                      const dialog = await openConversation(user.numericId, currentUser.id, user.id);
                       navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
                     } catch {
                       toast.error("Не удалось открыть диалог");
@@ -337,7 +384,7 @@ export function ProfileView({
               {tab === "posts" && (
                 loading ? <ProfileTabSkeleton /> :
                 userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
-                  <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
+                  <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
                 )
               )}
               {tab === "ads" && (
@@ -479,6 +526,7 @@ export function ProfileView({
       <AnimatePresence>
         {editOpen && (
           <EditSheet
+            key="profile-edit"
             draft={draft}
             setDraft={setDraft}
             onClose={() => setEditOpen(false)}
@@ -495,7 +543,6 @@ export function ProfileView({
                 toast.error("Не удалось сохранить профиль");
               }
             }}
-
           />
         )}
       </AnimatePresence>
@@ -517,10 +564,10 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
 
   return (
     <div
-      className="sticky top-0 z-10 px-[8px] md:px-[12px]"
+      className="sticky top-0 z-10 px-[16px] py-[6px] md:px-[32px] md:py-[8px]"
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
-      <div className="flex flex-wrap">
+      <div className="flex min-h-[52px] flex-wrap items-stretch gap-[2px] md:min-h-[56px] md:gap-[6px]">
         {tabs.map(({ key, label, Icon }) => {
           const active = tab === key;
           return (
@@ -528,7 +575,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap px-[10px] py-[12px] font-display transition-colors duration-200 md:px-[14px]"
+              className="inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap rounded-[8px] px-[12px] py-[14px] font-display transition-colors duration-200 md:px-[18px] md:py-[16px]"
               style={{
                 fontSize: 14,
                 fontWeight: active ? 600 : 500,
@@ -536,7 +583,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
                 boxShadow: active ? "inset 0 -3px 0 var(--accent)" : "inset 0 -3px 0 transparent",
               }}
             >
-              <Icon size={16} aria-hidden /> {label}
+              <Icon size={17} aria-hidden /> {label}
             </button>
           );
         })}
@@ -572,9 +619,14 @@ function ProfileTabSkeleton() {
 function EditSheet({ draft, setDraft, onClose, onSave }: {
   draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: (cityId?: number) => void | Promise<void>;
 }) {
+  const isMobile = useIsMobile();
   const [newInterest, setNewInterest] = useState("");
-  const [cityId, setCityId] = useState<number | undefined>();
+  const [cityId, setCityId] = useState<number | undefined>(draft.cityId);
   const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+  useEffect(() => {
+    setCityId(draft.cityId);
+  }, [draft.cityId]);
 
   const addInterest = () => {
     if (!newInterest.trim()) return;
@@ -585,23 +637,48 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
     setDraft({ ...draft, interests: interestList.filter((x) => x !== i).join(", ") });
   };
 
+  const panelTransition = isMobile
+    ? { type: "spring" as const, stiffness: 300, damping: 35 }
+    : { duration: 0.2 };
+
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50"
+    <motion.div
+      className="fixed inset-0 z-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div
+        className="absolute inset-0"
         style={{ background: "rgba(0,0,0,0.4)" }}
         onClick={onClose}
+        aria-hidden
       />
       <motion.div
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 300, damping: 35 }}
-        className="fixed inset-x-0 bottom-0 z-50 overflow-y-auto md:inset-x-auto md:left-1/2 md:bottom-auto md:top-1/2 md:w-[560px] md:max-w-[calc(100vw-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[20px]"
-        style={{ background: "var(--background)", borderRadius: "20px 20px 0 0", maxHeight: "85vh", padding: 24, paddingBottom: "max(24px, calc(env(safe-area-inset-bottom) + 24px))", border: "1px solid var(--border)" }}
+        initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96 }}
+        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
+        exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96 }}
+        transition={panelTransition}
+        className={
+          isMobile
+            ? "absolute inset-x-0 bottom-0 overflow-y-auto"
+            : "absolute left-1/2 top-1/2 w-[560px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px]"
+        }
+        style={{
+          background: "var(--background)",
+          borderRadius: isMobile ? "20px 20px 0 0" : undefined,
+          maxHeight: "85vh",
+          padding: 24,
+          paddingBottom: "max(24px, calc(env(safe-area-inset-bottom) + 24px))",
+          border: "1px solid var(--border)",
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-edit-title"
       >
         <div className="mx-auto h-[4px] w-[36px] rounded-[2px] md:hidden" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
-        <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>Редактирование профиля</h3>
+        <h3 id="profile-edit-title" className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>Редактирование профиля</h3>
 
         <div className="mt-[20px] space-y-[20px]">
           <Field label="Имя">
@@ -656,7 +733,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
           </Button>
         </div>
       </motion.div>
-    </>
+    </motion.div>
   );
 }
 
@@ -681,29 +758,23 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
   const hasSrc = Boolean(src && src.trim());
   const currentUser = useStore(selectors.currentUser);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pickingFile, setPickingFile] = useState(false);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen]);
-
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
-      return;
+    setPickingFile(true);
+    try {
+      const prepared = await prepareProfileImageFile(file);
+      setPendingFile(prepared);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+    } finally {
+      setPickingFile(false);
     }
-    setPendingFile(file);
   };
 
   const uploadCropped = async (blob: Blob) => {
@@ -712,26 +783,37 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
     try {
       const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
       const media = await uploadMedia(file, "avatar");
-      const url = media.url ?? "";
-      setCurrentUser({ ...currentUser, avatar: url });
-      void updateOwnProfile({ avatar_media_id: media.uuid });
+      const profile = await updateOwnProfile({ avatar_media_id: media.uuid });
+      if (currentUser) {
+        setCurrentUser(applyOwnProfilePatch(currentUser, profile));
+      }
       toast.success("Фото профиля обновлено");
-    } catch {
-      toast.error("Не удалось загрузить фото");
+    } catch (err) {
+      const description =
+        err instanceof ApiError
+          ? firstFieldError(err.errors, err.message || "Проверьте формат и размер файла")
+          : err instanceof Error
+            ? err.message
+            : undefined;
+      toast.error("Не удалось загрузить фото", { description });
     } finally {
       setUploading(false);
     }
   };
 
-  const removePhoto = () => {
-    setMenuOpen(false);
-    setCurrentUser({ ...currentUser, avatar: "" });
-    void updateOwnProfile({ avatar_media_id: null });
-    toast.success("Фото удалено");
+  const removePhoto = async () => {
+    if (!currentUser) return;
+    try {
+      const profile = await updateOwnProfile({ avatar_media_id: null });
+      setCurrentUser(applyOwnProfilePatch({ ...currentUser, avatar: "" }, profile));
+      toast.success("Фото удалено");
+    } catch {
+      toast.error("Не удалось удалить фото");
+    }
   };
 
   return (
-    <div className="group relative h-[88px] w-[88px] md:h-[112px] md:w-[112px]">
+    <div className="group relative h-[88px] w-[88px] overflow-visible md:h-[112px] md:w-[112px]">
       <Avatar
         className="h-full w-full"
         style={{
@@ -751,50 +833,52 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
 
       {editable && (
         <>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
-          {/* Always-visible corner badge, not a hover-only overlay — a
-              hover reveal is undiscoverable on touch devices, which have no
-              hover state at all. */}
-          <button
-            type="button"
-            aria-label="Изменить фото"
-            onClick={() => setMenuOpen((v) => !v)}
-            disabled={uploading}
-            className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors md:h-[36px] md:w-[36px]"
-            style={{ background: "var(--accent)", color: "#fff", borderColor: "var(--background)" }}
-          >
-            <Camera size={15} />
-          </button>
-
-          {menuOpen && (
-            <div
-              ref={menuRef}
-              role="menu"
-              className="absolute left-1/2 top-full z-[60] mt-[8px] w-[190px] -translate-x-1/2 overflow-hidden rounded-[12px] border"
-              style={{ background: "var(--background-elevated)", borderColor: "var(--border)", boxShadow: "var(--shadow-float)" }}
-            >
+          <input
+            ref={fileRef}
+            type="file"
+            accept={PROFILE_IMAGE_ACCEPT}
+            className="hidden"
+            onChange={onFile}
+          />
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
               <button
-                role="menuitem"
                 type="button"
-                onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}
-                className="flex w-full items-center gap-[10px] px-[14px] py-[11px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
-                style={{ color: "var(--foreground)" }}
+                aria-label="Изменить фото"
+                disabled={uploading || pickingFile}
+                className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors md:h-[36px] md:w-[36px]"
+                style={{ background: "var(--accent)", color: "#fff", borderColor: "var(--background)" }}
               >
-                <Camera className="h-[16px] w-[16px]" /> Загрузить фото
+                <Camera size={15} />
               </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="center"
+              side="bottom"
+              sideOffset={8}
+              className="z-[200] w-[190px] overflow-hidden rounded-[12px] border p-0 shadow-[var(--shadow-float)]"
+              style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+            >
+              <DropdownMenuItem
+                className="cursor-pointer gap-[10px] rounded-none px-[14px] py-[11px] text-[13px] focus:bg-[var(--background-surface)]"
+                disabled={pickingFile}
+                onSelect={() => fileRef.current?.click()}
+              >
+                <Camera className="h-[16px] w-[16px]" />
+                {pickingFile ? "Обработка…" : "Загрузить фото"}
+              </DropdownMenuItem>
               {hasSrc && (
-                <button
-                  role="menuitem"
-                  type="button"
-                  onClick={removePhoto}
-                  className="flex w-full items-center gap-[10px] px-[14px] py-[11px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+                <DropdownMenuItem
+                  className="cursor-pointer gap-[10px] rounded-none px-[14px] py-[11px] text-[13px] focus:bg-[var(--background-surface)]"
                   style={{ color: "var(--error)" }}
+                  onSelect={removePhoto}
                 >
-                  <Trash2 className="h-[16px] w-[16px]" /> Удалить
-                </button>
+                  <Trash2 className="h-[16px] w-[16px]" />
+                  Удалить
+                </DropdownMenuItem>
               )}
-            </div>
-          )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </>
       )}
       <ImageCropDialog
@@ -805,6 +889,9 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
         title="Обрезка фото профиля"
         onCancel={() => setPendingFile(null)}
         onCropped={uploadCropped}
+        onDelete={() => {
+          if (hasSrc) removePhoto();
+        }}
       />
     </div>
   );
@@ -819,15 +906,20 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const showImg = Boolean(src && src.trim()) && !broken;
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    setBroken(false);
+  }, [src]);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Файл слишком большой", { description: "Максимум 5 МБ" });
-      return;
+    try {
+      const prepared = await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES);
+      setPendingFile(prepared);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
     }
-    setPendingFile(file);
   };
 
   const uploadCropped = async (blob: Blob) => {
@@ -836,12 +928,23 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
     try {
       const file = new File([blob], "cover.jpg", { type: "image/jpeg" });
       const media = await uploadMedia(file, "cover");
-      const url = media.url ?? "";
-      setCurrentUser({ ...currentUser, coverImage: url });
-      void updateOwnProfile({ cover_media_id: media.uuid });
+      const profile = await updateOwnProfile({ cover_media_id: media.uuid });
+      if (currentUser) {
+        const patched = applyOwnProfilePatch(currentUser, profile);
+        setCurrentUser({
+          ...patched,
+          coverImage: patched.coverImage || media.url || currentUser.coverImage,
+        });
+      }
       toast.success("Обложка обновлена");
-    } catch {
-      toast.error("Не удалось загрузить обложку");
+    } catch (err) {
+      const description =
+        err instanceof ApiError
+          ? firstFieldError(err.errors, err.message || "Проверьте формат и размер файла")
+          : err instanceof Error
+            ? err.message
+            : undefined;
+      toast.error("Не удалось загрузить обложку", { description });
     } finally {
       setUploading(false);
     }
@@ -856,7 +959,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
       )}
       {editable && (
         <>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+          <input ref={fileRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={onFile} />
           {/* Always visible — same reasoning as the avatar badge above,
               a hover-only reveal never shows up on touch. */}
           <button

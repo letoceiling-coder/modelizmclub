@@ -48,30 +48,30 @@ function Body({ value, onChange, onReset }: Props) {
         />
       </Group>
 
-      {cat && (
-        <Group title="Подкатегория">
-          <Select
-            value={value.subcategory}
-            onChange={(v) => set("subcategory", v)}
-            options={["Все", ...cat.subcategories.map((s) => s.name)]}
-          />
-        </Group>
-      )}
+      <Group title="Подкатегория">
+        <Select
+          value={value.subcategory}
+          onChange={(v) => set("subcategory", v)}
+          options={cat ? ["Все", ...cat.subcategories.map((s) => s.name)] : ["Все"]}
+          disabled={!cat}
+        />
+      </Group>
 
       <Group title="Статус">
-        <div className="grid grid-cols-3 gap-[6px]">
+        <div className="grid grid-cols-2 gap-[8px]">
           {(["Все", ...STATUSES] as const).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => set("status", s)}
-              className="text-[12px] font-medium transition-colors"
+              className="w-full text-center text-[12px] font-medium transition-colors"
               style={{
                 background: value.status === s ? "var(--accent-soft)" : "var(--background-elevated)",
                 color: value.status === s ? "var(--accent)" : "var(--foreground-70)",
                 border: `1px solid ${value.status === s ? "var(--border-accent)" : "var(--border)"}`,
                 borderRadius: "var(--r-tag)",
-                height: 36,
+                height: 34,
+                padding: "0 8px",
               }}
             >
               {s}
@@ -130,12 +130,13 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
     </div>
   );
 }
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+function Select({ value, onChange, options, disabled }: { value: string; onChange: (v: string) => void; options: string[]; disabled?: boolean }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full cursor-pointer text-[13px] outline-none"
+      disabled={disabled}
+      className="w-full cursor-pointer text-[13px] outline-none disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         background: "var(--background-elevated)",
         color: "var(--foreground)",
@@ -215,7 +216,7 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
 
 export function AdFiltersPanel(props: Props) {
   return (
-    <aside className="hidden xl:block w-[280px] shrink-0">
+    <aside className="hidden w-[280px] shrink-0 self-start xl:block">
       <div
         className="sticky top-0 overflow-y-auto pr-[4px]"
         style={{ maxHeight: "calc(100vh - var(--desktop-topbar-h) - 32px)", scrollbarWidth: "thin" }}

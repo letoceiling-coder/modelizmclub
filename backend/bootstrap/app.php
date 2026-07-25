@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureFullyVerified;
 use App\Http\Middleware\EnsureUserRole;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => EnsureUserRole::class,
+            'verified' => EnsureFullyVerified::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

@@ -92,7 +92,7 @@ export function CitySelect({ value, cityId, onChange, placeholder = "Любой 
   function openDropdown() {
     setOpen(true);
     computePosition();
-    if (!loadedRef.current && !loading) void runSearch(query);
+    if (query.trim().length >= 2 && !loadedRef.current && !loading) void runSearch(query);
   }
 
   function handleInput(v: string) {
@@ -101,6 +101,13 @@ export function CitySelect({ value, cityId, onChange, placeholder = "Любой 
     setOpen(true);
     computePosition();
     if (timerRef.current) clearTimeout(timerRef.current);
+    const trimmed = v.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      loadedRef.current = false;
+      setLoading(false);
+      return;
+    }
     timerRef.current = setTimeout(() => void runSearch(v), 300);
   }
 
@@ -186,7 +193,7 @@ export function CitySelect({ value, cityId, onChange, placeholder = "Любой 
           )}
           {!loading && results.length === 0 && (
             <div className="px-[12px] py-[10px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Ничего не найдено
+              {query.trim().length < 2 ? "Введите минимум 2 символа" : "Ничего не найдено"}
             </div>
           )}
           {grouped.map(([region, cities]) => (

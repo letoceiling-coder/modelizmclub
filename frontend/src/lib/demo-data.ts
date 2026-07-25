@@ -496,18 +496,23 @@ export interface DemoPublicProfile {
   stats: { publications: number; followers: number; following: number; rating: number };
   memberSince?: string;
   isFollowing: boolean;
+  isFriend: boolean;
+  friendRequestStatus?: "outgoing" | "incoming" | null;
 }
 
 export function demoPublicProfile(slug: string): DemoPublicProfile {
   const u =
     mockUsers.find((x) => x.slug === slug || x.id === slug) ?? mockUsers[1];
+  const friendIds = new Set(DEMO_USER.friendIds ?? []);
   return {
-    user: u,
+    user: { ...u, bio: u.bio ?? "" },
     bio: u.bio ?? "",
     city: u.city,
     stats: { publications: 12, followers: 340, following: 128, rating: 4.9 },
     memberSince: u.joinedDate,
     isFollowing: false,
+    isFriend: friendIds.has(u.id),
+    friendRequestStatus: null,
   };
 }
 

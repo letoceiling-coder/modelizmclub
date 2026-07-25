@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Listing\Http\Controllers\Api\V1\AiSuggestListingController;
 use Modules\Listing\Http\Controllers\Api\V1\BoostPackagesController;
+use Modules\Listing\Http\Controllers\Api\V1\PlacementQuoteController;
 use Modules\Listing\Http\Controllers\Api\V1\PromoteListingController;
 use Modules\Listing\Http\Controllers\Api\V1\RestoreListingController;
 use Modules\Listing\Http\Controllers\Api\V1\DestroyListingController;
@@ -23,6 +24,10 @@ Route::get('listings/{uuid}', ShowListingController::class)->where('uuid', '[0-9
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/listings', MyListingsController::class);
     Route::get('users/me/favorites', FavoriteListingsController::class);
+});
+
+Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+    Route::get('listings/placement-quote', PlacementQuoteController::class);
     Route::post('listings', StoreListingController::class);
     Route::post('listings/ai-suggest', AiSuggestListingController::class);
     Route::patch('listings/{uuid}', UpdateListingController::class);

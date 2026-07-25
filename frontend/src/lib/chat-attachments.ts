@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/api/client";
 export type ChatAttachmentKind = "image" | "video" | "file";
 
 /** Matches backend MediaUploadService LIMITS['chat'].max_size (production). */
-export const CHAT_ATTACHMENT_MAX_BYTES = 100 * 1024 * 1024;
+export const CHAT_ATTACHMENT_MAX_BYTES = 1024 * 1024 * 1024;
 
 /** Client-side cap in demo mode (no real upload). */
 export const CHAT_ATTACHMENT_DEMO_MAX_BYTES = 20 * 1024 * 1024;
@@ -84,6 +84,10 @@ export function chatAttachmentMaxBytes(): number {
 }
 
 export function formatAttachmentLimit(bytes: number): string {
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) {
+    return Number.isInteger(gb) ? `${gb} ГБ` : `${gb.toFixed(1).replace(".", ",")} ГБ`;
+  }
   const mb = bytes / (1024 * 1024);
   return Number.isInteger(mb) ? `${mb} МБ` : `${Math.round(mb)} МБ`;
 }

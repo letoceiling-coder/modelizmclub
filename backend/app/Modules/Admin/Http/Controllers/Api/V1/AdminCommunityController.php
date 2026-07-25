@@ -3,7 +3,9 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Enums\CommunityMemberRole;
 use App\Models\Community;
+use App\Models\User;
 use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -41,8 +43,22 @@ class AdminCommunityController extends Controller
         $community = Community::query()->create([
             ...$request->validated(),
             'uuid' => (string) Str::uuid(),
-            'created_by' => $request->user()->id,
+            'created_by' => $request->input('owner_user_uuid')
+                ? User::query()->where('uuid', $request->string('owner_user_uuid'))->value('id')
+                : null,
         ]);
+
+        if ($community->created_by) {
+            $community->members()->syncWithoutDetaching([
+                $community->created_by => [
+                    'role' => CommunityMemberRole::Owner->value,
+                    'joined_at' => now(),
+                ],
+            ]);
+            if ($community->members_count === 0) {
+                $community->update(['members_count' => 1]);
+            }
+        }
 
         $audit->log($request->user(), 'admin.communities.create', $community, null, $community->toArray(), $request);
 

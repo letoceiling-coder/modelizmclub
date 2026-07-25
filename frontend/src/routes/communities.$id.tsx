@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
+import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
+import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: "Сообщество — МоДелизМ" }] }),
@@ -395,13 +397,12 @@ function EventSignupModal({ event, onClose }: { event: DemoCommunityEvent | null
 
 function CommunityDetailPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
-  const [brokenCover, setBrokenCover] = useState(false);
-  const [brokenAvatar, setBrokenAvatar] = useState(false);
   const [tab, setTab] = useState<TabKey>("posts");
   const [joined, setJoined] = useState(false);
   const [members, setMembers] = useState<number>(0);
@@ -411,8 +412,6 @@ function CommunityDetailPage() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    setBrokenCover(false);
-    setBrokenAvatar(false);
     setTab("posts");
     fetchCommunity(id)
       .then((c) => {
@@ -453,11 +452,10 @@ function CommunityDetailPage() {
   const Icon = ICON_MAP[community.avatarIcon ?? "Users"] ?? Users;
   const admin = community.adminId ? userById(community.adminId) : null;
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const showCover = Boolean(community.coverImage) && !brokenCover;
-  const showAvatar = Boolean(community.avatarImage) && !brokenAvatar;
+  const isOwner = Boolean(community.isOwner);
 
   const toggleJoin = async () => {
-    if (busy) return;
+    if (busy || isOwner) return;
     setBusy(true);
     const next = !joined;
     // optimistic
@@ -484,32 +482,12 @@ function CommunityDetailPage() {
       <div className="space-y-[16px]">
         {/* Hero: cover + avatar + identity + actions */}
         <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}>
-          <div className="relative">
-            {showCover ? (
-              <img
-                src={community.coverImage} alt="" className="w-full object-cover"
-                style={{ height: "min(220px, 38vw)" }} onError={() => setBrokenCover(true)}
-              />
-            ) : (
-              <div className="relative w-full overflow-hidden" style={{ height: 200, background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}>
-                <div className="absolute inset-0 grid place-items-center opacity-25">
-                  <Icon size={90} color="#fff" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
-            <div className="-mt-[36px] flex items-end gap-[12px]">
-              <div className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden sm:h-[88px] sm:w-[88px]" style={{ background: "var(--background)", border: "4px solid var(--background)", borderRadius: 18 }}>
-                {showAvatar ? (
-                  <img src={community.avatarImage} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
-                ) : (
-                  <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
-                    <Icon size={34} style={{ color: "var(--accent)" }} />
-                  </div>
-                )}
-              </div>
+          <CommunityBrandingHeader
+            community={community}
+            Icon={Icon}
+            editable={isOwner}
+            onUpdated={setCommunity}
+            titleSlot={(
               <div className="min-w-0 flex-1 pb-[6px]">
                 <span className="inline-block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
                   {community.category}
@@ -518,14 +496,24 @@ function CommunityDetailPage() {
                   {community.name}
                 </h1>
               </div>
-            </div>
+            )}
+          />
 
+          <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
             <div className="mt-[12px] flex flex-wrap items-center gap-x-[16px] gap-y-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
               <span className="inline-flex items-center gap-[6px]">
                 <Users size={14} />
                 <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{members.toLocaleString("ru")}</span> участников</span>
               </span>
-              {joined && (
+              {isOwner && (
+                <span
+                  className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  <Check size={13} /> Вы — владелец
+                </span>
+              )}
+              {!isOwner && joined && (
                 <span className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold" style={{ background: "var(--success-soft, var(--accent-soft))", color: "var(--success, var(--accent))" }}>
                   <Check size={13} /> Вы подписаны
                 </span>
@@ -538,15 +526,35 @@ function CommunityDetailPage() {
 
             {/* CTA row */}
             <div className="mt-[16px] flex flex-col gap-[8px] sm:flex-row sm:flex-wrap">
-              <Button
-                onClick={toggleJoin}
-                disabled={busy}
-                variant={joined ? "outline" : "default"}
-                size="lg"
-                className="w-full gap-[8px] rounded-[12px] sm:w-auto"
-              >
-                {joined ? <><Check size={16} /> Вы подписаны</> : <><Plus size={16} /> Подписаться</>}
-              </Button>
+              {!isOwner && (
+                <Button
+                  onClick={toggleJoin}
+                  disabled={busy}
+                  variant={joined ? "outline" : "default"}
+                  size="lg"
+                  className="w-full gap-[8px] rounded-[12px] sm:w-auto"
+                >
+                  {joined ? <><Check size={16} /> Вы подписаны</> : <><Plus size={16} /> Подписаться</>}
+                </Button>
+              )}
+              {isOwner && (
+                <div
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-5 text-[13px] font-semibold sm:w-auto"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  <Check size={16} /> Вы — владелец сообщества
+                </div>
+              )}
+              {isOwner && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full gap-[8px] rounded-[12px] sm:w-auto"
+                  onClick={() => setTab("about")}
+                >
+                  Управление
+                </Button>
+              )}
               {community.allowSubmitPost && (
                 <Button onClick={() => setSubmitOpen(true)} variant="outline" size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
                   <FilePlus size={16} /> Предложить проект
@@ -658,6 +666,26 @@ function CommunityDetailPage() {
             <div className="xl:hidden">
               <ContactsBlock contacts={community.contacts} />
             </div>
+            {isOwner && (
+              <Card
+                className="px-[16px] py-[20px] shadow-none sm:px-[24px]"
+                style={{ background: "var(--background)", borderColor: "rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}
+              >
+                <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  Управление сообществом
+                </h2>
+                <p className="mt-[8px] text-[14px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
+                  Удаление необратимо: сообщество исчезнет из поиска и списков для всех пользователей.
+                </p>
+                <div className="mt-[16px]">
+                  <DeleteCommunityDialog
+                    slug={community.id}
+                    name={community.name}
+                    onDeleted={() => navigate({ to: "/communities" })}
+                  />
+                </div>
+              </Card>
+            )}
           </div>
         )}
 

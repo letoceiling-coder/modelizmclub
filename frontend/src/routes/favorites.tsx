@@ -13,10 +13,6 @@ import type { Ad } from "@/lib/mock";
 
 export const Route = createFileRoute("/favorites")({
   head: () => ({ meta: [{ title: "Избранное — МоДелизМ" }] }),
-  beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
-  },
   component: FavoritesPage,
 });
 

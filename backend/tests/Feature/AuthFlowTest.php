@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\EmailVerificationCode;
+use App\Models\PostCategory;
 use App\Models\User;
+use App\Models\UserProfile;
 use App\Enums\UserStatus;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,6 +65,34 @@ class AuthFlowTest extends TestCase
             ->assertOk();
     }
 
+    public function test_auth_me_includes_profile_avatar_city_and_interests(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+        UserProfile::create([
+            'user_id' => $user->id,
+            'display_name' => 'Profile User',
+            'slug' => 'profile-user',
+            'bio' => 'Builder',
+        ]);
+
+        $category = PostCategory::create([
+            'name' => 'Aviation',
+            'slug' => 'aviation',
+            'sort_order' => 1,
+            'is_active' => true,
+            'depth' => 0,
+            'path' => 'aviation',
+        ]);
+        $user->interests()->sync([$category->id]);
+
+        $token = $user->createToken('api')->plainTextToken;
+
+        $this->getJson('/api/v1/auth/me', ['Authorization' => 'Bearer '.$token])
+            ->assertOk()
+            ->assertJsonPath('data.profile.display_name', 'Profile User')
+            ->assertJsonPath('data.interests.0.slug', 'aviation');
+    }
+
     public function test_password_reset_allows_login_with_new_password(): void
     {
         $user = User::factory()->create([
@@ -95,6 +125,58 @@ class AuthFlowTest extends TestCase
             'password' => 'OldPassword123!',
         ])
             ->assertStatus(422);
+    }
+
+    public function test_register_rejects_invalid_display_name_and_email(): void
+    {
+        $this->postJson('/api/v1/auth/register', [
+            'email' => 'not-an-email',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'registration_track' => 'community',
+            'display_name' => 'Иван123',
+        ])->assertStatus(422)->assertJsonValidationErrors(['email', 'display_name']);
+
+        $this->postJson('/api/v1/auth/register', [
+            'email' => 'valid@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'registration_track' => 'community',
+            'display_name' => 'А',
+        ])->assertStatus(422)->assertJsonValidationErrors(['display_name']);
+    }
+
+    public function test_password_reset_verifies_pending_user_and_allows_login(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'pending-reset@example.com',
+            'status' => UserStatus::PendingVerification,
+            'email_verified_at' => null,
+            'password' => 'OldPassword123!',
+        ]);
+
+        $token = Password::createToken($user);
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => 'pending-reset@example.com',
+            'token' => $token,
+            'password' => 'NewPassword999!',
+            'password_confirmation' => 'NewPassword999!',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.email_verified', true);
+
+        $user->refresh();
+        $this->assertSame(UserStatus::Active, $user->status);
+        $this->assertNotNull($user->email_verified_at);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'pending-reset@example.com',
+            'password' => 'NewPassword999!',
+        ])
+            ->assertOk()
+            ->assertJsonStructure(['meta' => ['token']]);
     }
 
     public function test_consent_requires_authentication(): void

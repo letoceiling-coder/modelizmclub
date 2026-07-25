@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
 
 export const Route = createFileRoute("/channels/")({
   head: () => ({
@@ -147,13 +148,15 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
   };
   return (
     <li>
-      <Link
-        to="/channel/$id"
-        params={{ id: c.id }}
-        className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-[var(--background-surface)]"
+      <div
+        className="flex h-full flex-col gap-3 p-4"
         style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)", display: "flex" }}
       >
-        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
+        <Link
+          to="/channel/$id"
+          params={{ id: c.id }}
+          className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 transition-colors hover:opacity-90"
+        >
           <div
             className="grid h-12 w-12 shrink-0 place-items-center font-display text-[18px] font-bold text-white"
             style={{ background: c.avatarColor, borderRadius: 12 }}
@@ -185,16 +188,30 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
               </span>
             </div>
           </div>
+        </Link>
+        <div className="mt-auto flex items-center gap-2">
+          {c.isOwner ? (
+            <>
+              <div
+                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-semibold"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+              >
+                <Check size={14} /> Вы — владелец
+              </div>
+              <DeleteChannelDialog slug={c.slug} name={c.name} onDeleted={onChanged} compact />
+            </>
+          ) : (
+            <Button
+              variant={subscribed ? "outline" : "default"}
+              onClick={onToggle}
+              className="w-full rounded-[10px]"
+              size="sm"
+            >
+              {subscribed ? (<><Check size={14} /> Вы подписаны</>) : "Подписаться"}
+            </Button>
+          )}
         </div>
-        <Button
-          variant={subscribed ? "outline" : "default"}
-          onClick={onToggle}
-          className="mt-auto w-full rounded-[10px]"
-          size="sm"
-        >
-          {subscribed ? (<><Check size={14} /> Вы подписаны</>) : "Подписаться"}
-        </Button>
-      </Link>
+      </div>
     </li>
   );
 }

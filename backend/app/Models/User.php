@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Auth\Notifications\ResetPasswordNotification;
 use Spatie\Permission\Traits\HasRoles;
@@ -61,6 +62,15 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'registration_track' => RegistrationTrack::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            if ($user->isDirty('email') && is_string($user->email)) {
+                $user->email = Str::lower(trim($user->email));
+            }
+        });
     }
 
     public function sendPasswordResetNotification($token): void

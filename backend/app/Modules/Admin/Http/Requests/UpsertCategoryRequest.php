@@ -20,6 +20,8 @@ class UpsertCategoryRequest extends FormRequest
             'icon' => ['nullable', 'string', 'max:64'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+            'listing_price_cents' => ['nullable', 'integer', 'min:0'],
+            'subscriber_listing_price_cents' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

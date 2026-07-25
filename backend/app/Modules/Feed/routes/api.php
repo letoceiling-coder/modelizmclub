@@ -20,7 +20,7 @@ Route::get('posts/{uuid}', ShowPostController::class);
 Route::get('posts/{uuid}/comments', [PostCommentsController::class, 'index']);
 Route::get('comments/{uuid}/thread', CommentThreadController::class);
 
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('posts', StorePostController::class);
     Route::patch('posts/{uuid}', UpdatePostController::class);
     Route::delete('posts/{uuid}', DestroyPostController::class);

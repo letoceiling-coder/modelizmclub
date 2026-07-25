@@ -4,7 +4,10 @@ namespace Modules\Admin\Services;
 
 use App\Enums\CommunityStatus;
 use App\Enums\ContentStatus;
+use App\Enums\ListingStatus;
+use App\Models\ChannelPost;
 use App\Models\Community;
+use App\Models\Listing;
 use App\Models\ModerationAction;
 use App\Models\ModerationQueue;
 use App\Models\Post;
@@ -14,13 +17,17 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Modules\Admin\Support\ModeratableResolver;
+use Modules\Channel\Services\ChannelPostService;
 use Modules\Feed\Services\PostService;
+use Modules\Listing\Services\ListingService;
 
 class ModerationService
 {
     public function __construct(
         private readonly ModeratableResolver $resolver,
         private readonly PostService $posts,
+        private readonly ListingService $listings,
+        private readonly ChannelPostService $channelPosts,
     ) {}
 
     public function queue(?string $status = null, ?string $queue = null, int $perPage = 20): LengthAwarePaginator
@@ -41,6 +48,8 @@ class ModerationService
 
             if ($model instanceof Post) {
                 $this->posts->markPublished($model);
+            } elseif ($model instanceof Listing) {
+                $this->listings->markPublished($model);
             } elseif ($model instanceof Community) {
                 $model->update([
                     'status' => CommunityStatus::Active,
@@ -53,6 +62,8 @@ class ModerationService
                     'published_at' => $model->published_at ?? now(),
                 ]);
                 $this->updateQueue($model, 'approved');
+            } elseif ($model instanceof ChannelPost) {
+                $model = $this->channelPosts->publish($model);
             }
 
             $this->logAction($model, $actor, 'approve');
@@ -68,13 +79,19 @@ class ModerationService
 
             if ($model instanceof Post) {
                 $model->update(['status' => ContentStatus::Rejected]);
+            } elseif ($model instanceof Listing) {
+                $model->update(['status' => ListingStatus::Rejected]);
             } elseif ($model instanceof Community) {
                 $model->update(['status' => CommunityStatus::Blocked]);
             } elseif ($model instanceof Video) {
                 $model->update(['status' => 'rejected']);
+            } elseif ($model instanceof ChannelPost) {
+                $model = $this->channelPosts->reject($model, $reason);
             }
 
-            $this->updateQueue($model, 'rejected');
+            if (! $model instanceof ChannelPost) {
+                $this->updateQueue($model, 'rejected');
+            }
             $this->logAction($model, $actor, 'reject', $reason);
 
             return $model->fresh();
@@ -88,6 +105,8 @@ class ModerationService
 
             if ($model instanceof Post) {
                 $model->update(['status' => ContentStatus::Revision]);
+            } elseif ($model instanceof Listing) {
+                $model->update(['status' => ListingStatus::Revision]);
             } elseif ($model instanceof Video) {
                 $model->update(['status' => 'processing']);
             }

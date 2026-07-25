@@ -17,12 +17,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 interface Props {
   post: Post;
   onTogglePost?: (id: string, patch: Partial<Post>) => void;
   isSavedExternal?: boolean;
   onToggleSave?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 /** Avatar with initials fallback when the image fails to load or src is empty */
@@ -56,9 +58,31 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   );
 }
 
-/** Media block: fixed 16:9 aspect ratio, object-fit cover. A broken/missing
- *  image degrades to a COMPACT placeholder bar (not a half-screen empty block). */
-function PostMedia({ src, alt }: { src: string; alt: string }) {
+/** Media block: image or video with compact fallback on load failure. */
+function PostMediaBlock({ post }: { post: Post }) {
+  if (post.video) {
+    return (
+      <div className="aspect-video overflow-hidden bg-black">
+        <video
+          src={post.video}
+          controls
+          preload="metadata"
+          playsInline
+          className="h-full w-full object-contain"
+        />
+      </div>
+    );
+  }
+
+  if (post.image) {
+    return <PostImage src={post.image} alt={post.title} />;
+  }
+
+  return null;
+}
+
+/** Fixed 16:9 image; broken/missing URLs show a compact placeholder bar. */
+function PostImage({ src, alt }: { src: string; alt: string }) {
   const [err, setErr] = useState(false);
   if (err) {
     return (
@@ -90,10 +114,12 @@ function PostMedia({ src, alt }: { src: string; alt: string }) {
 const actionCls =
   "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]";
 
-export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
+export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogglePost }: Props) {
   const me = useStore(selectors.currentUser);
   const author = userById(post.authorId);
   const reposter = post.repostedBy ? userById(post.repostedBy) : null;
+  const isStaff = me.role === "admin" || me.role === "moderator" || !!me.isAdmin;
+  const canDelete = post.canDelete || post.authorId === me.id || isStaff;
 
   const [liked, setLiked] = useState(!!post.isLiked);
   const [savedInner, setSavedInner] = useState(!!post.isSaved);
@@ -108,6 +134,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
   const [reposts, setReposts] = useState(post.reposts ?? 0);
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const { guardAction } = useGuestAccess();
 
   useEffect(() => {
     if (!commentsOpen || commentsLoaded) return;
@@ -134,27 +161,33 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
 
   const toggleLike = () => {
-    const next = !liked;
-    setLiked(next);
-    setLikes((n) => n + (next ? 1 : -1));
-    reactToPost(post.id, next).catch(() => {
-      setLiked(!next);
-      setLikes((n) => n + (next ? -1 : 1));
+    guardAction("feed.post.like", () => {
+      const next = !liked;
+      setLiked(next);
+      setLikes((n) => n + (next ? 1 : -1));
+      reactToPost(post.id, next).catch(() => {
+        setLiked(!next);
+        setLikes((n) => n + (next ? -1 : 1));
+      });
     });
   };
   const toggleSave = () => {
-    const next = !saved;
-    if (onToggleSave) onToggleSave(post.id);
-    else setSavedInner((v) => !v);
-    setSaves((n) => n + (next ? 1 : -1));
-    bookmarkPost(post.id, next).catch(() => {
-      if (!onToggleSave) setSavedInner((v) => !v);
-      setSaves((n) => n + (next ? -1 : 1));
+    guardAction("feed.post.save", () => {
+      const next = !saved;
+      if (onToggleSave) onToggleSave(post.id);
+      else setSavedInner((v) => !v);
+      setSaves((n) => n + (next ? 1 : -1));
+      bookmarkPost(post.id, next).catch(() => {
+        if (!onToggleSave) setSavedInner((v) => !v);
+        setSaves((n) => n + (next ? -1 : 1));
+      });
     });
   };
   const toggleRepost = () => {
-    setReposted((v) => !v);
-    setReposts((n) => n + (reposted ? -1 : 1));
+    guardAction("feed.post.repost", () => {
+      setReposted((v) => !v);
+      setReposts((n) => n + (reposted ? -1 : 1));
+    });
   };
 
   const addComment = (text: string, parentId?: string) => {
@@ -242,7 +275,17 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
               )}
             </div>
           </div>
-          <PostActionMenu postId={post.id} saved={saved} title={post.title} text={post.text} />
+          <PostActionMenu
+            postId={post.id}
+            saved={saved}
+            title={post.title}
+            text={post.text}
+            status={post.status}
+            canDelete={canDelete}
+            isStaff={isStaff}
+            onDeleted={() => onDelete?.(post.id)}
+            onApproved={() => onTogglePost?.(post.id, { status: "published" })}
+          />
         </header>
 
         {/* Content */}
@@ -292,14 +335,13 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
         </div>
 
         {/* Media */}
-        {post.image && <PostMedia src={post.image} alt={post.title} />}
+        {(post.video || post.image) && <PostMediaBlock post={post} />}
 
         {/* Footer actions */}
         <footer
           className="flex items-center gap-[2px] px-[8px] pb-[8px] pt-[4px]"
           style={{ color: "var(--foreground-70)" }}
         >
-          {/* Like */}
           <button
             onClick={toggleLike}
             className={actionCls}
@@ -328,9 +370,8 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             </AnimatePresence>
           </button>
 
-          {/* Comments */}
           <button
-            onClick={() => setCommentsOpen((v) => !v)}
+            onClick={() => guardAction("feed.post.comment", () => setCommentsOpen((v) => !v))}
             className={actionCls}
             style={{ color: commentsOpen ? "var(--accent)" : "var(--foreground-70)" }}
             aria-label="Комментарии"
@@ -339,10 +380,8 @@ export function PostCard({ post, isSavedExternal, onToggleSave }: Props) {
             <span className="tabular-nums">{commentsCount}</span>
           </button>
 
-          {/* Repost */}
           <RepostMenu postId={post.id} reposted={reposted} count={reposts} onRepost={toggleRepost} />
 
-          {/* Save */}
           <button
             onClick={toggleSave}
             className={actionCls}

@@ -43,6 +43,10 @@ class PostPolicy
                 ContentStatus::Draft,
                 ContentStatus::Revision,
                 ContentStatus::Published,
+                ContentStatus::PendingModeration,
+                ContentStatus::Rejected,
+                ContentStatus::Hidden,
+                ContentStatus::Archived,
             ], true);
         }
 

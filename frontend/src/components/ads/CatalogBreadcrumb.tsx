@@ -16,7 +16,7 @@ export function CatalogBreadcrumb({ category, subcategory, onResetToRoot, onRese
   );
 
   return (
-    <nav className="flex items-center gap-[6px] text-[12px]" aria-label="Хлебные крошки">
+    <nav className="flex min-h-[20px] items-center gap-[6px] text-[12px]" aria-label="Хлебные крошки">
       {/* root */}
       {hasCategory ? (
         <button

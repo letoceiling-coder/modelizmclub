@@ -28,6 +28,7 @@ class OAuthService
             $user = $linked->user;
             $linked->update(['token' => $this->tokenPayload($socialUser)]);
             $this->ensureActiveUser($user);
+            $this->syncProfileFromOAuth($user, $socialUser);
 
             return $this->tokenResponse($user);
         }
@@ -39,6 +40,7 @@ class OAuthService
             if ($existing) {
                 $this->linkAccount($existing, $provider, $providerUserId, $socialUser);
                 $this->ensureActiveUser($existing);
+                $this->syncProfileFromOAuth($existing, $socialUser);
 
                 return $this->tokenResponse($existing);
             }
@@ -50,17 +52,20 @@ class OAuthService
             $user = User::create([
                 'name' => $name,
                 'email' => $email !== '' ? $email : $this->syntheticEmail($provider, $providerUserId),
+                'phone' => $this->extractPhone($socialUser),
                 'password' => Str::password(32),
                 'role' => UserRole::User,
                 'status' => UserStatus::Active,
                 'registration_track' => RegistrationTrack::Social,
                 'email_verified_at' => $email !== '' ? now() : null,
+                'phone_verified_at' => null,
             ]);
 
             $user->ensureReferralCode();
             $this->createProfile($user, $name);
             $user->assignRole('user');
             $this->linkAccount($user, $provider, $providerUserId, $socialUser);
+            $this->syncProfileFromOAuth($user, $socialUser);
 
             return $this->tokenResponse($user);
         });
@@ -116,6 +121,56 @@ class OAuthService
     private function syntheticEmail(string $provider, string $providerUserId): string
     {
         return "{$provider}_{$providerUserId}@oauth.modelizmclub.local";
+    }
+
+    private function syncProfileFromOAuth(User $user, SocialiteUser $socialUser): void
+    {
+        $phone = $this->extractPhone($socialUser);
+        if ($phone === null) {
+            return;
+        }
+
+        if (filled($user->phone) && $user->phone === $phone) {
+            return;
+        }
+
+        if (filled($user->phone)) {
+            return;
+        }
+
+        $user->forceFill([
+            'phone' => $phone,
+        ])->save();
+    }
+
+    private function extractPhone(SocialiteUser $socialUser): ?string
+    {
+        $raw = $socialUser->getRaw();
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $phone = $raw['phone']
+            ?? ($raw['default_phone']['number'] ?? null)
+            ?? (is_string($raw['default_phone'] ?? null) ? $raw['default_phone'] : null);
+
+        if (! is_string($phone) || trim($phone) === '') {
+            return null;
+        }
+
+        return $this->normalizePhone($phone);
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        if (str_starts_with($digits, '8') && strlen($digits) === 11) {
+            $digits = '7'.substr($digits, 1);
+        } elseif (strlen($digits) === 10) {
+            $digits = '7'.$digits;
+        }
+
+        return $digits !== '' ? '+'.$digits : trim($phone);
     }
 
     /** @return array<string, mixed> */

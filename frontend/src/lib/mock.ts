@@ -9,6 +9,8 @@ export interface User {
   slug?: string;
   name: string;
   city: string;
+  /** Numeric city id from the server — used when saving profile without re-selecting city. */
+  cityId?: number;
   interests: string;
   avatar: string;
   email?: string;
@@ -19,6 +21,7 @@ export interface User {
   joinedDate?: string;
   friendIds?: ID[];
   online?: boolean;
+  lastSeenAt?: string;
   isAdmin?: boolean;
   firstHundred?: boolean;
   /** Server-only fields carried through from ApiUser for settings.account.tsx
@@ -31,6 +34,7 @@ export interface User {
     website_url?: string | null;
   } | null;
   email_verified?: boolean;
+  phone_verified?: boolean;
   /** Server role — drives the /admin RBAC gate (Task 2) and moderator-scoped
    *  dashboard (Task 3). Undefined in most demo-mode contexts; the gate
    *  falls back to `isAdmin` there (see Task 2). */
@@ -92,6 +96,7 @@ export interface Post {
   text: string;
   image?: string;
   images?: string[];
+  video?: string;
   tags?: string[];
   views?: number;
   likes: number;
@@ -99,6 +104,7 @@ export interface Post {
   saves?: number;
   reposts?: number;
   status?: "published" | "moderation";
+  canDelete?: boolean;
   isFollowing?: boolean;
   isLiked?: boolean;
   isSaved?: boolean;
@@ -187,6 +193,7 @@ export interface Community {
   postIds?: ID[];
   contacts?: CommunityContacts;
   allowSubmitPost?: boolean;
+  isOwner?: boolean;
 }
 
 export interface Banner {

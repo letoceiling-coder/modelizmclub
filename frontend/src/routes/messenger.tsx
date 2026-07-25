@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
-  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff, ImagePlus,
+  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
@@ -11,13 +11,15 @@ import type { Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
   setDialogs, setDialogMessages, replaceMessage, upsertMessage,
-  GUEST_USER, getState,
+  GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog,
+  openOrCreateDialogWith,
 } from "@/lib/store";
 import {
-  fetchConversations, fetchMessages, sendMessage as apiSendMessage,
+  fetchConversations, fetchMessages, openConversation, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
   uploadChatAttachment, sendAttachmentMessage,
-  hideMessageForMe, pinMessage as apiPinMessage, deleteConversation,
+  hideMessageForMe, pinMessage as apiPinMessage, deleteConversation, clearConversationHistory,
+  deleteMessageForEveryone,
 } from "@/lib/api/chat";
 import { chatAttachmentTooLargeMessage, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -25,9 +27,13 @@ import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
+import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
+import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
+import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
@@ -50,8 +56,8 @@ import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
+    const { requireVerified } = await import("@/lib/auth/verification");
+    await requireVerified(location);
   },
   validateSearch: (search: Record<string, unknown>): { chat?: string } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
@@ -235,7 +241,8 @@ function MessageImage({
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onReport, onMediaResize,
+  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onDeleteForEveryone, onReport, onMediaResize,
+  searchHighlightId, searchQuery,
 }: {
   msg: Message; prev?: Message; allMessages: Message[];
   onReply: (m: Message) => void;
@@ -243,8 +250,11 @@ function MessageBubble({
   onForward: (m: Message) => void;
   onPin: (m: Message) => void;
   onDelete: (m: Message) => void;
+  onDeleteForEveryone: (m: Message) => void;
   onReport: (m: Message) => void;
   onMediaResize?: () => void;
+  searchHighlightId?: string | null;
+  searchQuery?: string;
 }) {
   const meId = useStore((s) => s.currentUserId);
   const isMe = msg.authorId === meId;
@@ -254,6 +264,7 @@ function MessageBubble({
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
   const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
+  const isSearchHit = searchHighlightId === msg.id;
 
   const menuRef = useRef<MessageActionsMenuHandle>(null);
   const touchTimer = useRef<number | null>(null);
@@ -283,6 +294,10 @@ function MessageBubble({
       <div
         className="relative max-w-[82%] sm:max-w-[70%]"
         data-msg-id={msg.id}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          menuRef.current?.open();
+        }}
         onTouchStart={startLongPress}
         onTouchEnd={cancelLongPress}
         onTouchMove={cancelLongPress}
@@ -301,15 +316,17 @@ function MessageBubble({
             onForward={() => onForward(msg)}
             onPin={() => onPin(msg)}
             onDelete={() => onDelete(msg)}
+            onDeleteForEveryone={() => onDeleteForEveryone(msg)}
             onReport={() => onReport(msg)}
           />
         </div>
         <div
-          className="px-[14px] py-[10px]"
+          className="px-[14px] py-[10px] transition-shadow duration-300"
           style={{
             background: isMe ? "var(--accent)" : "var(--background-surface)",
             color: isMe ? "white" : "var(--foreground)",
             borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+            boxShadow: isSearchHit ? "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent)" : undefined,
           }}
         >
           {forwardedAuthor && (
@@ -343,7 +360,19 @@ function MessageBubble({
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} onResize={onMediaResize} />}
           {msg.text && (
             <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
-              {msg.text}
+              {isSearchHit && searchQuery ? (
+                <HighlightedText
+                  text={msg.text}
+                  query={searchQuery}
+                  matchClassName={
+                    isMe
+                      ? "rounded-[3px] bg-[#ffe066] px-[1px] text-[#1a1a1a]"
+                      : "rounded-[3px] bg-[var(--accent-soft)] px-[1px] text-[inherit]"
+                  }
+                />
+              ) : (
+                msg.text
+              )}
             </div>
           )}
           <div
@@ -367,6 +396,11 @@ function MessengerPage() {
   const dialogAdRefs = useStore((s) => s.dialogAdRefs);
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
+  const [presenceTick, setPresenceTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setPresenceTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
   const { chat } = Route.useSearch();
   const navigate = useNavigate();
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
@@ -378,8 +412,12 @@ function MessengerPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
+  const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null);
+  const [searchHighlightQuery, setSearchHighlightQuery] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesContentRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const stickToBottomRef = useRef(true);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
@@ -396,6 +434,7 @@ function MessengerPage() {
 
 
   // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
+  // Value is normally a conversation uuid; legacy links may pass a user uuid.
   // Deps include `dlgs`, whose reference changes on every store dispatch
   // (useStore's snapshot memo), not just when dialogs actually change — so
   // this can re-fire for unrelated updates while `chat` is still set to a
@@ -404,13 +443,56 @@ function MessengerPage() {
   // dialog that's been locally deleted.
   useEffect(() => {
     if (!chat) return;
-    const dlg = dlgs.find((d) => d.id === chat);
-    if (!dlg) return;
-    if (dialogMetaMap[chat]?.deletedLocally) return;
-    setActiveId(chat);
-    setMobileView("chat");
-    if (dlg.unread) actions.markRead(chat);
-  }, [chat, dlgs, dialogMetaMap]);
+
+    const selectDialog = (dialogId: string, dlg: (typeof dlgs)[number]) => {
+      if (dialogMetaMap[dialogId]?.deletedLocally) restoreDialog(dlg);
+      setActiveId(dialogId);
+      setMobileView("chat");
+      if (dlg.unread) actions.markRead(dialogId);
+    };
+
+    const byConversation = dlgs.find((d) => d.id === chat);
+    if (byConversation) {
+      selectDialog(chat, byConversation);
+      return;
+    }
+
+    const byPartner = dlgs.find((d) => d.userId === chat);
+    if (byPartner) {
+      selectDialog(byPartner.id, byPartner);
+      void navigate({ to: "/messenger", search: { chat: byPartner.id }, replace: true });
+      return;
+    }
+
+    if (loading || meId === GUEST_USER.id) return;
+
+    const partner = userById(chat);
+    if (!isDemoMode() && !partner.numericId) return;
+
+    let alive = true;
+    void (async () => {
+      try {
+        if (isDemoMode()) {
+          const dialogId = openOrCreateDialogWith(partner.id);
+          const dlg = getState().dialogs[dialogId];
+          if (!alive || !dlg) return;
+          selectDialog(dialogId, dlg);
+          void navigate({ to: "/messenger", search: { chat: dialogId }, replace: true });
+          return;
+        }
+        const dialog = await openConversation(partner.numericId!, meId, partner.id);
+        if (!alive) return;
+        selectDialog(dialog.id, dialog);
+        void navigate({ to: "/messenger", search: { chat: dialog.id }, replace: true });
+      } catch {
+        if (alive) toast.error("Не удалось открыть диалог");
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [chat, dlgs, dialogMetaMap, loading, meId, navigate]);
 
   useEffect(() => {
     let alive = true;
@@ -432,17 +514,21 @@ function MessengerPage() {
     return () => setWatchingDialog(null);
   }, [activeId]);
 
-  // Poll dialog list only when WebSocket is down.
+  useEffect(() => {
+    if (!activeId) return;
+    actions.markRead(activeId);
+  }, [activeId]);
+
+  // Refresh dialog list for unread counts and partner presence (last_seen_at).
   useEffect(() => {
     if (meId === GUEST_USER.id) return;
     const tick = () => {
-      if (isEchoConnected()) return;
       fetchConversations(meId)
         .then((list) => setDialogs(list))
         .catch(() => {});
     };
     tick();
-    const interval = window.setInterval(tick, 20_000);
+    const interval = window.setInterval(tick, isEchoConnected() ? 45_000 : 20_000);
     const unsubConn = onEchoConnection((connected) => {
       if (connected) tick();
     });
@@ -477,34 +563,16 @@ function MessengerPage() {
     return () => { alive = false; };
   }, [activeId]);
 
-  // Poll messages only when WebSocket is down (open chat fallback).
-  useEffect(() => {
-    if (!activeId) return;
-    const id = activeId;
-    const tick = () => {
-      if (isEchoConnected()) return;
-      if (getState().pendingDialogMessages[id]) return; // avoid clobbering while the delivery-choice flush (other effect) is in flight
-      fetchMessages(id)
-        .then((msgs) => setDialogMessages(id, msgs))
-        .catch(() => {});
-    };
-    tick();
-    const interval = window.setInterval(tick, 12_000);
-    const unsubConn = onEchoConnection((connected) => {
-      if (connected) tick();
-    });
-    return () => {
-      window.clearInterval(interval);
-      unsubConn();
-    };
-  }, [activeId]);
-
   useEffect(() => {
     if (!activeId || meId === GUEST_USER.id) {
       setHubConversation(null);
       return;
     }
-    setHubConversation(activeId, (m) => upsertMessage(activeId, m));
+    setHubConversation(
+      activeId,
+      (m) => upsertMessage(activeId, m),
+      (messageUuid) => actions.removeMessage(activeId, messageUuid),
+    );
     return () => setHubConversation(null);
   }, [activeId, meId]);
 
@@ -512,12 +580,59 @@ function MessengerPage() {
   const partner = active ? userById(active.userId) : null;
   const activeAdRef = activeId ? dialogAdRefs[activeId] : undefined;
 
+  // Upgrade sent → delivered when partner is online (realtime, before next API poll).
+  useEffect(() => {
+    if (!activeId || !partner) return;
+    if (isUserOnline(partner.id, onlineSet, partner)) {
+      markOwnMessagesDelivered(activeId);
+    }
+  }, [activeId, partner, onlineSet, presenceTick]);
+
+  // Sync delivery/read ticks while chat is open (WebSocket carries new messages, not status changes).
+  useEffect(() => {
+    if (!activeId || meId === GUEST_USER.id) return;
+    const id = activeId;
+    const syncStatuses = () => {
+      fetchMessages(id)
+        .then((msgs) => setDialogMessages(id, msgs))
+        .catch(() => {});
+    };
+    syncStatuses();
+    const interval = window.setInterval(syncStatuses, isEchoConnected() ? 20_000 : 10_000);
+    return () => window.clearInterval(interval);
+  }, [activeId, meId]);
+
   const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
 
-  const scrollToMessage = (id: string) => {
+  const scrollToMessage = useCallback((id: string, attempt = 0) => {
     const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${id}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (attempt < 8) {
+      window.setTimeout(() => scrollToMessage(id, attempt + 1), 60);
+    }
+  }, []);
+
+  const handleSearchJump = (messageId: string, query: string) => {
+    setSearchHighlightId(messageId);
+    setSearchHighlightQuery(query);
+    setChatSearchOpen(false);
+    window.setTimeout(() => scrollToMessage(messageId), 80);
   };
+
+  useEffect(() => {
+    if (!searchHighlightId) return;
+    const t = window.setTimeout(() => setSearchHighlightId(null), 8000);
+    return () => window.clearTimeout(t);
+  }, [searchHighlightId]);
+
+  useEffect(() => {
+    setChatSearchOpen(false);
+    setSearchHighlightId(null);
+    setSearchHighlightQuery("");
+  }, [activeId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -736,12 +851,22 @@ function MessengerPage() {
     }
   };
 
-  const quickPhotoRef = useRef<HTMLInputElement>(null);
-  const handleQuickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) handleAttachment(file, "image");
-  };
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = composerRef.current;
+    if (!el) {
+      setText((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + emoji.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }, [text]);
 
   const handleCopy = (m: Message) => {
     const text = m.text || (m.file ? m.file.name : m.image ? "[изображение]" : "[вложение]");
@@ -771,6 +896,25 @@ function MessengerPage() {
         await hideMessageForMe(active.id, m.id);
       } catch {
         toast.error("Не удалось удалить сообщение");
+      }
+    }
+  };
+
+  const handleDeleteForEveryone = async (m: Message) => {
+    if (!active) return;
+    if (!window.confirm("Удалить сообщение у всех участников? Это действие нельзя отменить.")) return;
+
+    const dialogId = active.id;
+    actions.removeMessage(dialogId, m.id);
+
+    if (!isDemoMode()) {
+      try {
+        await deleteMessageForEveryone(dialogId, m.id);
+      } catch {
+        toast.error("Не удалось удалить сообщение");
+        fetchMessages(dialogId)
+          .then((msgs) => setDialogMessages(dialogId, msgs))
+          .catch(() => {});
       }
     }
   };
@@ -924,7 +1068,7 @@ function MessengerPage() {
                         onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--background-surface-hover)"; }}
                         onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                       >
-                        <ChatAvatar src={u.avatar} name={u.name} size={48} online={onlineSet.has(d.userId) || u.online} />
+                        <ChatAvatar src={u.avatar} name={u.name} size={48} online={isUserOnline(d.userId, onlineSet, u)} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             {/* Flex row of [pin?] name [muted?/blocked?/archived?].
@@ -1022,14 +1166,18 @@ function MessengerPage() {
                   <div className="min-w-0">
                     <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={partner!.name}>{partner!.name}</div>
                     <div className="flex items-center gap-[6px] text-[12px]">
-                      {(onlineSet.has(partner!.id) || partner!.online) ? (
-                        <>
-                          <span className="h-[8px] w-[8px] rounded-full" style={{ background: "var(--success)" }} />
-                          <span style={{ color: "var(--success)" }}>В сети</span>
-                        </>
-                      ) : (
-                        <span style={{ color: "var(--foreground-50)" }}>Был(а) недавно</span>
-                      )}
+                      {(() => {
+                        void presenceTick;
+                        const { online, text } = presenceLabel(partner!.id, onlineSet, partner!);
+                        return online ? (
+                          <>
+                            <span className="h-[8px] w-[8px] rounded-full" style={{ background: "var(--success)" }} />
+                            <span style={{ color: "var(--success)" }}>{text}</span>
+                          </>
+                        ) : (
+                          <span style={{ color: "var(--foreground-50)" }}>{text}</span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </Link>
@@ -1037,8 +1185,10 @@ function MessengerPage() {
                   <ChatHeaderActions
                     partnerId={partner!.id}
                     partnerName={partner!.name}
+                    partnerAvatar={partner!.avatar}
                     dialogId={active.id}
                     pinned={Boolean(active.pinned)}
+                    onSearch={() => setChatSearchOpen(true)}
                     onDeleted={() => deselectDialog(active.id)}
                   />
                 </div>
@@ -1116,8 +1266,11 @@ function MessengerPage() {
                           onForward={setForwardMsg}
                           onPin={handlePinMessage}
                           onDelete={handleDeleteMessage}
+                          onDeleteForEveryone={handleDeleteForEveryone}
                           onReport={handleReportMessage}
                           onMediaResize={handleMediaResize}
+                          searchHighlightId={searchHighlightId}
+                          searchQuery={searchHighlightQuery}
                         />
                       ))}
                   </div>
@@ -1156,27 +1309,12 @@ function MessengerPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                {/* Composer: attach · photo · input · mic/send — one optical
+                {/* Composer: attach · emoji · input · mic/send — one optical
                     line (items-end), equal 44px tap targets, equal gaps. Attach
                     controls live outside the pill so the row reads as one set. */}
                 <div className="relative flex items-end gap-[4px] px-[8px] py-[8px]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
                   <AttachmentMenu onPick={handleAttachment} />
-                  <input
-                    ref={quickPhotoRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleQuickPhoto}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => quickPhotoRef.current?.click()}
-                    className="h-[44px] w-[44px] shrink-0 rounded-full text-[var(--foreground-50)] sm:h-[40px] sm:w-[40px]"
-                    aria-label="Быстрое фото"
-                  >
-                    <ImagePlus size={18} />
-                  </Button>
+                  <EmojiPicker onPick={insertEmoji} />
                   <div
                     className="flex min-w-0 flex-1 items-center px-[14px]"
                     style={{
@@ -1187,6 +1325,7 @@ function MessengerPage() {
                     }}
                   >
                     <textarea
+                      ref={composerRef}
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       onKeyDown={(e) => {
@@ -1226,6 +1365,17 @@ function MessengerPage() {
         </section>
       </div>
       <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
+      {active && (
+        <ChatMessageSearch
+          open={chatSearchOpen}
+          dialogId={active.id}
+          messages={active.messages.filter((m) => !m.deletedForMe)}
+          meId={meId}
+          onClose={() => setChatSearchOpen(false)}
+          onJumpTo={handleSearchJump}
+          onMessagesLoaded={(all) => setDialogMessages(active.id, all)}
+        />
+      )}
       <ComplaintDialog
         target={messageComplaint?.target ?? null}
         onClose={() => setMessageComplaint(null)}
@@ -1250,24 +1400,38 @@ function MessengerPage() {
           const muted = getMeta(dialogCtxMenu.dialogId).muted;
           actions.setDialogMeta(dialogCtxMenu.dialogId, muted ? { muted: false, mutedUntil: undefined } : { muted: true });
         }}
-        onClearHistory={() => {
+        onClearHistory={async () => {
           if (!dialogCtxMenu) return;
           if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
-          actions.clearHistory(dialogCtxMenu.dialogId);
+          const dialogId = dialogCtxMenu.dialogId;
+          if (!isDemoMode()) {
+            try {
+              await clearConversationHistory(dialogId);
+            } catch {
+              toast.error("Не удалось очистить историю");
+              return;
+            }
+          }
+          actions.clearHistory(dialogId);
+          toast.success("История очищена");
         }}
         onDeleteChat={async () => {
           if (!dialogCtxMenu) return;
           if (!window.confirm("Удалить чат? Переписка исчезнет из списка.")) return;
           const dialogId = dialogCtxMenu.dialogId;
+          const dlg = dlgs.find((d) => d.id === dialogId);
+          const partnerId = dlg?.userId ?? "";
           if (!isDemoMode()) {
             try {
+              await clearConversationHistory(dialogId);
               await deleteConversation(dialogId);
             } catch {
               toast.error("Не удалось удалить чат");
               return;
             }
           }
-          actions.setDialogMeta(dialogId, { deletedLocally: true });
+          actions.clearHistory(dialogId);
+          if (partnerId) markDialogDeleted(dialogId, partnerId);
           if (activeId === dialogId) deselectDialog(dialogId);
           toast.success("Чат удалён");
         }}
