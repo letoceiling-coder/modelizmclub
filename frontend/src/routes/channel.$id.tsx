@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  useChannel, useChannelPosts, setChannelSubscription, createChannelPost,
+  useChannel, useChannelPosts, setChannelSubscription, createChannelPost, isChannelOwner,
   formatCount, formatDate, kindLabel,
   POST_KIND_LABEL,
   type Channel, type ChannelPost, type PostStatus, type PostKind,
@@ -20,10 +20,14 @@ import { EntityRequestForm } from "@/components/entity-requests/EntityRequestFor
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
+import { useStore, selectors } from "@/lib/store";
 
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: "Канал — МоДелизМ" }] }),
+  validateSearch: (search: Record<string, unknown>): { tab?: ChannelTab } => ({
+    tab: search.tab === "about" ? "about" : undefined,
+  }),
   component: ChannelPage,
 });
 
@@ -50,12 +54,18 @@ function NotFoundView() {
 
 function ChannelPage() {
   const { id } = Route.useParams();
+  const { tab: tabSearch } = Route.useSearch();
   const navigate = useNavigate();
+  const me = useStore(selectors.currentUser);
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);
-  const [tab, setTab] = useState<ChannelTab>("posts");
+  const [tab, setTab] = useState<ChannelTab>(tabSearch ?? "posts");
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
   const [requestOpen, setRequestOpen] = useState(false);
+
+  useEffect(() => {
+    if (tabSearch) setTab(tabSearch);
+  }, [tabSearch]);
 
   if (loading) {
     return (
@@ -82,11 +92,13 @@ function ChannelPage() {
   }
   if (notFound || !channel) return <NotFoundView />;
 
+  const isOwner = isChannelOwner(channel, me.id);
   const subscribed = Boolean(channel.isSubscribed);
   const visiblePublic = posts.filter((p: ChannelPost) => p.status === "published");
-  const list = channel.isOwner && showOwnerView ? posts : visiblePublic;
+  const list = isOwner && showOwnerView ? posts : visiblePublic;
 
   const onToggle = async () => {
+    if (isOwner) return;
     try {
       // Quiet inline toggle — button state flips, no intrusive top toast.
       await setChannelSubscription(channel.slug, !subscribed);
@@ -115,7 +127,7 @@ function ChannelPage() {
         >
           <ChannelBrandingHeader
             channel={channel}
-            editable={Boolean(channel.isOwner)}
+            editable={isOwner}
             onUpdated={() => reloadChannel()}
           />
 
@@ -151,7 +163,7 @@ function ChannelPage() {
               </div>
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                {!channel.isOwner && (
+                {!isOwner && (
                   <Button
                     variant={subscribed ? "outline" : "default"}
                     onClick={onToggle}
@@ -161,7 +173,7 @@ function ChannelPage() {
                     {subscribed ? (<><Check size={16} /> Вы подписаны</>) : "Подписаться"}
                   </Button>
                 )}
-                {channel.isOwner && (
+                {isOwner && (
                   <div
                     className="inline-flex h-11 items-center justify-center gap-2 px-5 text-[13px] font-semibold"
                     style={{ borderRadius: 12, background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
@@ -169,7 +181,7 @@ function ChannelPage() {
                     Вы — владелец канала
                   </div>
                 )}
-                {channel.isOwner && (
+                {isOwner && (
                   <Button
                     variant="outline"
                     size="lg"
@@ -181,7 +193,7 @@ function ChannelPage() {
                 )}
               </div>
 
-              {!channel.isOwner && (
+              {!isOwner && (
                 <button
                   type="button"
                   onClick={() => setRequestOpen(true)}
@@ -240,7 +252,7 @@ function ChannelPage() {
         {tab === "posts" ? (
           <>
             {/* owner toggle */}
-            {channel.isOwner && (
+            {isOwner && (
               <div
                 className="flex items-center justify-between gap-3 p-3"
                 style={{ background: "var(--background-surface)", borderRadius: 12 }}
@@ -261,7 +273,7 @@ function ChannelPage() {
             )}
 
             {/* composer (owner only) */}
-            {channel.isOwner && (
+            {isOwner && (
               <Composer
                 channelSlug={channel.slug}
                 requiresModeration={Boolean(channel.postsRequireModeration)}
@@ -279,7 +291,7 @@ function ChannelPage() {
             ) : (
               <ul className="space-y-3">
                 {list.map((p: ChannelPost) => (
-                  <PostItem key={p.id} post={p} isOwner={!!channel.isOwner} />
+                  <PostItem key={p.id} post={p} isOwner={isOwner} />
                 ))}
               </ul>
             )}
@@ -287,6 +299,7 @@ function ChannelPage() {
         ) : (
           <AboutPanel
             channel={channel}
+            isOwner={isOwner}
             publishedCount={visiblePublic.length}
             requiresModeration={Boolean(channel.postsRequireModeration)}
             onDeleted={() => navigate({ to: "/channels" })}
@@ -670,11 +683,13 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
 
 function AboutPanel({
   channel,
+  isOwner,
   publishedCount,
   requiresModeration,
   onDeleted,
 }: {
   channel: Channel;
+  isOwner: boolean;
   publishedCount: number;
   requiresModeration: boolean;
   onDeleted: () => void;
@@ -793,7 +808,7 @@ function AboutPanel({
         </ul>
       </section>
 
-      {channel.isOwner && (
+      {isOwner && (
         <section
           className="p-4 sm:p-5"
           style={{ background: "var(--background)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}

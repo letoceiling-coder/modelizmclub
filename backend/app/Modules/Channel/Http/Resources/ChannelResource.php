@@ -13,7 +13,7 @@ class ChannelResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $viewer = $request->user();
+        $viewer = $request->user('sanctum');
 
         return [
             'id' => $this->uuid,
@@ -36,7 +36,7 @@ class ChannelResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'owner_name' => $this->owner?->profile?->display_name ?? $this->owner?->name ?? '',
             'owner' => $this->whenLoaded('owner', fn () => new UserCompactResource($this->owner)),
-            'is_owner' => $viewer !== null && $this->owner_id === $viewer->id,
+            'is_owner' => $this->isOwnedBy($viewer),
             'is_subscribed' => $this->is_subscribed,
             'posts_require_moderation' => app(PostService::class)->autoPublishEnabled() === false,
         ];

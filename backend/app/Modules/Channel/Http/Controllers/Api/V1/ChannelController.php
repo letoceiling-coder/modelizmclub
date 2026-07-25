@@ -29,7 +29,7 @@ class ChannelController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $viewer = $request->user();
+        $viewer = $request->user('sanctum');
 
         $channels = Channel::query()
             ->with(['owner.profile.avatar', 'avatar', 'banner'])
@@ -53,7 +53,7 @@ class ChannelController extends Controller
         $channel = $this->findChannel($slug);
         $channel->loadMissing(['owner.profile.avatar', 'avatar', 'banner']);
 
-        $viewer = $request->user();
+        $viewer = $request->user('sanctum');
         $channel->is_subscribed = $viewer
             ? $channel->subscribers()->whereKey($viewer->id)->exists()
             : false;
@@ -64,8 +64,8 @@ class ChannelController extends Controller
     public function posts(Request $request, string $slug): AnonymousResourceCollection
     {
         $channel = $this->findChannel($slug);
-        $viewer = $request->user();
-        $isOwner = $viewer !== null && $channel->owner_id === $viewer->id;
+        $viewer = $request->user('sanctum');
+        $isOwner = $channel->isOwnedBy($viewer);
 
         $items = ChannelPost::query()
             ->with(['author.profile', 'channel', 'media.media'])
@@ -80,7 +80,11 @@ class ChannelController extends Controller
     public function subscribe(Request $request, string $slug): JsonResponse
     {
         $channel = $this->findChannel($slug);
-        $user = $request->user();
+        $user = $request->user('sanctum');
+
+        if ($channel->isOwnedBy($user)) {
+            return response()->json(['message' => 'Нельзя подписаться на собственный канал.'], 422);
+        }
 
         $changed = $channel->subscribers()->syncWithoutDetaching([$user->id]);
         if (! empty($changed['attached'])) {
@@ -108,7 +112,7 @@ class ChannelController extends Controller
         $channel = $this->findChannel($slug);
         $user = $request->user();
 
-        if ($channel->owner_id !== $user->id) {
+        if (! $channel->isOwnedBy($user)) {
             return response()->json(['message' => 'Публиковать может только владелец канала.'], 403);
         }
 
@@ -136,7 +140,7 @@ class ChannelController extends Controller
         $channel = $this->findChannel($slug);
         $user = $request->user();
 
-        if ($channel->owner_id !== $user->id) {
+        if (! $channel->isOwnedBy($user)) {
             return response()->json(['message' => 'Изменять оформление может только владелец канала.'], 403);
         }
 

@@ -66,4 +66,11 @@ class Channel extends Model
 
     /** Runtime-only flag for API responses (not persisted). */
     public bool $is_subscribed = false;
+
+    public function isOwnedBy(?User $user): bool
+    {
+        return $user !== null
+            && $this->owner_id !== null
+            && (int) $this->owner_id === (int) $user->id;
+    }
 }

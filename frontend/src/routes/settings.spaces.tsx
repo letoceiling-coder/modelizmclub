@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { useChannels } from "@/lib/channels";
+import { useChannels, isChannelOwner } from "@/lib/channels";
 import { useOwnedCommunities } from "@/lib/api/communities";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
@@ -19,7 +19,7 @@ function SettingsSpacesPage() {
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const { channels } = useChannels();
-  const myChannel = channels.find((c) => c.isOwner);
+  const myChannel = channels.find((c) => isChannelOwner(c, me.id));
   const { communities: ownedCommunities } = useOwnedCommunities();
   const myCommunity = ownedCommunities[0];
   const [requestKind, setRequestKind] = useState<EntityKind | null>(null);

@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles } from "lucide-react";
+import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  useChannels, setChannelSubscription,
+  useChannels, setChannelSubscription, isChannelOwner,
   formatCount, kindLabel,
   type Channel, type ChannelKind,
 } from "@/lib/channels";
+import { useStore, selectors } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
 
 function ChannelsPage() {
   const { channels: all, reload } = useChannels();
+  const me = useStore(selectors.currentUser);
   const [tab, setTab] = useState<Tab>("popular");
   const [q, setQ] = useState("");
 
@@ -120,7 +122,7 @@ function ChannelsPage() {
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {list.map((c) => (
-              <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={reload} />
+              <ChannelCard key={c.id} channel={c} viewerId={me.id} subscribed={Boolean(c.isSubscribed)} onChanged={reload} />
             ))}
           </ul>
         )}
@@ -133,9 +135,11 @@ function ChannelsPage() {
   );
 }
 
-function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; subscribed: boolean; onChanged: () => void }) {
+function ChannelCard({ channel: c, viewerId, subscribed, onChanged }: { channel: Channel; viewerId: string; subscribed: boolean; onChanged: () => void }) {
   const KindIcon = KIND_ICON[c.kind];
+  const isOwner = isChannelOwner(c, viewerId);
   const onToggle = async (e: React.MouseEvent) => {
+    if (isOwner) return;
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -190,14 +194,13 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
           </div>
         </Link>
         <div className="mt-auto flex items-center gap-2">
-          {c.isOwner ? (
+          {isOwner ? (
             <>
-              <div
-                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-semibold"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-              >
-                <Check size={14} /> Вы — владелец
-              </div>
+              <Button asChild variant="outline" className="h-9 flex-1 rounded-[10px] gap-1.5" size="sm">
+                <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about" }}>
+                  <Settings2 size={14} /> Управление каналом
+                </Link>
+              </Button>
               <DeleteChannelDialog slug={c.slug} name={c.name} onDeleted={onChanged} compact />
             </>
           ) : (

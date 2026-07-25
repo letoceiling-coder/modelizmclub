@@ -15,9 +15,9 @@ class DeleteChannelController extends Controller
     public function __invoke(string $slug, Request $request): JsonResponse
     {
         $channel = $this->findChannel($slug);
-        $user = $request->user();
+        $user = $request->user('sanctum');
 
-        if ($channel->owner_id !== $user->id) {
+        if (! $channel->isOwnedBy($user)) {
             return response()->json(['message' => 'Удалить канал может только владелец.'], 403);
         }
 

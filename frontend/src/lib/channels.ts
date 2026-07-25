@@ -65,6 +65,13 @@ export function kindLabel(k: ChannelKind) {
   return KIND_LABEL[k] ?? "Канал";
 }
 
+/** True when the viewer owns the channel (API flag or owner uuid fallback). */
+export function isChannelOwner(channel: Channel, viewerId?: string | null): boolean {
+  if (!viewerId || viewerId === "guest") return false;
+  if (channel.isOwner) return true;
+  return Boolean(channel.ownerId && channel.ownerId === viewerId);
+}
+
 // ---- API mapping ----
 interface ApiChannel {
   id: string;
