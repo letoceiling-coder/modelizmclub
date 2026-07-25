@@ -25,8 +25,9 @@ import { useStore, selectors } from "@/lib/store";
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: "Канал — МоДелизМ" }] }),
-  validateSearch: (search: Record<string, unknown>): { tab?: ChannelTab } => ({
+  validateSearch: (search: Record<string, unknown>): { tab?: ChannelTab; section?: "stats" | "manage" } => ({
     tab: search.tab === "about" ? "about" : undefined,
+    section: search.section === "stats" || search.section === "manage" ? search.section : undefined,
   }),
   component: ChannelPage,
 });
@@ -54,7 +55,7 @@ function NotFoundView() {
 
 function ChannelPage() {
   const { id } = Route.useParams();
-  const { tab: tabSearch } = Route.useSearch();
+  const { tab: tabSearch, section: sectionSearch } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
@@ -302,6 +303,7 @@ function ChannelPage() {
             isOwner={isOwner}
             publishedCount={visiblePublic.length}
             requiresModeration={Boolean(channel.postsRequireModeration)}
+            scrollSection={sectionSearch}
             onDeleted={() => navigate({ to: "/channels" })}
           />
         )}
@@ -686,12 +688,14 @@ function AboutPanel({
   isOwner,
   publishedCount,
   requiresModeration,
+  scrollSection,
   onDeleted,
 }: {
   channel: Channel;
   isOwner: boolean;
   publishedCount: number;
   requiresModeration: boolean;
+  scrollSection?: "stats" | "manage";
   onDeleted: () => void;
 }) {
   const created = new Date(channel.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -710,6 +714,13 @@ function AboutPanel({
       {channel.ownerName}
     </span>
   );
+
+  useEffect(() => {
+    if (!scrollSection) return;
+    const targetId = scrollSection === "stats" ? "channel-stats" : "channel-manage";
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollSection]);
+
   const rules: { Icon: typeof FileCheck2; title: string; text: string }[] = [
     {
       Icon: FileCheck2,
@@ -738,7 +749,7 @@ function AboutPanel({
         </p>
 
         {/* stats grid */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div id="channel-stats" className="mt-4 grid grid-cols-3 gap-2">
           <Stat icon={Users} label="Подписчики" value={formatCount(channel.subscribers)} />
           <Stat icon={FileCheck2} label="Постов" value={String(publishedCount)} />
           <Stat icon={Calendar} label="С нами с" value={created.replace(/\s\d{4}.*/, "")} />
@@ -810,6 +821,7 @@ function AboutPanel({
 
       {isOwner && (
         <section
+          id="channel-manage"
           className="p-4 sm:p-5"
           style={{ background: "var(--background)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}
         >

@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2 } from "lucide-react";
+import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2, Pencil, BarChart2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannels, setChannelSubscription, isChannelOwner,
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/channels/")({
   component: ChannelsPage,
 });
 
-type Tab = "popular" | "new" | "subs";
+type Tab = "mine" | "popular" | "new" | "subs";
 
 const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
   official: BadgeCheck,
@@ -38,20 +38,36 @@ const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
 function ChannelsPage() {
   const { channels: all, reload } = useChannels();
   const me = useStore(selectors.currentUser);
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("popular");
   const [q, setQ] = useState("");
 
-  const subsCount = all.filter((c) => c.isSubscribed).length;
+  const myChannels = useMemo(
+    () => all.filter((c) => isChannelOwner(c, me.id)),
+    [all, me.id],
+  );
+  const catalog = useMemo(
+    () => all.filter((c) => !isChannelOwner(c, me.id)),
+    [all, me.id],
+  );
+
+  const subsCount = catalog.filter((c) => c.isSubscribed).length;
 
   const list = useMemo(() => {
-    let arr: Channel[] = [...all];
+    const query = q.trim().toLowerCase();
+    const matchesQuery = (c: Channel) =>
+      !query || c.name.toLowerCase().includes(query) || c.description.toLowerCase().includes(query);
+
+    if (tab === "mine") {
+      return myChannels.filter(matchesQuery).sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    }
+
+    let arr: Channel[] = catalog.filter(matchesQuery);
     if (tab === "popular") arr.sort((a, b) => b.subscribers - a.subscribers);
     else if (tab === "new") arr.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
     else arr = arr.filter((c) => c.isSubscribed);
-    const query = q.trim().toLowerCase();
-    if (query) arr = arr.filter((c) => c.name.toLowerCase().includes(query) || c.description.toLowerCase().includes(query));
     return arr;
-  }, [all, tab, q]);
+  }, [catalog, myChannels, tab, q]);
 
   return (
     <AppLayout rightColumn={false} footer>
@@ -84,6 +100,7 @@ function ChannelsPage() {
           style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}
         >
           {([
+            ["mine", `Мои каналы${myChannels.length ? ` · ${myChannels.length}` : ""}`],
             ["popular", "Популярные"],
             ["new", "Новые"],
             ["subs", `Подписки${subsCount ? ` · ${subsCount}` : ""}`],
@@ -114,32 +131,132 @@ function ChannelsPage() {
         {list.length === 0 ? (
           <EmptyState
             icon={Radio}
-            title={tab === "subs" ? "Вы пока ни на что не подписаны" : "Ничего не найдено"}
-            description={tab !== "subs" ? "Попробуйте изменить запрос или выбрать другую вкладку" : "Найдите интересные каналы и подпишитесь"}
-            action={tab === "subs" ? { label: "К популярным каналам", onClick: () => setTab("popular") } : undefined}
+            title={
+              tab === "mine"
+                ? "У вас пока нет канала"
+                : tab === "subs"
+                  ? "Вы пока ни на что не подписаны"
+                  : "Ничего не найдено"
+            }
+            description={
+              tab === "mine"
+                ? "Создайте канал для публикаций — он появится в этом разделе"
+                : tab === "subs"
+                  ? "Найдите интересные каналы и подпишитесь"
+                  : "Попробуйте изменить запрос или выбрать другую вкладку"
+            }
+            action={
+              tab === "mine"
+                ? { label: "Создать канал", onClick: () => navigate({ to: "/settings/spaces" }) }
+                : tab === "subs"
+                  ? { label: "К популярным каналам", onClick: () => setTab("popular") }
+                  : undefined
+            }
             variant="compact"
           />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
-            {list.map((c) => (
-              <ChannelCard key={c.id} channel={c} viewerId={me.id} subscribed={Boolean(c.isSubscribed)} onChanged={reload} />
-            ))}
+            {list.map((c) =>
+              tab === "mine" ? (
+                <MyChannelCard key={c.id} channel={c} onChanged={reload} />
+              ) : (
+                <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={reload} />
+              ),
+            )}
           </ul>
         )}
 
         <p className="pt-2 text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Канал — это односторонняя витрина контента: публикует только владелец, подписчики читают. Это не сообщество и не чат.
+          {tab === "mine"
+            ? "Здесь — только ваши каналы. Каталог чужих каналов и подписки — на соседних вкладках."
+            : "Каталог каналов других авторов. Ваши каналы — во вкладке «Мои каналы»."}
         </p>
       </div>
     </AppLayout>
   );
 }
 
-function ChannelCard({ channel: c, viewerId, subscribed, onChanged }: { channel: Channel; viewerId: string; subscribed: boolean; onChanged: () => void }) {
+function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged: () => void }) {
   const KindIcon = KIND_ICON[c.kind];
-  const isOwner = isChannelOwner(c, viewerId);
+  return (
+    <li>
+      <div
+        className="flex h-full flex-col gap-3 p-4"
+        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)", display: "flex" }}
+      >
+        <Link
+          to="/channel/$id"
+          params={{ id: c.id }}
+          className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 transition-colors hover:opacity-90"
+        >
+          <div
+            className="grid h-12 w-12 shrink-0 place-items-center font-display text-[18px] font-bold text-white"
+            style={{ background: c.avatarColor, borderRadius: 12 }}
+          >
+            {c.name.slice(0, 1)}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+                {c.name}
+              </span>
+              {c.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
+            </div>
+            <p
+              className="mt-1 text-[13px]"
+              style={{ color: "var(--foreground-70)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+            >
+              {c.description}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
+              >
+                Вы — владелец
+              </span>
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium"
+                style={{ background: "var(--background-surface)", color: "var(--foreground-70)", padding: "3px 7px", borderRadius: 6 }}
+              >
+                <KindIcon size={11} /> {kindLabel(c.kind)}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                <Users size={12} /> {formatCount(c.subscribers)}
+              </span>
+            </div>
+          </div>
+        </Link>
+        <div className="mt-auto flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <Button asChild variant="default" className="h-9 rounded-[10px] gap-1.5" size="sm">
+              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about", section: "manage" }}>
+                <Settings2 size={14} /> Управление
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-9 rounded-[10px] gap-1.5" size="sm">
+              <Link to="/channel/$id" params={{ id: c.id }}>
+                <Pencil size={14} /> Редактировать
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-9 rounded-[10px] gap-1.5" size="sm">
+              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about", section: "stats" }}>
+                <BarChart2 size={14} /> Статистика
+              </Link>
+            </Button>
+          </div>
+          <div className="flex justify-end">
+            <DeleteChannelDialog slug={c.slug} name={c.name} onDeleted={onChanged} compact />
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; subscribed: boolean; onChanged: () => void }) {
+  const KindIcon = KIND_ICON[c.kind];
   const onToggle = async (e: React.MouseEvent) => {
-    if (isOwner) return;
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -194,25 +311,14 @@ function ChannelCard({ channel: c, viewerId, subscribed, onChanged }: { channel:
           </div>
         </Link>
         <div className="mt-auto flex items-center gap-2">
-          {isOwner ? (
-            <>
-              <Button asChild variant="outline" className="h-9 flex-1 rounded-[10px] gap-1.5" size="sm">
-                <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about" }}>
-                  <Settings2 size={14} /> Управление каналом
-                </Link>
-              </Button>
-              <DeleteChannelDialog slug={c.slug} name={c.name} onDeleted={onChanged} compact />
-            </>
-          ) : (
-            <Button
-              variant={subscribed ? "outline" : "default"}
-              onClick={onToggle}
-              className="w-full rounded-[10px]"
-              size="sm"
-            >
-              {subscribed ? (<><Check size={14} /> Вы подписаны</>) : "Подписаться"}
-            </Button>
-          )}
+          <Button
+            variant={subscribed ? "outline" : "default"}
+            onClick={onToggle}
+            className="w-full rounded-[10px]"
+            size="sm"
+          >
+            {subscribed ? (<><Check size={14} /> Вы подписаны</>) : "Подписаться"}
+          </Button>
         </div>
       </div>
     </li>
