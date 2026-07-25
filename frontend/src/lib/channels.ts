@@ -211,6 +211,27 @@ export async function updateChannelBranding(
   return mapChannel(res.data);
 }
 
+export async function updateChannel(
+  slug: string,
+  input: {
+    name?: string;
+    description?: string;
+    category?: string;
+    kind?: ChannelKind;
+  },
+): Promise<Channel> {
+  if (isDemoMode()) {
+    const current = await fetchChannel(slug);
+    if (!current) throw new Error("Channel not found");
+    return { ...current, ...input, name: input.name ?? current.name };
+  }
+  const res = await api<{ data: ApiChannel }>(`/channels/${slug}`, {
+    method: "PATCH",
+    json: input,
+  });
+  return mapChannel(res.data);
+}
+
 export async function deleteChannel(slug: string, confirmName: string): Promise<void> {
   if (isDemoMode()) {
     return;

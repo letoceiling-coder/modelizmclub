@@ -19,21 +19,21 @@ import { uploadMedia } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
-import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
+import { ChannelManagePanel } from "@/components/channels/ChannelManagePanel";
 import { useStore, selectors } from "@/lib/store";
 
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: "Канал — МоДелизМ" }] }),
   validateSearch: (search: Record<string, unknown>): { tab?: ChannelTab; section?: "stats" | "manage" } => ({
-    tab: search.tab === "about" ? "about" : undefined,
+    tab: search.tab === "about" || search.tab === "manage" ? search.tab as ChannelTab : undefined,
     section: search.section === "stats" || search.section === "manage" ? search.section : undefined,
   }),
   component: ChannelPage,
 });
 
 type PostFilter = "all" | "mine";
-type ChannelTab = "posts" | "about";
+type ChannelTab = "posts" | "about" | "manage";
 
 function NotFoundView() {
   return (
@@ -65,8 +65,12 @@ function ChannelPage() {
   const [requestOpen, setRequestOpen] = useState(false);
 
   useEffect(() => {
-    if (tabSearch) setTab(tabSearch);
-  }, [tabSearch]);
+    if (tabSearch) {
+      setTab(tabSearch);
+      return;
+    }
+    if (sectionSearch === "manage") setTab("manage");
+  }, [tabSearch, sectionSearch]);
 
   if (loading) {
     return (
@@ -187,7 +191,7 @@ function ChannelPage() {
                     variant="outline"
                     size="lg"
                     className="rounded-[12px] gap-2"
-                    onClick={() => setTab("about")}
+                    onClick={() => setTab("manage")}
                   >
                     Управление
                   </Button>
@@ -227,6 +231,7 @@ function ChannelPage() {
             {([
               ["posts", `Посты${visiblePublic.length ? ` · ${visiblePublic.length}` : ""}`],
               ["about", "О канале"],
+              ...(isOwner ? [["manage", "Управление"] as const] : []),
             ] as const).map(([k, l]) => {
               const active = tab === k;
               return (
@@ -297,14 +302,18 @@ function ChannelPage() {
               </ul>
             )}
           </>
+        ) : tab === "manage" && isOwner ? (
+          <ChannelManagePanel
+            channel={channel}
+            onUpdated={() => reloadChannel()}
+            onDeleted={() => navigate({ to: "/channels" })}
+          />
         ) : (
           <AboutPanel
             channel={channel}
-            isOwner={isOwner}
             publishedCount={visiblePublic.length}
             requiresModeration={Boolean(channel.postsRequireModeration)}
-            scrollSection={sectionSearch}
-            onDeleted={() => navigate({ to: "/channels" })}
+            scrollSection={sectionSearch === "stats" ? "stats" : undefined}
           />
         )}
 
@@ -685,18 +694,14 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
 
 function AboutPanel({
   channel,
-  isOwner,
   publishedCount,
   requiresModeration,
   scrollSection,
-  onDeleted,
 }: {
   channel: Channel;
-  isOwner: boolean;
   publishedCount: number;
   requiresModeration: boolean;
-  scrollSection?: "stats" | "manage";
-  onDeleted: () => void;
+  scrollSection?: "stats";
 }) {
   const created = new Date(channel.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
   const ownerProfileId = channel.ownerSlug ?? channel.ownerId;
@@ -716,9 +721,8 @@ function AboutPanel({
   );
 
   useEffect(() => {
-    if (!scrollSection) return;
-    const targetId = scrollSection === "stats" ? "channel-stats" : "channel-manage";
-    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (scrollSection !== "stats") return;
+    document.getElementById("channel-stats")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [scrollSection]);
 
   const rules: { Icon: typeof FileCheck2; title: string; text: string }[] = [
@@ -818,24 +822,6 @@ function AboutPanel({
           ))}
         </ul>
       </section>
-
-      {isOwner && (
-        <section
-          id="channel-manage"
-          className="p-4 sm:p-5"
-          style={{ background: "var(--background)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}
-        >
-          <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-            Управление каналом
-          </h3>
-          <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-            Удаление необратимо: канал исчезнет из списка, подписчики потеряют доступ ко всем постам.
-          </p>
-          <div className="mt-4">
-            <DeleteChannelDialog slug={channel.slug} name={channel.name} onDeleted={onDeleted} />
-          </div>
-        </section>
-      )}
     </div>
   );
 }

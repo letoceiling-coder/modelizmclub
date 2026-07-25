@@ -230,12 +230,12 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
         <div className="mt-auto flex flex-col gap-2">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button asChild variant="default" className="h-9 rounded-[10px] gap-1.5" size="sm">
-              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about", section: "manage" }}>
+              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "manage" }}>
                 <Settings2 size={14} /> Управление
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-9 rounded-[10px] gap-1.5" size="sm">
-              <Link to="/channel/$id" params={{ id: c.id }}>
+              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "manage" }}>
                 <Pencil size={14} /> Редактировать
               </Link>
             </Button>
