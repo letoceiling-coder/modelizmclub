@@ -18,6 +18,7 @@ export interface ApiCompactUser {
   slug?: string | null;
   avatar?: { url?: string | null } | null;
   city?: { id?: number; name?: string | null; slug?: string | null } | null;
+  last_seen_at?: string | null;
 }
 
 export interface ApiFriendRequest {
@@ -79,6 +80,7 @@ export function mapCompactUser(u: ApiCompactUser): User {
     id: u.id,
     uuid: u.uuid,
     name: u.display_name ?? undefined,
+    last_seen_at: u.last_seen_at ?? undefined,
     profile: {
       display_name: u.display_name,
       slug: u.slug,

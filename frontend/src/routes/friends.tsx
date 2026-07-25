@@ -7,7 +7,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
-import { formatRelativeTime, type User } from "@/lib/mock";
+import { formatRelativeTime, userById, type User } from "@/lib/mock";
 import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
@@ -153,7 +153,22 @@ function FriendsPage() {
   const [complaintTarget, setComplaintTarget] = useState<User | null>(null);
   const navigateMessenger = useNavigate();
   const onlineSet = useOnlineSet();
-  const isOnline = (u: User) => isUserOnline(u.id, onlineSet, u);
+  const [presenceTick, setPresenceTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setPresenceTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const presenceUser = (u: User): User => {
+    const live = userById(u.id);
+    if (live.name === "Пользователь" && !live.lastSeenAt && live.online == null) return u;
+    return {
+      ...u,
+      online: live.online ?? u.online,
+      lastSeenAt: live.lastSeenAt ?? u.lastSeenAt,
+    };
+  };
+  const isOnline = (u: User) => isUserOnline(u.id, onlineSet, presenceUser(u));
   const blockedUserIds = useStore((s) => s.blockedUserIds);
   const hiddenUserIds = useStore((s) => s.hiddenUserIds);
   const isBlockedUser = (id: string) => blockedUserIds.includes(id);
@@ -177,6 +192,23 @@ function FriendsPage() {
     return () => { active = false; };
   }, []);
 
+  // Keep friend last_seen_at fresh (same cadence as messenger dialog list).
+  useEffect(() => {
+    if (isDemoMode()) return;
+    let active = true;
+    const refresh = () => {
+      fetchFriends()
+        .then((fr) => { if (active) setFriends(fr); })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 45_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
 
@@ -190,18 +222,33 @@ function FriendsPage() {
       if (me && u.id === me.id) return false;
       if (blockedUserIds.includes(u.id)) return false;
       if (hiddenUserIds.includes(u.id)) return false;
-      if (tab === "online" && !isOnline(u)) return false;
       const ql = q.toLowerCase();
       if (!ql) return true;
       return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
     });
-  }, [q, tab, allUsers, me, blockedUserIds, hiddenUserIds]);
+  }, [q, allUsers, me, blockedUserIds, hiddenUserIds]);
 
   const added = useMemo(() => new Set(friends.map((f) => f.id)), [friends]);
 
+  const onlineFriends = useMemo(() => {
+    void presenceTick;
+    return friends
+      .filter((u) => {
+        if (me && u.id === me.id) return false;
+        if (blockedUserIds.includes(u.id) || hiddenUserIds.includes(u.id)) return false;
+        if (!isOnline(u)) return false;
+        const ql = q.toLowerCase();
+        if (!ql) return true;
+        return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+  }, [friends, me, blockedUserIds, hiddenUserIds, q, onlineSet, presenceTick]);
+
   const connected = useMemo(() => {
-    return allUsers
-      .filter((u) => added.has(u.id))
+    void presenceTick;
+    const byId = new Map(allUsers.map((u) => [u.id, u]));
+    return friends
+      .map((f) => byId.get(f.id) ?? f)
       .filter((u) => {
         if (blockedUserIds.includes(u.id) || hiddenUserIds.includes(u.id)) return false;
         const ql = q.toLowerCase();
@@ -209,7 +256,7 @@ function FriendsPage() {
         return u.name.toLowerCase().includes(ql) || u.interests.toLowerCase().includes(ql);
       })
       .sort((a, b) => Number(isOnline(b)) - Number(isOnline(a)));
-  }, [allUsers, added, blockedUserIds, hiddenUserIds, q, onlineSet]);
+  }, [friends, allUsers, blockedUserIds, hiddenUserIds, q, onlineSet, presenceTick]);
 
   const recommended = useMemo(() => {
     return filteredUsers.filter((u) => !added.has(u.id));
@@ -226,7 +273,7 @@ function FriendsPage() {
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: "Люди", count: allUsers.length },
-    { key: "online", label: "Онлайн", count: allUsers.filter((u) => isOnline(u)).length },
+    { key: "online", label: "Онлайн", count: friends.filter((u) => isOnline(u)).length },
     { key: "requests", label: "Заявки", count: requests.length },
   ];
 
@@ -533,25 +580,22 @@ function FriendsPage() {
                 </div>
               )
             ) : tab === "online" ? (
-              filteredUsers.length === 0 ? (
+              onlineFriends.length === 0 ? (
                 <EmptyState
                   icon={Users}
                   title="Никто не в сети"
-                  description="Загляните позже — онлайн-участники появятся здесь"
+                  description="Когда друзья зайдут на сайт, они появятся здесь"
                   variant="compact"
                 />
               ) : (
                 <div className="flex flex-col gap-[10px]">
-                  {filteredUsers.map((u) => {
-                    const isAdded = added.has(u.id);
-                    const isPending = !isAdded && pending.has(u.id);
-                    return (
+                  {onlineFriends.map((u) => (
                       <FriendCard
                         key={u.id}
                         user={u}
-                        isAdded={isAdded}
-                        isPending={isPending}
-                        online={isOnline(u)}
+                        isAdded={true}
+                        isPending={false}
+                        online={true}
                         onToggleFriend={() => toggleFriend(u)}
                         onWriteTo={() => writeTo(u)}
                         onViewProfile={() => viewProfile(u)}
@@ -560,8 +604,7 @@ function FriendsPage() {
                         onReport={() => reportUser(u)}
                         onBlock={() => blockUserVia(u)}
                       />
-                    );
-                  })}
+                  ))}
                 </div>
               )
             ) : connected.length === 0 && recommended.length === 0 ? (

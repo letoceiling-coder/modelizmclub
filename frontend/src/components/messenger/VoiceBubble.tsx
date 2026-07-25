@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Play, Pause, ChevronDown, FileText, Loader2 } from "lucide-react";
 import type { VoiceMessage } from "@/lib/mock";
 import { transcribeVoiceMedia } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
+
+const EXPAND_MS = 280;
+const BUBBLE_WIDTH = 280;
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -36,13 +39,17 @@ export function VoiceBubble({
   const [transcriptStatus, setTranscriptStatus] = useState<"idle" | "ok" | "empty" | "unavailable">(
     voice.transcript ? "ok" : "idle",
   );
+  const [panelHeight, setPanelHeight] = useState(0);
+  const [panelAnimating, setPanelAnimating] = useState(false);
+  const prevExpandedRef = useRef(false);
+
   const raf = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const startProgRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const resizeRaf = useRef<number | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const gridTransitioning = useRef(false);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const heightRaf = useRef<number | null>(null);
   const hasAudio = Boolean(voice.src);
   const needsFetch = Boolean(voice.mediaUuid) && !voice.transcript && transcriptStatus === "idle";
 
@@ -54,6 +61,8 @@ export function VoiceBubble({
       onResize();
     });
   }, [onResize]);
+
+  const measurePanelHeight = useCallback(() => transcriptRef.current?.scrollHeight ?? 0, []);
 
   useEffect(() => {
     if (!hasAudio) return;
@@ -100,15 +109,14 @@ export function VoiceBubble({
     };
   }, [expanded, transcript, voice.mediaUuid, transcriptStatus]);
 
-  useEffect(() => {
-    if (!expanded || !onResize || !panelRef.current || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => {
-      if (gridTransitioning.current) return;
-      notifyResize();
-    });
-    ro.observe(panelRef.current);
-    return () => ro.disconnect();
-  }, [expanded, onResize, notifyResize]);
+  const unavailableText = "Расшифровка недоступна — распознавание речи подключается на сервере.";
+  const demoText = "Тестовая расшифровка голосового сообщения.";
+  const showSkeleton = expanded && loadingTranscript;
+  const transcriptBody = transcript
+    || (transcriptStatus === "empty" ? "Речь не распознана." : "")
+    || (transcriptStatus === "unavailable" ? unavailableText : "")
+    || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
+    || (expanded && isDemoMode() ? demoText : "");
 
   const toggleTranscript = () => {
     setExpanded((open) => {
@@ -120,6 +128,42 @@ export function VoiceBubble({
       return next;
     });
   };
+
+  useLayoutEffect(() => {
+    const el = transcriptRef.current;
+    if (!el) return;
+
+    const target = el.scrollHeight;
+    const wasExpanded = prevExpandedRef.current;
+    prevExpandedRef.current = expanded;
+
+    if (heightRaf.current) {
+      cancelAnimationFrame(heightRaf.current);
+      heightRaf.current = null;
+    }
+
+    if (expanded && !wasExpanded) {
+      setPanelAnimating(true);
+      setPanelHeight(0);
+      heightRaf.current = requestAnimationFrame(() => {
+        heightRaf.current = requestAnimationFrame(() => {
+          setPanelHeight(el.scrollHeight);
+        });
+      });
+      return;
+    }
+
+    if (!expanded && wasExpanded) {
+      setPanelAnimating(true);
+      setPanelHeight(0);
+      return;
+    }
+
+    if (expanded && wasExpanded && target > 0 && Math.abs(panelHeight - target) > 1) {
+      setPanelAnimating(true);
+      setPanelHeight(target);
+    }
+  }, [expanded, transcriptBody, showSkeleton, panelHeight]);
 
   const toggle = () => {
     if (hasAudio) {
@@ -157,33 +201,25 @@ export function VoiceBubble({
     };
   }, [playing, hasAudio, progress, voice.duration]);
 
+  useEffect(
+    () => () => {
+      if (heightRaf.current) cancelAnimationFrame(heightRaf.current);
+      if (resizeRaf.current) cancelAnimationFrame(resizeRaf.current);
+    },
+    [],
+  );
+
   const fg = isMe ? "white" : "var(--foreground)";
   const subtle = isMe ? "rgba(255,255,255,0.6)" : "var(--foreground-50)";
   const trackBg = isMe ? "rgba(255,255,255,0.35)" : "var(--foreground-30)";
   const playedBg = isMe ? "white" : "var(--accent)";
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
-  const unavailableText = "Расшифровка недоступна — распознавание речи подключается на сервере.";
-  const demoText = "Тестовая расшифровка голосового сообщения.";
-  const showSkeleton = expanded && loadingTranscript;
-  const transcriptBody = transcript
-    || (transcriptStatus === "empty" ? "Речь не распознана." : "")
-    || (transcriptStatus === "unavailable" ? unavailableText : "")
-    || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
-    || (expanded && isDemoMode() ? demoText : "");
-
-  const handleGridTransitionStart = () => {
-    gridTransitioning.current = true;
-  };
-
-  const handleGridTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
-    if (e.propertyName !== "grid-template-rows") return;
-    gridTransitioning.current = false;
-    notifyResize();
-  };
-
   return (
-    <div style={{ minWidth: 220, maxWidth: 280 }}>
+    <div
+      className="shrink-0"
+      style={{ width: BUBBLE_WIDTH, maxWidth: "100%" }}
+    >
       <div className="flex items-center gap-[10px]">
         <button
           onClick={toggle}
@@ -193,19 +229,17 @@ export function VoiceBubble({
         >
           {playing ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: 2 }} />}
         </button>
-        <div className="flex flex-1 flex-col gap-[4px]">
-          <div className="flex h-[28px] items-center gap-[2px]">
+        <div className="flex min-w-0 flex-1 flex-col gap-[4px]">
+          <div className="flex h-[28px] min-w-0 items-center gap-[2px]">
             {voice.waveform.map((h, i) => {
               const played = i / voice.waveform.length <= progress;
               return (
                 <span
                   key={i}
+                  className="min-w-[2px] flex-1 rounded-[2px] transition-colors duration-100"
                   style={{
-                    width: 2,
                     height: `${Math.round(h * 24) + 4}px`,
-                    borderRadius: 2,
                     background: played ? playedBg : trackBg,
-                    transition: "background 0.1s",
                   }}
                 />
               );
@@ -232,33 +266,45 @@ export function VoiceBubble({
         {showSkeleton && <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />}
         <ChevronDown
           size={12}
-          style={{ color: subtle, flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+          style={{
+            color: subtle,
+            flexShrink: 0,
+            transform: expanded ? "rotate(180deg)" : "none",
+            transition: `transform ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+          }}
         />
       </button>
 
       <div
-        className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
-        onTransitionStart={handleGridTransitionStart}
-        onTransitionEnd={handleGridTransitionEnd}
+        className="overflow-hidden"
+        style={{
+          height: panelHeight,
+          transition: panelAnimating ? `height ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)` : undefined,
+        }}
+        onTransitionEnd={(e) => {
+          if (e.propertyName !== "height") return;
+          setPanelAnimating(false);
+          if (expanded) {
+            const next = measurePanelHeight();
+            if (next !== panelHeight) setPanelHeight(next);
+          }
+          notifyResize();
+        }}
       >
-        <div className="min-h-0 overflow-hidden">
-          <div
-            ref={panelRef}
-            className="mt-[6px] rounded-[10px] px-[8px] py-[8px] text-[12px] leading-[1.45] transition-[min-height,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{
-              background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
-              color: transcriptBody && !showSkeleton ? fg : subtle,
-              opacity: expanded ? 1 : 0,
-              minHeight: expanded ? (showSkeleton ? 52 : undefined) : 0,
-            }}
-          >
-            {showSkeleton ? (
-              <TranscriptSkeleton subtle={subtle} />
-            ) : (
-              transcriptBody || unavailableText
-            )}
-          </div>
+        <div
+          ref={transcriptRef}
+          className="mt-[6px] rounded-[10px] px-[8px] py-[8px] text-[12px] leading-[1.45]"
+          style={{
+            background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
+            color: transcriptBody && !showSkeleton ? fg : subtle,
+            minHeight: showSkeleton ? 52 : undefined,
+          }}
+        >
+          {showSkeleton ? (
+            <TranscriptSkeleton subtle={subtle} />
+          ) : (
+            transcriptBody || unavailableText
+          )}
         </div>
       </div>
     </div>

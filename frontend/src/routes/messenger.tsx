@@ -427,7 +427,7 @@ function MessengerPage() {
   }, []);
 
   const handleMediaResize = useCallback(() => {
-    scrollToBottom("auto");
+    scrollToBottom("smooth");
   }, [scrollToBottom]);
 
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };

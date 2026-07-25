@@ -4,6 +4,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { registerUser } from "@/lib/mock";
 import { GUEST_USER } from "@/lib/store";
 import { getToken } from "@/lib/api/client";
 import { joinOnlinePresence } from "@/lib/realtime/echo";
@@ -34,27 +35,26 @@ export async function initPresence(userUuid: string): Promise<void> {
     unsub = await joinOnlinePresence({
       here: (members) => {
         online = new Set(members.map((m) => memberUuid(m)).filter(Boolean) as string[]);
+        for (const uuid of online) {
+          registerUser({ id: uuid, online: true });
+        }
         emit();
       },
       joining: (m) => {
         const uuid = memberUuid(m);
         if (uuid) {
           online.add(uuid);
+          registerUser({ id: uuid, online: true });
           emit();
-          void import("@/lib/store").then(({ actions }) => {
-            actions.updateProfile(uuid, { online: true });
-          });
         }
       },
       leaving: (m) => {
         const uuid = memberUuid(m);
         if (uuid) {
           online.delete(uuid);
-          emit();
           const leftAt = new Date().toISOString();
-          void import("@/lib/store").then(({ actions }) => {
-            actions.updateProfile(uuid, { online: false, lastSeenAt: leftAt });
-          });
+          registerUser({ id: uuid, online: false, lastSeenAt: leftAt });
+          emit();
         }
       },
     });
