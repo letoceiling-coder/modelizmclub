@@ -26,7 +26,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
-import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
+import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
+import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: "Сообщество — МоДелизМ" }] }),
@@ -408,6 +409,7 @@ function CommunityDetailPage() {
   const [members, setMembers] = useState<number>(0);
   const [busy, setBusy] = useState(false);
   const [signupEvent, setSignupEvent] = useState<DemoCommunityEvent | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -485,21 +487,26 @@ function CommunityDetailPage() {
           <CommunityBrandingHeader
             community={community}
             Icon={Icon}
-            editable={isOwner}
+            editable={false}
             onUpdated={setCommunity}
           />
 
           <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
-            <div className="min-w-0">
-              <span
-                className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold uppercase tracking-wider"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-              >
-                {community.category}
-              </span>
-              <h1 className="mt-2 font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
-                {community.name}
-              </h1>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <span
+                  className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  {community.category}
+                </span>
+                <h1 className="mt-2 font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
+                  {community.name}
+                </h1>
+              </div>
+              {isOwner && (
+                <EntitySettingsButton onClick={() => setSettingsOpen(true)} title="Настройки сообщества" />
+              )}
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-x-[16px] gap-y-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
@@ -546,16 +553,6 @@ function CommunityDetailPage() {
                 >
                   <Check size={16} /> Вы — владелец сообщества
                 </div>
-              )}
-              {isOwner && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full gap-[8px] rounded-[12px] sm:w-auto"
-                  onClick={() => setTab("about")}
-                >
-                  Управление
-                </Button>
               )}
               {community.allowSubmitPost && (
                 <Button onClick={() => setSubmitOpen(true)} variant="outline" size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
@@ -668,26 +665,6 @@ function CommunityDetailPage() {
             <div className="xl:hidden">
               <ContactsBlock contacts={community.contacts} />
             </div>
-            {isOwner && (
-              <Card
-                className="px-[16px] py-[20px] shadow-none sm:px-[24px]"
-                style={{ background: "var(--background)", borderColor: "rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}
-              >
-                <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
-                  Управление сообществом
-                </h2>
-                <p className="mt-[8px] text-[14px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
-                  Удаление необратимо: сообщество исчезнет из поиска и списков для всех пользователей.
-                </p>
-                <div className="mt-[16px]">
-                  <DeleteCommunityDialog
-                    slug={community.id}
-                    name={community.name}
-                    onDeleted={() => navigate({ to: "/communities" })}
-                  />
-                </div>
-              </Card>
-            )}
           </div>
         )}
 
@@ -701,6 +678,16 @@ function CommunityDetailPage() {
 
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} />
       <SubmitPostSheet open={submitOpen} onOpenChange={setSubmitOpen} communityName={community.name} />
+      {isOwner && (
+        <CommunitySettingsSheet
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          community={community}
+          Icon={Icon}
+          onUpdated={setCommunity}
+          onDeleted={() => navigate({ to: "/communities" })}
+        />
+      )}
       {requestOpen && (
         <EntityRequestForm
           kind="community"

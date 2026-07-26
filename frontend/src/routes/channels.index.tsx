@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2, Pencil, BarChart2 } from "lucide-react";
+import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2, BarChart2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannels, setChannelSubscription, isChannelOwner,
@@ -228,15 +228,10 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
           </div>
         </Link>
         <div className="mt-auto flex flex-col gap-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button asChild variant="default" className="h-9 rounded-[10px] gap-1.5" size="sm">
-              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "manage" }}>
-                <Settings2 size={14} /> Управление
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-9 rounded-[10px] gap-1.5" size="sm">
-              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "manage" }}>
-                <Pencil size={14} /> Редактировать
+              <Link to="/channel/$id" params={{ id: c.id }} search={{ settings: true }}>
+                <Settings2 size={14} /> Настройки
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-9 rounded-[10px] gap-1.5" size="sm">

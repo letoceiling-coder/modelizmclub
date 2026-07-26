@@ -185,6 +185,7 @@ export interface Community {
   fullDescription?: string;
   members: number;
   category: string;
+  categoryId?: number;
   joined?: boolean;
   coverImage?: string;
   avatarImage?: string;

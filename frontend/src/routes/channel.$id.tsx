@@ -19,21 +19,30 @@ import { uploadMedia } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
-import { ChannelManagePanel } from "@/components/channels/ChannelManagePanel";
+import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
+import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { useStore, selectors } from "@/lib/store";
 
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: "Канал — МоДелизМ" }] }),
-  validateSearch: (search: Record<string, unknown>): { tab?: ChannelTab; section?: "stats" | "manage" } => ({
-    tab: search.tab === "about" || search.tab === "manage" ? search.tab as ChannelTab : undefined,
+  validateSearch: (search: Record<string, unknown>): {
+    tab?: ChannelTab | "manage";
+    section?: "stats" | "manage";
+    settings?: boolean;
+  } => ({
+    tab:
+      search.tab === "about" || search.tab === "manage"
+        ? (search.tab as ChannelTab | "manage")
+        : undefined,
     section: search.section === "stats" || search.section === "manage" ? search.section : undefined,
+    settings: search.settings === true || search.settings === "1" || search.settings === 1,
   }),
   component: ChannelPage,
 });
 
 type PostFilter = "all" | "mine";
-type ChannelTab = "posts" | "about" | "manage";
+type ChannelTab = "posts" | "about";
 
 function NotFoundView() {
   return (
@@ -55,22 +64,26 @@ function NotFoundView() {
 
 function ChannelPage() {
   const { id } = Route.useParams();
-  const { tab: tabSearch, section: sectionSearch } = Route.useSearch();
+  const { tab: tabSearch, section: sectionSearch, settings: settingsSearch } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);
-  const [tab, setTab] = useState<ChannelTab>(tabSearch ?? "posts");
+  const [tab, setTab] = useState<ChannelTab>(tabSearch === "about" ? "about" : "posts");
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    if (tabSearch) {
-      setTab(tabSearch);
-      return;
+    if (tabSearch === "about") {
+      setTab("about");
+    } else if (tabSearch !== "manage") {
+      setTab("posts");
     }
-    if (sectionSearch === "manage") setTab("manage");
-  }, [tabSearch, sectionSearch]);
+    if (settingsSearch || tabSearch === "manage" || sectionSearch === "manage") {
+      setSettingsOpen(true);
+    }
+  }, [tabSearch, sectionSearch, settingsSearch]);
 
   if (loading) {
     return (
@@ -132,28 +145,35 @@ function ChannelPage() {
         >
           <ChannelBrandingHeader
             channel={channel}
-            editable={isOwner}
+            editable={false}
             onUpdated={() => reloadChannel()}
           />
 
           <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0">
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <h1 className="font-display text-[20px] sm:text-[24px] font-bold" style={{ color: "var(--foreground)" }}>
-                  {channel.name}
-                </h1>
-                {channel.kind === "official" && <BadgeCheck size={18} style={{ color: "var(--accent)" }} />}
+            <div className="mt-3 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <h1 className="font-display text-[20px] sm:text-[24px] font-bold" style={{ color: "var(--foreground)" }}>
+                    {channel.name}
+                  </h1>
+                  {channel.kind === "official" && <BadgeCheck size={18} style={{ color: "var(--accent)" }} />}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <span
+                    className="text-[11px] font-medium"
+                    style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: 6 }}
+                  >
+                    {kindLabel(channel.kind)}
+                  </span>
+                  <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                    {channel.category}
+                  </span>
+                </div>
               </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <span
-                  className="text-[11px] font-medium"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: 6 }}
-                >
-                  {kindLabel(channel.kind)}
-                </span>
-                <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  {channel.category}
-                </span>
-              </div>
+              {isOwner && (
+                <EntitySettingsButton onClick={() => setSettingsOpen(true)} title="Настройки канала" />
+              )}
+            </div>
               <p className="mt-3 text-[14px]" style={{ color: "var(--foreground-70)" }}>
                 {channel.description}
               </p>
@@ -180,21 +200,11 @@ function ChannelPage() {
                 )}
                 {isOwner && (
                   <div
-                    className="inline-flex h-11 items-center justify-center gap-2 px-5 text-[13px] font-semibold"
-                    style={{ borderRadius: 12, background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-5 text-[13px] font-semibold sm:w-auto"
+                    style={{ background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
                   >
                     Вы — владелец канала
                   </div>
-                )}
-                {isOwner && (
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="rounded-[12px] gap-2"
-                    onClick={() => setTab("manage")}
-                  >
-                    Управление
-                  </Button>
                 )}
               </div>
 
@@ -231,7 +241,6 @@ function ChannelPage() {
             {([
               ["posts", `Посты${visiblePublic.length ? ` · ${visiblePublic.length}` : ""}`],
               ["about", "О канале"],
-              ...(isOwner ? [["manage", "Управление"] as const] : []),
             ] as const).map(([k, l]) => {
               const active = tab === k;
               return (
@@ -302,12 +311,6 @@ function ChannelPage() {
               </ul>
             )}
           </>
-        ) : tab === "manage" && isOwner ? (
-          <ChannelManagePanel
-            channel={channel}
-            onUpdated={() => reloadChannel()}
-            onDeleted={() => navigate({ to: "/channels" })}
-          />
         ) : (
           <AboutPanel
             channel={channel}
@@ -319,6 +322,15 @@ function ChannelPage() {
 
 
       </div>
+      {isOwner && (
+        <ChannelSettingsSheet
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          channel={channel}
+          onUpdated={() => reloadChannel()}
+          onDeleted={() => navigate({ to: "/channels" })}
+        />
+      )}
       {requestOpen && (
         <EntityRequestForm
           kind="channel"

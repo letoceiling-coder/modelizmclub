@@ -33,6 +33,7 @@ export function mapCommunity(c: ApiCommunity): Community {
     fullDescription: c.description ?? undefined,
     members: c.members_count ?? 0,
     category: c.category?.name ?? "",
+    categoryId: c.category?.id,
     joined: c.is_member ?? false,
     coverImage: c.cover?.url ?? undefined,
     avatarImage: c.avatar?.url ?? undefined,
@@ -102,6 +103,30 @@ export async function updateCommunityBranding(
     json: {
       avatar_media_uuid: input.avatar_media_uuid,
       cover_media_uuid: input.cover_media_uuid,
+    },
+  });
+  return mapCommunity(res.data);
+}
+
+export async function updateCommunity(
+  slug: string,
+  input: { name?: string; description?: string; categoryId?: number },
+): Promise<Community> {
+  if (isDemoMode()) {
+    const current = await fetchCommunity(slug);
+    return {
+      ...current,
+      name: input.name ?? current.name,
+      description: input.description ?? current.description,
+      categoryId: input.categoryId ?? current.categoryId,
+    };
+  }
+  const res = await api<{ data: ApiCommunity }>(`/communities/${slug}`, {
+    method: "PATCH",
+    json: {
+      name: input.name,
+      description: input.description,
+      category_id: input.categoryId,
     },
   });
   return mapCommunity(res.data);

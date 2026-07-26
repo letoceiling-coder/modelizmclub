@@ -10,6 +10,7 @@ use Modules\Community\Http\Controllers\Api\V1\LeaveCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\DeleteCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\ShowCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityBrandingController;
+use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityController;
 
 Route::prefix('communities')->group(function (): void {
     Route::get('/', IndexCommunityController::class);
@@ -22,6 +23,7 @@ Route::prefix('communities')->group(function (): void {
         Route::post('{slug}/join', JoinCommunityController::class);
         Route::delete('{slug}/leave', LeaveCommunityController::class);
         Route::patch('{slug}/branding', UpdateCommunityBrandingController::class);
+        Route::patch('{slug}', UpdateCommunityController::class);
         Route::delete('{slug}', DeleteCommunityController::class);
     });
 });

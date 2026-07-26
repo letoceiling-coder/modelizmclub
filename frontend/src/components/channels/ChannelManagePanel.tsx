@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
+import { ChannelBrandingForm } from "@/components/channels/ChannelBrandingForm";
 import {
   updateChannel,
   kindLabel,
@@ -100,19 +101,18 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
   };
 
   return (
-    <div id="channel-manage" className="space-y-4">
-      <section
-        className="p-4 sm:p-5"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
-      >
-        <h2 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Управление каналом
-        </h2>
-        <p className="mt-1 text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          Измените основные данные канала. Аватар и обложку можно обновить кнопками на шапке страницы.
-        </p>
+    <div className="space-y-5">
+      <section className="space-y-4">
+        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+          Оформление
+        </h3>
+        <ChannelBrandingForm channel={channel} onUpdated={onUpdated} />
+      </section>
 
-        <div className="mt-4 space-y-4">
+      <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
+        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+          Основное
+        </h3>
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Название</span>
             <input
@@ -202,22 +202,16 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
             <Save size={16} />
             {saving ? "Сохраняем…" : "Сохранить изменения"}
           </Button>
-        </div>
       </section>
 
-      <section
-        className="p-4 sm:p-5"
-        style={{ background: "var(--background)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "var(--r-card)" }}
-      >
-        <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+      <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
+        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
           Опасная зона
         </h3>
-        <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+        <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
           Удаление необратимо: канал исчезнет из каталога, подписчики потеряют доступ ко всем постам.
         </p>
-        <div className="mt-4">
-          <DeleteChannelDialog slug={channel.slug} name={channel.name} onDeleted={onDeleted} />
-        </div>
+        <DeleteChannelDialog slug={channel.slug} name={channel.name} onDeleted={onDeleted} />
       </section>
     </div>
   );
