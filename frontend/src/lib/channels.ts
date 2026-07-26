@@ -16,6 +16,13 @@ export const POST_KIND_LABEL: Record<PostKind, string> = {
   promo: "Спецпредложение",
 };
 
+export interface ChannelPostMediaItem {
+  type: "image" | "video";
+  url: string;
+  width?: number;
+  height?: number;
+}
+
 export interface ChannelPost {
   id: string;
   channelId: string;
@@ -26,6 +33,7 @@ export interface ChannelPost {
   likes: number;
   views: number;
   kind?: PostKind;
+  media: ChannelPostMediaItem[];
   images: string[];
   video?: string;
   rejectionReason?: string;
@@ -100,7 +108,13 @@ interface ApiChannel {
 
 interface ApiChannelPostMedia {
   type?: string;
-  media?: { url?: string | null } | null;
+  sort_order?: number;
+  media?: {
+    url?: string | null;
+    mime_type?: string | null;
+    width?: number | null;
+    height?: number | null;
+  } | null;
 }
 
 interface ApiChannelPost {
@@ -147,8 +161,26 @@ function mapStatus(s?: string): PostStatus {
   return "published";
 }
 
+function isVideoMedia(m: ApiChannelPostMedia): boolean {
+  if (m.type === "video") return true;
+  return (m.media?.mime_type ?? "").startsWith("video/");
+}
+
+function mapPostMediaItem(m: ApiChannelPostMedia): ChannelPostMediaItem | null {
+  const url = m.media?.url;
+  if (!url) return null;
+  return {
+    type: isVideoMedia(m) ? "video" : "image",
+    url,
+    width: m.media?.width ?? undefined,
+    height: m.media?.height ?? undefined,
+  };
+}
+
 function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
-  const media = p.media ?? [];
+  const media = (p.media ?? [])
+    .map(mapPostMediaItem)
+    .filter((item): item is ChannelPostMediaItem => item !== null);
   return {
     id: p.id,
     channelId: p.channel_id ?? channelId,
@@ -159,8 +191,9 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
     likes: p.likes ?? 0,
     views: p.views ?? 0,
     kind: (p.kind as PostKind) ?? undefined,
-    images: media.filter((m) => m.type !== "video" && m.media?.url).map((m) => m.media!.url!),
-    video: media.find((m) => m.type === "video" && m.media?.url)?.media?.url ?? undefined,
+    media,
+    images: media.filter((item) => item.type === "image").map((item) => item.url),
+    video: media.find((item) => item.type === "video")?.url,
     rejectionReason: p.rejection_reason ?? undefined,
   };
 }
@@ -261,6 +294,10 @@ export async function createChannelPost(input: {
   demoVideo?: string;
 }): Promise<ChannelPost> {
   if (isDemoMode()) {
+    const media: ChannelPostMediaItem[] = [
+      ...(input.demoImages ?? []).map((url) => ({ type: "image" as const, url })),
+      ...(input.demoVideo ? [{ type: "video" as const, url: input.demoVideo }] : []),
+    ];
     return {
       id: `demo-ch-post-${Date.now()}`,
       channelId: input.channelSlug,
@@ -271,8 +308,9 @@ export async function createChannelPost(input: {
       likes: 0,
       views: 0,
       kind: input.kind,
-      images: input.demoImages ?? [],
-      video: input.demoVideo,
+      media,
+      images: media.filter((item) => item.type === "image").map((item) => item.url),
+      video: media.find((item) => item.type === "video")?.url,
     };
   }
   const res = await api<{ data: ApiChannelPost }>(`/channels/${input.channelSlug}/posts`, {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type LucideIcon, type ReactNode } from "react";
+import { useEffect, useRef, useState, type LucideIcon } from "react";
 import { Camera } from "lucide-react";
 import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
 import {
@@ -17,10 +17,9 @@ interface Props {
   Icon: LucideIcon;
   editable: boolean;
   onUpdated: (community: Community) => void;
-  titleSlot: ReactNode;
 }
 
-export function CommunityBrandingHeader({ community, Icon, editable, onUpdated, titleSlot }: Props) {
+export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }: Props) {
   const [avatarUrl, setAvatarUrl] = useState(community.avatarImage ?? "");
   const [coverUrl, setCoverUrl] = useState(community.coverImage ?? "");
   const [brokenCover, setBrokenCover] = useState(false);
@@ -188,9 +187,9 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated, 
         )}
       </div>
 
-      <div className="relative px-[16px] sm:px-[24px]">
-        <div className="-mt-[36px] flex items-end gap-[12px]">
-          <div className="relative shrink-0">
+      <div className="px-[16px] pb-4 sm:px-[24px] sm:pb-5">
+        <div className="-mt-[36px] sm:-mt-10">
+          <div className="relative inline-block shrink-0">
             <div
               className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden sm:h-[88px] sm:w-[88px]"
               style={{ background: "var(--background)", border: "4px solid var(--background)", borderRadius: 18 }}
@@ -225,10 +224,9 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated, 
               </>
             )}
           </div>
-          {titleSlot}
         </div>
         {editable && (
-          <p className="mt-2 text-[11px]" style={{ color: "var(--foreground-50)" }}>
+          <p className="mt-2 max-w-[280px] text-[11px] leading-snug" style={{ color: "var(--foreground-50)" }}>
             Аватар: JPG, PNG, WEBP · до 5 МБ · рекомендуется 480×480
           </p>
         )}

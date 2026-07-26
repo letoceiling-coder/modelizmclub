@@ -487,20 +487,22 @@ function CommunityDetailPage() {
             Icon={Icon}
             editable={isOwner}
             onUpdated={setCommunity}
-            titleSlot={(
-              <div className="min-w-0 flex-1 pb-[6px]">
-                <span className="inline-block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
-                  {community.category}
-                </span>
-                <h1 className="font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
-                  {community.name}
-                </h1>
-              </div>
-            )}
           />
 
           <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
-            <div className="mt-[12px] flex flex-wrap items-center gap-x-[16px] gap-y-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+            <div className="min-w-0">
+              <span
+                className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold uppercase tracking-wider"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+              >
+                {community.category}
+              </span>
+              <h1 className="mt-2 font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
+                {community.name}
+              </h1>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-[16px] gap-y-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
               <span className="inline-flex items-center gap-[6px]">
                 <Users size={14} />
                 <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{members.toLocaleString("ru")}</span> участников</span>

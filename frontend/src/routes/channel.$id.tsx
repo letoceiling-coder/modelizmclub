@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannel, useChannelPosts, setChannelSubscription, createChannelPost, isChannelOwner,
   formatCount, formatDate, kindLabel,
   POST_KIND_LABEL,
-  type Channel, type ChannelPost, type PostStatus, type PostKind,
+  type Channel, type ChannelPost, type ChannelPostMediaItem, type PostStatus, type PostKind,
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
@@ -363,48 +363,109 @@ const STATUS: Record<PostStatus, { label: string; bg: string; color: string; Ico
   rejected: { label: "Отклонено", bg: "rgba(239,68,68,0.12)", color: "rgb(239,68,68)", Icon: AlertTriangle },
 };
 
-function ChannelPostMedia({ post }: { post: ChannelPost }) {
-  const images = post.images ?? [];
-  const hasVideo = Boolean(post.video);
-  if (!hasVideo && images.length === 0) return null;
+const CHANNEL_MEDIA_MAX_W = 520;
+const CHANNEL_MEDIA_MAX_H = 420;
+const CHANNEL_IMAGE_MAX_H = 360;
+
+function fitChannelMediaSize(
+  naturalW: number,
+  naturalH: number,
+  maxW: number,
+  maxH: number,
+): { w: number; h: number } {
+  if (naturalW <= 0 || naturalH <= 0) {
+    return { w: Math.min(maxW, 280), h: Math.min(maxH, 200) };
+  }
+  const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
+  return {
+    w: Math.max(1, Math.round(naturalW * scale)),
+    h: Math.max(1, Math.round(naturalH * scale)),
+  };
+}
+
+function ChannelPostVideo({ item }: { item: ChannelPostMediaItem }) {
+  const initialFrame = useMemo(
+    () => fitChannelMediaSize(item.width ?? 0, item.height ?? 0, CHANNEL_MEDIA_MAX_W, CHANNEL_MEDIA_MAX_H),
+    [item.width, item.height],
+  );
+  const [frame, setFrame] = useState(initialFrame);
+
+  useEffect(() => {
+    setFrame(initialFrame);
+  }, [initialFrame, item.url]);
 
   return (
-    <div className="mt-3 flex flex-col gap-3">
-      {hasVideo && (
-        <div className="mx-auto w-fit max-w-full overflow-hidden rounded-[10px] bg-black">
-          <video
-            src={post.video}
-            controls
-            preload="metadata"
-            playsInline
-            className="block max-h-[420px] max-w-[min(520px,100%)] object-contain"
-          />
-        </div>
-      )}
-      {images.length > 0 && (
-        <div
-          className={`mx-auto grid w-full max-w-[520px] gap-2 ${
-            images.length === 1 ? "grid-cols-1" : "grid-cols-2"
-          }`}
-        >
-          {images.map((src, i) => (
-            <a
-              key={`${post.id}-img-${i}`}
-              href={src}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block overflow-hidden rounded-[10px]"
-              style={{ background: "var(--background-surface)" }}
-            >
-              <img
-                src={src}
-                alt=""
-                loading="lazy"
-                className={`w-full ${images.length === 1 ? "max-h-[360px] object-contain" : "max-h-[220px] object-cover"}`}
-              />
-            </a>
-          ))}
-        </div>
+    <div
+      className="overflow-hidden rounded-[10px] bg-black"
+      style={{ width: frame.w, maxWidth: "100%", height: frame.h }}
+    >
+      <video
+        src={item.url}
+        controls
+        preload="metadata"
+        playsInline
+        className="h-full w-full object-contain"
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          if (video.videoWidth <= 0 || video.videoHeight <= 0) return;
+          setFrame(fitChannelMediaSize(video.videoWidth, video.videoHeight, CHANNEL_MEDIA_MAX_W, CHANNEL_MEDIA_MAX_H));
+        }}
+      />
+    </div>
+  );
+}
+
+function ChannelPostImage({ item }: { item: ChannelPostMediaItem }) {
+  const initialFrame = useMemo(
+    () => fitChannelMediaSize(item.width ?? 0, item.height ?? 0, CHANNEL_MEDIA_MAX_W, CHANNEL_IMAGE_MAX_H),
+    [item.width, item.height],
+  );
+  const [frame, setFrame] = useState(initialFrame);
+
+  useEffect(() => {
+    setFrame(initialFrame);
+  }, [initialFrame, item.url]);
+
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block overflow-hidden rounded-[10px]"
+      style={{ width: frame.w, maxWidth: "100%", background: "var(--background-surface)" }}
+    >
+      <div style={{ width: "100%", height: frame.h }}>
+        <img
+          src={item.url}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-contain"
+          onLoad={(event) => {
+            if (item.width && item.height) return;
+            const img = event.currentTarget;
+            if (img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+            setFrame(
+              fitChannelMediaSize(img.naturalWidth, img.naturalHeight, CHANNEL_MEDIA_MAX_W, CHANNEL_IMAGE_MAX_H),
+            );
+          }}
+        />
+      </div>
+    </a>
+  );
+}
+
+function ChannelPostMedia({ post }: { post: ChannelPost }) {
+  const items = post.media ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex max-w-[520px] flex-col gap-2">
+      {items.map((item, index) =>
+        item.type === "video" ? (
+          <ChannelPostVideo key={`${post.id}-media-${index}`} item={item} />
+        ) : (
+          <ChannelPostImage key={`${post.id}-media-${index}`} item={item} />
+        ),
       )}
     </div>
   );
