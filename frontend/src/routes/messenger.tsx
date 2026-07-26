@@ -37,6 +37,12 @@ import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
 import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
+import {
+  ShareLinkDialog,
+  clearPendingShare,
+  readPendingShare,
+  type ShareLinkPayload,
+} from "@/components/messenger/ShareLinkDialog";
 import { DialogContextMenu } from "@/components/messenger/DialogContextMenu";
 import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
@@ -59,8 +65,9 @@ export const Route = createFileRoute("/messenger")({
     const { requireVerified } = await import("@/lib/auth/verification");
     await requireVerified(location);
   },
-  validateSearch: (search: Record<string, unknown>): { chat?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { chat?: string; share?: boolean } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
+    share: search.share === true || search.share === "1" || search.share === 1,
   }),
   component: MessengerPage,
 });
@@ -401,8 +408,9 @@ function MessengerPage() {
     const id = window.setInterval(() => setPresenceTick((t) => t + 1), 30_000);
     return () => window.clearInterval(id);
   }, []);
-  const { chat } = Route.useSearch();
+  const { chat, share: shareOpen } = Route.useSearch();
   const navigate = useNavigate();
+  const [sharePayload, setSharePayload] = useState<ShareLinkPayload | null>(null);
   const [activeId, setActiveId] = useState<string | null>(chat ?? dlgs[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [text, setText] = useState("");
@@ -493,6 +501,37 @@ function MessengerPage() {
       alive = false;
     };
   }, [chat, dlgs, dialogMetaMap, loading, meId, navigate]);
+
+  // Открыть выбор получателя после «Поделиться → Отправить другу» (?share=1).
+  useEffect(() => {
+    if (!shareOpen) return;
+
+    const pending = readPendingShare();
+    if (!pending) {
+      toast.error("Не удалось открыть отправку. Попробуйте поделиться снова.");
+      void navigate({ to: "/messenger", search: { chat }, replace: true });
+      return;
+    }
+
+    setSharePayload(pending);
+  }, [shareOpen, chat, navigate]);
+
+  const closeShareDialog = useCallback(() => {
+    clearPendingShare();
+    setSharePayload(null);
+    void navigate({ to: "/messenger", search: { chat }, replace: true });
+  }, [chat, navigate]);
+
+  const handleShareSent = useCallback(
+    (dialogId: string) => {
+      clearPendingShare();
+      setSharePayload(null);
+      setActiveId(dialogId);
+      setMobileView("chat");
+      void navigate({ to: "/messenger", search: { chat: dialogId }, replace: true });
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -1365,6 +1404,7 @@ function MessengerPage() {
         </section>
       </div>
       <ForwardDialog message={forwardMsg} onClose={() => setForwardMsg(null)} />
+      <ShareLinkDialog payload={sharePayload} onClose={closeShareDialog} onSent={handleShareSent} />
       {active && (
         <ChatMessageSearch
           open={chatSearchOpen}
