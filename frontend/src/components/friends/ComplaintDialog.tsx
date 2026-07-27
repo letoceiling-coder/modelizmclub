@@ -21,6 +21,7 @@ export function ComplaintDialog({
   subjectSuffix = "",
   contextNote,
   report,
+  descriptionOverride,
 }: {
   target: User | null;
   onClose: () => void;
@@ -32,6 +33,8 @@ export function ComplaintDialog({
   contextNote?: string;
   /** When set, submit a moderation report (POST /reports) instead of feedback. */
   report?: { type: ReportType; targetId: string };
+  /** Overrides the dialog subtitle — used when the target isn't a user (e.g. a post). */
+  descriptionOverride?: string;
 }) {
   const [reason, setReason] = useState<(typeof REASONS)[number]>(REASONS[0]);
   const [message, setMessage] = useState("");
@@ -99,7 +102,7 @@ export function ComplaintDialog({
         <DialogHeader>
           <DialogTitle>{report ? "Пожаловаться" : "Книга замечаний и предложений"}</DialogTitle>
           <DialogDescription>
-            {target ? `Жалоба на пользователя «${target.name}» — выберите причину и опишите ситуацию.` : ""}
+            {descriptionOverride ?? (target ? `Жалоба на пользователя «${target.name}» — выберите причину и опишите ситуацию.` : "")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">

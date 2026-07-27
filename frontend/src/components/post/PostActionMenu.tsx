@@ -6,6 +6,8 @@ import { deletePost } from "@/lib/api/feed";
 import { approveModeration } from "@/lib/api/admin";
 import { isDemoMode } from "@/lib/demo-mode";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import type { User } from "@/lib/mock";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +24,16 @@ interface Props {
   status?: "published" | "moderation";
   canDelete?: boolean;
   isStaff?: boolean;
+  /** Author of the post — used as the report target. */
+  author?: User;
+  /** Own post? Hide/report don't make sense on your own post. */
+  isOwn?: boolean;
   onDeleted?: () => void;
   onApproved?: () => void;
+  /** Toggles the saved state (shared with the footer bookmark button). */
+  onToggleSave?: () => void;
+  /** Hides the post from the current user's feed. */
+  onHide?: () => void;
 }
 
 export function PostActionMenu({
@@ -34,12 +44,17 @@ export function PostActionMenu({
   status,
   canDelete = false,
   isStaff = false,
+  author,
+  isOwn = false,
   onDeleted,
   onApproved,
+  onToggleSave,
+  onHide,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const showApprove = isStaff && status === "moderation";
   const showDelete = canDelete || isStaff;
@@ -52,9 +67,21 @@ export function PostActionMenu({
   const close = () => setOpen(false);
 
   const handleSave = () => {
-    actions.savePost(postId, !saved);
-    toast.success(saved ? "Удалено из сохранённых" : "Добавлено в сохранённые");
+    if (onToggleSave) onToggleSave();
+    else actions.savePost(postId, !saved);
+    toast.success(saved ? "Публикация удалена из сохранённых" : "Добавлено в сохранённые");
     close();
+  };
+
+  const handleHide = () => {
+    close();
+    onHide?.();
+    toast.success("Публикация скрыта из ленты");
+  };
+
+  const handleReport = () => {
+    close();
+    setReportOpen(true);
   };
 
   const handleCopy = async () => {
@@ -124,12 +151,8 @@ export function PostActionMenu({
     }
   };
 
-  const placeholder = (label: string) => () => {
-    close();
-    toast(`${label}: будет доступно позже`);
-  };
-
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <button
@@ -166,9 +189,13 @@ export function PostActionMenu({
         <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? "Убрать из сохранённых" : "Сохранить"} accent={saved} />
         <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? "Скопировано" : "Скопировать ссылку"} accent={copied} />
         <MenuItem onClick={handleShare} icon={Share2} label="Поделиться" />
-        <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-        <MenuItem onClick={placeholder("Скрыть публикацию")} icon={EyeOff} label="Скрыть" />
-        <MenuItem onClick={placeholder("Жалоба")} icon={Flag} label="Пожаловаться" />
+        {!isOwn && (
+          <>
+            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+            <MenuItem onClick={handleHide} icon={EyeOff} label="Скрыть" />
+            <MenuItem onClick={handleReport} icon={Flag} label="Пожаловаться" />
+          </>
+        )}
         {showDelete && (
           <>
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
@@ -183,6 +210,18 @@ export function PostActionMenu({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+
+    {reportOpen && author && (
+      <ComplaintDialog
+        target={author}
+        report={{ type: "post", targetId: postId }}
+        descriptionOverride={`Жалоба на публикацию${title ? ` «${title}»` : ""} — выберите причину и опишите ситуацию.`}
+        page="/feed"
+        subjectSuffix=" (публикация)"
+        onClose={() => setReportOpen(false)}
+      />
+    )}
+    </>
   );
 }
 

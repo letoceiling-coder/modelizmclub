@@ -78,7 +78,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       setAvatarUrl(updated.avatarImage ?? media.url ?? "");
       setBrokenAvatar(false);
       onUpdated(updated);
-      toast.success("Аватар сообщества обновлён");
+      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
     } catch {
       toast.error("Не удалось загрузить аватар");
     } finally {
@@ -94,7 +94,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       setAvatarUrl("");
       setBrokenAvatar(false);
       onUpdated(updated);
-      toast.success("Аватар удалён");
+      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
     } catch {
       toast.error("Не удалось удалить аватар");
     } finally {
@@ -112,7 +112,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       setCoverUrl(updated.coverImage ?? media.url ?? "");
       setBrokenCover(false);
       onUpdated(updated);
-      toast.success("Обложка сообщества обновлена");
+      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
     } catch {
       toast.error("Не удалось загрузить обложку");
     } finally {
@@ -127,7 +127,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       const updated = await saveBranding({ cover_media_uuid: null });
       setCoverUrl("");
       onUpdated(updated);
-      toast.success("Обложка удалена");
+      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
     } catch {
       toast.error("Не удалось удалить обложку");
     } finally {

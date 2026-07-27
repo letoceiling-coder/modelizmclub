@@ -180,6 +180,7 @@ export interface CommunityContacts {
 
 export interface Community {
   id: ID;
+  uuid?: string;
   name: string;
   description: string;
   fullDescription?: string;
@@ -195,6 +196,8 @@ export interface Community {
   contacts?: CommunityContacts;
   allowSubmitPost?: boolean;
   isOwner?: boolean;
+  /** Viewer's role in this community, from the backend `viewer_role`. */
+  role?: "owner" | "moderator" | "member";
 }
 
 export interface Banner {

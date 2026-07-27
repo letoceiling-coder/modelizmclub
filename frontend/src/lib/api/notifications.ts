@@ -66,3 +66,13 @@ export async function markAllNotificationsRead(): Promise<void> {
   if (isDemoMode()) return;
   await api("/users/me/notifications/read-all", { method: "POST" });
 }
+
+export async function deleteNotification(id: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/users/me/notifications/${id}`, { method: "DELETE" });
+}
+
+export async function clearAllNotifications(): Promise<void> {
+  if (isDemoMode()) return;
+  await api("/users/me/notifications", { method: "DELETE" });
+}

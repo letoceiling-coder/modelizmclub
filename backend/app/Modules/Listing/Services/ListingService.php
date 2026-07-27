@@ -64,6 +64,18 @@ class ListingService
         return $query->paginate($perPage);
     }
 
+    /** Published listings for a user's public profile. */
+    public function publicByUser(User $user, int $perPage = 20): LengthAwarePaginator
+    {
+        return Listing::query()
+            ->with($this->relations())
+            ->where('user_id', $user->id)
+            ->where('status', ListingStatus::Published)
+            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
+
     /**
      * Объявления текущего пользователя. Можно фильтровать по статусу и сортировать.
      *

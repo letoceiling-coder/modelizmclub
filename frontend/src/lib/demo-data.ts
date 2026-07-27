@@ -493,7 +493,15 @@ export interface DemoPublicProfile {
   user: User;
   bio: string;
   city: string;
-  stats: { publications: number; followers: number; following: number; rating: number };
+  stats: {
+    publications: number;
+    friends: number;
+    listings: number;
+    communities: number;
+    followers: number;
+    following: number;
+    rating: number;
+  };
   memberSince?: string;
   isFollowing: boolean;
   isFriend: boolean;
@@ -508,7 +516,15 @@ export function demoPublicProfile(slug: string): DemoPublicProfile {
     user: { ...u, bio: u.bio ?? "" },
     bio: u.bio ?? "",
     city: u.city,
-    stats: { publications: 12, followers: 340, following: 128, rating: 4.9 },
+    stats: {
+      publications: 12,
+      friends: friendIds.size,
+      listings: demoListingsFiltered({}).filter((a) => a.authorId === u.id).length,
+      communities: 2,
+      followers: 340,
+      following: 128,
+      rating: 4.9,
+    },
     memberSince: u.joinedDate,
     isFollowing: false,
     isFriend: friendIds.has(u.id),

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, X, Newspaper, Star, Megaphone, Tag } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -13,6 +13,16 @@ import type { Post } from "@/lib/mock";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import type { ComposerDraft, ComposerSelection } from "@/components/feed/CreatePostMenu";
+import {
+  clearPostDraft,
+  dataUrlToFile,
+  fileToDataUrl,
+  isDraftMeaningful,
+  readPostDraft,
+  writePostDraft,
+  type DraftPhoto,
+  type PersistedPostDraft,
+} from "@/lib/post-draft";
 
 const MAX_PHOTOS = 10;
 
@@ -83,6 +93,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [draftPrompt, setDraftPrompt] = useState<PersistedPostDraft | null>(null);
+  // Cache File -> serialised photo so autosave doesn't re-read blobs each keystroke.
+  const photoDraftCache = useRef<Map<File, DraftPhoto>>(new Map());
+  const draftEnabled = sel.source === "profile";
 
   useEffect(() => {
     if (!catId && categories.length > 0) {
@@ -90,6 +104,74 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
       setSubId(categories[0].subcategories[0]?.id ?? "");
     }
   }, [categories, catId]);
+
+  // On open, offer to restore a persisted draft (unless an in-session draft
+  // was passed in from the inline composer).
+  useEffect(() => {
+    if (!draftEnabled) return;
+    const hasInitial = Boolean(initialDraft && (initialDraft.text?.trim() || initialDraft.files.length));
+    if (hasInitial) return;
+    const stored = readPostDraft();
+    if (stored && isDraftMeaningful(stored)) setDraftPrompt(stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Autosave the draft while the user composes. Held back while the restore
+  // prompt is still shown (user hasn't chosen yet) and while publishing.
+  useEffect(() => {
+    if (!draftEnabled || draftPrompt || publishing) return;
+    let cancelled = false;
+    const handle = window.setTimeout(async () => {
+      const photos: DraftPhoto[] = [];
+      if (sel.kind === "photo") {
+        for (const f of photoFiles) {
+          let dp = photoDraftCache.current.get(f);
+          if (!dp) {
+            try {
+              dp = { name: f.name, type: f.type, dataUrl: await fileToDataUrl(f) };
+              photoDraftCache.current.set(f, dp);
+            } catch {
+              dp = undefined;
+            }
+          }
+          if (dp) photos.push(dp);
+        }
+      }
+      if (cancelled) return;
+      writePostDraft({ title, text, catId, subId, photos, savedAt: Date.now() });
+    }, 700);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [draftEnabled, draftPrompt, publishing, title, text, catId, subId, photoFiles, sel.kind]);
+
+  const restoreDraft = async () => {
+    const d = draftPrompt;
+    if (!d) return;
+    setTitle(d.title);
+    setText(d.text);
+    if (d.catId) setCatId(d.catId);
+    if (d.subId) setSubId(d.subId);
+    if (sel.kind === "photo" && d.photos.length) {
+      try {
+        const files = await Promise.all(d.photos.map(dataUrlToFile));
+        const urls = files.map((f) => URL.createObjectURL(f));
+        files.forEach((f, i) => photoDraftCache.current.set(f, d.photos[i]));
+        setPhotoFiles(files);
+        setPhotos(urls);
+      } catch {
+        /* ignore — restore text only */
+      }
+    }
+    if (d.photosDropped) toast.error("Фото из черновика восстановить не удалось — добавьте их заново");
+    setDraftPrompt(null);
+  };
+
+  const discardDraft = () => {
+    clearPostDraft();
+    setDraftPrompt(null);
+  };
 
   useEffect(() => {
     if (!initialDraft) return;
@@ -179,6 +261,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
         // to the feed here; the real duplicated Post shows up on the next
         // GET /feed, exactly like today's channel Composer.
       }
+      clearPostDraft();
       onClose?.();
     } catch (err) {
       toast.error(formatApiErrorMessage(err, "Не удалось опубликовать. Попробуйте позже."));
@@ -211,6 +294,34 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[16px] pt-[14px]">
+        {draftPrompt && (
+          <div
+            className="flex flex-col gap-[10px] rounded-[var(--r-card-sm)] border p-[12px]"
+            style={{ borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)", background: "var(--accent-soft)" }}
+          >
+            <div className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+              Найден несохранённый черновик. Продолжить редактирование?
+            </div>
+            <div className="flex gap-[8px]">
+              <button
+                type="button"
+                onClick={restoreDraft}
+                className="h-[36px] rounded-[var(--r-button)] px-[14px] text-[13px] font-semibold"
+                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              >
+                Продолжить черновик
+              </button>
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="h-[36px] rounded-[var(--r-button)] border px-[14px] text-[13px] font-semibold"
+                style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+              >
+                Начать новую публикацию
+              </button>
+            </div>
+          </div>
+        )}
         {sel.source === "profile" && (
           <div className="flex items-start gap-[12px]">
             <img src={me.avatar} alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />

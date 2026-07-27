@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, CheckCheck, UserPlus, Megaphone, MessageSquare, Phone } from "lucide-react";
+import { Bell, CheckCheck, Trash2, UserPlus, Megaphone, MessageSquare, Phone, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import {
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  deleteNotification,
+  clearAllNotifications,
   type AppNotification,
 } from "@/lib/api/notifications";
 import { onRealtimeNotification } from "@/lib/realtime/user";
@@ -71,10 +73,32 @@ function NotificationsPage() {
     }
   };
 
+  const removeOne = async (id: string) => {
+    setItems((prev) => prev.filter((x) => x.id !== id));
+    try {
+      await deleteNotification(id);
+    } catch {
+      toast.error("Не удалось удалить");
+      fetchNotifications().then((r) => setItems(r.items)).catch(() => {});
+    }
+  };
+
+  const clearAll = async () => {
+    const prev = items;
+    setItems([]);
+    try {
+      await clearAllNotifications();
+      toast.success("Уведомления очищены");
+    } catch {
+      setItems(prev);
+      toast.error("Не удалось очистить");
+    }
+  };
+
   return (
     <AppLayout footer>
       <div className="mx-auto w-full max-w-[640px] px-[8px] py-[16px]">
-        <div className="mb-[16px] flex items-center justify-between">
+        <div className="mb-[16px] flex items-center justify-between gap-[8px]">
           <div className="flex items-center gap-[10px]">
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>
               Уведомления
@@ -88,16 +112,29 @@ function NotificationsPage() {
               </span>
             )}
           </div>
-          {unread > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAll}
-              className="gap-[6px] rounded-[8px] text-[13px]"
-              style={{ color: "var(--accent)" }}
-            >
-              <CheckCheck size={15} /> Прочитать все
-            </Button>
+          {items.length > 0 && (
+            <div className="flex shrink-0 items-center gap-[4px]">
+              {unread > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAll}
+                  className="gap-[6px] rounded-[8px] text-[13px]"
+                  style={{ color: "var(--accent)" }}
+                >
+                  <CheckCheck size={15} /> Прочитать все
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                className="gap-[6px] rounded-[8px] text-[13px]"
+                style={{ color: "var(--foreground-50)" }}
+              >
+                <Trash2 size={15} /> Очистить все
+              </Button>
+            </div>
           )}
         </div>
 
@@ -184,6 +221,18 @@ function NotificationsPage() {
                         style={{ background: "var(--accent)" }}
                       />
                     )}
+                    <button
+                      type="button"
+                      aria-label="Удалить уведомление"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void removeOne(n.id);
+                      }}
+                      className="mt-[2px] grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px] transition-colors hover:bg-[var(--background)]"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
+                      <X size={14} />
+                    </button>
                   </Card>
                 </motion.div>
               );

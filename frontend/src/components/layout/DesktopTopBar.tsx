@@ -53,7 +53,7 @@ export function DesktopTopBar() {
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />
-        <NavIcon actionKey="layout.nav.favorites" to={ROUTES.favorites} label="Избранное">
+        <NavIcon actionKey="layout.nav.favorites" to={ROUTES.favorites} label={t("nav.favorites")}>
           <Heart size={20} />
           {favCount > 0 && (
             <span
@@ -91,7 +91,7 @@ export function DesktopTopBar() {
             )}
           </span>
         </NavIcon>
-        <NavIcon actionKey="layout.nav.messenger" to={ROUTES.messenger} label="Сообщения">
+        <NavIcon actionKey="layout.nav.messenger" to={ROUTES.messenger} label={t("nav.messenger")}>
           <MessageSquare size={20} />
           {unreadMessages > 0 && (
             <span

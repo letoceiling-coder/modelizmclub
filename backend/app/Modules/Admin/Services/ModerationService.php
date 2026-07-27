@@ -51,6 +51,7 @@ class ModerationService
             } elseif ($model instanceof Listing) {
                 $this->listings->markPublished($model);
             } elseif ($model instanceof Community) {
+                app(\Modules\Community\Services\CommunityService::class)->applyPendingRevision($model);
                 $model->update([
                     'status' => CommunityStatus::Active,
                     'approved_at' => now(),

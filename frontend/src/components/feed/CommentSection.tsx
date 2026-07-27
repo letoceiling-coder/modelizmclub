@@ -2,12 +2,30 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send } from "lucide-react";
 import type { Comment } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 
 interface Props {
   comments: Comment[];
   onAdd: (text: string, parentId?: string) => void;
+  /** Show a placeholder while the first comments fetch is in flight — keeps the
+   *  panel height stable so opening doesn't jump twice. */
+  loading?: boolean;
+}
+
+function CommentSkeleton() {
+  return (
+    <div className="mt-[16px] space-y-[16px]" aria-hidden>
+      {[0, 1].map((i) => (
+        <div key={i} className="flex gap-[12px]">
+          <div className="h-[32px] w-[32px] shrink-0 animate-pulse rounded-full" style={{ background: "var(--background-surface)" }} />
+          <div className="min-w-0 flex-1">
+            <div className="h-[52px] w-full animate-pulse rounded-[12px]" style={{ background: "var(--background-surface)" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function CommentItem({
@@ -48,7 +66,7 @@ function CommentItem({
               {author.name}
             </span>
             <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              {comment.time}
+              {formatRelativeTime(comment.time)}
             </span>
           </div>
           <p className="mt-[4px] whitespace-pre-line text-[14px]" style={{ color: "var(--foreground-90)" }}>
@@ -123,7 +141,7 @@ function CommentItem({
   );
 }
 
-export function CommentSection({ comments, onAdd }: Props) {
+export function CommentSection({ comments, onAdd, loading }: Props) {
   const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
 
@@ -171,12 +189,16 @@ export function CommentSection({ comments, onAdd }: Props) {
         </button>
       </div>
 
-      {comments.length > 0 && (
-        <div className="mt-[16px] space-y-[16px]">
-          {comments.map((c) => (
-            <CommentItem key={c.id} comment={c} onReply={handleReply} />
-          ))}
-        </div>
+      {loading && comments.length === 0 ? (
+        <CommentSkeleton />
+      ) : (
+        comments.length > 0 && (
+          <div className="mt-[16px] space-y-[16px]">
+            {comments.map((c) => (
+              <CommentItem key={c.id} comment={c} onReply={handleReply} />
+            ))}
+          </div>
+        )
       )}
     </div>
   );

@@ -72,6 +72,18 @@ class PostInteractionService
             ]);
         }
 
+        // Idempotent: if the user already reposted this one, return their
+        // existing repost instead of stacking duplicates.
+        $existing = DB::table('post_reposts')
+            ->where('user_id', $user->id)
+            ->where('original_post_id', $original->id)
+            ->whereNotNull('repost_post_id')
+            ->value('repost_post_id');
+
+        if ($existing) {
+            return Post::query()->findOrFail($existing);
+        }
+
         return DB::transaction(function () use ($original, $user): Post {
             $repost = Post::create([
                 'user_id' => $user->id,
@@ -92,6 +104,28 @@ class PostInteractionService
             ]);
 
             return $repost;
+        });
+    }
+
+    /** Removes the current user's repost(s) of the given original post. */
+    public function unrepost(Post $original, User $user): void
+    {
+        DB::transaction(function () use ($original, $user): void {
+            $repostIds = DB::table('post_reposts')
+                ->where('user_id', $user->id)
+                ->where('original_post_id', $original->id)
+                ->pluck('repost_post_id')
+                ->filter()
+                ->all();
+
+            DB::table('post_reposts')
+                ->where('user_id', $user->id)
+                ->where('original_post_id', $original->id)
+                ->delete();
+
+            if ($repostIds !== []) {
+                Post::query()->whereIn('id', $repostIds)->delete();
+            }
         });
     }
 }

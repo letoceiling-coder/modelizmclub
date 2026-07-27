@@ -6,6 +6,7 @@ use App\Enums\CommunityApplicationStatus;
 use App\Enums\CommunityMemberRole;
 use App\Enums\CommunityStatus;
 use App\Models\Community;
+use App\Models\ModerationQueue;
 use App\Models\CommunityApplication;
 use App\Models\CommunityCategory;
 use App\Models\User;
@@ -53,15 +54,19 @@ class CommunityService
 
         if ($viewer) {
             $ids = $paginator->getCollection()->pluck('id');
-            $memberIds = DB::table('community_members')
+            $roles = DB::table('community_members')
                 ->where('user_id', $viewer->id)
                 ->whereIn('community_id', $ids)
-                ->pluck('community_id')
+                ->pluck('role', 'community_id')
                 ->all();
-            $set = array_flip($memberIds);
-            $paginator->getCollection()->each(
-                fn (Community $c) => $c->setAttribute('is_member', isset($set[$c->id])),
-            );
+            $paginator->getCollection()->each(function (Community $c) use ($roles, $viewer): void {
+                $role = $roles[$c->id] ?? null;
+                if ((int) $c->created_by === (int) $viewer->id) {
+                    $role = CommunityMemberRole::Owner->value;
+                }
+                $c->setAttribute('is_member', $role !== null);
+                $c->setAttribute('viewer_role', $role);
+            });
         }
 
         return $paginator;
@@ -80,10 +85,13 @@ class CommunityService
         }
 
         if ($viewer) {
-            $community->setAttribute(
-                'is_member',
-                $community->members()->where('users.id', $viewer->id)->exists(),
-            );
+            $member = $community->members()->where('users.id', $viewer->id)->first();
+            $role = $member?->pivot?->role;
+            if ((int) $community->created_by === (int) $viewer->id) {
+                $role = CommunityMemberRole::Owner->value;
+            }
+            $community->setAttribute('is_member', $member !== null || $role !== null);
+            $community->setAttribute('viewer_role', $role);
         }
 
         return $community;
@@ -258,5 +266,49 @@ class CommunityService
         if ($community->status !== CommunityStatus::Active) {
             throw new NotFoundHttpException('Сообщество недоступно.');
         }
+    }
+
+    /** @param array<string, mixed> $changes */
+    public function submitRevision(Community $community, array $changes): Community
+    {
+        $settings = $community->settings ?? [];
+        $pending = array_merge($settings['pending_revision'] ?? [], $changes);
+        $pending['submitted_at'] = now()->toIso8601String();
+        $settings['pending_revision'] = $pending;
+        $community->update(['settings' => $settings]);
+
+        ModerationQueue::query()->updateOrCreate(
+            [
+                'moderatable_type' => Community::class,
+                'moderatable_id' => $community->id,
+            ],
+            [
+                'queue' => 'communities',
+                'priority' => 0,
+                'status' => 'pending',
+            ],
+        );
+
+        return $community->fresh();
+    }
+
+    public function applyPendingRevision(Community $community): void
+    {
+        $settings = $community->settings ?? [];
+        $pending = $settings['pending_revision'] ?? null;
+        if (! is_array($pending)) {
+            return;
+        }
+
+        $updates = array_intersect_key($pending, array_flip([
+            'name', 'description', 'category_id', 'avatar_media_id', 'cover_media_id',
+        ]));
+
+        if ($updates !== []) {
+            $community->update($updates);
+        }
+
+        unset($settings['pending_revision']);
+        $community->update(['settings' => $settings]);
     }
 }

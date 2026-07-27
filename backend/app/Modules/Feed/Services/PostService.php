@@ -256,9 +256,14 @@ class PostService
 
     public function attachViewerFlags(Post $post, ?User $viewer): void
     {
+        $post->reposts_total = (int) DB::table('post_reposts')
+            ->where('original_post_id', $post->id)
+            ->count();
+
         if (! $viewer) {
             $post->viewer_reacted = false;
             $post->viewer_bookmarked = false;
+            $post->viewer_reposted = false;
 
             return;
         }
@@ -271,6 +276,11 @@ class PostService
             ->where('post_id', $post->id)
             ->where('user_id', $viewer->id)
             ->exists();
+
+        $post->viewer_reposted = DB::table('post_reposts')
+            ->where('original_post_id', $post->id)
+            ->where('user_id', $viewer->id)
+            ->exists();
     }
 
     /**
@@ -281,18 +291,27 @@ class PostService
      */
     public function attachViewerFlagsToCollection($posts, ?User $viewer): void
     {
-        if ($viewer === null) {
-            $posts->each(function (Post $post): void {
-                $post->viewer_reacted = false;
-                $post->viewer_bookmarked = false;
-            });
-
-            return;
-        }
-
         $ids = $posts->pluck('id')->filter()->values()->all();
 
         if ($ids === []) {
+            return;
+        }
+
+        // Repost totals are public (shown to guests too).
+        $repostTotals = DB::table('post_reposts')
+            ->whereIn('original_post_id', $ids)
+            ->selectRaw('original_post_id, count(*) as c')
+            ->groupBy('original_post_id')
+            ->pluck('c', 'original_post_id');
+
+        if ($viewer === null) {
+            $posts->each(function (Post $post) use ($repostTotals): void {
+                $post->viewer_reacted = false;
+                $post->viewer_bookmarked = false;
+                $post->viewer_reposted = false;
+                $post->reposts_total = (int) ($repostTotals[$post->id] ?? 0);
+            });
+
             return;
         }
 
@@ -312,9 +331,19 @@ class PostService
                 ->all(),
         );
 
-        $posts->each(function (Post $post) use ($reacted, $bookmarked): void {
+        $reposted = array_flip(
+            DB::table('post_reposts')
+                ->where('user_id', $viewer->id)
+                ->whereIn('original_post_id', $ids)
+                ->pluck('original_post_id')
+                ->all(),
+        );
+
+        $posts->each(function (Post $post) use ($reacted, $bookmarked, $reposted, $repostTotals): void {
             $post->viewer_reacted = isset($reacted[$post->id]);
             $post->viewer_bookmarked = isset($bookmarked[$post->id]);
+            $post->viewer_reposted = isset($reposted[$post->id]);
+            $post->reposts_total = (int) ($repostTotals[$post->id] ?? 0);
         });
     }
 

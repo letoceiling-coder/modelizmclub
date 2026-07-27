@@ -55,6 +55,26 @@ class NotificationController extends Controller
         return response()->json(['data' => ['unread' => 0]]);
     }
 
+    public function destroy(string $id, Request $request): JsonResponse
+    {
+        $notification = $request->user()->notifications()->whereKey($id)->first();
+
+        if (! $notification) {
+            throw new NotFoundHttpException('Уведомление не найдено.');
+        }
+
+        $notification->delete();
+
+        return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $this->visibleNotifications($request->user())->delete();
+
+        return response()->json(['data' => ['deleted' => true]]);
+    }
+
     /** @param  \App\Models\User  $user */
     private function visibleNotifications($user): MorphMany
     {

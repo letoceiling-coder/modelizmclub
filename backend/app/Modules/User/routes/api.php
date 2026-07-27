@@ -44,6 +44,8 @@ Route::prefix('users')->group(function (): void {
         Route::patch('me/privacy', PrivacyController::class);
         Route::put('me/interests', [InterestsController::class, 'sync']);
         Route::post('me/notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::delete('me/notifications', [NotificationController::class, 'destroyAll']);
+        Route::delete('me/notifications/{id}', [NotificationController::class, 'destroy']);
         Route::post('me/notifications/{id}/read', [NotificationController::class, 'markRead']);
         Route::delete('me/friends/{id}', [FriendController::class, 'destroyFriend'])->whereNumber('id');
         Route::post('{id}/friend-request', [FriendController::class, 'storeRequest'])->whereNumber('id');

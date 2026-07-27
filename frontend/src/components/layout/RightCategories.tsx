@@ -138,6 +138,19 @@ export function RightCategories() {
             );
           })}
         </ul>
+
+        <div
+          className="shrink-0 border-t px-[12px] py-[10px]"
+          style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+        >
+          <Link
+            to="/categories"
+            className="flex w-full items-center justify-center rounded-[8px] px-[10px] py-[8px] text-[12px] font-semibold transition-colors hover:bg-[var(--background-elevated)]"
+            style={{ color: "var(--accent)" }}
+          >
+            Все направления
+          </Link>
+        </div>
       </div>
     </aside>
   );

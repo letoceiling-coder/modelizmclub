@@ -4,7 +4,7 @@ import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing } from "@/lib/demo-data";
+import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing, demoPublicProfile } from "@/lib/demo-data";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -166,14 +166,16 @@ export async function fetchFavoriteListings(): Promise<Ad[]> {
   return (res.data ?? []).map(mapListing);
 }
 
-export async function addFavoriteListing(uuid: string): Promise<void> {
-  if (isDemoMode()) return;
-  await api(`/listings/${uuid}/favorite`, { method: "POST" });
+export async function addFavoriteListing(uuid: string): Promise<number> {
+  if (isDemoMode()) return 0;
+  const res = await api<{ data: { favorites_count?: number } }>(`/listings/${uuid}/favorite`, { method: "POST" });
+  return res.data?.favorites_count ?? 0;
 }
 
-export async function removeFavoriteListing(uuid: string): Promise<void> {
-  if (isDemoMode()) return;
-  await api(`/listings/${uuid}/favorite`, { method: "DELETE" });
+export async function removeFavoriteListing(uuid: string): Promise<number> {
+  if (isDemoMode()) return 0;
+  const res = await api<{ data: { favorites_count?: number } }>(`/listings/${uuid}/favorite`, { method: "DELETE" });
+  return res.data?.favorites_count ?? 0;
 }
 
 function readDemoFavoriteIds(): string[] {
@@ -204,6 +206,17 @@ export async function fetchListing(uuid: string): Promise<Ad> {
   }
   const res = await api<{ data: ApiListing }>(`/listings/${uuid}`);
   return mapListing(res.data);
+}
+
+export async function fetchUserListings(slug: string): Promise<Ad[]> {
+  if (isDemoMode()) {
+    const profile = demoPublicProfile(slug);
+    return demoListingsFiltered({}).filter((a) => a.authorId === profile.user.id);
+  }
+  const res = await api<Paginated<ApiListing>>(`/users/${slug}/listings`, {
+    query: { per_page: 50 },
+  });
+  return (res.data ?? []).map(mapListing);
 }
 
 export interface UpdateListingInput {

@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast";
 
 const MAX_SECONDS = 180;
 const CANCEL_THRESHOLD = 72;
+const BAR_COUNT = 32;
 
 function pickMimeType(): string {
   const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
@@ -30,10 +31,74 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
   const chunksRef = useRef<Blob[]>([]);
   const startingRef = useRef(false);
 
+  // Real-time waveform driven by the mic signal (Web Audio analyser + rAF).
+  // Heights are written imperatively to avoid a React re-render every frame,
+  // which is what made the previous CSS-keyframe waveform look jerky.
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const barsRef = useRef<Array<HTMLSpanElement | null>>([]);
+  const levelsRef = useRef<number[]>(new Array(BAR_COUNT).fill(0));
+
+  const stopWaveform = () => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    analyserRef.current = null;
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
+  };
+
   const teardownStream = () => {
+    stopWaveform();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     recorderRef.current = null;
+  };
+
+  const startWaveform = (stream: MediaStream) => {
+    try {
+      const Ctx: typeof AudioContext =
+        window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.82;
+      source.connect(analyser);
+      audioCtxRef.current = ctx;
+      analyserRef.current = analyser;
+      levelsRef.current = new Array(BAR_COUNT).fill(0);
+      const freq = new Uint8Array(analyser.frequencyBinCount);
+      const loop = () => {
+        const an = analyserRef.current;
+        if (!an) return;
+        const levels = levelsRef.current;
+        if (cancelingRef.current) {
+          for (const el of barsRef.current) if (el) el.style.height = "4px";
+        } else {
+          an.getByteFrequencyData(freq);
+          let sum = 0;
+          for (let i = 0; i < freq.length; i++) sum += freq[i];
+          const avg = sum / freq.length / 255; // 0..1
+          levels.push(Math.min(1, avg * 1.8));
+          levels.shift();
+          const bars = barsRef.current;
+          for (let i = 0; i < bars.length; i++) {
+            const el = bars[i];
+            if (el) el.style.height = `${3 + (levels[i] ?? 0) * 15}px`;
+          }
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    } catch {
+      // Analyser is best-effort; recording still works without the live waveform.
+    }
   };
 
   const stop = useCallback((cancel: boolean) => {
@@ -140,6 +205,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
       recorder.start();
       streamRef.current = stream;
       recorderRef.current = recorder;
+      startWaveform(stream);
 
       startTime.current = performance.now();
       setElapsed(0);
@@ -198,7 +264,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
             transition={{ duration: canceling ? 0.22 : 0.18 }}
             className="absolute inset-y-0 left-0 z-20 flex min-w-0 items-center gap-[8px] px-[10px] sm:gap-[10px] sm:px-[12px]"
             style={{
-              right: 52,
+              right: 56,
               background: "var(--background)",
               borderTop: "1px solid var(--border)",
             }}
@@ -231,15 +297,16 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
                 transition: "opacity 80ms linear, transform 80ms linear",
               }}
             >
-              {Array.from({ length: 32 }).map((_, i) => (
+              {Array.from({ length: BAR_COUNT }).map((_, i) => (
                 <span
                   key={i}
-                  className="min-w-[2px] flex-1 rounded-[2px]"
+                  ref={(el) => {
+                    barsRef.current[i] = el;
+                  }}
+                  className="h-[4px] min-w-[2px] flex-1 rounded-[2px]"
                   style={{
-                    height: cancelReady ? 6 : `${6 + ((i * 7) % 14)}px`,
                     background: cancelReady ? "var(--error, #e11d48)" : "var(--accent)",
-                    animation: cancelReady ? "none" : `voice-rec-bar ${0.55 + (i % 5) * 0.08}s ease-in-out ${i * 0.03}s infinite alternate`,
-                    transition: "height 120ms ease, background 120ms ease",
+                    transition: "height 90ms linear, background 120ms ease",
                   }}
                 />
               ))}
@@ -328,10 +395,6 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
         @keyframes voice-rec-pulse {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.25); opacity: 0.55; }
-        }
-        @keyframes voice-rec-bar {
-          from { transform: scaleY(0.65); }
-          to { transform: scaleY(1.15); }
         }
       `}</style>
     </>

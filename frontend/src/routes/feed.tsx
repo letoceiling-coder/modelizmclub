@@ -16,6 +16,7 @@ import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchPostCategories, categoryIdByName } from "@/lib/api/categories";
 import { fetchBanners } from "@/lib/api/banners";
+import { getHiddenPostIds, hidePostId } from "@/lib/hidden-posts";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import { FeedRightRail } from "@/components/feed/FeedRightRail";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
@@ -60,6 +61,7 @@ function FeedPage() {
   const [composerSession, setComposerSession] = useState(0);
   const [draftClearToken, setDraftClearToken] = useState(0);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => getHiddenPostIds());
   const { guardAction, isGuest, isAllowed, loading: guestAccessLoading } = useGuestAccess();
 
   // Direct URL /feed?category=… must not bypass admin filter settings.
@@ -86,6 +88,12 @@ function FeedPage() {
       else next.add(id);
       return next;
     });
+
+  const hideFeedPost = (id: string) => {
+    hidePostId(id);
+    setHiddenIds((prev) => new Set(prev).add(id));
+    setPosts((cur) => cur.filter((p) => p.id !== id));
+  };
 
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -135,9 +143,10 @@ function FeedPage() {
   }, [filter, activeCategory, isGuest, guestAccessLoading, isAllowed]);
 
   const filtered = useMemo(() => {
-    if (filter === "saved") return posts.filter((p) => savedIds.has(p.id) || p.isSaved);
-    return posts;
-  }, [posts, filter, savedIds]);
+    const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));
+    if (filter === "saved") return visiblePosts.filter((p) => savedIds.has(p.id) || p.isSaved);
+    return visiblePosts;
+  }, [posts, filter, savedIds, hiddenIds]);
 
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -277,6 +286,7 @@ function FeedPage() {
                   isSavedExternal={savedIds.has(post.id)}
                   onToggleSave={toggleSave}
                   onDelete={removePost}
+                  onHide={hideFeedPost}
                   onTogglePost={patchPost}
                 />,
               ];

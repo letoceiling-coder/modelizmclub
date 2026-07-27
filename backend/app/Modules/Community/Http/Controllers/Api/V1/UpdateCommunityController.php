@@ -45,11 +45,13 @@ class UpdateCommunityController extends Controller
         }
 
         if ($updates !== []) {
-            $community->update($updates);
+            $communities->submitRevision($community, $updates);
         }
 
         $community = $communities->show($slug, $user);
 
-        return (new CommunityResource($community))->response();
+        return (new CommunityResource($community))
+            ->additional(['message' => 'Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.'])
+            ->response();
     }
 }

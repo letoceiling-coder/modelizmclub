@@ -41,6 +41,9 @@ interface ApiPublicProfile {
   cover?: { uuid?: string; url?: string | null } | null;
   stats?: {
     publications_count?: number;
+    friends_count?: number;
+    listings_count?: number;
+    communities_count?: number;
     followers_count?: number;
     following_count?: number;
     rating_score?: number;
@@ -57,6 +60,9 @@ export interface PublicProfile {
   city: string;
   stats: {
     publications: number;
+    friends: number;
+    listings: number;
+    communities: number;
     followers: number;
     following: number;
     rating: number;
@@ -310,6 +316,9 @@ export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
     city: cityName,
     stats: {
       publications: p.stats?.publications_count ?? 0,
+      friends: p.stats?.friends_count ?? 0,
+      listings: p.stats?.listings_count ?? 0,
+      communities: p.stats?.communities_count ?? 0,
       followers: p.stats?.followers_count ?? 0,
       following: p.stats?.following_count ?? 0,
       rating: p.stats?.rating_score ?? 0,

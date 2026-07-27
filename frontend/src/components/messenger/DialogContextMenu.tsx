@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { BellOff, Bell, Pin, PinOff, MailQuestion, Trash2 } from "lucide-react";
+import { BellOff, Bell, Pin, PinOff, MailQuestion, Trash2, Archive, ArchiveRestore, Ban, ShieldOff, User } from "lucide-react";
 
 interface Point {
   x: number;
@@ -13,24 +13,34 @@ interface Props {
   onClose: () => void;
   pinned: boolean;
   muted: boolean;
+  archived: boolean;
+  blocked: boolean;
   onMarkUnread: () => void;
   onTogglePin: () => void;
   onToggleMute: () => void;
+  onToggleArchive: () => void;
+  onToggleBlock: () => void;
+  onGoProfile: () => void;
   onClearHistory: () => void;
   onDeleteChat: () => void;
 }
 
-const MENU_WIDTH = 230;
-const MENU_HEIGHT_ESTIMATE = 200;
+const MENU_WIDTH = 240;
+const MENU_HEIGHT_ESTIMATE = 340;
 
 export function DialogContextMenu({
   point,
   onClose,
   pinned,
   muted,
+  archived,
+  blocked,
   onMarkUnread,
   onTogglePin,
   onToggleMute,
+  onToggleArchive,
+  onToggleBlock,
+  onGoProfile,
   onClearHistory,
   onDeleteChat,
 }: Props) {
@@ -91,6 +101,7 @@ export function DialogContextMenu({
             boxShadow: "var(--shadow-float)",
           }}
         >
+          <Item icon={User} label="Перейти в профиль" onClick={run(onGoProfile)} />
           <Item icon={MailQuestion} label="Отметить непрочитанным" onClick={run(onMarkUnread)} />
           <Item
             icon={pinned ? PinOff : Pin}
@@ -102,8 +113,20 @@ export function DialogContextMenu({
             label={muted ? "Включить уведомления" : "Отключить уведомления"}
             onClick={run(onToggleMute)}
           />
+          <Item
+            icon={archived ? ArchiveRestore : Archive}
+            label={archived ? "Вернуть из архива" : "Переместить в архив"}
+            onClick={run(onToggleArchive)}
+          />
+          <div className="border-t" style={{ borderColor: "var(--border)" }} />
           <Item icon={Trash2} label="Очистить историю" onClick={run(onClearHistory)} danger />
           <Item icon={Trash2} label="Удалить чат" onClick={run(onDeleteChat)} danger />
+          <Item
+            icon={blocked ? ShieldOff : Ban}
+            label={blocked ? "Разблокировать" : "Заблокировать пользователя"}
+            onClick={run(onToggleBlock)}
+            danger={!blocked}
+          />
         </motion.div>
       )}
     </AnimatePresence>,

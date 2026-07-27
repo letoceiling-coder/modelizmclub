@@ -12,6 +12,7 @@ use Modules\Feed\Http\Controllers\Api\V1\PublishPostController;
 use Modules\Feed\Http\Controllers\Api\V1\RepostPostController;
 use Modules\Feed\Http\Controllers\Api\V1\ShowPostController;
 use Modules\Feed\Http\Controllers\Api\V1\StorePostController;
+use Modules\Feed\Http\Controllers\Api\V1\UnrepostPostController;
 use Modules\Feed\Http\Controllers\Api\V1\UpdatePostController;
 
 Route::get('feed', IndexFeedController::class);
@@ -30,6 +31,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('posts/{uuid}/bookmark', [PostBookmarkController::class, 'store']);
     Route::delete('posts/{uuid}/bookmark', [PostBookmarkController::class, 'destroy']);
     Route::post('posts/{uuid}/repost', RepostPostController::class);
+    Route::delete('posts/{uuid}/repost', UnrepostPostController::class);
     Route::post('posts/{uuid}/comments', [PostCommentsController::class, 'store']);
     Route::post('comments/{uuid}/react', [CommentReactionController::class, 'store']);
     Route::delete('comments/{uuid}/react', [CommentReactionController::class, 'destroy']);

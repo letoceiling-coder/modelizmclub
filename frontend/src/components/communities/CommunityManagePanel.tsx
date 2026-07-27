@@ -82,7 +82,7 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
         categoryId: Number(categoryId),
       });
       onUpdated(updated);
-      toast.success("Настройки сообщества сохранены");
+      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
     } catch {
       toast.error("Не удалось сохранить настройки");
     } finally {

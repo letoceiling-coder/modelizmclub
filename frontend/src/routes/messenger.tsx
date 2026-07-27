@@ -23,6 +23,7 @@ import {
 } from "@/lib/api/chat";
 import { chatAttachmentTooLargeMessage, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
 import { isDemoMode } from "@/lib/demo-mode";
+import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
@@ -114,9 +115,18 @@ function MessageSkeleton() {
 
 function StatusIcon({ status }: { status?: Message["status"] }) {
   if (!status) return null;
-  if (status === "sent") return <Check size={12} style={{ color: "rgba(255,255,255,0.5)" }} />;
-  if (status === "delivered") return <CheckCheck size={12} style={{ color: "rgba(255,255,255,0.5)" }} />;
-  return <CheckCheck size={12} style={{ color: "white" }} />;
+  // sent = one tick, delivered = two muted ticks, read = highlighted two ticks.
+  if (status === "sent")
+    return <Check size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label="Отправлено" />;
+  if (status === "delivered")
+    return <CheckCheck size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label="Доставлено" />;
+  return (
+    <CheckCheck
+      size={13}
+      style={{ color: "#8fe3ff", filter: "drop-shadow(0 0 1px rgba(143,227,255,0.6))" }}
+      aria-label="Прочитано"
+    />
+  );
 }
 
 const IMAGE_MAX_W = 280;
@@ -1078,7 +1088,6 @@ function MessengerPage() {
                   const u = userById(d.userId);
                   const isActive = d.id === activeId;
                   const isUnread = !!d.unread && !getMeta(d.id).muted;
-                  const adRef = dialogAdRefs[d.id];
                   return (
                     <li key={d.id}>
                       <button
@@ -1137,16 +1146,6 @@ function MessengerPage() {
                           >
                             {d.lastMessage}
                           </div>
-                          {adRef && (
-                            <div className="mt-[4px] flex items-center gap-[6px]">
-                              {adRef.image ? (
-                                <img src={adRef.image} alt="" className="h-[18px] w-[18px] shrink-0 rounded-[4px] object-cover" />
-                              ) : (
-                                <div className="h-[18px] w-[18px] shrink-0 rounded-[4px]" style={{ background: "var(--background-surface)" }} />
-                              )}
-                              <span className="truncate text-[11px]" style={{ color: "var(--foreground-50)" }}>{adRef.title}</span>
-                            </div>
-                          )}
                         </div>
                         {!!d.unread && !getMeta(d.id).muted && (
                           <Badge
@@ -1234,30 +1233,6 @@ function MessengerPage() {
 
 
               </header>
-                {activeAdRef && (
-                  <Link
-                    to="/ads/$id"
-                    params={{ id: activeAdRef.id }}
-                    className="flex items-center gap-[10px] px-[12px] py-[8px] transition-colors hover:bg-[var(--background-surface)] sm:px-[20px]"
-                    style={{ borderTop: "1px solid var(--border)" }}
-                  >
-                    {activeAdRef.image ? (
-                      <img
-                        src={activeAdRef.image}
-                        alt=""
-                        className="h-[36px] w-[36px] shrink-0 rounded-[8px] object-cover"
-                      />
-                    ) : (
-                      <div className="h-[36px] w-[36px] shrink-0 rounded-[8px]" style={{ background: "var(--background-surface)" }} />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px]" style={{ color: "var(--foreground)" }}>{activeAdRef.title}</div>
-                      <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
-                        {activeAdRef.price.toLocaleString("ru")} ₽
-                      </div>
-                    </div>
-                  </Link>
-                )}
               </div>
 
               {pinnedMessage && (
@@ -1292,6 +1267,35 @@ function MessengerPage() {
                   <MessageSkeleton />
                 ) : (
                   <div ref={messagesContentRef}>
+                    {activeAdRef && (
+                      <div className="mb-[14px] flex justify-center">
+                        <Link
+                          to="/ads/$id"
+                          params={{ id: activeAdRef.id }}
+                          className="flex w-full max-w-[320px] items-center gap-[10px] rounded-[14px] border p-[10px] transition-colors hover:bg-[var(--background-surface)]"
+                          style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+                        >
+                          {activeAdRef.image ? (
+                            <img
+                              src={activeAdRef.image}
+                              alt=""
+                              className="h-[48px] w-[48px] shrink-0 rounded-[10px] object-cover"
+                            />
+                          ) : (
+                            <div className="h-[48px] w-[48px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-[2px] text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+                              Объявление
+                            </div>
+                            <div className="truncate text-[13px]" style={{ color: "var(--foreground)" }}>{activeAdRef.title}</div>
+                            <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                              {activeAdRef.price.toLocaleString("ru")} ₽
+                            </div>
+                          </div>
+                        </Link>
+                      </div>
+                    )}
                     {active.messages
                       .filter((m) => !m.deletedForMe)
                       .map((m, i, arr) => (
@@ -1429,7 +1433,56 @@ function MessengerPage() {
         onClose={() => setDialogCtxMenu(null)}
         pinned={Boolean(dlgs.find((x) => x.id === dialogCtxMenu?.dialogId)?.pinned)}
         muted={Boolean(dialogCtxMenu && getMeta(dialogCtxMenu.dialogId).muted)}
+        archived={Boolean(dialogCtxMenu && getMeta(dialogCtxMenu.dialogId).archived)}
+        blocked={Boolean(
+          dialogCtxMenu &&
+            blockedUserIds.includes(dlgs.find((x) => x.id === dialogCtxMenu.dialogId)?.userId ?? ""),
+        )}
         onMarkUnread={() => dialogCtxMenu && actions.markUnread(dialogCtxMenu.dialogId)}
+        onGoProfile={() => {
+          if (!dialogCtxMenu) return;
+          const dlg = dlgs.find((x) => x.id === dialogCtxMenu.dialogId);
+          if (!dlg) return;
+          const partner = userById(dlg.userId);
+          navigate({ to: "/user/$id", params: { id: partner?.slug ?? dlg.userId } });
+        }}
+        onToggleArchive={() => {
+          if (!dialogCtxMenu) return;
+          const archived = getMeta(dialogCtxMenu.dialogId).archived;
+          actions.setDialogMeta(dialogCtxMenu.dialogId, { archived: !archived });
+          toast.success(archived ? "Чат возвращён из архива" : "Чат перемещён в архив");
+        }}
+        onToggleBlock={async () => {
+          if (!dialogCtxMenu) return;
+          const dlg = dlgs.find((x) => x.id === dialogCtxMenu.dialogId);
+          if (!dlg) return;
+          const partner = userById(dlg.userId);
+          const blocked = blockedUserIds.includes(dlg.userId);
+          if (blocked) {
+            if (!isDemoMode() && partner.numericId) {
+              try {
+                await unblockUser(partner.numericId);
+              } catch {
+                toast.error("Не удалось разблокировать");
+                return;
+              }
+            }
+            actions.unblockUser(dlg.userId);
+            toast.success(`${partner.name} разблокирован`);
+          } else {
+            if (!window.confirm(`Заблокировать ${partner.name}? Вы больше не будете получать от него сообщения.`)) return;
+            if (!isDemoMode() && partner.numericId) {
+              try {
+                await blockUser(partner.numericId);
+              } catch {
+                toast.error("Не удалось заблокировать");
+                return;
+              }
+            }
+            actions.blockUser(dlg.userId);
+            toast.success(`${partner.name} заблокирован`);
+          }
+        }}
         onTogglePin={() => {
           if (!dialogCtxMenu) return;
           const dlg = dlgs.find((x) => x.id === dialogCtxMenu.dialogId);

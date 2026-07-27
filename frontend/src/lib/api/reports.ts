@@ -1,6 +1,6 @@
 import { api } from "./client";
 
-export type ReportType = "post" | "listing" | "comment" | "user" | "video" | "conversation" | "message";
+export type ReportType = "post" | "listing" | "comment" | "user" | "video" | "conversation" | "message" | "community";
 
 export type ReportReason = "spam" | "offensive" | "adult" | "fraud" | "violence" | "copyright" | "other";
 

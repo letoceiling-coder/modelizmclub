@@ -27,8 +27,8 @@ export interface ApiPost {
   category?: { id?: number; name?: string; slug?: string } | null;
   media?: ApiPostMedia[];
   hashtags?: string[];
-  stats?: { views?: number; reactions?: number; comments?: number };
-  viewer?: { reacted?: boolean; bookmarked?: boolean };
+  stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
+  viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
   permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean };
   published_at?: string | null;
   created_at?: string;
@@ -88,10 +88,11 @@ export function mapPost(p: ApiPost): Post {
     likes: p.stats?.reactions ?? 0,
     comments: p.stats?.comments ?? 0,
     saves: 0,
-    reposts: 0,
+    reposts: p.stats?.reposts ?? 0,
     status: p.status === "published" ? "published" : "moderation",
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
+    isReposted: p.viewer?.reposted ?? false,
     canDelete: p.permissions?.can_delete ?? false,
   };
 }
@@ -99,6 +100,7 @@ export function mapPost(p: ApiPost): Post {
 export interface FeedQuery {
   filter?: "all" | "following" | "category";
   categoryId?: number;
+  authorId?: number;
   /** Demo-mode filtering only — mockPosts.category is a name string, not an
    *  id, and categoryIdByName()'s id cache isn't guaranteed populated yet on
    *  a fresh page load (e.g. /feed?category=... opened directly, not via an
@@ -124,6 +126,7 @@ export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
     query: {
       filter: opts.filter ?? "all",
       category_id: opts.categoryId,
+      author_id: opts.authorId,
       page: opts.page,
       per_page: opts.perPage ?? 20,
     },
@@ -144,6 +147,11 @@ export async function reactToPost(uuid: string, on: boolean): Promise<void> {
 export async function bookmarkPost(uuid: string, on: boolean): Promise<void> {
   if (isDemoMode()) return;
   await api(`/posts/${uuid}/bookmark`, { method: on ? "POST" : "DELETE" });
+}
+
+export async function repostPost(uuid: string, on: boolean): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/posts/${uuid}/repost`, { method: on ? "POST" : "DELETE" });
 }
 
 export interface ApiComment {

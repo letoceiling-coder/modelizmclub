@@ -36,6 +36,19 @@ export const Route = createFileRoute("/ads/$id")({
 
 type LoadState = "loading" | "ok" | "notFound" | "error";
 
+function formatDeliveryChoice(choice: string): string {
+  const lower = choice.toLowerCase();
+  if (lower.includes("сдэк") || lower.includes("cdek")) return `📦 Доставка: ${choice}`;
+  if (lower.includes("почт")) return `🚚 Доставка: ${choice}`;
+  if (lower.includes("самовывоз") || lower.includes("встреч")) return `🤝 ${choice}`;
+  return `📦 Способ получения: ${choice}`;
+}
+
+function buildSellerIntroMessage(ad: Ad, deliveryNote?: string | null): string {
+  const intro = `Здравствуйте! Пишу по объявлению «${ad.title}». Оно ещё актуально?`;
+  return deliveryNote ? `${intro}\n\n${deliveryNote}` : intro;
+}
+
 /**
  * "Похожие объявления" up to SIMILAR_ADS_SLOTS, widening the match in tiers
  * rather than stopping at an exact category+subcategory match — otherwise a
@@ -176,12 +189,12 @@ function AdDetailPage() {
   };
 
   const writeToSeller = async () => {
-    if (!requireAuthAndNotOwnAd()) return;
+    if (!ad || !requireAuthAndNotOwnAd()) return;
     if (availableDeliveryMethods.length > 0) {
       setDeliveryPickerOpen(true);
       return;
     }
-    await proceedToConversation(null);
+    await proceedToConversation(buildSellerIntroMessage(ad));
   };
 
   const askSeller = async (question: string) => {
@@ -191,7 +204,7 @@ function AdDetailPage() {
 
   if (state === "loading") {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout rightColumn={false} footer>
         <AdDetailSkeleton />
       </AppLayout>
     );
@@ -199,7 +212,7 @@ function AdDetailPage() {
 
   if (state === "notFound") {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout rightColumn={false} footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
@@ -214,7 +227,7 @@ function AdDetailPage() {
 
   if (state === "error" || !ad) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout rightColumn={false} footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <Alert variant="error">
             <AlertTitle>Не удалось загрузить объявление</AlertTitle>
@@ -266,8 +279,13 @@ function AdDetailPage() {
     actions.toggleFavoriteAd(id);
     if (!isDemoMode()) {
       try {
-        if (saved) await removeFavoriteListing(id);
-        else await addFavoriteListing(id);
+        let favoritesCount = ad.likes ?? 0;
+        if (saved) {
+          favoritesCount = await removeFavoriteListing(id);
+        } else {
+          favoritesCount = await addFavoriteListing(id);
+        }
+        setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
       } catch {
         actions.toggleFavoriteAd(id);
         toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
@@ -281,7 +299,7 @@ function AdDetailPage() {
   const hasDelivery = ad.delivery.length > 0;
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div
         className="mx-auto max-w-[1100px] pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0"
       >
@@ -419,7 +437,9 @@ function AdDetailPage() {
         methods={availableDeliveryMethods}
         onConfirm={(choice) => {
           setDeliveryPickerOpen(false);
-          void proceedToConversation(choice ? `📦 Способ получения: ${choice}` : null);
+          void proceedToConversation(
+            buildSellerIntroMessage(ad, choice ? formatDeliveryChoice(choice) : null),
+          );
         }}
       />
     </AppLayout>

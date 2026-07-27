@@ -143,4 +143,9 @@ class Post extends Model
     public bool $viewer_reacted = false;
 
     public bool $viewer_bookmarked = false;
+
+    public bool $viewer_reposted = false;
+
+    /** Number of times this post has been reposted (derived from post_reposts). */
+    public int $reposts_total = 0;
 }

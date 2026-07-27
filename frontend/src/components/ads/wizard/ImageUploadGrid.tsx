@@ -32,7 +32,10 @@ const TILE_DEFAULT = 104;
 const TILE_COMPACT = 72;
 const GAP = 12;
 const GRID_COLS = 5;
-const LAYOUT_TRANSITION = { duration: 0.24, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+const LAYOUT_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+/** Block a new swap until the reflow animation settles — prevents the dragged
+ *  tile from ping-ponging between slots while neighbours are still animating. */
+const SWAP_COOLDOWN_MS = 190;
 
 const tileBoxStyle = (tile: number): CSSProperties => ({
   width: "100%",
@@ -277,6 +280,7 @@ export function ImageUploadGrid({
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const overIndexRef = useRef<number | null>(null);
+  const swapLockUntilRef = useRef(0);
   const photosRef = useRef(photos);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
@@ -361,6 +365,7 @@ export function ImageUploadGrid({
     setDrag(state);
     overIndexRef.current = index;
     setOverIndex(index);
+    swapLockUntilRef.current = 0;
   };
 
   const handlePointerMove = (clientX: number, clientY: number) => {
@@ -386,8 +391,13 @@ export function ImageUploadGrid({
       if (!Number.isNaN(idx)) targetIndex = idx;
     }
 
-    if (targetIndex !== cur.index) {
+    // While the reflow animation is still running, keep the overlay following
+    // the pointer but hold off on a new swap so tiles don't ping-pong.
+    const swapReady = performance.now() >= swapLockUntilRef.current;
+
+    if (targetIndex !== cur.index && swapReady) {
       moveTo(cur.index, targetIndex);
+      swapLockUntilRef.current = performance.now() + SWAP_COOLDOWN_MS;
       const next: DragState = {
         ...cur,
         index: targetIndex,

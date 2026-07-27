@@ -45,6 +45,7 @@ class CommunityResource extends JsonResource
             ),
             'is_owner' => $request->user('sanctum') !== null
                 && $this->isOwnedBy($request->user('sanctum')),
+            'viewer_role' => $this->getAttribute('viewer_role'),
             'approved_at' => $this->approved_at?->toIso8601String(),
         ];
     }

@@ -16,9 +16,11 @@ use Modules\Listing\Http\Controllers\Api\V1\ShowListingController;
 use Modules\Listing\Http\Controllers\Api\V1\RevealPhoneController;
 use Modules\Listing\Http\Controllers\Api\V1\StoreListingController;
 use Modules\Listing\Http\Controllers\Api\V1\UpdateListingController;
+use Modules\Listing\Http\Controllers\Api\V1\UserListingsController;
 
 Route::get('listings/boost-packages', BoostPackagesController::class);
 Route::get('listings', IndexListingsController::class);
+Route::get('users/{slug}/listings', UserListingsController::class);
 Route::get('listings/{uuid}', ShowListingController::class)->where('uuid', '[0-9a-f-]{36}');
 
 Route::middleware('auth:sanctum')->group(function (): void {

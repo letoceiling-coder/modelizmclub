@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff,
 } from "lucide-react";
@@ -22,6 +21,19 @@ export const Route = createFileRoute("/communities/")({
 const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging,
 };
+
+const ROLE_LABEL: Record<NonNullable<Community["role"]>, string> = {
+  owner: "Владелец",
+  moderator: "Модератор",
+  member: "Участник",
+};
+
+function resolveRole(c: Community): Community["role"] | undefined {
+  if (c.role) return c.role;
+  if (c.isOwner) return "owner";
+  if (c.joined) return "member";
+  return undefined;
+}
 
 function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void }) {
   const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
@@ -60,6 +72,23 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
             {c.category}
           </span>
         )}
+        {/* viewer role */}
+        {(() => {
+          const role = resolveRole(c);
+          if (!role) return null;
+          return (
+            <span
+              className="absolute left-[10px] top-[10px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold"
+              style={{
+                background: role === "member" ? "rgba(0,0,0,0.5)" : "var(--accent)",
+                color: "#fff",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              {ROLE_LABEL[role]}
+            </span>
+          );
+        })()}
         {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
@@ -149,6 +178,61 @@ function EmptySearch() {
   );
 }
 
+const SECTION_LIMIT = 6;
+
+function CommunitySection({
+  title,
+  subtitle,
+  items,
+  onDeleted,
+}: {
+  title: string;
+  subtitle?: string;
+  items: Community[];
+  onDeleted?: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (items.length === 0) return null;
+  const visible = expanded ? items : items.slice(0, SECTION_LIMIT);
+  const canExpand = items.length > SECTION_LIMIT;
+
+  return (
+    <section className="space-y-[14px]">
+      <div className="flex items-end justify-between gap-[12px]">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold sm:text-[20px]" style={{ color: "var(--foreground)" }}>
+            {title}
+            <span
+              className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[7px] text-[12px] font-bold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+            >
+              {items.length}
+            </span>
+          </h2>
+          {subtitle && (
+            <p className="mt-[2px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{subtitle}</p>
+          )}
+        </div>
+        {canExpand && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="shrink-0 whitespace-nowrap text-[13px] font-semibold transition-colors hover:opacity-80"
+            style={{ color: "var(--accent)" }}
+          >
+            {expanded ? "Свернуть" : "Показать все"}
+          </button>
+        )}
+      </div>
+      <div className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+        {visible.map((c) => (
+          <CommunityCard key={c.id} c={c} onDeleted={onDeleted} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CommunitiesPage() {
   const [all, setAll] = useState<Community[]>([]);
 
@@ -156,41 +240,45 @@ function CommunitiesPage() {
     fetchCommunities().then(setAll).catch(() => {});
   }, []);
 
-  const myCommunities = useMemo(() => all.filter((c) => c.joined || c.isOwner), [all]);
-  const recommended = useMemo(() => all.filter((c) => !c.joined && !c.isOwner), [all]);
-
   const reloadCommunities = () => {
     fetchCommunities().then(setAll).catch(() => {});
   };
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
-  const [section, setSection] = useState<"my" | "recommended">("my");
 
-  useEffect(() => {
-    if (myCommunities.length === 0) setSection("recommended");
-  }, [myCommunities.length]);
-
-  const apply = (list: Community[]) => {
+  const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
+    if (!q) return all;
+    return all.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.category.toLowerCase().includes(q) ||
         c.description.toLowerCase().includes(q),
     );
-  };
+  }, [all, debounced]);
 
-  const myFiltered = useMemo(() => apply(myCommunities), [myCommunities, debounced]);
-  const recFiltered = useMemo(() => apply(recommended), [recommended, debounced]);
+  // Sequential blocks: Мои (владелец/модератор) → Подписки (участник) → Рекомендованные.
+  const mine = useMemo(
+    () => filtered.filter((c) => resolveRole(c) === "owner" || resolveRole(c) === "moderator"),
+    [filtered],
+  );
+  const subscriptions = useMemo(
+    () => filtered.filter((c) => resolveRole(c) === "member"),
+    [filtered],
+  );
+  const recommended = useMemo(
+    () => filtered.filter((c) => !resolveRole(c)),
+    [filtered],
+  );
 
-  const visible = section === "my" ? myFiltered : recFiltered;
   const hasQuery = debounced.trim().length > 0;
+  const nothing = filtered.length === 0;
+  const noneJoined = mine.length === 0 && subscriptions.length === 0;
 
   return (
     <AppLayout rightColumn={false} footer>
-      <div className="space-y-[20px]">
+      <div className="space-y-[24px]">
         <header>
           <h1
             className="font-display text-[24px] font-bold sm:text-[28px]"
@@ -203,46 +291,6 @@ function CommunitiesPage() {
           </p>
         </header>
 
-        {/* Tabs */}
-        <nav role="tablist" className="relative flex items-center gap-[4px] overflow-x-auto" style={{ borderBottom: "1px solid var(--border)" }}>
-          {([
-            { key: "my" as const, label: "Мои", count: myCommunities.length },
-            { key: "recommended" as const, label: "Рекомендованные", count: recommended.length },
-          ]).map((t) => {
-            const active = section === t.key;
-            return (
-              <button
-                key={t.key}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setSection(t.key)}
-                className="relative inline-flex shrink-0 items-center gap-[8px] px-[16px] py-[12px] text-[14px] font-semibold transition-colors"
-                style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
-              >
-                {t.label}
-                <span
-                  className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
-                  style={{
-                    background: active ? "var(--accent-soft)" : "var(--background-surface)",
-                    color: active ? "var(--accent)" : "var(--foreground-50)",
-                    borderRadius: "var(--r-pill)",
-                  }}
-                >
-                  {t.count}
-                </span>
-                {active && (
-                  <motion.span
-                    layoutId="communities-tab-underline"
-                    className="absolute bottom-[-1px] left-[8px] right-[8px]"
-                    style={{ height: 3, background: "var(--accent)", borderRadius: 2 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
         {/* Search */}
         <SearchInput
           value={query}
@@ -251,18 +299,29 @@ function CommunitiesPage() {
           placeholder="Поиск по названию, категории или описанию"
         />
 
-        {section === "my" && myCommunities.length === 0 && !hasQuery ? (
-          <EmptyMy onSwitch={() => setSection("recommended")} />
-        ) : visible.length === 0 ? (
-          <EmptySearch />
+        {nothing ? (
+          hasQuery ? <EmptySearch /> : <EmptyMy onSwitch={() => { /* scroll handled naturally */ }} />
         ) : (
-          <AnimatePresence mode="popLayout">
-            <motion.div key={section} className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-              {visible.map((c) => (
-                <CommunityCard key={c.id} c={c} onDeleted={reloadCommunities} />
-              ))}
-            </motion.div>
-          </AnimatePresence>
+          <div className="space-y-[28px]">
+            <CommunitySection
+              title="Мои сообщества"
+              subtitle="Где вы владелец или модератор"
+              items={mine}
+              onDeleted={reloadCommunities}
+            />
+            <CommunitySection
+              title="Мои подписки"
+              subtitle="Сообщества, в которых вы состоите"
+              items={subscriptions}
+              onDeleted={reloadCommunities}
+            />
+            <CommunitySection
+              title="Рекомендованные"
+              subtitle={noneJoined ? "Подобрали клубы, школы и магазины моделизма" : "Подобрано по вашим интересам"}
+              items={recommended}
+              onDeleted={reloadCommunities}
+            />
+          </div>
         )}
       </div>
     </AppLayout>

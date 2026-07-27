@@ -5,12 +5,13 @@ import {
   Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging, Users,
   Share2, Globe, Phone, MessageCircle, FilePlus, ImageOff, ArrowLeft,
   Check, Plus, CalendarDays, MapPin, MessagesSquare, Heart, ChevronRight,
+  Settings2, Flag,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
-import { fetchCommunity, joinCommunity, leaveCommunity } from "@/lib/api/communities";
+import { fetchCommunity, joinCommunity, leaveCommunity, fetchOwnedCommunities, fetchCommunityMembers, type CommunityMember } from "@/lib/api/communities";
 import { recordView } from "@/lib/view-history";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
@@ -28,6 +29,7 @@ import { EntityRequestForm } from "@/components/entity-requests/EntityRequestFor
 import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: "Сообщество — МоДелизМ" }] }),
@@ -223,7 +225,7 @@ function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoC
   );
 }
 
-function MemberRow({ m }: { m: DemoCommunityMember }) {
+function MemberRow({ m }: { m: CommunityMember | DemoCommunityMember }) {
   const { user, role } = m;
   return (
     <Link to="/user/$id" params={{ id: user.id }} className="flex items-center gap-[12px] px-[16px] py-[10px] transition-colors hover:bg-[var(--background-surface)]" style={{ borderTop: "1px solid var(--border)" }}>
@@ -410,6 +412,16 @@ function CommunityDetailPage() {
   const [busy, setBusy] = useState(false);
   const [signupEvent, setSignupEvent] = useState<DemoCommunityEvent | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [hasOwnCommunity, setHasOwnCommunity] = useState(false);
+  const [memberList, setMemberList] = useState<CommunityMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+
+  useEffect(() => {
+    fetchOwnedCommunities()
+      .then((list) => setHasOwnCommunity(list.length > 0))
+      .catch(() => setHasOwnCommunity(false));
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -433,7 +445,20 @@ function CommunityDetailPage() {
   const posts = useMemo(() => (community && demo ? demoCommunityPosts(community.id) : []), [community, demo]);
   const discussions = useMemo(() => (community && demo ? demoCommunityDiscussions(community.id) : []), [community, demo]);
   const events = useMemo(() => (community && demo ? demoCommunityEvents(community.id) : []), [community, demo]);
-  const memberList = useMemo(() => (community && demo ? demoCommunityMembers(community.id) : []), [community, demo]);
+  const demoMemberList = useMemo(() => (community && demo ? demoCommunityMembers(community.id) : []), [community, demo]);
+
+  useEffect(() => {
+    if (!community || tab !== "members") return;
+    if (demo) {
+      setMemberList(demoMemberList.map((m) => ({ user: m.user, role: m.role })));
+      return;
+    }
+    setMembersLoading(true);
+    fetchCommunityMembers(community.id)
+      .then(setMemberList)
+      .catch(() => setMemberList([]))
+      .finally(() => setMembersLoading(false));
+  }, [community, tab, demo, demoMemberList]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -476,7 +501,7 @@ function CommunityDetailPage() {
   };
 
   const rail = demo ? (
-    <CommunityRightRail community={community} members={memberList} events={events} onSignup={setSignupEvent} />
+    <CommunityRightRail community={community} members={demoMemberList} events={events} onSignup={setSignupEvent} />
   ) : false;
 
   return (
@@ -492,24 +517,37 @@ function CommunityDetailPage() {
           />
 
           <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <span
                   className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold uppercase tracking-wider"
                   style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                 >
                   {community.category}
                 </span>
-                <h1 className="mt-2 font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
+                <h1 className="mt-[10px] font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
                   {community.name}
                 </h1>
               </div>
-              {isOwner && (
-                <EntitySettingsButton onClick={() => setSettingsOpen(true)} title="Настройки сообщества" />
-              )}
+              <div className="flex shrink-0 items-center gap-[6px]">
+                {!isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setReportOpen(true)}
+                    className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+                    style={{ color: "var(--foreground-50)" }}
+                    aria-label="Пожаловаться на сообщество"
+                  >
+                    <Flag size={16} />
+                  </button>
+                )}
+                {isOwner && (
+                  <EntitySettingsButton onClick={() => setSettingsOpen(true)} title="Управление сообществом" />
+                )}
+              </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-[16px] gap-y-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+            <div className="mt-[14px] flex flex-wrap items-center gap-x-[16px] gap-y-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
               <span className="inline-flex items-center gap-[6px]">
                 <Users size={14} />
                 <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{members.toLocaleString("ru")}</span> участников</span>
@@ -519,7 +557,7 @@ function CommunityDetailPage() {
                   className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold"
                   style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                 >
-                  <Check size={13} /> Вы — владелец
+                  <Check size={13} /> Вы владелец
                 </span>
               )}
               {!isOwner && joined && (
@@ -529,42 +567,45 @@ function CommunityDetailPage() {
               )}
             </div>
 
-            <p className="mt-[12px] text-[14px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
+            <p className="mt-[14px] text-[14px] leading-[1.65]" style={{ color: "var(--foreground-70)" }}>
               {community.description}
             </p>
 
             {/* CTA row */}
-            <div className="mt-[16px] flex flex-col gap-[8px] sm:flex-row sm:flex-wrap">
+            <div className="mt-[18px] flex flex-wrap items-center gap-[8px]">
               {!isOwner && (
                 <Button
                   onClick={toggleJoin}
                   disabled={busy}
                   variant={joined ? "outline" : "default"}
                   size="lg"
-                  className="w-full gap-[8px] rounded-[12px] sm:w-auto"
+                  className="gap-[8px] rounded-[12px]"
                 >
                   {joined ? <><Check size={16} /> Вы подписаны</> : <><Plus size={16} /> Подписаться</>}
                 </Button>
               )}
               {isOwner && (
-                <div
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-5 text-[13px] font-semibold sm:w-auto"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                <Button
+                  onClick={() => setSettingsOpen(true)}
+                  size="lg"
+                  className="gap-[8px] rounded-[12px]"
                 >
-                  <Check size={16} /> Вы — владелец сообщества
-                </div>
+                  <Settings2 size={16} /> Управление сообществом
+                </Button>
               )}
               {community.allowSubmitPost && (
-                <Button onClick={() => setSubmitOpen(true)} variant="outline" size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
+                <Button onClick={() => setSubmitOpen(true)} variant="outline" size="lg" className="gap-[8px] rounded-[12px]">
                   <FilePlus size={16} /> Предложить проект
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setShareOpen(true)} size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
+              <Button variant="outline" onClick={() => setShareOpen(true)} size="lg" className="gap-[8px] rounded-[12px]">
                 <Share2 size={16} /> Поделиться
               </Button>
-              <Button variant="outline" onClick={() => setRequestOpen(true)} size="lg" className="w-full gap-[8px] rounded-[12px] sm:w-auto">
-                <Plus size={16} /> Хочу своё сообщество
-              </Button>
+              {!hasOwnCommunity && !isOwner && (
+                <Button variant="outline" onClick={() => setRequestOpen(true)} size="lg" className="gap-[8px] rounded-[12px]">
+                  <Plus size={16} /> Хочу своё сообщество
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -632,7 +673,12 @@ function CommunityDetailPage() {
         )}
 
         {tab === "members" && (
-          memberList.length > 0 ? (
+          membersLoading ? (
+            <Card className="overflow-hidden px-[16px] py-[20px] shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+              <Skeleton className="h-[42px] w-full" />
+              <Skeleton className="mt-[10px] h-[42px] w-full" />
+            </Card>
+          ) : memberList.length > 0 ? (
             <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
               <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>Участники</h2>
               <div className="mt-[8px]">{memberList.map((m) => <MemberRow key={m.user.id} m={m} />)}</div>
@@ -696,6 +742,20 @@ function CommunityDetailPage() {
         />
       )}
       <EventSignupModal event={signupEvent} onClose={() => setSignupEvent(null)} />
+      <ComplaintDialog
+        target={reportOpen ? {
+          id: community.id,
+          name: community.name,
+          city: community.category,
+          interests: "",
+          avatar: community.avatarImage ?? "",
+        } : null}
+        onClose={() => setReportOpen(false)}
+        page={`/communities/${community.id}`}
+        subjectSuffix=" (сообщество)"
+        descriptionOverride={`Вы отправляете жалобу на сообщество «${community.name}». Опишите причину.`}
+        report={reportOpen && community.uuid ? { type: "community", targetId: community.uuid } : undefined}
+      />
     </AppLayout>
   );
 }

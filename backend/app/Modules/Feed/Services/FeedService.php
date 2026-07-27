@@ -2,7 +2,6 @@
 
 namespace Modules\Feed\Services;
 
-use App\Enums\ContentStatus;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -18,10 +17,14 @@ class FeedService
     {
         $filter = $filters['filter'] ?? 'all';
 
+        // NOTE: do not add an extra `status = Published` filter here — that would
+        // override scopeVisibleTo() and hide the author's own posts that are still
+        // on moderation, making a freshly submitted post disappear on refresh.
+        // scopeVisibleTo() already returns Published for everyone plus the
+        // viewer's own Draft/Pending/Revision/Rejected posts.
         $query = Post::query()
             ->with($this->posts->defaultRelations())
-            ->visibleTo($viewer)
-            ->where('status', ContentStatus::Published);
+            ->visibleTo($viewer);
 
         // Reposts are meaningful in the "following" tab (you want to see what the
         // people you follow shared). In the global/category/discovery feed they

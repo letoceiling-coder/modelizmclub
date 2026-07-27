@@ -5,6 +5,7 @@ namespace Modules\Report\Services;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Comment;
+use App\Models\Community;
 use App\Models\Conversation;
 use App\Models\Listing;
 use App\Models\Message;
@@ -35,6 +36,7 @@ class ReportService
         'video' => Video::class,
         'conversation' => Conversation::class,
         'message' => Message::class,
+        'community' => Community::class,
     ];
 
     public function create(User $reporter, string $type, string $targetUuid, string $reason, ?string $description): Report
@@ -93,6 +95,7 @@ class ReportService
             'listing' => 'объявление',
             'comment' => 'комментарий',
             'video' => 'обзор',
+            'community' => 'сообщество',
             default => 'контент',
         };
 

@@ -40,6 +40,9 @@ class PublicProfileResource extends JsonResource
             ] : null),
             'stats' => [
                 'publications_count' => $this->publications_count,
+                'friends_count' => (int) ($this->friends_count ?? 0),
+                'listings_count' => (int) ($this->getAttribute('listings_count') ?? 0),
+                'communities_count' => (int) ($this->getAttribute('communities_count') ?? 0),
                 'followers_count' => $this->followers_count,
                 'following_count' => $this->following_count,
                 'rating_score' => (float) $this->rating_score,

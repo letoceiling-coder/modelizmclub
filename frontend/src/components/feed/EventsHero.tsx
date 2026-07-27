@@ -144,13 +144,13 @@ export function EventsHero() {
               className="absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(180deg, color-mix(in oklab, #000 10%, transparent) 0%, color-mix(in oklab, #000 70%, transparent) 100%)",
+                  "linear-gradient(90deg, color-mix(in oklab, #000 58%, transparent) 0%, color-mix(in oklab, #000 28%, transparent) 42%, transparent 68%), linear-gradient(180deg, transparent 32%, color-mix(in oklab, #000 60%, transparent) 100%)",
               }}
             />
 
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-[10px] p-[18px] sm:p-[22px] sm:px-[56px]">
+            <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[14px] p-[22px] pb-[30px] sm:max-w-[52%] sm:gap-[16px] sm:p-[36px] sm:pb-[44px]">
               <span
-                className="inline-flex w-fit items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white"
+                className="inline-flex w-fit items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-medium uppercase tracking-wide text-white"
                 style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
               >
                 <kind.Icon className="h-[12px] w-[12px]" />
@@ -160,18 +160,18 @@ export function EventsHero() {
                 ) : null}
               </span>
               <h2
-                className="max-w-[90%] text-[20px] font-semibold leading-tight text-white sm:text-[22px]"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
+                style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
               >
                 {current.title}
               </h2>
-              <p className="max-w-[640px] text-[13px] text-white/85 sm:text-[14px]">{current.text}</p>
-              <div className="mt-[4px]">
+              <p className="line-clamp-2 text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{current.text}</p>
+              <div className="mt-[6px]">
                 <button
                   type="button"
                   onClick={() => openCta(current)}
                   {...stopPointerPropagation}
-                  className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                  className="inline-flex items-center rounded-[10px] bg-white px-[16px] py-[9px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] sm:text-[14px]"
                 >
                   {current.cta}
                 </button>

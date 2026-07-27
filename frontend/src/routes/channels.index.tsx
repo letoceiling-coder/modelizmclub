@@ -9,7 +9,6 @@ import {
 } from "@/lib/channels";
 import { useStore, selectors } from "@/lib/store";
 import { toast } from "@/lib/toast";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,8 +24,6 @@ export const Route = createFileRoute("/channels/")({
   component: ChannelsPage,
 });
 
-type Tab = "mine" | "popular" | "new" | "subs";
-
 const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
   official: BadgeCheck,
   brand: Briefcase,
@@ -35,43 +32,108 @@ const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
   expert: Sparkles,
 };
 
+const SECTION_LIMIT = 6;
+
+function ChannelSection({
+  title,
+  subtitle,
+  items,
+  mine,
+  onChanged,
+}: {
+  title: string;
+  subtitle?: string;
+  items: Channel[];
+  mine?: boolean;
+  onChanged: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (items.length === 0) return null;
+  const visible = expanded ? items : items.slice(0, SECTION_LIMIT);
+  const canExpand = items.length > SECTION_LIMIT;
+
+  return (
+    <section className="space-y-[14px]">
+      <div className="flex items-end justify-between gap-[12px]">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold sm:text-[20px]" style={{ color: "var(--foreground)" }}>
+            {title}
+            <span
+              className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[7px] text-[12px] font-bold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+            >
+              {items.length}
+            </span>
+          </h2>
+          {subtitle && (
+            <p className="mt-[2px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{subtitle}</p>
+          )}
+        </div>
+        {canExpand && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="shrink-0 whitespace-nowrap text-[13px] font-semibold transition-colors hover:opacity-80"
+            style={{ color: "var(--accent)" }}
+          >
+            {expanded ? "Свернуть" : "Показать все"}
+          </button>
+        )}
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {visible.map((c) =>
+          mine ? (
+            <MyChannelCard key={c.id} channel={c} onChanged={onChanged} />
+          ) : (
+            <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={onChanged} />
+          ),
+        )}
+      </ul>
+    </section>
+  );
+}
+
 function ChannelsPage() {
   const { channels: all, reload } = useChannels();
   const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("popular");
   const [q, setQ] = useState("");
 
-  const myChannels = useMemo(
-    () => all.filter((c) => isChannelOwner(c, me.id)),
-    [all, me.id],
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    if (!query) return all;
+    return all.filter(
+      (c) => c.name.toLowerCase().includes(query) || c.description.toLowerCase().includes(query),
+    );
+  }, [all, q]);
+
+  const mine = useMemo(
+    () => filtered.filter((c) => isChannelOwner(c, me.id)).sort((a, b) => a.name.localeCompare(b.name, "ru")),
+    [filtered, me.id],
+  );
+  const subscriptions = useMemo(
+    () => filtered.filter((c) => c.isSubscribed && !isChannelOwner(c, me.id)),
+    [filtered, me.id],
   );
   const catalog = useMemo(
-    () => all.filter((c) => !isChannelOwner(c, me.id)),
-    [all, me.id],
+    () => filtered.filter((c) => !isChannelOwner(c, me.id)),
+    [filtered, me.id],
+  );
+  const popular = useMemo(
+    () => [...catalog].sort((a, b) => b.subscribers - a.subscribers),
+    [catalog],
+  );
+  const newest = useMemo(
+    () => [...catalog].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)),
+    [catalog],
   );
 
-  const subsCount = catalog.filter((c) => c.isSubscribed).length;
-
-  const list = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    const matchesQuery = (c: Channel) =>
-      !query || c.name.toLowerCase().includes(query) || c.description.toLowerCase().includes(query);
-
-    if (tab === "mine") {
-      return myChannels.filter(matchesQuery).sort((a, b) => a.name.localeCompare(b.name, "ru"));
-    }
-
-    let arr: Channel[] = catalog.filter(matchesQuery);
-    if (tab === "popular") arr.sort((a, b) => b.subscribers - a.subscribers);
-    else if (tab === "new") arr.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-    else arr = arr.filter((c) => c.isSubscribed);
-    return arr;
-  }, [catalog, myChannels, tab, q]);
+  const nothing = filtered.length === 0;
+  const hasQuery = q.trim().length > 0;
 
   return (
     <AppLayout rightColumn={false} footer>
-      <div className="space-y-5">
+      <div className="space-y-[24px]">
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="min-w-0">
             <h1 className="font-display text-[26px] sm:text-[28px] font-bold truncate" style={{ color: "var(--foreground)" }}>
@@ -86,7 +148,6 @@ function ChannelsPage() {
           </div>
         </header>
 
-        {/* search */}
         <SearchInput
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -94,83 +155,22 @@ function ChannelsPage() {
           placeholder="Поиск канала"
         />
 
-        {/* segmented tabs */}
-        <div
-          className="flex items-center gap-1 overflow-x-auto"
-          style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}
-        >
-          {([
-            ["mine", `Мои каналы${myChannels.length ? ` · ${myChannels.length}` : ""}`],
-            ["popular", "Популярные"],
-            ["new", "Новые"],
-            ["subs", `Подписки${subsCount ? ` · ${subsCount}` : ""}`],
-          ] as const).map(([key, label]) => {
-            const active = tab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className="shrink-0 text-[13px] font-medium transition"
-                style={{
-                  flex: 1,
-                  minWidth: 100,
-                  padding: "9px 14px",
-                  borderRadius: 9,
-                  background: active ? "var(--background)" : "transparent",
-                  color: active ? "var(--foreground)" : "var(--foreground-50)",
-                  fontWeight: active ? 600 : 500,
-                  boxShadow: active ? "var(--shadow-card)" : "none",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
-        {list.length === 0 ? (
+        {nothing ? (
           <EmptyState
             icon={Radio}
-            title={
-              tab === "mine"
-                ? "У вас пока нет канала"
-                : tab === "subs"
-                  ? "Вы пока ни на что не подписаны"
-                  : "Ничего не найдено"
-            }
-            description={
-              tab === "mine"
-                ? "Создайте канал для публикаций — он появится в этом разделе"
-                : tab === "subs"
-                  ? "Найдите интересные каналы и подпишитесь"
-                  : "Попробуйте изменить запрос или выбрать другую вкладку"
-            }
-            action={
-              tab === "mine"
-                ? { label: "Создать канал", onClick: () => navigate({ to: "/settings/spaces" }) }
-                : tab === "subs"
-                  ? { label: "К популярным каналам", onClick: () => setTab("popular") }
-                  : undefined
-            }
+            title={hasQuery ? "Ничего не найдено" : "Каналов пока нет"}
+            description={hasQuery ? "Попробуйте изменить запрос" : "Создайте канал для публикаций — он появится в разделе «Мои каналы»"}
+            action={!hasQuery ? { label: "Создать канал", onClick: () => navigate({ to: "/settings/spaces" }) } : undefined}
             variant="compact"
           />
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {list.map((c) =>
-              tab === "mine" ? (
-                <MyChannelCard key={c.id} channel={c} onChanged={reload} />
-              ) : (
-                <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={reload} />
-              ),
-            )}
-          </ul>
+          <div className="space-y-[28px]">
+            <ChannelSection title="Мои каналы" subtitle="Каналы, где вы владелец или автор" items={mine} mine onChanged={reload} />
+            <ChannelSection title="Мои подписки" subtitle="Каналы, на которые вы подписаны" items={subscriptions} onChanged={reload} />
+            <ChannelSection title="Популярные каналы" subtitle="С наибольшим числом подписчиков" items={popular} onChanged={reload} />
+            <ChannelSection title="Новые каналы" subtitle="Недавно созданные" items={newest} onChanged={reload} />
+          </div>
         )}
-
-        <p className="pt-2 text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          {tab === "mine"
-            ? "Здесь — только ваши каналы. Каталог чужих каналов и подписки — на соседних вкладках."
-            : "Каталог каналов других авторов. Ваши каналы — во вкладке «Мои каналы»."}
-        </p>
       </div>
     </AppLayout>
   );
@@ -213,7 +213,7 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
                 className="inline-flex items-center gap-1 text-[11px] font-medium"
                 style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
               >
-                Вы — владелец
+                Владелец
               </span>
               <span
                 className="inline-flex items-center gap-1 text-[11px] font-medium"
@@ -255,7 +255,6 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
     e.preventDefault();
     e.stopPropagation();
     try {
-      // Quiet inline toggle — no intrusive top toast on a simple subscribe.
       await setChannelSubscription(c.slug, !subscribed);
       onChanged();
     } catch {
@@ -293,6 +292,14 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
               {c.description}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {subscribed && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-medium"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
+                >
+                  Подписан
+                </span>
+              )}
               <span
                 className="inline-flex items-center gap-1 text-[11px] font-medium"
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)", padding: "3px 7px", borderRadius: 6 }}

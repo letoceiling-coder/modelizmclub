@@ -18,6 +18,7 @@ interface ApiCommunity {
   cover?: { uuid?: string; url?: string | null } | null;
   is_member?: boolean;
   is_owner?: boolean;
+  viewer_role?: "owner" | "moderator" | "member" | null;
 }
 
 interface Paginated<T> {
@@ -25,9 +26,38 @@ interface Paginated<T> {
   meta?: { current_page?: number; last_page?: number; total?: number };
 }
 
+interface ApiCommunityMember {
+  uuid: string;
+  display_name?: string | null;
+  name?: string | null;
+  slug?: string | null;
+  avatar?: { url?: string | null } | null;
+  city?: string | null;
+  role?: string | null;
+  joined_at?: string | null;
+}
+
+export interface CommunityMember {
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+    city?: string;
+    online?: boolean;
+  };
+  role: string;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Владелец",
+  moderator: "Модератор",
+  member: "Участник",
+};
+
 export function mapCommunity(c: ApiCommunity): Community {
   return {
     id: c.slug,
+    uuid: c.uuid,
     name: c.name,
     description: c.description ?? "",
     fullDescription: c.description ?? undefined,
@@ -38,6 +68,20 @@ export function mapCommunity(c: ApiCommunity): Community {
     coverImage: c.cover?.url ?? undefined,
     avatarImage: c.avatar?.url ?? undefined,
     isOwner: Boolean(c.is_owner),
+    role: c.viewer_role ?? (c.is_owner ? "owner" : c.is_member ? "member" : undefined),
+  };
+}
+
+function mapCommunityMember(m: ApiCommunityMember): CommunityMember {
+  const name = m.display_name ?? m.name ?? "Участник";
+  return {
+    user: {
+      id: m.slug ?? m.uuid,
+      name,
+      avatar: m.avatar?.url ?? undefined,
+      city: m.city ?? undefined,
+    },
+    role: ROLE_LABELS[m.role ?? "member"] ?? "Участник",
   };
 }
 
@@ -47,6 +91,20 @@ export async function fetchCommunities(query?: string): Promise<Community[]> {
     query: { q: query || undefined, per_page: 50 },
   });
   return (res.data ?? []).map(mapCommunity);
+}
+
+export async function fetchCommunityMembers(slug: string): Promise<CommunityMember[]> {
+  if (isDemoMode()) {
+    const { demoCommunityMembers } = await import("@/lib/demo-data");
+    return demoCommunityMembers(slug).map((m) => ({
+      user: m.user,
+      role: m.role,
+    }));
+  }
+  const res = await api<Paginated<ApiCommunityMember>>(`/communities/${slug}/members`, {
+    query: { per_page: 100 },
+  });
+  return (res.data ?? []).map(mapCommunityMember);
 }
 
 export async function fetchCommunity(slug: string): Promise<Community> {

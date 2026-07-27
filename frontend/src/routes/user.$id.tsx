@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import type { User } from "@/lib/mock";
+import type { User, Post, Ad } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import {
   fetchPublicProfile, fetchFriends, sendFriendRequest, removeFriend, followUser, unfollowUser,
@@ -9,6 +9,8 @@ import {
 } from "@/lib/api/social";
 import { openConversation } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
+import { fetchFeed } from "@/lib/api/feed";
+import { fetchUserListings } from "@/lib/api/listings";
 import { recordView } from "@/lib/view-history";
 import { ProfileView } from "./profile";
 import { toast } from "@/lib/toast";
@@ -23,12 +25,16 @@ function UserPage() {
   const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [userAds, setUserAds] = useState<{ ad: Ad; status: "active" }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setContentLoading(true);
     setNotFound(false);
     fetchPublicProfile(id)
       .then(async (p) => {
@@ -48,8 +54,22 @@ function UserPage() {
         setProfile(next);
         setLoading(false);
         recordView({ id: next.user.slug ?? next.user.id, kind: "profile", title: next.user.name, thumb: next.user.avatar });
+
+        Promise.all([
+          next.user.numericId
+            ? fetchFeed({ authorId: next.user.numericId, perPage: 50 }).then((r) => r.posts)
+            : Promise.resolve([] as Post[]),
+          fetchUserListings(id),
+        ])
+          .then(([posts, ads]) => {
+            if (!active) return;
+            setUserPosts(posts);
+            setUserAds(ads.map((ad) => ({ ad, status: "active" as const })));
+          })
+          .catch(() => {})
+          .finally(() => { if (active) setContentLoading(false); });
       })
-      .catch(() => { if (active) { setNotFound(true); setLoading(false); } });
+      .catch(() => { if (active) { setNotFound(true); setLoading(false); setContentLoading(false); } });
     return () => { active = false; };
   }, [id]);
 
@@ -116,7 +136,15 @@ function UserPage() {
     <ProfileView
       user={user}
       isOwn={false}
-      stats={{ publications: profile.stats.publications }}
+      stats={{
+        publications: profile.stats.publications,
+        ads: profile.stats.listings,
+        friends: profile.stats.friends,
+        communities: profile.stats.communities,
+      }}
+      postsOverride={userPosts}
+      adsOverride={userAds}
+      loading={contentLoading}
       isFriendInitial={profile.isFriend}
       friendRequestStatusInitial={profile.friendRequestStatus}
       isFollowingInitial={profile.isFollowing}

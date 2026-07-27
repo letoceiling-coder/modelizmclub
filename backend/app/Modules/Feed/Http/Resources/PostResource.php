@@ -40,10 +40,12 @@ class PostResource extends JsonResource
                 'views' => $this->views_count,
                 'reactions' => $this->reactions_count,
                 'comments' => $this->comments_count,
+                'reposts' => $this->reposts_total,
             ],
             'viewer' => [
                 'reacted' => $this->viewer_reacted,
                 'bookmarked' => $this->viewer_bookmarked,
+                'reposted' => $this->viewer_reposted,
             ],
             'permissions' => [
                 'can_edit' => $user ? $user->can('update', $this->resource) : false,

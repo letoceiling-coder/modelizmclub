@@ -7,6 +7,7 @@ import { useStore, selectors } from "@/lib/store";
 import {
   reactToPost,
   bookmarkPost,
+  repostPost,
   fetchPostComments,
   createComment,
 } from "@/lib/api/feed";
@@ -15,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
+import { PostGallery } from "@/components/feed/PostGallery";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -25,6 +27,7 @@ interface Props {
   isSavedExternal?: boolean;
   onToggleSave?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onHide?: (id: string) => void;
 }
 
 /** Avatar with initials fallback when the image fails to load or src is empty */
@@ -74,6 +77,10 @@ function PostMediaBlock({ post }: { post: Post }) {
     );
   }
 
+  if (post.images && post.images.length > 1) {
+    return <PostGallery images={post.images} alt={post.title} />;
+  }
+
   if (post.image) {
     return <PostImage src={post.image} alt={post.title} />;
   }
@@ -114,7 +121,7 @@ function PostImage({ src, alt }: { src: string; alt: string }) {
 const actionCls =
   "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]";
 
-export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogglePost }: Props) {
+export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost }: Props) {
   const me = useStore(selectors.currentUser);
   const author = userById(post.authorId);
   const reposter = post.repostedBy ? userById(post.repostedBy) : null;
@@ -124,7 +131,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogg
   const [liked, setLiked] = useState(!!post.isLiked);
   const [savedInner, setSavedInner] = useState(!!post.isSaved);
   const saved = isSavedExternal ?? savedInner;
-  const [reposted, setReposted] = useState(false);
+  const [reposted, setReposted] = useState(!!post.isReposted);
   const [expanded, setExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const commentsRef = useRef<HTMLDivElement>(null);
@@ -134,14 +141,18 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogg
   const [reposts, setReposts] = useState(post.reposts ?? 0);
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentsFetched, setCommentsFetched] = useState((post.commentList?.length ?? 0) > 0);
   const { guardAction } = useGuestAccess();
 
   useEffect(() => {
     if (!commentsOpen || commentsLoaded) return;
     setCommentsLoaded(true);
     fetchPostComments(post.id)
-      .then(setCommentList)
-      .catch(() => {});
+      .then((list) => {
+        setCommentList(list);
+        setCommentsFetched(true);
+      })
+      .catch(() => setCommentsFetched(true));
   }, [commentsOpen, commentsLoaded, post.id]);
 
   // When comments open, bring the input (top of the section) into view — a
@@ -185,8 +196,13 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogg
   };
   const toggleRepost = () => {
     guardAction("feed.post.repost", () => {
-      setReposted((v) => !v);
-      setReposts((n) => n + (reposted ? -1 : 1));
+      const next = !reposted;
+      setReposted(next);
+      setReposts((n) => n + (next ? 1 : -1));
+      repostPost(post.id, next).catch(() => {
+        setReposted(!next);
+        setReposts((n) => n + (next ? -1 : 1));
+      });
     });
   };
 
@@ -283,8 +299,12 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogg
             status={post.status}
             canDelete={canDelete}
             isStaff={isStaff}
+            author={author}
+            isOwn={post.authorId === me.id}
             onDeleted={() => onDelete?.(post.id)}
             onApproved={() => onTogglePost?.(post.id, { status: "published" })}
+            onToggleSave={toggleSave}
+            onHide={() => onHide?.(post.id)}
           />
         </header>
 
@@ -418,7 +438,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onTogg
               className="overflow-hidden"
             >
               <div ref={commentsRef}>
-                <CommentSection comments={commentList} onAdd={addComment} />
+                <CommentSection comments={commentList} onAdd={addComment} loading={commentsOpen && !commentsFetched} />
               </div>
             </motion.div>
           )}

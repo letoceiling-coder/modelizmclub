@@ -21,6 +21,7 @@ import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
+import { PostGallery } from "@/components/feed/PostGallery";
 import { useStore, selectors } from "@/lib/store";
 
 
@@ -470,15 +471,22 @@ function ChannelPostMedia({ post }: { post: ChannelPost }) {
   const items = post.media ?? [];
   if (items.length === 0) return null;
 
+  const videos = items.filter((item) => item.type === "video");
+  const imageItems = items.filter((item) => item.type !== "video");
+  const images = imageItems.map((item) => item.url);
+
   return (
     <div className="mt-2 flex max-w-[520px] flex-col gap-2">
-      {items.map((item, index) =>
-        item.type === "video" ? (
-          <ChannelPostVideo key={`${post.id}-media-${index}`} item={item} />
-        ) : (
-          <ChannelPostImage key={`${post.id}-media-${index}`} item={item} />
-        ),
-      )}
+      {videos.map((item, index) => (
+        <ChannelPostVideo key={`${post.id}-video-${index}`} item={item} />
+      ))}
+      {imageItems.length === 1 && videos.length === 0 ? (
+        <ChannelPostImage item={imageItems[0]} />
+      ) : images.length > 0 ? (
+        <div className="overflow-hidden rounded-[10px]">
+          <PostGallery images={images} alt={post.text.slice(0, 40) || "Пост канала"} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -562,6 +570,7 @@ function KindIcon({ kind }: { kind: PostKind }) {
 const MAX_PHOTOS = 10;
 
 function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: string; requiresModeration: boolean; onPosted: () => void }) {
+  const [expanded, setExpanded] = useState(false);
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -629,6 +638,36 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
       setSending(false);
     }
   };
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-[var(--background-surface)]"
+        style={{
+          background: "var(--background)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-card)",
+        }}
+      >
+        <span className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
+          Создать публикацию…
+        </span>
+        <span
+          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold"
+          style={{
+            background: "var(--accent-soft)",
+            color: "var(--accent)",
+            padding: "6px 10px",
+            borderRadius: 8,
+          }}
+        >
+          <Send size={12} /> Новый пост
+        </span>
+      </button>
+    );
+  }
 
   return (
     <section

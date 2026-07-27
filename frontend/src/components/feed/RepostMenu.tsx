@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { useStore, selectors, openOrCreateDialogWith, actions } from "@/lib/store";
+import { useStore, selectors, actions } from "@/lib/store";
 import { userById } from "@/lib/mock";
 
 interface Props {
@@ -21,7 +21,6 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const dialogs = useStore(selectors.dialogsList);
-  const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -88,14 +87,11 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
   };
 
   const sendToChat = (dialogId: string, partnerName: string) => {
-    actions.addMessage(dialogId, {
-      id: `nm${Date.now()}`,
-      authorId: me.id,
-      time: new Date().toISOString(),
-      text: `🔗 Поделился публикацией: ${url()}`,
-      status: "sent",
-    });
-    toast.success(`Отправлено ${partnerName}`);
+    // Queue the share as a real pending message; the messenger flushes it to the
+    // backend (apiSendMessage) once the chat opens, so it actually persists in
+    // the conversation instead of only living in local state.
+    actions.queuePendingMessage(dialogId, `🔗 Публикация: ${url()}`);
+    toast.success(`Публикация отправлена: ${partnerName}`);
     close();
     navigate({ to: "/messenger", search: { chat: dialogId } });
   };

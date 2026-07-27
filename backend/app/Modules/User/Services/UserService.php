@@ -3,7 +3,9 @@
 namespace Modules\User\Services;
 
 use App\Enums\FriendRequestStatus;
+use App\Enums\ListingStatus;
 use App\Enums\UserStatus;
+use App\Models\Listing;
 use App\Models\FriendRequest;
 use App\Models\Media;
 use App\Models\NotificationPreference;
@@ -75,6 +77,14 @@ class UserService
         if (! $this->canViewProfile($profile, $viewer)) {
             throw new NotFoundHttpException('Профиль недоступен.');
         }
+
+        $profile->setAttribute('listings_count', Listing::query()
+            ->where('user_id', $profile->user_id)
+            ->where('status', ListingStatus::Published)
+            ->count());
+        $profile->setAttribute('communities_count', (int) DB::table('community_members')
+            ->where('user_id', $profile->user_id)
+            ->count());
 
         return $profile;
     }

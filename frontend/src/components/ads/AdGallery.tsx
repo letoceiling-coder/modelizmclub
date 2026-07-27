@@ -27,16 +27,20 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
   // Drop empty/whitespace URLs up front so we never emit <img src="">.
   const valid = useMemo(() => images.filter((s) => typeof s === "string" && s.trim().length > 0), [images]);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: valid.length > 1,
+    align: "start",
+    dragFree: false,
+  });
   const [thumbRef, thumbApi] = useEmblaCarousel({ containScroll: "keepSnaps", dragFree: true });
   const [selected, setSelected] = useState(0);
   const [broken, setBroken] = useState<Record<number, boolean>>({});
 
   const onSelect = useCallback(() => {
-    if (!emblaApi || !thumbApi) return;
+    if (!emblaApi) return;
     const i = emblaApi.selectedScrollSnap();
     setSelected(i);
-    thumbApi.scrollTo(i);
+    thumbApi?.scrollTo(i);
   }, [emblaApi, thumbApi]);
 
   useEffect(() => {
@@ -44,6 +48,10 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
     onSelect();
     emblaApi.on("select", onSelect);
     emblaApi.on("reInit", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+      emblaApi.off("reInit", onSelect);
+    };
   }, [emblaApi, onSelect]);
 
   const onThumb = (i: number) => emblaApi?.scrollTo(i);
@@ -62,10 +70,10 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
           border: "1px solid var(--border)",
         }}
       >
-        <div ref={emblaRef} className="h-full overflow-hidden">
+        <div ref={emblaRef} className="h-full overflow-hidden touch-pan-y" style={{ touchAction: "pan-y pinch-zoom" }}>
           <div className="flex h-full">
             {valid.map((src, i) => (
-              <div key={i} className="relative h-full min-w-0 flex-[0_0_100%]">
+              <div key={i} className="relative h-full min-w-0 flex-[0_0_100%] select-none">
                 {broken[i] ? (
                   <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
                     <ImageOff size={40} />
@@ -76,6 +84,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
                     alt={`${alt} — фото ${i + 1}`}
                     width={1200}
                     height={900}
+                    draggable={false}
                     className="h-full w-full object-cover"
                     loading={i === 0 ? "eager" : "lazy"}
                     onError={() => setBroken((b) => ({ ...b, [i]: true }))}
@@ -146,6 +155,7 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
                     alt=""
                     width={88}
                     height={66}
+                    draggable={false}
                     className="h-full w-full object-cover"
                     loading="lazy"
                     onError={() => setBroken((b) => ({ ...b, [i]: true }))}

@@ -89,7 +89,18 @@ class FeedModuleTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $this->getJson('/api/v1/feed')
+        // The author keeps seeing their own post while it's on moderation — it
+        // must not vanish from their feed on refresh.
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/feed')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $uuid);
+
+        // A different user does not see a post that is still on moderation.
+        $other = User::factory()->create(['status' => UserStatus::Active]);
+        $this->actingAs($other, 'sanctum')
+            ->getJson('/api/v1/feed')
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
