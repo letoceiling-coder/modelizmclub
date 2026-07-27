@@ -20,6 +20,7 @@ class Message extends Model
         'user_id',
         'body',
         'type',
+        'listing_id',
         'reply_to_id',
         'forwarded_from_message_id',
         'status',
@@ -57,5 +58,10 @@ class Message extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(MessageAttachment::class);
+    }
+
+    public function listing(): BelongsTo
+    {
+        return $this->belongsTo(Listing::class);
     }
 }

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { User, Post, Ad } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -15,12 +16,15 @@ import { recordView } from "@/lib/view-history";
 import { ProfileView } from "./profile";
 import { toast } from "@/lib/toast";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/user/$id")({
-  head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.user.metaTitle") }] }),
   component: UserPage,
 });
 
 function UserPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
@@ -77,7 +81,7 @@ function UserPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="flex items-center justify-center py-[120px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
-          Загрузка…
+          {t("pages.user.loading")}
         </div>
       </AppLayout>
     );
@@ -87,9 +91,9 @@ function UserPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="flex flex-col items-center justify-center py-[120px] text-center">
-          <div className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>Пользователь не найден</div>
+          <div className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.user.notFound")}</div>
           <Link to="/friends" className="mt-[16px] inline-flex font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14, alignItems: "center" }}>
-            К списку друзей
+            {t("pages.user.toFriends")}
           </Link>
         </div>
       </AppLayout>
@@ -125,7 +129,7 @@ function UserPage() {
 
   const write = async () => {
     if (!user.numericId || !me) {
-      toast.error("Не удалось открыть диалог");
+      toast.error(t("pages.user.dialogOpenFailed"));
       return;
     }
     const dialog = await openConversation(user.numericId, me.id, user.id);

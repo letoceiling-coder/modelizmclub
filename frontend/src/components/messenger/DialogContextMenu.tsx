@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { BellOff, Bell, Pin, PinOff, MailQuestion, Trash2, Archive, ArchiveRestore, Ban, ShieldOff, User } from "lucide-react";
@@ -44,6 +45,7 @@ export function DialogContextMenu({
   onClearHistory,
   onDeleteChat,
 }: Props) {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const open = Boolean(point);
 
@@ -101,29 +103,29 @@ export function DialogContextMenu({
             boxShadow: "var(--shadow-float)",
           }}
         >
-          <Item icon={User} label="Перейти в профиль" onClick={run(onGoProfile)} />
-          <Item icon={MailQuestion} label="Отметить непрочитанным" onClick={run(onMarkUnread)} />
+          <Item icon={User} label={t("components.dialogContextMenu.goProfile")} onClick={run(onGoProfile)} />
+          <Item icon={MailQuestion} label={t("components.dialogContextMenu.markUnread")} onClick={run(onMarkUnread)} />
           <Item
             icon={pinned ? PinOff : Pin}
-            label={pinned ? "Открепить чат" : "Закрепить чат"}
+            label={pinned ? t("components.dialogContextMenu.unpinChat") : t("components.dialogContextMenu.pinChat")}
             onClick={run(onTogglePin)}
           />
           <Item
             icon={muted ? Bell : BellOff}
-            label={muted ? "Включить уведомления" : "Отключить уведомления"}
+            label={muted ? t("components.dialogContextMenu.enableNotifications") : t("components.dialogContextMenu.disableNotifications")}
             onClick={run(onToggleMute)}
           />
           <Item
             icon={archived ? ArchiveRestore : Archive}
-            label={archived ? "Вернуть из архива" : "Переместить в архив"}
+            label={archived ? t("components.dialogContextMenu.restoreFromArchive") : t("components.dialogContextMenu.moveToArchive")}
             onClick={run(onToggleArchive)}
           />
           <div className="border-t" style={{ borderColor: "var(--border)" }} />
-          <Item icon={Trash2} label="Очистить историю" onClick={run(onClearHistory)} danger />
-          <Item icon={Trash2} label="Удалить чат" onClick={run(onDeleteChat)} danger />
+          <Item icon={Trash2} label={t("components.dialogContextMenu.clearHistory")} onClick={run(onClearHistory)} danger />
+          <Item icon={Trash2} label={t("components.dialogContextMenu.deleteChat")} onClick={run(onDeleteChat)} danger />
           <Item
             icon={blocked ? ShieldOff : Ban}
-            label={blocked ? "Разблокировать" : "Заблокировать пользователя"}
+            label={blocked ? t("components.dialogContextMenu.unblock") : t("components.dialogContextMenu.blockUser")}
             onClick={run(onToggleBlock)}
             danger={!blocked}
           />

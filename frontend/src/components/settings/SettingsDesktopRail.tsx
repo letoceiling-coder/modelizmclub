@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { SettingsNav } from "./SettingsNav";
 
 /** Desktop takeover nav for /settings/* — replaces the app Sidebar entirely
@@ -7,6 +8,7 @@ import { SettingsNav } from "./SettingsNav";
  *  time, matching the Avito-style settings takeover pattern. Mobile is
  *  unaffected: the app Sidebar is already `hidden` below `lg` regardless. */
 export function SettingsDesktopRail({ activePath }: { activePath: string }) {
+  const { t } = useTranslation();
   return (
     <aside className="hidden lg:block w-60 shrink-0">
       <div className="flex flex-col gap-1 py-4">
@@ -15,7 +17,7 @@ export function SettingsDesktopRail({ activePath }: { activePath: string }) {
           className="mb-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
           style={{ color: "var(--foreground-70)" }}
         >
-          <ChevronLeft className="h-4 w-4" /> На главную
+          <ChevronLeft className="h-4 w-4" /> {t("pages.homeLink")}
         </Link>
         <SettingsNav activePath={activePath} />
       </div>

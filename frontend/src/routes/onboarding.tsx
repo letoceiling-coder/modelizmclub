@@ -1,28 +1,43 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Выберите интересы — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.onboarding.metaTitle") }] }),
   component: OnboardingPage,
 });
 
-const INTERESTS = [
-  { id: "rc-cars", title: "RC автомодели", desc: "ДВС, электро, дрифт, ралли, краулеры" },
-  { id: "rc-air", title: "Авиамодели", desc: "Планеры, пилотажки, копии" },
-  { id: "fpv", title: "Квадрокоптеры / FPV", desc: "Гонки, фристайл, синема" },
-  { id: "rc-boats", title: "Корабли и суда", desc: "Яхты, катера, копии" },
-  { id: "electronics", title: "Электроника", desc: "Регуляторы, моторы, прошивки" },
-  { id: "static", title: "Стендовый моделизм", desc: "Сборка, окраска, диорамы" },
-  { id: "trade", title: "Купля/продажа", desc: "Запчасти и готовые модели" },
-  { id: "events", title: "События и заезды", desc: "Локальные клубы и чемпионаты" },
-];
+const INTEREST_IDS = [
+  "rc-cars",
+  "rc-air",
+  "fpv",
+  "rc-boats",
+  "electronics",
+  "static",
+  "trade",
+  "events",
+] as const;
+
+const INTEREST_KEY: Record<(typeof INTEREST_IDS)[number], { title: string; desc: string }> = {
+  "rc-cars": { title: "interestRcCars", desc: "interestRcCarsDesc" },
+  "rc-air": { title: "interestRcAir", desc: "interestRcAirDesc" },
+  fpv: { title: "interestFpv", desc: "interestFpvDesc" },
+  "rc-boats": { title: "interestRcBoats", desc: "interestRcBoatsDesc" },
+  electronics: { title: "interestElectronics", desc: "interestElectronicsDesc" },
+  static: { title: "interestStatic", desc: "interestStaticDesc" },
+  trade: { title: "interestTrade", desc: "interestTradeDesc" },
+  events: { title: "interestEvents", desc: "interestEventsDesc" },
+};
 
 function OnboardingPage() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const nav = useNavigate();
 
@@ -30,8 +45,8 @@ function OnboardingPage() {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const finish = () => {
-    if (selected.length < 1) return toast.error("Выберите хотя бы одну категорию");
-    toast.success("Готово! Лента подобрана под ваши интересы");
+    if (selected.length < 1) return toast.error(t("pages.onboarding.selectOne"));
+    toast.success(t("pages.onboarding.done"));
     nav({ to: "/feed" });
   };
 
@@ -47,7 +62,7 @@ function OnboardingPage() {
             onClick={() => nav({ to: "/feed" })}
             style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", background: "transparent", border: "none", cursor: "pointer" }}
           >
-            Пропустить
+            {t("pages.onboarding.skip")}
           </button>
           <ThemeToggle />
         </div>
@@ -63,22 +78,23 @@ function OnboardingPage() {
             textTransform: "uppercase",
           }}
         >
-          Шаг 1 из 1
+          {t("pages.onboarding.step")}
         </div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", marginTop: 12 }}>
-          Что вам интересно?
+          {t("pages.onboarding.title")}
         </h1>
         <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>
-          Выберите направления — лента, чаты и объявления будут подбираться под них. Можно поменять позже в профиле.
+          {t("pages.onboarding.subtitle")}
         </p>
 
         <div className="mt-[32px] grid gap-[12px] sm:grid-cols-2 lg:grid-cols-3">
-          {INTERESTS.map((i) => {
-            const active = selected.includes(i.id);
+          {INTEREST_IDS.map((id) => {
+            const active = selected.includes(id);
+            const keys = INTEREST_KEY[id];
             return (
               <motion.button
-                key={i.id}
-                onClick={() => toggle(i.id)}
+                key={id}
+                onClick={() => toggle(id)}
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 style={{
@@ -101,9 +117,9 @@ function OnboardingPage() {
                   </div>
                 )}
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h4)" }}>
-                  {i.title}
+                  {t(`pages.onboarding.${keys.title}`)}
                 </div>
-                <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>{i.desc}</div>
+                <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>{t(`pages.onboarding.${keys.desc}`)}</div>
               </motion.button>
             );
           })}
@@ -120,8 +136,7 @@ function OnboardingPage() {
           }}
         >
           <div style={{ fontSize: "var(--fs-sm)", color: "var(--foreground-70)" }}>
-            Выбрано:{" "}
-            <span style={{ color: "var(--accent)", fontWeight: 700 }}>{selected.length}</span> из {INTERESTS.length}
+            {t("pages.onboarding.selected", { count: selected.length, total: INTEREST_IDS.length })}
           </div>
           <button
             onClick={finish}
@@ -137,7 +152,7 @@ function OnboardingPage() {
               boxShadow: "var(--shadow-button)",
             }}
           >
-            Продолжить →
+            {t("pages.onboarding.continue")}
           </button>
         </div>
       </main>

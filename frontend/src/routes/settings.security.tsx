@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { Loader2, LogOut } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
@@ -25,33 +26,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function SecuritySection() {
+  const { t } = useTranslation();
   const [curPw, setCurPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Authenticated in-place password change — current → new, no email round
-  // trip, no logout. Demo hosts have no auth backend, so there we say so
-  // honestly rather than faking "пароль изменён".
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!curPw) { toast.error("Введите текущий пароль"); return; }
-    if (newPw.length < 8) { toast.error("Новый пароль — минимум 8 символов"); return; }
-    if (newPw !== confirmPw) { toast.error("Пароли не совпадают"); return; }
-    if (isDemoMode()) { toast("В демо-режиме смена пароля недоступна"); return; }
+    if (!curPw) { toast.error(t("pages.settings.enterCurrentPassword")); return; }
+    if (newPw.length < 8) { toast.error(t("pages.settings.passwordMin8")); return; }
+    if (newPw !== confirmPw) { toast.error(t("authPages.registerPasswordMismatch")); return; }
+    if (isDemoMode()) { toast(t("pages.settings.demoPasswordChange")); return; }
 
     setSaving(true);
     try {
       await changePassword(curPw, newPw);
-      toast.success("Пароль изменён");
+      toast.success(t("pages.settings.passwordChanged"));
       setCurPw(""); setNewPw(""); setConfirmPw("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         const firstMessage = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
-        toast.error(firstMessage ?? "Проверьте текущий пароль");
+        toast.error(firstMessage ?? t("pages.settings.checkCurrentPassword"));
       } else {
-        toast.error("Не удалось изменить пароль");
+        toast.error(t("pages.settings.passwordChangeFailed"));
       }
     } finally {
       setSaving(false);
@@ -59,49 +58,49 @@ function SecuritySection() {
   };
 
   const logoutOthers = async () => {
-    if (isDemoMode()) { toast("В демо-режиме недоступно"); return; }
+    if (isDemoMode()) { toast(t("pages.settings.demoUnavailable")); return; }
     setLoggingOut(true);
     try {
       await logoutOtherDevices();
-      toast.success("Вы вышли на всех других устройствах");
+      toast.success(t("pages.settings.loggedOutOtherDevices"));
     } catch {
-      toast.error("Не удалось завершить другие сеансы");
+      toast.error(t("pages.settings.logoutOthersFailed"));
     } finally {
       setLoggingOut(false);
     }
   };
 
   return (
-    <SettingsSectionShell title="Безопасность">
+    <SettingsSectionShell title={t("pages.settings.securityTitle")}>
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена пароля</h2>
+        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.changePassword")}</h2>
         <p className="mb-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          Введите текущий и новый пароль — смена происходит сразу, без выхода из аккаунта.
+          {t("pages.settings.changePasswordDesc")}
         </p>
         <form onSubmit={submitPassword} className="space-y-[12px]">
-          <Field label="Текущий пароль"><PasswordInput value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></Field>
-          <Field label="Новый пароль"><PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></Field>
-          <Field label="Повторите новый пароль"><PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" /></Field>
+          <Field label={t("pages.settings.currentPassword")}><PasswordInput value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></Field>
+          <Field label={t("pages.settings.newPassword")}><PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></Field>
+          <Field label={t("pages.settings.confirmNewPassword")}><PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" /></Field>
           <Button type="submit" disabled={saving} className="gap-[8px]">
             {saving && <Loader2 size={16} className="animate-spin" />}
-            Сменить пароль
+            {t("pages.settings.changePasswordBtn")}
           </Button>
         </form>
       </Card>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Активные сеансы</h2>
+        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.sessionsTitle")}</h2>
         <p className="mb-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          Если вы входили с чужого устройства — завершите все сеансы, кроме текущего. Здесь вы останетесь в системе.
+          {t("pages.settings.sessionsDesc")}
         </p>
         <Button variant="outline" onClick={logoutOthers} disabled={loggingOut} className="gap-[8px]">
           {loggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-          Выйти на других устройствах
+          {t("pages.settings.logoutOtherDevices")}
         </Button>
       </Card>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Заблокированные пользователи</h2>
+        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.blockedUsersTitle")}</h2>
         <BlockedUsersSection />
       </Card>
     </SettingsSectionShell>

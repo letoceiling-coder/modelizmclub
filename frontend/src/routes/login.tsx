@@ -21,8 +21,10 @@ type LoginSearch = {
   oauth_provider?: string;
 };
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Вход — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.login.metaTitle") }] }),
   validateSearch: (s: Record<string, unknown>): LoginSearch => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
     oauth_token: typeof s.oauth_token === "string" ? s.oauth_token : undefined,

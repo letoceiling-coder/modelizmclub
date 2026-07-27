@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
@@ -16,13 +17,10 @@ import { isDemoMode } from "@/lib/demo-mode";
 import type { Ad } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/ads/")({
-  head: () => ({
-    meta: [
-      { title: "Объявления — МоДелизМ" },
-      { name: "description", content: "Каталог объявлений: RC авто, самолёты, квадрокоптеры, корабли. Купить и продать модели и запчасти." },
-    ],
-  }),
+  head: () => ({ meta: [{ title: i18n.t("pages.ads.metaTitle") }, { name: "description", content: i18n.t("pages.ads.metaDescription") }] }),
   validateSearch: (search: Record<string, unknown>): { q?: string } => ({
     q: typeof search.q === "string" ? search.q : undefined,
   }),
@@ -65,6 +63,7 @@ function buildParams(
 }
 
 function CatalogPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const search = Route.useSearch();
   const isAuthed = !!getToken() || isDemoMode();
@@ -201,10 +200,10 @@ function CatalogPage() {
               className="mt-[4px] font-display text-[22px] font-bold leading-tight"
               style={{ color: "var(--foreground)" }}
             >
-              Объявления
+              {t("pages.ads.title")}
             </h1>
             <p className="mt-[1px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              Покупайте и продавайте технику для моделизма
+              {t("pages.ads.subtitle")}
             </p>
           </div>
           {isAuthed ? (
@@ -219,7 +218,7 @@ function CatalogPage() {
                 color: "var(--accent-foreground)",
               }}
             >
-              <Plus size={15} /> Разместить
+              <Plus size={15} /> {t("pages.ads.create")}
             </Link>
           ) : (
             <Link
@@ -233,7 +232,7 @@ function CatalogPage() {
                 color: "var(--accent-foreground)",
               }}
             >
-              <Plus size={15} /> Разместить
+              <Plus size={15} /> {t("pages.ads.create")}
             </Link>
           )}
         </div>
@@ -318,7 +317,7 @@ function CatalogPage() {
                       className="inline-block h-[14px] w-[14px] animate-spin rounded-full border-2 border-transparent"
                       style={{ borderTopColor: "var(--accent)", borderRightColor: "var(--accent)" }}
                     />
-                    Обновляем объявления…
+                    {t("pages.ads.refreshing")}
                   </div>
                 </div>
               )}
@@ -338,10 +337,10 @@ function CatalogPage() {
                 >
                   <AlertCircle size={32} style={{ color: "var(--error)" }} />
                   <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
-                    Не удалось загрузить объявления
+                    {t("pages.ads.errorTitle")}
                   </p>
                   <Button variant="outline" onClick={() => void load()}>
-                    <RefreshCw size={14} className="mr-[6px]" /> Повторить
+                    <RefreshCw size={14} className="mr-[6px]" /> {t("pages.ads.retry")}
                   </Button>
                 </div>
               )}
@@ -349,24 +348,24 @@ function CatalogPage() {
               {(loadState === "ok" || (loadState === "loading" && hasLoadedOnce.current)) && ads.length === 0 && !isFilterBusy && (
                 <EmptyState
                   icon={Megaphone}
-                  title={hasAnyFilter ? "Ничего не найдено" : "Объявлений пока нет"}
+                  title={hasAnyFilter ? t("pages.ads.emptyTitle") : t("pages.ads.emptyCatalogTitle")}
                   description={
                     hasAnyFilter
-                      ? "Попробуйте изменить фильтры или поисковый запрос"
-                      : "Станьте первым — разместите объявление"
+                      ? t("pages.ads.emptyDesc")
+                      : t("pages.ads.emptyCatalogDesc")
                   }
                 >
                   {hasAnyFilter ? (
                     <Button variant="outline" onClick={resetFilters}>
-                      <RotateCcw size={14} className="mr-[6px]" /> Сбросить фильтры
+                      <RotateCcw size={14} className="mr-[6px]" /> {t("pages.ads.resetFilters")}
                     </Button>
                   ) : isAuthed ? (
                     <Button onClick={() => navigate({ to: ROUTES.adCreate })}>
-                      <Plus size={14} className="mr-[6px]" /> Разместить объявление
+                      <Plus size={14} className="mr-[6px]" /> {t("pages.ads.postListing")}
                     </Button>
                   ) : (
                     <Button onClick={() => navigate({ to: "/login" })}>
-                      Войти и разместить
+                      {t("pages.ads.loginToPost")}
                     </Button>
                   )}
                 </EmptyState>
@@ -396,7 +395,7 @@ function CatalogPage() {
                   {hasMore && loadState === "ok" && !isFilterBusy && (
                     <div className="mt-[16px] flex justify-center">
                       <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
-                        {loadingMore ? "Загружаем…" : "Показать ещё"}
+                        {loadingMore ? t("pages.ads.loading") : t("pages.ads.showMore")}
                       </Button>
                     </div>
                   )}
@@ -420,6 +419,7 @@ function CatalogPage() {
 }
 
 function FilterTag({ label, onRemove }: { label: string; onRemove: () => void }) {
+  const { t } = useTranslation();
   return (
     <span
       className="inline-flex items-center gap-[4px] text-[12px] font-medium"
@@ -436,7 +436,7 @@ function FilterTag({ label, onRemove }: { label: string; onRemove: () => void })
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`Убрать фильтр ${label}`}
+        aria-label={t("pages.shared.removeFilter", { label })}
         className="grid place-items-center rounded-full transition-colors hover:bg-[color:var(--accent)]"
         style={{ width: 16, height: 16, color: "inherit" }}
       >

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -13,15 +14,18 @@ import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { isValidEmail, isValidPersonName, sanitizePersonName } from "@/lib/validation";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>): { ref?: string } => ({
     ref: typeof s.ref === "string" ? s.ref : undefined,
   }),
-  head: () => ({ meta: [{ title: "Регистрация — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.register.metaTitle") }] }),
   component: RegisterPage,
 });
 
 function RegisterPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const { ref } = useSearch({ from: "/register" });
   const [agree, setAgree] = useState(true);
@@ -38,7 +42,7 @@ function RegisterPage() {
     setFieldError(false);
     setNameError(false);
     setEmailError(false);
-    if (!agree) return toast.error("Подтвердите согласие с правилами");
+    if (!agree) return toast.error(t("pages.register.agreeError"));
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const email = String(form.get("email") ?? "").trim().toLowerCase();
@@ -46,20 +50,20 @@ function RegisterPage() {
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
     if (!isValidPersonName(name)) {
       setNameError(true);
-      return toast.error("Имя: только буквы, пробел, дефис и апостроф (от 2 до 120 символов)");
+      return toast.error(t("pages.register.nameInvalid"));
     }
     if (!isValidEmail(email)) {
       setEmailError(true);
-      return toast.error("Укажите корректный email");
+      return toast.error(t("pages.register.emailInvalid"));
     }
     if (password !== passwordConfirmation) {
       setFieldError(true);
-      return toast.error("Пароли не совпадают");
+      return toast.error(t("pages.register.passwordMismatch"));
     }
     setLoading(true);
     try {
       await register({ name, email, password, passwordConfirmation, referralCode: ref });
-      toast.success("Аккаунт создан. Введите код из письма");
+      toast.success(t("pages.register.registerSuccess"));
       nav({ to: "/verify-email", search: { email } });
     } catch (err) {
       setFieldError(true);
@@ -68,7 +72,7 @@ function RegisterPage() {
           ? err.errors
             ? Object.values(err.errors)[0]?.[0] ?? err.message
             : err.message
-          : "Не удалось зарегистрироваться. Попробуйте позже";
+          : t("pages.register.registerFailed");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -89,17 +93,16 @@ function RegisterPage() {
             maxWidth: 460,
           }}
         >
-          Присоединяйтесь к сообществу моделистов
+          {t("authPages.registerTitle")}
         </h2>
         <p style={{ color: "rgba(255,255,255,0.75)", maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
-          Создайте аккаунт за минуту — и получите доступ к каталогу
-          объявлений, тематическим сообществам и личному профилю моделиста.
+          {t("authPages.registerSubtitle")}
         </p>
         <div className="flex flex-col gap-[14px]">
           {[
-            { icon: Megaphone, text: "Объявления без комиссии" },
-            { icon: Users2, text: "Сообщества по интересам" },
-            { icon: UserCircle, text: "Личный профиль моделиста" },
+            { icon: Megaphone, text: t("authPages.registerBenefitAds") },
+            { icon: Users2, text: t("authPages.registerBenefitCommunities") },
+            { icon: UserCircle, text: t("authPages.registerBenefitProfile") },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-[12px]">
               <div
@@ -114,21 +117,21 @@ function RegisterPage() {
         </div>
       </div>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
-        «Моделизм — это жизнь, остальное детали»
+        {t("authPages.loginQuote")}
       </div>
     </>
   );
 
   return (
     <AuthShell
-      title="Создать аккаунт"
-      subtitle="Несколько секунд — и вы внутри сообщества"
+      title={t("pages.register.title")}
+      subtitle={t("pages.register.subtitle")}
       leftContent={leftContent}
       footer={
         <>
-          Уже есть аккаунт?{" "}
+          {t("pages.register.hasAccount")}{" "}
           <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Войти
+            {t("pages.register.loginLink")}
           </Link>
         </>
       }
@@ -151,10 +154,10 @@ function RegisterPage() {
           </div>
           <div className="min-w-0 flex-1">
             <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
-              Вы регистрируетесь по приглашению
+              {t("pages.register.referralTitle")}
             </div>
             <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>
-              Вы и пригласивший получите бонусное объявление
+              {t("pages.register.referralDesc")}
             </div>
           </div>
         </div>
@@ -163,7 +166,7 @@ function RegisterPage() {
         <Input
           required
           name="name"
-          placeholder="Имя и фамилия"
+          placeholder={t("pages.register.namePlaceholder")}
           maxLength={120}
           value={name}
           error={nameError}
@@ -180,7 +183,7 @@ function RegisterPage() {
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="Email"
+          placeholder={t("auth.email")}
           value={email}
           error={emailError}
           onChange={(e) => {
@@ -193,24 +196,24 @@ function RegisterPage() {
         <PasswordInput
           required
           name="password"
-          placeholder="Пароль (от 8 символов)"
+          placeholder={t("pages.register.passwordPlaceholder")}
           minLength={8}
           error={fieldError}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
         <PasswordStrengthMeter password={password} />
-        <PasswordInput required name="password_confirmation" placeholder="Повторите пароль" minLength={8} error={fieldError} />
+        <PasswordInput required name="password_confirmation" placeholder={t("pages.register.passwordConfirmPlaceholder")} minLength={8} error={fieldError} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
-            Я принимаю{" "}
-            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>правила сообщества</Link> и{" "}
-            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>политику</Link> обработки данных
+            {t("pages.register.agreePrefix")}{" "}
+            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>{t("pages.register.rulesLink")}</Link> {t("pages.register.andWord")}{" "}
+            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>{t("pages.register.policyLink")}</Link> {t("pages.register.dataProcessing")}
           </span>
         </label>
         <Button type="submit" disabled={loading} className="w-full" style={{ marginTop: 16 }}>
-          {loading ? "Создаём…" : "Создать аккаунт"}
+          {loading ? t("pages.register.creating") : t("pages.register.create")}
         </Button>
       </form>
       <OAuthDivider />

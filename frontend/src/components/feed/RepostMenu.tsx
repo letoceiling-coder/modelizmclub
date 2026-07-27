@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
@@ -16,6 +17,7 @@ interface Props {
 type View = "main" | "chats";
 
 export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
@@ -59,23 +61,23 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
     try {
       await navigator.clipboard.writeText(url());
       setCopied(true);
-      toast.success("Ссылка скопирована");
+      toast.success(t("components.repostMenu.linkCopied"));
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      toast.error("Не удалось скопировать ссылку");
+      toast.error(t("components.repostMenu.copyFailed"));
     }
   };
 
   const repostToFeed = () => {
     onRepost();
-    toast.success(reposted ? "Репост отменён" : "Репост добавлен в вашу ленту");
+    toast.success(reposted ? t("components.repostMenu.repostUndone") : t("components.repostMenu.repostAdded"));
     close();
   };
 
   const shareExternal = async () => {
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
-        await navigator.share({ title: "Публикация", url: url() });
+        await navigator.share({ title: t("components.repostMenu.postTitle"), url: url() });
         close();
         return;
       } catch {
@@ -87,11 +89,8 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
   };
 
   const sendToChat = (dialogId: string, partnerName: string) => {
-    // Queue the share as a real pending message; the messenger flushes it to the
-    // backend (apiSendMessage) once the chat opens, so it actually persists in
-    // the conversation instead of only living in local state.
-    actions.queuePendingMessage(dialogId, `🔗 Публикация: ${url()}`);
-    toast.success(`Публикация отправлена: ${partnerName}`);
+    actions.queuePendingMessage(dialogId, `🔗 ${t("components.repostMenu.postTitle")}: ${url()}`);
+    toast.success(t("components.repostMenu.sentTo", { name: partnerName }));
     close();
     navigate({ to: "/messenger", search: { chat: dialogId } });
   };
@@ -105,7 +104,7 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",
         }}
-        aria-label="Репост"
+        aria-label={t("components.repostMenu.ariaLabel")}
         aria-expanded={open}
       >
         <Repeat2 className="h-[16px] w-[16px]" />
@@ -128,16 +127,16 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
           >
             {view === "main" && (
               <>
-                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? "Отменить репост" : "Репост в ленту"} accent />
-                <Item onClick={() => setView("chats")} icon={MessageSquare} label="Отправить в сообщения" />
+                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("components.repostMenu.undoRepost") : t("components.repostMenu.repostToFeed")} accent />
+                <Item onClick={() => setView("chats")} icon={MessageSquare} label={t("components.repostMenu.sendToMessages")} />
                 <Item
                   onClick={copyLink}
                   icon={copied ? Check : Link2}
-                  label={copied ? "Скопировано" : "Скопировать ссылку"}
+                  label={copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")}
                   accent={copied}
                 />
                 <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item onClick={shareExternal} icon={Share2} label="Внешние сети" />
+                <Item onClick={shareExternal} icon={Share2} label={t("components.repostMenu.externalNetworks")} />
               </>
             )}
             {view === "chats" && (
@@ -148,12 +147,12 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
                   className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
                   style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
                 >
-                  <ArrowLeft className="h-[14px] w-[14px]" /> Куда отправить
+                  <ArrowLeft className="h-[14px] w-[14px]" /> {t("components.repostMenu.whereToSend")}
                 </button>
                 <div className="max-h-[280px] overflow-y-auto">
                   {dialogs.length === 0 ? (
                     <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                      Нет диалогов
+                      {t("components.repostMenu.noDialogs")}
                     </div>
                   ) : (
                     dialogs.map((d) => {

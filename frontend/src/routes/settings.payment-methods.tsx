@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CreditCard, Plus, Loader2 } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
@@ -17,18 +18,18 @@ export const Route = createFileRoute("/settings/payment-methods")({
   component: PaymentMethodsSection,
 });
 
-const BRAND_LABEL: Record<string, string> = {
-  visa: "Visa",
-  mastercard: "Mastercard",
-  mir: "МИР",
-  maestro: "Maestro",
-  unionpay: "UnionPay",
-};
-function brandLabel(b: string): string {
-  return BRAND_LABEL[b.toLowerCase()] ?? (b ? b.charAt(0).toUpperCase() + b.slice(1) : "Карта");
-}
-
 function PaymentMethodsSection() {
+  const { t } = useTranslation();
+  const BRAND_LABEL: Record<string, string> = {
+    visa: "Visa",
+    mastercard: "Mastercard",
+    mir: t("pages.settings.cardBrandMir"),
+    maestro: "Maestro",
+    unionpay: "UnionPay",
+  };
+  const brandLabel = (b: string): string =>
+    BRAND_LABEL[b.toLowerCase()] ?? (b ? b.charAt(0).toUpperCase() + b.slice(1) : t("pages.settings.cardBrandDefault"));
+
   const demo = isDemoMode();
   const [cards, setCards] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(!demo);
@@ -43,14 +44,12 @@ function PaymentMethodsSection() {
       .finally(() => setLoading(false));
   };
 
-  // Real backend only: load saved cards + surface the binding-return outcome.
-  // Demo hosts (neeklo/local) have no billing backend — no fetch, honest note.
   useEffect(() => {
     if (demo) return;
     const params = new URLSearchParams(window.location.search);
     const r = params.get("card");
-    if (r === "added") toast.success("Карта привязана");
-    else if (r === "failed") toast.error("Не удалось привязать карту");
+    if (r === "added") toast.success(t("pages.settings.paymentAdded"));
+    else if (r === "failed") toast.error(t("pages.settings.paymentAddFailed"));
     if (r) {
       params.delete("card");
       const qs = params.toString();
@@ -58,15 +57,15 @@ function PaymentMethodsSection() {
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo]);
+  }, [demo, t]);
 
   const addCard = async () => {
     setAdding(true);
     try {
       const { binding_url } = await addPaymentMethodBinding();
-      window.location.href = binding_url; // provider card-entry page
+      window.location.href = binding_url;
     } catch {
-      toast.error("Не удалось начать привязку карты");
+      toast.error(t("pages.settings.paymentBindFailed"));
       setAdding(false);
     }
   };
@@ -76,18 +75,16 @@ function PaymentMethodsSection() {
     try {
       await deletePaymentMethod(id);
       setCards((cs) => cs.filter((c) => c.id !== id));
-      toast.success("Карта удалена");
+      toast.success(t("pages.settings.paymentDeleted"));
     } catch {
-      toast.error("Не удалось удалить карту");
+      toast.error(t("pages.settings.paymentDeleteFailed"));
     }
   };
 
   return (
-    <SettingsSectionShell title="Способы оплаты">
+    <SettingsSectionShell title={t("pages.settings.paymentTitle")}>
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Карты для оплаты подписки и платных размещений. Номер карты не хранится у
-        нас — карта привязывается через защищённый шлюз банка, мы храним только
-        токен и последние 4 цифры для отображения.
+        {t("pages.settings.paymentDesc")}
       </p>
 
       {demo ? (
@@ -104,17 +101,17 @@ function PaymentMethodsSection() {
             </span>
             <div>
               <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-                Привязка карт будет доступна после подключения эквайринга
+                {t("pages.settings.paymentSoon")}
               </div>
               <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                В демо-режиме платёжный шлюз не подключён.
+                {t("pages.settings.paymentDemo")}
               </p>
             </div>
           </div>
         </Card>
       ) : loading ? (
         <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
-          <Loader2 size={16} className="animate-spin" /> Загрузка…
+          <Loader2 size={16} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       ) : (
         <>
@@ -124,7 +121,7 @@ function PaymentMethodsSection() {
               style={{ borderColor: "var(--border)", borderStyle: "dashed", borderRadius: "var(--r-card)" }}
             >
               <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
-                Пока нет привязанных карт.
+                {t("pages.settings.paymentEmpty")}
               </p>
             </Card>
           ) : (
@@ -142,7 +139,7 @@ function PaymentMethodsSection() {
                       {brandLabel(c.brand)} •••• {c.last4}
                     </div>
                     {c.is_default && (
-                      <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>Основная</div>
+                      <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.paymentPrimary")}</div>
                     )}
                   </div>
                   {confirmingId === c.id ? (
@@ -153,14 +150,14 @@ function PaymentMethodsSection() {
                         className="font-semibold"
                         style={{ color: "var(--error)" }}
                       >
-                        Удалить
+                        {t("pages.settings.paymentDelete")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmingId(null)}
                         style={{ color: "var(--foreground-50)" }}
                       >
-                        Отмена
+                        {t("pages.settings.paymentCancel")}
                       </button>
                     </div>
                   ) : (
@@ -170,7 +167,7 @@ function PaymentMethodsSection() {
                       className="shrink-0 text-[13px]"
                       style={{ color: "var(--foreground-50)" }}
                     >
-                      Удалить
+                      {t("pages.settings.paymentDelete")}
                     </button>
                   )}
                 </div>
@@ -180,7 +177,7 @@ function PaymentMethodsSection() {
 
           <Button onClick={addCard} disabled={adding} className="gap-[8px]">
             {adding ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-            Добавить карту
+            {t("pages.settings.paymentAdd")}
           </Button>
         </>
       )}

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
@@ -40,8 +41,10 @@ import {
 
 type NewAdSearch = { edit?: string; promo?: string };
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/ads/new")({
-  head: () => ({ meta: [{ title: "Новое объявление — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.adsNew.metaTitle") }] }),
   validateSearch: (s: Record<string, unknown>): NewAdSearch => ({
     edit: typeof s.edit === "string" ? s.edit : undefined,
     promo: typeof s.promo === "string" ? s.promo : undefined,
@@ -57,20 +60,20 @@ type Status = "Продаю" | "Куплю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
 
-const PHOTOS_REQUIRED_TOAST = {
-  title: "Добавьте хотя бы одно фото",
-  description: "Для публикации объявления необходимо загрузить минимум 1 фотографию.",
+const PHOTOS_REQUIRED_KEYS = {
+  title: "pages.adsNew.photoRequiredTitle",
+  description: "pages.adsNew.photoRequiredDesc",
 } as const;
 
-function notifyPhotosRequired(setStep: (fn: (s: number) => number) => void) {
-  toast.error(PHOTOS_REQUIRED_TOAST.title, { description: PHOTOS_REQUIRED_TOAST.description });
+function notifyPhotosRequired(setStep: (fn: (s: number) => number) => void, tr: (key: string) => string) {
+  toast.error(tr(PHOTOS_REQUIRED_KEYS.title), { description: tr(PHOTOS_REQUIRED_KEYS.description) });
   setStep(() => 1);
 }
 
 function hasListingPhotos(form: Form): boolean {
   return form.photoItems.length > 0;
 }
-const STEPS = ["Фото", "Данные", "Превью"];
+const STEPS_KEYS = ["pages.adsNew.stepPhoto", "pages.adsNew.stepData", "pages.adsNew.stepPreview"] as const;
 
 type PhotoItem = {
   id: string;
@@ -118,7 +121,9 @@ const initial: Form = {
 };
 
 function NewAdPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const steps = useMemo(() => STEPS_KEYS.map((k) => t(k)), [t]);
   const { edit: editId, promo: promoFromUrl } = Route.useSearch();
   const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
   const [step, setStep] = useState(1);
@@ -171,7 +176,7 @@ function NewAdPage() {
           deliveries: ad.delivery.length ? ad.delivery : ["СДЭК"],
         });
       })
-      .catch(() => toast.error("Не удалось загрузить объявление для редактирования"))
+      .catch(() => toast.error(t("pages.adsNew.loadFailed")))
       .finally(() => { if (alive) setLoadingEdit(false); });
     return () => { alive = false; };
   }, [editId]);
@@ -219,19 +224,19 @@ function NewAdPage() {
     if (submitting) return;
 
     if (!hasListingPhotos(form)) {
-      notifyPhotosRequired(setStep);
+      notifyPhotosRequired(setStep, t);
       return;
     }
 
     const categoryId = Number(form.categoryId);
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
-      toast.error("Выберите категорию");
+      toast.error(t("pages.adsNew.selectCategory"));
       return;
     }
 
     const priceCents = priceRubToCents(form.price);
     if (priceCents === null) {
-      toast.error(`Укажите корректную цену — максимум ${MAX_LISTING_PRICE_RUB.toLocaleString("ru-RU")} ₽`);
+      toast.error(t("pages.adsNew.priceMaxError", { max: MAX_LISTING_PRICE_RUB.toLocaleString("ru-RU") }));
       return;
     }
 
@@ -251,7 +256,7 @@ function NewAdPage() {
         }
       }
       if (mediaIds.length === 0) {
-        toast.error(PHOTOS_REQUIRED_TOAST.title, { description: PHOTOS_REQUIRED_TOAST.description });
+        toast.error(t(PHOTOS_REQUIRED_KEYS.title), { description: t(PHOTOS_REQUIRED_KEYS.description) });
         setStep(1);
         setSubmitting(false);
         return;
@@ -276,7 +281,7 @@ function NewAdPage() {
           deliveryMethods: form.deliveries,
           mediaIds,
         });
-        toast.success("Объявление обновлено");
+        toast.success(t("pages.adsNew.updated"));
       } else {
         await loadFeatureFlagsFromServer();
         const paymentEnabled = getFeatureFlags().listingPaymentEnabled;
@@ -292,7 +297,7 @@ function NewAdPage() {
             });
             setPlacementQuote(quote);
           } catch {
-            toast.error("Не удалось рассчитать стоимость размещения. Попробуйте ещё раз.");
+            toast.error(t("pages.adsNew.quoteFailed"));
             setSubmitting(false);
             return;
           }
@@ -306,7 +311,7 @@ function NewAdPage() {
         const needsPayment = paymentEnabled && quote !== null && quote.final_cents > 0;
 
         if (needsPayment && isDemoMode()) {
-          toast("Оплата будет доступна после подключения эквайринга");
+          toast(t("pages.adsNew.paySoon"));
           setSubmitting(false);
           return;
         }
@@ -335,7 +340,7 @@ function NewAdPage() {
             return;
           }
           await confirmStubPayment(checkout.payment_uuid);
-          toast.success("Оплата прошла — объявление отправлено на публикацию");
+          toast.success(t("pages.adsNew.paySuccess"));
         } else {
           const created = await createListing({
             title: form.title.trim(),
@@ -351,15 +356,15 @@ function NewAdPage() {
           });
           toast.success(
             created.moderation === "moderation"
-              ? "Объявление отправлено на модерацию"
-              : "Объявление опубликовано",
+              ? t("pages.adsNew.sentModeration")
+              : t("pages.adsNew.published"),
           );
         }
       }
       void navigate({ to: "/my-ads" });
     } catch (err) {
       setSubmitError(true);
-      const fallback = editId ? "Не удалось сохранить изменения" : "Не удалось опубликовать объявление";
+      const fallback = editId ? t("pages.adsNew.saveFailed") : t("pages.adsNew.publishFailed");
       let message = fallback;
       if (err instanceof ApiError) {
         message = firstFieldError(err.errors, err.message || fallback);
@@ -372,18 +377,18 @@ function NewAdPage() {
   };
 
   const placementPriceLabel = placementQuote
-    ? (placementQuote.is_free ? "Бесплатно" : `${formatQuoteRub(placementQuote.final_cents)} ₽`)
+    ? (placementQuote.is_free ? t("pages.adsNew.free") : `${formatQuoteRub(placementQuote.final_cents)} ₽`)
     : "…";
 
   const publishButtonLabel = editId
-    ? "Сохранить изменения"
+    ? t("pages.adsNew.saveChanges")
     : listingPaymentEnabled
       ? quoteLoading
-        ? "Рассчитываем…"
+        ? t("pages.adsNew.calculating")
         : placementQuote?.is_free
-          ? "Опубликовать бесплатно"
-          : `Оплатить ${placementPriceLabel} и опубликовать`
-      : "Опубликовать";
+          ? t("pages.adsNew.publishFree")
+          : t("pages.adsNew.payAndPublish", { price: placementPriceLabel })
+      : t("pages.adsNew.publish");
 
   const paymentGatePending = listingPaymentEnabled && !editId && (quoteLoading || !placementQuote);
 
@@ -392,20 +397,20 @@ function NewAdPage() {
       <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[96px]">
         <header className="space-y-[6px]">
           <Link to="/ads" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            <ChevronLeft size={14} /> Назад к объявлениям
+            <ChevronLeft size={14} /> {t("pages.adsNew.backToListings")}
           </Link>
           <h1 className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
             style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            Новое объявление
+            {t("pages.adsNew.newListingTitle")}
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
             {listingPaymentEnabled
-              ? (quoteLoading ? "Рассчитываем стоимость размещения…" : `Размещение — ${placementPriceLabel}. После оплаты объявление пройдёт модерацию.`)
-              : "Заполните форму и опубликуйте объявление — размещение сейчас бесплатное."}
+              ? (quoteLoading ? t("pages.adsNew.calculatingCost") : t("pages.adsNew.paidPlacement", { price: placementPriceLabel }))
+              : t("pages.adsNew.freePlacement")}
           </p>
         </header>
 
-        <StepIndicator current={step} labels={STEPS} />
+        <StepIndicator current={step} labels={steps} />
 
         <ReducedMotionSwitch
           switchKey={step}
@@ -446,14 +451,14 @@ function NewAdPage() {
             onClick={() => setStep((s) => Math.max(1, s - 1))}
             className="h-11 rounded-[var(--r-button)]"
           >
-            <ChevronLeft size={16} /> Назад
+            <ChevronLeft size={16} /> {t("pages.adsNew.back")}
           </Button>
           {step < 3 ? (
             <Button
               disabled={step === 2 && !valid}
               onClick={() => {
                 if (!hasListingPhotos(form)) {
-                  notifyPhotosRequired(setStep);
+                  notifyPhotosRequired(setStep, t);
                   return;
                 }
                 if (step === 2 && !valid) return;
@@ -461,13 +466,13 @@ function NewAdPage() {
               }}
               className="h-11 rounded-[var(--r-button)]"
             >
-              Далее <ChevronRight size={16} />
+              {t("pages.adsNew.next")} <ChevronRight size={16} />
             </Button>
           ) : (
             <Button
               onClick={() => {
                 if (!hasListingPhotos(form)) {
-                  notifyPhotosRequired(setStep);
+                  notifyPhotosRequired(setStep, t);
                   return;
                 }
                 void submit();
@@ -477,7 +482,7 @@ function NewAdPage() {
               className="h-11 min-w-[220px] rounded-[var(--r-button)]"
             >
               {!submitting && !editId && listingPaymentEnabled && !paymentGatePending && <CreditCard size={16} />}
-              {submitting ? (editId ? "Сохраняем…" : "Публикуется…") : publishButtonLabel}
+              {submitting ? (editId ? t("pages.adsNew.saving") : t("pages.adsNew.publishing")) : publishButtonLabel}
             </Button>
           )}
         </div>
@@ -572,9 +577,10 @@ function ListingPhotoGrid({
 
 /* ────────── STEP 1: Photos ────────── */
 function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
+  const { t } = useTranslation();
   return (
     <section className="space-y-[16px]">
-      <StepHeading title="Фотографии" description={`Минимум 1 фото, до ${MAX_PHOTOS}. Первое — главное в карточке. Перетащите для изменения порядка.`} />
+      <StepHeading title={t("pages.adsNew.photosHeading")} description={t("pages.adsNew.photosDesc", { max: MAX_PHOTOS })} />
       <Card
         className="p-[16px] sm:p-[20px]"
         style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
@@ -600,7 +606,15 @@ function StepData({
   touched: Set<string>;
   touch: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   const titleErr = touched.has("title") && form.title.trim().length < 4;
+  const conditionOptions = useMemo(
+    () => CONDITIONS.map((c) => ({
+      label: c === "Новое" ? t("pages.myAds.conditionNew") : t("pages.myAds.conditionUsed"),
+      value: c,
+    })),
+    [t],
+  );
   const descErr = touched.has("description") && form.description.trim().length < 20;
   const priceErr = touched.has("price") && !form.price;
   const cityErr = touched.has("city") && (form.city.trim().length < 2 || (!form.cityId && form.city.trim().length < 3));
@@ -619,7 +633,7 @@ function StepData({
   return (
     <section className="space-y-[16px]" onFocusCapture={keepFieldVisible}>
       {form.photoItems.length > 0 && (
-        <Block title="Фотографии">
+        <Block title={t("pages.adsNew.photosHeading")}>
           <ListingPhotoGrid
             photoItems={form.photoItems}
             setPhotoItems={(next) => set("photoItems", next)}
@@ -629,42 +643,42 @@ function StepData({
         </Block>
       )}
 
-      <Block title="Тип объявления">
+      <Block title={t("pages.adsNew.listingType")}>
         <div className="grid gap-[10px] sm:grid-cols-3">
           <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
-            icon={Tag} title="Продаю" description="Хочу продать вещь" />
+            icon={Tag} title={t("pages.adsNew.statusSelling")} description={t("pages.adsNew.statusSellingDesc")} />
           <RadioCard selected={form.status === "Куплю"} onClick={() => set("status", "Куплю")}
-            icon={ShoppingCart} title="Куплю" description="Ищу для покупки" />
+            icon={ShoppingCart} title={t("pages.adsNew.statusBuying")} description={t("pages.adsNew.statusBuyingDesc")} />
           <RadioCard selected={form.status === "Обменяю"} onClick={() => set("status", "Обменяю")}
-            icon={ArrowLeftRight} title="Обменяю" description="Готов на обмен" />
+            icon={ArrowLeftRight} title={t("pages.adsNew.statusExchange")} description={t("pages.adsNew.statusExchangeDesc")} />
         </div>
       </Block>
 
-      <Block title="Описание">
-        <Field label="Название" required error={titleErr ? "Минимум 4 символа" : undefined}>
+      <Block title={t("pages.adsNew.descriptionBlock")}>
+        <Field label={t("pages.adsNew.titleLabel")} required error={titleErr ? t("pages.adsNew.titleMinError") : undefined}>
           <Input
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             onBlur={() => touch("title")}
             error={titleErr}
             className="h-11"
-            placeholder="Двигатель Picco .21 для багги 1:8"
+            placeholder={t("pages.adsNew.titlePlaceholder")}
           />
         </Field>
-        <Field label="Подробное описание" required error={descErr ? "Минимум 20 символов" : undefined}>
+        <Field label={t("pages.adsNew.descLabel")} required error={descErr ? t("pages.adsNew.descMinError") : undefined}>
           <Textarea
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
             onBlur={() => touch("description")}
-            placeholder="Состояние, история использования, комплектация…"
+            placeholder={t("pages.adsNew.descPlaceholder")}
             rows={5}
           />
         </Field>
       </Block>
 
-      <Block title="Параметры">
+      <Block title={t("pages.adsNew.paramsBlock")}>
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Цена, ₽" required error={priceErr ? "Укажите цену" : undefined}>
+          <Field label={t("pages.adsNew.priceLabel")} required error={priceErr ? t("pages.adsNew.priceError") : undefined}>
             <Input
               value={form.price}
               onChange={(e) => set("price", e.target.value.replace(/\D/g, "").slice(0, 9))}
@@ -675,13 +689,13 @@ function StepData({
               inputMode="numeric"
             />
           </Field>
-          <Field label="Состояние">
-            <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)} options={CONDITIONS} />
+          <Field label={t("pages.adsNew.conditionLabel")}>
+            <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)} options={conditionOptions} />
             <p className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              Подробности состояния укажите в описании объявления.
+              {t("pages.adsNew.conditionHint")}
             </p>
           </Field>
-          <Field label="Категория">
+          <Field label={t("pages.adsNew.categoryLabel")}>
             <NativeSelect
               value={form.categoryId}
               onChange={(v) => {
@@ -693,7 +707,7 @@ function StepData({
             />
           </Field>
           {subcategories.length > 0 ? (
-            <Field label="Подкатегория">
+            <Field label={t("pages.adsNew.subcategoryLabel")}>
               <NativeSelect
                 value={form.subcategoryId}
                 onChange={(v) => set("subcategoryId", v)}
@@ -704,9 +718,9 @@ function StepData({
         </div>
       </Block>
 
-      <Block title="Контакты и доставка">
+      <Block title={t("pages.adsNew.contactsBlock")}>
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label="Город" required error={cityErr ? "Выберите город из списка" : undefined}>
+          <Field label={t("pages.profile.fieldCity")} required error={cityErr ? t("pages.adsNew.cityError") : undefined}>
             <CitySelect
               value={form.city}
               cityId={form.cityId}
@@ -715,10 +729,10 @@ function StepData({
                 set("cityId", id);
                 touch("city");
               }}
-              placeholder="Краснодар"
+              placeholder={t("pages.adsNew.cityPlaceholder")}
             />
           </Field>
-          <Field label="Контакт" required error={contactErr ? "Укажите телефон" : undefined}>
+          <Field label={t("pages.adsNew.contactLabel")} required error={contactErr ? t("pages.adsNew.contactError") : undefined}>
             <PhoneInput
               defaultValue={form.contact}
               onValueChange={(v) => set("contact", v)}
@@ -728,7 +742,7 @@ function StepData({
             />
           </Field>
         </div>
-        <Field label="Способы доставки">
+        <Field label={t("pages.adsNew.deliveryMethodsLabel")}>
           <div className="flex flex-wrap gap-[8px]">
             {DELIVERY_METHODS.map((m) => (
               <Checkbox
@@ -766,16 +780,17 @@ function StepPreview({
   placementQuote: PlacementQuote | null;
   quoteLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
 
   return (
     <section className="space-y-[16px]">
-      <StepHeading title="Превью" description="Так ваше объявление увидят покупатели." />
+      <StepHeading title={t("pages.adsNew.previewHeading")} description={t("pages.adsNew.previewDesc")} />
 
       {submitError && (
         <Alert variant="error">
           <AlertDescription>
-            Не удалось опубликовать объявление. Проверьте данные формы и нажмите «{publishButtonLabel}» ещё раз.
+            {t("pages.adsNew.publishErrorBanner", { label: publishButtonLabel })}
           </AlertDescription>
         </Alert>
       )}
@@ -795,10 +810,10 @@ function StepPreview({
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
         >
           <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>
-            {form.title || "Название объявления"}
+            {form.title || t("pages.adsNew.titleFallback")}
           </h3>
           <p className="whitespace-pre-line text-[13px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
-            {form.description || "Описание не заполнено."}
+            {form.description || t("pages.adsNew.descFallback")}
           </p>
           <div className="grid gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
             <div className="inline-flex items-center gap-[6px]"><MapPin size={14} /> {form.city || "—"}</div>
@@ -811,17 +826,17 @@ function StepPreview({
       <Alert variant="info">
         <AlertDescription>
           {listingPaymentEnabled ? (
-            quoteLoading ? "Рассчитываем стоимость…" : placementQuote?.is_free
-              ? "Размещение бесплатное — объявление отправится на модерацию после публикации."
-              : `К оплате ${formatQuoteRub(placementQuote?.final_cents ?? 0)} ₽. После оплаты объявление отправится на модерацию (обычно до 60 минут).`
-          ) : "После публикации объявление отправится на модерацию (обычно до 60 минут)."}
+            quoteLoading ? t("pages.adsNew.calculatingCost") : placementQuote?.is_free
+              ? t("pages.adsNew.moderationNoteFree")
+              : t("pages.adsNew.moderationNotePaid", { price: formatQuoteRub(placementQuote?.final_cents ?? 0) })
+          ) : t("pages.adsNew.moderationNoteDefault")}
         </AlertDescription>
       </Alert>
 
       {listingPaymentEnabled && (
         <Card className="space-y-[10px] p-[16px]" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
           <label className="grid gap-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            Промокод
+            {t("pages.adsNew.promocodeLabel")}
             <Input
               value={form.promocode}
               onChange={(e) => set("promocode", e.target.value.toUpperCase())}
@@ -834,12 +849,12 @@ function StepPreview({
           )}
           {placementQuote && !quoteLoading && (
             <div className="text-[12px] space-y-[4px]" style={{ color: "var(--foreground-50)" }}>
-              <div>Базовая цена: {formatQuoteRub(placementQuote.base_cents)} ₽</div>
+              <div>{t("pages.adsNew.basePrice", { price: formatQuoteRub(placementQuote.base_cents) })}</div>
               {placementQuote.promo_discount_cents > 0 && (
-                <div>Скидка по промокоду: −{formatQuoteRub(placementQuote.promo_discount_cents)} ₽</div>
+                <div>{t("pages.adsNew.promoDiscount", { price: formatQuoteRub(placementQuote.promo_discount_cents) })}</div>
               )}
               {placementQuote.has_active_subscription && placementQuote.free_listings_remaining != null && (
-                <div>Бесплатных размещений в этом месяце: {placementQuote.free_listings_remaining}</div>
+                <div>{t("pages.adsNew.freeListingsRemaining", { count: placementQuote.free_listings_remaining })}</div>
               )}
             </div>
           )}

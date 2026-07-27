@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, VideoCategory } from "@/lib/mock";
 import { fetchVideos, fetchVideoCategories } from "@/lib/api/reviews";
@@ -9,28 +10,30 @@ import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchX } from "lucide-react";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/reviews/")({
-  head: () => ({ meta: [{ title: "Обзоры — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.reviews.metaTitle") }] }),
   component: ReviewsPage,
 });
 
 const ALL = "all";
 
 function ReviewsPage() {
+  const { t } = useTranslation();
   const [videos, setVideos] = useState<Video[]>([]);
   const [featured, setFeatured] = useState<Video[]>([]);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
-  const [activeCat, setActiveCat] = useState<string>(ALL); // slug or "all"
+  const [activeCat, setActiveCat] = useState<string>(ALL);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // categories: "Все" first, then alphabetical
   const tabs = useMemo(() => {
     const sorted = [...categories].sort((a, b) =>
       (a.name ?? "").localeCompare(b.name ?? "", "ru"),
     );
-    return [{ id: ALL, name: "Все", slug: ALL }, ...sorted];
-  }, [categories]);
+    return [{ id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
+  }, [categories, t]);
 
   useEffect(() => {
     let alive = true;
@@ -63,11 +66,10 @@ function ReviewsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onClear={() => setQuery("")}
-          placeholder="Поиск обзоров"
-          aria-label="Поиск обзоров"
+          placeholder={t("pages.reviews.searchPlaceholder")}
+          aria-label={t("pages.reviews.searchAria")}
         />
 
-        {/* category tabs — Все first, then alphabetical */}
         <div className="-mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] pb-[4px] sm:mx-0 sm:px-0 no-scrollbar">
           {tabs.map((c) => {
             const active = activeCat === c.slug;
@@ -91,14 +93,12 @@ function ReviewsPage() {
           })}
         </div>
 
-        {/* hero — only in the "Все" tab with no active search */}
         {activeCat === ALL && !query && featured.length > 0 && <ReviewsHero videos={featured} />}
 
-        {/* "Новинки" horizontal row — only in "Все" with no search */}
         {activeCat === ALL && !query && newest.length > 0 && (
           <section className="space-y-[12px]">
             <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Новинки
+              {t("pages.reviews.newReleases")}
             </h2>
             <div className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0" style={{ scrollbarWidth: "thin" }}>
               {newest.map((v) => (
@@ -110,15 +110,14 @@ function ReviewsPage() {
           </section>
         )}
 
-        {/* main grid — filtered + sorted newest-first */}
         <section className="space-y-[12px]">
           <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            {query ? "Результаты поиска" : "Все обзоры"}
+            {query ? t("pages.reviews.searchResults") : t("pages.reviews.allReviews")}
           </h2>
           {loading ? (
-            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Загрузка…</p>
+            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.loading")}</p>
           ) : videos.length === 0 ? (
-            <EmptyState icon={SearchX} title="Ничего не найдено" description="Попробуйте изменить запрос или категорию." />
+            <EmptyState icon={SearchX} title={t("pages.reviews.nothingFound")} description={t("pages.reviews.nothingFoundDesc")} />
           ) : (
             <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
               {videos.map((v) => (

@@ -5,8 +5,10 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { showcaseImages } from "@/lib/showcase-images";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/categories/")({
-  head: () => ({ meta: [{ title: "Направления — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.categories.metaTitle") }] }),
   component: CategoriesPage,
 });
 

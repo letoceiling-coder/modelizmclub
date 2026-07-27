@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
@@ -12,8 +13,7 @@ export const Route = createFileRoute("/settings/wallet")({
 });
 
 function WalletSection() {
-  // Real mode starts EMPTY (no mock flash before the API answers) and stays
-  // honest on errors; only demo hosts ever see the illustrative mock figures.
+  const { t } = useTranslation();
   const demo = isDemoMode();
   const [balance, setBalance] = useState(demo ? mockWalletBalance : 0);
   const [operations, setOperations] = useState(demo ? mockWalletOperations : []);
@@ -32,23 +32,23 @@ function WalletSection() {
           date: op.date,
         })));
       })
-      .catch(() => { /* real mode: keep zeros; demo: mocks already shown */ });
+      .catch(() => {});
     return () => { alive = false; };
   }, []);
 
   return (
-    <SettingsSectionShell title="Кошелёк">
+    <SettingsSectionShell title={t("pages.settings.walletTitle")}>
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
-        <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{demo ? "Демо-баланс" : "Баланс"}</div>
+        <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{demo ? t("pages.settings.walletDemoBalance") : t("pages.settings.walletBalance")}</div>
         <div className="mt-[4px] font-display text-[32px] font-bold" style={{ color: "var(--foreground)" }}>
           {balance.toLocaleString("ru-RU")} ₽
         </div>
       </Card>
 
-      <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>История операций</h2>
+      <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.walletHistory")}</h2>
       <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         {operations.length === 0 && (
-          <div className="px-[16px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>Операций пока нет</div>
+          <div className="px-[16px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.walletEmpty")}</div>
         )}
         {operations.map((op) => (
           <div key={op.id} className="flex items-center gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>

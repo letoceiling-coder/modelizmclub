@@ -11,8 +11,10 @@ import { fetchFavoriteListings } from "@/lib/api/listings";
 import { actions, useStore } from "@/lib/store";
 import type { Ad } from "@/lib/mock";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/favorites")({
-  head: () => ({ meta: [{ title: "Избранное — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.favorites.metaTitle") }] }),
   component: FavoritesPage,
 });
 

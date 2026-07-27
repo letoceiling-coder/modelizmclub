@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Settings as SettingsIcon } from "lucide-react";
 
 export const Route = createFileRoute("/settings/")({
@@ -7,6 +8,7 @@ export const Route = createFileRoute("/settings/")({
 });
 
 function SettingsIndex() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Desktop-only redirect to the base tab ("Профиль и аккаунт"). On mobile
@@ -27,7 +29,7 @@ function SettingsIndex() {
   return (
     <div className="hidden lg:flex h-full min-h-[320px] flex-col items-center justify-center gap-[10px] text-center" style={{ color: "var(--foreground-50)" }}>
       <SettingsIcon size={32} style={{ color: "var(--foreground-30)" }} />
-      <p className="text-[14px]">Выберите раздел настроек</p>
+      <p className="text-[14px]">{t("pages.settings.chooseSection")}</p>
     </div>
   );
 }

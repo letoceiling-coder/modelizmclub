@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, MessageCircle, Users } from "lucide-react";
 import * as Icons from "lucide-react";
 import {
@@ -28,6 +29,7 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
  * На desktop правую колонку показывает RightCategories; этот компонент скрыт на xl+.
  */
 export function FindYourPeopleSheet() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const categories = usePostCategories();
@@ -63,10 +65,10 @@ export function FindYourPeopleSheet() {
                 className="block text-[14px] font-semibold"
                 style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
               >
-                Найди своих
+                {t("components.findYourPeopleSheet.title")}
               </span>
               <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                Тематические чаты по интересам
+                {t("components.findYourPeopleSheet.subtitle")}
               </span>
             </span>
             <ChevronDown
@@ -88,10 +90,10 @@ export function FindYourPeopleSheet() {
           <SheetHeader className="shrink-0 border-b px-[16px] pb-[14px] pt-[8px] text-left" style={{ borderColor: "var(--border)" }}>
             <SheetTitle className="flex items-center gap-[8px] text-[15px]">
               <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
-              Найди своих
+              {t("components.findYourPeopleSheet.title")}
             </SheetTitle>
             <SheetDescription className="text-[12px]">
-              Зайди в чат своего направления
+              {t("components.findYourPeopleSheet.chatHint")}
             </SheetDescription>
           </SheetHeader>
 
@@ -129,7 +131,7 @@ export function FindYourPeopleSheet() {
                               className="inline-block h-[6px] w-[6px] rounded-full"
                               style={{ background: "#22c55e" }}
                             />
-                            {online} онлайн
+                            {t("components.findYourPeopleSheet.onlineCount", { count: online })}
                           </span>
                         </span>
                       </GuestGuardLink>
@@ -138,7 +140,7 @@ export function FindYourPeopleSheet() {
                       <button
                         type="button"
                         onClick={() => setOpenId(expanded ? null : c.id)}
-                        aria-label={expanded ? "Свернуть подкатегории" : "Развернуть подкатегории"}
+                        aria-label={expanded ? t("components.findYourPeopleSheet.collapseSubcategories") : t("components.findYourPeopleSheet.expandSubcategories")}
                         aria-expanded={expanded}
                         className="grid w-[36px] place-items-center rounded-r-[12px] transition-colors hover:bg-[var(--background-surface)]"
                       >

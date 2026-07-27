@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
 import { Gift, Zap, CalendarClock } from "lucide-react";
@@ -19,8 +20,10 @@ import {
   fetchMySubscription,
 } from "@/lib/api/payment";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/subscription")({
-  head: () => ({ meta: [{ title: "Подписка — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.subscription.metaTitle") }] }),
   component: SubscriptionPage,
 });
 
@@ -29,31 +32,20 @@ const fadeInUp: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
 
-// Demo-only free-placements counter (no backend concept behind it) — shown
-// only on demo hosts; production renders real subscription data instead.
 const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
 
 function daysWord(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return "день";
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "дня";
-  return "дней";
+  if (mod10 === 1 && mod100 !== 11) return i18n.t("pages.subscription.day");
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return i18n.t("pages.subscription.days2");
+  return i18n.t("pages.subscription.days5");
 }
 
-/**
- * Start a real subscription checkout (Stage 1). Demo hosts (neeklo/local)
- * have no billing backend, so there we keep the honest "оплата будет
- * доступна" message rather than faking a payment. On the real backend:
- *   - vtb/yookassa → redirect to the provider's hosted page; it returns to
- *     /subscription?payment=success|failed (backend config return_url/fail_url).
- *   - stub (test contour w/o live acquiring) → no hosted page: confirm the
- *     stub payment directly and reflect the resulting subscription status.
- */
 function requireAuthForCheckout(navigate: ReturnType<typeof useNavigate>): boolean {
   if (isAuthenticated() || isDemoMode()) return true;
-  toast.info("Войдите, чтобы оформить подписку");
+  toast.info(i18n.t("pages.subscription.loginRequired"));
   navigate({ to: "/login", search: { redirect: "/subscription" } });
   return false;
 }
@@ -65,8 +57,8 @@ async function startSubscriptionCheckout(
   if (!requireAuthForCheckout(navigate)) return;
   if (!(await requireVerifiedForAction(navigate))) return;
   if (isDemoMode()) {
-    toast("Оплата будет доступна после подключения эквайринга", {
-      description: `Тариф: ${plan.name}`,
+    toast(i18n.t("pages.subscription.paySoon"), {
+      description: i18n.t("pages.subscription.paySoonPlan", { name: plan.name }),
     });
     return;
   }
@@ -80,20 +72,19 @@ async function startSubscriptionCheckout(
     invalidateMySubscription();
     const sub = await fetchMySubscription();
     toast.success(
-      sub?.is_active ? "Подписка активирована (тестовый режим)" : "Платёж подтверждён (тестовый режим)",
+      sub?.is_active ? i18n.t("pages.subscription.testActivated") : i18n.t("pages.subscription.testConfirmed"),
     );
   } catch {
-    toast.error("Не удалось создать платёж. Попробуйте позже.");
+    toast.error(i18n.t("pages.subscription.payCreateFailed"));
   }
 }
 
-/** One-time 99 ₽ listing placement — real checkout on the production backend. */
 async function startPlacementCheckout(navigate: ReturnType<typeof useNavigate>) {
   if (!requireAuthForCheckout(navigate)) return;
   if (!(await requireVerifiedForAction(navigate))) return;
   if (isDemoMode()) {
-    toast("Оплата будет доступна после подключения эквайринга", {
-      description: "Разовое размещение — 99 ₽",
+    toast(i18n.t("pages.subscription.paySoon"), {
+      description: i18n.t("pages.subscription.paySoonDesc"),
     });
     return;
   }
@@ -104,42 +95,35 @@ async function startPlacementCheckout(navigate: ReturnType<typeof useNavigate>) 
       return;
     }
     await confirmStubPayment(checkout.payment_uuid);
-    toast.success("Размещение оплачено (тестовый режим) — доступно при создании объявления");
+    toast.success(i18n.t("pages.subscription.oneTimePaid"));
   } catch {
-    toast.error("Не удалось создать платёж. Попробуйте позже.");
+    toast.error(i18n.t("pages.subscription.payCreateFailed"));
   }
 }
 
 function SubscriptionPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  // Real subscription record (API) — demo hosts get the fixed demo state
-  // from lib/subscription. Null = free tier: the countdown card is hidden.
   const { sub } = useMySubscription();
   const daysLeft = sub?.days_left ?? 0;
   const totalDays = sub?.plan?.period_days ?? 365;
-  const planName = sub?.plan?.name ?? "Подписка";
+  const planName = sub?.plan?.name ?? t("pages.subscription.defaultPlanName");
 
-  // Provider hosted-page return: config return_url/fail_url send the user
-  // back to /subscription?payment=success|failed. Surface the outcome, then
-  // strip the param so a refresh doesn't re-toast. Activation itself happens
-  // server-side via the provider webhook, so "success" is phrased as
-  // "activating", not a hard confirmation.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const p = params.get("payment");
     if (!p) return;
-    if (p === "success") toast.success("Оплата прошла — подписка активируется");
-    else if (p === "failed") toast.error("Оплата не завершена");
+    if (p === "success") toast.success(t("pages.subscription.paySuccess"));
+    else if (p === "failed") toast.error(t("pages.subscription.payFailed"));
     params.delete("payment");
     const qs = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
-  }, []);
+  }, [t]);
 
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
         <VerificationBanner />
-        {/* Header */}
         <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
           <span
             className="inline-block uppercase"
@@ -153,7 +137,7 @@ function SubscriptionPage() {
               borderRadius: "var(--r-tag)",
             }}
           >
-            ТАРИФЫ
+            {t("pages.subscription.eyebrow")}
           </span>
           <h1
             style={{
@@ -166,7 +150,7 @@ function SubscriptionPage() {
               marginTop: 16,
             }}
           >
-            Подписка МоДелизМ
+            {t("pages.subscription.title")}
           </h1>
           <p
             style={{
@@ -177,13 +161,10 @@ function SubscriptionPage() {
               marginTop: 12,
             }}
           >
-            Один набор возможностей — выбирайте срок. Все тарифы дают одинаковый доступ к платформе.
+            {t("pages.subscription.subtitle")}
           </p>
         </motion.div>
 
-        {/* Active subscription — the single place the countdown lives.
-            Rendered only when there IS an active subscription (real API data;
-            demo hosts always have the fixed demo state). */}
         {sub?.is_active && (
         <motion.div
           initial="hidden"
@@ -207,17 +188,17 @@ function SubscriptionPage() {
             <div>
               <div className="flex items-center gap-[8px]">
                 <span style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>
-                  Подписка «{planName}» активна
+                  {t("pages.subscription.activePlan", { name: planName })}
                 </span>
                 <span
                   className="inline-block"
                   style={{ fontSize: 11, fontWeight: 600, color: "var(--success)", background: "var(--success-soft)", padding: "2px 8px", borderRadius: "var(--r-tag)" }}
                 >
-                  активна
+                  {t("pages.subscription.active")}
                 </span>
               </div>
               <div className="mt-[4px]" style={{ fontSize: 13, color: "var(--foreground-50)" }}>
-                Действует до {formatSubscriptionEndDate(sub)}
+                {t("pages.subscription.validUntil", { date: formatSubscriptionEndDate(sub) })}
               </div>
             </div>
           </div>
@@ -226,7 +207,7 @@ function SubscriptionPage() {
               {daysLeft} {daysWord(daysLeft)}
             </div>
             <div className="mt-[2px]" style={{ fontSize: 12, color: "var(--foreground-50)" }}>
-              до окончания
+              {t("pages.subscription.daysLeft")}
             </div>
             <div className="mt-[8px] w-full sm:w-[160px]" style={{ height: 6, background: "var(--background-surface)", borderRadius: 3, overflow: "hidden" }}>
               <div
@@ -242,8 +223,6 @@ function SubscriptionPage() {
         </motion.div>
         )}
 
-        {/* Free counter — demo-only illustration (no backend concept behind
-            it); production hides it so no fake numbers are ever shown */}
         {isDemoMode() && (
         <div
           className="mt-[16px] flex items-center gap-[14px]"
@@ -256,7 +235,7 @@ function SubscriptionPage() {
           <Gift size={22} style={{ color: "var(--accent)", flexShrink: 0 }} />
           <div className="flex-1">
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
-              Бесплатные размещения: {FREE_LEFT} из {FREE_LIMIT}
+              {t("pages.subscription.freeListings", { left: FREE_LEFT, limit: FREE_LIMIT })}
             </div>
             <div className="mt-[8px]" style={{ height: 6, background: "var(--background-surface)", borderRadius: 3, overflow: "hidden" }}>
               <div
@@ -273,9 +252,6 @@ function SubscriptionPage() {
         </div>
         )}
 
-        {/* Plans — one shared feature set. Mobile keeps the narrow single-card
-            width (max-w-[420px]); desktop widens to fit PlanTermSelector's
-            3-column open-cards layout (~230px card x3 + 16px gaps x2). */}
         <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[760px]">
           <PlanTermSelector
             renderCta={(plan) => (
@@ -285,13 +261,12 @@ function SubscriptionPage() {
                 className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
-                Оформить подписку
+                {t("pages.subscription.subscribe")}
               </button>
             )}
           />
         </div>
 
-        {/* One-time placement */}
         <div className="mt-[32px]">
           <div
             className="flex flex-col gap-[16px] sm:flex-row sm:items-center sm:justify-between"
@@ -311,10 +286,10 @@ function SubscriptionPage() {
               </div>
               <div>
                 <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>
-                  Разовое размещение
+                  {t("pages.subscription.oneTimeTitle")}
                 </h4>
                 <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4, maxWidth: 460 }}>
-                  Одно объявление за 99 ₽ — без подписки и обязательств. Для тех, кому нужен разовый показ, а не постоянный доступ.
+                  {t("pages.subscription.oneTimeDesc")}
                 </p>
               </div>
             </div>
@@ -337,7 +312,7 @@ function SubscriptionPage() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
               >
-                Разместить
+                {t("pages.subscription.oneTimeCta")}
               </button>
             </div>
           </div>
@@ -349,4 +324,3 @@ function SubscriptionPage() {
     </AppLayout>
   );
 }
-

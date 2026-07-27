@@ -34,6 +34,7 @@ export interface ApiMessage {
   body?: string | null;
   type?: string;
   status?: string;
+  listing?: ApiListingCompact | null;
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
@@ -137,6 +138,10 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
       kind: mime.startsWith("video/") ? "video" : "file",
       url: fileMedia.url,
     };
+  }
+
+  if (m.type === "listing" && m.listing) {
+    base.listing = mapListingCompact(m.listing);
   }
 
   return base;

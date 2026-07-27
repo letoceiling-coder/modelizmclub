@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -23,13 +24,10 @@ import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FEED_FILTER_ACTIONS } from "@/lib/feed-guest-access/registry";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/feed")({
-  head: () => ({
-    meta: [
-      { title: "Лента — МоДелизМ" },
-      { name: "description", content: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения." },
-    ],
-  }),
+  head: () => ({ meta: [{ title: i18n.t("pages.feed.metaTitle") }, { name: "description", content: i18n.t("pages.feed.metaDescription") }] }),
   // `category` — set by landing's "Направления" cards (routes/index.tsx
   // CategoriesSection) so a direction click opens /feed pre-filtered to
   // that direction instead of the unfiltered feed. Value is a category
@@ -47,6 +45,7 @@ export const Route = createFileRoute("/feed")({
 const PAGE_SIZE = 6;
 
 function FeedPage() {
+  const { t } = useTranslation();
   const { composer, category: categoryFromUrl } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
@@ -252,29 +251,29 @@ function FeedPage() {
             filter === "following" ? (
               <EmptyState
                 icon={UserPlus}
-                title="Здесь пока пусто"
-                description="Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте."
-                action={{ label: "Найти авторов", onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
+                title={t("pages.feed.emptyFollowingTitle")}
+                description={t("pages.feed.emptyFollowingDesc")}
+                action={{ label: t("pages.feed.findAuthors"), onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
               />
             ) : filter === "categories" && !activeCategory ? (
               <EmptyState
                 icon={Compass}
-                title="Выберите категорию"
-                description="Отфильтруйте ленту по интересующему вас направлению моделизма."
+                title={t("pages.feed.selectCategoryTitle")}
+                description={t("pages.feed.selectCategoryDesc")}
               />
             ) : filter === "saved" ? (
               <EmptyState
                 icon={Bookmark}
-                title="Нет сохранённых публикаций"
-                description="Нажмите на иконку закладки у понравившейся публикации."
-                action={{ label: "Вернуться в ленту", onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
+                title={t("pages.feed.emptySavedTitle")}
+                description={t("pages.feed.emptySavedDesc")}
+                action={{ label: t("pages.feed.backToFeed"), onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
               />
             ) : (
               <EmptyState
                 icon={Newspaper}
-                title="Публикаций не найдено"
-                description="В этой категории пока никто ничего не опубликовал."
-                action={{ label: "Показать все", onClick: () => guardAction("feed.empty.action", () => { setFilter("all"); setActiveCategory(null); }) }}
+                title={t("pages.feed.emptyPostsTitle")}
+                description={t("pages.feed.emptyPostsDesc")}
+                action={{ label: t("pages.feed.showAll"), onClick: () => guardAction("feed.empty.action", () => { setFilter("all"); setActiveCategory(null); }) }}
               />
             )
           ) : (
@@ -308,14 +307,14 @@ function FeedPage() {
                 <Loader2 className="h-[20px] w-[20px]" style={{ color: "var(--accent)" }} />
               </motion.div>
               <span className="ml-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                Загружаем ещё…
+                {t("pages.feed.loadingMore")}
               </span>
             </div>
           )}
 
           {!initialLoading && slice.length > 0 && visible >= filtered.length && (
             <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Вы посмотрели всю ленту
+              {t("pages.feed.endOfFeed")}
             </p>
           )}
         </div>

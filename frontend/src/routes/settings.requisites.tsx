@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
@@ -35,6 +36,7 @@ interface RequisitesForm {
 }
 
 function RequisitesSection() {
+  const { t } = useTranslation();
   const [form, setForm] = useState<RequisitesForm>({ fullName: "", inn: "", phone: "", address: "" });
   const [accountPhone, setAccountPhone] = useState("");
   const [loading, setLoading] = useState(!isDemoMode());
@@ -71,52 +73,51 @@ function RequisitesSection() {
         phone: form.phone,
         address: form.address,
       });
-      toast.success("Реквизиты сохранены");
+      toast.success(t("pages.settings.requisitesSaved"));
     } catch {
-      toast.error("Не удалось сохранить реквизиты");
+      toast.error(t("pages.settings.requisitesSaveFailed"));
     }
   };
 
   const set = (patch: Partial<RequisitesForm>) => setForm((f) => ({ ...f, ...patch }));
 
   return (
-    <SettingsSectionShell title="Реквизиты">
+    <SettingsSectionShell title={t("pages.settings.requisitesTitle")}>
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Данные хранятся в аккаунте и используются при оформлении документов по сделкам.
-        Телефон подтягивается из{" "}
+        {t("pages.settings.requisitesDesc")}{" "}
         <Link to="/settings/account" className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
-          профиля и аккаунта
+          {t("pages.settings.requisitesProfileLink")}
         </Link>
         .
       </p>
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         {loading ? (
           <div className="flex items-center gap-[8px] py-[8px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            <Loader2 size={14} className="animate-spin" /> Загрузка…
+            <Loader2 size={14} className="animate-spin" /> {t("pages.settings.loading")}
           </div>
         ) : (
           <form onSubmit={save} className="space-y-[12px]">
-            <Field label="Полное имя (ФИО)">
-              <Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder="Иванов Иван Иванович" />
+            <Field label={t("pages.settings.fullName")}>
+              <Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder={t("pages.settings.fullNamePlaceholder")} />
             </Field>
-            <Field label="ИНН (необязательно)">
+            <Field label={t("pages.settings.innOptional")}>
               <InnInput value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" />
             </Field>
-            <Field label="Телефон">
+            <Field label={t("pages.settings.phone")}>
               <PhoneInput key={`req-phone-${form.phone}`} defaultValue={form.phone} onValueChange={(formatted) => set({ phone: formatted })} />
             </Field>
             {accountPhone && form.phone.replace(/\D/g, "") !== accountPhone.replace(/\D/g, "") && (
               <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                В аккаунте указан другой номер ({accountPhone}).{" "}
+                {t("pages.settings.phoneMismatch", { phone: accountPhone })}{" "}
                 <Link to="/settings/account" className="underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
-                  Изменить в профиле
+                  {t("pages.settings.changeInProfile")}
                 </Link>
               </p>
             )}
-            <Field label="Адрес">
-              <Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder="Город, улица, дом" />
+            <Field label={t("pages.settings.address")}>
+              <Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder={t("pages.settings.addressPlaceholder")} />
             </Field>
-            <Button type="submit">Сохранить</Button>
+            <Button type="submit">{t("pages.settings.save")}</Button>
           </form>
         )}
       </Card>
@@ -127,6 +128,7 @@ function RequisitesSection() {
 }
 
 function PayoutCard() {
+  const { t } = useTranslation();
   const [last4, setLast4] = useState<string | null>(null);
   const [cardNumber, setCardNumber] = useState("");
   const [loading, setLoading] = useState(true);
@@ -143,17 +145,17 @@ function PayoutCard() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cardNumber.length < 16) { toast.error("Введите номер карты полностью (16 цифр)"); return; }
-    if (isDemoMode()) { toast("В демо-режиме сохранение карты для выплат недоступно"); return; }
+    if (cardNumber.length < 16) { toast.error(t("pages.settings.payoutCardInvalid")); return; }
+    if (isDemoMode()) { toast(t("pages.settings.payoutDemo")); return; }
 
     setSaving(true);
     try {
       await savePayoutRequisites(cardNumber);
       setLast4(cardNumber.slice(-4));
       setCardNumber("");
-      toast.success("Карта для выплат сохранена");
+      toast.success(t("pages.settings.payoutCardSavedToast"));
     } catch {
-      toast.error("Не удалось сохранить карту");
+      toast.error(t("pages.settings.payoutCardSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -161,28 +163,27 @@ function PayoutCard() {
 
   return (
     <Card className="mt-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-      <h3 className="mb-[4px] text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Карта для выплат</h3>
+      <h3 className="mb-[4px] text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.payoutCardTitle")}</h3>
       <p className="mb-[16px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        Номер карты хранится в зашифрованном виде и используется только для ручного
-        перевода администратором — без автоматических выплат через эквайринг.
+        {t("pages.settings.payoutCardDesc")}
       </p>
 
       {loading ? (
         <div className="flex items-center gap-[8px] py-[8px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          <Loader2 size={14} className="animate-spin" /> Загрузка…
+          <Loader2 size={14} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       ) : (
         <>
           {last4 && (
             <p className="mb-[10px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-              Сейчас сохранена карта •••• {last4}
+              {t("pages.settings.payoutCardSaved", { last4 })}
             </p>
           )}
           <form onSubmit={save} className="space-y-[12px]">
-            <Field label={last4 ? "Новый номер карты (чтобы заменить)" : "Номер карты"}>
+            <Field label={last4 ? t("pages.settings.payoutCardNew") : t("pages.settings.payoutCardNumber")}>
               <CardNumberInput value={cardNumber} onValueChange={setCardNumber} />
             </Field>
-            <Button type="submit" disabled={saving}>{saving ? "Сохранение…" : "Сохранить"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? t("pages.settings.saving") : t("pages.settings.save")}</Button>
           </form>
         </>
       )}

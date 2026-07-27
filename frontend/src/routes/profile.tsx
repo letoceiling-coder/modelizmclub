@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
@@ -46,8 +47,10 @@ import { prepareProfileImageFile, PROFILE_IMAGE_ACCEPT, PROFILE_COVER_MAX_BYTES 
 import { ApiError } from "@/lib/api/client";
 import { firstFieldError } from "@/lib/api/validationErrors";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Профиль — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.profile.metaTitle") }] }),
   component: ProfilePage,
 });
 
@@ -140,13 +143,22 @@ function ProfilePage() {
 
 type TabKey = "posts" | "ads" | "communities" | "invited" | "blocked" | "about";
 
-const TABS_BASE: { key: TabKey; label: string; Icon: typeof FileText; ownOnly?: boolean }[] = [
-  { key: "posts", label: "Публикации", Icon: FileText },
-  { key: "ads", label: "Объявления", Icon: Tag },
-  { key: "communities", label: "Сообщества", Icon: Users },
-  { key: "invited", label: "Приглашённые", Icon: UserPlus, ownOnly: true },
-  { key: "blocked", label: "Заблокированные", Icon: Ban, ownOnly: true },
-  { key: "about", label: "О себе", Icon: UserIcon },
+const TAB_LABEL_KEYS: Record<TabKey, string> = {
+  posts: "pages.profile.tabPosts",
+  ads: "pages.profile.tabAds",
+  communities: "pages.profile.tabCommunities",
+  invited: "pages.profile.tabInvited",
+  blocked: "pages.profile.tabBlocked",
+  about: "pages.profile.tabAbout",
+};
+
+const TABS_BASE: { key: TabKey; Icon: typeof FileText; ownOnly?: boolean }[] = [
+  { key: "posts", Icon: FileText },
+  { key: "ads", Icon: Tag },
+  { key: "communities", Icon: Users },
+  { key: "invited", Icon: UserPlus, ownOnly: true },
+  { key: "blocked", Icon: Ban, ownOnly: true },
+  { key: "about", Icon: UserIcon },
 ];
 
 
@@ -155,19 +167,23 @@ const ICON_MAP: Record<string, typeof Car> = {
 };
 
 type AdStatus = "active" | "moderation" | "rejected" | "archived";
-const AD_STATUS_FILTERS: { key: AdStatus | "all"; label: string }[] = [
-  { key: "all", label: "Все" },
-  { key: "active", label: "Активные" },
-  { key: "moderation", label: "На модерации" },
-  { key: "rejected", label: "Отклонённые" },
-  { key: "archived", label: "Архив" },
+const AD_STATUS_FILTER_KEYS: { key: AdStatus | "all"; labelKey: string }[] = [
+  { key: "all", labelKey: "pages.profile.adFilterAll" },
+  { key: "active", labelKey: "pages.profile.adFilterActive" },
+  { key: "moderation", labelKey: "pages.profile.adFilterModeration" },
+  { key: "rejected", labelKey: "pages.profile.adFilterRejected" },
+  { key: "archived", labelKey: "pages.profile.adFilterArchived" },
 ];
-const AD_STATUS_BADGE: Record<AdStatus, { label: string; variant: "published" | "moderation" | "warning" | "draft" }> = {
-  active: { label: "Активно", variant: "published" },
-  moderation: { label: "На модерации", variant: "moderation" },
-  rejected: { label: "Отклонено", variant: "warning" },
-  archived: { label: "В архиве", variant: "draft" },
-};
+
+function adStatusBadge(t: (key: string) => string, status: AdStatus) {
+  const map: Record<AdStatus, { label: string; variant: "published" | "moderation" | "warning" | "draft" }> = {
+    active: { label: t("pages.profile.adBadgeActive"), variant: "published" },
+    moderation: { label: t("pages.profile.adBadgeModeration"), variant: "moderation" },
+    rejected: { label: t("pages.profile.adBadgeRejected"), variant: "warning" },
+    archived: { label: t("pages.profile.adBadgeArchived"), variant: "draft" },
+  };
+  return map[status];
+}
 
 export interface ProfileViewProps {
   user: User;
@@ -192,6 +208,7 @@ export function ProfileView({
   user, isOwn, stats, postsOverride, adsOverride, communitiesOverride, loading = false,
   isFriendInitial, friendRequestStatusInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile, onDeletePost,
 }: ProfileViewProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -221,6 +238,13 @@ export function ProfileView({
   const storeUserCommunities = useStore(selectors.userCommunities(user.id));
   const userCommunities = communitiesOverride ?? storeUserCommunities;
   const friendsCountDerived = stats?.friends ?? (isOwn ? storeFriendIds.length : (user.friendIds?.length ?? 0));
+  const tabs = useMemo(
+    () => TABS_BASE.filter((x) => isOwn || !x.ownOnly).map((x) => ({
+      ...x,
+      label: t(TAB_LABEL_KEYS[x.key]),
+    })),
+    [isOwn, t],
+  );
   const interestList = (user.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
 
@@ -254,9 +278,9 @@ export function ProfileView({
                   withIcon={false}
                   className="gap-[3px] rounded-full border-transparent px-[8px] py-[2px] text-[10px]"
                   style={{ background: "linear-gradient(135deg, var(--gold-1, #FBBF24), var(--gold-2, #B45309))", color: "#1F1300" }}
-                  title="Один из первых 100 участников клуба"
+                  title={t("pages.profile.earlyMemberBadge")}
                 >
-                  ★ Первые 100
+                  {t("pages.profile.earlyMember100")}
                 </Badge>
               )}
             </div>
@@ -274,7 +298,7 @@ export function ProfileView({
                   onClick={() => setEditOpen(true)}
                   className="h-[40px] flex-1 rounded-[10px] md:flex-none"
                 >
-                  <Pencil size={14} /> Редактировать
+                  <Pencil size={14} /> {t("pages.profile.editProfile")}
                 </Button>
                 <LogoutButton variant="profile" />
               </>
@@ -286,7 +310,7 @@ export function ProfileView({
                     disabled
                     className="h-[40px] flex-1 rounded-[10px] disabled:opacity-100 md:flex-none"
                   >
-                    <BadgeCheck size={14} style={{ color: "var(--success)" }} /> В друзьях
+                    <BadgeCheck size={14} style={{ color: "var(--success)" }} /> {t("pages.profile.inFriends")}
                   </Button>
                 ) : friendRequestStatus === "outgoing" ? (
                   <Button
@@ -294,40 +318,40 @@ export function ProfileView({
                     disabled
                     className="h-[40px] flex-1 rounded-[10px] disabled:opacity-100 md:flex-none"
                   >
-                    <Clock size={14} /> Запрос отправлен
+                    <Clock size={14} /> {t("pages.profile.requestSent")}
                   </Button>
                 ) : (
                   <Button
                     onClick={async () => {
                       try {
                         await onToggleFriend?.();
-                        toast.success("Заявка отправлена");
+                        toast.success(t("pages.profile.requestSent"));
                       } catch {
-                        toast.error("Не удалось отправить заявку");
+                        toast.error(t("pages.profile.requestFailed"));
                       }
                     }}
                     className="h-[40px] flex-1 rounded-[10px] md:flex-none"
                   >
-                    <UserPlus size={14} /> В друзья
+                    <UserPlus size={14} /> {t("pages.profile.addFriend")}
                   </Button>
                 )}
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  title="Написать сообщение"
-                  aria-label="Написать сообщение"
+                  title={t("pages.profile.writeMessage")}
+                  aria-label={t("pages.profile.writeMessageAria")}
                   onClick={async () => {
                     if (onWrite) { await onWrite(); return; }
                     if (!user.numericId || !currentUser?.id) {
-                      toast.error("Не удалось открыть диалог");
+                      toast.error(t("pages.profile.dialogOpenFailed"));
                       return;
                     }
                     try {
                       const dialog = await openConversation(user.numericId, currentUser.id, user.id);
                       navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
                     } catch {
-                      toast.error("Не удалось открыть диалог");
+                      toast.error(t("pages.profile.dialogOpenFailed"));
                     }
                   }}
                   className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
@@ -343,15 +367,15 @@ export function ProfileView({
                     setSubscribed(next);
                     try {
                       await onToggleFollow?.(next);
-                      toast.success(next ? "Вы подписались" : "Вы отписались");
+                      toast.success(next ? t("pages.profile.followed") : t("pages.profile.unfollowed"));
                     } catch {
                       setSubscribed(!next);
-                      toast.error("Не удалось изменить подписку");
+                      toast.error(t("pages.profile.followFailed"));
                     }
                   }}
                   className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
                   style={{ color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}
-                  aria-label="Подписаться"
+                  aria-label={t("pages.profile.followAria")}
                 >
                   <Bell size={14} />
                 </Button>
@@ -363,10 +387,10 @@ export function ProfileView({
 
         {/* Counters */}
         <div className="grid grid-cols-4" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <Counter label="Публикаций" value={stats?.publications ?? userPosts.length} divider />
-          <Counter label="Объявлений" value={stats?.ads ?? userAds.length} divider />
-          <Counter label="Друзей" value={friendsCountDerived} divider />
-          <Counter label="Сообществ" value={stats?.communities ?? userCommunities.length} />
+          <Counter label={t("pages.profile.counterPosts")} value={stats?.publications ?? userPosts.length} divider />
+          <Counter label={t("pages.profile.counterAds")} value={stats?.ads ?? userAds.length} divider />
+          <Counter label={t("pages.profile.counterFriends")} value={friendsCountDerived} divider />
+          <Counter label={t("pages.profile.counterCommunities")} value={stats?.communities ?? userCommunities.length} />
         </div>
 
         {/* Tabs */}
@@ -383,17 +407,17 @@ export function ProfileView({
           >
               {tab === "posts" && (
                 loading ? <ProfileTabSkeleton /> :
-                userPosts.length === 0 ? <EmptyTab text="Нет публикаций" /> : (
+                userPosts.length === 0 ? <EmptyTab text={t("pages.profile.emptyPostsShort")} /> : (
                   <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
                 )
               )}
               {tab === "ads" && (
                 loading ? <ProfileTabSkeleton /> :
                 userAds.length === 0 ? (
-                  <EmptyTab text="Нет объявлений">
+                  <EmptyTab text={t("pages.profile.emptyAdsShort")}>
                     {isOwn && (
                       <Button asChild className="mt-[16px]">
-                        <Link to="/ads/new"><Plus size={14} /> Создать объявление</Link>
+                        <Link to="/ads/new"><Plus size={14} /> {t("pages.profile.createListing")}</Link>
                       </Button>
                     )}
                   </EmptyTab>
@@ -401,7 +425,7 @@ export function ProfileView({
                   <div className="space-y-[16px]">
                     {isOwn && (
                       <div className="-mx-1 flex gap-[6px] overflow-x-auto px-[4px] pb-[2px] no-scrollbar">
-                        {AD_STATUS_FILTERS.map((f) => {
+                        {AD_STATUS_FILTER_KEYS.map((f) => {
                           const count = f.key === "all" ? userAdsWithStatus.length : userAdsWithStatus.filter((x) => x.status === f.key).length;
                           const active = adFilter === f.key;
                           return (
@@ -419,7 +443,7 @@ export function ProfileView({
                                 border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
                               }}
                             >
-                              {f.label}
+                              {t(f.labelKey)}
                               <span
                                 style={{
                                   fontSize: 11,
@@ -438,11 +462,11 @@ export function ProfileView({
                       </div>
                     )}
                     {filteredUserAds.length === 0 ? (
-                      <EmptyTab text="Нет объявлений с этим статусом" />
+                      <EmptyTab text={t("pages.profile.emptyAdsFiltered")} />
                     ) : (
                       <div className="grid grid-cols-2 gap-[10px] sm:gap-[16px] lg:grid-cols-3">
                         {filteredUserAds.map(({ ad, status }) => {
-                          const badge = AD_STATUS_BADGE[status];
+                          const badge = adStatusBadge(t, status);
                           const cardState: "default" | "moderation" | "rejected" =
                             status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
                           return (
@@ -469,7 +493,7 @@ export function ProfileView({
               )}
               {tab === "communities" && (
                 loading ? <ProfileTabSkeleton /> :
-                userCommunities.length === 0 ? <EmptyTab text="Не состоит в сообществах" /> : (
+                userCommunities.length === 0 ? <EmptyTab text={t("pages.profile.emptyCommunitiesShort")} /> : (
                   <div className="grid gap-[12px] md:grid-cols-2">
                     {userCommunities.map((c) => {
                       const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
@@ -485,7 +509,7 @@ export function ProfileView({
                             </div>
                             <div className="min-w-0">
                               <div className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{c.name}</div>
-                              <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{c.members.toLocaleString("ru")} участников</div>
+                              <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.shared.members", { count: c.members.toLocaleString("ru") })}</div>
                             </div>
                           </Link>
                         </Card>
@@ -501,7 +525,7 @@ export function ProfileView({
                   {user.bio ? (
                     <p className="text-[15px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>{user.bio}</p>
                   ) : (
-                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>Пользователь ещё не заполнил раздел «О себе»</p>
+                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.profile.emptyAbout")}</p>
                   )}
                   {interestList.length > 0 && (
                     <div className="mt-[20px] flex flex-wrap gap-[8px]">
@@ -538,9 +562,9 @@ export function ProfileView({
                   actions.updateProfile(user.id, draft);
                 }
                 setEditOpen(false);
-                toast.success("Профиль обновлён");
+                toast.success(t("pages.profile.profileUpdated"));
               } catch {
-                toast.error("Не удалось сохранить профиль");
+                toast.error(t("pages.profile.profileSaveFailed"));
               }
             }}
           />
@@ -560,7 +584,8 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
 }
 
 function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void; isOwn: boolean }) {
-  const tabs = TABS_BASE.filter((t) => isOwn || !t.ownOnly);
+  const { t } = useTranslation();
+  const visibleTabs = TABS_BASE.filter((item) => isOwn || !item.ownOnly);
 
   return (
     <div
@@ -568,8 +593,9 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
       <div className="flex min-h-[52px] flex-wrap items-stretch gap-[2px] md:min-h-[56px] md:gap-[6px]">
-        {tabs.map(({ key, label, Icon }) => {
+        {visibleTabs.map(({ key, Icon }) => {
           const active = tab === key;
+          const label = t(TAB_LABEL_KEYS[key]);
           return (
             <button
               key={key}
@@ -619,6 +645,7 @@ function ProfileTabSkeleton() {
 function EditSheet({ draft, setDraft, onClose, onSave }: {
   draft: User; setDraft: (u: User) => void; onClose: () => void; onSave: (cityId?: number) => void | Promise<void>;
 }) {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [newInterest, setNewInterest] = useState("");
   const [cityId, setCityId] = useState<number | undefined>(draft.cityId);
@@ -678,24 +705,24 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
         aria-labelledby="profile-edit-title"
       >
         <div className="mx-auto h-[4px] w-[36px] rounded-[2px] md:hidden" style={{ background: "var(--foreground-30)", marginBottom: 20 }} />
-        <h3 id="profile-edit-title" className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>Редактирование профиля</h3>
+        <h3 id="profile-edit-title" className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.profile.editProfileTitle")}</h3>
 
         <div className="mt-[20px] space-y-[20px]">
-          <Field label="Имя">
+          <Field label={t("pages.profile.fieldName")}>
             <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="h-11" />
           </Field>
-          <Field label="Город">
-            <CitySelect value={draft.city} onChange={(name, id) => { setDraft({ ...draft, city: name }); setCityId(id); }} placeholder="Город" />
+          <Field label={t("pages.profile.fieldCity")}>
+            <CitySelect value={draft.city} onChange={(name, id) => { setDraft({ ...draft, city: name }); setCityId(id); }} placeholder={t("pages.profile.cityPlaceholder")} />
           </Field>
-          <Field label="О себе">
+          <Field label={t("pages.profile.fieldBio")}>
             <Textarea
               value={draft.bio ?? ""}
               onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-              placeholder="Расскажите о себе"
+              placeholder={t("pages.profile.bioPlaceholder")}
               rows={4}
             />
           </Field>
-          <Field label="Интересы">
+          <Field label={t("pages.profile.fieldInterests")}>
             <div className="flex flex-wrap gap-[8px]">
               {interestList.map((i) => (
                 <Badge
@@ -705,7 +732,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
                   style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                 >
                   {i}
-                  <button type="button" onClick={() => removeInterest(i)} aria-label="Убрать" className="inline-flex"><X size={12} /></button>
+                  <button type="button" onClick={() => removeInterest(i)} aria-label={t("pages.profile.removeInterest")} className="inline-flex"><X size={12} /></button>
                 </Badge>
               ))}
             </div>
@@ -714,7 +741,7 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
                 value={newInterest}
                 onChange={(e) => setNewInterest(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
-                placeholder="Добавить интерес"
+                placeholder={t("pages.profile.addInterest")}
                 className="h-11 flex-1"
               />
               <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0">
@@ -726,10 +753,10 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
 
         <div className="mt-[24px] flex gap-[12px]">
           <Button variant="outline" onClick={onClose} className="h-[48px] flex-1 rounded-[12px]">
-            Отмена
+            {t("pages.profile.cancel")}
           </Button>
           <Button onClick={() => onSave(cityId)} className="h-[48px] flex-1 rounded-[12px]">
-            Сохранить
+            {t("pages.profile.save")}
           </Button>
         </div>
       </motion.div>
@@ -755,6 +782,7 @@ function initials(name: string): string {
 /** Profile avatar on the shared Radix Avatar — initials fallback when the
  *  image is missing or fails to load. Never renders <img src="">. */
 function ProfileAvatar({ src, name, editable }: { src?: string; name: string; editable?: boolean }) {
+  const { t } = useTranslation();
   const hasSrc = Boolean(src && src.trim());
   const currentUser = useStore(selectors.currentUser);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -771,7 +799,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
       const prepared = await prepareProfileImageFile(file);
       setPendingFile(prepared);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+      toast.error(err instanceof Error ? err.message : t("pages.profile.fileProcessFailed"));
     } finally {
       setPickingFile(false);
     }
@@ -787,15 +815,15 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
       if (currentUser) {
         setCurrentUser(applyOwnProfilePatch(currentUser, profile));
       }
-      toast.success("Фото профиля обновлено");
+      toast.success(t("pages.profile.avatarUpdated"));
     } catch (err) {
       const description =
         err instanceof ApiError
-          ? firstFieldError(err.errors, err.message || "Проверьте формат и размер файла")
+          ? firstFieldError(err.errors, err.message || t("pages.profile.checkFileFormat"))
           : err instanceof Error
             ? err.message
             : undefined;
-      toast.error("Не удалось загрузить фото", { description });
+      toast.error(t("pages.profile.avatarUploadFailed"), { description });
     } finally {
       setUploading(false);
     }
@@ -806,9 +834,9 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
     try {
       const profile = await updateOwnProfile({ avatar_media_id: null });
       setCurrentUser(applyOwnProfilePatch({ ...currentUser, avatar: "" }, profile));
-      toast.success("Фото удалено");
+      toast.success(t("pages.profile.photoRemoved"));
     } catch {
-      toast.error("Не удалось удалить фото");
+      toast.error(t("pages.profile.photoRemoveFailed"));
     }
   };
 
@@ -844,7 +872,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                aria-label="Изменить фото"
+                aria-label={t("pages.profile.changePhoto")}
                 disabled={uploading || pickingFile}
                 className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors md:h-[36px] md:w-[36px]"
                 style={{ background: "var(--accent)", color: "#fff", borderColor: "var(--background)" }}
@@ -865,7 +893,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
                 onSelect={() => fileRef.current?.click()}
               >
                 <Camera className="h-[16px] w-[16px]" />
-                {pickingFile ? "Обработка…" : "Загрузить фото"}
+                {pickingFile ? t("pages.profile.processing") : t("pages.profile.uploadPhoto")}
               </DropdownMenuItem>
               {hasSrc && (
                 <DropdownMenuItem
@@ -874,7 +902,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
                   onSelect={removePhoto}
                 >
                   <Trash2 className="h-[16px] w-[16px]" />
-                  Удалить
+                  {t("pages.profile.deletePhoto")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -886,7 +914,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
         aspect={1}
         outputWidth={480}
         outputHeight={480}
-        title="Обрезка фото профиля"
+        title={t("pages.profile.cropAvatarTitle")}
         onCancel={() => setPendingFile(null)}
         onCropped={uploadCropped}
         onDelete={() => {
@@ -899,6 +927,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
 
 /** Cover image with a gradient fallback for empty/broken URLs. Owner can upload. */
 function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
+  const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
   const currentUser = useStore(selectors.currentUser);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -918,7 +947,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
       const prepared = await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES);
       setPendingFile(prepared);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+      toast.error(err instanceof Error ? err.message : t("pages.profile.fileProcessFailed"));
     }
   };
 
@@ -936,15 +965,15 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
           coverImage: patched.coverImage || media.url || currentUser.coverImage,
         });
       }
-      toast.success("Обложка обновлена");
+      toast.success(t("pages.profile.coverUpdated"));
     } catch (err) {
       const description =
         err instanceof ApiError
-          ? firstFieldError(err.errors, err.message || "Проверьте формат и размер файла")
+          ? firstFieldError(err.errors, err.message || t("pages.profile.checkFileFormat"))
           : err instanceof Error
             ? err.message
             : undefined;
-      toast.error("Не удалось загрузить обложку", { description });
+      toast.error(t("pages.profile.coverUploadFailed"), { description });
     } finally {
       setUploading(false);
     }
@@ -964,13 +993,13 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
               a hover-only reveal never shows up on touch. */}
           <button
             type="button"
-            aria-label="Изменить обложку"
+            aria-label={t("pages.profile.changeCover")}
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
             className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium transition-colors hover:brightness-110"
             style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
           >
-            <Camera size={14} /> Изменить обложку
+            <Camera size={14} /> {t("pages.profile.changeCover")}
           </button>
         </>
       )}
@@ -979,7 +1008,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
         aspect={3.5}
         outputWidth={1400}
         outputHeight={400}
-        title="Обрезка обложки профиля"
+        title={t("pages.profile.cropCoverTitle")}
         onCancel={() => setPendingFile(null)}
         onCropped={uploadCropped}
       />

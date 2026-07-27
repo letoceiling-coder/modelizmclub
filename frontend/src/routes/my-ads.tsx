@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Inbox, Eye, Heart, TrendingUp, Tag, X, Filter, RotateCcw, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -12,21 +13,23 @@ import { Button } from "@/components/ui/button";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { EmptyState } from "@/components/ui/empty-state";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/my-ads")({
-  head: () => ({ meta: [{ title: "Мои объявления — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.myAds.metaTitle") }] }),
   component: MyAdsPage,
 });
 
 type TabKey = "active" | "moderation" | "rejected" | "unpublished" | "archived" | "deleted" | "draft";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "active",       label: "Активные" },
-  { key: "moderation",   label: "На модерации" },
-  { key: "rejected",     label: "С ошибками" },
-  { key: "unpublished",  label: "Неопубликованные" },
-  { key: "archived",     label: "Архив" },
-  { key: "deleted",      label: "Удалённые" },
-  { key: "draft",        label: "Черновики" },
+const TAB_KEYS: { key: TabKey; labelKey: string }[] = [
+  { key: "active", labelKey: "pages.myAds.tabActive" },
+  { key: "moderation", labelKey: "pages.myAds.tabModeration" },
+  { key: "rejected", labelKey: "pages.myAds.tabRejected" },
+  { key: "unpublished", labelKey: "pages.myAds.tabUnpublished" },
+  { key: "archived", labelKey: "pages.myAds.tabArchived" },
+  { key: "deleted", labelKey: "pages.myAds.tabDeleted" },
+  { key: "draft", labelKey: "pages.myAds.tabDraft" },
 ];
 
 function statusToTab(s: AdStatusKey): TabKey {
@@ -65,15 +68,18 @@ const DEFAULT_FILTERS: Filters = {
   sort: "new",
 };
 
-const QUICK_CHIPS: { key: QuickChip; label: string }[] = [
-  { key: "all", label: "Все" },
-  { key: "new", label: "Новые" },
-  { key: "used", label: "Б/У" },
-  { key: "delivery", label: "Есть доставка" },
+const QUICK_CHIP_KEYS: { key: QuickChip; labelKey: string }[] = [
+  { key: "all", labelKey: "pages.myAds.chipAll" },
+  { key: "new", labelKey: "pages.myAds.chipNew" },
+  { key: "used", labelKey: "pages.myAds.chipUsed" },
+  { key: "delivery", labelKey: "pages.myAds.chipDelivery" },
 ];
 
 function MyAdsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const tabs = useMemo(() => TAB_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
+  const quickChips = useMemo(() => QUICK_CHIP_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
   const [tab, setTab] = useState<TabKey>("active");
   const [items, setItems] = useState<{ ad: Ad; status: AdStatusKey }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -251,10 +257,10 @@ function MyAdsPage() {
         <header className="flex flex-wrap items-end justify-between gap-[12px]">
           <div className="min-w-0">
             <h1 className="font-display text-[20px] font-bold leading-[1.15] sm:text-[28px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Мои объявления
+              {t("pages.myAds.title")}
             </h1>
             <p className="mt-[4px] text-[12.5px] sm:text-[14px]" style={{ color: "var(--foreground-70)" }}>
-              Управляйте публикациями, статистикой и архивом
+              {t("pages.myAds.subtitle")}
             </p>
           </div>
 
@@ -263,42 +269,35 @@ function MyAdsPage() {
             size="lg"
             className="hidden rounded-[var(--r-button)] md:inline-flex"
           >
-            <Plus size={16} /> Разместить объявление
+            <Plus size={16} /> {t("pages.myAds.postListing")}
           </Button>
         </header>
 
-        {/* Stats — 2x2 grid on mobile (was a horizontal-scroll strip that hid
-            cards off-screen without any swipe affordance), 4-across on sm+. */}
         <section className="grid grid-cols-2 gap-[8px] sm:grid-cols-4 sm:gap-[12px]">
-          <StatCard icon={<TrendingUp size={14} />} label="Активных"   value={stats.count.toString()} accent />
-          <StatCard icon={<Eye size={14} />}        label="Просмотров" value={stats.views.toLocaleString("ru")} />
-          <StatCard icon={<Heart size={14} />}      label="Лайков"     value={stats.likes.toLocaleString("ru")} />
-          {/* "Стоимость" — сумма ценников активных объявлений, НЕ выручка.
-              Раньше называлось "Сумма", что читалось как "заработано".
-              Продавец не должен думать, что заработал то, чего не заработал
-              (реальной монетизации/дохода в системе пока нет). */}
-          <StatCard icon={<Tag size={14} />} label="На продаже" value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
+          <StatCard icon={<TrendingUp size={14} />} label={t("pages.myAds.statActive")} value={stats.count.toString()} accent />
+          <StatCard icon={<Eye size={14} />} label={t("pages.myAds.statViews")} value={stats.views.toLocaleString("ru")} />
+          <StatCard icon={<Heart size={14} />} label={t("pages.myAds.statLikes")} value={stats.likes.toLocaleString("ru")} />
+          <StatCard icon={<Tag size={14} />} label={t("pages.myAds.statOnSale")} value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
         </section>
 
-        {/* Status tabs — horizontal strip, hidden scrollbar, drag + wheel on desktop */}
         <HorizontalScrollNav
           className="sticky top-0 z-10 py-[6px]"
           style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
           role="tablist"
         >
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            const count = counts[t.key];
+          {tabs.map((tabItem) => {
+            const active = tab === tabItem.key;
+            const count = counts[tabItem.key];
             return (
               <button
-                key={t.key}
+                key={tabItem.key}
                 role="tab"
                 aria-selected={active}
-                onClick={() => setTab(t.key)}
+                onClick={() => setTab(tabItem.key)}
                 className="relative inline-flex shrink-0 flex-col items-center justify-end gap-[2px] px-[12px] py-[8px] text-center text-[12px] font-semibold leading-[1.15] transition-colors sm:flex-row sm:justify-center sm:gap-[6px] sm:text-[13px] md:px-[16px]"
                 style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
               >
-                <span className="whitespace-nowrap">{t.label}</span>
+                <span className="whitespace-nowrap">{tabItem.label}</span>
                 <span
                   className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center px-[5px] text-[10px] font-bold"
                   style={{
@@ -329,7 +328,7 @@ function MyAdsPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск по объявлениям"
+              placeholder={t("pages.myAds.searchPlaceholder")}
               className="w-full text-[13.5px] outline-none transition-colors"
               style={{
                 height: 40,
@@ -348,7 +347,7 @@ function MyAdsPage() {
                 onClick={() => setQuery("")}
                 className="absolute right-[8px] top-1/2 grid h-[24px] w-[24px] -translate-y-1/2 place-items-center"
                 style={{ color: "var(--foreground-50)", borderRadius: "var(--r-pill)" }}
-                aria-label="Очистить"
+                aria-label={t("pages.myAds.clearSearch")}
               >
                 <X size={14} />
               </button>
@@ -357,7 +356,7 @@ function MyAdsPage() {
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
-            aria-label="Фильтры"
+            aria-label={t("pages.myAds.filters")}
             className="relative grid shrink-0 place-items-center transition-colors"
             style={{
               height: 40, width: 40,
@@ -376,21 +375,21 @@ function MyAdsPage() {
             <button
               type="button"
               onClick={resetFilters}
-              aria-label="Сбросить фильтры"
+              aria-label={t("pages.myAds.resetFilters")}
               className="hidden shrink-0 items-center gap-[6px] px-[12px] text-[13px] font-medium sm:inline-flex"
               style={{
                 height: 40, color: "var(--foreground-70)",
                 border: "1px solid var(--border)", borderRadius: "var(--r-button)", background: "transparent",
               }}
             >
-              <RotateCcw size={13} /> Сбросить
+              <RotateCcw size={13} /> {t("pages.myAds.resetFilters")}
             </button>
           )}
         </div>
 
         {/* Quick filter chips */}
         <div className="flex flex-wrap gap-[8px]">
-          {QUICK_CHIPS.map((chip) => {
+          {quickChips.map((chip) => {
             const active = activeQuickChip === chip.key;
             return (
               <button
@@ -421,54 +420,54 @@ function MyAdsPage() {
               className="grid grid-cols-1 gap-[12px] p-[14px] sm:grid-cols-2 lg:grid-cols-3"
               style={{ background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}
             >
-              <FilterField label="Категория">
+              <FilterField label={t("pages.myAds.filterCategory")}>
                 <select
                   value={filters.category}
                   onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="all">Все категории</option>
+                  <option value="all">{t("pages.myAds.allCategories")}</option>
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </FilterField>
-              <FilterField label="Город">
+              <FilterField label={t("pages.myAds.filterCity")}>
                 <select
                   value={filters.city}
                   onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="all">Все города</option>
+                  <option value="all">{t("pages.myAds.allCities")}</option>
                   {cities.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </FilterField>
-              <FilterField label="Период">
+              <FilterField label={t("pages.myAds.filterPeriod")}>
                 <select
                   value={filters.dateRange}
                   onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="all">За всё время</option>
-                  <option value="today">Сегодня</option>
-                  <option value="7d">7 дней</option>
-                  <option value="30d">30 дней</option>
+                  <option value="all">{t("pages.myAds.periodAll")}</option>
+                  <option value="today">{t("pages.myAds.periodToday")}</option>
+                  <option value="7d">{t("pages.myAds.period7d")}</option>
+                  <option value="30d">{t("pages.myAds.period30d")}</option>
                 </select>
               </FilterField>
-              <FilterField label="Состояние">
+              <FilterField label={t("pages.myAds.filterCondition")}>
                 <select
                   value={filters.condition}
                   onChange={(e) => setFilters((f) => ({ ...f, condition: e.target.value as ConditionFilter }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="all">Любое</option>
-                  <option value="Новое">Новое</option>
-                  <option value="Б/у">Б/у</option>
+                  <option value="all">{t("pages.myAds.anyCondition")}</option>
+                  <option value="Новое">{t("pages.myAds.conditionNew")}</option>
+                  <option value="Б/у">{t("pages.myAds.conditionUsed")}</option>
                 </select>
               </FilterField>
-              <FilterField label="Цена от, ₽">
+              <FilterField label={t("pages.myAds.filterPriceFrom")}>
                 <input
                   type="number"
                   min={0}
@@ -479,7 +478,7 @@ function MyAdsPage() {
                   style={selectStyle}
                 />
               </FilterField>
-              <FilterField label="Цена до, ₽">
+              <FilterField label={t("pages.myAds.filterPriceTo")}>
                 <input
                   type="number"
                   min={0}
@@ -490,44 +489,44 @@ function MyAdsPage() {
                   style={selectStyle}
                 />
               </FilterField>
-              <FilterField label="Доставка">
+              <FilterField label={t("pages.myAds.filterDelivery")}>
                 <select
                   value={filters.delivery}
                   onChange={(e) => setFilters((f) => ({ ...f, delivery: e.target.value as DeliveryFilter }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="all">Любая</option>
-                  <option value="yes">Есть доставка</option>
-                  <option value="no">Без доставки</option>
+                  <option value="all">{t("pages.myAds.deliveryAny")}</option>
+                  <option value="yes">{t("pages.myAds.deliveryYes")}</option>
+                  <option value="no">{t("pages.myAds.deliveryNo")}</option>
                 </select>
               </FilterField>
-              <FilterField label="Фото">
+              <FilterField label={t("pages.myAds.filterPhotos")}>
                 <select
                   value={filters.hasPhoto}
                   onChange={(e) => setFilters((f) => ({ ...f, hasPhoto: e.target.value as PhotoFilter }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="all">Не важно</option>
-                  <option value="yes">С фото</option>
-                  <option value="no">Без фото</option>
+                  <option value="all">{t("pages.myAds.photoAny")}</option>
+                  <option value="yes">{t("pages.myAds.photoYes")}</option>
+                  <option value="no">{t("pages.myAds.photoNo")}</option>
                 </select>
               </FilterField>
-              <FilterField label="Сортировка">
+              <FilterField label={t("pages.myAds.filterSort")}>
                 <select
                   value={filters.sort}
                   onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortKey }))}
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
-                  <option value="new">Сначала новые</option>
-                  <option value="old">Сначала старые</option>
-                  <option value="views">Больше просмотров</option>
-                  <option value="likes">Больше лайков</option>
-                  <option value="price_asc">По цене ↑</option>
-                  <option value="price_desc">По цене ↓</option>
-                  <option value="updated">По дате обновления</option>
+                  <option value="new">{t("pages.myAds.sortNew")}</option>
+                  <option value="old">{t("pages.myAds.sortOld")}</option>
+                  <option value="views">{t("pages.myAds.sortViews")}</option>
+                  <option value="likes">{t("pages.myAds.sortLikes")}</option>
+                  <option value="price_asc">{t("pages.myAds.sortPriceAsc")}</option>
+                  <option value="price_desc">{t("pages.myAds.sortPriceDesc")}</option>
+                  <option value="updated">{t("pages.myAds.sortUpdated")}</option>
                 </select>
               </FilterField>
             </div>
@@ -542,19 +541,19 @@ function MyAdsPage() {
               className="flex flex-wrap items-center justify-between gap-[12px] px-[16px] py-[12px]"
               style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", borderRadius: "var(--r-card-sm)" }}
             >
-              <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>Выбрано: {selected.size}</span>
+              <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>{t("pages.myAds.selected", { count: selected.size })}</span>
               <div className="flex items-center gap-[8px]">
                 <Button variant="outline" size="sm" onClick={archiveSelected} className="rounded-[var(--r-button)]">
-                  Архивировать
+                  {t("pages.myAds.archiveSelected")}
                 </Button>
                 <Button variant="destructive" size="sm" onClick={deleteSelected} className="rounded-[var(--r-button)]">
-                  Удалить
+                  {t("pages.myAds.deleteSelected")}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={clearSelection}
-                  aria-label="Отменить выбор"
+                  aria-label={t("pages.myAds.cancelSelection")}
                   className="h-[34px] w-[34px] rounded-full"
                 >
                   <X size={16} />
@@ -594,7 +593,7 @@ function MyAdsPage() {
       <button
         type="button"
         onClick={handleCreate}
-        aria-label="Разместить объявление"
+        aria-label={t("pages.myAds.postListing")}
         className="fixed right-[20px] z-50 grid h-[56px] w-[56px] place-items-center md:hidden"
         style={{
           bottom: "calc(var(--bottom-nav-space) + 16px)",
@@ -658,26 +657,27 @@ function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label
 }
 
 function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: () => void; dirty: boolean; onReset: () => void }) {
-  const config: Record<TabKey, { title: string; desc: string }> = {
-    active:       { title: "Нет активных объявлений",      desc: "Создайте первое — это бесплатно и занимает 2 минуты." },
-    moderation:   { title: "Нет объявлений на модерации",  desc: "Здесь появятся объявления, которые проверяет модератор." },
-    rejected:     { title: "Нет объявлений с ошибками",    desc: "Объявления, отклонённые модерацией, будут здесь." },
-    unpublished:  { title: "Нет неопубликованных",         desc: "Объявления, готовые к публикации, появятся здесь." },
-    archived:     { title: "Архив пуст",                   desc: "Архивированные объявления можно вернуть в любой момент." },
-    deleted:      { title: "Удалённых объявлений нет",     desc: "Удалённые объявления хранятся 30 дней." },
-    draft:        { title: "Нет черновиков",               desc: "Незаконченные объявления автоматически сохраняются как черновики." },
+  const { t } = useTranslation();
+  const config: Record<TabKey, { titleKey: string; descKey: string }> = {
+    active:       { titleKey: "pages.myAds.emptyActive", descKey: "pages.myAds.emptyActiveDesc" },
+    moderation:   { titleKey: "pages.myAds.emptyModeration", descKey: "pages.myAds.emptyModerationDesc" },
+    rejected:     { titleKey: "pages.myAds.emptyRejected", descKey: "pages.myAds.emptyRejectedDesc" },
+    unpublished:  { titleKey: "pages.myAds.emptyUnpublished", descKey: "pages.myAds.emptyUnpublishedDesc" },
+    archived:     { titleKey: "pages.myAds.emptyArchived", descKey: "pages.myAds.emptyArchivedDesc" },
+    deleted:      { titleKey: "pages.myAds.emptyDeleted", descKey: "pages.myAds.emptyDeletedDesc" },
+    draft:        { titleKey: "pages.myAds.emptyDraft", descKey: "pages.myAds.emptyDraftDesc" },
   };
   const c = config[tab];
   return (
-    <EmptyState icon={Inbox} title={c.title} description={c.desc}>
+    <EmptyState icon={Inbox} title={t(c.titleKey)} description={t(c.descKey)}>
       {dirty && (
         <Button type="button" variant="outline" size="sm" onClick={onReset}>
-          <RotateCcw size={13} /> Сбросить фильтры
+          <RotateCcw size={13} /> {t("pages.myAds.resetFilters")}
         </Button>
       )}
       {tab === "active" && (
         <Button type="button" size="sm" onClick={onCreate}>
-          <Plus size={14} /> Разместить объявление
+          <Plus size={14} /> {t("pages.myAds.postListing")}
         </Button>
       )}
     </EmptyState>

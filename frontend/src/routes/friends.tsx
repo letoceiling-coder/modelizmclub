@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
@@ -30,8 +31,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FriendActionsMenu } from "@/components/friends/FriendActionsMenu";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/friends")({
-  head: () => ({ meta: [{ title: "Друзья — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.friends.metaTitle") }] }),
   beforeLoad: async ({ location }) => {
     const { requireVerified } = await import("@/lib/auth/verification");
     await requireVerified(location);
@@ -62,6 +65,7 @@ function FriendCard({
   onReport: () => void;
   onBlock: () => void;
 }) {
+  const { t } = useTranslation();
   const interests = user.interests.split(",").slice(0, 3).join(", ");
   return (
     <Card
@@ -115,10 +119,10 @@ function FriendCard({
           className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
         >
           {isAdded
-            ? <><Check size={13} /> В друзьях</>
+            ? <><Check size={13} /> {t("pages.friends.inFriends")}</>
             : isPending
-            ? <><Clock size={13} /> Запрос отправлен</>
-            : <><UserPlus size={13} /> Добавить</>}
+            ? <><Clock size={13} /> {t("pages.friends.requestSent")}</>
+            : <><UserPlus size={13} /> {t("pages.friends.add")}</>}
         </Button>
         <Button
           size="sm"
@@ -126,7 +130,7 @@ function FriendCard({
           onClick={onWriteTo}
           className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
         >
-          <MessageSquare size={13} /> Написать
+          <MessageSquare size={13} /> {t("pages.friends.write")}
         </Button>
         <FriendActionsMenu
           isFriend={isAdded}
@@ -142,6 +146,7 @@ function FriendCard({
 }
 
 function FriendsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const me = useStore(selectors.currentUser);
@@ -272,9 +277,9 @@ function FriendsPage() {
   };
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: "Люди", count: allUsers.length },
-    { key: "online", label: "Онлайн", count: friends.filter((u) => isOnline(u)).length },
-    { key: "requests", label: "Заявки", count: requests.length },
+    { key: "all", label: t("pages.friends.tabAll"), count: allUsers.length },
+    { key: "online", label: t("pages.friends.tabOnline"), count: friends.filter((u) => isOnline(u)).length },
+    { key: "requests", label: t("pages.friends.tabRequests"), count: requests.length },
   ];
 
   const accept = async (id: number) => {
@@ -287,23 +292,23 @@ function FriendsPage() {
       if (req) {
         setFriends((fs) => (fs.some((f) => f.id === req.from.id) ? fs : [req.from, ...fs]));
       }
-      toast.success("Заявка принята");
+      toast.success(t("pages.friends.requestAccepted"));
     } catch {
-      toast.error("Не удалось принять заявку");
+      toast.error(t("pages.friends.requestAcceptFailed"));
     }
   };
   const decline = async (id: number) => {
     try {
       await declineFriendRequest(id);
       setRequests((rs) => rs.filter((r) => r.id !== id));
-      toast.success("Заявка отклонена");
+      toast.success(t("pages.friends.requestDeclined"));
     } catch {
-      toast.error("Не удалось отклонить заявку");
+      toast.error(t("pages.friends.requestDeclineFailed"));
     }
   };
   const toggleFriend = async (u: User) => {
     if (!u.numericId) {
-      toast.error("Не удалось определить пользователя");
+      toast.error(t("pages.friends.userUnknown"));
       return;
     }
     const isAdded = added.has(u.id);
@@ -312,7 +317,7 @@ function FriendsPage() {
       if (isAdded) {
         await removeFriend(u.numericId);
         setFriends((fs) => fs.filter((f) => f.id !== u.id));
-        toast.success("Удалён из друзей");
+        toast.success(t("pages.friends.removedFromFriends"));
         return;
       }
       if (pendingId != null) {
@@ -324,17 +329,17 @@ function FriendsPage() {
           next.delete(u.id);
           return next;
         });
-        toast.success("Заявка отменена");
+        toast.success(t("pages.friends.requestCancelled"));
         return;
       }
       const result = await sendFriendRequest(u.numericId);
       if (result.status === "accepted") {
         setFriends((fs) => (fs.some((f) => f.id === u.id) ? fs : [u, ...fs]));
-        toast.success("Добавлен в друзья");
+        toast.success(t("pages.friends.addedToFriends"));
         return;
       }
       setPending((p) => new Map(p).set(u.id, result.id));
-      toast.success("Заявка отправлена");
+      toast.success(t("pages.friends.requestSent"));
     } catch (err) {
       if (err instanceof ApiError) {
         const fieldMsg = err.errors ? Object.values(err.errors)[0]?.[0] : undefined;
@@ -344,13 +349,13 @@ function FriendsPage() {
           void fetchOutgoingRequests()
             .then((out) => setPending(new Map(out.map((r) => [r.to.id, r.id]))))
             .catch(() => {});
-          toast.success("Заявка уже отправлена");
+          toast.success(t("pages.friends.requestAlreadySent"));
           return;
         }
         toast.error(msg);
         return;
       }
-      toast.error(formatSocialActionError(err, "Не удалось отправить заявку в друзья"));
+      toast.error(formatSocialActionError(err, t("pages.friends.sendRequestFailed")));
     }
   };
 
@@ -360,7 +365,7 @@ function FriendsPage() {
       const dialog = await openConversation(u.numericId, me.id, u.id);
       navigateMessenger({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
-      toast.error("Не удалось открыть диалог");
+      toast.error(t("pages.friends.dialogOpenFailed"));
     }
   };
 
@@ -373,27 +378,27 @@ function FriendsPage() {
     try {
       await removeFriend(u.numericId);
       setFriends((fs) => fs.filter((f) => f.id !== u.id));
-      toast.success("Удалён из друзей");
+      toast.success(t("pages.friends.removedFromFriends"));
     } catch {
-      toast.error("Не удалось удалить из друзей");
+      toast.error(t("pages.friends.removeFailed"));
     }
   };
 
   const hideUserFromList = (u: User) => {
     actions.hideUser(u.id);
-    toast.success("Скрыто из рекомендаций");
+    toast.success(t("pages.friends.hiddenFromRecommendations"));
   };
 
   const reportUser = (u: User) => setComplaintTarget(u);
 
   const blockUserVia = async (u: User) => {
     if (!isDemoMode() && u.numericId) {
-      try { await blockUser(u.numericId); } catch { toast.error("Не удалось заблокировать"); return; }
+      try { await blockUser(u.numericId); } catch { toast.error(t("pages.friends.blockFailed")); return; }
     }
     actions.blockUser(u.id);
     setFriends((fs) => fs.filter((f) => f.id !== u.id));
     setRequests((rs) => rs.filter((r) => r.from.id !== u.id));
-    toast.success(`${u.name} заблокирован`, { description: "Пропал из друзей и списков — можно разблокировать в разделе «Заблокированные» в профиле" });
+    toast.success(t("pages.friends.userBlocked", { name: u.name }), { description: t("pages.friends.userBlockedDesc") });
   };
 
   return (
@@ -401,8 +406,8 @@ function FriendsPage() {
       <div className="space-y-[16px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>Друзья</h1>
-            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Найдите единомышленников</p>
+            <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.friends.title")}</h1>
+            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.friends.subtitle")}</p>
           </div>
           {/* Full-width split on mobile so "Групповой звонок" never runs off the
               right edge; natural row on desktop. */}
@@ -414,7 +419,7 @@ function FriendsPage() {
               className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
               size="sm"
             >
-              <UserPlus size={16} /> Найти друзей
+              <UserPlus size={16} /> {t("pages.friends.findFriends")}
             </Button>
             <Button
               type="button"
@@ -422,7 +427,7 @@ function FriendsPage() {
               className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
               size="sm"
             >
-              <Users size={16} /> Групповой звонок
+              <Users size={16} /> {t("pages.friends.groupCall")}
             </Button>
           </div>
         </header>
@@ -473,7 +478,7 @@ function FriendsPage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onClear={() => setQ("")}
-              placeholder="Поиск по имени, интересам"
+              placeholder={t("pages.friends.searchPlaceholder")}
             />
           </div>
         )}
@@ -505,8 +510,8 @@ function FriendsPage() {
               requests.length === 0 ? (
                 <EmptyState
                   icon={UserPlus}
-                  title="Нет входящих заявок"
-                  description="Заявки в друзья будут отображаться здесь"
+                  title={t("pages.friends.requestsEmpty")}
+                  description={t("pages.friends.requestsEmptyDesc")}
                   variant="compact"
                 />
               ) : (
@@ -540,7 +545,7 @@ function FriendsPage() {
                             {u.name}
                           </Link>
                           <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                            Хочет добавить вас в друзья
+                            {t("pages.friends.wantsToAdd")}
                           </p>
                           <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
                             <Clock size={10} /> {formatRelativeTime(r.date)}
@@ -551,7 +556,7 @@ function FriendsPage() {
                               onClick={() => accept(r.id)}
                               className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
                             >
-                              <Check size={13} /> Принять
+                              <Check size={13} /> {t("pages.friends.accept")}
                             </Button>
                             <Button
                               size="sm"
@@ -559,7 +564,7 @@ function FriendsPage() {
                               onClick={() => decline(r.id)}
                               className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
                             >
-                              <X size={13} /> Отклонить
+                              <X size={13} /> {t("pages.friends.decline")}
                             </Button>
                           </div>
                         </div>
@@ -583,8 +588,8 @@ function FriendsPage() {
               onlineFriends.length === 0 ? (
                 <EmptyState
                   icon={Users}
-                  title="Никто не в сети"
-                  description="Когда друзья зайдут на сайт, они появятся здесь"
+                  title={t("pages.friends.onlineEmpty")}
+                  description={t("pages.friends.onlineEmptyDesc")}
                   variant="compact"
                 />
               ) : (
@@ -610,8 +615,8 @@ function FriendsPage() {
             ) : connected.length === 0 && recommended.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title={q ? "Никого не найдено" : "Список пуст"}
-                description={q ? "Попробуйте изменить запрос" : "Найдите интересных участников сообщества"}
+                title={q ? t("pages.friends.searchEmpty") : t("pages.friends.emptyTitle")}
+                description={q ? t("pages.friends.searchEmptyDesc") : t("pages.friends.emptyDesc")}
                 variant="compact"
               />
             ) : (
@@ -619,7 +624,7 @@ function FriendsPage() {
                 {connected.length > 0 && (
                   <div className="flex flex-col gap-[10px]">
                     <div className="flex items-center gap-[6px] px-[2px]">
-                      <h2 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Мои друзья</h2>
+                      <h2 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.friends.myFriends")}</h2>
                       <span className="text-[13px] font-semibold" style={{ color: "var(--foreground-50)" }}>{connected.length}</span>
                     </div>
                     {connected.map((u) => (
@@ -642,7 +647,7 @@ function FriendsPage() {
                 )}
                 {recommended.length > 0 && (
                   <div className="flex flex-col gap-[10px]">
-                    <h2 className="px-[2px] text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Рекомендации</h2>
+                    <h2 className="px-[2px] text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.friends.recommendations")}</h2>
                     {recommended.map((u) => {
                       const isPending = pending.has(u.id);
                       return (

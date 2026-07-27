@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
@@ -8,11 +9,16 @@ import { resetSessionCache, syncFavoritesFromServer } from "@/lib/auth/session";
 import { setCurrentUser } from "@/lib/store";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { ApiError } from "@/lib/api/client";
+import i18n from "@/lib/i18n";
 
 /** Matches this page's raw `inputStyle` fields (not the shared UI Kit `Input`
  *  component) — a lightweight local eye-toggle keeps the visual style
  *  consistent with the email field on the same form. */
-function PasswordFieldWithToggle(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function PasswordFieldWithToggle({
+  showLabel,
+  hideLabel,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { showLabel: string; hideLabel: string }) {
   const [visible, setVisible] = useState(false);
   return (
     <div style={{ position: "relative" }}>
@@ -21,7 +27,7 @@ function PasswordFieldWithToggle(props: React.InputHTMLAttributes<HTMLInputEleme
         type="button"
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
-        aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
+        aria-label={visible ? hideLabel : showLabel}
         style={{
           position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
           display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: "999px",
@@ -39,11 +45,12 @@ export const Route = createFileRoute("/reset-password")({
     token: typeof s.token === "string" ? s.token : "",
     email: typeof s.email === "string" ? s.email : "",
   }),
-  head: () => ({ meta: [{ title: "Новый пароль — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.resetPassword.metaTitle") }] }),
   component: ResetPasswordPage,
 });
 
 function ResetPasswordPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const { token: rawToken, email: initialEmail } = useSearch({ from: "/reset-password" });
   const token = rawToken ?? "";
@@ -59,13 +66,13 @@ function ResetPasswordPage() {
     const normalizedEmail = String(form.get("email") ?? email).trim().toLowerCase();
 
     if (password !== passwordConfirmation) {
-      return toast.error("Пароли не совпадают");
+      return toast.error(t("pages.resetPassword.passwordMismatch"));
     }
     if (!password || password.length < 8) {
-      return toast.error("Пароль должен быть не короче 8 символов");
+      return toast.error(t("pages.resetPassword.passwordTooShort"));
     }
     if (!token) {
-      return toast.error("Ссылка для сброса недействительна. Запросите новую");
+      return toast.error(t("pages.resetPassword.invalidLink"));
     }
 
     setLoading(true);
@@ -74,7 +81,7 @@ function ResetPasswordPage() {
       resetSessionCache();
       setCurrentUser(user);
       void syncFavoritesFromServer();
-      toast.success("Пароль изменён — вы вошли в аккаунт");
+      toast.success(t("pages.resetPassword.success"));
       nav({ to: "/feed", replace: true });
     } catch (err) {
       const msg =
@@ -82,7 +89,7 @@ function ResetPasswordPage() {
           ? err.errors
             ? Object.values(err.errors)[0]?.[0] ?? err.message
             : err.message
-          : "Не удалось изменить пароль. Запросите ссылку заново";
+          : t("pages.resetPassword.failed");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -91,13 +98,13 @@ function ResetPasswordPage() {
 
   return (
     <AuthShell
-      title="Новый пароль"
-      subtitle="Придумайте новый пароль для входа"
+      title={t("pages.resetPassword.title")}
+      subtitle={t("pages.resetPassword.subtitle")}
       footer={
         <>
-          Вспомнили пароль?{" "}
+          {t("pages.resetPassword.rememberPassword")}{" "}
           <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Вернуться ко входу
+            {t("pages.resetPassword.backToLogin")}
           </Link>
         </>
       }
@@ -108,7 +115,7 @@ function ResetPasswordPage() {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="Email"
+          placeholder={t("auth.email")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           readOnly={Boolean(initialEmail)}
@@ -118,8 +125,10 @@ function ResetPasswordPage() {
           required
           name="password"
           autoComplete="new-password"
-          placeholder="Новый пароль (от 8 символов)"
+          placeholder={t("pages.resetPassword.newPasswordPlaceholder")}
           minLength={8}
+          showLabel={t("pages.resetPassword.showPassword")}
+          hideLabel={t("pages.resetPassword.hidePassword")}
           onChange={(e) => setPasswordPreview(e.target.value)}
         />
         <PasswordStrengthMeter password={passwordPreview} />
@@ -127,11 +136,13 @@ function ResetPasswordPage() {
           required
           name="password_confirmation"
           autoComplete="new-password"
-          placeholder="Повторите пароль"
+          placeholder={t("pages.resetPassword.confirmPlaceholder")}
           minLength={8}
+          showLabel={t("pages.resetPassword.showPassword")}
+          hideLabel={t("pages.resetPassword.hidePassword")}
         />
         <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
-          {loading ? "Сохраняем…" : "Сохранить пароль"}
+          {loading ? t("pages.resetPassword.saving") : t("pages.resetPassword.saveButton")}
         </button>
       </form>
     </AuthShell>

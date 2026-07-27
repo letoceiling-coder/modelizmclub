@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, X, Newspaper, Star, Megaphone, Tag } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -81,6 +82,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   // fallback is render-only and never affects a real publish, since the
   // form is unreachable by the user once closing has started.
   const sel: ComposerSelection = selection ?? { kind: "photo", source: "profile" };
+  const { t } = useTranslation();
   const categories = usePostCategories();
   const me = useStore(selectors.currentUser);
   const [title, setTitle] = useState("");
@@ -164,7 +166,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
         /* ignore — restore text only */
       }
     }
-    if (d.photosDropped) toast.error("Фото из черновика восстановить не удалось — добавьте их заново");
+    if (d.photosDropped) toast.error(t("components.createPostForm.photosRestoreFailed"));
     setDraftPrompt(null);
   };
 
@@ -210,10 +212,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   };
 
   const publish = async () => {
-    if (sel.source === "profile" && !title.trim()) { toast.error("Введите заголовок"); return; }
-    if (!text.trim()) { toast.error("Введите текст публикации"); return; }
-    if (sel.source === "profile" && !cat) { toast.error("Выберите направление"); return; }
-    if (sel.kind === "video" && !videoFile) { toast.error("Добавьте видео"); return; }
+    if (sel.source === "profile" && !title.trim()) { toast.error(t("components.createPostForm.titleRequired")); return; }
+    if (!text.trim()) { toast.error(t("components.createPostForm.textRequired")); return; }
+    if (sel.source === "profile" && !cat) { toast.error(t("components.createPostForm.categoryRequired")); return; }
+    if (sel.kind === "video" && !videoFile) { toast.error(t("components.createPostForm.videoRequired")); return; }
     if (sel.kind === "video" && videoFile) {
       const videoErr = validatePostVideoFile(videoFile);
       if (videoErr) { toast.error(videoErr); return; }
@@ -246,7 +248,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           post = await publishPost(post.id);
         }
         onCreate?.(post);
-        toast.success("Публикация отправлена на модерацию");
+        toast.success(t("components.createPostForm.sentToModeration"));
       } else {
         await createChannelPost({
           channelSlug: sel.channel!.slug,
@@ -254,7 +256,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           kind: channelKind,
           mediaIds,
         });
-        toast.success("Пост опубликован в канал");
+        toast.success(t("components.createPostForm.publishedToChannel"));
         // No onCreate call — createChannelPost only returns a ChannelPost
         // (channel-scoped view), not the duplicated Post the backend
         // created server-side. Nothing is locally fabricated or prepended
@@ -264,7 +266,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
       clearPostDraft();
       onClose?.();
     } catch (err) {
-      toast.error(formatApiErrorMessage(err, "Не удалось опубликовать. Попробуйте позже."));
+      toast.error(formatApiErrorMessage(err, t("components.createPostForm.publishFailed")));
     } finally {
       setPublishing(false);
     }
@@ -279,7 +281,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
         <button
           type="button"
           onClick={() => onClose?.()}
-          aria-label="Закрыть"
+          aria-label={t("components.createPostForm.close")}
           className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-70)" }}
         >
@@ -289,7 +291,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           className="min-w-0 flex-1 truncate text-[16px] font-semibold"
           style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
         >
-          Новый пост
+          {t("components.createPostForm.newPost")}
         </h2>
       </header>
 
@@ -300,7 +302,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
             style={{ borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)", background: "var(--accent-soft)" }}
           >
             <div className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
-              Найден несохранённый черновик. Продолжить редактирование?
+              {t("components.createPostForm.draftFound")}
             </div>
             <div className="flex gap-[8px]">
               <button
@@ -309,7 +311,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
                 className="h-[36px] rounded-[var(--r-button)] px-[14px] text-[13px] font-semibold"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
-                Продолжить черновик
+                {t("components.createPostForm.continueDraft")}
               </button>
               <button
                 type="button"
@@ -317,7 +319,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
                 className="h-[36px] rounded-[var(--r-button)] border px-[14px] text-[13px] font-semibold"
                 style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
               >
-                Начать новую публикацию
+                {t("components.createPostForm.startNew")}
               </button>
             </div>
           </div>
@@ -328,7 +330,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Заголовок"
+              placeholder={t("components.createPostForm.titlePlaceholder")}
               className="min-w-0 flex-1 bg-transparent pt-[8px] text-[16px] font-semibold outline-none placeholder:font-medium"
               style={{ color: "var(--foreground)" }}
             />
@@ -340,8 +342,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           onChange={(e) => setText(e.target.value)}
           placeholder={
             sel.source === "channel"
-              ? `Текст ${POST_KIND_LABEL[channelKind].toLowerCase()}а для подписчиков…`
-              : "Расскажите о проекте — опыт, детали сборки, впечатления…"
+              ? t("components.createPostForm.channelTextPlaceholder", { kind: POST_KIND_LABEL[channelKind].toLowerCase() })
+              : t("components.createPostForm.profileTextPlaceholder")
           }
           className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
           style={{ color: "var(--foreground)" }}
@@ -350,11 +352,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
         {sel.source === "profile" ? (
           <div className="flex flex-col gap-[8px]">
             <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
-              Направление и масштаб
+              {t("components.createPostForm.directionAndScale")}
             </span>
             <div className="flex items-center gap-[8px]">
               <ChipSelect
-                ariaLabel="Направление"
+                ariaLabel={t("components.createPostForm.directionLabel")}
                 value={catId}
                 onChange={(v) => {
                   setCatId(v);
@@ -364,7 +366,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
                 options={categories.map((c) => ({ label: c.name, value: c.id }))}
               />
               <ChipSelect
-                ariaLabel="Подкатегория"
+                ariaLabel={t("components.createPostForm.subcategoryLabel")}
                 value={subId}
                 onChange={setSubId}
                 disabled={!cat || cat.subcategories.length === 0}
@@ -412,7 +414,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           <VideoUploadField
             fileUrl={videoUrl}
             accept="video/mp4,video/webm,.mp4,.webm"
-            label="Добавить видео (MP4 или WebM, до 100 МБ)"
+            label={t("components.createPostForm.addVideo")}
             onPick={(file) => {
               const err = validatePostVideoFile(file);
               if (err) { toast.error(err); return; }
@@ -438,7 +440,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
         >
-          {publishing ? "Публикуем…" : "Опубликовать"}
+          {publishing ? t("components.createPostForm.publishing") : t("components.createPostForm.publish")}
         </button>
       </div>
     </div>

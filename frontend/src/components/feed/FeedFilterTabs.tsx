@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FEED_FILTER_ACTIONS } from "@/lib/feed-guest-access/registry";
 
@@ -8,15 +9,15 @@ interface Props {
   onChange: (v: FeedFilter) => void;
 }
 
-const items: { id: FeedFilter; label: string }[] = [
-  { id: "all", label: "Все" },
-  { id: "following", label: "Подписки" },
-  { id: "categories", label: "Направления" },
-  { id: "saved", label: "Сохранённое" },
-];
-
 export function FeedFilterTabs({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const { guardAction } = useGuestAccess();
+  const items: { id: FeedFilter; label: string }[] = [
+    { id: "all", label: t("components.feedFilterTabs.all") },
+    { id: "following", label: t("components.feedFilterTabs.following") },
+    { id: "categories", label: t("components.feedFilterTabs.categories") },
+    { id: "saved", label: t("components.feedFilterTabs.saved") },
+  ];
 
   return (
     <div

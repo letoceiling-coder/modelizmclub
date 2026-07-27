@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check, Trash2, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { actions } from "@/lib/store";
@@ -51,6 +52,7 @@ export function PostActionMenu({
   onToggleSave,
   onHide,
 }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,14 +71,14 @@ export function PostActionMenu({
   const handleSave = () => {
     if (onToggleSave) onToggleSave();
     else actions.savePost(postId, !saved);
-    toast.success(saved ? "Публикация удалена из сохранённых" : "Добавлено в сохранённые");
+    toast.success(saved ? t("components.postActionMenu.savedRemoved") : t("components.postActionMenu.savedAdded"));
     close();
   };
 
   const handleHide = () => {
     close();
     onHide?.();
-    toast.success("Публикация скрыта из ленты");
+    toast.success(t("components.postActionMenu.hidden"));
   };
 
   const handleReport = () => {
@@ -88,10 +90,10 @@ export function PostActionMenu({
     try {
       await navigator.clipboard.writeText(buildUrl());
       setCopied(true);
-      toast.success("Ссылка скопирована");
+      toast.success(t("components.postActionMenu.linkCopied"));
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      toast.error("Не удалось скопировать ссылку");
+      toast.error(t("components.postActionMenu.copyFailed"));
     }
   };
 
@@ -113,7 +115,7 @@ export function PostActionMenu({
     setBusy(true);
     try {
       if (isDemoMode()) {
-        toast.success("Публикация одобрена");
+        toast.success(t("components.postActionMenu.approved"));
         onApproved?.();
         close();
         return;
@@ -123,7 +125,7 @@ export function PostActionMenu({
       onApproved?.();
       close();
     } catch (err) {
-      toast.error(formatApiErrorMessage(err, "Не удалось одобрить публикацию"));
+      toast.error(formatApiErrorMessage(err, t("components.postActionMenu.approveFailed")));
     } finally {
       setBusy(false);
     }
@@ -131,11 +133,11 @@ export function PostActionMenu({
 
   const handleDelete = async () => {
     if (busy) return;
-    if (!window.confirm("Удалить эту публикацию?")) return;
+    if (!window.confirm(t("components.postActionMenu.deleteConfirm"))) return;
     setBusy(true);
     try {
       if (isDemoMode()) {
-        toast.success("Публикация удалена");
+        toast.success(t("components.postActionMenu.deleted"));
         onDeleted?.();
         close();
         return;
@@ -145,7 +147,7 @@ export function PostActionMenu({
       onDeleted?.();
       close();
     } catch (err) {
-      toast.error(formatApiErrorMessage(err, "Не удалось удалить публикацию"));
+      toast.error(formatApiErrorMessage(err, t("components.postActionMenu.deleteFailed")));
     } finally {
       setBusy(false);
     }
@@ -159,7 +161,7 @@ export function PostActionMenu({
           type="button"
           className="relative grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)] before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
           style={{ color: "var(--foreground-70)" }}
-          aria-label="Меню действий"
+          aria-label={t("components.postActionMenu.ariaLabel")}
         >
           <MoreHorizontal className="h-[16px] w-[16px]" />
         </button>
@@ -179,21 +181,21 @@ export function PostActionMenu({
             <MenuItem
               onClick={handleApprove}
               icon={ShieldCheck}
-              label="Одобрить модерацию"
+              label={t("components.postActionMenu.approveModeration")}
               accent
               disabled={busy}
             />
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
           </>
         )}
-        <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? "Убрать из сохранённых" : "Сохранить"} accent={saved} />
-        <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? "Скопировано" : "Скопировать ссылку"} accent={copied} />
-        <MenuItem onClick={handleShare} icon={Share2} label="Поделиться" />
+        <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? t("components.postActionMenu.removeFromSaved") : t("components.postActionMenu.save")} accent={saved} />
+        <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? t("components.postActionMenu.copied") : t("components.postActionMenu.copyLink")} accent={copied} />
+        <MenuItem onClick={handleShare} icon={Share2} label={t("components.postActionMenu.share")} />
         {!isOwn && (
           <>
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-            <MenuItem onClick={handleHide} icon={EyeOff} label="Скрыть" />
-            <MenuItem onClick={handleReport} icon={Flag} label="Пожаловаться" />
+            <MenuItem onClick={handleHide} icon={EyeOff} label={t("components.postActionMenu.hide")} />
+            <MenuItem onClick={handleReport} icon={Flag} label={t("components.postActionMenu.report")} />
           </>
         )}
         {showDelete && (
@@ -202,7 +204,7 @@ export function PostActionMenu({
             <MenuItem
               onClick={handleDelete}
               icon={Trash2}
-              label="Удалить"
+              label={t("components.postActionMenu.delete")}
               danger
               disabled={busy}
             />
@@ -215,9 +217,9 @@ export function PostActionMenu({
       <ComplaintDialog
         target={author}
         report={{ type: "post", targetId: postId }}
-        descriptionOverride={`Жалоба на публикацию${title ? ` «${title}»` : ""} — выберите причину и опишите ситуацию.`}
+        descriptionOverride={t("components.postActionMenu.reportDescription", { title: title ? ` «${title}»` : "" })}
         page="/feed"
-        subjectSuffix=" (публикация)"
+        subjectSuffix={t("components.postActionMenu.reportSuffix")}
         onClose={() => setReportOpen(false)}
       />
     )}

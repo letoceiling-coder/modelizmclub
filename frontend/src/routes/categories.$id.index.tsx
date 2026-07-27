@@ -2,13 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, MessageCircle, Search, Tag, Users } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/categories/$id/")({
-  head: () => ({ meta: [{ title: "Направление — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.categoryDetail.metaTitle") }] }),
   component: CategoryRoomsPage,
 });
 
@@ -27,18 +30,19 @@ function membersOf(c: Category, subId: string): number {
   return Math.max(8, Math.round(c.members / c.subcategories.length)) + (seed % 30);
 }
 
-const ROOM_PREVIEWS = [
-  "Кто гонял на новой трассе в выходные?",
-  "Поделитесь настройками — подвеска плывёт.",
-  "Продаю комплект, отдам в хорошие руки.",
-  "Сегодня собираемся в клубе в 18:00.",
-  "Свежее видео обкатки выложил в чате.",
-  "Подскажите по моторам — что брать?",
-  "Сборка готова, делюсь фото.",
-  "Кто будет на гонке в субботу?",
-];
+const ROOM_PREVIEW_KEYS = [
+  "roomPreview0",
+  "roomPreview1",
+  "roomPreview2",
+  "roomPreview3",
+  "roomPreview4",
+  "roomPreview5",
+  "roomPreview6",
+  "roomPreview7",
+] as const;
 
 function CategoryRoomsPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const categories = usePostCategories();
   const c = categories.find((x) => x.id === id);
@@ -55,7 +59,7 @@ function CategoryRoomsPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0 ? "Загрузка…" : "Направление не найдено."}
+          {categories.length === 0 ? t("pages.categoryDetail.loading") : t("pages.categoryDetail.notFound")}
         </p>
       </AppLayout>
     );
@@ -68,8 +72,7 @@ function CategoryRoomsPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[14px]">
-        <Breadcrumbs items={[{ label: "Направления", to: "/categories" }, { label: c.name }]} />
-        {/* Header */}
+        <Breadcrumbs items={[{ label: t("pages.categoryDetail.breadcrumbs"), to: "/categories" }, { label: c.name }]} />
         <header
           className="rounded-[var(--r-card)] border p-[16px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
@@ -77,7 +80,7 @@ function CategoryRoomsPage() {
           <div className="flex items-center gap-[10px]">
             <Link
               to="/feed"
-              aria-label="Назад"
+              aria-label={t("pages.categoryDetail.backAria")}
               className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
             >
               <ArrowLeft className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
@@ -96,13 +99,12 @@ function CategoryRoomsPage() {
                 {c.name}
               </h1>
               <p className="truncate text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-                {c.description} · {c.members.toLocaleString("ru")} участников
+                {c.description} · {t("pages.shared.members", { count: c.members })}
               </p>
             </div>
           </div>
         </header>
 
-        {/* Search */}
         <div
           className="rounded-[var(--r-card)] border px-[14px] py-[10px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
@@ -116,7 +118,7 @@ function CategoryRoomsPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Найти комнату…"
+              placeholder={t("pages.categoryDetail.searchPlaceholder")}
               className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--foreground-50)]"
               style={{ color: "var(--foreground)" }}
             />
@@ -126,7 +128,7 @@ function CategoryRoomsPage() {
                 onClick={() => setQuery("")}
                 className="grid h-[22px] w-[22px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-elevated)", color: "var(--foreground-50)" }}
-                aria-label="Очистить"
+                aria-label={t("pages.categoryDetail.clearAria")}
               >
                 ×
               </button>
@@ -134,7 +136,6 @@ function CategoryRoomsPage() {
           </div>
         </div>
 
-        {/* Rooms */}
         <section
           className="overflow-hidden rounded-[var(--r-card)] border"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
@@ -144,7 +145,7 @@ function CategoryRoomsPage() {
             style={{ borderColor: "var(--border)" }}
           >
             <h2 className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-              Комнаты по подкатегориям
+              {t("pages.categoryDetail.roomsHeading")}
             </h2>
             <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
               {filteredSubs.length}
@@ -156,7 +157,8 @@ function CategoryRoomsPage() {
               const online = onlineFor(c, s.id);
               const members = membersOf(c, s.id);
               const adsCount = 0;
-              const preview = ROOM_PREVIEWS[(seedFrom(c.id + s.id) + i) % ROOM_PREVIEWS.length];
+              const previewKey = ROOM_PREVIEW_KEYS[(seedFrom(c.id + s.id) + i) % ROOM_PREVIEW_KEYS.length];
+              const preview = t(`pages.categoryDetail.${previewKey}`);
               return (
                 <li key={s.id} className="border-t first:border-t-0" style={{ borderColor: "var(--border)" }}>
                   <Link
@@ -206,7 +208,7 @@ function CategoryRoomsPage() {
                           <Tag className="h-[11px] w-[11px]" /> {adsCount}
                         </span>
                         <span className="inline-flex items-center gap-[3px]">
-                          <MessageCircle className="h-[11px] w-[11px]" /> чат
+                          <MessageCircle className="h-[11px] w-[11px]" /> {t("pages.categoryDetail.chatLabel")}
                         </span>
                       </div>
                     </div>
@@ -220,15 +222,14 @@ function CategoryRoomsPage() {
             })}
             {filteredSubs.length === 0 && (
               <li className="px-[16px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                Ничего не найдено по запросу «{query}»
+                {t("pages.categoryDetail.noResults", { query })}
               </li>
             )}
           </ul>
         </section>
 
         <p className="px-[4px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-          У каждой подкатегории — отдельный чат, объявления и участники. Выберите интересующее
-          направление, чтобы не смешиваться с другими темами.
+          {t("pages.categoryDetail.footerNote")}
         </p>
 
       </div>

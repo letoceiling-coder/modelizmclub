@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, Play, Eye, SearchX, RefreshCw, Heart, ChevronDown, Film } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
@@ -36,14 +37,17 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   );
 }
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/reviews/$id")({
-  head: () => ({ meta: [{ title: "Обзор — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.reviews.detailMetaTitle") }] }),
   component: WatchPage,
 });
 
 type LoadState = "loading" | "ok" | "notFound" | "error";
 
 function WatchPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [video, setVideo] = useState<Video | null>(null);
@@ -98,7 +102,7 @@ function WatchPage() {
 
   const startPlay = () => {
     if (!getToken() && !isDemoMode()) {
-      toast.info("Войдите, чтобы смотреть обзоры");
+      toast.info(t("pages.reviews.loginRequired"));
       navigate({ to: "/login" });
       return;
     }
@@ -123,7 +127,7 @@ function WatchPage() {
     reactToVideo(id, next).catch(() => {
       setLiked(!next);
       setLikeCount((n) => n + (next ? -1 : 1));
-      toast.error("Не удалось поставить лайк");
+      toast.error(t("pages.reviews.likeFailed"));
     });
   };
 
@@ -137,7 +141,7 @@ function WatchPage() {
         setComments((prev) => [c, ...prev]);
       }
     }).catch(() => {
-      toast.error("Не удалось отправить комментарий");
+      toast.error(t("pages.reviews.commentFailed"));
     });
   };
 
@@ -165,9 +169,9 @@ function WatchPage() {
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
-            title={state === "notFound" ? "Обзор не найден" : "Не удалось загрузить обзор"}
-            description="Возможно, он был удалён или ссылка устарела."
-            action={{ label: "К обзорам", onClick: () => navigate({ to: "/reviews" }) }}
+            title={state === "notFound" ? t("pages.reviews.notFound") : t("pages.reviews.loadFailed")}
+            description={t("pages.reviews.notFoundDesc")}
+            action={{ label: t("pages.reviews.toReviews"), onClick: () => navigate({ to: "/reviews" }) }}
           />
         </div>
       </AppLayout>
@@ -181,7 +185,7 @@ function WatchPage() {
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[1000px] flex-col gap-[20px]">
         <Link to="/reviews" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          <ChevronLeft size={14} /> Обзоры
+          <ChevronLeft size={14} /> {t("pages.reviews.breadcrumb")}
         </Link>
 
         {/* player container — 16:9, object-contain letterboxes vertical videos */}
@@ -197,7 +201,7 @@ function WatchPage() {
               <button
                 type="button"
                 onClick={startPlay}
-                aria-label="Смотреть"
+                aria-label={t("pages.reviews.watchAria")}
                 className="absolute inset-0 grid place-items-center"
                 style={{ background: "rgba(0,0,0,0.25)" }}
               >
@@ -207,7 +211,7 @@ function WatchPage() {
               </button>
               {saveData && (
                 <span className="absolute left-[10px] top-[10px] rounded-[6px] px-[8px] py-[3px] text-[11px]" style={{ background: "rgba(0,0,0,0.7)", color: "#fff" }}>
-                  Экономия трафика — видео загрузится по тапу
+                  {t("pages.reviews.dataSaver")}
                 </span>
               )}
             </>
@@ -242,7 +246,7 @@ function WatchPage() {
             {video.title}
           </h1>
           <div className="flex items-center gap-[12px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-            <span className="inline-flex items-center gap-[4px]"><Eye size={13} /> {video.views.toLocaleString("ru")} просмотров</span>
+            <span className="inline-flex items-center gap-[4px]"><Eye size={13} /> {t("pages.reviews.views", { count: video.views.toLocaleString("ru") })}</span>
             {video.publishedAt && <span>· {new Date(video.publishedAt).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" })}</span>}
           </div>
         </div>
@@ -257,7 +261,7 @@ function WatchPage() {
           <AuthorAvatar src={author.avatar} name={author.name} />
           <div className="min-w-0">
             <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{author.name}</div>
-            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>Автор обзора</div>
+            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.authorLabel")}</div>
           </div>
         </Link>
 
@@ -294,7 +298,7 @@ function WatchPage() {
             aria-expanded={commentsOpen}
           >
             <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Комментарии {comments.length > 0 && <span style={{ color: "var(--foreground-50)" }}>{comments.length}</span>}
+              {t("pages.reviews.comments")} {comments.length > 0 && <span style={{ color: "var(--foreground-50)" }}>{comments.length}</span>}
             </h2>
             <ChevronDown
               size={18}
@@ -338,7 +342,7 @@ function WatchPage() {
             style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
           >
             <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              <Film size={18} style={{ color: "var(--foreground-50)" }} /> Похожие обзоры
+              <Film size={18} style={{ color: "var(--foreground-50)" }} /> {t("pages.reviews.similar")}
             </h2>
             <div className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0" style={{ scrollbarWidth: "thin" }}>
               {related.map((v) => (

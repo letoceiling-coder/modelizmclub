@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
@@ -28,6 +29,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function AccountSection() {
+  const { t } = useTranslation();
   const currentUser = useStore(selectors.currentUser);
   const [loading, setLoading] = useState(!isDemoMode());
   const [accountEmail, setAccountEmail] = useState("");
@@ -45,8 +47,8 @@ function AccountSection() {
 
   useEffect(() => {
     if (smsCooldown <= 0) return;
-    const t = window.setInterval(() => setSmsCooldown((s) => Math.max(0, s - 1)), 1000);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(() => setSmsCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(timer);
   }, [smsCooldown]);
 
   useEffect(() => {
@@ -68,9 +70,9 @@ function AccountSection() {
       setServerEmailVerified(u.email_verified === true);
       setServerPhoneVerified(u.phone_verified === true);
     }).catch(() => {
-      toast.error("Не удалось загрузить данные аккаунта");
+      toast.error(t("pages.settings.loadFailed"));
     }).finally(() => setLoading(false));
-  }, [currentUser?.email, currentUser?.phone, currentUser?.email_verified, currentUser?.phone_verified]);
+  }, [currentUser?.email, currentUser?.phone, currentUser?.email_verified, currentUser?.phone_verified, t]);
 
   const phoneMatchesVerified =
     serverPhoneVerified === true &&
@@ -80,14 +82,14 @@ function AccountSection() {
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      toast.error("Введите корректный email");
+      toast.error(t("pages.settings.invalidEmail"));
       return;
     }
     if (isDemoMode()) {
       setAccountEmail(newEmail);
       setServerEmailVerified(false);
       setNewEmail("");
-      toast.success("Email обновлён — подтвердите по ссылке из письма");
+      toast.success(t("pages.settings.emailUpdated"));
       return;
     }
     try {
@@ -96,9 +98,9 @@ function AccountSection() {
       setServerEmailVerified(false);
       setNewEmail("");
       setVerifySent(false);
-      toast.success("Email обновлён — подтвердите по ссылке из письма");
+      toast.success(t("pages.settings.emailUpdated"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Не удалось изменить email");
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.emailChangeFailed"));
     }
   };
 
@@ -108,14 +110,14 @@ function AccountSection() {
       await resendVerificationEmail();
       setVerifySent(true);
     } catch {
-      toast.error("Не удалось отправить письмо");
+      toast.error(t("pages.settings.emailSendFailed"));
     }
   };
 
   const sendSms = async () => {
     const normalized = phone.trim();
     if (!normalized || normalized.replace(/\D/g, "").length < 10) {
-      toast.error("Введите корректный номер телефона");
+      toast.error(t("pages.settings.invalidPhone"));
       return;
     }
     setSmsSending(true);
@@ -123,9 +125,9 @@ function AccountSection() {
       await sendPhoneVerificationCode(normalized);
       setSmsSent(true);
       setSmsCooldown(60);
-      toast.success("Код отправлен по SMS");
+      toast.success(t("pages.settings.smsSent"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Не удалось отправить SMS");
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.smsSendFailed"));
     } finally {
       setSmsSending(false);
     }
@@ -135,7 +137,7 @@ function AccountSection() {
     const normalized = phone.trim();
     if (!normalized) return;
     if (!/^\d{6}$/.test(smsCode.trim())) {
-      toast.error("Введите 6-значный код из SMS");
+      toast.error(t("pages.settings.invalidSmsCode"));
       return;
     }
     setSmsVerifying(true);
@@ -146,9 +148,9 @@ function AccountSection() {
       setServerPhoneVerified(user.phone_verified === true);
       setSmsCode("");
       setSmsSent(false);
-      toast.success("Номер телефона подтверждён");
+      toast.success(t("pages.settings.phoneVerified"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Неверный код");
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.wrongCode"));
     } finally {
       setSmsVerifying(false);
     }
@@ -165,78 +167,78 @@ function AccountSection() {
 
   if (loading) {
     return (
-      <SettingsSectionShell title="Профиль и аккаунт">
+      <SettingsSectionShell title={t("pages.settings.accountTitle")}>
         <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
-          <Loader2 size={16} className="animate-spin" /> Загрузка…
+          <Loader2 size={16} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       </SettingsSectionShell>
     );
   }
 
   return (
-    <SettingsSectionShell title="Профиль и аккаунт">
+    <SettingsSectionShell title={t("pages.settings.accountTitle")}>
       <Link
         to="/profile"
         className="flex items-center gap-[12px] rounded-[12px] border px-[16px] py-[14px] transition-colors hover:bg-[var(--background-surface)]"
         style={{ borderColor: "var(--border)" }}
       >
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>Публичный профиль</div>
-          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>Аватар, обложка, имя, город, интересы</div>
+          <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>{t("pages.settings.publicProfile")}</div>
+          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.publicProfileDesc")}</div>
         </div>
         <ChevronRight size={18} style={{ color: "var(--foreground-30)" }} />
       </Link>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Email</h2>
+        <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.emailLabel")}</h2>
         {accountEmail ? (
           <>
             <div className="flex flex-wrap items-center gap-[8px]">
               <p className="text-[14px]" style={{ color: "var(--foreground)" }}>{accountEmail}</p>
               {serverEmailVerified === true && (
-                <Badge variant="published" withIcon={false}>Подтверждён</Badge>
+                <Badge variant="published" withIcon={false}>{t("pages.settings.verified")}</Badge>
               )}
               {serverEmailVerified === false && (
-                <Badge variant="draft" withIcon={false}>Не подтверждён</Badge>
+                <Badge variant="draft" withIcon={false}>{t("pages.settings.notVerified")}</Badge>
               )}
             </div>
             {serverEmailVerified === false && (
               verifySent ? (
                 <p className="mt-[12px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-                  Письмо со ссылкой подтверждения отправлено на {accountEmail}.
+                  {t("pages.settings.verificationSentTo", { email: accountEmail })}
                 </p>
               ) : (
                 <Button type="button" variant="outline" size="sm" onClick={resendVerification} className="mt-[12px]">
-                  Отправить письмо подтверждения
+                  {t("pages.settings.resendVerificationBtn")}
                 </Button>
               )
             )}
           </>
         ) : (
-          <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>Email не указан</p>
+          <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.emailMissing")}</p>
         )}
       </Card>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Смена email</h2>
+        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.changeEmail")}</h2>
         <form onSubmit={submitEmail} className="space-y-[12px]">
-          <Field label="Новый email">
+          <Field label={t("pages.settings.newEmail")}>
             <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
           </Field>
-          <Button type="submit">Изменить email</Button>
+          <Button type="submit">{t("pages.settings.changeEmailBtn")}</Button>
         </form>
       </Card>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <div className="mb-[14px] flex flex-wrap items-center gap-[8px]">
-          <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>Телефон</h2>
+          <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.phone")}</h2>
           {phoneMatchesVerified ? (
-            <Badge variant="published" withIcon={false}>Подтверждён по SMS</Badge>
+            <Badge variant="published" withIcon={false}>{t("pages.settings.phoneVerifiedSms")}</Badge>
           ) : (
-            <Badge variant="draft" withIcon={false}>Не подтверждён</Badge>
+            <Badge variant="draft" withIcon={false}>{t("pages.settings.notVerified")}</Badge>
           )}
         </div>
-        <Field label="Номер телефона">
+        <Field label={t("pages.settings.phoneNumber")}>
           <PhoneInput key={phone || "empty"} defaultValue={phone} onValueChange={onPhoneChange} />
         </Field>
 
@@ -249,17 +251,17 @@ function AccountSection() {
               disabled={smsSending || smsCooldown > 0}
             >
               {smsSending
-                ? "Отправляем…"
+                ? t("pages.settings.sending")
                 : smsCooldown > 0
-                  ? `Повторить через ${smsCooldown} сек`
+                  ? t("pages.settings.resendIn", { sec: smsCooldown })
                   : smsSent
-                    ? "Отправить SMS повторно"
-                    : "Отправить SMS для подтверждения"}
+                    ? t("pages.settings.resendSms")
+                    : t("pages.settings.sendSms")}
             </Button>
 
             {smsSent && (
               <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
-                <Field label="Код из SMS">
+                <Field label={t("pages.settings.smsCode")}>
                   <Input
                     inputMode="numeric"
                     autoComplete="one-time-code"
@@ -270,7 +272,7 @@ function AccountSection() {
                   />
                 </Field>
                 <Button type="button" onClick={confirmSms} disabled={smsVerifying || smsCode.length !== 6}>
-                  {smsVerifying ? "Проверяем…" : "Подтвердить"}
+                  {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
                 </Button>
               </div>
             )}
@@ -278,7 +280,7 @@ function AccountSection() {
         )}
 
         <p className="mt-[12px] text-[12px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
-          Подтверждение только по SMS-коду. Номер используется в реквизитах и для доступа к действиям на сайте.
+          {t("pages.settings.phoneConfirmNote")}
         </p>
       </Card>
     </SettingsSectionShell>

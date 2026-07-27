@@ -183,6 +183,7 @@ class ChatService
                 'replyTo.author.profile',
                 'forwardedFrom.author.profile.avatar',
                 'attachments.media',
+                'listing.mediaItems.media',
             ])
             ->orderByDesc('created_at')
             ->paginate($perPage);
@@ -306,7 +307,7 @@ class ChatService
             $this->rejoinDirectConversation($existing, $from, $to);
             $this->hideDuplicateDirectConversations($all, $existing, $from, $to);
 
-            return $this->finalizeDirectConversation($existing, $listing);
+            return $this->finalizeDirectConversation($existing, $listing, $from);
         }
 
         return DB::transaction(function () use ($from, $to, $listing): Conversation {
@@ -325,7 +326,11 @@ class ChatService
                 ]);
             }
 
-            return $conversation->load(['participants.user.profile', 'listing.mediaItems.media']);
+            return $this->finalizeDirectConversation(
+                $conversation->load(['participants.user.profile', 'listing.mediaItems.media']),
+                $listing,
+                $from,
+            );
         });
     }
 
@@ -733,13 +738,53 @@ class ChatService
             ->update(['left_at' => now()]);
     }
 
-    private function finalizeDirectConversation(Conversation $conversation, ?Listing $listing): Conversation
+    private function finalizeDirectConversation(Conversation $conversation, ?Listing $listing, ?User $initiator = null): Conversation
     {
         if ($listing && $conversation->listing_id !== $listing->id) {
             $conversation->update(['listing_id' => $listing->id]);
         }
 
+        if ($listing && $initiator) {
+            $this->ensureListingIntroMessage($conversation, $listing, $initiator);
+        }
+
         return $conversation->load(['participants.user.profile', 'listing.mediaItems.media']);
+    }
+
+    private function ensureListingIntroMessage(Conversation $conversation, Listing $listing, User $buyer): void
+    {
+        $exists = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('listing_id', $listing->id)
+            ->where('type', 'listing')
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => $buyer->id,
+            'body' => null,
+            'type' => 'listing',
+            'listing_id' => $listing->id,
+            'status' => 'sent',
+        ]);
+
+        $conversation->update(['last_message_at' => now()]);
+
+        $message->load([
+            'author.profile.avatar',
+            'listing.mediaItems.media',
+            'conversation',
+        ]);
+
+        try {
+            broadcast(new MessageSent($message))->toOthers();
+        } catch (\Throwable) {
+            // Reverb may be unavailable during tests or maintenance
+        }
     }
 
     /** @param  Collection<int, Conversation>  $conversations */

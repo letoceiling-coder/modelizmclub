@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { History } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getViewHistory, type ViewHistoryItem } from "@/lib/view-history";
@@ -19,9 +19,14 @@ function hrefFor(item: ViewHistoryItem): { to: string; params: Record<string, st
   return { to: "/user/$id", params: { id: item.id } };
 }
 
-const KIND_LABEL: Record<ViewHistoryItem["kind"], string> = { ad: "Объявление", review: "Обзор", profile: "Профиль", community: "Сообщество" };
-
 function HistorySection() {
+  const { t } = useTranslation();
+  const KIND_LABEL: Record<ViewHistoryItem["kind"], string> = {
+    ad: t("pages.settings.historyKindAd"),
+    review: t("pages.settings.historyKindReview"),
+    profile: t("pages.settings.historyKindProfile"),
+    community: t("pages.settings.historyKindCommunity"),
+  };
   const [items, setItems] = useState<ViewHistoryItem[]>(getViewHistory);
 
   useEffect(() => {
@@ -42,18 +47,18 @@ function HistorySection() {
   };
 
   return (
-    <SettingsSectionShell title="История просмотров">
+    <SettingsSectionShell title={t("pages.settings.historyTitle")}>
       {items.length === 0 ? (
         <EmptyState
           icon={History}
-          title="Пока пусто"
-          description="Просмотренные объявления и профили появятся здесь"
+          title={t("pages.settings.historyEmpty")}
+          description={t("pages.settings.historyEmptyDesc")}
           variant="compact"
         />
       ) : (
         <>
           <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={clear} className="rounded-[8px]">Очистить историю</Button>
+            <Button variant="outline" size="sm" onClick={clear} className="rounded-[8px]">{t("pages.settings.historyClear")}</Button>
           </div>
           <div className="flex flex-col gap-[8px]">
             {items.map((item) => {

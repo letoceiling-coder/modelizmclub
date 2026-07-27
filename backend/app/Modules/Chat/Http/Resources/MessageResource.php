@@ -8,6 +8,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Chat\Http\Resources\ListingCompactResource;
 use Modules\User\Http\Resources\UserCompactResource;
 
 /** @mixin Message */
@@ -31,6 +32,10 @@ class MessageResource extends JsonResource
                 'body' => $this->forwardedFrom->body,
                 'author' => new UserCompactResource($this->forwardedFrom->author),
             ] : null),
+            'listing' => $this->when(
+                $this->type === 'listing' && $this->relationLoaded('listing') && $this->listing,
+                fn () => new ListingCompactResource($this->listing),
+            ),
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
                 'media' => $attachment->relationLoaded('media') && $attachment->media ? [
                     'uuid' => $attachment->media->uuid,

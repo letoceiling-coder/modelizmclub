@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
 import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, revealSellerPhone } from "@/lib/api/listings";
@@ -24,28 +25,25 @@ import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/ads/$id")({
-  head: () => ({
-    meta: [
-      { title: "Объявление — МоДелизМ" },
-      { name: "description", content: "Объявление на МоДелизМ" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: i18n.t("pages.adDetail.metaTitle") }] }),
   component: AdDetailPage,
 });
 
 type LoadState = "loading" | "ok" | "notFound" | "error";
 
-function formatDeliveryChoice(choice: string): string {
+function formatDeliveryChoice(choice: string, tr: (key: string, opts?: Record<string, string>) => string): string {
   const lower = choice.toLowerCase();
-  if (lower.includes("сдэк") || lower.includes("cdek")) return `📦 Доставка: ${choice}`;
-  if (lower.includes("почт")) return `🚚 Доставка: ${choice}`;
-  if (lower.includes("самовывоз") || lower.includes("встреч")) return `🤝 ${choice}`;
-  return `📦 Способ получения: ${choice}`;
+  if (lower.includes("сдэк") || lower.includes("cdek")) return tr("pages.adDetail.deliveryCdek", { choice });
+  if (lower.includes("почт")) return tr("pages.adDetail.deliveryPost", { choice });
+  if (lower.includes("самовывоз") || lower.includes("встреч")) return tr("pages.adDetail.deliveryPickup", { choice });
+  return tr("pages.adDetail.deliveryGeneric", { choice });
 }
 
-function buildSellerIntroMessage(ad: Ad, deliveryNote?: string | null): string {
-  const intro = `Здравствуйте! Пишу по объявлению «${ad.title}». Оно ещё актуально?`;
+function buildSellerIntroMessage(ad: Ad, tr: (key: string, opts?: Record<string, string>) => string, deliveryNote?: string | null): string {
+  const intro = tr("pages.adDetail.sellerIntro", { title: ad.title });
   return deliveryNote ? `${intro}\n\n${deliveryNote}` : intro;
 }
 
@@ -90,6 +88,7 @@ function pickSimilar(list: Ad[], current: Ad): Ad[] {
 }
 
 function AdDetailPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
@@ -133,7 +132,7 @@ function AdDetailPage() {
 
   const revealPhone = async () => {
     if (!getToken() && !isDemoMode()) {
-      toast.info("Войдите, чтобы посмотреть номер");
+      toast.info(t("pages.adDetail.loginForPhone"));
       navigate({ to: "/login" });
       return;
     }
@@ -143,7 +142,7 @@ function AdDetailPage() {
       const phone = await revealSellerPhone(id);
       actions.setRevealedPhone(id, phone);
     } catch {
-      toast.error("Не удалось получить номер");
+      toast.error(t("pages.adDetail.phoneFailed"));
     } finally {
       setPhoneLoading(false);
     }
@@ -153,36 +152,28 @@ function AdDetailPage() {
     const sellerId = ad?.seller?.numericId;
     const sellerUuid = ad?.seller?.id;
     if (!sellerId || !sellerUuid || !me) {
-      toast.error("Не удалось открыть диалог с продавцом");
+      toast.error(t("pages.adDetail.sellerDialogFailed"));
       return;
     }
     try {
       const dialog = await openConversation(sellerId, me.id, sellerUuid, ad.id);
-      if (ad) {
-        actions.setDialogAd(dialog.id, {
-          id: ad.id,
-          title: ad.title,
-          price: ad.price,
-          image: ad.gallery?.[0] ?? ad.image,
-        });
-      }
       if (queuedMessage) {
         actions.queuePendingMessage(dialog.id, queuedMessage);
       }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch {
-      toast.error("Не удалось открыть диалог");
+      toast.error(t("pages.adDetail.dialogOpenFailed"));
     }
   };
 
   const requireAuthAndNotOwnAd = (): boolean => {
     if (!getToken() && !isDemoMode()) {
-      toast.info("Войдите, чтобы написать продавцу");
+      toast.info(t("pages.adDetail.loginToMessage"));
       navigate({ to: "/login" });
       return false;
     }
     if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
-      toast.info("Это ваше объявление");
+      toast.info(t("pages.adDetail.ownListing"));
       return false;
     }
     return true;
@@ -194,7 +185,7 @@ function AdDetailPage() {
       setDeliveryPickerOpen(true);
       return;
     }
-    await proceedToConversation(buildSellerIntroMessage(ad));
+    await proceedToConversation(buildSellerIntroMessage(ad, t));
   };
 
   const askSeller = async (question: string) => {
@@ -216,9 +207,9 @@ function AdDetailPage() {
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
-            title="Объявление не найдено"
-            description="Возможно, оно было продано, снято с публикации или ссылка устарела."
-            action={{ label: "К списку объявлений", onClick: () => navigate({ to: "/ads" }) }}
+            title={t("pages.adDetail.notFoundTitle")}
+            description={t("pages.adDetail.notFoundDesc")}
+            action={{ label: t("pages.adDetail.toList"), onClick: () => navigate({ to: "/ads" }) }}
           />
         </div>
       </AppLayout>
@@ -230,14 +221,14 @@ function AdDetailPage() {
       <AppLayout rightColumn={false} footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <Alert variant="error">
-            <AlertTitle>Не удалось загрузить объявление</AlertTitle>
-            <AlertDescription>Проверьте соединение и попробуйте ещё раз.</AlertDescription>
+            <AlertTitle>{t("pages.adDetail.loadFailedTitle")}</AlertTitle>
+            <AlertDescription>{t("pages.adDetail.loadFailedDesc")}</AlertDescription>
             <div className="mt-[12px] flex gap-[8px]">
               <Button size="sm" onClick={() => navigate({ to: "/ads/$id", params: { id } })}>
-                Повторить
+                {t("pages.shared.retry")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => navigate({ to: "/ads" })}>
-                К списку
+                {t("pages.adDetail.backToList")}
               </Button>
             </div>
           </Alert>
@@ -261,18 +252,18 @@ function AdDetailPage() {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(url);
-        toast.success("Ссылка скопирована");
+        toast.success(t("pages.adDetail.linkCopied"));
         return;
       } catch {
         /* clipboard blocked */
       }
     }
-    toast.info("Скопируйте ссылку из адресной строки");
+    toast.info(t("pages.adDetail.copyFromBar"));
   };
 
   const toggleSave = async () => {
     if (!getToken() && !isDemoMode()) {
-      toast.info("Войдите, чтобы добавить в избранное");
+      toast.info(t("pages.adDetail.loginForFavorite"));
       navigate({ to: "/login" });
       return;
     }
@@ -288,12 +279,12 @@ function AdDetailPage() {
         setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
       } catch {
         actions.toggleFavoriteAd(id);
-        toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
+        toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
         return;
       }
     }
     // Fixed id: rapid taps replace the previous toast instead of stacking.
-    toast.success(saved ? "Убрано из избранного" : "В избранное", { id: "favorite-toggle" });
+    toast.success(saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"), { id: "favorite-toggle" });
   };
 
   const hasDelivery = ad.delivery.length > 0;
@@ -306,7 +297,7 @@ function AdDetailPage() {
         {/* Breadcrumbs */}
         <nav className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
           <Link to="/ads" className="inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]">
-            <ChevronLeft size={14} /> Объявления
+            <ChevronLeft size={14} /> {t("pages.adDetail.listingsBreadcrumb")}
           </Link>
           {ad.category && (
             <>
@@ -365,16 +356,16 @@ function AdDetailPage() {
               }}
             >
               <h2 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-                Описание
+                {t("pages.adDetail.descriptionHeading")}
               </h2>
               <p className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.55]" style={{ color: "var(--foreground-90)" }}>
-                {ad.description ?? "Описание отсутствует."}
+                {ad.description ?? t("pages.adDetail.noDescription")}
               </p>
 
               <div className="mt-[14px] grid gap-[10px] sm:grid-cols-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                <Spec label="Категория" value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"} />
-                <Spec label="Состояние" value={ad.condition ?? "—"} />
-                <Spec label="Город" value={ad.city || "—"} />
+                <Spec label={t("pages.adDetail.specCategory")} value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"} />
+                <Spec label={t("pages.adDetail.specCondition")} value={ad.condition ?? "—"} />
+                <Spec label={t("pages.adDetail.specCity")} value={ad.city || "—"} />
               </div>
             </Card>
 
@@ -390,7 +381,7 @@ function AdDetailPage() {
                 }}
               >
                 <h2 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-                  Доставка
+                  {t("pages.adDetail.deliveryHeading")}
                 </h2>
                 <div className="mt-[8px] flex flex-wrap gap-[6px]">
                   {ad.delivery.map((d) => (
@@ -438,7 +429,7 @@ function AdDetailPage() {
         onConfirm={(choice) => {
           setDeliveryPickerOpen(false);
           void proceedToConversation(
-            buildSellerIntroMessage(ad, choice ? formatDeliveryChoice(choice) : null),
+            buildSellerIntroMessage(ad, t, choice ? formatDeliveryChoice(choice, t) : null),
           );
         }}
       />

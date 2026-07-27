@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging, Users,
@@ -31,8 +32,10 @@ import { CommunitySettingsSheet } from "@/components/communities/CommunitySettin
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/communities/$id")({
-  head: () => ({ meta: [{ title: "Сообщество — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }] }),
   component: CommunityDetailPage,
 });
 
@@ -50,23 +53,27 @@ function initials(name: string): string {
 }
 
 type TabKey = "posts" | "discussions" | "events" | "members" | "about";
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "posts", label: "Посты" },
-  { key: "discussions", label: "Обсуждения" },
-  { key: "events", label: "Мероприятия" },
-  { key: "members", label: "Участники" },
-  { key: "about", label: "О сообществе" },
-];
+
+function communityTabs(t: (key: string) => string): { key: TabKey; label: string }[] {
+  return [
+    { key: "posts", label: t("pages.communityDetail.tabPosts") },
+    { key: "discussions", label: t("pages.communityDetail.tabDiscussions") },
+    { key: "events", label: t("pages.communityDetail.tabEvents") },
+    { key: "members", label: t("pages.communityDetail.tabMembers") },
+    { key: "about", label: t("pages.communityDetail.tabAbout") },
+  ];
+}
 
 /* ============================ Contacts block ============================ */
 
 function ContactsBlock({ contacts, compact }: { contacts?: CommunityContacts; compact?: boolean }) {
+  const { t } = useTranslation();
   if (!contacts) return null;
   const rows: { icon: typeof Globe; label: string; value: string; href: string; external?: boolean }[] = [];
   if (contacts.website)
-    rows.push({ icon: Globe, label: "Сайт", value: siteLabel(contacts.website), href: contacts.website, external: true });
+    rows.push({ icon: Globe, label: t("pages.shared.website"), value: siteLabel(contacts.website), href: contacts.website, external: true });
   if (contacts.phone)
-    rows.push({ icon: Phone, label: "Телефон", value: contacts.phone, href: `tel:${contacts.phone.replace(/\s/g, "")}` });
+    rows.push({ icon: Phone, label: t("pages.shared.phone"), value: contacts.phone, href: `tel:${contacts.phone.replace(/\s/g, "")}` });
   if (rows.length === 0) return null;
 
   return (
@@ -78,7 +85,7 @@ function ContactsBlock({ contacts, compact }: { contacts?: CommunityContacts; co
         className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider"
         style={{ color: "var(--foreground-50)" }}
       >
-        Контакты
+        {t("pages.shared.contacts")}
       </h3>
       <div className="mt-[8px] flex flex-col">
         {rows.map((r) => (
@@ -177,6 +184,7 @@ function CommunityPostCard({ post, community, Icon }: { post: Post; community: C
 }
 
 function DiscussionRow({ d }: { d: DemoDiscussion }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-[12px] px-[16px] py-[12px] transition-colors hover:bg-[var(--background-surface)]" style={{ borderTop: "1px solid var(--border)" }}>
       <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px]" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
@@ -184,7 +192,7 @@ function DiscussionRow({ d }: { d: DemoDiscussion }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{d.title}</div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{d.replies} ответов · {d.lastActivity}</div>
+        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.repliesCount", { count: d.replies, activity: d.lastActivity })}</div>
       </div>
       <ChevronRight size={16} style={{ color: "var(--foreground-30)" }} />
     </div>
@@ -192,6 +200,7 @@ function DiscussionRow({ d }: { d: DemoDiscussion }) {
 }
 
 function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoCommunityEvent) => void }) {
+  const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
   return (
     <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
@@ -214,10 +223,10 @@ function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoC
         </div>
         <div className="mt-[12px] flex items-center justify-between gap-[8px]">
           <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            <span className="font-semibold" style={{ color: "var(--foreground)" }}>{e.attendees}</span> идут
+            {t("pages.communityDetail.attendeesGoing", { count: e.attendees })}
           </span>
           <Button onClick={() => onSignup(e)} size="sm" className="gap-[6px]">
-            <CalendarDays size={14} /> Записаться
+            <CalendarDays size={14} /> {t("pages.communityDetail.signUp")}
           </Button>
         </div>
       </div>
@@ -226,7 +235,10 @@ function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoC
 }
 
 function MemberRow({ m }: { m: CommunityMember | DemoCommunityMember }) {
+  const { t } = useTranslation();
   const { user, role } = m;
+  const isAdmin = role === "Администратор" || role === t("pages.communityDetail.roleAdmin");
+  const roleLabel = role === "Администратор" ? t("pages.communityDetail.roleAdmin") : role;
   return (
     <Link to="/user/$id" params={{ id: user.id }} className="flex items-center gap-[12px] px-[16px] py-[10px] transition-colors hover:bg-[var(--background-surface)]" style={{ borderTop: "1px solid var(--border)" }}>
       <div className="relative">
@@ -245,9 +257,9 @@ function MemberRow({ m }: { m: CommunityMember | DemoCommunityMember }) {
         <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{user.city}</div>
       </div>
       <span className="shrink-0 rounded-full px-[10px] py-[3px] text-[11px] font-semibold" style={{
-        background: role === "Администратор" ? "var(--accent-soft)" : "var(--background-surface)",
-        color: role === "Администратор" ? "var(--accent)" : "var(--foreground-50)",
-      }}>{role}</span>
+        background: isAdmin ? "var(--accent-soft)" : "var(--background-surface)",
+        color: isAdmin ? "var(--accent)" : "var(--foreground-50)",
+      }}>{roleLabel}</span>
     </Link>
   );
 }
@@ -262,6 +274,7 @@ function CommunityRightRail({
   events: DemoCommunityEvent[];
   onSignup: (e: DemoCommunityEvent) => void;
 }) {
+  const { t } = useTranslation();
   const online = members.filter((m) => m.user.online).slice(0, 8);
   const similar = useMemo(
     () => (isDemoMode() ? demoCommunities().filter((c) => c.id !== community.id && c.category === community.category).slice(0, 3) : []),
@@ -278,7 +291,7 @@ function CommunityRightRail({
         {/* Online members */}
         {online.length > 0 && (
           <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-            <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Участники онлайн</h3>
+            <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.communityDetail.membersOnline")}</h3>
             <div className="mt-[10px] flex flex-wrap gap-[8px]">
               {online.map((m) => (
                 <Link key={m.user.id} to="/user/$id" params={{ id: m.user.id }} title={m.user.name}>
@@ -297,7 +310,7 @@ function CommunityRightRail({
         {/* Upcoming events */}
         {events.length > 0 && (
           <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-            <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Ближайшие события</h3>
+            <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.communityDetail.upcomingEvents")}</h3>
             <div className="mt-[10px] flex flex-col gap-[10px]">
               {events.slice(0, 2).map((e) => (
                 <button key={e.id} onClick={() => onSignup(e)} className="flex items-start gap-[10px] text-left">
@@ -317,7 +330,7 @@ function CommunityRightRail({
         {/* Similar communities */}
         {fallbackSimilar.length > 0 && (
           <Card className="p-[14px] shadow-none" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-            <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Похожие сообщества</h3>
+            <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.communityDetail.similarCommunities")}</h3>
             <div className="mt-[10px] flex flex-col gap-[8px]">
               {fallbackSimilar.map((c) => {
                 const CIcon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
@@ -328,7 +341,7 @@ function CommunityRightRail({
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{c.name}</span>
-                      <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>{c.members.toLocaleString("ru")} участников</span>
+                      <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.shared.members", { count: c.members.toLocaleString("ru") })}</span>
                     </span>
                   </Link>
                 );
@@ -347,6 +360,7 @@ function CommunityRightRail({
 /* ============================ Event signup modal ============================ */
 
 function EventSignupModal({ event, onClose }: { event: DemoCommunityEvent | null; onClose: () => void }) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!event) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -374,20 +388,20 @@ function EventSignupModal({ event, onClose }: { event: DemoCommunityEvent | null
               <CalendarDays size={22} />
             </div>
             <h3 className="mt-[14px] text-[18px] font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
-              Заявка отправлена
+              {t("pages.communityDetail.requestSent")}
             </h3>
             <p className="mt-[6px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
               {event.title} · {event.date}
             </p>
             <p className="mt-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              Demo mode: запись на мероприятие сохранена. На боевой версии здесь будет форма участника и подтверждение.
+              {t("pages.communityDetail.demoSignupNote")}
             </p>
             <button
               type="button" onClick={onClose}
               className="mt-[18px] h-[44px] w-full rounded-[12px] text-[14px] font-semibold text-white transition-transform active:scale-[0.99]"
               style={{ background: "var(--accent)" }}
             >
-              Понятно
+              {t("pages.communityDetail.gotIt")}
             </button>
           </motion.div>
         </motion.div>
@@ -399,6 +413,8 @@ function EventSignupModal({ event, onClose }: { event: DemoCommunityEvent | null
 /* ============================ Page ============================ */
 
 function CommunityDetailPage() {
+  const { t } = useTranslation();
+  const tabs = useMemo(() => communityTabs(t), [t]);
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [community, setCommunity] = useState<Community | null>(null);
@@ -466,9 +482,9 @@ function CommunityDetailPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="py-[40px]">
-          <EmptyState icon={Users} title="Сообщество не найдено" description="Возможно, оно было удалено или ссылка некорректна">
+          <EmptyState icon={Users} title={t("pages.communityDetail.notFoundTitle")} description={t("pages.communityDetail.notFoundDesc")}>
             <Button asChild className=" px-[20px]">
-              <Link to="/communities">Все сообщества</Link>
+              <Link to="/communities">{t("pages.communityDetail.allCommunities")}</Link>
             </Button>
           </EmptyState>
         </div>
@@ -536,13 +552,13 @@ function CommunityDetailPage() {
                     onClick={() => setReportOpen(true)}
                     className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
                     style={{ color: "var(--foreground-50)" }}
-                    aria-label="Пожаловаться на сообщество"
+                    aria-label={t("pages.communityDetail.reportAria")}
                   >
                     <Flag size={16} />
                   </button>
                 )}
                 {isOwner && (
-                  <EntitySettingsButton onClick={() => setSettingsOpen(true)} title="Управление сообществом" />
+                  <EntitySettingsButton onClick={() => setSettingsOpen(true)} title={t("pages.communityDetail.manageTitle")} />
                 )}
               </div>
             </div>
@@ -550,19 +566,19 @@ function CommunityDetailPage() {
             <div className="mt-[14px] flex flex-wrap items-center gap-x-[16px] gap-y-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
               <span className="inline-flex items-center gap-[6px]">
                 <Users size={14} />
-                <span><span className="font-semibold" style={{ color: "var(--foreground)" }}>{members.toLocaleString("ru")}</span> участников</span>
+                <span>{t("pages.communityDetail.members", { count: members })}</span>
               </span>
               {isOwner && (
                 <span
                   className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold"
                   style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                 >
-                  <Check size={13} /> Вы владелец
+                  <Check size={13} /> {t("pages.communityDetail.youOwner")}
                 </span>
               )}
               {!isOwner && joined && (
                 <span className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold" style={{ background: "var(--success-soft, var(--accent-soft))", color: "var(--success, var(--accent))" }}>
-                  <Check size={13} /> Вы подписаны
+                  <Check size={13} /> {t("pages.communityDetail.youSubscribed")}
                 </span>
               )}
             </div>
@@ -581,7 +597,7 @@ function CommunityDetailPage() {
                   size="lg"
                   className="gap-[8px] rounded-[12px]"
                 >
-                  {joined ? <><Check size={16} /> Вы подписаны</> : <><Plus size={16} /> Подписаться</>}
+                  {joined ? <><Check size={16} /> {t("pages.communityDetail.youSubscribed")}</> : <><Plus size={16} /> {t("pages.communityDetail.subscribe")}</>}
                 </Button>
               )}
               {isOwner && (
@@ -590,20 +606,20 @@ function CommunityDetailPage() {
                   size="lg"
                   className="gap-[8px] rounded-[12px]"
                 >
-                  <Settings2 size={16} /> Управление сообществом
+                  <Settings2 size={16} /> {t("pages.communityDetail.manageTitle")}
                 </Button>
               )}
               {community.allowSubmitPost && (
                 <Button onClick={() => setSubmitOpen(true)} variant="outline" size="lg" className="gap-[8px] rounded-[12px]">
-                  <FilePlus size={16} /> Предложить проект
+                  <FilePlus size={16} /> {t("pages.communityDetail.proposeProject")}
                 </Button>
               )}
               <Button variant="outline" onClick={() => setShareOpen(true)} size="lg" className="gap-[8px] rounded-[12px]">
-                <Share2 size={16} /> Поделиться
+                <Share2 size={16} /> {t("pages.communityDetail.share")}
               </Button>
               {!hasOwnCommunity && !isOwner && (
                 <Button variant="outline" onClick={() => setRequestOpen(true)} size="lg" className="gap-[8px] rounded-[12px]">
-                  <Plus size={16} /> Хочу своё сообщество
+                  <Plus size={16} /> {t("pages.communityDetail.wantOwnCommunity")}
                 </Button>
               )}
             </div>
@@ -612,22 +628,22 @@ function CommunityDetailPage() {
 
         {/* Tabs */}
         <nav role="tablist" className="flex items-center gap-[2px] overflow-x-auto no-scrollbar" style={{ borderBottom: "1px solid var(--border)" }}>
-          {TABS.map((t) => {
-            const active = tab === t.key;
+          {tabs.map((tabItem) => {
+            const active = tab === tabItem.key;
             const count =
-              t.key === "posts" ? posts.length :
-              t.key === "discussions" ? discussions.length :
-              t.key === "events" ? events.length :
-              t.key === "members" ? memberList.length : 0;
+              tabItem.key === "posts" ? posts.length :
+              tabItem.key === "discussions" ? discussions.length :
+              tabItem.key === "events" ? events.length :
+              tabItem.key === "members" ? memberList.length : 0;
             return (
               <button
-                key={t.key} role="tab" aria-selected={active}
-                onClick={() => setTab(t.key)}
+                key={tabItem.key} role="tab" aria-selected={active}
+                onClick={() => setTab(tabItem.key)}
                 className="relative inline-flex shrink-0 items-center gap-[6px] px-[14px] py-[12px] text-[14px] font-semibold transition-colors"
                 style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
               >
-                {t.label}
-                {count > 0 && t.key !== "about" && (
+                {tabItem.label}
+                {count > 0 && tabItem.key !== "about" && (
                   <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[5px] text-[11px] font-bold" style={{ background: active ? "var(--accent-soft)" : "var(--background-surface)", color: active ? "var(--accent)" : "var(--foreground-50)", borderRadius: "var(--r-pill)" }}>
                     {count}
                   </span>
@@ -647,18 +663,18 @@ function CommunityDetailPage() {
               {posts.map((p) => <CommunityPostCard key={p.id} post={p} community={community} Icon={Icon} />)}
             </div>
           ) : (
-            <EmptyState icon={ImageOff} title="Пока нет постов" description="Здесь появятся публикации сообщества" variant="compact" />
+            <EmptyState icon={ImageOff} title={t("pages.communityDetail.emptyPosts")} description={t("pages.communityDetail.emptyPostsDesc")} variant="compact" />
           )
         )}
 
         {tab === "discussions" && (
           discussions.length > 0 ? (
             <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-              <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>Обсуждения</h2>
+              <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.discussionsHeading")}</h2>
               <div className="mt-[8px]">{discussions.map((d) => <DiscussionRow key={d.id} d={d} />)}</div>
             </Card>
           ) : (
-            <EmptyState icon={MessagesSquare} title="Пока нет обсуждений" description="Начните первую тему в сообществе" variant="compact" />
+            <EmptyState icon={MessagesSquare} title={t("pages.communityDetail.emptyDiscussions")} description={t("pages.communityDetail.emptyDiscussionsDesc")} variant="compact" />
           )
         )}
 
@@ -668,7 +684,7 @@ function CommunityDetailPage() {
               {events.map((e) => <EventCard key={e.id} e={e} onSignup={setSignupEvent} />)}
             </div>
           ) : (
-            <EmptyState icon={CalendarDays} title="Пока нет мероприятий" description="Скоро здесь появятся заезды и встречи" variant="compact" />
+            <EmptyState icon={CalendarDays} title={t("pages.communityDetail.emptyEvents")} description={t("pages.communityDetail.emptyEventsDesc")} variant="compact" />
           )
         )}
 
@@ -680,18 +696,18 @@ function CommunityDetailPage() {
             </Card>
           ) : memberList.length > 0 ? (
             <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-              <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>Участники</h2>
+              <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.membersHeading")}</h2>
               <div className="mt-[8px]">{memberList.map((m) => <MemberRow key={m.user.id} m={m} />)}</div>
             </Card>
           ) : (
-            <EmptyState icon={Users} title="Список участников недоступен" variant="compact" />
+            <EmptyState icon={Users} title={t("pages.communityDetail.membersUnavailable")} variant="compact" />
           )
         )}
 
         {tab === "about" && (
           <div className="space-y-[16px]">
             <Card className="px-[16px] py-[20px] shadow-none sm:px-[24px]" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-              <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>О сообществе</h2>
+              <h2 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.communityDetail.aboutHeading")}</h2>
               <p className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.65]" style={{ color: "var(--foreground-70)" }}>
                 {community.fullDescription || community.description}
               </p>
@@ -703,7 +719,7 @@ function CommunityDetailPage() {
                       {initials(admin.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <span>Администратор: <span className="font-semibold" style={{ color: "var(--foreground)" }}>{admin.name}</span></span>
+                  <span>{t("pages.communityDetail.adminLabel", { name: admin.name })}</span>
                 </Link>
               )}
             </Card>
@@ -717,7 +733,7 @@ function CommunityDetailPage() {
         {/* Back link */}
         <div className="pb-[8px]">
           <Button asChild variant="ghost" className="gap-[6px] text-[13px]">
-            <Link to="/communities"><ArrowLeft size={14} /> Все сообщества</Link>
+            <Link to="/communities"><ArrowLeft size={14} /> {t("pages.communityDetail.allCommunities")}</Link>
           </Button>
         </div>
       </div>
@@ -752,8 +768,8 @@ function CommunityDetailPage() {
         } : null}
         onClose={() => setReportOpen(false)}
         page={`/communities/${community.id}`}
-        subjectSuffix=" (сообщество)"
-        descriptionOverride={`Вы отправляете жалобу на сообщество «${community.name}». Опишите причину.`}
+        subjectSuffix={t("pages.communityDetail.reportSuffix")}
+        descriptionOverride={t("pages.communityDetail.reportDesc", { name: community.name })}
         report={reportOpen && community.uuid ? { type: "community", targetId: community.uuid } : undefined}
       />
     </AppLayout>

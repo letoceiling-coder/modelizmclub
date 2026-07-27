@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
@@ -60,8 +61,10 @@ import { Badge } from "@/components/ui/badge";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/messenger")({
-  head: () => ({ meta: [{ title: "Мессенджер — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
   beforeLoad: async ({ location }) => {
     const { requireVerified } = await import("@/lib/auth/verification");
     await requireVerified(location);
@@ -114,17 +117,18 @@ function MessageSkeleton() {
 }
 
 function StatusIcon({ status }: { status?: Message["status"] }) {
+  const { t } = useTranslation();
   if (!status) return null;
   // sent = one tick, delivered = two muted ticks, read = highlighted two ticks.
   if (status === "sent")
-    return <Check size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label="Отправлено" />;
+    return <Check size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label={t("pages.messenger.statusSent")} />;
   if (status === "delivered")
-    return <CheckCheck size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label="Доставлено" />;
+    return <CheckCheck size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label={t("pages.messenger.statusDelivered")} />;
   return (
     <CheckCheck
       size={13}
       style={{ color: "#8fe3ff", filter: "drop-shadow(0 0 1px rgba(143,227,255,0.6))" }}
-      aria-label="Прочитано"
+      aria-label={t("pages.messenger.statusRead")}
     />
   );
 }
@@ -157,6 +161,7 @@ function MessageImage({
   naturalWidth?: number;
   naturalHeight?: number;
 }) {
+  const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -210,7 +215,7 @@ function MessageImage({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Открыть фото на весь экран"
+        aria-label={t("pages.messenger.openPhotoFullscreen")}
         className="mb-[6px] block cursor-zoom-in p-0"
         style={{ width: frame.w, maxWidth: "100%" }}
       >
@@ -257,6 +262,35 @@ function MessageImage({
   );
 }
 
+function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing"]> }) {
+  const { t } = useTranslation();
+  return (
+    <Link
+      to="/ads/$id"
+      params={{ id: listing.id }}
+      className="block overflow-hidden rounded-[12px] border transition-colors hover:opacity-95"
+      style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+    >
+      <div className="flex items-center gap-[10px] p-[10px]">
+        {listing.image ? (
+          <img src={listing.image} alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+        ) : (
+          <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.messenger.listingLabel")}
+          </div>
+          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{listing.title}</div>
+          <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+            {listing.price.toLocaleString("ru")} ₽
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function MessageBubble({
   msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onDeleteForEveryone, onReport, onMediaResize,
   searchHighlightId, searchQuery,
@@ -273,11 +307,12 @@ function MessageBubble({
   searchHighlightId?: string | null;
   searchQuery?: string;
 }) {
+  const { t } = useTranslation();
   const meId = useStore((s) => s.currentUserId);
   const isMe = msg.authorId === meId;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
-  const hasMedia = Boolean(msg.image || msg.file || msg.voice);
+  const hasMedia = Boolean(msg.image || msg.file || msg.voice || msg.listing);
   const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
   const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
@@ -351,7 +386,7 @@ function MessageBubble({
               className="mb-[6px] text-[11px] font-semibold italic"
               style={{ color: isMe ? "rgba(255,255,255,0.75)" : "var(--foreground-50)" }}
             >
-              Переслано от {forwardedAuthor.name}
+              {t("pages.messenger.forwardedFrom", { name: forwardedAuthor.name })}
             </div>
           )}
           {reply && (
@@ -362,10 +397,11 @@ function MessageBubble({
                 color: isMe ? "rgba(255,255,255,0.85)" : "var(--foreground-50)",
               }}
             >
-              <div className="font-semibold">{reply.authorId === meId ? "Вы" : replyAuthor?.name}</div>
+              <div className="font-semibold">{reply.authorId === meId ? t("pages.shared.you") : replyAuthor?.name}</div>
               <div className="truncate">{reply.text}</div>
             </div>
           )}
+          {msg.listing && <ListingMessageCard listing={msg.listing} />}
           {msg.image && (
             <MessageImage
               src={msg.image}
@@ -406,11 +442,11 @@ function MessageBubble({
 }
 
 function MessengerPage() {
+  const { t } = useTranslation();
   const dlgs = useStore(selectors.dialogsList);
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
-  const dialogAdRefs = useStore((s) => s.dialogAdRefs);
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
   const onlineSet = useOnlineSet();
   const [presenceTick, setPresenceTick] = useState(0);
@@ -503,7 +539,7 @@ function MessengerPage() {
         selectDialog(dialog.id, dialog);
         void navigate({ to: "/messenger", search: { chat: dialog.id }, replace: true });
       } catch {
-        if (alive) toast.error("Не удалось открыть диалог");
+        if (alive) toast.error(t("pages.messenger.dialogOpenFailed"));
       }
     })();
 
@@ -518,7 +554,7 @@ function MessengerPage() {
 
     const pending = readPendingShare();
     if (!pending) {
-      toast.error("Не удалось открыть отправку. Попробуйте поделиться снова.");
+      toast.error(t("pages.messenger.shareOpenFailed"));
       void navigate({ to: "/messenger", search: { chat }, replace: true });
       return;
     }
@@ -549,9 +585,6 @@ function MessengerPage() {
       .then((list) => {
         if (!alive) return;
         setDialogs(list);
-        list.forEach((d) => {
-          if (d.listing) actions.setDialogAd(d.id, d.listing);
-        });
       })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false); });
@@ -627,7 +660,6 @@ function MessengerPage() {
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
   const partner = active ? userById(active.userId) : null;
-  const activeAdRef = activeId ? dialogAdRefs[activeId] : undefined;
 
   // Upgrade sent → delivered when partner is online (realtime, before next API poll).
   useEffect(() => {
@@ -773,7 +805,7 @@ function MessengerPage() {
   const send = async () => {
     if (!text.trim() || !active) return;
     if (isPartnerBlocked(active.userId)) {
-      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
       return;
     }
     const dialogId = active.id;
@@ -796,14 +828,14 @@ function MessengerPage() {
       const saved = await apiSendMessage(dialogId, body, replyId);
       replaceMessage(dialogId, tempId, saved);
     } catch {
-      toast.error("Не удалось отправить сообщение");
+      toast.error(t("pages.messenger.sendFailed"));
     }
   };
 
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
     if (isPartnerBlocked(active.userId)) {
-      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
       return;
     }
     const dialogId = active.id;
@@ -836,7 +868,7 @@ function MessengerPage() {
       replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(localUrl);
     } catch {
-      toast.error("Не удалось отправить голосовое");
+      toast.error(t("pages.messenger.voiceSendFailed"));
     }
   };
 
@@ -844,11 +876,11 @@ function MessengerPage() {
     if (!active) return;
     const tooLarge = chatAttachmentTooLargeMessage(file);
     if (tooLarge) {
-      toast.error("Файл слишком большой", { description: tooLarge });
+      toast.error(t("pages.messenger.fileTooLarge"), { description: tooLarge });
       return;
     }
     if (isPartnerBlocked(active.userId)) {
-      toast.error("Пользователь заблокирован", { description: "Разблокируйте его, чтобы отправлять сообщения" });
+      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
       return;
     }
 
@@ -883,8 +915,8 @@ function MessengerPage() {
     actions.addMessage(dialogId, optimistic);
     setReplyTo(null);
     if (isDemoMode()) {
-      toast("Вложение отправлено (демо)", {
-        description: convertedFromHeic ? "HEIC сконвертирован в JPG (демо)" : "Загрузка на сервер появится позже",
+      toast(t("pages.messenger.attachmentSentDemo"), {
+        description: convertedFromHeic ? t("pages.messenger.heicConvertedDemo") : t("pages.messenger.uploadLater"),
       });
       return;
     }
@@ -918,10 +950,10 @@ function MessengerPage() {
   }, [text]);
 
   const handleCopy = (m: Message) => {
-    const text = m.text || (m.file ? m.file.name : m.image ? "[изображение]" : "[вложение]");
-    navigator.clipboard.writeText(text).then(
-      () => toast.success("Скопировано"),
-      () => toast.error("Не удалось скопировать"),
+    const copyText = m.text || (m.file ? m.file.name : m.image ? t("pages.messenger.image") : t("pages.messenger.attachment"));
+    navigator.clipboard.writeText(copyText).then(
+      () => toast.success(t("pages.messenger.copied")),
+      () => toast.error(t("pages.messenger.copyFailed")),
     );
   };
 
@@ -932,7 +964,7 @@ function MessengerPage() {
       try {
         await apiPinMessage(active.id, m.id);
       } catch {
-        toast.error("Не удалось закрепить сообщение");
+        toast.error(t("pages.messenger.pinFailed"));
       }
     }
   };
@@ -944,14 +976,14 @@ function MessengerPage() {
       try {
         await hideMessageForMe(active.id, m.id);
       } catch {
-        toast.error("Не удалось удалить сообщение");
+        toast.error(t("pages.messenger.deleteFailed"));
       }
     }
   };
 
   const handleDeleteForEveryone = async (m: Message) => {
     if (!active) return;
-    if (!window.confirm("Удалить сообщение у всех участников? Это действие нельзя отменить.")) return;
+    if (!window.confirm(t("pages.messenger.deleteForAllConfirm"))) return;
 
     const dialogId = active.id;
     actions.removeMessage(dialogId, m.id);
@@ -960,7 +992,7 @@ function MessengerPage() {
       try {
         await deleteMessageForEveryone(dialogId, m.id);
       } catch {
-        toast.error("Не удалось удалить сообщение");
+        toast.error(t("pages.messenger.deleteFailed"));
         fetchMessages(dialogId)
           .then((msgs) => setDialogMessages(dialogId, msgs))
           .catch(() => {});
@@ -971,13 +1003,13 @@ function MessengerPage() {
   const handleReportMessage = (m: Message) => {
     if (!partner) return;
     const snippet = m.text?.trim()
-      || (m.voice ? "[голосовое сообщение]" : "")
-      || (m.image ? "[изображение]" : "")
-      || (m.file ? `[файл: ${m.file.name}]` : "");
+      || (m.voice ? t("pages.messenger.voiceMessage") : "")
+      || (m.image ? t("pages.messenger.image") : "")
+      || (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
     setMessageComplaint({
       target: partner,
       messageId: m.id,
-      contextNote: snippet ? `Сообщение: ${snippet.slice(0, 500)}` : undefined,
+      contextNote: snippet ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) }) : undefined,
     });
   };
 
@@ -1014,8 +1046,8 @@ function MessengerPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onClear={() => setQuery("")}
-                  placeholder="Поиск диалога"
-                  aria-label="Поиск диалога"
+                  placeholder={t("pages.messenger.searchDialog")}
+                  aria-label={t("pages.messenger.searchDialog")}
                 />
               </div>
             </div>
@@ -1024,29 +1056,29 @@ function MessengerPage() {
               style={{ borderBottom: "1px solid var(--border)" }}
             >
               {([
-                { key: "chats-active" as const, label: "Активные" },
-                { key: "channels" as const, label: "Каналы" },
-                { key: "chats-archive" as const, label: `Архив${archivedCount ? ` · ${archivedCount}` : ""}` },
-                { key: "calls" as const, label: "Звонки" },
-              ]).map((t) => {
+                { key: "chats-active" as const, label: t("pages.messenger.tabActive") },
+                { key: "channels" as const, label: t("pages.messenger.tabChannels") },
+                { key: "chats-archive" as const, label: `${t("pages.messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}` },
+                { key: "calls" as const, label: t("pages.messenger.tabCalls") },
+              ]).map((tabItem) => {
                 const isActive =
-                  (t.key === "calls" && listTab === "calls") ||
-                  (t.key === "channels" && listTab === "channels") ||
-                  (t.key === "chats-active" && listTab === "chats" && !showArchived) ||
-                  (t.key === "chats-archive" && listTab === "chats" && showArchived);
+                  (tabItem.key === "calls" && listTab === "calls") ||
+                  (tabItem.key === "channels" && listTab === "channels") ||
+                  (tabItem.key === "chats-active" && listTab === "chats" && !showArchived) ||
+                  (tabItem.key === "chats-archive" && listTab === "chats" && showArchived);
                 return (
                   <button
-                    key={t.key}
+                    key={tabItem.key}
                     onClick={() => {
-                      if (t.key === "calls") setListTab("calls");
-                      else if (t.key === "channels") setListTab("channels");
+                      if (tabItem.key === "calls") setListTab("calls");
+                      else if (tabItem.key === "channels") setListTab("channels");
                       else {
                         setListTab("chats");
-                        setShowArchived(t.key === "chats-archive");
+                        setShowArchived(tabItem.key === "chats-archive");
                       }
                     }}
                     className="min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px]"
-                    title={t.label}
+                    title={tabItem.label}
                     style={{
                       height: 32,
                       fontWeight: isActive ? 600 : 500,
@@ -1054,7 +1086,7 @@ function MessengerPage() {
                       borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
-                    <span className="block truncate">{t.label}</span>
+                    <span className="block truncate">{tabItem.label}</span>
                   </button>
                 );
               })}
@@ -1159,7 +1191,7 @@ function MessengerPage() {
                         <span
                           role="button"
                           tabIndex={0}
-                          aria-label="Действия с чатом"
+                          aria-label={t("pages.messenger.chatActions")}
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
@@ -1195,7 +1227,7 @@ function MessengerPage() {
                   size="icon"
                   onClick={() => setMobileView("list")}
                   className="rounded-full text-[var(--foreground-70)] md:hidden"
-                  aria-label="Назад"
+                  aria-label={t("pages.messenger.back")}
                 >
                   <ArrowLeft size={20} />
                 </Button>
@@ -1243,7 +1275,7 @@ function MessengerPage() {
                 >
                   <Pin size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
                   <div className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
-                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : "Вложение")}
+                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : t("pages.messenger.attachmentLabel"))}
                   </div>
                   <span
                     role="button"
@@ -1254,7 +1286,7 @@ function MessengerPage() {
                     }}
                     className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full"
                     style={{ color: "var(--foreground-50)" }}
-                    aria-label="Открепить сообщение"
+                    aria-label={t("pages.messenger.unpinMessage")}
                   >
                     <X size={13} />
                   </span>
@@ -1267,35 +1299,6 @@ function MessengerPage() {
                   <MessageSkeleton />
                 ) : (
                   <div ref={messagesContentRef}>
-                    {activeAdRef && (
-                      <div className="mb-[14px] flex justify-center">
-                        <Link
-                          to="/ads/$id"
-                          params={{ id: activeAdRef.id }}
-                          className="flex w-full max-w-[320px] items-center gap-[10px] rounded-[14px] border p-[10px] transition-colors hover:bg-[var(--background-surface)]"
-                          style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
-                        >
-                          {activeAdRef.image ? (
-                            <img
-                              src={activeAdRef.image}
-                              alt=""
-                              className="h-[48px] w-[48px] shrink-0 rounded-[10px] object-cover"
-                            />
-                          ) : (
-                            <div className="h-[48px] w-[48px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-[2px] text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
-                              Объявление
-                            </div>
-                            <div className="truncate text-[13px]" style={{ color: "var(--foreground)" }}>{activeAdRef.title}</div>
-                            <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
-                              {activeAdRef.price.toLocaleString("ru")} ₽
-                            </div>
-                          </div>
-                        </Link>
-                      </div>
-                    )}
                     {active.messages
                       .filter((m) => !m.deletedForMe)
                       .map((m, i, arr) => (
@@ -1341,11 +1344,11 @@ function MessengerPage() {
                         <CornerUpLeft size={14} style={{ color: "var(--accent)" }} />
                         <div className="min-w-0 flex-1 text-[12px]">
                           <div className="font-semibold" style={{ color: "var(--foreground-70)" }}>
-                            Ответ: {replyTo.authorId === meId ? "Вы" : userById(replyTo.authorId).name}
+                            {t("pages.messenger.replyTo", { name: replyTo.authorId === meId ? t("pages.shared.you") : userById(replyTo.authorId).name })}
                           </div>
                           <div className="truncate" style={{ color: "var(--foreground-50)" }}>{replyTo.text}</div>
                         </div>
-                        <button onClick={() => setReplyTo(null)} className="grid h-[20px] w-[20px] place-items-center rounded-full" style={{ color: "var(--foreground-50)" }} aria-label="Отменить ответ">
+                        <button onClick={() => setReplyTo(null)} className="grid h-[20px] w-[20px] place-items-center rounded-full" style={{ color: "var(--foreground-50)" }} aria-label={t("pages.messenger.cancelReply")}>
                           <X size={14} />
                         </button>
                       </div>
@@ -1377,7 +1380,7 @@ function MessengerPage() {
                           send();
                         }
                       }}
-                      placeholder="Сообщение..."
+                      placeholder={t("pages.messenger.messagePlaceholder")}
                       rows={1}
                       className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
@@ -1393,7 +1396,7 @@ function MessengerPage() {
                       size="icon"
                       onClick={send}
                       className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px]"
-                      aria-label="Отправить"
+                      aria-label={t("pages.messenger.send")}
                     >
                       <Send size={18} />
                     </Button>
@@ -1424,7 +1427,7 @@ function MessengerPage() {
         target={messageComplaint?.target ?? null}
         onClose={() => setMessageComplaint(null)}
         page="/messenger"
-        subjectSuffix=" (сообщение в чате)"
+        subjectSuffix={t("pages.messenger.reportSuffix")}
         contextNote={messageComplaint?.contextNote}
         report={messageComplaint ? { type: "message", targetId: messageComplaint.messageId } : undefined}
       />
@@ -1450,7 +1453,7 @@ function MessengerPage() {
           if (!dialogCtxMenu) return;
           const archived = getMeta(dialogCtxMenu.dialogId).archived;
           actions.setDialogMeta(dialogCtxMenu.dialogId, { archived: !archived });
-          toast.success(archived ? "Чат возвращён из архива" : "Чат перемещён в архив");
+          toast.success(archived ? t("pages.messenger.chatRestored") : t("pages.messenger.chatArchived"));
         }}
         onToggleBlock={async () => {
           if (!dialogCtxMenu) return;
@@ -1463,24 +1466,24 @@ function MessengerPage() {
               try {
                 await unblockUser(partner.numericId);
               } catch {
-                toast.error("Не удалось разблокировать");
+                toast.error(t("pages.messenger.unblockFailed"));
                 return;
               }
             }
             actions.unblockUser(dlg.userId);
-            toast.success(`${partner.name} разблокирован`);
+            toast.success(t("pages.messenger.userUnblocked", { name: partner.name }));
           } else {
-            if (!window.confirm(`Заблокировать ${partner.name}? Вы больше не будете получать от него сообщения.`)) return;
+            if (!window.confirm(t("pages.messenger.blockConfirm", { name: partner.name }))) return;
             if (!isDemoMode() && partner.numericId) {
               try {
                 await blockUser(partner.numericId);
               } catch {
-                toast.error("Не удалось заблокировать");
+                toast.error(t("pages.messenger.blockFailed"));
                 return;
               }
             }
             actions.blockUser(dlg.userId);
-            toast.success(`${partner.name} заблокирован`);
+            toast.success(t("pages.messenger.userBlockedToast", { name: partner.name }));
           }
         }}
         onTogglePin={() => {
@@ -1495,22 +1498,22 @@ function MessengerPage() {
         }}
         onClearHistory={async () => {
           if (!dialogCtxMenu) return;
-          if (!window.confirm("Очистить историю переписки в этом чате? Это действие нельзя отменить.")) return;
+          if (!window.confirm(t("pages.messenger.clearHistoryConfirm"))) return;
           const dialogId = dialogCtxMenu.dialogId;
           if (!isDemoMode()) {
             try {
               await clearConversationHistory(dialogId);
             } catch {
-              toast.error("Не удалось очистить историю");
+              toast.error(t("pages.messenger.clearHistoryFailed"));
               return;
             }
           }
           actions.clearHistory(dialogId);
-          toast.success("История очищена");
+          toast.success(t("pages.messenger.historyCleared"));
         }}
         onDeleteChat={async () => {
           if (!dialogCtxMenu) return;
-          if (!window.confirm("Удалить чат? Переписка исчезнет из списка.")) return;
+          if (!window.confirm(t("pages.messenger.deleteChatConfirm"))) return;
           const dialogId = dialogCtxMenu.dialogId;
           const dlg = dlgs.find((d) => d.id === dialogId);
           const partnerId = dlg?.userId ?? "";
@@ -1519,14 +1522,14 @@ function MessengerPage() {
               await clearConversationHistory(dialogId);
               await deleteConversation(dialogId);
             } catch {
-              toast.error("Не удалось удалить чат");
+              toast.error(t("pages.messenger.deleteChatFailed"));
               return;
             }
           }
           actions.clearHistory(dialogId);
           if (partnerId) markDialogDeleted(dialogId, partnerId);
           if (activeId === dialogId) deselectDialog(dialogId);
-          toast.success("Чат удалён");
+          toast.success(t("pages.messenger.chatDeleted"));
         }}
       />
     </AppLayout>
@@ -1534,11 +1537,12 @@ function MessengerPage() {
 }
 
 function EmptyChat() {
+  const { t } = useTranslation();
   return (
     <EmptyState
       icon={MessageSquare}
-      title="Выберите диалог"
-      description="или начните новый разговор"
+      title={t("pages.messenger.selectDialogTitle")}
+      description={t("pages.messenger.selectDialogDesc")}
       variant="bare"
       className="flex-1"
     />
@@ -1546,21 +1550,23 @@ function EmptyChat() {
 }
 
 function EmptyDialogs() {
+  const { t } = useTranslation();
   return (
     <EmptyState
       icon={Users}
-      title="Нет диалогов"
-      description="Начните общение в категориях или найдите друзей"
+      title={t("pages.messenger.noDialogsTitle")}
+      description={t("pages.messenger.noDialogsDesc")}
       variant="bare"
     >
       <Button asChild size="lg" className="rounded-full px-[28px]">
-        <Link to="/friends">Найти друзей</Link>
+        <Link to="/friends">{t("pages.messenger.findFriends")}</Link>
       </Button>
     </EmptyState>
   );
 }
 
 function ChannelsList({ query }: { query: string }) {
+  const { t } = useTranslation();
   const { channels: all } = useChannels();
   const q = query.trim().toLowerCase();
   const list = (q
@@ -1574,7 +1580,7 @@ function ChannelsList({ query }: { query: string }) {
   });
 
   if (list.length === 0) {
-    return <EmptyState icon={Radio} title="Каналы не найдены" variant="bare" />;
+    return <EmptyState icon={Radio} title={t("pages.messenger.channelsNotFound")} variant="bare" />;
   }
 
   return (
@@ -1613,7 +1619,7 @@ function ChannelsList({ query }: { query: string }) {
                   className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
                   style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}
                 >
-                  <Check size={11} /> Подписан
+                  <Check size={11} /> {t("pages.messenger.channelSubscribed")}
                 </span>
               )}
             </Link>

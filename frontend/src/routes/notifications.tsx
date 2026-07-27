@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Bell, CheckCheck, Trash2, UserPlus, Megaphone, MessageSquare, Phone, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,8 +20,10 @@ import {
 } from "@/lib/api/notifications";
 import { onRealtimeNotification } from "@/lib/realtime/user";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/notifications")({
-  head: () => ({ meta: [{ title: "Уведомления — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.notifications.metaTitle") }] }),
   component: NotificationsPage,
 });
 
@@ -32,7 +35,39 @@ function iconFor(type: string) {
   return Bell;
 }
 
+function SwipeableNotification({
+  children,
+  onDelete,
+}: {
+  children: React.ReactNode;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="relative overflow-hidden" style={{ borderRadius: "var(--r-card-sm)" }}>
+      <div
+        className="absolute inset-y-0 right-0 grid w-[72px] place-items-center"
+        style={{ background: "color-mix(in oklab, var(--error) 90%, black)" }}
+      >
+        <Trash2 size={18} className="text-white" />
+      </div>
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -88, right: 0 }}
+        dragElastic={0.08}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -64) onDelete();
+        }}
+        className="relative touch-pan-y"
+        style={{ touchAction: "pan-y" }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
 function NotificationsPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +75,7 @@ function NotificationsPage() {
   useEffect(() => {
     fetchNotifications()
       .then((r) => setItems(r.items))
-      .catch(() => toast.error("Не удалось загрузить уведомления"))
+      .catch(() => toast.error(t("pages.notifications.loadFailed")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -67,9 +102,9 @@ function NotificationsPage() {
     setItems((prev) => prev.map((x) => ({ ...x, read: true })));
     try {
       await markAllNotificationsRead();
-      toast.success("Все прочитаны");
+      toast.success(t("pages.notifications.allRead"));
     } catch {
-      toast.error("Не удалось обновить");
+      toast.error(t("pages.notifications.updateFailed"));
     }
   };
 
@@ -78,7 +113,7 @@ function NotificationsPage() {
     try {
       await deleteNotification(id);
     } catch {
-      toast.error("Не удалось удалить");
+      toast.error(t("pages.notifications.deleteFailed"));
       fetchNotifications().then((r) => setItems(r.items)).catch(() => {});
     }
   };
@@ -88,10 +123,10 @@ function NotificationsPage() {
     setItems([]);
     try {
       await clearAllNotifications();
-      toast.success("Уведомления очищены");
+      toast.success(t("pages.notifications.cleared"));
     } catch {
       setItems(prev);
-      toast.error("Не удалось очистить");
+      toast.error(t("pages.notifications.clearFailed"));
     }
   };
 
@@ -101,7 +136,7 @@ function NotificationsPage() {
         <div className="mb-[16px] flex items-center justify-between gap-[8px]">
           <div className="flex items-center gap-[10px]">
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>
-              Уведомления
+              {t("pages.notifications.title")}
             </h1>
             {unread > 0 && (
               <span
@@ -122,7 +157,7 @@ function NotificationsPage() {
                   className="gap-[6px] rounded-[8px] text-[13px]"
                   style={{ color: "var(--accent)" }}
                 >
-                  <CheckCheck size={15} /> Прочитать все
+                  <CheckCheck size={15} /> {t("pages.notifications.markAllRead")}
                 </Button>
               )}
               <Button
@@ -132,7 +167,7 @@ function NotificationsPage() {
                 className="gap-[6px] rounded-[8px] text-[13px]"
                 style={{ color: "var(--foreground-50)" }}
               >
-                <Trash2 size={15} /> Очистить все
+                <Trash2 size={15} /> {t("pages.notifications.clearAll")}
               </Button>
             </div>
           )}
@@ -161,8 +196,8 @@ function NotificationsPage() {
         ) : items.length === 0 ? (
           <EmptyState
             icon={Bell}
-            title="Пока нет уведомлений"
-            description="Здесь будут появляться уведомления о новых активностях"
+            title={t("pages.notifications.emptyTitle")}
+            description={t("pages.notifications.emptyDesc")}
             variant="compact"
           />
         ) : (
@@ -176,6 +211,7 @@ function NotificationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.03, 0.3) }}
                 >
+                  <SwipeableNotification onDelete={() => void removeOne(n.id)}>
                   <Card
                     className="flex w-full cursor-pointer items-start gap-[12px] p-[12px] shadow-none transition-opacity hover:opacity-80"
                     style={{
@@ -223,7 +259,7 @@ function NotificationsPage() {
                     )}
                     <button
                       type="button"
-                      aria-label="Удалить уведомление"
+                      aria-label={t("pages.notifications.deleteAria")}
                       onClick={(e) => {
                         e.stopPropagation();
                         void removeOne(n.id);
@@ -234,6 +270,7 @@ function NotificationsPage() {
                       <X size={14} />
                     </button>
                   </Card>
+                  </SwipeableNotification>
                 </motion.div>
               );
             })}

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useChannels, isChannelOwner } from "@/lib/channels";
@@ -10,12 +11,15 @@ import { useStore, selectors } from "@/lib/store";
 import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
 import type { EntityKind } from "@/lib/api/entity-requests";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/settings/spaces")({
-  head: () => ({ meta: [{ title: "Мой канал и сообщество — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.settings.spacesMetaTitle") }] }),
   component: SettingsSpacesPage,
 });
 
 function SettingsSpacesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const { channels } = useChannels();
@@ -37,14 +41,13 @@ function SettingsSpacesPage() {
     <div className="flex flex-col gap-[16px]">
       <VerificationBanner />
       <h1 className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
-        Мой канал и сообщество
+        {t("pages.settings.spacesTitle")}
       </h1>
 
-      {/* Канал */}
       <SpaceCard
         icon={<Radio size={20} />}
-        title="Канал"
-        subtitle={myChannel ? myChannel.name : "У вас пока нет канала"}
+        title={t("pages.settings.spacesChannel")}
+        subtitle={myChannel ? myChannel.name : t("pages.settings.spacesNoChannel")}
         action={
           myChannel ? (
             <Link
@@ -53,7 +56,7 @@ function SettingsSpacesPage() {
               className={secondaryActionClass}
               style={secondaryActionStyle}
             >
-              Мой канал <ChevronRight size={16} />
+              {t("pages.settings.spacesMyChannel")} <ChevronRight size={16} />
             </Link>
           ) : (
             <button
@@ -62,17 +65,16 @@ function SettingsSpacesPage() {
               className={primaryActionClass}
               style={primaryActionStyle}
             >
-              <Plus size={16} /> Создать канал
+              <Plus size={16} /> {t("pages.settings.spacesCreateChannel")}
             </button>
           )
         }
       />
 
-      {/* Сообщество */}
       <SpaceCard
         icon={<Users2 size={20} />}
-        title="Сообщество"
-        subtitle={myCommunity ? myCommunity.name : "Создайте своё сообщество по городу или узкой теме"}
+        title={t("pages.settings.spacesCommunity")}
+        subtitle={myCommunity ? myCommunity.name : t("pages.settings.spacesNoCommunity")}
         action={
           myCommunity ? (
             <Link
@@ -81,7 +83,7 @@ function SettingsSpacesPage() {
               className={secondaryActionClass}
               style={secondaryActionStyle}
             >
-              Моё сообщество <ChevronRight size={16} />
+              {t("pages.settings.spacesMyCommunity")} <ChevronRight size={16} />
             </Link>
           ) : (
             <button
@@ -90,7 +92,7 @@ function SettingsSpacesPage() {
               className={primaryActionClass}
               style={primaryActionStyle}
             >
-              <Plus size={16} /> Создать сообщество
+              <Plus size={16} /> {t("pages.settings.spacesCreateCommunity")}
             </button>
           )
         }

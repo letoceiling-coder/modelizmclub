@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, MessageCircle, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
@@ -9,6 +10,7 @@ import { usePostCategories } from "@/lib/hooks/useCategories";
 import { CategoryIcon } from "@/components/ui/Icon";
 
 export function RightCategories() {
+  const { t } = useTranslation();
   const [openId, setOpenId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -27,7 +29,7 @@ export function RightCategories() {
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          aria-label="Развернуть панель"
+          aria-label={t("components.rightCategories.expandPanel")}
           className="grid h-9 w-9 place-items-center rounded-[10px] border transition-colors hover:bg-[var(--background-surface)]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)", color: "var(--foreground-70)" }}
         >
@@ -52,12 +54,12 @@ export function RightCategories() {
               style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
             >
               <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
-              Найди своих
+              {t("components.rightCategories.title")}
             </h3>
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              aria-label="Свернуть панель"
+              aria-label={t("components.rightCategories.collapsePanel")}
               className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-surface)]"
               style={{ color: "var(--foreground-50)" }}
             >
@@ -65,7 +67,7 @@ export function RightCategories() {
             </button>
           </div>
           <p className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Зайди в чат своего направления
+            {t("components.rightCategories.subtitle")}
           </p>
         </div>
 
@@ -96,14 +98,14 @@ export function RightCategories() {
                       </span>
                       <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
                         <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                        {online} онлайн
+                        {t("components.rightCategories.onlineCount", { count: online })}
                       </span>
                     </span>
                   </Link>
                   {c.subcategories.length > 0 && (
                     <button
                       onClick={() => setOpenId(open ? null : c.id)}
-                      aria-label={open ? "Свернуть подкатегории" : "Развернуть подкатегории"}
+                      aria-label={open ? t("components.rightCategories.collapseSubcategories") : t("components.rightCategories.expandSubcategories")}
                       aria-expanded={open}
                       className="grid w-[28px] place-items-center rounded-r-[10px] transition-colors hover:bg-[var(--background-surface)]"
                     >
@@ -148,7 +150,7 @@ export function RightCategories() {
             className="flex w-full items-center justify-center rounded-[8px] px-[10px] py-[8px] text-[12px] font-semibold transition-colors hover:bg-[var(--background-elevated)]"
             style={{ color: "var(--accent)" }}
           >
-            Все направления
+            {t("components.rightCategories.allDirections")}
           </Link>
         </div>
       </div>

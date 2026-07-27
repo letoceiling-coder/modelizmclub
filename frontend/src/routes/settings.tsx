@@ -3,8 +3,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { SettingsNav } from "@/components/settings/SettingsNav";
 import { SettingsDesktopRail } from "@/components/settings/SettingsDesktopRail";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Настройки — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.settings.metaTitle") }] }),
   component: SettingsLayout,
 });
 

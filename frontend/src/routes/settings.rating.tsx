@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Star } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
@@ -38,9 +39,8 @@ interface ReviewRow {
 }
 
 function RatingSection() {
+  const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
-  // Demo hosts show the illustrative mock; production loads the real
-  // aggregate + reviews from GET /users/{id}/rating|reviews.
   const demo = isDemoMode();
   const [rating, setRating] = useState(demo ? mockMyRating : { average: 0, count: 0 });
   const [reviews, setReviews] = useState<ReviewRow[]>(demo ? mockMyReviews : []);
@@ -54,30 +54,30 @@ function RatingSection() {
         setRating(agg);
         setReviews(rows.map((r) => ({
           id: r.id,
-          author: r.author.display_name ?? "Пользователь",
+          author: r.author.display_name ?? t("pages.settings.defaultUser"),
           rating: r.rating,
           text: r.text ?? "",
           date: r.date,
         })));
       })
-      .catch(() => { /* keep the empty state on failure — never mocks */ });
+      .catch(() => {});
     return () => { alive = false; };
-  }, [demo, me.numericId]);
+  }, [demo, me.numericId, t]);
 
   return (
-    <SettingsSectionShell title="Рейтинг и отзывы">
+    <SettingsSectionShell title={t("pages.settings.ratingTitle")}>
       <Card className="flex items-center gap-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
         <div className="font-display text-[40px] font-bold leading-none" style={{ color: "var(--foreground)" }}>{rating.average.toFixed(1)}</div>
         <div>
           <Stars value={rating.average} size={18} />
-          <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>на основе {rating.count} отзывов</div>
+          <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.ratingBasedOn", { count: rating.count })}</div>
         </div>
       </Card>
 
       <div className="flex flex-col gap-[10px]">
         {reviews.length === 0 && !demo ? (
           <Card className="p-[16px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-            <p className="text-[13.5px]" style={{ color: "var(--foreground-50)" }}>Отзывов пока нет</p>
+            <p className="text-[13.5px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.ratingEmpty")}</p>
           </Card>
         ) : (
         reviews.map((r) => (

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { VideoCategory } from "@/lib/mock";
@@ -13,8 +14,10 @@ import { getState, selectors } from "@/lib/store";
 import { ensureSession } from "@/lib/auth/session";
 import { ApiError } from "@/lib/api/client";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/reviews/upload")({
-  head: () => ({ meta: [{ title: "Загрузить обзор — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.reviews.uploadMetaTitle") }] }),
   beforeLoad: async ({ location }) => {
     const { requireAdmin } = await import("@/lib/auth/requireAdmin");
     await requireAdmin(location);
@@ -25,6 +28,7 @@ export const Route = createFileRoute("/reviews/upload")({
 type Access = "checking" | "granted" | "forbidden";
 
 function UploadPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [access, setAccess] = useState<Access>("checking");
   const [categories, setCategories] = useState<VideoCategory[]>([]);
@@ -73,52 +77,59 @@ function UploadPage() {
         title: title.trim(),
         description: description.trim(),
         categoryId,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         posterMediaId: posterMedia?.uuid,
         videoMediaId: videoMedia.uuid,
         posterUrl: posterUrl ?? "",
         videoUrl: videoUrl ?? videoMedia.url ?? "",
         isFeatured,
       });
-      toast.success("Обзор опубликован");
+      toast.success(t("pages.reviews.published"));
       void navigate({ to: "/reviews" });
     } catch (err) {
       const msg = err instanceof ApiError
-        ? err.message || "Не удалось опубликовать обзор"
-        : "Не удалось опубликовать обзор";
+        ? err.message || t("pages.reviews.publishFailed")
+        : t("pages.reviews.publishFailed");
       toast.error(msg);
       setSubmitting(false);
     }
   };
 
   if (access === "checking") {
-    return <AppLayout rightColumn={false}><div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>Проверка доступа…</div></AppLayout>;
+    return <AppLayout rightColumn={false}><div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.checkingAccess")}</div></AppLayout>;
   }
   if (access === "forbidden") {
-    return <AppLayout rightColumn={false}><div className="mx-auto max-w-[480px] py-[60px] text-center"><h1 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>Доступ ограничен</h1><p className="mt-[8px] text-[14px]" style={{ color: "var(--foreground-70)" }}>Загружать обзоры может только администратор площадки.</p></div></AppLayout>;
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="mx-auto max-w-[480px] py-[60px] text-center">
+          <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.reviews.accessDenied")}</h1>
+          <p className="mt-[8px] text-[14px]" style={{ color: "var(--foreground-70)" }}>{t("pages.reviews.accessDeniedDesc")}</p>
+        </div>
+      </AppLayout>
+    );
   }
 
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[720px] flex-col gap-[16px] py-[8px]">
-        <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>Новый обзор</h1>
+        <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("pages.reviews.newReview")}</h1>
 
-        <VideoUploadField fileUrl={videoUrl} onPick={pickVideo} onClear={() => { setVideoFile(null); setVideoUrl(null); }} accept="video/*" label="Загрузить видео (mp4)" />
-        <VideoUploadField fileUrl={posterUrl} onPick={pickPoster} onClear={() => { setPosterFile(null); setPosterUrl(null); }} accept="image/*" label="Обложка (необязательно)" />
+        <VideoUploadField fileUrl={videoUrl} onPick={pickVideo} onClear={() => { setVideoFile(null); setVideoUrl(null); }} accept="video/*" label={t("pages.reviews.uploadVideo")} />
+        <VideoUploadField fileUrl={posterUrl} onPick={pickPoster} onClear={() => { setPosterFile(null); setPosterUrl(null); }} accept="image/*" label={t("pages.reviews.uploadPoster")} />
 
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название обзора" />
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Описание" rows={4} />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("pages.reviews.titlePlaceholder")} />
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("pages.reviews.descriptionPlaceholder")} rows={4} />
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full text-[14px] outline-none" style={{ background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "var(--r-input)", height: 44, padding: "0 12px" }}>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Теги через запятую" />
+        <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t("pages.reviews.tagsPlaceholder")} />
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
           <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
-          <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>Показывать в карусели «Рекомендованное»</span>
+          <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>{t("pages.reviews.featuredCarousel")}</span>
         </label>
 
         <Button onClick={submit} disabled={!valid} loading={submitting} size="lg" className="rounded-[var(--r-button)]">
-          {submitting ? "Публикуется…" : "Опубликовать обзор"}
+          {submitting ? t("pages.reviews.publishing") : t("pages.reviews.publish")}
         </Button>
       </div>
     </AppLayout>

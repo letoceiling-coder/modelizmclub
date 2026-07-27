@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   ChevronDown,
@@ -39,8 +40,10 @@ import { navigateToPartnerChat } from "@/lib/api/chat";
 
 type Tab = "chat" | "ads" | "members";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/categories/$id/$subId")({
-  head: () => ({ meta: [{ title: "Подкатегория — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.subcategoryDetail.metaTitle") }] }),
   component: SubcategoryRoomPage,
 });
 
@@ -140,7 +143,7 @@ function highlightNodes(
 
 function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[] {
   if (pool.length === 0) return [];
-  const base = `Привет всем в чате «${subName}»! Кто сейчас в теме?`;
+  const base = i18n.t("pages.subcategoryDetail.demoIntro", { name: subName });
   const seed = seedFrom(c.id + subName);
   const pick = (i: number) => pool[(seed + i) % pool.length];
 
@@ -156,7 +159,7 @@ function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[
       id: "m2",
       authorId: pick(1).id,
       time: "10:45",
-      text: `Привет! Я по ${subName.toLowerCase()} давно. Что обсуждаем сегодня?`,
+      text: i18n.t("pages.subcategoryDetail.demoReply", { name: subName.toLowerCase() }),
       status: "read",
       replyToId: "m1",
     },
@@ -164,14 +167,14 @@ function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[
       id: "m3",
       authorId: pick(2).id,
       time: "11:02",
-      text: "Кто-нибудь пробовал новые настройки подвески после последнего обновления?",
+      text: i18n.t("pages.subcategoryDetail.demoMsg1"),
       status: "read",
     },
     {
       id: "m4",
       authorId: pick(3).id,
       time: "11:10",
-      text: "Да, поставил мягче спереди — стало лучше на буграх. Скину фото вечером.",
+      text: i18n.t("pages.subcategoryDetail.demoMsg2"),
       status: "read",
       replyToId: "m3",
     },
@@ -179,14 +182,14 @@ function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[
       id: "m5",
       authorId: pick(0).id,
       time: "11:18",
-      text: "Кстати, у нас в выходные встреча клуба. Подтянитесь, кто рядом.",
+      text: i18n.t("pages.subcategoryDetail.demoMsg3"),
       status: "read",
     },
     {
       id: "m6",
       authorId: pick(4).id,
       time: "11:24",
-      text: "Подскажите по моторам под этот класс — что брать в бюджете?",
+      text: i18n.t("pages.subcategoryDetail.demoMsg4"),
       status: "read",
     },
   ];
@@ -201,11 +204,12 @@ function buildMembers(
   return pool.map((u, i) => ({
     ...u,
     isOnline: ((seed + i) % 3) !== 0,
-    role: i === 0 ? "Модератор" : i === 1 ? "Эксперт" : undefined,
+    role: i === 0 ? i18n.t("pages.subcategoryDetail.roleModerator") : i === 1 ? i18n.t("pages.subcategoryDetail.roleExpert") : undefined,
   }));
 }
 
 function SubcategoryRoomPage() {
+  const { t } = useTranslation();
   const { id, subId } = Route.useParams();
   const categories = usePostCategories();
   const c = categories.find((x) => x.id === id);
@@ -244,7 +248,7 @@ function SubcategoryRoomPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0 ? "Загрузка…" : "Подкатегория не найдена."}
+          {categories.length === 0 ? t("pages.subcategoryDetail.loading") : t("pages.subcategoryDetail.notFound")}
         </p>
       </AppLayout>
     );
@@ -259,7 +263,7 @@ function SubcategoryRoomPage() {
       <div className="mb-[10px]">
         <Breadcrumbs
           items={[
-            { label: "Направления", to: "/categories" },
+            { label: t("pages.subcategoryDetail.breadcrumbs"), to: "/categories" },
             { label: c.name, to: "/categories/$id", params: { id: c.id } },
             { label: sub.name },
           ]}
@@ -277,7 +281,7 @@ function SubcategoryRoomPage() {
           <Link
             to="/categories/$id"
             params={{ id: c.id }}
-            aria-label="Назад к категории"
+            aria-label={t("pages.subcategoryDetail.backAria")}
             className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
           >
             <ArrowLeft className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
@@ -304,7 +308,7 @@ function SubcategoryRoomPage() {
                 <ChevronDown className="h-[14px] w-[14px] shrink-0" style={{ color: "var(--foreground-50)" }} />
               </div>
               <p className="truncate text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-                {c.name} · <span style={{ color: "#22c55e" }}>●</span> {onlineCount} онлайн
+                {c.name} · <span style={{ color: "#22c55e" }}>●</span> {t("pages.subcategoryDetail.online", { count: onlineCount })}
               </p>
             </div>
           </button>
@@ -316,9 +320,9 @@ function SubcategoryRoomPage() {
           style={{ borderColor: "var(--border)" }}
           role="tablist"
         >
-          <TabBtn label="Чат" icon={<MessageCircle className="h-[14px] w-[14px]" />} active={tab === "chat"} onClick={() => setTab("chat")} />
-          <TabBtn label="Объявления" icon={<Tag className="h-[14px] w-[14px]" />} active={tab === "ads"} onClick={() => setTab("ads")} badge={subAds.length || undefined} />
-          <TabBtn label="Участники" icon={<Users className="h-[14px] w-[14px]" />} active={tab === "members"} onClick={() => setTab("members")} badge={members.length} />
+          <TabBtn label={t("pages.subcategoryDetail.tabChat")} icon={<MessageCircle className="h-[14px] w-[14px]" />} active={tab === "chat"} onClick={() => setTab("chat")} />
+          <TabBtn label={t("pages.subcategoryDetail.tabAds")} icon={<Tag className="h-[14px] w-[14px]" />} active={tab === "ads"} onClick={() => setTab("ads")} badge={subAds.length || undefined} />
+          <TabBtn label={t("pages.subcategoryDetail.tabMembers")} icon={<Users className="h-[14px] w-[14px]" />} active={tab === "members"} onClick={() => setTab("members")} badge={members.length} />
         </div>
 
         {/* Tab content */}
@@ -334,7 +338,7 @@ function SubcategoryRoomPage() {
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <button
             type="button"
-            aria-label="Закрыть"
+            aria-label={t("pages.subcategoryDetail.closeAria")}
             onClick={() => setSubSheetOpen(false)}
             className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
           />
@@ -345,16 +349,16 @@ function SubcategoryRoomPage() {
             <div className="flex items-center justify-between px-[16px] py-[14px] border-b" style={{ borderColor: "var(--border)" }}>
               <div>
                 <h3 className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-                  Комнаты «{c.name}»
+                  {t("pages.subcategoryDetail.roomsOf", { name: c.name })}
                 </h3>
                 <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  Выберите подкатегорию
+                  {t("pages.subcategoryDetail.pickSubcategory")}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSubSheetOpen(false)}
-                aria-label="Закрыть"
+                aria-label={t("pages.subcategoryDetail.closeAria")}
                 className="grid h-[32px] w-[32px] place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
               >
                 <X className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
@@ -378,7 +382,7 @@ function SubcategoryRoomPage() {
                       <span className="grid h-[28px] w-[28px] place-items-center rounded-[8px] text-[12px] font-semibold"
                         style={{ background: "var(--background)", color: active ? "var(--accent)" : "var(--foreground-70)" }}>#</span>
                       <span className="flex-1 text-[14px] font-medium">{s.name}</span>
-                      {active && <span className="text-[11px]" style={{ color: "var(--accent)" }}>Сейчас здесь</span>}
+                      {active && <span className="text-[11px]" style={{ color: "var(--accent)" }}>{t("pages.subcategoryDetail.hereNow")}</span>}
                     </Link>
                   </li>
                 );
@@ -436,15 +440,16 @@ function TabBtn({
 /* --------------------------- CHAT TAB --------------------------- */
 
 function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
+  const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
   const openPrivateChat = useCallback(async (partner: User) => {
     try {
       await navigateToPartnerChat(navigate, partner, me.id);
     } catch {
-      toast.error("Не удалось открыть диалог");
+      toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
     }
-  }, [me.id, navigate]);
+  }, [me.id, navigate, t]);
   const [messages, setMessages] = useState<RoomMessage[]>(() =>
     isDemoMode() ? buildMessages(category, subName, pool) : [],
   );
@@ -507,7 +512,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
         if (alive && msgs) setMessages(msgs);
       })
       .catch(() => {
-        if (alive) toast.error("Не удалось загрузить чат");
+        if (alive) toast.error(t("pages.subcategoryDetail.chatLoadFailed"));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -673,7 +678,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
       );
     } catch {
       setMessages((prev) => prev.filter((m) => m.clientKey !== clientKey));
-      toast.error("Не удалось отправить сообщение");
+      toast.error(t("pages.subcategoryDetail.sendFailed"));
     } finally {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
       setSending(false);
@@ -707,7 +712,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
             style={{ color: "var(--foreground-70)" }}
           >
             <Search className="h-[14px] w-[14px]" />
-            Поиск по чату
+            {t("pages.subcategoryDetail.searchInChat")}
           </button>
         ) : (
           <>
@@ -727,7 +732,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                   closeSearch();
                 }
               }}
-              placeholder="Найти в сообщениях…"
+              placeholder={t("pages.subcategoryDetail.searchInMessages")}
               className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
               style={{ color: "var(--foreground)" }}
             />
@@ -740,7 +745,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                 background: caseSensitive ? "var(--accent)" : "var(--background-elevated)",
                 color: caseSensitive ? "#fff" : "var(--foreground-50)",
               }}
-              title="Учитывать регистр"
+              title={t("pages.subcategoryDetail.matchCase")}
             >
               Aa
             </button>
@@ -753,7 +758,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                 background: exactMatch ? "var(--accent)" : "var(--background-elevated)",
                 color: exactMatch ? "#fff" : "var(--foreground-50)",
               }}
-              title="Точное совпадение"
+              title={t("pages.subcategoryDetail.exactMatch")}
             >
               =
             </button>
@@ -767,7 +772,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               type="button"
               onClick={() => stepMatch(-1)}
               disabled={matchIds.length === 0}
-              aria-label="Предыдущее совпадение"
+              aria-label={t("pages.subcategoryDetail.prevMatch")}
               className="grid h-[26px] w-[26px] place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-elevated)] disabled:opacity-40"
             >
               <ChevronUp className="h-[14px] w-[14px]" style={{ color: "var(--foreground-70)" }} />
@@ -776,7 +781,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               type="button"
               onClick={() => stepMatch(1)}
               disabled={matchIds.length === 0}
-              aria-label="Следующее совпадение"
+              aria-label={t("pages.subcategoryDetail.nextMatch")}
               className="grid h-[26px] w-[26px] place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-elevated)] disabled:opacity-40"
             >
               <ChevronDown className="h-[14px] w-[14px]" style={{ color: "var(--foreground-70)" }} />
@@ -784,7 +789,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
             <button
               type="button"
               onClick={closeSearch}
-              aria-label="Закрыть поиск"
+              aria-label={t("pages.subcategoryDetail.closeSearch")}
               className="grid h-[26px] w-[26px] place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-elevated)]"
             >
               <X className="h-[14px] w-[14px]" style={{ color: "var(--foreground-70)" }} />
@@ -796,13 +801,13 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
       <div ref={scrollRef} className="flex-1 space-y-[10px] overflow-y-auto px-[14px] py-[14px]">
         {loading ? (
           <div className="flex h-full items-center justify-center py-[40px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            Загрузка чата…
+            {t("pages.subcategoryDetail.chatLoading")}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-[8px] py-[40px] text-center">
             <MessageCircle className="h-[28px] w-[28px]" style={{ color: "var(--foreground-30)" }} />
             <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              Пока нет сообщений. Напишите первым!
+              {t("pages.subcategoryDetail.emptyChat")}
             </p>
           </div>
         ) : (
@@ -871,7 +876,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                         >
                           <img
                             src={src}
-                            alt="Вложение"
+                            alt={t("pages.subcategoryDetail.attachmentAlt")}
                             className="h-full max-h-[220px] w-full object-cover"
                             loading="lazy"
                           />
@@ -893,7 +898,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                   <button
                     type="button"
                     onClick={() => setReplyTo(m)}
-                    aria-label="Ответить"
+                    aria-label={t("pages.subcategoryDetail.replyAria")}
                     className={`absolute -top-[8px] ${mine ? "left-[6px]" : "right-[6px]"} hidden h-[22px] w-[22px] place-items-center rounded-full border bg-[var(--background-elevated)] group-hover:grid`}
                     style={{ borderColor: "var(--border)" }}
                   >
@@ -904,8 +909,8 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                   <button
                     type="button"
                     onClick={() => void openPrivateChat(u)}
-                    aria-label="Написать в личку"
-                    title="Написать в личку"
+                    aria-label={t("pages.subcategoryDetail.writePrivateAria")}
+                    title={t("pages.subcategoryDetail.writePrivateAria")}
                     className="mt-[2px] grid h-[22px] w-[22px] place-items-center rounded-full transition-colors hover:bg-[var(--accent-soft)]"
                     style={{ color: "var(--accent)" }}
                   >
@@ -928,7 +933,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           <Reply className="h-[14px] w-[14px] shrink-0" style={{ color: "var(--accent)" }} />
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-              Ответ: {userById(replyTo.authorId).name}
+              {t("pages.subcategoryDetail.replyTo", { name: userById(replyTo.authorId).name })}
             </div>
             <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
               {replyTo.text}
@@ -937,7 +942,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           <button
             type="button"
             onClick={() => setReplyTo(null)}
-            aria-label="Отменить ответ"
+            aria-label={t("pages.subcategoryDetail.cancelReplyAria")}
             className="grid h-[26px] w-[26px] place-items-center rounded-[8px] hover:bg-[var(--background-elevated)]"
           >
             <X className="h-[14px] w-[14px]" style={{ color: "var(--foreground-70)" }} />
@@ -957,11 +962,11 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[10px] border"
               style={{ borderColor: "var(--border)", background: "var(--background)" }}
             >
-              <img src={item.preview} alt="Превью" className="h-full w-full object-cover" />
+              <img src={item.preview} alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeAttachment(item.preview)}
-                aria-label="Удалить вложение"
+                aria-label={t("pages.subcategoryDetail.removeAttachmentAria")}
                 className="absolute right-[2px] top-[2px] grid h-[18px] w-[18px] place-items-center rounded-full"
                 style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
               >
@@ -992,7 +997,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)] disabled:opacity-40"
-          aria-label="Прикрепить фото"
+          aria-label={t("pages.subcategoryDetail.attachPhotoAria")}
           disabled={pendingAttachments.length >= 6}
         >
           <Paperclip className="h-[16px] w-[16px]" style={{ color: "var(--foreground-50)" }} />
@@ -1016,7 +1021,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               onPickFiles(dt.files);
             }
           }}
-          placeholder={`Написать в «${subName}»…`}
+          placeholder={t("pages.subcategoryDetail.writeInSub", { name: subName })}
           rows={1}
           className="min-h-[36px] max-h-[120px] flex-1 resize-none rounded-[10px] border px-[12px] py-[8px] text-[14px] outline-none focus:border-[var(--accent)]"
           style={{
@@ -1032,7 +1037,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           disabled={sending || (!text.trim() && pendingAttachments.length === 0) || (!isDemoMode() && !conversationUuid)}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
           style={{ background: "var(--accent)", color: "#fff" }}
-          aria-label="Отправить"
+          aria-label={t("common.send")}
         >
           <Send className="h-[16px] w-[16px]" />
         </button>
@@ -1044,22 +1049,23 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
 /* --------------------------- ADS TAB --------------------------- */
 
 function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
+  const { t } = useTranslation();
   if (subAds.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-[8px] px-[24px] py-[40px] text-center">
         <Tag className="h-[28px] w-[28px]" style={{ color: "var(--foreground-30)" }} />
         <h3 className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-          В «{subName}» пока нет объявлений
+          {t("pages.subcategoryDetail.noAds", { name: subName })}
         </h3>
         <p className="text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-          Это локальная доска именно этой подкатегории. Будьте первым.
+          {t("pages.subcategoryDetail.noAdsDesc")}
         </p>
         <Link
           to="/ads/new"
           className="mt-[6px] inline-flex items-center rounded-[10px] px-[14px] py-[8px] text-[13px] font-semibold"
           style={{ background: "var(--accent)", color: "#fff" }}
         >
-          Подать объявление
+          {t("pages.subcategoryDetail.postAd")}
         </Link>
       </div>
     );
@@ -1079,15 +1085,16 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
 /* --------------------------- MEMBERS TAB --------------------------- */
 
 function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> }) {
+  const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
   const openPrivateChat = useCallback(async (partner: User) => {
     try {
       await navigateToPartnerChat(navigate, partner, me.id);
     } catch {
-      toast.error("Не удалось открыть диалог");
+      toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
     }
-  }, [me.id, navigate]);
+  }, [me.id, navigate, t]);
   const sorted = [...members].sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
   return (
     <div className="h-full overflow-y-auto px-[10px] py-[10px]">
@@ -1127,7 +1134,7 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
                 )}
               </div>
               <p className="truncate text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-                {u.isOnline ? "онлайн" : "не в сети"} · {u.city}
+                {u.isOnline ? t("common.online") : t("pages.subcategoryDetail.offline")} · {u.city}
               </p>
             </div>
             <button
@@ -1136,7 +1143,7 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
               className="shrink-0 rounded-[8px] px-[10px] py-[6px] text-[12px] font-medium transition-colors"
               style={{ background: "var(--accent)", color: "#fff" }}
             >
-              Написать
+              {t("pages.subcategoryDetail.writeMessage")}
             </button>
           </li>
         ))}

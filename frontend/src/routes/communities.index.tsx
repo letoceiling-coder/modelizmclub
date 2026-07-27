@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff,
 } from "lucide-react";
@@ -13,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/communities/")({
-  head: () => ({ meta: [{ title: "Сообщества — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.communities.metaTitle") }] }),
   component: CommunitiesPage,
 });
 
@@ -22,20 +25,14 @@ const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging,
 };
 
-const ROLE_LABEL: Record<NonNullable<Community["role"]>, string> = {
-  owner: "Владелец",
-  moderator: "Модератор",
-  member: "Участник",
+const ROLE_LABEL_KEY: Record<NonNullable<Community["role"]>, string> = {
+  owner: "pages.shared.owner",
+  moderator: "pages.shared.moderator",
+  member: "pages.shared.member",
 };
 
-function resolveRole(c: Community): Community["role"] | undefined {
-  if (c.role) return c.role;
-  if (c.isOwner) return "owner";
-  if (c.joined) return "member";
-  return undefined;
-}
-
 function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void }) {
+  const { t } = useTranslation();
   const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
   const [brokenCover, setBrokenCover] = useState(false);
   const [brokenAvatar, setBrokenAvatar] = useState(false);
@@ -85,7 +82,7 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
                 backdropFilter: "blur(6px)",
               }}
             >
-              {ROLE_LABEL[role]}
+              {t(ROLE_LABEL_KEY[role])}
             </span>
           );
         })()}
@@ -132,11 +129,11 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         <div className="mt-auto flex items-center justify-between gap-[8px] pt-[4px]">
           <div className="flex flex-col gap-[2px]">
             <span className="inline-flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              <Users size={14} /> {c.members.toLocaleString("ru")} участников
+              <Users size={14} /> {t("pages.shared.members", { count: c.members.toLocaleString("ru") })}
             </span>
             <span className="inline-flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
               <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-              активны сегодня
+              {t("pages.shared.activeToday")}
             </span>
           </div>
           <div className="flex items-center gap-[6px]">
@@ -145,7 +142,7 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
             )}
             <Button asChild size="sm" className=" gap-[6px]">
               <Link to="/communities/$id" params={{ id: c.id }}>
-                Перейти <ArrowRight size={14} />
+                {t("pages.shared.goTo")} <ArrowRight size={14} />
               </Link>
             </Button>
           </div>
@@ -155,24 +152,33 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
   );
 }
 
+function resolveRole(c: Community): Community["role"] | undefined {
+  if (c.role) return c.role;
+  if (c.isOwner) return "owner";
+  if (c.joined) return "member";
+  return undefined;
+}
+
 function EmptyMy({ onSwitch }: { onSwitch: () => void }) {
+  const { t } = useTranslation();
   return (
     <EmptyState
       icon={Users}
-      title="Вы пока не в одном сообществе"
-      description="Посмотрите рекомендованные клубы, школы и магазины моделизма"
-      action={{ label: "Смотреть рекомендованные", onClick: onSwitch }}
+      title={t("pages.communities.emptyMineTitle")}
+      description={t("pages.communities.emptyMineDesc")}
+      action={{ label: t("pages.communities.browseRecommended"), onClick: onSwitch }}
       variant="compact"
     />
   );
 }
 
 function EmptySearch() {
+  const { t } = useTranslation();
   return (
     <EmptyState
       icon={Search}
-      title="Ничего не найдено"
-      description="Попробуйте изменить запрос или поискать в другом разделе"
+      title={t("pages.shared.nothingFound")}
+      description={t("pages.communities.emptySearchDesc")}
       variant="compact"
     />
   );
@@ -191,6 +197,7 @@ function CommunitySection({
   items: Community[];
   onDeleted?: () => void;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
   const visible = expanded ? items : items.slice(0, SECTION_LIMIT);
@@ -220,7 +227,7 @@ function CommunitySection({
             className="shrink-0 whitespace-nowrap text-[13px] font-semibold transition-colors hover:opacity-80"
             style={{ color: "var(--accent)" }}
           >
-            {expanded ? "Свернуть" : "Показать все"}
+            {expanded ? t("pages.shared.collapse") : t("pages.shared.showAll")}
           </button>
         )}
       </div>
@@ -234,6 +241,7 @@ function CommunitySection({
 }
 
 function CommunitiesPage() {
+  const { t } = useTranslation();
   const [all, setAll] = useState<Community[]>([]);
 
   useEffect(() => {
@@ -284,10 +292,10 @@ function CommunitiesPage() {
             className="font-display text-[24px] font-bold sm:text-[28px]"
             style={{ color: "var(--foreground)" }}
           >
-            Сообщества
+            {t("pages.communities.title")}
           </h1>
           <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
-            Клубы, кружки, школы и магазины моделизма
+            {t("pages.communities.subtitle")}
           </p>
         </header>
 
@@ -296,7 +304,7 @@ function CommunitiesPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onClear={() => setQuery("")}
-          placeholder="Поиск по названию, категории или описанию"
+          placeholder={t("pages.communities.searchPlaceholder")}
         />
 
         {nothing ? (
@@ -304,20 +312,20 @@ function CommunitiesPage() {
         ) : (
           <div className="space-y-[28px]">
             <CommunitySection
-              title="Мои сообщества"
-              subtitle="Где вы владелец или модератор"
+              title={t("pages.communities.sectionMine")}
+              subtitle={t("pages.communities.sectionMineSub")}
               items={mine}
               onDeleted={reloadCommunities}
             />
             <CommunitySection
-              title="Мои подписки"
-              subtitle="Сообщества, в которых вы состоите"
+              title={t("pages.communities.sectionSubscriptions")}
+              subtitle={t("pages.communities.sectionSubscriptionsSub")}
               items={subscriptions}
               onDeleted={reloadCommunities}
             />
             <CommunitySection
-              title="Рекомендованные"
-              subtitle={noneJoined ? "Подобрали клубы, школы и магазины моделизма" : "Подобрано по вашим интересам"}
+              title={t("pages.communities.sectionRecommended")}
+              subtitle={noneJoined ? t("pages.communities.sectionRecommendedSubNone") : t("pages.communities.sectionRecommendedSub")}
               items={recommended}
               onDeleted={reloadCommunities}
             />

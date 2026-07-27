@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -17,12 +18,24 @@ interface FaqEntry {
   category: string;
 }
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Помощь — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.help.metaTitle") }] }),
   component: HelpPage,
 });
 
+const TOPIC_OPTIONS = [
+  { value: "payment", labelKey: "pages.help.topicPayment" },
+  { value: "listing", labelKey: "pages.help.topicListing" },
+  { value: "account", labelKey: "pages.help.topicAccount" },
+  { value: "report", labelKey: "pages.help.topicReport" },
+  { value: "suggestion", labelKey: "pages.help.topicSuggestion" },
+  { value: "other", labelKey: "pages.help.topicOther" },
+] as const;
+
 function HelpPage() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -30,7 +43,7 @@ function HelpPage() {
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
 
-  const [faqCategories, setFaqCategories] = useState<FaqTab[]>([{ id: "all", label: "Все" }]);
+  const [faqCategories, setFaqCategories] = useState<FaqTab[]>([{ id: "all", label: t("pages.help.all") }]);
   const [faqItems, setFaqItems] = useState<FaqEntry[]>([]);
 
   useEffect(() => {
@@ -39,7 +52,7 @@ function HelpPage() {
       .then((cats) => {
         if (!active) return;
         setFaqCategories([
-          { id: "all", label: "Все" },
+          { id: "all", label: t("pages.help.all") },
           ...cats.map((c) => ({ id: c.slug, label: c.name })),
         ]);
         setFaqItems(
@@ -55,7 +68,7 @@ function HelpPage() {
       })
       .catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [t]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -69,7 +82,6 @@ function HelpPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[900px]">
-        {/* Header */}
         <span
           className="inline-block uppercase"
           style={{
@@ -82,7 +94,7 @@ function HelpPage() {
             borderRadius: "var(--r-tag)",
           }}
         >
-          ПОМОЩЬ
+          {t("pages.help.eyebrow")}
         </span>
         <h1
           style={{
@@ -95,19 +107,18 @@ function HelpPage() {
             marginTop: "16px",
           }}
         >
-          База знаний
+          {t("pages.help.title")}
         </h1>
         <p style={{ fontSize: "var(--fs-body-lg)", lineHeight: 1.6, color: "var(--foreground-70)", marginTop: "12px", maxWidth: "600px" }}>
-          Ответы на частые вопросы о платформе МоДелизМ
+          {t("pages.help.subtitle")}
         </p>
 
-        {/* Search */}
         <div style={{ marginTop: "32px", position: "relative" }}>
           <Search size={20} style={{ position: "absolute", left: "18px", top: "18px", color: "var(--foreground-30)" }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по базе знаний..."
+            placeholder={t("pages.help.searchPlaceholder")}
             className="w-full outline-none"
             style={{
               height: "56px",
@@ -129,7 +140,6 @@ function HelpPage() {
           />
         </div>
 
-        {/* Tabs */}
         <div
           className="no-scrollbar"
           style={{ marginTop: "24px", display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" }}
@@ -164,7 +174,6 @@ function HelpPage() {
           })}
         </div>
 
-        {/* Accordion */}
         <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "8px" }}>
           <AnimatePresence initial={false}>
             {filtered.map((item) => {
@@ -241,21 +250,20 @@ function HelpPage() {
                 fontSize: "14px",
               }}
             >
-              Ничего не найдено. Попробуйте изменить запрос.
+              {t("pages.help.nothingFound")}
             </div>
           )}
         </div>
 
-        {/* Contact */}
         <div style={{ marginTop: "48px", paddingTop: "32px", borderTop: "1px solid var(--border)" }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h3)", color: "var(--foreground)" }}>
-            Не нашли ответ? Напишите нам
+            {t("pages.help.contactTitle")}
           </h3>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (!topic || !email || !msg) return toast.error("Заполните все поля");
-              toast.success("Сообщение отправлено! Ответим в течение 24 часов.");
+              if (!topic || !email || !msg) return toast.error(t("pages.help.fillAllFields"));
+              toast.success(t("pages.help.sent"));
               setTopic(""); setEmail(""); setMsg("");
             }}
             style={{ maxWidth: "560px", marginTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}
@@ -274,19 +282,16 @@ function HelpPage() {
                 color: "var(--foreground)",
               }}
             >
-              <option value="">Выберите тему</option>
-              <option>Проблема с оплатой</option>
-              <option>Вопрос по объявлению</option>
-              <option>Проблема с аккаунтом</option>
-              <option>Жалоба на пользователя</option>
-              <option>Предложение</option>
-              <option>Другое</option>
+              <option value="">{t("pages.help.selectTopic")}</option>
+              {TOPIC_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
+              ))}
             </select>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Ваш email"
+              placeholder={t("pages.help.emailPlaceholder")}
               className="outline-none"
               style={{
                 height: "48px",
@@ -301,7 +306,7 @@ function HelpPage() {
             <textarea
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              placeholder="Опишите проблему подробно..."
+              placeholder={t("pages.help.messagePlaceholder")}
               className="outline-none"
               style={{
                 height: "140px",
@@ -332,7 +337,7 @@ function HelpPage() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
             >
-              Отправить
+              {t("pages.help.send")}
             </button>
           </form>
         </div>

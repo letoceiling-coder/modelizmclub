@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { TrendingUp, Eye, Heart, ClipboardList, Loader2, LineChart } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
@@ -11,16 +12,17 @@ export const Route = createFileRoute("/settings/dashboard")({
   component: DashboardSection,
 });
 
-const STATUS_LABEL: Partial<Record<AdStatusKey, string>> = {
-  active: "Активные",
-  moderation: "На модерации",
-  rejected: "С ошибками",
-  unpublished: "Неопубликованные",
-  archived: "Архив",
-  draft: "Черновики",
-};
-
 function DashboardSection() {
+  const { t } = useTranslation();
+  const STATUS_LABEL: Partial<Record<AdStatusKey, string>> = {
+    active: t("pages.settings.statusActive"),
+    moderation: t("pages.settings.statusModeration"),
+    rejected: t("pages.settings.statusRejected"),
+    unpublished: t("pages.settings.statusUnpublished"),
+    archived: t("pages.settings.statusArchived"),
+    draft: t("pages.settings.statusDraft"),
+  };
+
   const [stats, setStats] = useState<{
     active: number;
     total: number;
@@ -52,21 +54,21 @@ function DashboardSection() {
 
   if (stats === null) {
     return (
-      <SettingsSectionShell title="Статистика">
+      <SettingsSectionShell title={t("pages.settings.dashboardTitle")}>
         <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
-          <Loader2 size={16} className="animate-spin" /> Загрузка…
+          <Loader2 size={16} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       </SettingsSectionShell>
     );
   }
 
   return (
-    <SettingsSectionShell title="Статистика">
+    <SettingsSectionShell title={t("pages.settings.dashboardTitle")}>
       <section className="grid grid-cols-2 gap-[10px] sm:grid-cols-4 sm:gap-[12px]">
-        <Tile icon={<TrendingUp size={14} />} label="Активных" value={stats.active.toString()} accent />
-        <Tile icon={<Eye size={14} />} label="Всего просмотров" value={stats.views.toLocaleString("ru")} />
-        <Tile icon={<Heart size={14} />} label="В избранном" value={stats.favorites.toLocaleString("ru")} />
-        <Tile icon={<ClipboardList size={14} />} label="Всего объявлений" value={stats.total.toString()} />
+        <Tile icon={<TrendingUp size={14} />} label={t("pages.settings.dashboardActive")} value={stats.active.toString()} accent />
+        <Tile icon={<Eye size={14} />} label={t("pages.settings.dashboardViews")} value={stats.views.toLocaleString("ru")} />
+        <Tile icon={<Heart size={14} />} label={t("pages.settings.dashboardFavorites")} value={stats.favorites.toLocaleString("ru")} />
+        <Tile icon={<ClipboardList size={14} />} label={t("pages.settings.dashboardTotal")} value={stats.total.toString()} />
       </section>
 
       {stats.total > 0 && (
@@ -82,15 +84,11 @@ function DashboardSection() {
         </Card>
       )}
 
-      {/* View dynamics — deferred (spec: "делать в последнюю очередь"). No
-          per-day data is stored today (only a running views_count), so no
-          honest chart can be drawn yet. Placeholder until the backend adds a
-          daily-views series (documented in backend-endpoints-needed.md). */}
       <Card className="flex flex-col items-center gap-[8px] p-[24px] text-center" style={{ borderColor: "var(--border)", borderStyle: "dashed", borderRadius: "var(--r-card)" }}>
         <LineChart size={24} style={{ color: "var(--foreground-30)" }} />
-        <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>Динамика просмотров</div>
+        <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.dashboardDynamics")}</div>
         <p className="max-w-[360px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          График просмотров по дням появится позже.
+          {t("pages.settings.dashboardDynamicsSoon")}
         </p>
       </Card>
     </SettingsSectionShell>

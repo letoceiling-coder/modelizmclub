@@ -1,15 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AuthShell, inputStyle, primaryBtn } from "@/components/auth/AuthShell";
 import { forgotPassword } from "@/lib/api/auth";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/recover")({
-  head: () => ({ meta: [{ title: "Восстановление пароля — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.recover.metaTitle") }] }),
   component: RecoverPage,
 });
 
 function RecoverPage() {
+  const { t } = useTranslation();
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -25,19 +29,19 @@ function RecoverPage() {
     } finally {
       setLoading(false);
       setSent(true);
-      toast.success("Письмо отправлено");
+      toast.success(t("pages.recover.emailSent"));
     }
   };
 
   return (
     <AuthShell
-      title="Восстановление пароля"
-      subtitle="Мы пришлём ссылку для сброса на ваш email"
+      title={t("pages.recover.title")}
+      subtitle={t("pages.recover.subtitle")}
       footer={
         <>
-          Вспомнили пароль?{" "}
+          {t("pages.recover.rememberPassword")}{" "}
           <Link to="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
-            Вернуться ко входу
+            {t("pages.recover.backToLogin")}
           </Link>
         </>
       }
@@ -53,13 +57,13 @@ function RecoverPage() {
             fontSize: "var(--fs-sm)",
           }}
         >
-          Если такой email зарегистрирован — письмо со ссылкой уже у вас в почте. Проверьте папку «Спам».
+          {t("pages.recover.sentMessage")}
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-[12px]">
-          <input required name="email" type="email" autoComplete="email" placeholder="Ваш email" style={inputStyle} />
+          <input required name="email" type="email" autoComplete="email" placeholder={t("pages.recover.emailPlaceholder")} style={inputStyle} />
           <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Отправляем…" : "Отправить ссылку"}
+            {loading ? t("pages.recover.sending") : t("pages.recover.sendLink")}
           </button>
         </form>
       )}

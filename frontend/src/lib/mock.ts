@@ -258,6 +258,8 @@ export interface Message {
   pinned?: boolean;
   deletedForMe?: boolean;
   forwardedFrom?: ID;
+  /** Listing card embedded in chat history (type=listing). */
+  listing?: DialogAdRef;
 }
 
 export const VOICE_TRANSCRIPTS: string[] = [

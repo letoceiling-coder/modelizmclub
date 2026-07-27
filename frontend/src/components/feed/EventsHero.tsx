@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays, Newspaper, Sparkles } from "lucide-react";
@@ -14,13 +15,9 @@ function sortBanners(list: Banner[]): Banner[] {
   });
 }
 
-const KIND_LABEL: Record<NonNullable<Banner["kind"]>, { label: string; Icon: typeof CalendarDays }> = {
-  event: { label: "Событие", Icon: CalendarDays },
-  news: { label: "Новость", Icon: Newspaper },
-  promo: { label: "Акция", Icon: Sparkles },
-};
 
 export function EventsHero() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { guardAction } = useGuestAccess();
   const [index, setIndex] = useState(0);
@@ -68,7 +65,9 @@ export function EventsHero() {
   if (!enabled || list.length === 0) return null;
 
   const current = list[index];
-  const kind = KIND_LABEL[current.kind ?? "news"];
+  const kindKey = current.kind ?? "news";
+  const KindIcon = kindKey === "event" ? CalendarDays : kindKey === "promo" ? Sparkles : Newspaper;
+  const kindLabel = t(`components.eventsHero.kind${kindKey === "event" ? "Event" : kindKey === "promo" ? "Promo" : "News"}`);
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
@@ -115,7 +114,7 @@ export function EventsHero() {
   return (
     <>
     <section
-      aria-label="События и новости форума"
+      aria-label={t("components.eventsHero.ariaLabel")}
       className="relative overflow-hidden rounded-[16px] border"
       style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
       onMouseEnter={() => setPaused(true)}
@@ -153,8 +152,8 @@ export function EventsHero() {
                 className="inline-flex w-fit items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-medium uppercase tracking-wide text-white"
                 style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
               >
-                <kind.Icon className="h-[12px] w-[12px]" />
-                {kind.label}
+                <KindIcon className="h-[12px] w-[12px]" />
+                {kindLabel}
                 {current.until ? (
                   <span className="opacity-70">· {current.until}</span>
                 ) : null}
@@ -184,7 +183,7 @@ export function EventsHero() {
             <button
               onClick={prev}
               {...stopPointerPropagation}
-              aria-label="Предыдущий"
+              aria-label={t("components.eventsHero.prev")}
               className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
             >
@@ -193,7 +192,7 @@ export function EventsHero() {
             <button
               onClick={next}
               {...stopPointerPropagation}
-              aria-label="Следующий"
+              aria-label={t("components.eventsHero.next")}
               className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
               style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
             >
