@@ -19,7 +19,7 @@ import {
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { fetchAdminLandingBlocks } from "@/lib/api/admin";
-import { uploadAdminMedia } from "@/lib/api/admin-media";
+import { uploadAdminMediaMany } from "@/lib/api/admin-media";
 import { MediaPickerDialog } from "@/components/admin/MediaManagerCard";
 import { IconSlotPreview } from "@/components/admin/IconSlotPreview";
 import { Link } from "@tanstack/react-router";
@@ -106,14 +106,35 @@ export function IconManagerSection() {
     return null;
   }
 
-  async function onUpload(file: File) {
+  async function onUpload(files: FileList | File[]) {
+    const list = Array.from(files);
+    if (list.length === 0) return;
+
     setUploading(true);
     try {
-      const media = await uploadAdminMedia(file, "icon");
-      const asset = await registerIconFromMedia(media.uuid);
-      setAssets((prev) => [asset, ...prev]);
-      setAssetId(asset.id);
-      toast.success("Иконка загружена");
+      const { uploaded, failed } = await uploadAdminMediaMany(list, "icon");
+      const newAssets: typeof assets = [];
+      for (const media of uploaded) {
+        try {
+          newAssets.push(await registerIconFromMedia(media.uuid));
+        } catch {
+          failed.push({ filename: media.filename, error: "Не удалось добавить в библиотеку" });
+        }
+      }
+      if (newAssets.length > 0) {
+        setAssets((prev) => [...newAssets, ...prev]);
+        setAssetId(newAssets[0].id);
+        toast.success(
+          newAssets.length === 1 ? "Иконка загружена" : `Загружено иконок: ${newAssets.length}`,
+        );
+      }
+      if (failed.length > 0) {
+        toast.error(
+          failed.length === 1
+            ? `${failed[0].filename}: ${failed[0].error}`
+            : `Ошибок: ${failed.length} из ${list.length}`,
+        );
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось загрузить");
     } finally {
@@ -342,8 +363,8 @@ export function IconManagerSection() {
                 </button>
               )}
             </div>
-            <input ref={fileRef} type="file" accept="image/svg+xml,.svg,image/png,.png" hidden
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void onUpload(f); }} />
+            <input ref={fileRef} type="file" multiple accept="image/svg+xml,.svg,image/png,.png" hidden
+              onChange={(e) => { const files = e.target.files; if (files?.length) void onUpload(files); }} />
           </div>
 
           {selected.supportsRecolor && (

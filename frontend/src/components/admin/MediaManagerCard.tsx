@@ -5,7 +5,7 @@ import {
   adminMediaAccept,
   adminMediaPurposeLabel,
   fetchAdminMedia,
-  uploadAdminMedia,
+  uploadAdminMediaMany,
   type AdminMediaItem,
   type AdminMediaPurpose,
 } from "@/lib/api/admin-media";
@@ -88,17 +88,33 @@ export function MediaManagerCard() {
     ? items.filter((i) => i.filename.toLowerCase().includes(query.trim().toLowerCase()))
     : items;
 
-  async function onUpload(file: File) {
+  async function onUpload(files: FileList | File[]) {
+    const list = Array.from(files);
+    if (list.length === 0) return;
+
     setUploading(true);
     try {
-      await uploadAdminMedia(file, uploadPurpose);
-      toast.success("Файл загружен в медиаменеджер");
-      if (uploadPurpose === purpose || purpose === "") {
-        setPage(1);
-        await load();
+      const { uploaded, failed } = await uploadAdminMediaMany(list, uploadPurpose);
+      if (uploaded.length > 0) {
+        toast.success(
+          uploaded.length === 1
+            ? "Файл загружен в медиаменеджер"
+            : `Загружено файлов: ${uploaded.length}`,
+        );
+        if (uploadPurpose === purpose || purpose === "") {
+          setPage(1);
+          await load();
+        }
+      }
+      if (failed.length > 0) {
+        toast.error(
+          failed.length === 1
+            ? `${failed[0].filename}: ${failed[0].error}`
+            : `Не загружено: ${failed.length} из ${list.length}`,
+        );
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось загрузить файл");
+      toast.error(e instanceof Error ? e.message : "Не удалось загрузить файлы");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -162,16 +178,17 @@ export function MediaManagerCard() {
           }}
         >
           {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-          {uploading ? "Загрузка…" : "Загрузить файл"}
+          {uploading ? "Загрузка…" : "Загрузить файлы"}
         </button>
         <input
           ref={fileRef}
           type="file"
+          multiple
           accept={adminMediaAccept(uploadPurpose)}
           hidden
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void onUpload(f);
+            const files = e.target.files;
+            if (files?.length) void onUpload(files);
           }}
         />
       </div>
@@ -180,7 +197,7 @@ export function MediaManagerCard() {
         <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>
       ) : filtered.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
-          Файлов пока нет. Загрузите PNG, SVG или фото через кнопку «Загрузить файл».
+          Файлов пока нет. Загрузите PNG, SVG или фото через кнопку «Загрузить файлы».
         </p>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
@@ -288,12 +305,26 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
 
   if (!open) return null;
 
-  async function handleUpload(file: File) {
+  async function handleUpload(files: FileList | File[]) {
+    const list = Array.from(files);
+    if (list.length === 0) return;
+
     setUploading(true);
     try {
-      const item = await uploadAdminMedia(file, purpose);
-      setItems((prev) => [item, ...prev]);
-      toast.success("Файл загружен");
+      const { uploaded, failed } = await uploadAdminMediaMany(list, purpose);
+      if (uploaded.length > 0) {
+        setItems((prev) => [...uploaded, ...prev]);
+        toast.success(
+          uploaded.length === 1 ? "Файл загружен" : `Загружено файлов: ${uploaded.length}`,
+        );
+      }
+      if (failed.length > 0) {
+        toast.error(
+          failed.length === 1
+            ? `${failed[0].filename}: ${failed[0].error}`
+            : `Не загружено: ${failed.length} из ${list.length}`,
+        );
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось загрузить");
     } finally {
@@ -370,16 +401,17 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
             }}
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
-            Загрузить
+            Загрузить файлы
           </button>
           <input
             ref={fileRef}
             type="file"
+            multiple
             accept={adminMediaAccept(purpose)}
             hidden
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleUpload(f);
+              const files = e.target.files;
+              if (files?.length) void handleUpload(files);
             }}
           />
         </div>

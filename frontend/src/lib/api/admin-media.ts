@@ -71,6 +71,33 @@ export async function uploadAdminMedia(file: File, purpose: AdminMediaPurpose): 
   return res.data;
 }
 
+export interface BatchUploadResult {
+  uploaded: AdminMediaItem[];
+  failed: { filename: string; error: string }[];
+}
+
+/** Upload multiple files sequentially (one POST per file). */
+export async function uploadAdminMediaMany(
+  files: File[],
+  purpose: AdminMediaPurpose,
+): Promise<BatchUploadResult> {
+  const uploaded: AdminMediaItem[] = [];
+  const failed: { filename: string; error: string }[] = [];
+
+  for (const file of files) {
+    try {
+      uploaded.push(await uploadAdminMedia(file, purpose));
+    } catch (e) {
+      failed.push({
+        filename: file.name,
+        error: e instanceof Error ? e.message : "Не удалось загрузить",
+      });
+    }
+  }
+
+  return { uploaded, failed };
+}
+
 export function adminMediaAccept(purpose: AdminMediaPurpose): string {
   if (purpose === "icon") return "image/png,image/svg+xml,.png,.svg";
   return "image/jpeg,image/png,image/webp,image/svg+xml,.jpg,.jpeg,.png,.webp,.svg";
