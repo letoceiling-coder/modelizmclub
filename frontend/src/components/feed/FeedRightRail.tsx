@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { PanelRightClose, PanelRightOpen, ChevronRight, ChevronDown } from "lucide-react";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { onlineFor } from "@/lib/category-online";
-import { CategoryIcon } from "@/components/ui/Icon";
+import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 
 const COLLAPSE_KEY = "modelizm:feedrail:collapsed";
@@ -137,12 +137,9 @@ export function FeedRightRail() {
                       to={`/categories/${c.id}`}
                       className={`flex flex-1 items-center gap-[10px] py-[8px] pl-[10px] transition-colors hover:bg-[var(--background-surface)] ${hasSubs ? "rounded-l-[10px] pr-[4px]" : "rounded-[10px] pr-[10px]"}`}
                     >
-                      <span
-                        className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
-                        style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-                      >
-                        <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} className="h-[14px] w-[14px]" />
-                      </span>
+                      <IconBox size="sm" variant="surface">
+                        <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
+                      </IconBox>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13.5px] font-medium" style={{ color: "var(--foreground)" }}>
                           {c.name}

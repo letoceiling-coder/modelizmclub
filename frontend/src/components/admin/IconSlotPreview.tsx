@@ -1,4 +1,4 @@
-import { Icon, CategoryIcon, LandingCardIconSlot } from "@/components/ui/Icon";
+import { Icon, CategoryIcon, LandingCardIconSlot, IconBox } from "@/components/ui/Icon";
 import type { AdminIconSlotEntry } from "@/lib/icon-slots";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 
@@ -17,20 +17,26 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
   if (forceDefault) {
     if (slot.defaultImageUrl) {
       return (
-        <img src={slot.defaultImageUrl} alt="" style={{ width: size, height: size, objectFit: "contain" }} />
+        <IconBox size="lg" variant="accent-soft">
+          <img src={slot.defaultImageUrl} alt="" className="icon-box__content" style={{ objectFit: "contain" }} />
+        </IconBox>
       );
     }
     const Lucide = resolveLucideIcon(slot.defaultLucide);
-    return <Lucide size={size} style={{ color: "var(--accent)" }} />;
+    return (
+      <IconBox size="lg" variant="accent-soft">
+        <Lucide className="icon-box__content" style={{ color: "var(--accent)" }} />
+      </IconBox>
+    );
   }
 
   if (slot.previewKind === "category" && slot.key.startsWith("category:")) {
     const id = slot.key.slice("category:".length);
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--background-surface)" }}>
-          <CategoryIcon categoryId={id} name={slot.defaultLucide} iconImageUrl={slot.defaultImageUrl} size={size} />
-        </span>
+        <IconBox size="md" variant="surface">
+          <CategoryIcon categoryId={id} name={slot.defaultLucide} iconImageUrl={slot.defaultImageUrl} fill />
+        </IconBox>
         {previewLabel && <span style={{ fontSize: 14, fontWeight: 500, color: "var(--foreground)" }}>{previewLabel}</span>}
       </div>
     );
@@ -40,7 +46,9 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
     const id = slot.key.slice("landing.card:".length);
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, border: "1px solid var(--border)", maxWidth: 280 }}>
-        <LandingCardIconSlot cardId={id} icon={slot.defaultLucide} iconUrl={slot.defaultImageUrl} size={size + 4} />
+        <IconBox size="xl" variant="accent-soft">
+          <LandingCardIconSlot cardId={id} icon={slot.defaultLucide} iconUrl={slot.defaultImageUrl} fill />
+        </IconBox>
         {previewLabel && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{previewLabel}</div>
@@ -54,9 +62,9 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
   if (slot.previewKind === "value") {
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 16, borderRadius: 12, border: "1px solid var(--border)", maxWidth: 280 }}>
-        <span style={{ width: 44, height: 44, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--accent-soft)" }}>
-          <Icon slot={slot.key} size={size} />
-        </span>
+        <IconBox size="lg" variant="accent-soft">
+          <Icon slot={slot.key} fill />
+        </IconBox>
         {previewLabel && (
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>{previewLabel}</div>

@@ -7,7 +7,7 @@ import {
   Users2, Heart, MoreVertical,
   MapPin, Search, Compass, ImageOff,
 } from "lucide-react";
-import { Icon as SlotIcon } from "@/components/ui/Icon";
+import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
 import { landingValueSlotKey } from "@/lib/icon-slots";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -516,9 +516,9 @@ function QuickSections() {
                 className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
                 style={cardStyle}
               >
-                <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
-                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={22} />
-                </div>
+                <IconBox size="xl" variant="accent-soft">
+                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+                </IconBox>
                 <h3 className="landing-quick-title mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{card.title}</h3>
                 {card.description && (
                   <p className="landing-quick-desc mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{card.description}</p>
@@ -784,10 +784,13 @@ function CategoriesSection() {
                 className="group landing-tap-card landing-tap-card--lift-sm flex items-center gap-[10px] p-3 sm:gap-3 sm:p-4"
                 style={cardStyle}
               >
-                <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
-                  style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={19} />
-                </div>
+                <IconBox
+                  size="md"
+                  variant="elevated"
+                  className="h-[36px] w-[36px] shrink-0 transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
+                >
+                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+                </IconBox>
                 <div className="min-w-0">
                   <div
                     className="text-[13px] font-semibold leading-tight sm:text-sm"
@@ -889,9 +892,9 @@ function WhyChoose() {
                 i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle
               }
             >
-              <div className="grid place-items-center" style={{ width: 44, height: 44, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
-                <SlotIcon slot={landingValueSlotKey(key)} size={20} />
-              </div>
+              <IconBox size="lg" variant="accent-soft">
+                <SlotIcon slot={landingValueSlotKey(key)} fill />
+              </IconBox>
               <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{t(`landing.values.items.${key}.title`)}</h3>
               <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.values.items.${key}.desc`)}</p>
             </div>

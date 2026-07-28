@@ -7,7 +7,7 @@ const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
 import type { Category } from "@/lib/mock";
 import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { CategoryIcon } from "@/components/ui/Icon";
+import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 
 export function RightCategories() {
   const { t } = useTranslation();
@@ -83,12 +83,9 @@ export function RightCategories() {
                     params={{ id: c.id }}
                     className="group flex flex-1 items-center gap-[10px] rounded-l-[10px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
                   >
-                    <span
-                      className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
-                      style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-                    >
-                      <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} className="h-[14px] w-[14px]" />
-                    </span>
+                    <IconBox size="sm" variant="surface">
+                      <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
+                    </IconBox>
                     <span className="min-w-0 flex-1">
                       <span
                         className="block truncate text-[13.5px] font-medium"

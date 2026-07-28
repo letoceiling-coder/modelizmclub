@@ -4,6 +4,7 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { LandingCardIconField } from "@/components/admin/LandingCardIconField";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
+import { IconBox } from "@/components/ui/Icon";
 import { fetchPostCategories } from "@/lib/api/categories";
 import {
   createAdminLandingCard,
@@ -99,9 +100,9 @@ function CardRow({
         >
           <GripVertical size={18} />
         </button>
-        <div className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[10px]" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-          <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={20} />
-        </div>
+        <IconBox size="md" variant="accent-soft" className="!h-[40px] !w-[40px]">
+          <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+        </IconBox>
         <div className="min-w-0 flex-1 grid gap-[8px]">
           <input value={card.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Заголовок" style={inputStyle} />
           <LandingCardIconField

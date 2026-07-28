@@ -67,6 +67,13 @@
   --r-button: 12px;
   --radius: 0.75rem;
 
+  /* Icon boxes — единый масштаб иллюстраций внутри квадратных блоков */
+  --icon-box-fill: 0.82;
+  --icon-box-sm: 28px;
+  --icon-box-md: 34px;
+  --icon-box-lg: 44px;
+  --icon-box-xl: 46px;
+
   --container-max: 1560px;                    /* cap: контент не растягивается бесконечно на ultrawide */
   --container-pad: clamp(24px, calc(7vw - 60px), 60px);  /* fluid поля ≈30/41/52px на 1280/1440/1600, без прыжков */
   --sidebar-w: 240px;
@@ -520,4 +527,73 @@ html, body {
   box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset,
               0 4px 14px -6px rgba(0,0,0,0.6),
               0 0 0 1px rgba(255,255,255,0.08);
+}
+
+/* ===== Icon box — квадратные контейнеры для иллюстраций/иконок ===== */
+.icon-box {
+  --icon-box-size: var(--icon-box-lg);
+  width: var(--icon-box-size);
+  height: var(--icon-box-size);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: var(--r-card-sm);
+}
+
+.icon-box--sm { --icon-box-size: var(--icon-box-sm); border-radius: var(--r-tag); }
+.icon-box--md { --icon-box-size: var(--icon-box-md); }
+.icon-box--lg { --icon-box-size: var(--icon-box-lg); }
+.icon-box--xl { --icon-box-size: var(--icon-box-xl); }
+
+.icon-box--accent-soft {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.icon-box--surface {
+  background: var(--background-surface);
+  color: var(--accent);
+}
+
+.icon-box--elevated {
+  background: var(--background-elevated);
+  color: var(--foreground-70);
+  border: 1px solid var(--border);
+}
+
+.icon-box__inner {
+  width: calc(var(--icon-box-fill) * 100%);
+  height: calc(var(--icon-box-fill) * 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-box__content,
+.icon-box__inner > img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.icon-box__inner svg,
+.icon-box__content svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.icon-box__inner > span[aria-hidden] {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-box__inner > span[aria-hidden] svg {
+  width: 100% !important;
+  height: 100% !important;
 }

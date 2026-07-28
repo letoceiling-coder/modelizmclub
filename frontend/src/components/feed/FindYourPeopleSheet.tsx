@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, MessageCircle } from "lucide-react";
-import { Icon as SlotIcon, CategoryIcon } from "@/components/ui/Icon";
+import { Icon as SlotIcon, CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
   Sheet,
   SheetContent,
@@ -102,12 +102,9 @@ export function FindYourPeopleSheet() {
                         to={`/categories/${c.id}`}
                         className="group flex flex-1 items-center gap-[12px] rounded-l-[12px] px-[12px] py-[10px] transition-colors hover:bg-[var(--background-surface)]"
                       >
-                        <span
-                          className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px]"
-                          style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-                        >
-                          <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} className="h-[16px] w-[16px]" />
-                        </span>
+                        <IconBox size="md" variant="surface">
+                          <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
+                        </IconBox>
                         <span className="min-w-0 flex-1">
                           <span
                             className="block truncate text-[14px] font-medium"

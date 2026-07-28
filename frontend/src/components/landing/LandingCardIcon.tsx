@@ -7,10 +7,11 @@ interface Props {
   size?: number;
   className?: string;
   imgClassName?: string;
+  fill?: boolean;
 }
 
 /** Renders a landing card icon — slot override, then custom upload, then Lucide. */
-export function LandingCardIcon({ cardId, icon, iconUrl, size = 20, className, imgClassName }: Props) {
+export function LandingCardIcon({ cardId, icon, iconUrl, size = 20, className, imgClassName, fill }: Props) {
   return (
     <LandingCardIconSlot
       cardId={cardId}
@@ -19,6 +20,7 @@ export function LandingCardIcon({ cardId, icon, iconUrl, size = 20, className, i
       size={size}
       className={className}
       imgClassName={imgClassName}
+      fill={fill}
     />
   );
 }

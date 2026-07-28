@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast";
 import { uploadMedia } from "@/lib/api/media";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
+import { IconBox } from "@/components/ui/Icon";
 
 /** Common Lucide icons for landing blocks — click to pick. */
 export const LANDING_ICON_PRESETS = [
@@ -102,12 +103,9 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
         style={{ borderColor: "var(--border)", background: "var(--background)" }}
         aria-expanded={open}
       >
-        <div
-          className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[8px]"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-        >
-          <LandingCardIcon icon={icon} iconUrl={iconUrl} size={20} />
-        </div>
+        <IconBox size="md" variant="accent-soft" className="!h-[36px] !w-[36px] !rounded-[8px]">
+          <LandingCardIcon icon={icon} iconUrl={iconUrl} fill />
+        </IconBox>
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
             {iconUrl ? "Своя иконка" : icon || "Box"}
