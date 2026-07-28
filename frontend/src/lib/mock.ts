@@ -168,6 +168,7 @@ export interface Category {
   name: string;
   description: string;
   icon: string; // lucide icon name
+  iconImageUrl?: string | null;
   members: number;
   listingsCount?: number;
   subcategories: { id: ID; name: string }[];

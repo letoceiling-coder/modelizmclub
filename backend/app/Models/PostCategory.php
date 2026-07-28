@@ -13,6 +13,7 @@ class PostCategory extends Model
         'name',
         'slug',
         'icon',
+        'icon_image_url',
         'sort_order',
         'is_active',
         'depth',

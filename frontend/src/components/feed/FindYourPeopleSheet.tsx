@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, MessageCircle, Users } from "lucide-react";
-import * as Icons from "lucide-react";
+import { ChevronDown, MessageCircle } from "lucide-react";
+import { Icon as SlotIcon, CategoryIcon } from "@/components/ui/Icon";
 import {
   Sheet,
   SheetContent,
@@ -11,18 +11,10 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import type { Category } from "@/lib/mock";
 import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
-
-function CategoryIcon({ name, className }: { name: string; className?: string }) {
-  const Icon =
-    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] ??
-    Icons.Hash;
-  return <Icon className={className} />;
-}
 
 /**
  * Мобильная точка входа в «Найди своих».
@@ -58,7 +50,7 @@ export function FindYourPeopleSheet() {
               className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px]"
               style={{ background: "var(--background-surface)", color: "var(--accent)" }}
             >
-              <Users className="h-[18px] w-[18px]" />
+              <SlotIcon slot="feed.find-people" size={18} />
             </span>
             <span className="min-w-0 flex-1">
               <span
@@ -114,7 +106,7 @@ export function FindYourPeopleSheet() {
                           className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px]"
                           style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                         >
-                          <CategoryIcon name={c.icon} className="h-[16px] w-[16px]" />
+                          <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} className="h-[16px] w-[16px]" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span

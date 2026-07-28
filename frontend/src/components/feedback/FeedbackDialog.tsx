@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquarePlus } from "lucide-react";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { toast } from "@/lib/toast";
 import {
   Dialog,
@@ -63,7 +63,7 @@ export function FeedbackDialog() {
           type="button"
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
         >
-          <MessageSquarePlus className="h-4 w-4" />
+          <SlotIcon slot="nav.feedback" className="h-4 w-4" size={16} inheritColor />
           Обратная связь
         </button>
       </DialogTrigger>

@@ -16,6 +16,7 @@ class PostCategoryResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'icon' => $this->icon,
+            'icon_image_url' => $this->icon_image_url,
         ];
     }
 }

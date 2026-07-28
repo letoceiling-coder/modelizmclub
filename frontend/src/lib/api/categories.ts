@@ -8,6 +8,7 @@ interface ApiCategoryNode {
   name: string;
   slug?: string;
   icon?: string | null;
+  icon_image_url?: string | null;
   depth?: number;
   listings_count?: number;
   children?: ApiCategoryNode[];
@@ -19,6 +20,7 @@ function mapCategory(node: ApiCategoryNode, includeListingsCount = false): Categ
     name: node.name,
     description: "",
     icon: node.icon || "Boxes",
+    iconImageUrl: node.icon_image_url ?? null,
     members: includeListingsCount ? (node.listings_count ?? 0) : 0,
     listingsCount: node.listings_count,
     subcategories: (node.children ?? []).map((c) => ({

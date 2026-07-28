@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { User, ClipboardList, Crown, LogOut, LogIn, Sun, Moon, ShieldCheck } from "lucide-react";
+import { LogOut, LogIn, Sun, Moon } from "lucide-react";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -93,23 +94,23 @@ export function UserMenu() {
         >
           <DropdownMenuItem asChild>
             <Link to={ROUTES.profile} className="flex items-center gap-2">
-              <User className="h-4 w-4" /> {t("nav.profile")}
+              <SlotIcon slot="nav.profile" className="h-4 w-4" size={16} inheritColor /> {t("nav.profile")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to={ROUTES.myAds} className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" /> {t("nav.myAds")}
+              <SlotIcon slot="nav.my-ads" className="h-4 w-4" size={16} inheritColor /> {t("nav.myAds")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to={ROUTES.subscription} className="flex items-center gap-2">
-              <Crown className="h-4 w-4" /> {t("nav.subscription")}
+              <SlotIcon slot="nav.subscription" className="h-4 w-4" size={16} inheritColor /> {t("nav.subscription")}
             </Link>
           </DropdownMenuItem>
           {me.isAdmin && (
             <DropdownMenuItem asChild>
               <Link to={ROUTES.admin} className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" /> {t("nav.admin")}
+                <SlotIcon slot="nav.admin" className="h-4 w-4" size={16} inheritColor /> {t("nav.admin")}
               </Link>
             </DropdownMenuItem>
           )}

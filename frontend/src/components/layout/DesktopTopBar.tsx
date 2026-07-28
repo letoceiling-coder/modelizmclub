@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Heart, MessageSquare } from "lucide-react";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
@@ -54,7 +54,7 @@ export function DesktopTopBar() {
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageSwitcher />
         <NavIcon actionKey="layout.nav.favorites" to={ROUTES.favorites} label={t("nav.favorites")}>
-          <Heart size={20} />
+          <SlotIcon slot="header.favorites" size={20} inheritColor />
           {favCount > 0 && (
             <span
               className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
@@ -73,7 +73,7 @@ export function DesktopTopBar() {
         </NavIcon>
         <NavIcon actionKey="layout.header.notifications" to={ROUTES.notifications} label={t("nav.notifications")}>
           <span className="relative inline-flex h-5 w-5 items-center justify-center">
-            <Bell size={20} />
+            <SlotIcon slot="header.notifications" size={20} inheritColor />
             {unread > 0 && (
               <span
                 className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
@@ -92,7 +92,7 @@ export function DesktopTopBar() {
           </span>
         </NavIcon>
         <NavIcon actionKey="layout.nav.messenger" to={ROUTES.messenger} label={t("nav.messenger")}>
-          <MessageSquare size={20} />
+          <SlotIcon slot="header.messenger" size={20} inheritColor />
           {unreadMessages > 0 && (
             <span
               className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"

@@ -2,7 +2,7 @@
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import { useIconOverride } from "@/lib/icon-overrides";
-import { ICON_SLOTS, tokenCssVar, categorySlotKey, type TokenKey } from "@/lib/icon-slots";
+import { ICON_SLOTS, tokenCssVar, categorySlotKey, landingCardSlotKey, getIconSlot, type TokenKey } from "@/lib/icon-slots";
 
 const SLOT_BY_KEY: Record<string, (typeof ICON_SLOTS)[number]> = ICON_SLOTS.reduce(
   (acc, s) => { acc[s.key] = s; return acc; },
@@ -60,7 +60,7 @@ export function Icon({
   slot, className, size, strokeWidth, inheritColor,
 }: { slot: string; className?: string; size?: number; strokeWidth?: number; inheritColor?: boolean }) {
   const override = useIconOverride(slot);
-  const def = SLOT_BY_KEY[slot];
+  const def = SLOT_BY_KEY[slot] ?? getIconSlot(slot);
   const defaultLucide = def?.defaultLucide ?? "Box";
   const defaultToken: TokenKey = def?.defaultToken ?? "foreground";
 
@@ -73,13 +73,50 @@ export function Icon({
 }
 
 export function CategoryIcon({
-  categoryId, name, className, size,
-}: { categoryId: string | number; name?: string | null; className?: string; size?: number }) {
+  categoryId, name, iconImageUrl, className, size,
+}: { categoryId: string | number; name?: string | null; iconImageUrl?: string | null; className?: string; size?: number }) {
   const override = useIconOverride(categorySlotKey(categoryId));
   if (override) {
     const rendered = renderOverride(override, { className, size });
     if (rendered) return rendered;
   }
+  if (iconImageUrl) {
+    return <PngIcon url={iconImageUrl} className={className} size={size} />;
+  }
   const LucideIcon = resolveLucideIcon(name);
   return <LucideIcon className={className} size={size} />;
+}
+
+/** Landing card icon with slot override support. */
+export function LandingCardIconSlot({
+  cardId, icon, iconUrl, size = 20, className, imgClassName,
+}: {
+  cardId?: string | number | null;
+  icon?: string | null;
+  iconUrl?: string | null;
+  size?: number;
+  className?: string;
+  imgClassName?: string;
+}) {
+  const slotKey = cardId != null ? landingCardSlotKey(cardId) : "__landing_none__";
+  const override = useIconOverride(slotKey);
+
+  if (cardId != null && override) {
+    const rendered = renderOverride(override, { className: imgClassName ?? className, size });
+    if (rendered) return rendered;
+  }
+  if (iconUrl) {
+    return (
+      <img
+        src={iconUrl}
+        alt=""
+        width={size}
+        height={size}
+        className={imgClassName ?? className}
+        style={{ width: size, height: size, objectFit: "contain" }}
+      />
+    );
+  }
+  const LucideIcon = resolveLucideIcon(icon);
+  return <LucideIcon size={size} className={className} />;
 }

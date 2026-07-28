@@ -1,6 +1,7 @@
-import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { LandingCardIconSlot } from "@/components/ui/Icon";
 
 interface Props {
+  cardId?: string | number | null;
   icon?: string | null;
   iconUrl?: string | null;
   size?: number;
@@ -8,21 +9,16 @@ interface Props {
   imgClassName?: string;
 }
 
-/** Renders a landing card icon — custom upload takes priority over Lucide name. */
-export function LandingCardIcon({ icon, iconUrl, size = 20, className, imgClassName }: Props) {
-  if (iconUrl) {
-    return (
-      <img
-        src={iconUrl}
-        alt=""
-        width={size}
-        height={size}
-        className={imgClassName ?? className}
-        style={{ width: size, height: size, objectFit: "contain" }}
-      />
-    );
-  }
-
-  const Icon = resolveLucideIcon(icon);
-  return <Icon size={size} className={className} />;
+/** Renders a landing card icon — slot override, then custom upload, then Lucide. */
+export function LandingCardIcon({ cardId, icon, iconUrl, size = 20, className, imgClassName }: Props) {
+  return (
+    <LandingCardIconSlot
+      cardId={cardId}
+      icon={icon}
+      iconUrl={iconUrl}
+      size={size}
+      className={className}
+      imgClassName={imgClassName}
+    />
+  );
 }

@@ -218,7 +218,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         className="mt-4 flex items-center gap-[10px] rounded-xl px-3 py-[10px] text-xs transition-colors hover:bg-muted"
         style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
       >
-        <Crown size={16} className="shrink-0" style={{ color: "var(--foreground-50)" }} />
+        <SlotIcon slot="nav.subscription" size={16} className="shrink-0" style={{ color: "var(--foreground-50)" }} />
         <span className="min-w-0">
           {!isGuest && sub?.is_active ? (
             <>

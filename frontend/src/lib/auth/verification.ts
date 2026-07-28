@@ -16,14 +16,24 @@ export function isPhoneVerified(user: User | null | undefined): boolean {
   return user?.phone_verified === true;
 }
 
+export function isAdminUser(user: User | null | undefined): boolean {
+  return user?.role === "admin" || user?.isAdmin === true;
+}
+
+/** Admins skip SMS phone verification for site actions (publish, chat, etc.). */
+export function isPhoneVerificationRequired(user: User | null | undefined): boolean {
+  return !isAdminUser(user);
+}
+
 export function isFullyVerified(user: User | null | undefined): boolean {
   if (isDemoMode()) return true;
-  return isEmailVerified(user) && isPhoneVerified(user);
+  const phoneOk = isPhoneVerified(user) || !isPhoneVerificationRequired(user);
+  return isEmailVerified(user) && phoneOk;
 }
 
 export function verificationMessage(user: User | null | undefined): string {
   const missingEmail = !isEmailVerified(user);
-  const missingPhone = !isPhoneVerified(user);
+  const missingPhone = isPhoneVerificationRequired(user) && !isPhoneVerified(user);
   if (missingEmail && missingPhone) {
     return "Подтвердите email и номер телефона в настройках аккаунта, чтобы выполнять действия на сайте.";
   }

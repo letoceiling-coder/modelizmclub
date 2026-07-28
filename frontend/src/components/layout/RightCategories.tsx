@@ -87,7 +87,7 @@ export function RightCategories() {
                       className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px]"
                       style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                     >
-                      <CategoryIcon categoryId={c.id} name={c.icon} className="h-[14px] w-[14px]" />
+                      <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} className="h-[14px] w-[14px]" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span

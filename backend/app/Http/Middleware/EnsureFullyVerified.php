@@ -23,7 +23,7 @@ class EnsureFullyVerified
             ], 403);
         }
 
-        if (! $user->phone_verified_at) {
+        if (! $user->phone_verified_at && ! $user->isAdmin()) {
             return response()->json([
                 'message' => 'Подтвердите номер телефона по SMS, чтобы выполнить это действие.',
                 'code' => 'phone_not_verified',

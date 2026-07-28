@@ -100,7 +100,7 @@ function CardRow({
           <GripVertical size={18} />
         </button>
         <div className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[10px]" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-          <LandingCardIcon icon={card.icon} iconUrl={card.icon_url} size={20} />
+          <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={20} />
         </div>
         <div className="min-w-0 flex-1 grid gap-[8px]">
           <input value={card.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Заголовок" style={inputStyle} />

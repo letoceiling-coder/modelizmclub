@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -46,6 +47,21 @@ class EnsureFullyVerifiedMiddlewareTest extends TestCase
         $user = User::factory()->create([
             'email_verified_at' => now(),
             'phone_verified_at' => now(),
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/listings', [
+            'title' => 'Test',
+            'description' => 'Desc',
+        ])->assertStatus(422);
+    }
+
+    public function test_admin_without_phone_verification_can_create_listing(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::Admin,
+            'email_verified_at' => now(),
+            'phone_verified_at' => null,
         ]);
         Sanctum::actingAs($user);
 

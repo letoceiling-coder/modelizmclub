@@ -6,8 +6,9 @@ import {
   ArrowRight, ChevronDown, Plus,
   Users2, Heart, MoreVertical,
   MapPin, Search, Compass, ImageOff,
-  Target, HeartHandshake, LayoutGrid, Send,
 } from "lucide-react";
+import { Icon as SlotIcon } from "@/components/ui/Icon";
+import { landingValueSlotKey } from "@/lib/icon-slots";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher";
@@ -516,7 +517,7 @@ function QuickSections() {
                 style={cardStyle}
               >
                 <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
-                  <LandingCardIcon icon={card.icon} iconUrl={card.icon_url} size={22} />
+                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={22} />
                 </div>
                 <h3 className="landing-quick-title mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{card.title}</h3>
                 {card.description && (
@@ -785,7 +786,7 @@ function CategoriesSection() {
               >
                 <div className="grid h-[36px] w-[36px] shrink-0 place-items-center transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
                   style={{ borderRadius: "var(--r-card-sm)", background: "var(--background-elevated)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>
-                  <LandingCardIcon icon={card.icon} iconUrl={card.icon_url} size={19} />
+                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={19} />
                 </div>
                 <div className="min-w-0">
                   <div
@@ -872,9 +873,6 @@ function PricingSection() {
 }
 
 const VALUE_KEYS = ["focus", "community", "allInOne", "direct"] as const;
-// Distinct, topical icons per value (P1d.17): niche focus, community,
-// everything-in-one, direct deals — instead of near-generic repeats.
-const VALUE_ICONS = [Target, HeartHandshake, LayoutGrid, Send] as const;
 
 function WhyChoose() {
   const { t } = useTranslation();
@@ -883,29 +881,21 @@ function WhyChoose() {
       <Eyebrow>{t("landing.values.eyebrow")}</Eyebrow>
       <Title>{t("landing.values.title")}</Title>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {VALUE_KEYS.map((key, i) => {
-          const Icon = VALUE_ICONS[i];
-          return (
+        {VALUE_KEYS.map((key, i) => (
             <div
               key={key}
               className="flex flex-col p-6"
               style={
-                // Micro-asymmetry, deliberately singular: only the first of
-                // these four cards breaks the grid's perfect alignment — a
-                // living accent, not a site-wide pattern (per the brief:
-                // "1-2 accents, not a style"). Marketing content only, well
-                // clear of catalog/cards/cart/forms/admin.
                 i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle
               }
             >
               <div className="grid place-items-center" style={{ width: 44, height: 44, borderRadius: "var(--r-card-sm)", background: "var(--accent-soft)", color: "var(--accent)" }}>
-                <Icon size={20} />
+                <SlotIcon slot={landingValueSlotKey(key)} size={20} />
               </div>
               <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{t(`landing.values.items.${key}.title`)}</h3>
               <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.values.items.${key}.desc`)}</p>
             </div>
-          );
-        })}
+        ))}
       </div>
     </Section>
   );
@@ -931,7 +921,7 @@ function FaqSection() {
                 <span className="text-[15px] font-semibold">{item.q}</span>
                 <span className="grid shrink-0 place-items-center transition-transform"
                   style={{ width: 28, height: 28, borderRadius: 8, background: "var(--background-surface)", border: "1px solid var(--border)", transform: isOpen ? "rotate(45deg)" : "none", color: "var(--foreground-70)" }}>
-                  <Plus size={14} />
+                  <SlotIcon slot="ui.faq.expand" size={14} inheritColor />
                 </span>
               </button>
               <AnimatePresence initial={false}>

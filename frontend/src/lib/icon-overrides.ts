@@ -55,6 +55,14 @@ export function applyPublishedMap(map: IconOverrideMap): void {
   notify();
 }
 
+export function getDraftChangeCount(): number {
+  return draftCleared.size + Object.keys(draft).length;
+}
+
+export function useDraftChangeCount(): number {
+  return useSyncExternalStore(subscribe, getDraftChangeCount, () => 0);
+}
+
 export async function loadIconOverridesFromServer(): Promise<void> {
   if (typeof window === "undefined") return;
   const map = await fetchIconOverrides(); // demo → localStorage; real → GET /icon-overrides; ошибка → {}

@@ -135,6 +135,7 @@ class CatalogService
             'name' => $item->name,
             'slug' => $item->slug,
             'icon' => $item->icon,
+            'icon_image_url' => $item->icon_image_url ?? null,
             'depth' => $item->depth,
             'sort_order' => $item->sort_order,
         ];
