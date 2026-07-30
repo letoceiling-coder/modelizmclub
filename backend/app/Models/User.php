@@ -133,6 +133,71 @@ class User extends Authenticatable
         return $this->hasMany(self::class, 'referred_by');
     }
 
+    public function oauthAccounts(): HasMany
+    {
+        return $this->hasMany(UserOAuthAccount::class);
+    }
+
+    /** OAuth placeholder emails — not a real inbox, must not be shown or verified manually. */
+    public static function isSyntheticOAuthEmail(?string $email): bool
+    {
+        return is_string($email) && str_ends_with(strtolower($email), '@oauth.modelizmclub.local');
+    }
+
+    public function hasOAuthProvider(string $provider): bool
+    {
+        if ($this->relationLoaded('oauthAccounts')) {
+            return $this->oauthAccounts->contains(
+                fn (UserOAuthAccount $account): bool => $account->provider === $provider,
+            );
+        }
+
+        return $this->oauthAccounts()->where('provider', $provider)->exists();
+    }
+
+    /** VK identity is verified by the provider — email confirmation must never be required. */
+    public function isVkOAuthUser(): bool
+    {
+        return $this->hasOAuthProvider('vk');
+    }
+
+    public function requiresEmailVerification(): bool
+    {
+        if ($this->email_verified_at !== null) {
+            return false;
+        }
+
+        if ($this->isVkOAuthUser()) {
+            return false;
+        }
+
+        if (self::isSyntheticOAuthEmail($this->email)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Email suitable for display in account settings (hides OAuth placeholders). */
+    public function displayEmail(): ?string
+    {
+        if (self::isSyntheticOAuthEmail($this->email)) {
+            return null;
+        }
+
+        return $this->email;
+    }
+
+    /** @return list<string> */
+    public function oauthProviderNames(): array
+    {
+        if ($this->relationLoaded('oauthAccounts')) {
+            return $this->oauthAccounts->pluck('provider')->values()->all();
+        }
+
+        return $this->oauthAccounts()->pluck('provider')->all();
+    }
+
     /** Lazily assigns a stable, unique referral code and returns it. */
     public function ensureReferralCode(): string
     {

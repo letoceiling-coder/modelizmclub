@@ -16,6 +16,7 @@ class MeController extends Controller
             'profile.avatar',
             'profile.cover',
             'interests',
+            'oauthAccounts',
         ]);
 
         return response()->json([

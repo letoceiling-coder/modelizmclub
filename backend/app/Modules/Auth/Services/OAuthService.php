@@ -18,6 +18,7 @@ class OAuthService
     public function resolveUser(string $provider, SocialiteUser $socialUser): array
     {
         $providerUserId = (string) $socialUser->getId();
+        $email = Str::lower((string) ($socialUser->getEmail() ?? ''));
 
         $linked = UserOAuthAccount::query()
             ->where('provider', $provider)
@@ -29,11 +30,10 @@ class OAuthService
             $linked->update(['token' => $this->tokenPayload($socialUser)]);
             $this->ensureActiveUser($user);
             $this->syncProfileFromOAuth($user, $socialUser);
+            $this->applyProviderVerification($user, $provider, $email);
 
             return $this->tokenResponse($user);
         }
-
-        $email = Str::lower((string) ($socialUser->getEmail() ?? ''));
 
         if ($email !== '') {
             $existing = User::query()->where('email', $email)->first();
@@ -41,6 +41,7 @@ class OAuthService
                 $this->linkAccount($existing, $provider, $providerUserId, $socialUser);
                 $this->ensureActiveUser($existing);
                 $this->syncProfileFromOAuth($existing, $socialUser);
+                $this->applyProviderVerification($existing, $provider, $email);
 
                 return $this->tokenResponse($existing);
             }
@@ -57,7 +58,7 @@ class OAuthService
                 'role' => UserRole::User,
                 'status' => UserStatus::Active,
                 'registration_track' => RegistrationTrack::Social,
-                'email_verified_at' => $email !== '' ? now() : null,
+                'email_verified_at' => $this->initialEmailVerifiedAt($provider, $email),
                 'phone_verified_at' => null,
             ]);
 
@@ -66,9 +67,42 @@ class OAuthService
             $user->assignRole('user');
             $this->linkAccount($user, $provider, $providerUserId, $socialUser);
             $this->syncProfileFromOAuth($user, $socialUser);
+            $this->applyProviderVerification($user, $provider, $email);
 
             return $this->tokenResponse($user);
         });
+    }
+
+    /**
+     * VK: identity verified by VK ID — never require email confirmation.
+     * Yandex: email from provider is trusted — auto-verify and link by email above.
+     */
+    private function applyProviderVerification(User $user, string $provider, string $email): void
+    {
+        if ($provider === 'vk') {
+            if ($user->email_verified_at === null) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            return;
+        }
+
+        if ($provider === 'yandex' && $email !== '' && $user->email_verified_at === null) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
+    }
+
+    private function initialEmailVerifiedAt(string $provider, string $email): ?\Illuminate\Support\Carbon
+    {
+        if ($provider === 'vk') {
+            return now();
+        }
+
+        if ($provider === 'yandex' && $email !== '') {
+            return now();
+        }
+
+        return $email !== '' ? now() : null;
     }
 
     private function linkAccount(User $user, string $provider, string $providerUserId, SocialiteUser $socialUser): void
@@ -186,7 +220,7 @@ class OAuthService
     /** @return array{user: User, token: string} */
     private function tokenResponse(User $user): array
     {
-        $user->loadMissing('profile');
+        $user->loadMissing(['profile', 'oauthAccounts']);
 
         return [
             'user' => $user,

@@ -16,7 +16,7 @@ class EnsureFullyVerified
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        if (! $user->email_verified_at) {
+        if ($user->requiresEmailVerification()) {
             return response()->json([
                 'message' => 'Подтвердите email, чтобы выполнить это действие.',
                 'code' => 'email_not_verified',

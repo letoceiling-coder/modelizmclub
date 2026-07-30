@@ -64,9 +64,9 @@ class EmailAccountService
 
     public function resendVerification(User $user): void
     {
-        if ($user->email_verified_at) {
+        if (! $user->requiresEmailVerification()) {
             throw ValidationException::withMessages([
-                'email' => ['Email уже подтверждён.'],
+                'email' => ['Подтверждение email для этого аккаунта не требуется.'],
             ]);
         }
 
