@@ -6,8 +6,12 @@ import { isDemoMode } from "@/lib/demo-mode";
 
 export function VerificationBanner() {
   const me = useStore(selectors.currentUser);
+  const sessionResolved = useStore(selectors.sessionResolved);
 
-  if (isDemoMode() || isFullyVerified(me)) return null;
+  // Before the boot-time session probe resolves, `me` is only the neutral
+  // GUEST_USER placeholder (looks "unverified"), not the real account — bail
+  // out instead of flashing an incorrect verification prompt on every reload.
+  if (!sessionResolved || isDemoMode() || isFullyVerified(me)) return null;
 
   const message = verificationMessage(me);
 

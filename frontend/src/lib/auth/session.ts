@@ -3,7 +3,7 @@ import { getToken } from "@/lib/api/client";
 import { fetchFavoriteListings } from "@/lib/api/listings";
 import { fetchConversations } from "@/lib/api/chat";
 import { shutdownCalls } from "@/lib/calls";
-import { actions, GUEST_USER, setCurrentUser, setDialogs } from "@/lib/store";
+import { actions, GUEST_USER, setCurrentUser, setDialogs, setSessionResolved } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
@@ -95,21 +95,29 @@ export async function restoreSession(): Promise<void> {
     resetSessionCache();
     actions.setFavoriteAdIds([]);
     setCurrentUser(GUEST_USER);
+    setSessionResolved(true);
     return;
   }
 
-  const ok = await ensureSession();
-  // Root-mount is the *only* unconditional session check — most pages
-  // (e.g. /feed) never call ensureSession() themselves, they just read the
-  // store reactively, so if this one attempt fails there's otherwise no
-  // automatic retry until either the user navigates to one of the few
-  // routes that do call ensureSession() again (requireAuth/requireAdmin
-  // guards), or reloads the whole page. One immediate retry here — now a
-  // genuine second attempt, since loadSession() resets sessionPromise on
-  // failure — self-heals a transient first-attempt failure (network blip,
-  // slow/failed CORS preflight) without either of those.
-  if (!ok && getToken() && !isDemoMode()) {
-    await ensureSession();
+  try {
+    const ok = await ensureSession();
+    // Root-mount is the *only* unconditional session check — most pages
+    // (e.g. /feed) never call ensureSession() themselves, they just read the
+    // store reactively, so if this one attempt fails there's otherwise no
+    // automatic retry until either the user navigates to one of the few
+    // routes that do call ensureSession() again (requireAuth/requireAdmin
+    // guards), or reloads the whole page. One immediate retry here — now a
+    // genuine second attempt, since loadSession() resets sessionPromise on
+    // failure — self-heals a transient first-attempt failure (network blip,
+    // slow/failed CORS preflight) without either of those.
+    if (!ok && getToken() && !isDemoMode()) {
+      await ensureSession();
+    }
+  } finally {
+    // Flip regardless of success/failure — UI that gates on this (e.g. the
+    // account-verification banner) must stop treating the user as "unknown"
+    // once the boot-time probe has had its shot, even if it ultimately failed.
+    setSessionResolved(true);
   }
 }
 

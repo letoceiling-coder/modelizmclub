@@ -84,6 +84,11 @@ export interface AppState {
   /** Partner user ids whose chat the current user deleted — used to clear stale history on reopen. */
   deletedChatPartnerIds: ID[];
   currentUserId: ID;
+  /** False until the boot-time `restoreSession()` call resolves. While false, `currentUser`
+   *  is only the neutral GUEST_USER placeholder — UI that depends on real account flags
+   *  (e.g. email/phone verification) must treat this as "unknown yet", not "guest/unverified",
+   *  otherwise a hard refresh briefly flashes incorrect verified-status UI. */
+  sessionResolved: boolean;
 }
 
 const FAVORITES_KEY = "modelizm:favorites";
@@ -122,6 +127,7 @@ export function createInitialState(): AppState {
     revealedPhones: {},
     deletedChatPartnerIds: [],
     currentUserId: GUEST_USER.id,
+    sessionResolved: false,
   };
 }
 
@@ -177,6 +183,7 @@ type Action =
   | { type: "ADD_COMMENT"; postId: ID; comment: Comment }
   | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
   | { type: "SET_CURRENT_USER"; user: User }
+  | { type: "SET_SESSION_RESOLVED"; resolved: boolean }
   | { type: "SET_DIALOGS"; dialogs: Dialog[] }
   | { type: "RESTORE_DIALOG"; dialog: Dialog }
   | { type: "MARK_DIALOG_DELETED"; dialogId: ID; partnerId: ID }
@@ -399,6 +406,10 @@ function reducer(s: AppState, a: Action): AppState {
         currentUserId: a.user.id,
       };
     }
+    case "SET_SESSION_RESOLVED": {
+      if (s.sessionResolved === a.resolved) return s;
+      return { ...s, sessionResolved: a.resolved };
+    }
     case "SET_DIALOGS": {
       const dialogs: Record<ID, Dialog> = {};
       for (const d of a.dialogs) {
@@ -605,6 +616,11 @@ export function setCurrentUser(user: User): void {
   dispatch({ type: "SET_CURRENT_USER", user });
 }
 
+/** Marks whether the boot-time session probe has finished (see AppState.sessionResolved). */
+export function setSessionResolved(resolved: boolean): void {
+  dispatch({ type: "SET_SESSION_RESOLVED", resolved });
+}
+
 export function setDialogs(dialogs: Dialog[]): void {
   dispatch({ type: "SET_DIALOGS", dialogs: dedupeDialogsFromApi(dialogs) });
 }
@@ -733,6 +749,7 @@ export function openOrCreateDialogWith(userId: ID): ID {
 
 export const selectors = {
   currentUser: (s: AppState): User => s.users[s.currentUserId] ?? GUEST_USER,
+  sessionResolved: (s: AppState): boolean => s.sessionResolved,
   dialogsList: (s: AppState): Dialog[] => Object.values(s.dialogs),
   friendsOf: (userId: ID) => (s: AppState): ID[] =>
     s.friendships
