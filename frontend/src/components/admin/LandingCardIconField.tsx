@@ -6,6 +6,7 @@ import { uploadMedia } from "@/lib/api/media";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { IconBox } from "@/components/ui/Icon";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 
 /** Common Lucide icons for landing blocks — click to pick. */
 export const LANDING_ICON_PRESETS = [
@@ -32,6 +33,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [editingFile, setEditingFile] = useState<File | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -93,7 +95,26 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) void handleUpload(f);
+          if (!f) return;
+          if (f.type.startsWith("image/") && f.type !== "image/svg+xml") {
+            setEditingFile(f);
+          } else {
+            void handleUpload(f);
+          }
+        }}
+      />
+      <PhotoEditorDialog
+        open={editingFile != null}
+        src={editingFile}
+        title="Редактирование иконки"
+        onCancel={() => {
+          setEditingFile(null);
+          if (fileRef.current) fileRef.current.value = "";
+        }}
+        onSave={(blob) => {
+          const file = new File([blob], editingFile?.name ?? "icon.png", { type: blob.type || "image/png" });
+          setEditingFile(null);
+          void handleUpload(file);
         }}
       />
       <button

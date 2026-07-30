@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
@@ -610,6 +611,7 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState<null | { id: string }>(null);
   const MAX = 800;
@@ -629,6 +631,15 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   const reorderPhotos = (next: string[]) => {
     setPhotoFiles(next.map((url) => photoFiles[photos.indexOf(url)]));
     setPhotos(next);
+  };
+  const replacePhoto = (i: number, blob: Blob) => {
+    const oldUrl = photos[i];
+    const oldFile = photoFiles[i];
+    const newFile = new File([blob], oldFile?.name ?? `photo-${i}.jpg`, { type: blob.type || "image/jpeg" });
+    const newUrl = URL.createObjectURL(blob);
+    setPhotos((p) => p.map((u, idx) => (idx === i ? newUrl : u)));
+    setPhotoFiles((f) => f.map((file, idx) => (idx === i ? newFile : file)));
+    if (oldUrl?.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
   };
 
   const submit = async () => {
@@ -777,8 +788,24 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
           onRemove={removePhoto}
           onMakeMain={() => {}}
           onReorder={reorderPhotos}
+          onEdit={(i) => setEditingPhotoIndex(i)}
         />
       </div>
+
+      <PhotoEditorDialog
+        open={editingPhotoIndex != null}
+        src={editingPhotoIndex != null ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null) : null}
+        title="Редактирование фото"
+        onCancel={() => setEditingPhotoIndex(null)}
+        onSave={(blob) => {
+          if (editingPhotoIndex != null) replacePhoto(editingPhotoIndex, blob);
+          setEditingPhotoIndex(null);
+        }}
+        onDelete={() => {
+          if (editingPhotoIndex != null) removePhoto(editingPhotoIndex);
+          setEditingPhotoIndex(null);
+        }}
+      />
 
       <div className="mt-3">
         <VideoUploadField

@@ -12,6 +12,7 @@ import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
 import { createChannelPost, POST_KIND_LABEL, type PostKind } from "@/lib/channels";
 import type { Post } from "@/lib/mock";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import type { ComposerDraft, ComposerSelection } from "@/components/feed/CreatePostMenu";
 import {
@@ -94,6 +95,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState<PersistedPostDraft | null>(null);
   // Cache File -> serialised photo so autosave doesn't re-read blobs each keystroke.
@@ -209,6 +211,15 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   const reorderPhotos = (next: string[]) => {
     setPhotoFiles(next.map((url) => photoFiles[photos.indexOf(url)]));
     setPhotos(next);
+  };
+  const replacePhoto = (i: number, blob: Blob) => {
+    const oldUrl = photos[i];
+    const oldFile = photoFiles[i];
+    const newFile = new File([blob], oldFile?.name ?? `photo-${i}.jpg`, { type: blob.type || "image/jpeg" });
+    const newUrl = URL.createObjectURL(blob);
+    setPhotos((p) => p.map((u, idx) => (idx === i ? newUrl : u)));
+    setPhotoFiles((f) => f.map((file, idx) => (idx === i ? newFile : file)));
+    if (oldUrl?.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
   };
 
   const publish = async () => {
@@ -409,6 +420,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
             onRemove={removePhoto}
             onMakeMain={() => {}}
             onReorder={reorderPhotos}
+            onEdit={(i) => setEditingPhotoIndex(i)}
           />
         ) : (
           <VideoUploadField
@@ -443,6 +455,21 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           {publishing ? t("components.createPostForm.publishing") : t("components.createPostForm.publish")}
         </button>
       </div>
+
+      <PhotoEditorDialog
+        open={editingPhotoIndex != null}
+        src={editingPhotoIndex != null ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null) : null}
+        title="Редактирование фото"
+        onCancel={() => setEditingPhotoIndex(null)}
+        onSave={(blob) => {
+          if (editingPhotoIndex != null) replacePhoto(editingPhotoIndex, blob);
+          setEditingPhotoIndex(null);
+        }}
+        onDelete={() => {
+          if (editingPhotoIndex != null) removePhoto(editingPhotoIndex);
+          setEditingPhotoIndex(null);
+        }}
+      />
     </div>
   );
 }

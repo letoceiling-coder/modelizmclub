@@ -22,6 +22,7 @@ import { fetchAdminLandingBlocks } from "@/lib/api/admin";
 import { uploadAdminMediaMany } from "@/lib/api/admin-media";
 import { MediaPickerDialog } from "@/components/admin/MediaManagerCard";
 import { IconSlotPreview } from "@/components/admin/IconSlotPreview";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { Link } from "@tanstack/react-router";
 
 const card: CSSProperties = {
@@ -43,6 +44,7 @@ export function IconManagerSection() {
   const [publishing, setPublishing] = useState(false);
   const [canRollback, setCanRollback] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [editingFile, setEditingFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const draftCount = useDraftChangeCount();
 
@@ -364,7 +366,14 @@ export function IconManagerSection() {
               )}
             </div>
             <input ref={fileRef} type="file" multiple accept="image/svg+xml,.svg,image/png,.png" hidden
-              onChange={(e) => { const files = e.target.files; if (files?.length) void onUpload(files); }} />
+              onChange={(e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                if (files.length === 1 && files[0].type === "image/png") {
+                  setEditingFile(files[0]);
+                } else if (files.length) {
+                  void onUpload(files);
+                }
+              }} />
           </div>
 
           {selected.supportsRecolor && (
@@ -401,6 +410,21 @@ export function IconManagerSection() {
 
       <MediaPickerDialog open={mediaPickerOpen} onClose={() => setMediaPickerOpen(false)} purpose="icon"
         title="Выбор иконки из медиаменеджера" onSelect={onPickFromMedia} />
+
+      <PhotoEditorDialog
+        open={editingFile != null}
+        src={editingFile}
+        title="Редактирование иконки"
+        onCancel={() => {
+          setEditingFile(null);
+          if (fileRef.current) fileRef.current.value = "";
+        }}
+        onSave={(blob) => {
+          const file = new File([blob], editingFile?.name ?? "icon.png", { type: blob.type || "image/png" });
+          setEditingFile(null);
+          void onUpload([file]);
+        }}
+      />
     </div>
   );
 }

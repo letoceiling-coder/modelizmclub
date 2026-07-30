@@ -9,6 +9,15 @@ import {
   type AdminMediaItem,
   type AdminMediaPurpose,
 } from "@/lib/api/admin-media";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+
+/** Raster (non-SVG) single-file picks are routed through the photo editor
+ *  before upload; SVGs and multi-file batches upload as-is. */
+function isEditableRasterFile(list: File[]): File | null {
+  if (list.length !== 1) return null;
+  const f = list[0];
+  return f.type.startsWith("image/") && f.type !== "image/svg+xml" ? f : null;
+}
 
 const card: CSSProperties = {
   background: "var(--background-elevated)",
@@ -60,6 +69,7 @@ export function MediaManagerCard() {
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [editingFile, setEditingFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -187,11 +197,32 @@ export function MediaManagerCard() {
           accept={adminMediaAccept(uploadPurpose)}
           hidden
           onChange={(e) => {
-            const files = e.target.files;
-            if (files?.length) void onUpload(files);
+            const files = e.target.files ? Array.from(e.target.files) : [];
+            const editable = isEditableRasterFile(files);
+            if (editable) {
+              setEditingFile(editable);
+            } else if (files.length) {
+              void onUpload(files);
+            }
           }}
         />
       </div>
+
+      <PhotoEditorDialog
+        open={editingFile != null}
+        src={editingFile}
+        title="Редактирование изображения"
+        onCancel={() => {
+          setEditingFile(null);
+          if (fileRef.current) fileRef.current.value = "";
+        }}
+        onSave={(blob) => {
+          const name = editingFile?.name ?? "image.jpg";
+          const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+          setEditingFile(null);
+          void onUpload([file]);
+        }}
+      />
 
       {loading ? (
         <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>

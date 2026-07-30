@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import {
   PROFILE_COVER_MAX_BYTES,
   PROFILE_IMAGE_ACCEPT,
@@ -237,9 +237,12 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         )}
       </div>
 
-      <ImageCropDialog
+      <PhotoEditorDialog
         file={pendingAvatar}
         aspect={1}
+        lockAspect
+        shape="circle"
+        lockShape
         outputWidth={480}
         outputHeight={480}
         title="Аватар канала"
@@ -247,9 +250,12 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         onCropped={uploadAvatar}
         onDelete={avatarUrl ? removeAvatar : undefined}
       />
-      <ImageCropDialog
+      <PhotoEditorDialog
         file={pendingBanner}
         aspect={3.5}
+        lockAspect
+        shape="rect"
+        lockShape
         outputWidth={1400}
         outputHeight={400}
         title="Обложка канала"

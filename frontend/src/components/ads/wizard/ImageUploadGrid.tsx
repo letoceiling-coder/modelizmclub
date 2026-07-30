@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion, LayoutGroup } from "framer-motion";
-import { ImagePlus, X, Star, ImageOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { ImagePlus, X, Star, ImageOff, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 
 interface Props {
   photos: string[];
@@ -9,6 +9,8 @@ interface Props {
   onRemove: (index: number) => void;
   onMakeMain: (index: number) => void;
   onReorder: (newPhotos: string[]) => void;
+  /** Opens the photo editor (crop/rotate/effects) for the tile at this index. */
+  onEdit?: (index: number) => void;
   /** Stable React keys parallel to `photos` — prevents drag glitches when URLs repeat. */
   photoIds?: string[];
   /** Hide the upload dropzone (reorder/remove only). */
@@ -77,6 +79,7 @@ function PreviewTile({
   onMoveLeft,
   onMoveRight,
   onPointerDownDrag,
+  onEdit,
   minimalControls = false,
 }: {
   src: string;
@@ -90,6 +93,7 @@ function PreviewTile({
   onMoveLeft: (i: number) => void;
   onMoveRight: (i: number) => void;
   onPointerDownDrag: (i: number, e: React.PointerEvent) => void;
+  onEdit?: (i: number) => void;
   minimalControls?: boolean;
 }) {
   const isMain = index === 0;
@@ -135,6 +139,19 @@ function PreviewTile({
             style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
           >
             <Star size={12} />
+          </button>
+        )}
+        {onEdit && (
+          <button
+            type="button"
+            onClick={() => onEdit(index)}
+            {...stopDrag}
+            title="Редактировать фото"
+            aria-label="Редактировать фото"
+            className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
+          >
+            <Pencil size={12} />
           </button>
         )}
         <button
@@ -263,6 +280,7 @@ export function ImageUploadGrid({
   onRemove,
   onMakeMain,
   onReorder,
+  onEdit,
   photoIds,
   hideUploader = false,
   variant = "default",
@@ -522,6 +540,7 @@ export function ImageUploadGrid({
                       onMoveLeft={(idx) => moveTo(idx, idx - 1)}
                       onMoveRight={(idx) => moveTo(idx, idx + 1)}
                       onPointerDownDrag={onTilePointerDown}
+                      onEdit={onEdit}
                     />
                   </div>
                 );

@@ -8,7 +8,24 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
 import { isAuthenticated } from "@/lib/auth/session";
 
+export function isVkOAuthUser(user: User | null | undefined): boolean {
+  return user?.oauth_providers?.includes("vk") ?? false;
+}
+
+export function isYandexOAuthUser(user: User | null | undefined): boolean {
+  return user?.oauth_providers?.includes("yandex") ?? false;
+}
+
+/** Hide synthetic OAuth placeholder emails from UI. */
+export function displayEmail(user: User | null | undefined): string | undefined {
+  const email = user?.email?.trim();
+  if (!email || email.endsWith("@oauth.modelizmclub.local")) return undefined;
+  return email;
+}
+
 export function isEmailVerified(user: User | null | undefined): boolean {
+  if (isDemoMode()) return true;
+  if (isVkOAuthUser(user)) return true;
   return user?.email_verified === true;
 }
 

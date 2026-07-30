@@ -1,4 +1,4 @@
-import type { Dialog, DialogAdRef, Message, User } from "@/lib/mock";
+import type { Dialog, DialogAdRef, DialogPostRef, Message, User } from "@/lib/mock";
 import { registerUser, makeMockWaveform } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
@@ -29,12 +29,22 @@ export interface ApiListingCompact {
   preview?: string | null;
 }
 
+export interface ApiPostCompact {
+  uuid: string;
+  title: string;
+  excerpt?: string | null;
+  image?: string | null;
+  preview?: string | null;
+  author_name?: string | null;
+}
+
 export interface ApiMessage {
   uuid: string;
   body?: string | null;
   type?: string;
   status?: string;
   listing?: ApiListingCompact | null;
+  post?: ApiPostCompact | null;
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
@@ -91,6 +101,16 @@ export function mapListingCompact(l: ApiListingCompact): DialogAdRef {
   };
 }
 
+export function mapPostCompact(p: ApiPostCompact): DialogPostRef {
+  return {
+    id: p.uuid,
+    title: p.title,
+    excerpt: p.excerpt ?? undefined,
+    image: p.preview ?? p.image ?? undefined,
+    authorName: p.author_name ?? undefined,
+  };
+}
+
 function mapMessageStatus(raw?: string | null): Message["status"] {
   if (raw === "read" || raw === "delivered" || raw === "sent") return raw;
   return "sent";
@@ -142,6 +162,10 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
 
   if (m.type === "listing" && m.listing) {
     base.listing = mapListingCompact(m.listing);
+  }
+
+  if (m.type === "post" && m.post) {
+    base.post = mapPostCompact(m.post);
   }
 
   return base;
@@ -257,6 +281,27 @@ export async function sendMessage(
   const res = await api<{ data: ApiMessage }>(`/conversations/${uuid}/messages`, {
     method: "POST",
     json: { body, reply_to_uuid: replyToUuid },
+  });
+  return mapMessage(res.data);
+}
+
+/** Share a feed post into a chat as a rich card message (used by repost "send to messages"). */
+export async function sendPostShareMessage(
+  conversationUuid: string,
+  postUuid: string,
+): Promise<Message> {
+  if (isDemoMode()) {
+    return {
+      id: `demo-post-${Date.now()}`,
+      authorId: "u1",
+      time: new Date().toISOString(),
+      text: "",
+      status: "sent",
+    };
+  }
+  const res = await api<{ data: ApiMessage }>(`/conversations/${conversationUuid}/messages`, {
+    method: "POST",
+    json: { type: "post", post_uuid: postUuid },
   });
   return mapMessage(res.data);
 }

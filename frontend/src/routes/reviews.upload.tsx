@@ -7,6 +7,7 @@ import type { VideoCategory } from "@/lib/mock";
 import { fetchVideoCategories, uploadVideo } from "@/lib/api/reviews";
 import { uploadMedia, validateReviewVideoFile } from "@/lib/api/media";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ function UploadPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [editingPoster, setEditingPoster] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,12 @@ function UploadPage() {
     setVideoFile(f); setVideoUrl(URL.createObjectURL(f));
   };
   const pickPoster = (f: File) => { setPosterFile(f); setPosterUrl(URL.createObjectURL(f)); };
+  const replacePoster = (blob: Blob) => {
+    const newFile = new File([blob], posterFile?.name ?? "poster.jpg", { type: blob.type || "image/jpeg" });
+    if (posterUrl?.startsWith("blob:")) URL.revokeObjectURL(posterUrl);
+    setPosterFile(newFile);
+    setPosterUrl(URL.createObjectURL(newFile));
+  };
 
   const valid = title.trim().length >= 3 && categoryId && videoFile;
 
@@ -115,7 +123,21 @@ function UploadPage() {
         <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("pages.reviews.newReview")}</h1>
 
         <VideoUploadField fileUrl={videoUrl} onPick={pickVideo} onClear={() => { setVideoFile(null); setVideoUrl(null); }} accept="video/*" label={t("pages.reviews.uploadVideo")} />
-        <VideoUploadField fileUrl={posterUrl} onPick={pickPoster} onClear={() => { setPosterFile(null); setPosterUrl(null); }} accept="image/*" label={t("pages.reviews.uploadPoster")} />
+        <VideoUploadField
+          fileUrl={posterUrl}
+          onPick={pickPoster}
+          onClear={() => { setPosterFile(null); setPosterUrl(null); }}
+          onEdit={() => setEditingPoster(true)}
+          accept="image/*"
+          label={t("pages.reviews.uploadPoster")}
+        />
+        <PhotoEditorDialog
+          open={editingPoster}
+          src={posterFile ?? posterUrl}
+          title="Редактирование обложки"
+          onCancel={() => setEditingPoster(false)}
+          onSave={(blob) => { replacePoster(blob); setEditingPoster(false); }}
+        />
 
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("pages.reviews.titlePlaceholder")} />
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("pages.reviews.descriptionPlaceholder")} rows={4} />

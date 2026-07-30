@@ -13,7 +13,7 @@ import { useStore, selectors, setCurrentUser } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import { requestEmailChange, resendVerificationEmail, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
-import { ApiError } from "@/lib/api/client";
+import { displayEmail, isVkOAuthUser } from "@/lib/auth/verification";
 
 export const Route = createFileRoute("/settings/account")({
   component: AccountSection,
@@ -64,7 +64,7 @@ function AccountSection() {
     fetchMe().then((u) => {
       if (!u) return;
       setCurrentUser(u);
-      setAccountEmail(u.email ?? "");
+      setAccountEmail(displayEmail(u) ?? "");
       setPhone(u.phone ?? "");
       setVerifiedPhone(u.phone_verified ? (u.phone ?? null) : null);
       setServerEmailVerified(u.email_verified === true);
@@ -165,6 +165,8 @@ function AccountSection() {
     }
   };
 
+  const vkOAuth = isVkOAuthUser(currentUser);
+
   if (loading) {
     return (
       <SettingsSectionShell title={t("pages.settings.accountTitle")}>
@@ -191,18 +193,22 @@ function AccountSection() {
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.emailLabel")}</h2>
-        {accountEmail ? (
+        {vkOAuth && !accountEmail ? (
+          <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
+            Вы вошли через VK ID. Подтверждение email не требуется — при необходимости добавьте почту в блоке ниже.
+          </p>
+        ) : accountEmail ? (
           <>
             <div className="flex flex-wrap items-center gap-[8px]">
               <p className="text-[14px]" style={{ color: "var(--foreground)" }}>{accountEmail}</p>
               {serverEmailVerified === true && (
                 <Badge variant="published" withIcon={false}>{t("pages.settings.verified")}</Badge>
               )}
-              {serverEmailVerified === false && (
+              {serverEmailVerified === false && !vkOAuth && (
                 <Badge variant="draft" withIcon={false}>{t("pages.settings.notVerified")}</Badge>
               )}
             </div>
-            {serverEmailVerified === false && (
+            {serverEmailVerified === false && !vkOAuth && (
               verifySent ? (
                 <p className="mt-[12px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
                   {t("pages.settings.verificationSentTo", { email: accountEmail })}

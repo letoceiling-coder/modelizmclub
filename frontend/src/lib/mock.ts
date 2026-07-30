@@ -35,6 +35,8 @@ export interface User {
   } | null;
   email_verified?: boolean;
   phone_verified?: boolean;
+  /** Linked OAuth providers from the server — e.g. ["vk", "yandex"]. */
+  oauth_providers?: string[];
   /** Server role — drives the /admin RBAC gate (Task 2) and moderator-scoped
    *  dashboard (Task 3). Undefined in most demo-mode contexts; the gate
    *  falls back to `isAdmin` there (see Task 2). */
@@ -261,6 +263,16 @@ export interface Message {
   forwardedFrom?: ID;
   /** Listing card embedded in chat history (type=listing). */
   listing?: DialogAdRef;
+  /** Feed-post card embedded in chat history (type=post, e.g. repost shared to a chat). */
+  post?: DialogPostRef;
+}
+
+export interface DialogPostRef {
+  id: ID;
+  title: string;
+  excerpt?: string;
+  image?: string;
+  authorName?: string;
 }
 
 export const VOICE_TRANSCRIPTS: string[] = [

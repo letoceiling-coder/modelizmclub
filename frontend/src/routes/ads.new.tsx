@@ -18,6 +18,7 @@ import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/a
 import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag } from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import {
   LISTING_IMAGE_ACCEPT,
   validateListingImageFile,
@@ -542,6 +543,16 @@ function usePhotoGridHandlers(
       setPhotoItems(next);
     },
     onReorder: reorderByUrls,
+    onReplace: (i: number, blob: Blob) => {
+      const old = photoItems[i];
+      if (!old) return;
+      const preview = URL.createObjectURL(blob);
+      const file = new File([blob], `${old.id}.jpg`, { type: blob.type || "image/jpeg" });
+      const next = [...photoItems];
+      next[i] = { ...old, preview, file, mediaId: undefined };
+      setPhotoItems(next);
+      if (old.preview.startsWith("blob:")) URL.revokeObjectURL(old.preview);
+    },
   };
 }
 
@@ -557,21 +568,40 @@ function ListingPhotoGrid({
   hideUploader?: boolean;
 }) {
   const handlers = usePhotoGridHandlers(photoItems, setPhotoItems);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const editingItem = editingIndex != null ? photoItems[editingIndex] : null;
   return (
-    <ImageUploadGrid
-      photos={handlers.photos}
-      photoIds={handlers.photoIds}
-      max={MAX_PHOTOS}
-      accept={LISTING_IMAGE_ACCEPT}
-      variant={variant}
-      hideUploader={hideUploader}
-      controls="minimal"
-      sizeScale={1.25}
-      onAdd={handlers.onAdd}
-      onRemove={handlers.onRemove}
-      onMakeMain={handlers.onMakeMain}
-      onReorder={handlers.onReorder}
-    />
+    <>
+      <ImageUploadGrid
+        photos={handlers.photos}
+        photoIds={handlers.photoIds}
+        max={MAX_PHOTOS}
+        accept={LISTING_IMAGE_ACCEPT}
+        variant={variant}
+        hideUploader={hideUploader}
+        controls="minimal"
+        sizeScale={1.25}
+        onAdd={handlers.onAdd}
+        onRemove={handlers.onRemove}
+        onMakeMain={handlers.onMakeMain}
+        onReorder={handlers.onReorder}
+        onEdit={(i) => setEditingIndex(i)}
+      />
+      <PhotoEditorDialog
+        open={editingIndex != null}
+        src={editingItem ? (editingItem.file ?? editingItem.preview) : null}
+        title="Редактирование фото объявления"
+        onCancel={() => setEditingIndex(null)}
+        onSave={(blob) => {
+          if (editingIndex != null) handlers.onReplace(editingIndex, blob);
+          setEditingIndex(null);
+        }}
+        onDelete={() => {
+          if (editingIndex != null) handlers.onRemove(editingIndex);
+          setEditingIndex(null);
+        }}
+      />
+    </>
   );
 }
 

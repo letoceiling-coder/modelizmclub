@@ -27,6 +27,7 @@ export interface ApiUser {
   email_verified?: boolean;
   phone_verified?: boolean;
   phone_verified_at?: string | null;
+  oauth_providers?: string[];
   profile?: ApiProfile | null;
   interests?: Array<{ id?: number; name?: string }> | null;
   last_seen_at?: string | null;
@@ -70,6 +71,7 @@ export function mapApiUser(u: ApiUser): User {
       : undefined,
     email_verified: u.email_verified,
     phone_verified: u.phone_verified,
+    oauth_providers: u.oauth_providers ?? undefined,
     role: (u.role as User["role"]) ?? undefined,
     lastSeenAt: u.last_seen_at ?? undefined,
   };

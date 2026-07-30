@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Paperclip, Image as ImageIcon, Video, File as FileIcon } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { chatAttachmentLimitLabel, chatAttachmentTooLargeMessage, chatPhotoHintLabel, type ChatAttachmentKind } from "@/lib/chat-attachments";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 
 export type AttachmentKind = ChatAttachmentKind;
 
@@ -16,6 +17,7 @@ export function AttachmentMenu({ onPick }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingKind = useRef<AttachmentKind>("file");
   const limitLabel = chatAttachmentLimitLabel();
+  const [editingImage, setEditingImage] = useState<File | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +52,10 @@ export function AttachmentMenu({ onPick }: Props) {
     const tooLarge = chatAttachmentTooLargeMessage(file);
     if (tooLarge) {
       toast.error("Файл слишком большой", { description: tooLarge });
+      return;
+    }
+    if (pendingKind.current === "image") {
+      setEditingImage(file);
       return;
     }
     onPick(file, pendingKind.current);
@@ -96,6 +102,19 @@ export function AttachmentMenu({ onPick }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <PhotoEditorDialog
+        open={editingImage != null}
+        src={editingImage}
+        title="Редактирование фото"
+        onCancel={() => setEditingImage(null)}
+        onSave={(blob) => {
+          const name = editingImage?.name ?? "photo.jpg";
+          const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+          setEditingImage(null);
+          onPick(file, "image");
+        }}
+      />
     </div>
   );
 }

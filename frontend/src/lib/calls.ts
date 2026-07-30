@@ -71,6 +71,8 @@ interface CallsState {
   canSwitchSpeaker: boolean;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  /** Bumped when remote MediaStream tracks change — same object ref otherwise skips React updates. */
+  remoteStreamGen: number;
 }
 
 const RING_TIMEOUT_MS = 35_000;
@@ -85,6 +87,7 @@ let state: CallsState = {
   canSwitchSpeaker: false,
   localStream: null,
   remoteStream: null,
+  remoteStreamGen: 0,
 };
 
 let currentFacing: "user" | "environment" = "user";
@@ -321,6 +324,7 @@ async function buildPc(): Promise<RTCPeerConnection> {
     ev.streams[0]?.getTracks().forEach((t) => remote.addTrack(t));
     if (ev.streams.length === 0) remote.addTrack(ev.track);
     pokeMedia();
+    setState({ remoteStreamGen: state.remoteStreamGen + 1 });
   };
   conn.oniceconnectionstatechange = () => {
     clog("iceConnectionState ->", conn.iceConnectionState);
@@ -413,7 +417,12 @@ async function performIceRestart(): Promise<void> {
   renegotiating = true;
   patchActive({ status: "reconnecting" });
   try {
-    const offer = await pc.createOffer({ iceRestart: true });
+    const wantVideo = state.active.media === "video";
+    const offer = await pc.createOffer({
+      iceRestart: true,
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: wantVideo,
+    });
     await pc.setLocalDescription(offer);
     await restartCall(state.active.id, offer);
   } catch {
@@ -468,10 +477,63 @@ async function checkMediaAlive(): Promise<void> {
   }
 }
 
+/** Try opening the camera with progressively looser constraints. */
+async function tryAcquireVideoTrack(): Promise<MediaStreamTrack | null> {
+  const attempts: MediaTrackConstraints[] = [
+    { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+    { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    { facingMode: "user" },
+    { width: { ideal: 640 }, height: { ideal: 480 } },
+    true,
+  ];
+  for (const video of attempts) {
+    try {
+      const probe = await navigator.mediaDevices.getUserMedia({ audio: false, video });
+      const track = probe.getVideoTracks()[0];
+      if (track) return track;
+      probe.getTracks().forEach((t) => t.stop());
+    } catch {
+      /* try next constraint set */
+    }
+  }
+  return null;
+}
+
+function attachLocalMedia(stream: MediaStream | null, media: CallMedia): void {
+  if (!pc) return;
+  if (stream) {
+    stream.getTracks().forEach((t) => {
+      if (!pc!.getSenders().some((s) => s.track === t)) pc!.addTrack(t, stream);
+    });
+  }
+  if (media === "video" && !pc.getSenders().some((s) => s.track?.kind === "video")) {
+    pc.addTransceiver("video", { direction: "recvonly" });
+  }
+}
+
+/** Renegotiate after adding/removing a local track mid-call. */
+async function performRenegotiation(): Promise<void> {
+  if (!pc || !state.active || state.active.status === "ended") return;
+  if (renegotiating) return;
+  if (state.active.id.startsWith("pending_")) return;
+  renegotiating = true;
+  try {
+    const wantVideo = state.active.media === "video";
+    const offer = await pc.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: wantVideo,
+    });
+    await pc.setLocalDescription(offer);
+    await restartCall(state.active.id, offer);
+  } catch {
+    renegotiating = false;
+  }
+}
+
 /**
  * Acquire local media with graceful degradation:
  *  1) full (audio + video for video calls)
- *  2) audio-only if the camera is missing/busy/blocked
+ *  2) audio-only local send if the camera is missing/busy/blocked — call stays video
  *  3) null (receive-only) if there is no microphone either —
  *     the call still connects and this side can hear/see the peer.
  */
@@ -489,22 +551,51 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
   } catch (err) {
     const name = (err as { name?: string })?.name ?? "";
     clog("getMedia: full failed (", name, ")");
-    // Try audio-only (camera missing/busy/blocked, mic may still exist).
+    if (wantVideo) {
+      try {
+        const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const videoTrack = await tryAcquireVideoTrack();
+        if (videoTrack) {
+          audioOnly.addTrack(videoTrack);
+          currentFacing = "user";
+          setState({
+            localStream: audioOnly,
+            muted: false,
+            cameraOff: false,
+            canSwitchSpeaker: speakerRoutingSupported(),
+          });
+          void detectMultipleCameras();
+          return audioOnly;
+        }
+        toast.info("Камера недоступна — вы всё равно увидите собеседника");
+        setState({
+          localStream: audioOnly,
+          muted: false,
+          cameraOff: true,
+          canSwitchSpeaker: speakerRoutingSupported(),
+        });
+        return audioOnly;
+      } catch (errAudio) {
+        const nameAudio = (errAudio as { name?: string })?.name ?? "";
+        if (nameAudio === "NotFoundError" || name === "NotFoundError") {
+          clog("getMedia: no input devices — receive-only mode");
+          toast.info("Нет микрофона/камеры — режим только приёма");
+          setState({ localStream: null, muted: true, cameraOff: true, canSwitchSpeaker: speakerRoutingSupported() });
+          return null;
+        }
+        throw errAudio;
+      }
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      if (wantVideo) {
-        patchActive({ media: "audio" });
-        toast.info("Камера недоступна — звонок продолжится со звуком");
-      }
-      setState({ localStream: stream, muted: false, cameraOff: true });
+      setState({ localStream: stream, muted: false, cameraOff: true, canSwitchSpeaker: speakerRoutingSupported() });
       return stream;
     } catch (err2) {
       const name2 = (err2 as { name?: string })?.name ?? "";
-      // No input devices at all (e.g. desktop without mic/camera) → receive-only.
       if (name2 === "NotFoundError" || name === "NotFoundError") {
         clog("getMedia: no input devices — receive-only mode");
         toast.info("Нет микрофона/камеры — режим только приёма");
-        setState({ localStream: null, muted: true, cameraOff: true });
+        setState({ localStream: null, muted: true, cameraOff: true, canSwitchSpeaker: speakerRoutingSupported() });
         return null;
       }
       throw err2;
@@ -640,6 +731,7 @@ function finish(result: CallResult): void {
     active: { ...active, status: "ended", endedAt: Date.now(), result: finalResult },
     localStream: null,
     remoteStream: null,
+    remoteStreamGen: 0,
     canSwitchCamera: false,
     canSwitchSpeaker: false,
     speakerOn: true,
@@ -852,10 +944,7 @@ export const calls = {
     try {
       const stream = await getMedia(media);
       pc = await buildPc();
-      if (stream) {
-        stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
-      }
-      // offerToReceive* guarantees m-lines even with no local tracks (receive-only).
+      attachLocalMedia(stream, media);
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: media === "video" });
       await pc.setLocalDescription(offer);
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
@@ -888,11 +977,7 @@ export const calls = {
       const stream = await getMedia(active.media);
       clog("accept: media", stream ? stream.getTracks().map((t) => t.kind) : "receive-only");
       pc = await buildPc();
-      if (stream) {
-        stream.getTracks().forEach((t) => pc!.addTrack(t, stream));
-      }
-      // No local tracks → createAnswer still produces recvonly m-lines for the
-      // peer's offer, so the connection establishes and we receive their media.
+      attachLocalMedia(stream, active.media);
       clog("accept: setRemoteDescription(offer)");
       await setRemote(offer);
       remoteDescSet = true;
@@ -950,11 +1035,7 @@ export const calls = {
   },
 
   toggleCamera(): void {
-    const stream = state.localStream;
-    if (!stream) return;
-    const next = !state.cameraOff;
-    stream.getVideoTracks().forEach((t) => (t.enabled = !next));
-    setState({ cameraOff: next });
+    void toggleCameraAsync();
   },
 
   /** Flip between front and back camera on mobile (replaceTrack — no renegotiation). */
@@ -1012,6 +1093,39 @@ export const calls = {
 };
 
 let switchingCamera = false;
+
+async function toggleCameraAsync(): Promise<void> {
+  if (state.active?.media !== "video" || !pc) return;
+  let stream = state.localStream;
+  const videoTracks = stream?.getVideoTracks() ?? [];
+
+  if (videoTracks.length === 0 && state.cameraOff) {
+    try {
+      const track = await acquireCamera(currentFacing);
+      track.enabled = true;
+      if (!stream) {
+        stream = new MediaStream();
+        setState({ localStream: stream });
+      }
+      stream.addTrack(track);
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(track);
+      else pc.addTrack(track, stream);
+      void detectMultipleCameras();
+      setState({ localStream: stream, cameraOff: false });
+      await performRenegotiation();
+    } catch (err) {
+      reportCallError("toggleCamera", err);
+      toast.info("Камера недоступна");
+    }
+    return;
+  }
+
+  if (!stream || videoTracks.length === 0) return;
+  const next = !state.cameraOff;
+  videoTracks.forEach((t) => (t.enabled = !next));
+  setState({ cameraOff: next });
+}
 
 /** Acquire a camera with a preferred facing, falling back from exact to ideal. */
 async function acquireCamera(facing: "user" | "environment"): Promise<MediaStreamTrack> {

@@ -7,7 +7,7 @@ import {
 } from "@/lib/api/entity-requests";
 import { uploadMedia } from "@/lib/api/media";
 import { prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
-import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 const OTHER_DIRECTION = "Другое";
 
@@ -245,9 +245,12 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
         </div>
       </div>
 
-      <ImageCropDialog
+      <PhotoEditorDialog
         file={pendingAvatar}
         aspect={1}
+        lockAspect
+        shape="circle"
+        lockShape
         outputWidth={480}
         outputHeight={480}
         title="Аватар канала"
@@ -258,9 +261,12 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
           setAvatarPreview(URL.createObjectURL(file));
         }}
       />
-      <ImageCropDialog
+      <PhotoEditorDialog
         file={pendingBanner}
         aspect={3.5}
+        lockAspect
+        shape="rect"
+        lockShape
         outputWidth={1400}
         outputHeight={400}
         title="Обложка канала"

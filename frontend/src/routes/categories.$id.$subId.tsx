@@ -7,6 +7,7 @@ import {
   ChevronUp,
   MessageCircle,
   Paperclip,
+  Pencil,
   Reply,
   Search,
   Send,
@@ -37,6 +38,7 @@ import {
   type RoomMessage,
 } from "@/lib/api/room-chat";
 import { navigateToPartnerChat } from "@/lib/api/chat";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 
 type Tab = "chat" | "ads" | "members";
 
@@ -621,6 +623,18 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
     });
   };
 
+  const [editingAttachment, setEditingAttachment] = useState<string | null>(null);
+  const replaceAttachment = (preview: string, blob: Blob) => {
+    setPendingAttachments((prev) =>
+      prev.map((a) => {
+        if (a.preview !== preview) return a;
+        URL.revokeObjectURL(a.preview);
+        const file = new File([blob], a.file.name, { type: blob.type || "image/jpeg" });
+        return { file, preview: URL.createObjectURL(file) };
+      }),
+    );
+  };
+
   const send = async () => {
     const v = text.trim();
     if (!v && pendingAttachments.length === 0) return;
@@ -965,6 +979,15 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               <img src={item.preview} alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
               <button
                 type="button"
+                onClick={() => setEditingAttachment(item.preview)}
+                aria-label="Редактировать фото"
+                className="absolute left-[2px] top-[2px] grid h-[18px] w-[18px] place-items-center rounded-full"
+                style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
+              >
+                <Pencil className="h-[10px] w-[10px]" />
+              </button>
+              <button
+                type="button"
                 onClick={() => removeAttachment(item.preview)}
                 aria-label={t("pages.subcategoryDetail.removeAttachmentAria")}
                 className="absolute right-[2px] top-[2px] grid h-[18px] w-[18px] place-items-center rounded-full"
@@ -976,6 +999,17 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           ))}
         </div>
       )}
+
+      <PhotoEditorDialog
+        open={editingAttachment != null}
+        src={editingAttachment ? (pendingAttachments.find((a) => a.preview === editingAttachment)?.file ?? null) : null}
+        title="Редактирование фото"
+        onCancel={() => setEditingAttachment(null)}
+        onSave={(blob) => {
+          if (editingAttachment) replaceAttachment(editingAttachment, blob);
+          setEditingAttachment(null);
+        }}
+      />
 
       {/* Composer */}
       <div

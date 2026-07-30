@@ -291,6 +291,34 @@ function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing
   );
 }
 
+function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
+  const { t } = useTranslation();
+  return (
+    <Link
+      to="/"
+      className="block overflow-hidden rounded-[12px] border transition-colors hover:opacity-95"
+      style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+    >
+      <div className="flex items-center gap-[10px] p-[10px]">
+        {post.image ? (
+          <img src={post.image} alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+        ) : (
+          <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.messenger.postLabel")}
+          </div>
+          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{post.title}</div>
+          {post.excerpt && (
+            <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>{post.excerpt}</div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function MessageBubble({
   msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onDeleteForEveryone, onReport, onMediaResize,
   searchHighlightId, searchQuery,
@@ -402,6 +430,7 @@ function MessageBubble({
             </div>
           )}
           {msg.listing && <ListingMessageCard listing={msg.listing} />}
+          {msg.post && <PostMessageCard post={msg.post} />}
           {msg.image && (
             <MessageImage
               src={msg.image}

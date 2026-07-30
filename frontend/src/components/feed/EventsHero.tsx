@@ -159,12 +159,12 @@ export function EventsHero() {
                 ) : null}
               </span>
               <h2
-                className="text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
+                className="line-clamp-2 break-words text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
                 style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
               >
                 {current.title}
               </h2>
-              <p className="line-clamp-2 text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{current.text}</p>
+              <p className="line-clamp-2 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{current.text}</p>
               <div className="mt-[6px]">
                 <button
                   type="button"

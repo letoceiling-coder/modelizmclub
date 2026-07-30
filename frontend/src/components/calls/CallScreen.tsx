@@ -105,6 +105,7 @@ function VideoLayer() {
   const active = useCalls((s) => s.active);
   const localStream = useCalls((s) => s.localStream);
   const remoteStream = useCalls((s) => s.remoteStream);
+  const remoteStreamGen = useCalls((s) => s.remoteStreamGen);
   const cameraOff = useCalls((s) => s.cameraOff);
   const localRef = useRef<HTMLVideoElement>(null);
   const remoteRef = useRef<HTMLVideoElement>(null);
@@ -112,12 +113,31 @@ function VideoLayer() {
   useEffect(() => {
     if (localRef.current && localStream) localRef.current.srcObject = localStream;
   }, [localStream]);
+
   useEffect(() => {
     const el = remoteRef.current;
     if (!el || !remoteStream) return;
-    el.srcObject = remoteStream;
-    void el.play().catch(() => {});
-  }, [remoteStream]);
+    const bind = () => {
+      el.srcObject = remoteStream;
+      void el.play().catch(() => {});
+    };
+    bind();
+    const onTrackChange = () => bind();
+    remoteStream.addEventListener("addtrack", onTrackChange);
+    remoteStream.addEventListener("removetrack", onTrackChange);
+    for (const t of remoteStream.getTracks()) {
+      t.addEventListener("unmute", onTrackChange);
+      t.addEventListener("mute", onTrackChange);
+    }
+    return () => {
+      remoteStream.removeEventListener("addtrack", onTrackChange);
+      remoteStream.removeEventListener("removetrack", onTrackChange);
+      for (const t of remoteStream.getTracks()) {
+        t.removeEventListener("unmute", onTrackChange);
+        t.removeEventListener("mute", onTrackChange);
+      }
+    };
+  }, [remoteStream, remoteStreamGen]);
 
   if (active?.media !== "video") return null;
 

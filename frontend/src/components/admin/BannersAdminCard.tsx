@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
-import { Eye, MousePointerClick, Plus, Trash2, Upload } from "lucide-react";
+import { Eye, MousePointerClick, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import {
   createAdminBanner,
   deleteAdminBanner,
@@ -282,21 +283,38 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
     }
   };
 
+  const [editorSrc, setEditorSrc] = useState<File | string | null>(null);
+
   const onPickImage = (target: string | "new") => {
     setUploadTarget(target);
     fileRef.current?.click();
   };
 
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onEditImage = (target: string | "new", src: string) => {
+    setUploadTarget(target);
+    setEditorSrc(src);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !uploadTarget) return;
+    // Route every picked banner photo through the editor before upload —
+    // banners get cropped/resized freely, so there's no fixed aspect to lock.
+    setEditorSrc(file);
+  };
+
+  const applyEditedBanner = async (blob: Blob) => {
+    const target = uploadTarget;
+    setEditorSrc(null);
+    if (!target) return;
     try {
+      const file = new File([blob], "banner.jpg", { type: blob.type || "image/jpeg" });
       const media = await uploadMedia(file, "banner");
-      if (uploadTarget === "new") {
+      if (target === "new") {
         setDraft((d) => ({ ...d, imageMediaUuid: media.uuid, imageUrl: media.url }));
       } else {
-        patchBanner(uploadTarget, { imageMediaUuid: media.uuid, imageUrl: media.url });
+        patchBanner(target, { imageMediaUuid: media.uuid, imageUrl: media.url });
       }
       toast.success("Изображение загружено — сохраните баннер");
     } catch {
@@ -311,6 +329,16 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
   return (
     <div style={{ display: "grid", gap: "16px" }}>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFileChange} />
+      <PhotoEditorDialog
+        open={editorSrc != null}
+        src={editorSrc}
+        title="Редактирование фото баннера"
+        onCancel={() => {
+          setEditorSrc(null);
+          setUploadTarget(null);
+        }}
+        onSave={applyEditedBanner}
+      />
 
       <div style={{ ...cardStyle, padding: "24px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "8px" }}>
@@ -380,9 +408,16 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
             Новый баннер
           </h4>
-          <button type="button" onClick={() => onPickImage("new")} style={ghostBtn}>
-            <Upload size={14} className="inline mr-1" /> Загрузить фото
-          </button>
+          <div className="flex items-center gap-[8px]">
+            {draft.imageUrl && (
+              <button type="button" onClick={() => onEditImage("new", draft.imageUrl!)} style={ghostBtn}>
+                <Pencil size={14} className="inline mr-1" /> Редактировать
+              </button>
+            )}
+            <button type="button" onClick={() => onPickImage("new")} style={ghostBtn}>
+              <Upload size={14} className="inline mr-1" /> Загрузить фото
+            </button>
+          </div>
         </div>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "8px" }}>{BANNER_IMAGE_HINT}</p>
 
@@ -570,6 +605,11 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                   <span style={{ fontSize: "13px" }}>Тестовый показ</span>
                 </label>
                 <button type="button" onClick={() => onPickImage(b.id)} style={ghostBtn}>Фото</button>
+                {b.imageUrl && (
+                  <button type="button" onClick={() => onEditImage(b.id, b.imageUrl!)} style={ghostBtn}>
+                    <Pencil size={14} className="inline mr-1" /> Редактировать
+                  </button>
+                )}
                 {(b.forceVisible || bannerScheduleStatus(b).label === "Активен") && b.placement === "events" && (
                   <Link to="/feed" target="_blank" style={{ ...ghostBtn, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
                     <Eye size={14} className="mr-1" /> Предпросмотр

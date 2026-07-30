@@ -41,7 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ImageCropDialog } from "@/components/profile/ImageCropDialog";
+import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { prepareProfileImageFile, PROFILE_IMAGE_ACCEPT, PROFILE_COVER_MAX_BYTES } from "@/lib/profile-image";
 import { ApiError } from "@/lib/api/client";
@@ -909,9 +909,12 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
           </DropdownMenu>
         </>
       )}
-      <ImageCropDialog
+      <PhotoEditorDialog
         file={pendingFile}
         aspect={1}
+        lockAspect
+        shape="circle"
+        lockShape
         outputWidth={480}
         outputHeight={480}
         title={t("pages.profile.cropAvatarTitle")}
@@ -1003,9 +1006,12 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
           </button>
         </>
       )}
-      <ImageCropDialog
+      <PhotoEditorDialog
         file={pendingFile}
         aspect={3.5}
+        lockAspect
+        shape="rect"
+        lockShape
         outputWidth={1400}
         outputHeight={400}
         title={t("pages.profile.cropCoverTitle")}

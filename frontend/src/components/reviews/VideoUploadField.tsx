@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { X, Film } from "lucide-react";
+import { X, Film, Pencil } from "lucide-react";
 
 interface Props {
   fileUrl: string | null;         // blob preview URL, or null
@@ -12,9 +12,11 @@ interface Props {
    *  CreatePostForm so choosing "Видео" in the composer menu jumps
    *  straight to the OS file picker instead of landing on an empty field. */
   autoOpen?: boolean;
+  /** Shows a pencil "Edit" button over image previews (ignored for video). */
+  onEdit?: () => void;
 }
 
-export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, autoOpen }: Props) {
+export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, autoOpen, onEdit }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -32,9 +34,16 @@ export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, auto
           ) : (
             <img src={fileUrl} alt="" className="w-full object-cover" style={{ maxHeight: 240 }} />
           )}
-          <button type="button" onClick={onClear} aria-label="Убрать" className="absolute right-[8px] top-[8px] grid h-[28px] w-[28px] place-items-center rounded-full" style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
-            <X size={14} />
-          </button>
+          <div className="absolute right-[8px] top-[8px] flex gap-[6px]">
+            {onEdit && !accept.startsWith("video") && (
+              <button type="button" onClick={onEdit} aria-label="Редактировать фото" className="grid h-[28px] w-[28px] place-items-center rounded-full" style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
+                <Pencil size={14} />
+              </button>
+            )}
+            <button type="button" onClick={onClear} aria-label="Убрать" className="grid h-[28px] w-[28px] place-items-center rounded-full" style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
+              <X size={14} />
+            </button>
+          </div>
         </div>
       ) : (
         <label className="grid cursor-pointer place-items-center gap-[8px] py-[28px] text-center" style={{ border: "1.5px dashed var(--border)", borderRadius: "var(--r-card)", color: "var(--foreground-50)" }}>

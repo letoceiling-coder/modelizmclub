@@ -6,6 +6,7 @@ import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-
 import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
 import { userById } from "@/lib/mock";
+import { sendPostShareMessage } from "@/lib/api/chat";
 
 interface Props {
   postId: string;
@@ -88,10 +89,18 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
     close();
   };
 
-  const sendToChat = (dialogId: string, partnerName: string) => {
-    actions.queuePendingMessage(dialogId, `🔗 ${t("components.repostMenu.postTitle")}: ${url()}`);
-    toast.success(t("components.repostMenu.sentTo", { name: partnerName }));
+  const sendToChat = async (dialogId: string, partnerName: string) => {
     close();
+    try {
+      const message = await sendPostShareMessage(dialogId, postId);
+      actions.addMessage(dialogId, message);
+      toast.success(t("components.repostMenu.sentTo", { name: partnerName }));
+    } catch {
+      // Fall back to a plain link if the post card couldn't be attached
+      // (e.g. the post is no longer published) — the chat still opens.
+      actions.queuePendingMessage(dialogId, `🔗 ${t("components.repostMenu.postTitle")}: ${url()}`);
+      toast.error(t("components.repostMenu.sendFailed"));
+    }
     navigate({ to: "/messenger", search: { chat: dialogId } });
   };
 
