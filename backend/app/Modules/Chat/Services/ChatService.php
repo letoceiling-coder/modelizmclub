@@ -67,6 +67,7 @@ class ChatService
                 'listing.mediaItems.media',
                 'latestMessage.author.profile.avatar',
                 'latestMessage.attachments.media',
+                'latestMessage.post.mediaItems.media',
                 'pinnedMessage.author.profile.avatar',
             ])
             ->orderByRaw('cp.pinned_at IS NULL')
@@ -92,6 +93,7 @@ class ChatService
                 'pinnedMessage.attachments.media',
                 'latestMessage.author.profile.avatar',
                 'latestMessage.attachments.media',
+                'latestMessage.post.mediaItems.media',
             ])
             ->first();
 
@@ -184,6 +186,8 @@ class ChatService
                 'forwardedFrom.author.profile.avatar',
                 'attachments.media',
                 'listing.mediaItems.media',
+                'post.author.profile',
+                'post.mediaItems.media',
             ])
             ->orderByDesc('created_at')
             ->paginate($perPage);
@@ -200,6 +204,7 @@ class ChatService
         string $type = 'text',
         array $mediaUuids = [],
         ?string $forwardedFromMessageUuid = null,
+        ?\App\Models\Post $post = null,
     ): Message {
         if (! $this->isParticipant($conversation, $user)) {
             throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
@@ -255,12 +260,13 @@ class ChatService
             }
         }
 
-        return DB::transaction(function () use ($conversation, $user, $body, $replyToId, $forwardedFromId, $type, $mediaIds): Message {
+        return DB::transaction(function () use ($conversation, $user, $body, $replyToId, $forwardedFromId, $type, $mediaIds, $post): Message {
             $message = Message::create([
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'body' => $body,
-                'type' => $type,
+                'type' => $post ? 'post' : $type,
+                'post_id' => $post?->id,
                 'reply_to_id' => $replyToId,
                 'forwarded_from_message_id' => $forwardedFromId,
                 'status' => 'sent',
@@ -277,6 +283,8 @@ class ChatService
                 'replyTo.author.profile',
                 'forwardedFrom.author.profile.avatar',
                 'attachments.media',
+                'post.author.profile',
+                'post.mediaItems.media',
                 'conversation',
             ]);
 

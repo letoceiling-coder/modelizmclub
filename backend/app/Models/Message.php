@@ -21,6 +21,7 @@ class Message extends Model
         'body',
         'type',
         'listing_id',
+        'post_id',
         'reply_to_id',
         'forwarded_from_message_id',
         'status',
@@ -63,5 +64,10 @@ class Message extends Model
     public function listing(): BelongsTo
     {
         return $this->belongsTo(Listing::class);
+    }
+
+    public function post(): BelongsTo
+    {
+        return $this->belongsTo(Post::class);
     }
 }

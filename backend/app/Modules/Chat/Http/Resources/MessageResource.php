@@ -36,6 +36,10 @@ class MessageResource extends JsonResource
                 $this->type === 'listing' && $this->relationLoaded('listing') && $this->listing,
                 fn () => new ListingCompactResource($this->listing),
             ),
+            'post' => $this->when(
+                $this->type === 'post' && $this->relationLoaded('post') && $this->post,
+                fn () => new PostCompactResource($this->post),
+            ),
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
                 'media' => $attachment->relationLoaded('media') && $attachment->media ? [
                     'uuid' => $attachment->media->uuid,
