@@ -65,7 +65,6 @@ use-auth-secret
 static-auth-secret=${SECRET}
 
 stale-nonce=600
-no-loopback-peers
 no-multicast-peers
 no-cli
 

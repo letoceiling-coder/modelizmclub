@@ -1,0 +1,240 @@
+{
+  "base": "https://modelizmclub.ru",
+  "email": "admin@modelizmclub.ru",
+  "at": "2026-07-15T14:44:51.482Z",
+  "results": [
+    {
+      "page": "/",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/login",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/register",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/ads",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/feed",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/reviews",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/communities",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/channels",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/categories",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/subscription",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/help",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/legal/privacy",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/legal/rules",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/reviews",
+      "element": "Контент",
+      "status": "OK",
+      "description": "Карточек обзоров: 3"
+    },
+    {
+      "page": "/communities",
+      "element": "Счётчик участников",
+      "status": "FAIL",
+      "description": "1 карточек с «0 участников»",
+      "bug": "#3"
+    },
+    {
+      "page": "/login",
+      "element": "Кнопка Яндекс",
+      "status": "OK",
+      "description": "Отображается"
+    },
+    {
+      "page": "/login",
+      "element": "Кнопка VK",
+      "status": "OK",
+      "description": "Отображается"
+    },
+    {
+      "page": "/",
+      "element": "Hero-video",
+      "status": "FAIL",
+      "description": "GET https://api.modelizmclub.ru/api/v1/videos/categories — net::ERR_ABORTED",
+      "bug": "#2"
+    },
+    {
+      "page": "/login",
+      "element": "Вход admin",
+      "status": "OK",
+      "description": "Редирект на https://modelizmclub.ru/feed"
+    },
+    {
+      "page": "/feed",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/profile",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/messenger",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/friends",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/notifications",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/my-ads",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/favorites",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/settings",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/admin",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/reviews/upload",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/ads/new",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/feed",
+      "element": "categories/posts",
+      "status": "OK",
+      "description": "1 запрос(ов)"
+    },
+    {
+      "page": "/admin",
+      "element": "Дизайн",
+      "status": "WARN",
+      "description": "Пункт меню не найден"
+    },
+    {
+      "page": "global",
+      "element": "console.errors",
+      "status": "WARN",
+      "description": "9 ошибок в консоли"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "failedRequests": [
+    "GET https://modelizmclub.ru/assets/index-D4vuayVK.js — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1isq129k.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggmxSuXd.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggOxSuXd.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSg.woff2 — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/public/feature-flags — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/icon-overrides — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSg.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1i8q1w.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1isq129k.woff2 — net::ERR_ABORTED",
+    "GET https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggOxSuXd.woff2 — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/icon-overrides — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/public/feature-flags — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/icon-overrides — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/public/feature-flags — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/listings?per_page=24&sort=new — net::ERR_ABORTED",
+    "GET https://api.modelizmclub.ru/api/v1/categories/listings — net::ERR_ABORTED"
+  ]
+}
