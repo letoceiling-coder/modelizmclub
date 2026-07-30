@@ -4,6 +4,8 @@ import { Eye, MousePointerClick, Pencil, Plus, Trash2, Upload } from "lucide-rea
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { BannerHeroSlide } from "@/components/feed/BannerHeroSlide";
+import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import {
   createAdminBanner,
   deleteAdminBanner,
@@ -70,8 +72,18 @@ const ghostBtn: CSSProperties = {
 
 const BANNER_IMAGE_HINT = "Рекомендуемый размер: 1920×500 px (JPG, PNG или WebP).";
 
-/** Preview matching feed hero slider + full uploaded image. */
-function BannerImagePreview({ src, placement }: { src: string; placement: string }) {
+type PreviewableBanner = Pick<
+  AdminBannerRow,
+  "id" | "imageUrl" | "title" | "text" | "ctaText" | "kind" | "untilLabel"
+>;
+
+/**
+ * WYSIWYG preview — renders the exact same `BannerHeroSlide`/`SponsoredPostCard`
+ * components the real feed uses, so title placement, dimming, text wrapping and
+ * the CTA button always match production pixel-for-pixel instead of drifting
+ * out of sync with a hand-rolled approximation.
+ */
+function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; placement: string }) {
   const isHero = placement === "events";
 
   return (
@@ -86,45 +98,59 @@ function BannerImagePreview({ src, placement }: { src: string; placement: string
               Как на ленте
             </div>
             <div
-              className="relative w-full overflow-hidden rounded-[12px] border"
-              style={{
-                aspectRatio: "1920 / 500",
-                maxHeight: 240,
-                borderColor: "var(--border)",
-                background: "var(--background-surface)",
-              }}
+              className="relative overflow-hidden rounded-[16px] border"
+              style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <div className="relative h-[200px] sm:h-[220px] md:h-[240px]">
+                <BannerHeroSlide
+                  banner={{
+                    image: banner.imageUrl,
+                    title: banner.title,
+                    text: banner.text,
+                    cta: banner.ctaText || "Подробнее",
+                    kind: banner.kind || "news",
+                    until: banner.untilLabel,
+                  }}
+                  ctaDisabled
+                />
+              </div>
+            </div>
+          </div>
+          {banner.imageUrl && (
+            <div>
               <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(180deg, color-mix(in oklab, #000 8%, transparent) 0%, color-mix(in oklab, #000 55%, transparent) 100%)",
-                }}
-              />
+                className="mb-[6px] text-[11px] font-semibold uppercase tracking-[0.06em]"
+                style={{ color: "var(--foreground-50)" }}
+              >
+                Загруженное изображение целиком
+              </div>
+              <div
+                className="flex min-h-[100px] items-center justify-center rounded-[12px] border p-[10px]"
+                style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+              >
+                <img src={banner.imageUrl} alt="" className="max-h-[220px] max-w-full object-contain" />
+              </div>
             </div>
-          </div>
-          <div>
-            <div
-              className="mb-[6px] text-[11px] font-semibold uppercase tracking-[0.06em]"
-              style={{ color: "var(--foreground-50)" }}
-            >
-              Загруженное изображение целиком
-            </div>
-            <div
-              className="flex min-h-[140px] items-center justify-center rounded-[12px] border p-[10px]"
-              style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
-            >
-              <img src={src} alt="" className="max-h-[320px] max-w-full object-contain" />
-            </div>
-          </div>
+          )}
         </>
       ) : (
-        <div
-          className="flex min-h-[140px] items-center justify-center rounded-[12px] border p-[10px]"
-          style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
-        >
-          <img src={src} alt="" className="max-h-[320px] max-w-full object-contain" />
+        <div>
+          <div
+            className="mb-[6px] text-[11px] font-semibold uppercase tracking-[0.06em]"
+            style={{ color: "var(--foreground-50)" }}
+          >
+            Как на ленте (нативный пост)
+          </div>
+          <SponsoredPostCard
+            banner={{
+              id: banner.id,
+              title: banner.title || "Заголовок баннера",
+              text: banner.text,
+              cta: banner.ctaText || "Подробнее",
+              until: banner.untilLabel,
+              color: "from-rose-500 to-orange-600",
+            }}
+          />
         </div>
       )}
     </div>
@@ -464,9 +490,18 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
           </label>
         </div>
 
-        {draft.imageUrl && (
-          <BannerImagePreview src={draft.imageUrl} placement={draft.placement} />
-        )}
+        <BannerImagePreview
+          banner={{
+            id: "new",
+            imageUrl: draft.imageUrl,
+            title: draft.title,
+            text: draft.text,
+            ctaText: draft.ctaText,
+            kind: draft.kind,
+            untilLabel: draft.untilLabel,
+          }}
+          placement={draft.placement}
+        />
 
         <button type="button" onClick={createBanner} disabled={creating} style={{ ...primaryBtn, marginTop: "14px" }}>
           <Plus size={14} className="inline mr-1" />
@@ -527,9 +562,18 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                 </div>
               </div>
 
-              {b.imageUrl && (
-                <BannerImagePreview src={b.imageUrl} placement={b.placement} />
-              )}
+              <BannerImagePreview
+                banner={{
+                  id: b.id,
+                  imageUrl: b.imageUrl,
+                  title: b.title,
+                  text: b.text,
+                  ctaText: b.ctaText,
+                  kind: b.kind,
+                  untilLabel: b.untilLabel,
+                }}
+                placement={b.placement}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "10px", marginTop: "12px" }}>
                 <label style={{ display: "grid", gap: "4px" }}>

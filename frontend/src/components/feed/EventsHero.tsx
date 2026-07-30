@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, CalendarDays, Newspaper, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import { fetchBannersWithSettings, recordBannerEvent } from "@/lib/api/banners";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { BannerHeroSlide } from "@/components/feed/BannerHeroSlide";
 
 function sortBanners(list: Banner[]): Banner[] {
   return [...list].sort((a, b) => {
@@ -65,9 +66,6 @@ export function EventsHero() {
   if (!enabled || list.length === 0) return null;
 
   const current = list[index];
-  const kindKey = current.kind ?? "news";
-  const KindIcon = kindKey === "event" ? CalendarDays : kindKey === "promo" ? Sparkles : Newspaper;
-  const kindLabel = t(`components.eventsHero.kind${kindKey === "event" ? "Event" : kindKey === "promo" ? "Promo" : "News"}`);
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
@@ -134,48 +132,11 @@ export function EventsHero() {
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="absolute inset-0"
         >
-            {current.image ? (
-              <img src={current.image} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className={`h-full w-full bg-gradient-to-br ${current.color}`} />
-            )}
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(90deg, color-mix(in oklab, #000 58%, transparent) 0%, color-mix(in oklab, #000 28%, transparent) 42%, transparent 68%), linear-gradient(180deg, transparent 32%, color-mix(in oklab, #000 60%, transparent) 100%)",
-              }}
+            <BannerHeroSlide
+              banner={current}
+              onCtaClick={() => openCta(current)}
+              ctaPointerProps={stopPointerPropagation}
             />
-
-            <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[14px] p-[22px] pb-[30px] sm:max-w-[52%] sm:gap-[16px] sm:p-[36px] sm:pb-[44px]">
-              <span
-                className="inline-flex w-fit items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-medium uppercase tracking-wide text-white"
-                style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
-              >
-                <KindIcon className="h-[12px] w-[12px]" />
-                {kindLabel}
-                {current.until ? (
-                  <span className="opacity-70">· {current.until}</span>
-                ) : null}
-              </span>
-              <h2
-                className="line-clamp-2 break-words text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
-                style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
-              >
-                {current.title}
-              </h2>
-              <p className="line-clamp-2 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{current.text}</p>
-              <div className="mt-[6px]">
-                <button
-                  type="button"
-                  onClick={() => openCta(current)}
-                  {...stopPointerPropagation}
-                  className="inline-flex items-center rounded-[10px] bg-white px-[16px] py-[9px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] sm:text-[14px]"
-                >
-                  {current.cta}
-                </button>
-              </div>
-            </div>
         </ReducedMotionSwitch>
 
         {list.length > 1 && (
