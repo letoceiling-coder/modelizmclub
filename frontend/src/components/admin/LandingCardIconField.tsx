@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ImagePlus, Loader2, Search, X } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadAdminMedia } from "@/lib/api/admin-media";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { IconBox } from "@/components/ui/Icon";
@@ -73,7 +73,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
     }
     setUploading(true);
     try {
-      const media = await uploadMedia(file, "icon");
+      const media = await uploadAdminMedia(file, "icon");
       if (!media.url) throw new Error("no url");
       onChange({ icon_url: media.url, icon: icon || "Box" });
       setOpen(false);

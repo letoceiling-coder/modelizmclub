@@ -15,7 +15,7 @@ import {
   type AdminBannerRow,
   type BannerCarouselSettings,
 } from "@/lib/api/admin";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadAdminMedia } from "@/lib/api/admin-media";
 
 const PLACEMENTS = [
   { value: "events", label: "Лента — верхний слайдер" },
@@ -336,7 +336,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
     if (!target) return;
     try {
       const file = new File([blob], "banner.jpg", { type: blob.type || "image/jpeg" });
-      const media = await uploadMedia(file, "banner");
+      const media = await uploadAdminMedia(file, "banner");
       if (target === "new") {
         setDraft((d) => ({ ...d, imageMediaUuid: media.uuid, imageUrl: media.url }));
       } else {

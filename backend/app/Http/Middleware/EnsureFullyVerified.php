@@ -16,6 +16,10 @@ class EnsureFullyVerified
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        if ($user->isModerator()) {
+            return $next($request);
+        }
+
         if ($user->requiresEmailVerification()) {
             return response()->json([
                 'message' => 'Подтвердите email, чтобы выполнить это действие.',
@@ -23,7 +27,7 @@ class EnsureFullyVerified
             ], 403);
         }
 
-        if (! $user->phone_verified_at && ! $user->isAdmin()) {
+        if (! $user->phone_verified_at) {
             return response()->json([
                 'message' => 'Подтвердите номер телефона по SMS, чтобы выполнить это действие.',
                 'code' => 'phone_not_verified',

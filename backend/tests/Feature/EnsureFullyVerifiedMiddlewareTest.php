@@ -70,4 +70,19 @@ class EnsureFullyVerifiedMiddlewareTest extends TestCase
             'description' => 'Desc',
         ])->assertStatus(422);
     }
+
+    public function test_moderator_without_phone_verification_can_create_listing(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::Moderator,
+            'email_verified_at' => null,
+            'phone_verified_at' => null,
+        ]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/listings', [
+            'title' => 'Test',
+            'description' => 'Desc',
+        ])->assertStatus(422);
+    }
 }

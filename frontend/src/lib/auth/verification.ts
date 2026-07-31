@@ -37,13 +37,19 @@ export function isAdminUser(user: User | null | undefined): boolean {
   return user?.role === "admin" || user?.isAdmin === true;
 }
 
-/** Admins skip SMS phone verification for site actions (publish, chat, etc.). */
+/** Admin panel staff — skip email/SMS verification gates on site and in admin UI. */
+export function isStaffUser(user: User | null | undefined): boolean {
+  return isAdminUser(user) || user?.role === "moderator";
+}
+
+/** Admins and moderators skip SMS phone verification for site actions (publish, chat, etc.). */
 export function isPhoneVerificationRequired(user: User | null | undefined): boolean {
-  return !isAdminUser(user);
+  return !isStaffUser(user);
 }
 
 export function isFullyVerified(user: User | null | undefined): boolean {
   if (isDemoMode()) return true;
+  if (isStaffUser(user)) return true;
   const phoneOk = isPhoneVerified(user) || !isPhoneVerificationRequired(user);
   return isEmailVerified(user) && phoneOk;
 }
