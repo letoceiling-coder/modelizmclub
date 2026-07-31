@@ -7,6 +7,11 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import {
+  membersForSubcategory,
+  onlineForSubcategory,
+  useCategoryRoomStats,
+} from "@/lib/hooks/useCategoryRoomStats";
 
 import i18n from "@/lib/i18n";
 
@@ -17,17 +22,6 @@ export const Route = createFileRoute("/categories/$id/")({
 
 function seedFrom(s: string): number {
   return s.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
-}
-
-function onlineFor(c: Category, subId: string): number {
-  const seed = seedFrom(c.id + subId);
-  const base = Math.max(2, Math.round((c.members / c.subcategories.length) * 0.012));
-  return base + (seed % 11);
-}
-
-function membersOf(c: Category, subId: string): number {
-  const seed = seedFrom(c.id + subId);
-  return Math.max(8, Math.round(c.members / c.subcategories.length)) + (seed % 30);
 }
 
 const ROOM_PREVIEW_KEYS = [
@@ -46,6 +40,7 @@ function CategoryRoomsPage() {
   const { id } = Route.useParams();
   const categories = usePostCategories();
   const c = categories.find((x) => x.id === id);
+  const roomStats = useCategoryRoomStats(id);
   const [query, setQuery] = useState("");
 
   const filteredSubs = useMemo(() => {
@@ -154,8 +149,8 @@ function CategoryRoomsPage() {
 
           <ul>
             {filteredSubs.map((s, i) => {
-              const online = onlineFor(c, s.id);
-              const members = membersOf(c, s.id);
+              const online = onlineForSubcategory(roomStats, s.id);
+              const members = membersForSubcategory(roomStats, s.id);
               const adsCount = 0;
               const previewKey = ROOM_PREVIEW_KEYS[(seedFrom(c.id + s.id) + i) % ROOM_PREVIEW_KEYS.length];
               const preview = t(`pages.categoryDetail.${previewKey}`);

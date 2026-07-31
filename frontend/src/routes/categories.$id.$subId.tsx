@@ -31,12 +31,16 @@ import { searchUsers } from "@/lib/api/social";
 import { fetchListings } from "@/lib/api/listings";
 import {
   fetchRoomMessages,
+  fetchRoomMembers,
   mapMessageToRoom,
   resolveRoomConversation,
   sendRoomMessage,
   uploadRoomAttachment,
+  type RoomMember,
   type RoomMessage,
 } from "@/lib/api/room-chat";
+import { useOnlineSet } from "@/lib/realtime/presence";
+import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { navigateToPartnerChat } from "@/lib/api/chat";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 
@@ -197,36 +201,42 @@ function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[
   ];
 }
 
-function buildMembers(
-  c: Category,
-  subId: string,
-  pool: User[],
-): Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> {
-  const seed = seedFrom(c.id + subId);
-  return pool.map((u, i) => ({
-    ...u,
-    isOnline: ((seed + i) % 3) !== 0,
-    role: i === 0 ? i18n.t("pages.subcategoryDetail.roleModerator") : i === 1 ? i18n.t("pages.subcategoryDetail.roleExpert") : undefined,
-  }));
-}
-
 function SubcategoryRoomPage() {
   const { t } = useTranslation();
   const { id, subId } = Route.useParams();
   const categories = usePostCategories();
   const c = categories.find((x) => x.id === id);
   const sub = c?.subcategories.find((s) => s.id === subId);
+  const onlineSet = useOnlineSet();
+  const me = useStore(selectors.currentUser);
 
   const [tab, setTab] = useState<Tab>("chat");
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   const [pool, setPool] = useState<User[]>([]);
   const [subAds, setSubAds] = useState<Ad[]>([]);
+  const [roomMembers, setRoomMembers] = useState<RoomMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(!isDemoMode() && me.id !== GUEST_USER.id);
 
   useEffect(() => {
     let active = true;
     searchUsers("").then((u) => active && setPool(u.slice(0, 12))).catch(() => {});
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!c || !sub || isDemoMode() || me.id === GUEST_USER.id) {
+      setRoomMembers([]);
+      setMembersLoading(false);
+      return;
+    }
+    let active = true;
+    setMembersLoading(true);
+    fetchRoomMembers(c.id, sub.id)
+      .then(({ members }) => active && setRoomMembers(members))
+      .catch(() => active && setRoomMembers([]))
+      .finally(() => active && setMembersLoading(false));
+    return () => { active = false; };
+  }, [c, sub, me.id]);
 
   useEffect(() => {
     if (!c || !sub) return;
@@ -240,11 +250,10 @@ function SubcategoryRoomPage() {
     return () => { active = false; };
   }, [c, sub]);
 
-  const members = useMemo(
-    () => (c && sub ? buildMembers(c, sub.id, pool) : []),
-    [c, sub, pool],
+  const onlineCount = useMemo(
+    () => roomMembers.filter((m) => isUserOnline(m.user.id, onlineSet, m.user)).length,
+    [roomMembers, onlineSet],
   );
-  const onlineCount = members.filter((m) => m.isOnline).length;
 
   if (!c || !sub) {
     return (
@@ -324,14 +333,16 @@ function SubcategoryRoomPage() {
         >
           <TabBtn label={t("pages.subcategoryDetail.tabChat")} icon={<MessageCircle className="h-[14px] w-[14px]" />} active={tab === "chat"} onClick={() => setTab("chat")} />
           <TabBtn label={t("pages.subcategoryDetail.tabAds")} icon={<Tag className="h-[14px] w-[14px]" />} active={tab === "ads"} onClick={() => setTab("ads")} badge={subAds.length || undefined} />
-          <TabBtn label={t("pages.subcategoryDetail.tabMembers")} icon={<Users className="h-[14px] w-[14px]" />} active={tab === "members"} onClick={() => setTab("members")} badge={members.length} />
+          <TabBtn label={t("pages.subcategoryDetail.tabMembers")} icon={<Users className="h-[14px] w-[14px]" />} active={tab === "members"} onClick={() => setTab("members")} badge={roomMembers.length || undefined} />
         </div>
 
         {/* Tab content */}
         <div className="min-h-0 flex-1">
           {tab === "chat" && <ChatTab category={c} subId={sub.id} subName={sub.name} pool={pool} />}
           {tab === "ads" && <AdsTab ads={subAds} subName={sub.name} />}
-          {tab === "members" && <MembersTab members={members} />}
+          {tab === "members" && (
+            <MembersTab members={roomMembers} loading={membersLoading} onlineSet={onlineSet} />
+          )}
         </div>
       </div>
 
@@ -1118,7 +1129,15 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
 
 /* --------------------------- MEMBERS TAB --------------------------- */
 
-function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: string; isOnline: boolean }> }) {
+function MembersTab({
+  members,
+  loading,
+  onlineSet,
+}: {
+  members: RoomMember[];
+  loading: boolean;
+  onlineSet: Set<string>;
+}) {
   const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
   const navigate = useNavigate();
@@ -1129,11 +1148,44 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
       toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
     }
   }, [me.id, navigate, t]);
-  const sorted = [...members].sort((a, b) => Number(b.isOnline) - Number(a.isOnline));
+
+  const roleLabel = (role?: string) => {
+    if (!role || role === "member") return undefined;
+    if (role === "admin") return t("pages.communityDetail.roleAdmin");
+    if (role === "moderator") return t("pages.subcategoryDetail.roleModerator");
+    return role;
+  };
+
+  const sorted = [...members].sort(
+    (a, b) =>
+      Number(isUserOnline(b.user.id, onlineSet, b.user)) -
+      Number(isUserOnline(a.user.id, onlineSet, a.user)),
+  );
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center px-[14px] py-[24px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+        {t("pages.subcategoryDetail.loading")}
+      </div>
+    );
+  }
+
+  if (sorted.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center px-[14px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+        {t("pages.subcategoryDetail.membersEmpty")}
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto px-[10px] py-[10px]">
       <ul className="space-y-[2px]">
-        {sorted.map((u) => (
+        {sorted.map(({ user: u, role }) => {
+          const online = isUserOnline(u.id, onlineSet, u);
+          const status = presenceLabel(u.id, onlineSet, u);
+          const badge = roleLabel(role);
+          return (
           <li
             key={u.id}
             className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
@@ -1143,7 +1195,7 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
               <span
                 className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
                 style={{
-                  background: u.isOnline ? "#22c55e" : "var(--foreground-30)",
+                  background: online ? "#22c55e" : "var(--foreground-30)",
                   borderColor: "var(--background-elevated)",
                 }}
               />
@@ -1158,17 +1210,17 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
                 >
                   {u.name}
                 </Link>
-                {u.role && (
+                {badge && (
                   <span
                     className="shrink-0 rounded-[6px] px-[6px] py-[1px] text-[10.5px] font-medium"
                     style={{ background: "var(--background-surface)", color: "var(--accent)" }}
                   >
-                    {u.role}
+                    {badge}
                   </span>
                 )}
               </div>
               <p className="truncate text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-                {u.isOnline ? t("common.online") : t("pages.subcategoryDetail.offline")} · {u.city}
+                {status.text}{u.city ? ` · ${u.city}` : ""}
               </p>
             </div>
             <button
@@ -1180,7 +1232,8 @@ function MembersTab({ members }: { members: Array<Omit<User, "role"> & { role?: 
               {t("pages.subcategoryDetail.writeMessage")}
             </button>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
