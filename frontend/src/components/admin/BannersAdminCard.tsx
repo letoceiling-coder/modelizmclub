@@ -101,7 +101,7 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
               className="relative overflow-hidden rounded-[16px] border"
               style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
             >
-              <div className="relative h-[200px] sm:h-[220px] md:h-[240px]">
+              <div className="relative min-h-[200px] sm:min-h-[220px] md:min-h-[240px]">
                 <BannerHeroSlide
                   banner={{
                     image: banner.imageUrl,

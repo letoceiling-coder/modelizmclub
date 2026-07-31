@@ -119,7 +119,7 @@ export function EventsHero() {
       onMouseLeave={() => setPaused(false)}
     >
       <div
-        className="relative h-[200px] cursor-pointer sm:h-[220px] md:h-[240px]"
+        className="relative min-h-[200px] cursor-pointer sm:min-h-[220px] md:min-h-[240px]"
         style={{ touchAction: "pan-y" }}
         onPointerDown={onSlidePointerDown}
         onPointerUp={onSlidePointerUp}
@@ -130,7 +130,7 @@ export function EventsHero() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0"
+          className="relative block w-full"
         >
             <BannerHeroSlide
               banner={current}
