@@ -1176,6 +1176,7 @@ export const en: TranslationSchema = {
       roleExpert: "Expert",
       offline: "offline",
       writeMessage: "Message",
+      membersEmpty: "No one has joined this room yet",
       searchInMessages: "Search messages…",
       matchCase: "Match case",
       exactMatch: "Exact match",

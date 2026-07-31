@@ -1069,6 +1069,7 @@ export const ru = {
       roleExpert: "Эксперт",
       offline: "не в сети",
       writeMessage: "Написать",
+      membersEmpty: "Пока никто не заходил в эту комнату",
       searchInMessages: "Найти в сообщениях…",
       matchCase: "Учитывать регистр",
       exactMatch: "Точное совпадение",

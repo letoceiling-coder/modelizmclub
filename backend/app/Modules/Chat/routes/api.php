@@ -12,6 +12,8 @@ use Modules\Chat\Http\Controllers\Api\V1\PinConversationController;
 use Modules\Chat\Http\Controllers\Api\V1\PinMessageController;
 use Modules\Chat\Http\Controllers\Api\V1\ShowConversationController;
 use Modules\Chat\Http\Controllers\Api\V1\ShowCategoryRoomConversationController;
+use Modules\Chat\Http\Controllers\Api\V1\IndexCategoryRoomMembersController;
+use Modules\Chat\Http\Controllers\Api\V1\IndexCategoryRoomStatsController;
 use Modules\Chat\Http\Controllers\Api\V1\StoreAttachmentController;
 use Modules\Chat\Http\Controllers\Api\V1\StoreConversationController;
 use Modules\Chat\Http\Controllers\Api\V1\StoreMessageController;
@@ -26,6 +28,11 @@ Route::middleware('auth:sanctum')->prefix('conversations')->group(function (): v
 });
 
 Route::middleware('auth:sanctum')->prefix('categories/posts')->group(function (): void {
+    Route::get('rooms/stats', IndexCategoryRoomStatsController::class);
+    Route::get('{parentId}/rooms/stats', IndexCategoryRoomStatsController::class)
+        ->whereNumber('parentId');
+    Route::get('{parentId}/rooms/{subId}/members', IndexCategoryRoomMembersController::class)
+        ->whereNumber(['parentId', 'subId']);
     Route::get('{parentId}/rooms/{subId}/conversation', ShowCategoryRoomConversationController::class)
         ->whereNumber(['parentId', 'subId']);
 });

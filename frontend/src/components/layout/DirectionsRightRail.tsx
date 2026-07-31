@@ -3,7 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight, MessageCircle, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { onlineFor } from "@/lib/category-online";
+import {
+  onlineForCategory,
+  onlineForSubcategory,
+  membersForSubcategory,
+  totalOnlineFromStats,
+  useCategoryRoomStats,
+} from "@/lib/hooks/useCategoryRoomStats";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 
@@ -51,6 +57,7 @@ export function DirectionsRightRail({ guestGuard = false }: Props) {
     return window.localStorage.getItem(COLLAPSE_KEY) === "1";
   });
   const categories = usePostCategories();
+  const roomStats = useCategoryRoomStats();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -58,8 +65,8 @@ export function DirectionsRightRail({ guestGuard = false }: Props) {
   }, [collapsed]);
 
   const totalOnline = useMemo(
-    () => categories.reduce((sum, c) => sum + onlineFor(c), 0),
-    [categories],
+    () => totalOnlineFromStats(roomStats),
+    [roomStats],
   );
 
   if (collapsed) {
@@ -130,7 +137,7 @@ export function DirectionsRightRail({ guestGuard = false }: Props) {
           <ul className="p-[6px]">
             {categories.map((c) => {
               const open = openId === c.id;
-              const online = onlineFor(c);
+              const online = onlineForCategory(roomStats, c.id);
               const hasSubs = c.subcategories.length > 0;
               return (
                 <li key={c.id}>

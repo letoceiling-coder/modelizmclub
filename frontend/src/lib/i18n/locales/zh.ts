@@ -1173,6 +1173,7 @@ export const zh: TranslationSchema = {
       roleExpert: "Expert",
       offline: "offline",
       writeMessage: "Message",
+      membersEmpty: "还没有人加入此房间",
       searchInMessages: "Search messages…",
       matchCase: "Match case",
       exactMatch: "Exact match",

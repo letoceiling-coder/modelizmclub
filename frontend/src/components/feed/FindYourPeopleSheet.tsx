@@ -11,8 +11,8 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { onlineFor } from "@/lib/category-online";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { onlineForCategory, useCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 
@@ -26,6 +26,7 @@ export function FindYourPeopleSheet() {
   const [openId, setOpenId] = useState<string | null>(null);
   const categories = usePostCategories();
   const { guardAction } = useGuestAccess();
+  const roomStats = useCategoryRoomStats();
 
   return (
     <div className="xl:hidden">
@@ -92,7 +93,7 @@ export function FindYourPeopleSheet() {
           <ul className="min-h-0 flex-1 overflow-y-auto p-[8px]">
             {categories.map((c) => {
               const expanded = openId === c.id;
-              const online = onlineFor(c);
+              const online = onlineForCategory(roomStats, c.id);
               return (
                 <li key={c.id}>
                   <div className="flex items-stretch">

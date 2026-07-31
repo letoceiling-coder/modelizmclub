@@ -734,4 +734,53 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.uuid', $direct->uuid);
     }
+
+    public function test_category_room_members_returns_real_online_status(): void
+    {
+        [$onlineUser, $offlineUser] = $this->usersWithProfiles();
+
+        $onlineUser->forceFill(['last_seen_at' => now()])->save();
+        $offlineUser->forceFill(['last_seen_at' => now()->subHours(2)])->save();
+
+        $parent = PostCategory::create([
+            'name' => 'Armor',
+            'slug' => 'armor',
+            'sort_order' => 10,
+            'depth' => 0,
+            'path' => 'armor',
+            'is_active' => true,
+        ]);
+
+        $sub = PostCategory::create([
+            'parent_id' => $parent->id,
+            'name' => 'APC',
+            'slug' => 'apc',
+            'sort_order' => 10,
+            'depth' => 1,
+            'path' => 'armor/apc',
+            'is_active' => true,
+        ]);
+
+        $room = Conversation::create([
+            'type' => ConversationType::Room,
+            'post_category_id' => $sub->id,
+            'title' => $sub->name,
+        ]);
+
+        foreach ([$onlineUser, $offlineUser] as $user) {
+            ConversationParticipant::create([
+                'conversation_id' => $room->id,
+                'user_id' => $user->id,
+                'role' => 'member',
+                'joined_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($onlineUser, 'sanctum')
+            ->getJson("/api/v1/categories/posts/{$parent->id}/rooms/{$sub->id}/members")
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.online_count', 1)
+            ->assertJsonCount(2, 'data.members');
+    }
 }

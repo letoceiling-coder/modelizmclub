@@ -145,6 +145,92 @@ class ChatService
         return $conversation;
     }
 
+    public const PRESENCE_ONLINE_SECONDS = 120;
+
+    public function isRecentlyActive(User $user): bool
+    {
+        return $user->last_seen_at !== null
+            && $user->last_seen_at->greaterThan(now()->subSeconds(self::PRESENCE_ONLINE_SECONDS));
+    }
+
+    /**
+     * @return array{members: Collection<int, ConversationParticipant>, online_count: int, total: int}
+     */
+    public function listCategoryRoomMembers(int $parentCategoryId, int $subCategoryId, User $user): array
+    {
+        $conversation = $this->findOrCreateCategoryRoom($parentCategoryId, $subCategoryId, $user);
+
+        $members = ConversationParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->whereNull('left_at')
+            ->with(['user.profile.avatar', 'user.profile.city'])
+            ->get()
+            ->sortByDesc(fn (ConversationParticipant $p) => $this->isRecentlyActive($p->user) ? 1 : 0)
+            ->values();
+
+        $onlineCount = $members->filter(fn (ConversationParticipant $p) => $this->isRecentlyActive($p->user))->count();
+
+        return [
+            'members' => $members,
+            'online_count' => $onlineCount,
+            'total' => $members->count(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     by_subcategory: array<string, array{members: int, online: int}>,
+     *     by_parent: array<string, array{members: int, online: int}>
+     * }
+     */
+    public function postCategoryRoomStats(?int $parentCategoryId = null): array
+    {
+        $query = Conversation::query()
+            ->where('type', ConversationType::Room)
+            ->whereNotNull('post_category_id');
+
+        if ($parentCategoryId !== null) {
+            $subIds = PostCategory::query()
+                ->where('parent_id', $parentCategoryId)
+                ->where('is_active', true)
+                ->pluck('id');
+            $query->whereIn('post_category_id', $subIds);
+        }
+
+        $conversations = $query
+            ->with(['participants' => fn ($q) => $q->whereNull('left_at')->with('user')])
+            ->get();
+
+        $bySubcategory = [];
+        $byParent = [];
+
+        $parentIdsBySub = PostCategory::query()
+            ->whereIn('id', $conversations->pluck('post_category_id')->filter()->unique())
+            ->pluck('parent_id', 'id');
+
+        foreach ($conversations as $conversation) {
+            $subId = (string) $conversation->post_category_id;
+            $members = $conversation->participants->count();
+            $online = $conversation->participants
+                ->filter(fn (ConversationParticipant $p) => $this->isRecentlyActive($p->user))
+                ->count();
+
+            $bySubcategory[$subId] = ['members' => $members, 'online' => $online];
+
+            $parentId = $parentIdsBySub->get($conversation->post_category_id);
+            if ($parentId) {
+                $parentKey = (string) $parentId;
+                $byParent[$parentKey]['members'] = ($byParent[$parentKey]['members'] ?? 0) + $members;
+                $byParent[$parentKey]['online'] = ($byParent[$parentKey]['online'] ?? 0) + $online;
+            }
+        }
+
+        return [
+            'by_subcategory' => $bySubcategory,
+            'by_parent' => $byParent,
+        ];
+    }
+
     private function ensureParticipant(Conversation $conversation, User $user): void
     {
         $existing = ConversationParticipant::query()
