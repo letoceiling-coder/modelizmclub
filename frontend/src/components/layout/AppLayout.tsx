@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
-import { RightCategories } from "./RightCategories";
+import { DirectionsRightRail } from "./DirectionsRightRail";
 import { BottomNav } from "./BottomNav";
 import { MobileHeader } from "./MobileHeader";
 import { DesktopTopBar } from "./DesktopTopBar";
@@ -65,7 +65,7 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar
           {children}
           {footer && <AppFooter />}
         </main>
-        {rightColumn === false ? null : rightColumn ?? <RightCategories />}
+        {rightColumn === false ? null : rightColumn ?? <DirectionsRightRail />}
       </div>
       {hideBottomNav ? null : <BottomNav />}
     </div>

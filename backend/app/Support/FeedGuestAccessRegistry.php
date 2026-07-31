@@ -15,6 +15,7 @@ final class FeedGuestAccessRegistry
             ['key' => 'feed.filter.following', 'group' => 'feed_filters', 'label' => 'Вкладка «Подписки»', 'hint' => 'Фильтр по подпискам', 'default_allowed' => false],
             ['key' => 'feed.filter.categories', 'group' => 'feed_filters', 'label' => 'Вкладка «Направления»', 'hint' => 'Фильтр по направлениям', 'default_allowed' => false],
             ['key' => 'feed.filter.saved', 'group' => 'feed_filters', 'label' => 'Вкладка «Сохранённое»', 'hint' => 'Сохранённые публикации', 'default_allowed' => false],
+            ['key' => 'feed.filter.scheduled', 'group' => 'feed_filters', 'label' => 'Вкладка «Запланированные»', 'hint' => 'Отложенные публикации автора', 'default_allowed' => false],
             ['key' => 'feed.category.select', 'group' => 'feed_filters', 'label' => 'Чипы направлений', 'hint' => 'Выбор категории под фильтром', 'default_allowed' => false],
 
             // — Лента: контент —

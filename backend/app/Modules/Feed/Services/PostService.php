@@ -122,6 +122,7 @@ class PostService
             if (! in_array($post->status, [
                 ContentStatus::Draft,
                 ContentStatus::Revision,
+                ContentStatus::Scheduled,
                 ContentStatus::Published,
                 ContentStatus::PendingModeration,
                 ContentStatus::Rejected,
@@ -158,6 +159,7 @@ class PostService
         return DB::transaction(function () use ($post): Post {
             $post->update([
                 'status' => ContentStatus::PendingModeration,
+                'scheduled_at' => null,
             ]);
 
             ModerationQueue::query()->updateOrCreate(
@@ -204,6 +206,7 @@ class PostService
         $post->update([
             'status' => ContentStatus::Published,
             'published_at' => $post->published_at ?? now(),
+            'scheduled_at' => null,
             'moderated_at' => now(),
         ]);
 
@@ -215,6 +218,98 @@ class PostService
         if ($post->community_id) {
             Community::query()->whereKey($post->community_id)->increment('posts_count');
         }
+    }
+
+    public function schedule(Post $post, User $user, \DateTimeInterface $scheduledAt): Post
+    {
+        if ($post->user_id !== $user->id) {
+            throw ValidationException::withMessages([
+                'post' => ['Планирование доступно только автору публикации.'],
+            ]);
+        }
+
+        if (! in_array($post->status, [
+            ContentStatus::Draft,
+            ContentStatus::Revision,
+            ContentStatus::Scheduled,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'post' => ['Эту публикацию нельзя запланировать.'],
+            ]);
+        }
+
+        $at = \Illuminate\Support\Carbon::parse($scheduledAt);
+
+        if ($at->isPast()) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => ['Время публикации должно быть в будущем.'],
+            ]);
+        }
+
+        if ($at->greaterThan(now()->addYear())) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => ['Можно запланировать публикацию не более чем на год вперёд.'],
+            ]);
+        }
+
+        $post->update([
+            'status' => ContentStatus::Scheduled,
+            'scheduled_at' => $at,
+        ]);
+
+        return $post->fresh($this->defaultRelations());
+    }
+
+    public function cancelSchedule(Post $post, User $user): Post
+    {
+        if ($post->user_id !== $user->id) {
+            throw ValidationException::withMessages([
+                'post' => ['Отмена доступна только автору публикации.'],
+            ]);
+        }
+
+        if ($post->status !== ContentStatus::Scheduled) {
+            throw ValidationException::withMessages([
+                'post' => ['Публикация не запланирована.'],
+            ]);
+        }
+
+        $post->update([
+            'status' => ContentStatus::Draft,
+            'scheduled_at' => null,
+        ]);
+
+        return $post->fresh($this->defaultRelations());
+    }
+
+    /** Publish all posts whose scheduled time has arrived. */
+    public function publishDueScheduledPosts(): int
+    {
+        $due = Post::query()
+            ->where('status', ContentStatus::Scheduled)
+            ->whereNotNull('scheduled_at')
+            ->where('scheduled_at', '<=', now())
+            ->orderBy('scheduled_at')
+            ->limit(100)
+            ->get();
+
+        $count = 0;
+
+        foreach ($due as $post) {
+            $author = $post->author;
+            if (! $author) {
+                continue;
+            }
+
+            try {
+                $this->publish($post, $author);
+                $count++;
+            } catch (\Throwable) {
+                // Skip broken rows — cron will retry on next run if still due.
+            }
+        }
+
+        return $count;
     }
 
     /** @return list<string> */

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check, Trash2, ShieldCheck } from "lucide-react";
+import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check, Trash2, ShieldCheck, Clock, Send, XCircle } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { actions } from "@/lib/store";
 import { deletePost } from "@/lib/api/feed";
@@ -22,9 +22,12 @@ interface Props {
   saved: boolean;
   title: string;
   text: string;
-  status?: "published" | "moderation";
+  status?: "published" | "moderation" | "scheduled";
   canDelete?: boolean;
   isStaff?: boolean;
+  canPublishNow?: boolean;
+  canReschedule?: boolean;
+  canCancelSchedule?: boolean;
   /** Author of the post — used as the report target. */
   author?: User;
   /** Own post? Hide/report don't make sense on your own post. */
@@ -35,6 +38,9 @@ interface Props {
   onToggleSave?: () => void;
   /** Hides the post from the current user's feed. */
   onHide?: () => void;
+  onPublishNow?: () => void | Promise<void>;
+  onReschedule?: () => void;
+  onCancelSchedule?: () => void | Promise<void>;
 }
 
 export function PostActionMenu({
@@ -51,6 +57,12 @@ export function PostActionMenu({
   onApproved,
   onToggleSave,
   onHide,
+  canPublishNow = false,
+  canReschedule = false,
+  canCancelSchedule = false,
+  onPublishNow,
+  onReschedule,
+  onCancelSchedule,
 }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -185,6 +197,37 @@ export function PostActionMenu({
               accent
               disabled={busy}
             />
+            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+          </>
+        )}
+        {(canPublishNow || canReschedule || canCancelSchedule) && (
+          <>
+            {canPublishNow && (
+              <MenuItem
+                onClick={async () => { close(); await onPublishNow?.(); }}
+                icon={Send}
+                label={t("components.postActionMenu.publishNow")}
+                accent
+                disabled={busy}
+              />
+            )}
+            {canReschedule && (
+              <MenuItem
+                onClick={() => { close(); onReschedule?.(); }}
+                icon={Clock}
+                label={t("components.postActionMenu.changeSchedule")}
+                disabled={busy}
+              />
+            )}
+            {canCancelSchedule && (
+              <MenuItem
+                onClick={async () => { close(); await onCancelSchedule?.(); }}
+                icon={XCircle}
+                label={t("components.postActionMenu.cancelSchedule")}
+                danger
+                disabled={busy}
+              />
+            )}
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
           </>
         )}

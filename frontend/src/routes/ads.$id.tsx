@@ -3,11 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
-import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, revealSellerPhone } from "@/lib/api/listings";
+import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, revealSellerPhone, archiveListing, deleteListing } from "@/lib/api/listings";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
 import { AdActionPanel } from "@/components/ads/AdActionPanel";
+import { AdOwnerActionPanel } from "@/components/ads/AdOwnerActionPanel";
+import { AdOwnerMobileBar } from "@/components/ads/AdOwnerMobileBar";
 import { AskSellerWidget } from "@/components/ads/AskSellerWidget";
 import { MobileStickyActionBar } from "@/components/ads/MobileStickyActionBar";
 import { DeliveryChoiceSheet } from "@/components/ads/DeliveryChoiceSheet";
@@ -121,6 +123,8 @@ function AdDetailPage() {
   }, [id]);
 
   const [deliveryPickerOpen, setDeliveryPickerOpen] = useState(false);
+  const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
+  const [ownerBusy, setOwnerBusy] = useState(false);
 
   const availableDeliveryMethods = useMemo(
     () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
@@ -289,6 +293,45 @@ function AdDetailPage() {
 
   const hasDelivery = ad.delivery.length > 0;
 
+  const isOwner = Boolean(
+    me && (
+      (ad.authorId && me.id === ad.authorId)
+      || (ad.seller?.id && me.id === ad.seller.id)
+      || (ad.seller?.numericId != null && me.numericId === ad.seller.numericId)
+    ),
+  );
+  const showBuyerUi = !isOwner || previewAsBuyer;
+
+  const goEdit = () => navigate({ to: "/ads/new", search: { edit: ad.id } });
+
+  const handleOwnerUnpublish = async () => {
+    if (!window.confirm(t("pages.adDetail.ownerUnpublishConfirm"))) return;
+    setOwnerBusy(true);
+    try {
+      await archiveListing(ad.id);
+      toast.success(t("pages.adDetail.ownerUnpublished"));
+      navigate({ to: "/my-ads" });
+    } catch {
+      toast.error(t("pages.adDetail.ownerActionFailed"));
+    } finally {
+      setOwnerBusy(false);
+    }
+  };
+
+  const handleOwnerDelete = async () => {
+    if (!window.confirm(t("pages.adDetail.ownerDeleteConfirm"))) return;
+    setOwnerBusy(true);
+    try {
+      await deleteListing(ad.id);
+      toast.success(t("pages.adDetail.ownerDeleted"));
+      navigate({ to: "/my-ads" });
+    } catch {
+      toast.error(t("pages.adDetail.ownerActionFailed"));
+    } finally {
+      setOwnerBusy(false);
+    }
+  };
+
   return (
     <AppLayout rightColumn={false} footer>
       <div
@@ -331,16 +374,39 @@ function AdDetailPage() {
           </div>
 
           <div className="flex flex-col gap-[16px] [grid-area:actions] lg:sticky lg:top-[16px]">
-            <AdActionPanel
-              ad={ad}
-              saved={saved}
-              onWrite={writeToSeller}
-              onToggleSave={toggleSave}
-              onShare={share}
-              phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
-              revealedPhone={revealedPhone}
-              onRevealPhone={() => void revealPhone()}
-            />
+            {previewAsBuyer && (
+              <Alert variant="info" className="rounded-[var(--r-card)]">
+                <AlertTitle>{t("pages.adDetail.previewModeTitle")}</AlertTitle>
+                <AlertDescription className="flex flex-col gap-[8px]">
+                  <span>{t("pages.adDetail.previewModeDesc")}</span>
+                  <Button size="sm" variant="outline" className="w-fit" onClick={() => setPreviewAsBuyer(false)}>
+                    {t("pages.adDetail.previewModeExit")}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            {showBuyerUi ? (
+              <AdActionPanel
+                ad={ad}
+                saved={saved}
+                onWrite={writeToSeller}
+                onToggleSave={toggleSave}
+                onShare={share}
+                phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
+                revealedPhone={revealedPhone}
+                onRevealPhone={() => void revealPhone()}
+              />
+            ) : (
+              <AdOwnerActionPanel
+                ad={ad}
+                busy={ownerBusy}
+                onEdit={goEdit}
+                onUnpublish={() => void handleOwnerUnpublish()}
+                onDelete={() => void handleOwnerDelete()}
+                onShare={share}
+                onPreviewAsBuyer={() => setPreviewAsBuyer(true)}
+              />
+            )}
           </div>
 
           <div className="flex min-w-0 flex-col gap-[16px] [grid-area:content] lg:gap-[20px]">
@@ -406,22 +472,31 @@ function AdDetailPage() {
                 beneath it — Avito-style placement: seller info first, then the
                 way to contact them, in the main content column rather than the
                 right rail. */}
-            {ad.seller && <SellerCard seller={ad.seller} />}
+            {showBuyerUi && ad.seller && <SellerCard seller={ad.seller} />}
 
-            <AskSellerWidget onAsk={(q) => void askSeller(q)} />
+            {showBuyerUi && <AskSellerWidget onAsk={(q) => void askSeller(q)} />}
 
             <SimilarAds items={similar} />
           </div>
         </div>
       </div>
 
-      <MobileStickyActionBar
-        ad={ad}
-        onWrite={writeToSeller}
-        phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
-        revealedPhone={revealedPhone}
-        onRevealPhone={() => void revealPhone()}
-      />
+      {showBuyerUi ? (
+        <MobileStickyActionBar
+          ad={ad}
+          onWrite={writeToSeller}
+          phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
+          revealedPhone={revealedPhone}
+          onRevealPhone={() => void revealPhone()}
+        />
+      ) : (
+        <AdOwnerMobileBar
+          ad={ad}
+          busy={ownerBusy}
+          onEdit={goEdit}
+          onUnpublish={() => void handleOwnerUnpublish()}
+        />
+      )}
 
       <DeliveryChoiceSheet
         open={deliveryPickerOpen}

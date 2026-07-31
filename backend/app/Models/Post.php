@@ -34,6 +34,7 @@ class Post extends Model
         'reactions_count',
         'comments_count',
         'published_at',
+        'scheduled_at',
     ];
 
     protected function casts(): array
@@ -42,6 +43,7 @@ class Post extends Model
             'status' => ContentStatus::class,
             'moderated_at' => 'datetime',
             'published_at' => 'datetime',
+            'scheduled_at' => 'datetime',
         ];
     }
 
@@ -105,6 +107,7 @@ class Post extends Model
                     $inner->where('user_id', $viewer->id)
                         ->whereIn('status', [
                             ContentStatus::Draft,
+                            ContentStatus::Scheduled,
                             ContentStatus::PendingModeration,
                             ContentStatus::Revision,
                             ContentStatus::Rejected,
@@ -136,7 +139,13 @@ class Post extends Model
         return in_array($this->status, [
             ContentStatus::Draft,
             ContentStatus::Revision,
+            ContentStatus::Scheduled,
         ], true);
+    }
+
+    public function isScheduled(): bool
+    {
+        return $this->status === ContentStatus::Scheduled;
     }
 
     /** Runtime-only flags for API responses (not persisted). */

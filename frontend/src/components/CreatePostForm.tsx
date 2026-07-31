@@ -6,9 +6,11 @@ import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
 import { uploadMedia, validatePostVideoFile } from "@/lib/api/media";
-import { createPost, publishPost } from "@/lib/api/feed";
+import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
+import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
+import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
 import { createChannelPost, POST_KIND_LABEL, type PostKind } from "@/lib/channels";
 import type { Post } from "@/lib/mock";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
@@ -98,6 +100,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState<PersistedPostDraft | null>(null);
+  const scheduleDefaults = useInitialScheduleState();
+  const [publishMode, setPublishMode] = useState<PublishMode>(scheduleDefaults.mode);
+  const [scheduleDate, setScheduleDate] = useState(scheduleDefaults.date);
+  const [scheduleTime, setScheduleTime] = useState(scheduleDefaults.time);
+  const [scheduleTimezone, setScheduleTimezone] = useState(scheduleDefaults.timezone);
   // Cache File -> serialised photo so autosave doesn't re-read blobs each keystroke.
   const photoDraftCache = useRef<Map<File, DraftPhoto>>(new Map());
   const draftEnabled = sel.source === "profile";
@@ -256,10 +263,24 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           mediaIds,
         });
         if (!isDemoMode()) {
-          post = await publishPost(post.id);
+          if (publishMode === "schedule") {
+            if (!isScheduleDateTimeValid(scheduleDate, scheduleTime)) {
+              toast.error(t("components.postSchedule.invalidDateTime"));
+              return;
+            }
+            post = await schedulePost(post.id, buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone));
+            toast.success(t("components.createPostForm.scheduled"));
+          } else {
+            post = await publishPost(post.id);
+            toast.success(t("components.createPostForm.sentToModeration"));
+          }
+        } else if (publishMode === "schedule") {
+          post = { ...post, status: "scheduled", scheduledAt: new Date().toISOString() };
+          toast.success(t("components.createPostForm.scheduled"));
+        } else {
+          toast.success(t("components.createPostForm.sentToModeration"));
         }
         onCreate?.(post);
-        toast.success(t("components.createPostForm.sentToModeration"));
       } else {
         await createChannelPost({
           channelSlug: sel.channel!.slug,
@@ -441,6 +462,22 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
         )}
       </div>
 
+      {sel.source === "profile" && (
+        <div className="shrink-0 border-t px-[16px] pt-[12px]" style={{ borderColor: "var(--border)" }}>
+          <PostSchedulePicker
+            mode={publishMode}
+            onModeChange={setPublishMode}
+            date={scheduleDate}
+            time={scheduleTime}
+            timezone={scheduleTimezone}
+            onDateChange={setScheduleDate}
+            onTimeChange={setScheduleTime}
+            onTimezoneChange={setScheduleTimezone}
+            disabled={publishing}
+          />
+        </div>
+      )}
+
       <div
         className="shrink-0 border-t px-[16px] pt-[10px]"
         style={{ borderColor: "var(--border)", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
@@ -452,7 +489,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
         >
-          {publishing ? t("components.createPostForm.publishing") : t("components.createPostForm.publish")}
+          {publishing
+            ? t("components.createPostForm.publishing")
+            : publishMode === "schedule"
+              ? t("components.createPostForm.scheduleSubmit")
+              : t("components.createPostForm.publish")}
         </button>
       </div>
 

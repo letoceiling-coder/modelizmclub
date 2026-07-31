@@ -6,6 +6,7 @@ export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = {
   "feed.filter.following": false,
   "feed.filter.categories": false,
   "feed.filter.saved": false,
+  "feed.filter.scheduled": false,
   "feed.category.select": false,
   "feed.compose.open": false,
   "feed.banner.navigate": true,
@@ -56,6 +57,7 @@ export const FEED_FILTER_ACTIONS = {
   following: "feed.filter.following",
   categories: "feed.filter.categories",
   saved: "feed.filter.saved",
+  scheduled: "feed.filter.scheduled",
 } as const;
 
 export type FeedFilterKey = keyof typeof FEED_FILTER_ACTIONS;
@@ -81,7 +83,7 @@ export function buildDefaultFeedGuestAccessConfig(): FeedGuestAccessConfig {
 }
 
 export function firstAllowedFeedFilter(isAllowed: (key: string) => boolean): FeedFilterKey {
-  for (const id of ["all", "following", "categories", "saved"] as const) {
+  for (const id of ["all", "following", "categories", "saved", "scheduled"] as const) {
     if (isAllowed(FEED_FILTER_ACTIONS[id])) return id;
   }
   return "all";

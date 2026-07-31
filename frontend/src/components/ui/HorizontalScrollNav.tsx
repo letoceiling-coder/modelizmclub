@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type HTMLAttributes } from "react";
+import { forwardRef, useCallback, useEffect, useRef, type ReactNode, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 type Props = HTMLAttributes<HTMLElement> & {
@@ -12,8 +12,21 @@ const DRAG_THRESHOLD_PX = 4;
 /**
  * Horizontal strip: hidden scrollbar, native touch swipe, mouse drag + wheel on desktop.
  */
-export function HorizontalScrollNav({ as: Tag = "nav", className, style, children, ...rest }: Props) {
+export const HorizontalScrollNav = forwardRef<HTMLDivElement, Props>(function HorizontalScrollNav(
+  { as: Tag = "nav", className, style, children, ...rest },
+  forwardedRef,
+) {
   const ref = useRef<HTMLDivElement>(null);
+
+  const setRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      ref.current = node;
+      if (typeof forwardedRef === "function") forwardedRef(node);
+      else if (forwardedRef) forwardedRef.current = node;
+    },
+    [forwardedRef],
+  );
+
   const drag = useRef({
     pending: false,
     dragging: false,
@@ -112,7 +125,7 @@ export function HorizontalScrollNav({ as: Tag = "nav", className, style, childre
 
   return (
     <Tag
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={setRef as React.Ref<HTMLDivElement>}
       className={cn(
         "drag-scroll-x flex w-full gap-[2px] overflow-x-auto overscroll-x-contain no-scrollbar",
         className,
@@ -123,4 +136,4 @@ export function HorizontalScrollNav({ as: Tag = "nav", className, style, childre
       {children}
     </Tag>
   );
-}
+});

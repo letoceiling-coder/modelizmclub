@@ -119,9 +119,7 @@ function mapMessageStatus(raw?: string | null): Message["status"] {
 export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   registerCompact(m.author);
   const media = (m.attachments ?? []).map((a) => a.media).filter((x): x is NonNullable<typeof x> => Boolean(x?.url));
-  const audio = media.find((x) => m.type === "voice" || (x.mime_type ?? "").startsWith("audio/"));
-  const fileMedia = media.find((x) => x !== audio && !(x.mime_type ?? "").startsWith("image/"));
-  const imageMedia = media.find((x) => x !== audio && (x.mime_type ?? "").startsWith("image/"));
+  const msgType = m.type ?? "text";
 
   const base: Message = {
     id: m.uuid,
@@ -134,13 +132,7 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
     forwardedFrom: m.forwarded_from?.author?.uuid,
   };
 
-  if (imageMedia?.url) {
-    base.image = imageMedia.url;
-    if (imageMedia.width && imageMedia.height) {
-      base.imageSize = { w: imageMedia.width, h: imageMedia.height };
-    }
-  }
-
+  const audio = media.find((x) => msgType === "voice" || (x.mime_type ?? "").startsWith("audio/"));
   if (audio?.url) {
     base.voice = {
       duration: Math.max(1, Math.round(audio.duration ?? 1)),
@@ -150,14 +142,45 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
     };
   }
 
-  if (fileMedia?.url) {
-    const mime = fileMedia.mime_type ?? "";
-    base.file = {
-      name: fileMedia.filename ?? fileMedia.url.split("/").pop() ?? "file",
-      size: fileMedia.size_bytes ?? 0,
-      kind: mime.startsWith("video/") ? "video" : "file",
-      url: fileMedia.url,
-    };
+  const nonAudio = media.filter((x) => x !== audio);
+
+  if (msgType === "image") {
+    const imageMedia = nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/")) ?? nonAudio[0];
+    if (imageMedia?.url) {
+      base.image = imageMedia.url;
+      if (imageMedia.width && imageMedia.height) {
+        base.imageSize = { w: imageMedia.width, h: imageMedia.height };
+      }
+    }
+  } else if (msgType === "file") {
+    const fileMedia = nonAudio[0];
+    if (fileMedia?.url) {
+      const mime = fileMedia.mime_type ?? "";
+      base.file = {
+        name: fileMedia.filename ?? fileMedia.url.split("/").pop() ?? "file",
+        size: fileMedia.size_bytes ?? 0,
+        kind: mime.startsWith("video/") ? "video" : "file",
+        url: fileMedia.url,
+      };
+    }
+  } else if (nonAudio.length > 0) {
+    const imageMedia = nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/"));
+    const fileMedia = nonAudio.find((x) => !(x.mime_type ?? "").startsWith("image/"));
+    if (imageMedia?.url) {
+      base.image = imageMedia.url;
+      if (imageMedia.width && imageMedia.height) {
+        base.imageSize = { w: imageMedia.width, h: imageMedia.height };
+      }
+    }
+    if (fileMedia?.url) {
+      const mime = fileMedia.mime_type ?? "";
+      base.file = {
+        name: fileMedia.filename ?? fileMedia.url.split("/").pop() ?? "file",
+        size: fileMedia.size_bytes ?? 0,
+        kind: mime.startsWith("video/") ? "video" : "file",
+        url: fileMedia.url,
+      };
+    }
   }
 
   if (m.type === "listing" && m.listing) {

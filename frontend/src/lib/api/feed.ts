@@ -29,8 +29,9 @@ export interface ApiPost {
   hashtags?: string[];
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
-  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean };
+  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean };
   published_at?: string | null;
+  scheduled_at?: string | null;
   created_at?: string;
 }
 
@@ -76,7 +77,7 @@ export function mapPost(p: ApiPost): Post {
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
-    date: p.published_at ?? p.created_at ?? "",
+    date: p.published_at ?? p.scheduled_at ?? p.created_at ?? "",
     category: p.category?.name ?? "",
     title: p.title ?? "",
     text: p.body ?? "",
@@ -89,16 +90,19 @@ export function mapPost(p: ApiPost): Post {
     comments: p.stats?.comments ?? 0,
     saves: 0,
     reposts: p.stats?.reposts ?? 0,
-    status: p.status === "published" ? "published" : "moderation",
+    status: p.status === "published" ? "published" : p.status === "scheduled" ? "scheduled" : "moderation",
+    scheduledAt: p.scheduled_at ?? undefined,
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
     isReposted: p.viewer?.reposted ?? false,
     canDelete: p.permissions?.can_delete ?? false,
+    canPublish: p.permissions?.can_publish ?? false,
+    canCancelSchedule: p.permissions?.can_cancel_schedule ?? false,
   };
 }
 
 export interface FeedQuery {
-  filter?: "all" | "following" | "category";
+  filter?: "all" | "following" | "category" | "scheduled";
   categoryId?: number;
   authorId?: number;
   /** Demo-mode filtering only — mockPosts.category is a name string, not an
@@ -255,6 +259,62 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
  *  in demo mode rather than call it. */
 export async function publishPost(uuid: string): Promise<Post> {
   const res = await api<{ data: ApiPost }>(`/posts/${uuid}/publish`, { method: "POST" });
+  return mapPost(res.data);
+}
+
+export async function schedulePost(
+  uuid: string,
+  input: { scheduled_at_local: string; timezone: string },
+): Promise<Post> {
+  if (isDemoMode()) {
+    return {
+      id: uuid,
+      authorId: "u1",
+      date: input.scheduled_at_local,
+      category: "",
+      title: "",
+      text: "",
+      tags: [],
+      views: 0,
+      likes: 0,
+      comments: 0,
+      saves: 0,
+      reposts: 0,
+      status: "scheduled",
+      scheduledAt: new Date().toISOString(),
+      isLiked: false,
+      isSaved: false,
+      canCancelSchedule: true,
+    };
+  }
+  const res = await api<{ data: ApiPost }>(`/posts/${uuid}/schedule`, {
+    method: "POST",
+    json: input,
+  });
+  return mapPost(res.data);
+}
+
+export async function cancelScheduledPost(uuid: string): Promise<Post> {
+  if (isDemoMode()) {
+    return {
+      id: uuid,
+      authorId: "u1",
+      date: "",
+      category: "",
+      title: "",
+      text: "",
+      tags: [],
+      views: 0,
+      likes: 0,
+      comments: 0,
+      saves: 0,
+      reposts: 0,
+      status: "moderation",
+      isLiked: false,
+      isSaved: false,
+    };
+  }
+  const res = await api<{ data: ApiPost }>(`/posts/${uuid}/schedule`, { method: "DELETE" });
   return mapPost(res.data);
 }
 

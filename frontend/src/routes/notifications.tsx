@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { Bell, CheckCheck, Trash2, UserPlus, Megaphone, MessageSquare, Phone, X } from "lucide-react";
+import { Bell, CheckCheck, Trash2, UserPlus, Megaphone, MessageSquare, Phone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
@@ -35,34 +35,76 @@ function iconFor(type: string) {
   return Bell;
 }
 
-function SwipeableNotification({
-  children,
+function NotificationItem({
+  n,
+  onOpen,
   onDelete,
 }: {
-  children: React.ReactNode;
+  n: AppNotification;
+  onOpen: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
+  const Icon = iconFor(n.type);
+
   return (
-    <div className="relative overflow-hidden" style={{ borderRadius: "var(--r-card-sm)" }}>
-      <div
-        className="absolute inset-y-0 right-0 grid w-[72px] place-items-center"
-        style={{ background: "color-mix(in oklab, var(--error) 90%, black)" }}
+    <Card
+      className="group flex w-full cursor-pointer items-start gap-[12px] p-[12px] shadow-none transition-colors hover:bg-[color-mix(in_oklab,var(--background-surface)_92%,var(--foreground)_8%)]"
+      style={{
+        background: n.read ? "var(--background-surface)" : "var(--accent-soft)",
+        borderColor: "var(--border)",
+        borderRadius: "var(--r-card-sm)",
+      }}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onOpen();
+      }}
+    >
+      <span
+        className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
+        style={{ background: "var(--background)", color: "var(--accent)" }}
       >
-        <Trash2 size={18} className="text-white" />
+        <Icon size={17} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold" style={{ fontSize: "14px", color: "var(--foreground)" }}>
+          {n.title}
+        </div>
+        {n.body && (
+          <div className="mt-[2px] line-clamp-2" style={{ fontSize: "13px", color: "var(--foreground-70)" }}>
+            {n.body}
+          </div>
+        )}
+        {n.createdAt && (
+          <div className="mt-[4px]" style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+            {formatRelativeTime(n.createdAt)}
+          </div>
+        )}
       </div>
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: -88, right: 0 }}
-        dragElastic={0.08}
-        onDragEnd={(_, info) => {
-          if (info.offset.x < -64) onDelete();
+      {!n.read && (
+        <span
+          className="mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full group-hover:hidden"
+          style={{ background: "var(--accent)" }}
+        />
+      )}
+      <button
+        type="button"
+        aria-label={t("pages.notifications.deleteAria")}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
         }}
-        className="relative touch-pan-y"
-        style={{ touchAction: "pan-y" }}
+        className="mt-[2px] grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+        style={{
+          color: "var(--error)",
+          background: "color-mix(in oklab, var(--error) 12%, transparent)",
+        }}
       >
-        {children}
-      </motion.div>
-    </div>
+        <Trash2 size={16} />
+      </button>
+    </Card>
   );
 }
 
@@ -71,6 +113,14 @@ function NotificationsPage() {
   const nav = useNavigate();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const pendingDeletes = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      for (const timer of pendingDeletes.current.values()) clearTimeout(timer);
+      pendingDeletes.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
     fetchNotifications()
@@ -108,14 +158,54 @@ function NotificationsPage() {
     }
   };
 
-  const removeOne = async (id: string) => {
+  const removeOne = (id: string) => {
+    const index = items.findIndex((x) => x.id === id);
+    const removed = items[index];
+    if (!removed) return;
+
+    const existingTimer = pendingDeletes.current.get(id);
+    if (existingTimer) clearTimeout(existingTimer);
+
     setItems((prev) => prev.filter((x) => x.id !== id));
-    try {
-      await deleteNotification(id);
-    } catch {
-      toast.error(t("pages.notifications.deleteFailed"));
-      fetchNotifications().then((r) => setItems(r.items)).catch(() => {});
-    }
+
+    const UNDO_MS = 5000;
+    let undone = false;
+
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(id);
+      if (undone) return;
+      try {
+        await deleteNotification(id);
+      } catch {
+        toast.error(t("pages.notifications.deleteFailed"));
+        setItems((prev) => {
+          if (prev.some((x) => x.id === id)) return prev;
+          const next = [...prev];
+          next.splice(Math.min(index, next.length), 0, removed);
+          return next;
+        });
+      }
+    }, UNDO_MS);
+
+    pendingDeletes.current.set(id, timer);
+
+    toast.success(t("pages.notifications.deleted"), {
+      duration: UNDO_MS,
+      action: {
+        label: t("pages.notifications.undo"),
+        onClick: () => {
+          undone = true;
+          clearTimeout(timer);
+          pendingDeletes.current.delete(id);
+          setItems((prev) => {
+            if (prev.some((x) => x.id === id)) return prev;
+            const next = [...prev];
+            next.splice(Math.min(index, next.length), 0, removed);
+            return next;
+          });
+        },
+      },
+    });
   };
 
   const clearAll = async () => {
@@ -202,78 +292,20 @@ function NotificationsPage() {
           />
         ) : (
           <div className="space-y-[8px]">
-            {items.map((n, i) => {
-              const Icon = iconFor(n.type);
-              return (
-                <motion.div
-                  key={n.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
-                >
-                  <SwipeableNotification onDelete={() => void removeOne(n.id)}>
-                  <Card
-                    className="flex w-full cursor-pointer items-start gap-[12px] p-[12px] shadow-none transition-opacity hover:opacity-80"
-                    style={{
-                      background: n.read ? "var(--background-surface)" : "var(--accent-soft)",
-                      borderColor: "var(--border)",
-                      borderRadius: "var(--r-card-sm)",
-                    }}
-                    onClick={() => open(n)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") open(n); }}
-                  >
-                    <span
-                      className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
-                      style={{ background: "var(--background)", color: "var(--accent)" }}
-                    >
-                      <Icon size={17} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-semibold"
-                        style={{ fontSize: "14px", color: "var(--foreground)" }}
-                      >
-                        {n.title}
-                      </div>
-                      {n.body && (
-                        <div
-                          className="mt-[2px] line-clamp-2"
-                          style={{ fontSize: "13px", color: "var(--foreground-70)" }}
-                        >
-                          {n.body}
-                        </div>
-                      )}
-                      {n.createdAt && (
-                        <div className="mt-[4px]" style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                          {formatRelativeTime(n.createdAt)}
-                        </div>
-                      )}
-                    </div>
-                    {!n.read && (
-                      <span
-                        className="mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full"
-                        style={{ background: "var(--accent)" }}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      aria-label={t("pages.notifications.deleteAria")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void removeOne(n.id);
-                      }}
-                      className="mt-[2px] grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px] transition-colors hover:bg-[var(--background)]"
-                      style={{ color: "var(--foreground-50)" }}
-                    >
-                      <X size={14} />
-                    </button>
-                  </Card>
-                  </SwipeableNotification>
-                </motion.div>
-              );
-            })}
+            {items.map((n, i) => (
+              <motion.div
+                key={n.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.03, 0.3) }}
+              >
+                <NotificationItem
+                  n={n}
+                  onOpen={() => open(n)}
+                  onDelete={() => removeOne(n.id)}
+                />
+              </motion.div>
+            ))}
           </div>
         )}
       </div>

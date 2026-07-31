@@ -147,7 +147,7 @@ function WatchPage() {
 
   if (state === "loading") {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout rightColumn={false} footer>
         <div className="mx-auto max-w-[900px] py-[40px]">
           <div className="w-full animate-pulse" style={{ aspectRatio: "16 / 9", background: "var(--background-surface)", borderRadius: "var(--r-card)" }} />
           <div className="mt-[20px] animate-pulse space-y-[12px]">
@@ -165,7 +165,7 @@ function WatchPage() {
   }
   if (state === "notFound" || state === "error" || !video) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout rightColumn={false} footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
@@ -182,7 +182,7 @@ function WatchPage() {
   const author = userById(video.uploaderId);
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout rightColumn={false} footer>
       <div className="mx-auto flex max-w-[1000px] flex-col gap-[20px]">
         <Link to="/reviews" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
           <ChevronLeft size={14} /> {t("pages.reviews.breadcrumb")}

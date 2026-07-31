@@ -28,6 +28,7 @@ import {
   fetchAdminSettings, updateAdminSettings,
   fetchAdminPosts, updateAdminPostStatus, deleteAdminPost,
   fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
+  bulkUpdateAdminListingStatus, bulkDeleteAdminListings,
   broadcastNotification,
   fetchAdminFeedback, updateAdminFeedbackStatus,
   fetchAdminReports, updateAdminReportStatus,
@@ -48,6 +49,16 @@ import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCar
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
 import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
 import { MediaManagerCard } from "@/components/admin/MediaManagerCard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
@@ -1313,6 +1324,10 @@ function AdsSection() {
   const [status, setStatus] = useState("all");
   const [rows, setRows] = useState<AdminListingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -1322,7 +1337,41 @@ function AdsSection() {
       .finally(() => setLoading(false));
   }, [status]);
 
-  const filtered = rows.filter((a) => !query || a.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = useMemo(
+    () => rows.filter((a) => !query || a.title.toLowerCase().includes(query.toLowerCase())),
+    [rows, query],
+  );
+
+  useEffect(() => {
+    setSelected(new Set());
+  }, [status, query]);
+
+  const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.uuid));
+  const someSelected = filtered.some((r) => selected.has(r.uuid));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected && !allSelected;
+    }
+  }, [someSelected, allSelected]);
+
+  const toggleOne = (uuid: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(uuid)) next.delete(uuid);
+      else next.add(uuid);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) filtered.forEach((r) => next.delete(r.uuid));
+      else filtered.forEach((r) => next.add(r.uuid));
+      return next;
+    });
+  };
 
   const changeStatus = async (uuid: string, next: string) => {
     try {
@@ -1331,13 +1380,69 @@ function AdsSection() {
       toast.success("Статус обновлён");
     } catch { toast.error("Не удалось обновить статус"); }
   };
+
   const remove = async (uuid: string) => {
     if (!window.confirm("Удалить объявление?")) return;
     try {
       await deleteAdminListing(uuid);
       setRows((prev) => prev.filter((r) => r.uuid !== uuid));
+      setSelected((prev) => {
+        if (!prev.has(uuid)) return prev;
+        const next = new Set(prev);
+        next.delete(uuid);
+        return next;
+      });
       toast.success("Удалено");
     } catch { toast.error("Не удалось удалить"); }
+  };
+
+  const bulkChangeStatus = async (next: string) => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const { ok, failed } = await bulkUpdateAdminListingStatus(ids, next);
+      if (ok > 0) {
+        setRows((prev) => prev.map((r) => (selected.has(r.uuid) ? { ...r, status: next } : r)));
+      }
+      setSelected(new Set());
+      if (failed > 0) toast.error(`Обновлено ${ok}, ошибок: ${failed}`);
+      else toast.success(`Обновлено объявлений: ${ok}`);
+    } catch {
+      toast.error("Не удалось выполнить массовое действие");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkRemove = async () => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const { ok, failed } = await bulkDeleteAdminListings(ids);
+      if (ok > 0) {
+        setRows((prev) => prev.filter((r) => !selected.has(r.uuid)));
+        setSelected(new Set());
+      }
+      setDeleteConfirmOpen(false);
+      if (failed > 0) toast.error(`Удалено ${ok}, ошибок: ${failed}`);
+      else toast.success(`Удалено объявлений: ${ok}`);
+    } catch {
+      toast.error("Не удалось удалить объявления");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkBtnStyle: CSSProperties = {
+    ...inputStyle,
+    height: "34px",
+    padding: "0 12px",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: bulkBusy ? "not-allowed" : "pointer",
+    opacity: bulkBusy ? 0.6 : 1,
   };
 
   return (
@@ -1354,11 +1459,65 @@ function AdsSection() {
           <option value="sold">Продано</option>
         </select>
       </div>
+
+      {selected.size > 0 && (
+        <div
+          className="flex flex-wrap items-center"
+          style={{
+            ...card,
+            marginTop: "16px",
+            padding: "12px 16px",
+            gap: "10px",
+            borderColor: "color-mix(in oklab, var(--accent) 35%, var(--border))",
+            background: "color-mix(in oklab, var(--accent) 6%, var(--background-elevated))",
+          }}
+        >
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)" }}>
+            Выбрано: {selected.size}
+          </span>
+          <button type="button" disabled={bulkBusy} style={{ ...bulkBtnStyle, display: "inline-flex", alignItems: "center", gap: "4px" }} onClick={() => void bulkChangeStatus("published")}>
+            <Check size={13} /> Опубликовать
+          </button>
+          <button type="button" disabled={bulkBusy} style={bulkBtnStyle} onClick={() => void bulkChangeStatus("unpublished")}>
+            Снять с публикации
+          </button>
+          <button type="button" disabled={bulkBusy} style={bulkBtnStyle} onClick={() => void bulkChangeStatus("pending_moderation")}>
+            На модерацию
+          </button>
+          <button
+            type="button"
+            disabled={bulkBusy}
+            style={{ ...bulkBtnStyle, display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--error)", borderColor: "color-mix(in oklab, var(--error) 40%, var(--border))" }}
+            onClick={() => setDeleteConfirmOpen(true)}
+          >
+            <Trash2 size={13} /> Удалить
+          </button>
+          <button
+            type="button"
+            disabled={bulkBusy}
+            style={{ ...bulkBtnStyle, marginLeft: "auto", color: "var(--foreground-50)" }}
+            onClick={() => setSelected(new Set())}
+          >
+            Снять выбор
+          </button>
+        </div>
+      )}
+
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
+          <table className="w-full" style={{ fontSize: "13px", minWidth: "760px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
+                <th style={{ padding: "10px 12px", width: "44px" }}>
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    aria-label="Выбрать все объявления"
+                    style={{ accentColor: "var(--accent)", width: "16px", height: "16px", cursor: "pointer" }}
+                  />
+                </th>
                 {["Заголовок", "Продавец", "Цена", "Категория", "Статус", "Действия"].map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
@@ -1366,13 +1525,29 @@ function AdsSection() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Объявлений нет</td></tr>
+                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>Объявлений нет</td></tr>
               ) : filtered.map((a) => {
                 const meta = statusMeta(LISTING_STATUS_META, a.status);
+                const isSelected = selected.has(a.uuid);
                 return (
-                  <tr key={a.uuid} style={{ borderTop: "1px solid var(--border)" }}>
+                  <tr
+                    key={a.uuid}
+                    style={{
+                      borderTop: "1px solid var(--border)",
+                      background: isSelected ? "color-mix(in oklab, var(--accent) 5%, transparent)" : undefined,
+                    }}
+                  >
+                    <td style={{ padding: "10px 12px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleOne(a.uuid)}
+                        aria-label={`Выбрать «${a.title}»`}
+                        style={{ accentColor: "var(--accent)", width: "16px", height: "16px", cursor: "pointer" }}
+                      />
+                    </td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{a.title}</td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{a.author}</td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 600 }}>{a.price.toLocaleString("ru")} ₽</td>
@@ -1399,6 +1574,30 @@ function AdsSection() {
           </table>
         </div>
       </div>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить выбранные объявления?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Будет удалено объявлений: {selected.size}. Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                void bulkRemove();
+              }}
+              className="bg-[var(--error)] text-white hover:bg-[var(--error)]/90"
+            >
+              {bulkBusy ? "Удаление…" : "Удалить"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -22,7 +22,7 @@ import {
   hideMessageForMe, pinMessage as apiPinMessage, deleteConversation, clearConversationHistory,
   deleteMessageForEveryone,
 } from "@/lib/api/chat";
-import { chatAttachmentTooLargeMessage, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
+import { chatAttachmentTooLargeMessage, chatAttachmentMessageType, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
 import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
@@ -951,7 +951,12 @@ function MessengerPage() {
     }
     try {
       const uploaded = await uploadChatAttachment(dialogId, readyFile);
-      const saved = await sendAttachmentMessage(dialogId, uploaded.media_uuid, uploaded.type, replyId);
+      const saved = await sendAttachmentMessage(
+        dialogId,
+        uploaded.media_uuid,
+        chatAttachmentMessageType(kind),
+        replyId,
+      );
       replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(url);
     } catch (err) {

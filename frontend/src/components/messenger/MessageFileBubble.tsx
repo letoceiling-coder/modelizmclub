@@ -46,7 +46,7 @@ export function MessageFileBubble({ file, isMe }: { file: MessageFile; isMe: boo
           className="text-[11px]"
           style={{ color: isMe ? "rgba(255,255,255,0.7)" : "var(--foreground-50)" }}
         >
-          {sizeLabel}
+          {sizeLabel} · Скачать
         </div>
       </div>
     </a>

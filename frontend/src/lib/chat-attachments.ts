@@ -102,6 +102,10 @@ export function chatPhotoHintLabel(): string {
   return `JPG, PNG · HEIC → JPG · ${chatAttachmentLimitLabel()}`;
 }
 
+export function chatAttachmentMessageType(kind: ChatAttachmentKind): "image" | "file" {
+  return kind === "image" ? "image" : "file";
+}
+
 export function chatAttachmentTooLargeMessage(file: File): string | null {
   const max = chatAttachmentMaxBytes();
   if (file.size <= max) return null;

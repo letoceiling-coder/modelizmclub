@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, Eye, Repeat2, ImageOff } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Eye, Repeat2, ImageOff, Clock } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -10,7 +10,12 @@ import {
   repostPost,
   fetchPostComments,
   createComment,
+  publishPost,
+  cancelScheduledPost,
 } from "@/lib/api/feed";
+import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule";
+import { toast } from "@/lib/toast";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,6 +24,7 @@ import { CommentSection } from "@/components/feed/CommentSection";
 import { PostGallery } from "@/components/feed/PostGallery";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
+import { SchedulePostDialog } from "@/components/feed/SchedulePostDialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 interface Props {
@@ -142,7 +148,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [commentsFetched, setCommentsFetched] = useState((post.commentList?.length ?? 0) > 0);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const { guardAction } = useGuestAccess();
+  const isScheduled = post.status === "scheduled";
 
   useEffect(() => {
     if (!commentsOpen || commentsLoaded) return;
@@ -195,6 +203,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     });
   };
   const toggleRepost = () => {
+    if (isScheduled) return;
     guardAction("feed.post.repost", () => {
       const next = !reposted;
       setReposted(next);
@@ -280,9 +289,14 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               {post.status === "moderation" && (
                 <StatusBadge variant="moderation">На модерации</StatusBadge>
               )}
+              {isScheduled && (
+                <StatusBadge variant="info">Запланировано</StatusBadge>
+              )}
             </div>
             <div className="mt-[1px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              {formatRelativeTime(post.date)}
+              {isScheduled && post.scheduledAt
+                ? formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())
+                : formatRelativeTime(post.date)}
               {post.category && (
                 <>
                   {" · "}
@@ -305,8 +319,47 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             onApproved={() => onTogglePost?.(post.id, { status: "published" })}
             onToggleSave={toggleSave}
             onHide={() => onHide?.(post.id)}
+            canPublishNow={isScheduled && (post.canPublish || post.authorId === me.id)}
+            canReschedule={isScheduled && post.authorId === me.id}
+            canCancelSchedule={isScheduled && (post.canCancelSchedule || post.authorId === me.id)}
+            onPublishNow={async () => {
+              try {
+                const updated = await publishPost(post.id);
+                onTogglePost?.(post.id, { status: updated.status, scheduledAt: undefined });
+                toast.success("Публикация отправлена");
+              } catch (err) {
+                toast.error(formatApiErrorMessage(err, "Не удалось опубликовать"));
+              }
+            }}
+            onReschedule={() => setScheduleDialogOpen(true)}
+            onCancelSchedule={async () => {
+              if (!window.confirm("Отменить запланированную публикацию?")) return;
+              try {
+                await cancelScheduledPost(post.id);
+                onDelete?.(post.id);
+                toast.success("Публикация отменена");
+              } catch (err) {
+                toast.error(formatApiErrorMessage(err, "Не удалось отменить"));
+              }
+            }}
           />
         </header>
+
+        {isScheduled && post.scheduledAt && (
+          <div
+            className="mx-[16px] mt-[12px] flex items-center gap-[8px] rounded-[10px] border px-[12px] py-[10px] text-[13px]"
+            style={{
+              borderColor: "color-mix(in oklab, var(--accent) 25%, var(--border))",
+              background: "color-mix(in oklab, var(--accent) 6%, var(--background-surface))",
+              color: "var(--foreground-70)",
+            }}
+          >
+            <Clock className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--accent)" }} />
+            <span>
+              Будет опубликовано: <strong style={{ color: "var(--foreground)" }}>{formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())}</strong>
+            </span>
+          </div>
+        )}
 
         {/* Content */}
         <div className="px-[16px] pb-[12px] pt-[12px]">
@@ -444,6 +497,13 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           )}
         </AnimatePresence>
       </Card>
+
+      <SchedulePostDialog
+        post={post}
+        open={scheduleDialogOpen}
+        onOpenChange={setScheduleDialogOpen}
+        onUpdated={(updated) => onTogglePost?.(post.id, { scheduledAt: updated.scheduledAt, date: updated.date })}
+      />
     </motion.div>
   );
 }

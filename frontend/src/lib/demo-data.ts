@@ -114,6 +114,7 @@ export function demoFeed(opts?: {
   let list = mockPosts.slice();
   if (opts?.filter === "following") list = list.filter((p) => p.isFollowing);
   if (opts?.filter === "category" && opts.categoryName) list = list.filter((p) => p.category === opts.categoryName);
+  if (opts?.filter === "scheduled") list = list.filter((p) => p.status === "scheduled");
   const perPage = opts?.perPage ?? 20;
   const page = opts?.page ?? 1;
   const start = (page - 1) * perPage;

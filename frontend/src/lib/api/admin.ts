@@ -672,6 +672,25 @@ export async function updateAdminListingStatus(uuid: string, status: string): Pr
   await api(`/admin/listings/${uuid}`, { method: "PATCH", json: { status } });
 }
 
+export async function bulkUpdateAdminListingStatus(
+  uuids: string[],
+  status: string,
+): Promise<{ ok: number; failed: number }> {
+  const results = await Promise.allSettled(uuids.map((uuid) => updateAdminListingStatus(uuid, status)));
+  return {
+    ok: results.filter((r) => r.status === "fulfilled").length,
+    failed: results.filter((r) => r.status === "rejected").length,
+  };
+}
+
+export async function bulkDeleteAdminListings(uuids: string[]): Promise<{ ok: number; failed: number }> {
+  const results = await Promise.allSettled(uuids.map((uuid) => deleteAdminListing(uuid)));
+  return {
+    ok: results.filter((r) => r.status === "fulfilled").length,
+    failed: results.filter((r) => r.status === "rejected").length,
+  };
+}
+
 export interface AdminListingDetail {
   uuid: string;
   title: string;

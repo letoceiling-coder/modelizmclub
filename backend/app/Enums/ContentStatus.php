@@ -5,6 +5,7 @@ namespace App\Enums;
 enum ContentStatus: string
 {
     case Draft = 'draft';
+    case Scheduled = 'scheduled';
     case PendingModeration = 'pending_moderation';
     case Published = 'published';
     case Rejected = 'rejected';

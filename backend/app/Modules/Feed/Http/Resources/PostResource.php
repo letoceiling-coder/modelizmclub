@@ -51,8 +51,12 @@ class PostResource extends JsonResource
                 'can_edit' => $user ? $user->can('update', $this->resource) : false,
                 'can_publish' => $user ? $user->can('publish', $this->resource) : false,
                 'can_delete' => $user ? $user->can('delete', $this->resource) : false,
+                'can_cancel_schedule' => $user
+                    && $this->status === \App\Enums\ContentStatus::Scheduled
+                    && $this->user_id === $user->id,
             ],
             'published_at' => $this->published_at?->toIso8601String(),
+            'scheduled_at' => $this->scheduled_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
         ];

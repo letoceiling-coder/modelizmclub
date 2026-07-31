@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { Loader2, Newspaper, UserPlus, Compass, Bookmark } from "lucide-react";
+import { Loader2, Newspaper, UserPlus, Compass, Bookmark, Clock } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CreatePostMenu, type ComposerDraft, type ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
@@ -117,9 +117,11 @@ function FeedPage() {
     const query =
       filter === "following"
         ? { filter: "following" as const }
-        : filter === "categories" && activeCategory
-          ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory), categoryName: activeCategory }
-          : { filter: "all" as const };
+        : filter === "scheduled"
+          ? { filter: "scheduled" as const }
+          : filter === "categories" && activeCategory
+            ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory), categoryName: activeCategory }
+            : { filter: "all" as const };
     fetchFeed({ ...query, perPage: 50 })
       .then((r) => {
         if (!alive) return;
@@ -185,6 +187,12 @@ function FeedPage() {
     setComposerOpen(false);
     setComposerDraft({ text: "", files: [] });
     setDraftClearToken((t) => t + 1);
+    if (post.status === "scheduled") {
+      if (filter === "scheduled") {
+        setPosts((cur) => [post, ...cur]);
+      }
+      return;
+    }
     setPosts((cur) => [{ ...post, isFollowing: true }, ...cur]);
   };
 
@@ -268,6 +276,13 @@ function FeedPage() {
                 description={t("pages.feed.emptySavedDesc")}
                 action={{ label: t("pages.feed.backToFeed"), onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
               />
+            ) : filter === "scheduled" ? (
+              <EmptyState
+                icon={Clock}
+                title={t("pages.feed.emptyScheduledTitle")}
+                description={t("pages.feed.emptyScheduledDesc")}
+                action={{ label: t("pages.feed.createPost"), onClick: () => guardAction("feed.compose.open", () => setComposerOpen(true)) }}
+              />
             ) : (
               <EmptyState
                 icon={Newspaper}
@@ -289,8 +304,8 @@ function FeedPage() {
                   onTogglePost={patchPost}
                 />,
               ];
-              // Каждые 4 поста — нативный рекламный пост
-              if ((idx + 1) % 4 === 0 && banners.length > 0) {
+              // Каждые 4 поста — нативный рекламный пост (не в «Запланированные»)
+              if (filter !== "scheduled" && (idx + 1) % 4 === 0 && banners.length > 0) {
                 const banner = banners[Math.floor(idx / 4) % banners.length];
                 nodes.push(<SponsoredPostCard key={`ad-${idx}-${banner.id}`} banner={banner} />);
               }

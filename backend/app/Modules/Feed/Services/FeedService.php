@@ -43,6 +43,16 @@ class FeedService
             $query->whereIn('user_id', $followingIds);
         }
 
+        if ($filter === 'scheduled') {
+            if (! $viewer) {
+                return Post::query()->whereRaw('1 = 0')->paginate($perPage);
+            }
+
+            $query->where('user_id', $viewer->id)
+                ->where('status', \App\Enums\ContentStatus::Scheduled)
+                ->orderBy('scheduled_at');
+        }
+
         if ($filter === 'category' && ! empty($filters['category_id'])) {
             $query->where('category_id', (int) $filters['category_id']);
         }
@@ -89,7 +99,7 @@ class FeedService
             $query->where('published_at', '<=', $filters['date_to']);
         }
 
-        $this->applySort($query, $filters['sort'] ?? 'new');
+        $this->applySort($query, $filters['sort'] ?? 'new', $filter);
 
         $paginator = $query->paginate($perPage);
 
@@ -104,8 +114,12 @@ class FeedService
      *
      * @param  Builder<Post>  $query
      */
-    private function applySort($query, ?string $sort): void
+    private function applySort($query, ?string $sort, string $filter = 'all'): void
     {
+        if ($filter === 'scheduled') {
+            return;
+        }
+
         match ($sort) {
             'popular' => $query->orderByDesc('reactions_count')->orderByDesc('published_at'),
             'discussed' => $query->orderByDesc('comments_count')->orderByDesc('published_at'),

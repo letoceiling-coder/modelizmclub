@@ -42,6 +42,7 @@ class PostPolicy
             return in_array($post->status, [
                 ContentStatus::Draft,
                 ContentStatus::Revision,
+                ContentStatus::Scheduled,
                 ContentStatus::Published,
                 ContentStatus::PendingModeration,
                 ContentStatus::Rejected,
@@ -59,6 +60,7 @@ class PostPolicy
             && in_array($post->status, [
                 ContentStatus::Draft,
                 ContentStatus::Revision,
+                ContentStatus::Scheduled,
             ], true);
     }
 }

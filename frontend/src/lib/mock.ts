@@ -105,8 +105,11 @@ export interface Post {
   comments: number;
   saves?: number;
   reposts?: number;
-  status?: "published" | "moderation";
+  status?: "published" | "moderation" | "scheduled";
+  scheduledAt?: string;
   canDelete?: boolean;
+  canPublish?: boolean;
+  canCancelSchedule?: boolean;
   isFollowing?: boolean;
   isLiked?: boolean;
   isSaved?: boolean;
