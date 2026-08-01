@@ -35,7 +35,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 16 | №8 | `/notifications` | Layout | P2 | — | TBD: header overflow 320px | — | `notifications.tsx` header | — | — | — | — | TODO |
 | 17 | №11 | `/profile` | Tabs | P2 | — | TBD: profile tabs cramped mobile | — | `profile.tsx` tabs | — | — | — | — | TODO |
 | 18 | №12 | `/profile` | Ad cards | P2 | — | TBD: date wraps in profile ad card | — | profile listings tab | — | — | — | — | TODO |
-| 19 | №16, №31 | `/ads/new` | CTA | **P0** | — | TBD: empty blue button on preview step | listing publish API | `ads.new.tsx` wizard step 3 | — | — | — | — | TODO |
+| 19 | №16, №31 | `/ads/new` | CTA | **P0** | FIXED | Icon-only CTA + clipped label on mobile preview step | listing publish API | `ads.new.tsx` footer CTA | — | — | pending | pending | FIXED |
 | 20 | №33 | `/ads/$id` (owner) | Owner panel | P2 | — | Partial: `AdOwnerActionPanel` exists; stats layout TBD | — | `AdOwnerActionPanel`, `ads.$id` | — | — | — | — | TODO |
 
 ---

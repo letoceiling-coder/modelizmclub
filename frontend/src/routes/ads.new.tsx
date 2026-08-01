@@ -37,7 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ChevronLeft, ChevronRight, Tag, ShoppingCart,
-  ArrowLeftRight, MapPin, Truck, CreditCard,
+  ArrowLeftRight, MapPin, Truck,
 } from "lucide-react";
 
 type NewAdSearch = { edit?: string; promo?: string };
@@ -103,6 +103,26 @@ interface Form {
   contact: string;
   deliveries: string[];
   promocode: string;
+}
+
+/** Sticky footer CTA on step 3 — always returns visible text (PDF tests №16, №31). */
+function resolvePublishCtaLabel(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  opts: {
+    editId?: string;
+    listingPaymentEnabled: boolean;
+    quoteLoading: boolean;
+    placementQuote: PlacementQuote | null;
+  },
+): string {
+  const { editId, listingPaymentEnabled, quoteLoading, placementQuote } = opts;
+  if (editId) return t("pages.adsNew.saveChanges");
+  if (!listingPaymentEnabled) return t("pages.adsNew.publish");
+  if (quoteLoading) return t("pages.adsNew.calculating");
+  if (!placementQuote) return t("pages.adsNew.publish");
+  if (placementQuote.is_free) return t("pages.adsNew.publishFree");
+  const priceLabel = `${formatQuoteRub(placementQuote.final_cents)} ₽`;
+  return t("pages.adsNew.payAndPublish", { price: priceLabel });
 }
 
 const initial: Form = {
@@ -385,17 +405,19 @@ function NewAdPage() {
     ? (placementQuote.is_free ? t("pages.adsNew.free") : `${formatQuoteRub(placementQuote.final_cents)} ₽`)
     : "…";
 
-  const publishButtonLabel = editId
-    ? t("pages.adsNew.saveChanges")
-    : listingPaymentEnabled
-      ? quoteLoading
-        ? t("pages.adsNew.calculating")
-        : placementQuote?.is_free
-          ? t("pages.adsNew.publishFree")
-          : t("pages.adsNew.payAndPublish", { price: placementPriceLabel })
-      : t("pages.adsNew.publish");
+  const publishButtonLabel = useMemo(
+    () =>
+      resolvePublishCtaLabel(t, {
+        editId,
+        listingPaymentEnabled,
+        quoteLoading,
+        placementQuote,
+      }),
+    [t, editId, listingPaymentEnabled, quoteLoading, placementQuote],
+  );
 
-  const paymentGatePending = listingPaymentEnabled && !editId && (quoteLoading || !placementQuote);
+  /** Block only while quote is actively loading; submit() re-fetches if needed. */
+  const paymentGatePending = listingPaymentEnabled && !editId && quoteLoading;
 
   return (
     <AppLayout rightColumn={false}>
@@ -449,12 +471,12 @@ function NewAdPage() {
           borderColor: "var(--border)",
         }}
       >
-        <div className="mx-auto flex max-w-[760px] items-center justify-between gap-[12px] px-[16px] py-[12px] sm:px-[24px]">
+        <div className="mx-auto flex max-w-[760px] flex-col-reverse gap-[8px] px-[16px] py-[12px] sm:flex-row sm:items-center sm:justify-between sm:gap-[12px] sm:px-[24px]">
           <Button
             variant="outline"
             disabled={step === 1}
             onClick={() => setStep((s) => Math.max(1, s - 1))}
-            className="h-11 rounded-[var(--r-button)]"
+            className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
           >
             <ChevronLeft size={16} /> {t("pages.adsNew.back")}
           </Button>
@@ -469,7 +491,7 @@ function NewAdPage() {
                 if (step === 2 && !valid) return;
                 setStep((s) => Math.min(3, s + 1));
               }}
-              className="h-11 rounded-[var(--r-button)]"
+              className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
             >
               {t("pages.adsNew.next")} <ChevronRight size={16} />
             </Button>
@@ -484,9 +506,9 @@ function NewAdPage() {
               }}
               loading={submitting}
               disabled={paymentGatePending}
-              className="h-11 min-w-[220px] rounded-[var(--r-button)]"
+              aria-label={publishButtonLabel}
+              className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
             >
-              {!submitting && !editId && listingPaymentEnabled && !paymentGatePending && <CreditCard size={16} />}
               {submitting ? (editId ? t("pages.adsNew.saving") : t("pages.adsNew.publishing")) : publishButtonLabel}
             </Button>
           )}
