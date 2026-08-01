@@ -15,7 +15,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 3 | №3 | `/feed` | Post title | P2 | code review | BE max:200, FE без лимита и счётчика | `PostFormRules`, Store/UpdatePostRequest | `CreatePostForm`, `post-limits.ts`, `PostCard` | — | unit test | pending | pending | FIXED |
 | 4 | №4 | `/feed` | Feed filters | P2 | code review | grid 2×3 на mobile, высокие chips | — | `FeedFilterTabs.tsx` | — | — | pending | pending | FIXED |
 | 5 | №5 | `/feed` | Moderation | **P0** | code review | bookmark без проверки status; FE не disabled | `PostInteractionRules`, services | `PostCard`, `PostActionMenu`, `RepostMenu` | — | unit + feature (VPS) | pending | pending | FIXED |
-| 6 | №7 | `/messenger` | Chat delivery | **P0** | — | TBD: диалог не создаётся/не виден получателю | `ChatService`, WS | `messenger.tsx`, echo | — | — | — | — | TODO |
+| 6 | №7 | `/messenger` | Chat delivery | **P0** | FIXED | WS message dropped when dialog missing from store | `ChatService`, WS | `store.ts` ingestIncomingMessage | — | — | — | — | FIXED |
 | 7 | №9 | `/notifications` | Notifications | P1 | — | Partial work: undo toast; persist TBD | `NotificationController` | `notifications.tsx` | — | — | — | — | TODO |
 | 8 | №10 | `/profile` | Profile edit | P1 | — | TBD: overlay без dialog content | Profile API | `profile.tsx` modal | — | — | — | — | TODO |
 | 9 | №21 | `/admin`, nav | Settings | P1 | — | Partial: toggle exists; apply to nav TBD | `SystemSetting`, feature flags | `admin.tsx`, nav components | — | — | — | — | TODO |

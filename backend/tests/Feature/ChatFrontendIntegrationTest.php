@@ -103,6 +103,66 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonPath('data.listing.price_cents', 12_500);
     }
 
+    public function test_recipient_sees_new_conversation_after_sender_starts_chat(): void
+    {
+        [$sender, $recipient] = $this->usersWithProfiles();
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $created = $this->actingAs($sender, 'sanctum')
+            ->postJson('/api/v1/conversations', ['user_id' => $recipient->id])
+            ->assertCreated();
+
+        $uuid = $created->json('data.uuid');
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $uuid);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson("/api/v1/conversations/{$uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.uuid', $uuid);
+    }
+
+    public function test_recipient_sees_first_message_in_new_conversation(): void
+    {
+        [$sender, $recipient] = $this->usersWithProfiles();
+
+        $created = $this->actingAs($sender, 'sanctum')
+            ->postJson('/api/v1/conversations', ['user_id' => $recipient->id])
+            ->assertCreated();
+
+        $uuid = $created->json('data.uuid');
+
+        $message = $this->actingAs($sender, 'sanctum')
+            ->postJson("/api/v1/conversations/{$uuid}/messages", [
+                'body' => 'Первое сообщение',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.body', 'Первое сообщение');
+
+        $messageUuid = $message->json('data.uuid');
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $uuid)
+            ->assertJsonPath('data.0.unread_count', 1)
+            ->assertJsonPath('data.0.last_message.body', 'Первое сообщение');
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson("/api/v1/conversations/{$uuid}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $messageUuid)
+            ->assertJsonPath('data.0.body', 'Первое сообщение');
+    }
+
     public function test_upload_chat_attachment(): void
     {
         Storage::fake('s3');

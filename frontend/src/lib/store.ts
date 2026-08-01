@@ -689,6 +689,54 @@ export function upsertMessage(dialogId: ID, message: Message): void {
   ingestIncomingMessage(dialogId, message, false);
 }
 
+/** In-flight hydrations when WS delivers a message for a dialog not yet in the store. */
+const pendingDialogHydrations = new Map<
+  ID,
+  {
+    queued: Array<{ message: Message; incrementUnread: boolean }>;
+    promise: Promise<void>;
+  }
+>();
+
+function hydrateDialogForIncoming(
+  dialogId: ID,
+  message: Message,
+  incrementUnread: boolean,
+): void {
+  const meId = state.currentUserId;
+  if (!meId || meId === GUEST_USER.id) return;
+
+  const pending = pendingDialogHydrations.get(dialogId);
+  if (pending) {
+    pending.queued.push({ message, incrementUnread });
+    return;
+  }
+
+  const queued: Array<{ message: Message; incrementUnread: boolean }> = [
+    { message, incrementUnread },
+  ];
+
+  const promise = import("./api/chat")
+    .then(({ fetchConversation }) => fetchConversation(dialogId, meId))
+    .then((dialog) => {
+      restoreDialog(dialog);
+      for (const item of queued) {
+        ingestIncomingMessage(dialogId, item.message, item.incrementUnread);
+      }
+    })
+    .catch(() =>
+      import("./api/chat")
+        .then(({ fetchConversations }) => fetchConversations(meId))
+        .then(setDialogs)
+        .catch(() => {}),
+    )
+    .finally(() => {
+      pendingDialogHydrations.delete(dialogId);
+    });
+
+  pendingDialogHydrations.set(dialogId, { queued, promise });
+}
+
 export function ingestIncomingMessage(
   dialogId: ID,
   message: Message,
@@ -696,12 +744,7 @@ export function ingestIncomingMessage(
 ): void {
   const d = state.dialogs[dialogId];
   if (!d) {
-    const meId = state.currentUserId;
-    if (meId && meId !== GUEST_USER.id) {
-      void import("./api/chat").then(({ fetchConversations }) => {
-        fetchConversations(meId).then(setDialogs).catch(() => {});
-      });
-    }
+    hydrateDialogForIncoming(dialogId, message, incrementUnread);
     return;
   }
   if (d.messages.some((m) => m.id === message.id)) return;
