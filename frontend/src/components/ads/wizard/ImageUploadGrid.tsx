@@ -1,6 +1,24 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion, LayoutGroup } from "framer-motion";
-import { ImagePlus, X, Star, ImageOff, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import {
+  ImagePlus,
+  Star,
+  ImageOff,
+  Pencil,
+  MoreVertical,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   photos: string[];
@@ -22,7 +40,7 @@ interface Props {
    *  CreatePostForm so choosing "Пост" in the composer menu jumps
    *  straight to the OS file picker instead of landing on an empty grid. */
   autoOpen?: boolean;
-  /** `minimal` — only the delete (×) control; drag-to-reorder still works. */
+  /** `minimal` — compact menu actions; drag via handle on mobile. */
   controls?: "full" | "minimal";
   /** Multiplier for tile size (e.g. 1.25 = +25%). */
   sizeScale?: number;
@@ -31,9 +49,8 @@ interface Props {
 }
 
 const TILE_DEFAULT = 104;
-const TILE_COMPACT = 72;
+const TILE_COMPACT = 88;
 const GAP = 12;
-const GRID_COLS = 5;
 const LAYOUT_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
 /** Block a new swap until the reflow animation settles — prevents the dragged
  *  tile from ping-ponging between slots while neighbours are still animating. */
@@ -41,7 +58,7 @@ const SWAP_COOLDOWN_MS = 190;
 
 const tileBoxStyle = (tile: number): CSSProperties => ({
   width: "100%",
-  maxWidth: tile,
+  maxWidth: tile > 0 ? tile : undefined,
   aspectRatio: "1",
   justifySelf: "center",
 });
@@ -66,7 +83,82 @@ function TileImage({ src }: { src: string }) {
   );
 }
 
-/** In-flow tile — fixed 104×104, never translated during drag (overlay carries the photo). */
+function TileActionsMenu({
+  index,
+  count,
+  isMain,
+  onMakeMain,
+  onEdit,
+  onRemove,
+  onMoveLeft,
+  onMoveRight,
+  showMoveArrows,
+}: {
+  index: number;
+  count: number;
+  isMain: boolean;
+  onMakeMain: (i: number) => void;
+  onEdit?: (i: number) => void;
+  onRemove: (i: number) => void;
+  onMoveLeft: (i: number) => void;
+  onMoveRight: (i: number) => void;
+  showMoveArrows: boolean;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={t("components.imageUploadGrid.menuAria")}
+          aria-label={t("components.imageUploadGrid.menuAria")}
+          className="grid h-[32px] w-[32px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreVertical size={14} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[180px]">
+        {!isMain && (
+          <DropdownMenuItem onSelect={() => onMakeMain(index)}>
+            <Star size={14} />
+            {t("components.imageUploadGrid.makeMain")}
+          </DropdownMenuItem>
+        )}
+        {onEdit && (
+          <DropdownMenuItem onSelect={() => onEdit(index)}>
+            <Pencil size={14} />
+            {t("components.imageUploadGrid.edit")}
+          </DropdownMenuItem>
+        )}
+        {showMoveArrows && index > 0 && (
+          <DropdownMenuItem onSelect={() => onMoveLeft(index)}>
+            <ChevronLeft size={14} />
+            {t("components.imageUploadGrid.moveLeft")}
+          </DropdownMenuItem>
+        )}
+        {showMoveArrows && index < count - 1 && (
+          <DropdownMenuItem onSelect={() => onMoveRight(index)}>
+            <ChevronRight size={14} />
+            {t("components.imageUploadGrid.moveRight")}
+          </DropdownMenuItem>
+        )}
+        {(onEdit || !isMain || showMoveArrows) && <DropdownMenuSeparator />}
+        <DropdownMenuItem
+          onSelect={() => onRemove(index)}
+          className="text-destructive focus:text-destructive"
+        >
+          {t("components.imageUploadGrid.remove")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** In-flow tile — responsive size; overlay carries the photo during drag. */
 function PreviewTile({
   src,
   index,
@@ -81,6 +173,7 @@ function PreviewTile({
   onPointerDownDrag,
   onEdit,
   minimalControls = false,
+  dragFromHandleOnly = false,
 }: {
   src: string;
   index: number;
@@ -95,11 +188,27 @@ function PreviewTile({
   onPointerDownDrag: (i: number, e: React.PointerEvent) => void;
   onEdit?: (i: number) => void;
   minimalControls?: boolean;
+  dragFromHandleOnly?: boolean;
 }) {
+  const { t } = useTranslation();
   const isMain = index === 0;
 
-  const stopDrag = {
-    onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+  const startDragIfAllowed = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest("button, [role=menu], [data-radix-collection-item]")) return;
+    onPointerDownDrag(index, e);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      onMoveLeft(index);
+    } else if (e.key === "ArrowRight" && index < count - 1) {
+      e.preventDefault();
+      onMoveRight(index);
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      onRemove(index);
+    }
   };
 
   return (
@@ -107,8 +216,12 @@ function PreviewTile({
       layout="position"
       transition={{ layout: LAYOUT_TRANSITION }}
       data-tile-index={index}
-      onPointerDown={(e) => onPointerDownDrag(index, e)}
-      className="relative cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
+      tabIndex={0}
+      role="group"
+      aria-label={`${t("components.imageUploadGrid.mainBadge")} ${index + 1}`}
+      onKeyDown={onKeyDown}
+      onPointerDown={dragFromHandleOnly ? undefined : startDragIfAllowed}
+      className="relative cursor-grab touch-none overflow-hidden select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] active:cursor-grabbing"
       style={{
         ...tileBoxStyle(tile),
         background: "var(--background-surface)",
@@ -118,84 +231,43 @@ function PreviewTile({
     >
       <TileImage src={src} />
 
-      {!minimalControls && isMain && (
+      {isMain && (
         <span
           className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
           style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
         >
-          <Star size={9} fill="currentColor" /> Главное
+          <Star size={9} fill="currentColor" /> {t("components.imageUploadGrid.mainBadge")}
         </span>
       )}
 
-      <div className="absolute right-[6px] top-[6px] flex gap-[4px]">
-        {!minimalControls && !isMain && (
-          <button
-            type="button"
-            onClick={() => onMakeMain(index)}
-            {...stopDrag}
-            title="Сделать главным"
-            aria-label="Сделать главным фото"
-            className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
-          >
-            <Star size={12} />
-          </button>
-        )}
-        {onEdit && (
-          <button
-            type="button"
-            onClick={() => onEdit(index)}
-            {...stopDrag}
-            title="Редактировать фото"
-            aria-label="Редактировать фото"
-            className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
-          >
-            <Pencil size={12} />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => onRemove(index)}
-          {...stopDrag}
-          title="Удалить"
-          aria-label="Удалить фото"
-          className="grid h-[28px] w-[28px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
-        >
-          <X size={12} />
-        </button>
+      <div className="absolute right-[6px] top-[6px]">
+        <TileActionsMenu
+          index={index}
+          count={count}
+          isMain={isMain}
+          onMakeMain={onMakeMain}
+          onEdit={onEdit}
+          onRemove={onRemove}
+          onMoveLeft={onMoveLeft}
+          onMoveRight={onMoveRight}
+          showMoveArrows={!minimalControls}
+        />
       </div>
 
-      {!minimalControls && (
-      <div className="absolute bottom-[6px] left-[6px] flex gap-[4px]">
-        {index > 0 && (
-          <button
-            type="button"
-            onClick={() => onMoveLeft(index)}
-            {...stopDrag}
-            title="Переместить влево"
-            aria-label="Переместить фото влево"
-            className="grid h-[24px] w-[24px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
-          >
-            <ChevronLeft size={13} />
-          </button>
-        )}
-        {index < count - 1 && (
-          <button
-            type="button"
-            onClick={() => onMoveRight(index)}
-            {...stopDrag}
-            title="Переместить вправо"
-            aria-label="Переместить фото вправо"
-            className="grid h-[24px] w-[24px] place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
-          >
-            <ChevronRight size={13} />
-          </button>
-        )}
-      </div>
+      {dragFromHandleOnly && (
+        <button
+          type="button"
+          aria-label={t("components.imageUploadGrid.dragHandleAria")}
+          title={t("components.imageUploadGrid.dragHandleAria")}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onPointerDownDrag(index, e);
+          }}
+          className="absolute bottom-[6px] left-[6px] grid h-[32px] w-[32px] cursor-grab place-items-center active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          style={{ background: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "var(--r-pill)" }}
+        >
+          <GripVertical size={14} />
+        </button>
       )}
     </motion.div>
   );
@@ -224,12 +296,14 @@ function DragOverlay({
   x,
   y,
   tile,
+  mainLabel,
 }: {
   src: string;
   isMain: boolean;
   x: number;
   y: number;
   tile: number;
+  mainLabel: string;
 }) {
   return (
     <div
@@ -252,7 +326,7 @@ function DragOverlay({
           className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
           style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
         >
-          <Star size={9} fill="currentColor" /> Главное
+          <Star size={9} fill="currentColor" /> {mainLabel}
         </span>
       )}
     </div>
@@ -289,25 +363,44 @@ export function ImageUploadGrid({
   sizeScale = 1,
   accept = "image/*",
 }: Props) {
+  const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const compact = variant === "compact";
   const minimalControls = controls === "minimal";
-  const tile = Math.round((compact ? TILE_COMPACT : TILE_DEFAULT) * sizeScale);
-  const gridMaxW = GRID_COLS * tile + (GRID_COLS - 1) * GAP;
+  const dragFromHandleOnly = isMobile || minimalControls;
+  const tileFallback = Math.round((compact ? TILE_COMPACT : TILE_DEFAULT) * sizeScale);
   const full = photos.length >= max;
   const [drag, setDrag] = useState<DragState | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [measuredTile, setMeasuredTile] = useState(tileFallback);
   const dragRef = useRef<DragState | null>(null);
   const overIndexRef = useRef<number | null>(null);
   const swapLockUntilRef = useRef(0);
   const photosRef = useRef(photos);
   const inputRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
   const fileDragDepthRef = useRef(0);
 
   photosRef.current = photos;
+  const tile = compact ? tileFallback : measuredTile;
+
+  useEffect(() => {
+    if (compact) return;
+    const el = gridRef.current;
+    if (!el) return;
+    const measure = () => {
+      const first = el.querySelector<HTMLElement>("[data-tile-index]");
+      if (first?.offsetWidth) setMeasuredTile(first.offsetWidth);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [photos.length, compact, isMobile]);
 
   const hasDroppedFiles = (dt: DataTransfer) =>
-    Array.from(dt.types).some((t) => t === "Files" || t === "application/x-moz-file");
+    Array.from(dt.types).some((type) => type === "Files" || type === "application/x-moz-file");
 
   const handleFileDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -345,8 +438,8 @@ export function ImageUploadGrid({
 
   useEffect(() => {
     if (!autoOpen) return;
-    const t = setTimeout(() => inputRef.current?.click(), 150);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => inputRef.current?.click(), 150);
+    return () => clearTimeout(timer);
   }, [autoOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -365,9 +458,14 @@ export function ImageUploadGrid({
   };
 
   const onTilePointerDown = (index: number, e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    if ((e.target as HTMLElement).closest("button, [role=menu]")) return;
+    const tileEl =
+      (e.currentTarget as HTMLElement).dataset.tileIndex != null
+        ? (e.currentTarget as HTMLElement)
+        : (e.currentTarget as HTMLElement).closest<HTMLElement>("[data-tile-index]");
+    if (!tileEl) return;
+    const rect = tileEl.getBoundingClientRect();
+    tileEl.setPointerCapture(e.pointerId);
     const state: DragState = {
       index,
       src: photosRef.current[index] ?? "",
@@ -409,8 +507,6 @@ export function ImageUploadGrid({
       if (!Number.isNaN(idx)) targetIndex = idx;
     }
 
-    // While the reflow animation is still running, keep the overlay following
-    // the pointer but hold off on a new swap so tiles don't ping-pong.
     const swapReady = performance.now() >= swapLockUntilRef.current;
 
     if (targetIndex !== cur.index && swapReady) {
@@ -469,58 +565,65 @@ export function ImageUploadGrid({
       }
     : null;
 
+  const dropzoneTitle = isMobile
+    ? t("components.imageUploadGrid.dropzoneTitleMobile")
+    : t("components.imageUploadGrid.dropzoneTitle");
+
   return (
-    <div className={compact ? "space-y-[10px]" : "space-y-[16px]"}>
+    <div className={compact ? "space-y-[10px]" : "space-y-[12px]"}>
       {!hideUploader && (
-      <label
-        onDragEnter={handleFileDragEnter}
-        onDragLeave={handleFileDragLeave}
-        onDragOver={handleFileDragOver}
-        onDrop={handleFileDrop}
-        className="grid cursor-pointer touch-manipulation place-items-center gap-[10px] px-[20px] py-[36px] text-center transition-[border-color,background,transform] active:scale-[0.98] hover:border-[var(--accent)]"
-        style={{
-          background: fileDragActive ? "var(--accent-soft)" : "var(--background-elevated)",
-          border: `2px dashed ${fileDragActive ? "var(--accent)" : "var(--border-strong)"}`,
-          borderRadius: "var(--r-card)",
-          opacity: full ? 0.55 : 1,
-          pointerEvents: full ? "none" : "auto",
-        }}
-      >
-        <div
-          className="grid h-[56px] w-[56px] place-items-center"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+        <label
+          onDragEnter={handleFileDragEnter}
+          onDragLeave={handleFileDragLeave}
+          onDragOver={handleFileDragOver}
+          onDrop={handleFileDrop}
+          className={`grid cursor-pointer touch-manipulation place-items-center gap-[8px] px-[16px] text-center transition-[border-color,background,transform] active:scale-[0.98] hover:border-[var(--accent)] ${isMobile ? "py-[20px]" : "py-[28px]"}`}
+          style={{
+            background: fileDragActive ? "var(--accent-soft)" : "var(--background-elevated)",
+            border: `2px dashed ${fileDragActive ? "var(--accent)" : "var(--border-strong)"}`,
+            borderRadius: "var(--r-card)",
+            opacity: full ? 0.55 : 1,
+            pointerEvents: full ? "none" : "auto",
+          }}
         >
-          <ImagePlus size={24} />
-        </div>
-        <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Перетащите фото или нажмите, чтобы выбрать
-        </div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          JPG, PNG до 10 МБ · {photos.length}/{max}
-        </div>
-        <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} className="hidden" disabled={full} />
-      </label>
+          <div
+            className={`grid place-items-center ${isMobile ? "h-[44px] w-[44px]" : "h-[52px] w-[52px]"}`}
+            style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+          >
+            <ImagePlus size={isMobile ? 20 : 22} />
+          </div>
+          <div className={`font-semibold ${isMobile ? "text-[13px]" : "text-[14px]"}`} style={{ color: "var(--foreground)" }}>
+            {dropzoneTitle}
+          </div>
+          <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {t("components.imageUploadGrid.dropzoneHint", { current: photos.length, max })}
+          </div>
+          <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} className="hidden" disabled={full} />
+        </label>
       )}
 
       {photos.length > 0 && (
         <>
           <LayoutGroup id={compact ? "ad-photo-row" : "ad-photo-grid"}>
             <div
-              className={compact ? "flex gap-[8px] overflow-x-auto pb-[2px] no-scrollbar py-[2px]" : "py-[2px]"}
-              style={compact ? undefined : {
-                display: "grid",
-                gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
-                gap: GAP,
-                width: "100%",
-                maxWidth: gridMaxW,
-              }}
+              ref={gridRef}
+              className={
+                compact
+                  ? "flex gap-[10px] overflow-x-auto pb-[2px] no-scrollbar py-[2px]"
+                  : "grid grid-cols-3 min-[480px]:grid-cols-4 gap-[12px] w-full py-[2px]"
+              }
             >
               {photos.map((src, i) => {
                 const key = photoIds?.[i] ?? src;
                 const isDragging = drag?.lifted && drag.index === i;
                 if (isDragging) {
                   return (
-                    <div key={key} data-placeholder-index={i} className={compact ? "shrink-0" : undefined} style={compact ? { width: tile } : undefined}>
+                    <div
+                      key={key}
+                      data-placeholder-index={i}
+                      className={compact ? "shrink-0" : undefined}
+                      style={compact ? { width: tile } : undefined}
+                    >
                       <DragPlaceholder dropTarget={overIndex === i && drag.index === i} tile={tile} compact={compact} />
                     </div>
                   );
@@ -535,6 +638,7 @@ export function ImageUploadGrid({
                       tile={tile}
                       compact={compact}
                       minimalControls={minimalControls}
+                      dragFromHandleOnly={dragFromHandleOnly}
                       onRemove={onRemove}
                       onMakeMain={onMakeMain}
                       onMoveLeft={(idx) => moveTo(idx, idx - 1)}
@@ -548,12 +652,19 @@ export function ImageUploadGrid({
             </div>
           </LayoutGroup>
           {overlayPos && drag && (
-            <DragOverlay src={drag.src} isMain={drag.index === 0 && !minimalControls} x={overlayPos.x} y={overlayPos.y} tile={tile} />
+            <DragOverlay
+              src={drag.src}
+              isMain={drag.index === 0}
+              x={overlayPos.x}
+              y={overlayPos.y}
+              tile={tile}
+              mainLabel={t("components.imageUploadGrid.mainBadge")}
+            />
           )}
           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
             {minimalControls
-              ? `${photos.length} из ${max}. Перетащите фото, чтобы изменить порядок. Первое — главное в карточке.`
-              : `${photos.length} из ${max}. Перетащите фото или используйте стрелки, чтобы изменить порядок. Первое — главное в карточке.`}
+              ? t("components.imageUploadGrid.hintMinimal", { current: photos.length, max })
+              : t("components.imageUploadGrid.hintFull", { current: photos.length, max })}
           </p>
         </>
       )}

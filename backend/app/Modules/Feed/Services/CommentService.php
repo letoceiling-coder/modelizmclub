@@ -2,7 +2,6 @@
 
 namespace Modules\Feed\Services;
 
-use App\Enums\ContentStatus;
 use App\Models\Comment;
 use App\Models\CommentReaction;
 use App\Models\Post;
@@ -10,6 +9,7 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
+use Modules\Feed\Support\PostInteractionRules;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CommentService
@@ -34,11 +34,7 @@ class CommentService
 
     public function createOnPost(Post $post, User $user, string $body, ?string $parentUuid = null): Comment
     {
-        if ($post->status !== ContentStatus::Published) {
-            throw ValidationException::withMessages([
-                'post' => ['Комментарии доступны только для опубликованных записей.'],
-            ]);
-        }
+        PostInteractionRules::assertPublicInteractionsAllowed($post);
 
         $parent = null;
         $rootId = null;
@@ -94,6 +90,8 @@ class CommentService
 
     public function react(Comment $comment, User $user, string $type = 'like'): Comment
     {
+        $this->assertCommentPostAllowsInteractions($comment);
+
         if ($comment->status !== 'published') {
             throw ValidationException::withMessages([
                 'comment' => ['Реакции доступны только для опубликованных комментариев.'],
@@ -116,6 +114,8 @@ class CommentService
 
     public function removeReaction(Comment $comment, User $user): Comment
     {
+        $this->assertCommentPostAllowsInteractions($comment);
+
         $deleted = CommentReaction::query()
             ->where('comment_id', $comment->id)
             ->where('user_id', $user->id)
@@ -147,5 +147,22 @@ class CommentService
             ->where('status', 'published')
             ->orderBy('created_at')
             ->get();
+    }
+
+    private function assertCommentPostAllowsInteractions(Comment $comment): void
+    {
+        if ($comment->commentable_type !== Post::class) {
+            return;
+        }
+
+        $post = Post::query()->find($comment->commentable_id);
+
+        if (! $post) {
+            throw ValidationException::withMessages([
+                'post' => ['Публикация для комментария не найдена.'],
+            ]);
+        }
+
+        PostInteractionRules::assertPublicInteractionsAllowed($post);
     }
 }

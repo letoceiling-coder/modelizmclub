@@ -13,11 +13,12 @@ interface Props {
   reposted: boolean;
   count: number;
   onRepost: () => void;
+  disabled?: boolean;
 }
 
 type View = "main" | "chats";
 
-export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
+export function RepostMenu({ postId, reposted, count, onRepost, disabled = false }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
@@ -107,14 +108,16 @@ export function RepostMenu({ postId, reposted, count, onRepost }: Props) {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45"
         style={{
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",
         }}
         aria-label={t("components.repostMenu.ariaLabel")}
         aria-expanded={open}
+        aria-disabled={disabled}
       >
         <Repeat2 className="h-[16px] w-[16px]" />
         {count > 0 && <span className="tabular-nums">{count}</span>}

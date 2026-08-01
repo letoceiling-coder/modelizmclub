@@ -29,7 +29,7 @@ export interface ApiPost {
   hashtags?: string[];
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
-  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean };
+  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean; can_interact?: boolean };
   published_at?: string | null;
   scheduled_at?: string | null;
   created_at?: string;
@@ -98,6 +98,7 @@ export function mapPost(p: ApiPost): Post {
     canDelete: p.permissions?.can_delete ?? false,
     canPublish: p.permissions?.can_publish ?? false,
     canCancelSchedule: p.permissions?.can_cancel_schedule ?? false,
+    canInteract: p.permissions?.can_interact ?? p.status === "published",
   };
 }
 

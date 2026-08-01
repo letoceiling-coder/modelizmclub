@@ -54,6 +54,7 @@ class PostResource extends JsonResource
                 'can_cancel_schedule' => $user
                     && $this->status === \App\Enums\ContentStatus::Scheduled
                     && $this->user_id === $user->id,
+                'can_interact' => $this->resource->allowsPublicInteractions(),
             ],
             'published_at' => $this->published_at?->toIso8601String(),
             'scheduled_at' => $this->scheduled_at?->toIso8601String(),

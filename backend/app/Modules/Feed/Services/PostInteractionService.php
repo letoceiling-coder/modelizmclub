@@ -2,22 +2,17 @@
 
 namespace Modules\Feed\Services;
 
-use App\Enums\ContentStatus;
 use App\Models\Post;
 use App\Models\PostReaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Modules\Feed\Support\PostInteractionRules;
 
 class PostInteractionService
 {
     public function react(Post $post, User $user, string $type = 'like'): Post
     {
-        if ($post->status !== ContentStatus::Published) {
-            throw ValidationException::withMessages([
-                'post' => ['Реакции доступны только для опубликованных записей.'],
-            ]);
-        }
+        PostInteractionRules::assertPublicInteractionsAllowed($post);
 
         $created = PostReaction::query()->firstOrCreate(
             ['post_id' => $post->id, 'user_id' => $user->id],
@@ -35,6 +30,8 @@ class PostInteractionService
 
     public function removeReaction(Post $post, User $user): Post
     {
+        PostInteractionRules::assertPublicInteractionsAllowed($post);
+
         $deleted = PostReaction::query()
             ->where('post_id', $post->id)
             ->where('user_id', $user->id)
@@ -49,6 +46,8 @@ class PostInteractionService
 
     public function bookmark(Post $post, User $user): void
     {
+        PostInteractionRules::assertPublicInteractionsAllowed($post);
+
         DB::table('post_bookmarks')->insertOrIgnore([
             'user_id' => $user->id,
             'post_id' => $post->id,
@@ -58,6 +57,8 @@ class PostInteractionService
 
     public function removeBookmark(Post $post, User $user): void
     {
+        PostInteractionRules::assertPublicInteractionsAllowed($post);
+
         DB::table('post_bookmarks')
             ->where('user_id', $user->id)
             ->where('post_id', $post->id)
@@ -66,11 +67,7 @@ class PostInteractionService
 
     public function repost(Post $original, User $user): Post
     {
-        if ($original->status !== ContentStatus::Published) {
-            throw ValidationException::withMessages([
-                'post' => ['Нельзя репостить неопубликованную запись.'],
-            ]);
-        }
+        PostInteractionRules::assertPublicInteractionsAllowed($original);
 
         // Idempotent: if the user already reposted this one, return their
         // existing repost instead of stacking duplicates.
@@ -110,6 +107,8 @@ class PostInteractionService
     /** Removes the current user's repost(s) of the given original post. */
     public function unrepost(Post $original, User $user): void
     {
+        PostInteractionRules::assertPublicInteractionsAllowed($original);
+
         DB::transaction(function () use ($original, $user): void {
             $repostIds = DB::table('post_reposts')
                 ->where('user_id', $user->id)

@@ -125,7 +125,7 @@ function PostImage({ src, alt }: { src: string; alt: string }) {
 
 /** Shared class for footer action buttons — ghost-style, accent hover */
 const actionCls =
-  "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]";
+  "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
 
 export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost }: Props) {
   const me = useStore(selectors.currentUser);
@@ -151,6 +151,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const { guardAction } = useGuestAccess();
   const isScheduled = post.status === "scheduled";
+  const canInteract = post.canInteract ?? post.status === "published";
 
   useEffect(() => {
     if (!commentsOpen || commentsLoaded) return;
@@ -180,6 +181,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
 
   const toggleLike = () => {
+    if (!canInteract) return;
     guardAction("feed.post.like", () => {
       const next = !liked;
       setLiked(next);
@@ -191,6 +193,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     });
   };
   const toggleSave = () => {
+    if (!canInteract) return;
     guardAction("feed.post.save", () => {
       const next = !saved;
       if (onToggleSave) onToggleSave(post.id);
@@ -203,7 +206,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     });
   };
   const toggleRepost = () => {
-    if (isScheduled) return;
+    if (!canInteract || isScheduled) return;
     guardAction("feed.post.repost", () => {
       const next = !reposted;
       setReposted(next);
@@ -216,6 +219,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   };
 
   const addComment = (text: string, parentId?: string) => {
+    if (!canInteract) return;
     const tempId = `nc${Date.now()}`;
     const newC: Comment = {
       id: tempId,
@@ -311,6 +315,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             title={post.title}
             text={post.text}
             status={post.status}
+            canInteract={canInteract}
             canDelete={canDelete}
             isStaff={isStaff}
             author={author}
@@ -364,7 +369,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
         {/* Content */}
         <div className="px-[16px] pb-[12px] pt-[12px]">
           <h3
-            className="text-[17px] font-semibold leading-tight"
+            className="line-clamp-2 break-words text-[17px] font-semibold leading-tight"
             style={{
               fontFamily: "var(--font-display)",
               color: "var(--foreground)",
@@ -417,9 +422,11 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
         >
           <button
             onClick={toggleLike}
+            disabled={!canInteract}
             className={actionCls}
             style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
             aria-label="Нравится"
+            aria-disabled={!canInteract}
           >
             <motion.span
               key={liked ? "on" : "off"}
@@ -444,22 +451,29 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           </button>
 
           <button
-            onClick={() => guardAction("feed.post.comment", () => setCommentsOpen((v) => !v))}
+            onClick={() => {
+              if (!canInteract) return;
+              guardAction("feed.post.comment", () => setCommentsOpen((v) => !v));
+            }}
+            disabled={!canInteract}
             className={actionCls}
             style={{ color: commentsOpen ? "var(--accent)" : "var(--foreground-70)" }}
             aria-label="Комментарии"
+            aria-disabled={!canInteract}
           >
             <MessageCircle className="h-[16px] w-[16px]" />
             <span className="tabular-nums">{commentsCount}</span>
           </button>
 
-          <RepostMenu postId={post.id} reposted={reposted} count={reposts} onRepost={toggleRepost} />
+          <RepostMenu postId={post.id} reposted={reposted} count={reposts} onRepost={toggleRepost} disabled={!canInteract} />
 
           <button
             onClick={toggleSave}
+            disabled={!canInteract}
             className={actionCls}
             style={{ color: saved ? "var(--accent)" : "var(--foreground-70)" }}
             aria-label="Сохранить"
+            aria-disabled={!canInteract}
           >
             <motion.span
               whileTap={{ scale: 1.3 }}
@@ -482,7 +496,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
         {/* Comments section */}
         <AnimatePresence initial={false}>
-          {commentsOpen && (
+          {commentsOpen && canInteract && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}

@@ -3,6 +3,7 @@
 namespace Modules\Feed\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\Feed\Support\PostFormRules;
 
 class UpdatePostRequest extends FormRequest
 {
@@ -15,8 +16,8 @@ class UpdatePostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['sometimes', 'string', 'max:200'],
-            'body' => ['sometimes', 'string', 'max:10000'],
+            'title' => ['sometimes', 'string', 'max:'.PostFormRules::TITLE_MAX_LENGTH],
+            'body' => ['sometimes', 'string', 'max:'.PostFormRules::BODY_MAX_LENGTH],
             'category_id' => ['sometimes', 'integer', 'exists:post_categories,id'],
             'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'subcategory_id' => ['nullable', 'integer', 'exists:community_subcategories,id'],
@@ -25,5 +26,17 @@ class UpdatePostRequest extends FormRequest
             'hashtags' => ['sometimes', 'array', 'max:30'],
             'hashtags.*' => ['string', 'max:64'],
         ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return PostFormRules::messages();
+    }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return PostFormRules::attributes();
     }
 }

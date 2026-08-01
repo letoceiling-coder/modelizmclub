@@ -148,6 +148,11 @@ class Post extends Model
         return $this->status === ContentStatus::Scheduled;
     }
 
+    public function allowsPublicInteractions(): bool
+    {
+        return $this->status === ContentStatus::Published;
+    }
+
     /** Runtime-only flags for API responses (not persisted). */
     public bool $viewer_reacted = false;
 

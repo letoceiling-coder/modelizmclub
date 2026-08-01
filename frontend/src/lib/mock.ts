@@ -110,6 +110,7 @@ export interface Post {
   canDelete?: boolean;
   canPublish?: boolean;
   canCancelSchedule?: boolean;
+  canInteract?: boolean;
   isFollowing?: boolean;
   isLiked?: boolean;
   isSaved?: boolean;

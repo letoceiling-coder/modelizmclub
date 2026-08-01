@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, X, Newspaper, Star, Megaphone, Tag } from "lucide-react";
+import { ChevronDown, X, Newspaper, Star, Megaphone, Tag, FileText } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
@@ -17,6 +17,7 @@ import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import type { ComposerDraft, ComposerSelection } from "@/components/feed/CreatePostMenu";
+import { clampPostTitle, POST_TITLE_MAX_LENGTH } from "@/lib/post-limits";
 import {
   clearPostDraft,
   dataUrlToFile,
@@ -160,7 +161,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   const restoreDraft = async () => {
     const d = draftPrompt;
     if (!d) return;
-    setTitle(d.title);
+    setTitle(clampPostTitle(d.title));
     setText(d.text);
     if (d.catId) setCatId(d.catId);
     if (d.subId) setSubId(d.subId);
@@ -231,6 +232,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
 
   const publish = async () => {
     if (sel.source === "profile" && !title.trim()) { toast.error(t("components.createPostForm.titleRequired")); return; }
+    if (sel.source === "profile" && title.trim().length > POST_TITLE_MAX_LENGTH) {
+      toast.error(t("components.createPostForm.titleTooLong", { max: POST_TITLE_MAX_LENGTH }));
+      return;
+    }
     if (!text.trim()) { toast.error(t("components.createPostForm.textRequired")); return; }
     if (sel.source === "profile" && !cat) { toast.error(t("components.createPostForm.categoryRequired")); return; }
     if (sel.kind === "video" && !videoFile) { toast.error(t("components.createPostForm.videoRequired")); return; }
@@ -330,17 +335,20 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
       <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[16px] pt-[14px]">
         {draftPrompt && (
           <div
-            className="flex flex-col gap-[10px] rounded-[var(--r-card-sm)] border p-[12px]"
+            role="region"
+            aria-label={t("components.createPostForm.draftFound")}
+            className="flex flex-wrap items-center gap-x-[8px] gap-y-[6px] rounded-[var(--r-card-sm)] border px-[10px] py-[8px] sm:px-[12px] sm:py-[10px]"
             style={{ borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)", background: "var(--accent-soft)" }}
           >
-            <div className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+            <FileText size={15} className="shrink-0" style={{ color: "var(--accent)" }} aria-hidden />
+            <p className="min-w-0 flex-1 truncate text-[12px] font-medium leading-tight sm:text-[13px]" style={{ color: "var(--foreground)" }}>
               {t("components.createPostForm.draftFound")}
-            </div>
-            <div className="flex gap-[8px]">
+            </p>
+            <div className="flex w-full shrink-0 items-center gap-[6px] sm:ml-auto sm:w-auto">
               <button
                 type="button"
                 onClick={restoreDraft}
-                className="h-[36px] rounded-[var(--r-button)] px-[14px] text-[13px] font-semibold"
+                className="h-[32px] min-w-[44px] flex-1 rounded-[var(--r-button)] px-[12px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:flex-none sm:h-[34px] sm:px-[14px] sm:text-[13px]"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
                 {t("components.createPostForm.continueDraft")}
@@ -348,8 +356,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
               <button
                 type="button"
                 onClick={discardDraft}
-                className="h-[36px] rounded-[var(--r-button)] border px-[14px] text-[13px] font-semibold"
-                style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                className="h-[32px] min-w-[44px] flex-1 rounded-[var(--r-button)] border px-[12px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:flex-none sm:h-[34px] sm:px-[14px] sm:text-[13px]"
+                style={{ borderColor: "var(--border)", color: "var(--foreground-70)", background: "var(--background-elevated)" }}
               >
                 {t("components.createPostForm.startNew")}
               </button>
@@ -357,15 +365,37 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           </div>
         )}
         {sel.source === "profile" && (
-          <div className="flex items-start gap-[12px]">
-            <img src={me.avatar} alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("components.createPostForm.titlePlaceholder")}
-              className="min-w-0 flex-1 bg-transparent pt-[8px] text-[16px] font-semibold outline-none placeholder:font-medium"
-              style={{ color: "var(--foreground)" }}
-            />
+          <div className="space-y-[4px]">
+            <div className="flex items-start gap-[12px]">
+              <img src={me.avatar} alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
+              <input
+                value={title}
+                maxLength={POST_TITLE_MAX_LENGTH}
+                onChange={(e) => setTitle(clampPostTitle(e.target.value))}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData("text");
+                  const input = e.currentTarget;
+                  const start = input.selectionStart ?? title.length;
+                  const end = input.selectionEnd ?? title.length;
+                  setTitle(clampPostTitle(title.slice(0, start) + pasted + title.slice(end)));
+                }}
+                placeholder={t("components.createPostForm.titlePlaceholder")}
+                aria-describedby="post-title-counter"
+                className="min-w-0 flex-1 bg-transparent pt-[8px] text-[16px] font-semibold outline-none placeholder:font-medium focus-visible:ring-0"
+                style={{ color: "var(--foreground)" }}
+              />
+            </div>
+            <p
+              id="post-title-counter"
+              className="text-right text-[11px] tabular-nums"
+              style={{
+                color: title.length >= POST_TITLE_MAX_LENGTH - 10 ? "rgb(217,119,6)" : "var(--foreground-50)",
+                paddingLeft: 52,
+              }}
+            >
+              {t("components.createPostForm.titleCounter", { current: title.length, max: POST_TITLE_MAX_LENGTH })}
+            </p>
           </div>
         )}
 
@@ -437,6 +467,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           <ImageUploadGrid
             photos={photos}
             max={MAX_PHOTOS}
+            controls="minimal"
             onAdd={addPhotos}
             onRemove={removePhoto}
             onMakeMain={() => {}}

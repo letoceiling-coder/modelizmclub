@@ -23,6 +23,7 @@ interface Props {
   title: string;
   text: string;
   status?: "published" | "moderation" | "scheduled";
+  canInteract?: boolean;
   canDelete?: boolean;
   isStaff?: boolean;
   canPublishNow?: boolean;
@@ -49,6 +50,7 @@ export function PostActionMenu({
   title,
   text,
   status,
+  canInteract = true,
   canDelete = false,
   isStaff = false,
   author,
@@ -231,10 +233,14 @@ export function PostActionMenu({
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
           </>
         )}
-        <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? t("components.postActionMenu.removeFromSaved") : t("components.postActionMenu.save")} accent={saved} />
-        <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? t("components.postActionMenu.copied") : t("components.postActionMenu.copyLink")} accent={copied} />
-        <MenuItem onClick={handleShare} icon={Share2} label={t("components.postActionMenu.share")} />
-        {!isOwn && (
+        {canInteract && (
+          <>
+            <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? t("components.postActionMenu.removeFromSaved") : t("components.postActionMenu.save")} accent={saved} />
+            <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? t("components.postActionMenu.copied") : t("components.postActionMenu.copyLink")} accent={copied} />
+            <MenuItem onClick={handleShare} icon={Share2} label={t("components.postActionMenu.share")} />
+          </>
+        )}
+        {canInteract && !isOwn && (
           <>
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
             <MenuItem onClick={handleHide} icon={EyeOff} label={t("components.postActionMenu.hide")} />

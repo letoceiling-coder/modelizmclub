@@ -784,6 +784,7 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
         <ImageUploadGrid
           photos={photos}
           max={MAX_PHOTOS}
+          controls="minimal"
           onAdd={addPhotos}
           onRemove={removePhoto}
           onMakeMain={() => {}}

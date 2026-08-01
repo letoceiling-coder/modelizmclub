@@ -3,6 +3,7 @@
 namespace Modules\Feed\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\Feed\Support\PostFormRules;
 
 class StorePostRequest extends FormRequest
 {
@@ -15,8 +16,8 @@ class StorePostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:200'],
-            'body' => ['required', 'string', 'max:10000'],
+            'title' => ['required', 'string', 'max:'.PostFormRules::TITLE_MAX_LENGTH],
+            'body' => ['required', 'string', 'max:'.PostFormRules::BODY_MAX_LENGTH],
             'category_id' => ['required', 'integer', 'exists:post_categories,id'],
             'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'subcategory_id' => ['nullable', 'integer', 'exists:community_subcategories,id'],
@@ -25,5 +26,17 @@ class StorePostRequest extends FormRequest
             'hashtags' => ['array', 'max:30'],
             'hashtags.*' => ['string', 'max:64'],
         ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return PostFormRules::messages();
+    }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return PostFormRules::attributes();
     }
 }
