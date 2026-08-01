@@ -50,6 +50,10 @@ export function onUnreadBump(cb: () => void): () => void {
   return () => unreadBumpListeners.delete(cb);
 }
 
+export function bumpUnreadNotifications(): void {
+  unreadBumpListeners.forEach((cb) => cb());
+}
+
 function handleEvent(payload: { type?: string; payload?: unknown }): void {
   const type = payload.type;
   const data = payload.payload;

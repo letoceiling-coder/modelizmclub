@@ -18,7 +18,14 @@ import {
   clearAllNotifications,
   type AppNotification,
 } from "@/lib/api/notifications";
-import { onRealtimeNotification } from "@/lib/realtime/user";
+import { onRealtimeNotification, bumpUnreadNotifications } from "@/lib/realtime/user";
+import {
+  trackPendingDelete,
+  clearPendingDelete,
+  clearAllPendingDeletes,
+  flushPendingDeletes,
+} from "@/lib/notifications-pending-delete";
+import { isDemoMode } from "@/lib/demo-mode";
 
 import i18n from "@/lib/i18n";
 
@@ -117,17 +124,37 @@ function NotificationsPage() {
 
   useEffect(() => {
     return () => {
-      for (const timer of pendingDeletes.current.values()) clearTimeout(timer);
-      pendingDeletes.current.clear();
+      for (const [id, timer] of pendingDeletes.current.entries()) {
+        clearTimeout(timer);
+        pendingDeletes.current.delete(id);
+        void deleteNotification(id)
+          .catch(() => {})
+          .finally(() => clearPendingDelete(id));
+      }
     };
   }, []);
 
   useEffect(() => {
-    fetchNotifications()
-      .then((r) => setItems(r.items))
-      .catch(() => toast.error(t("pages.notifications.loadFailed")))
-      .finally(() => setLoading(false));
-  }, []);
+    let alive = true;
+    (async () => {
+      if (!isDemoMode()) {
+        await flushPendingDeletes(deleteNotification);
+      }
+      if (!alive) return;
+      try {
+        const r = await fetchNotifications();
+        if (!alive) return;
+        setItems(r.items);
+      } catch {
+        if (alive) toast.error(t("pages.notifications.loadFailed"));
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [t]);
 
   useEffect(() => {
     return onRealtimeNotification((n) => {
@@ -170,14 +197,19 @@ function NotificationsPage() {
 
     const UNDO_MS = 5000;
     let undone = false;
+    const expiresAt = Date.now() + UNDO_MS;
+    if (!isDemoMode()) trackPendingDelete(id, expiresAt);
 
     const timer = setTimeout(async () => {
       pendingDeletes.current.delete(id);
       if (undone) return;
       try {
         await deleteNotification(id);
+        clearPendingDelete(id);
+        if (!removed.read) bumpUnreadNotifications();
       } catch {
         toast.error(t("pages.notifications.deleteFailed"));
+        clearPendingDelete(id);
         setItems((prev) => {
           if (prev.some((x) => x.id === id)) return prev;
           const next = [...prev];
@@ -197,6 +229,7 @@ function NotificationsPage() {
           undone = true;
           clearTimeout(timer);
           pendingDeletes.current.delete(id);
+          clearPendingDelete(id);
           setItems((prev) => {
             if (prev.some((x) => x.id === id)) return prev;
             const next = [...prev];
@@ -210,9 +243,13 @@ function NotificationsPage() {
 
   const clearAll = async () => {
     const prev = items;
+    for (const timer of pendingDeletes.current.values()) clearTimeout(timer);
+    pendingDeletes.current.clear();
+    clearAllPendingDeletes();
     setItems([]);
     try {
       await clearAllNotifications();
+      bumpUnreadNotifications();
       toast.success(t("pages.notifications.cleared"));
     } catch {
       setItems(prev);
