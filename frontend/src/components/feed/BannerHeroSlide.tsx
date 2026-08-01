@@ -2,6 +2,10 @@ import type { HTMLAttributes } from "react";
 import { CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+/** Fixed hero height — shared by feed slider and admin WYSIWYG preview (PDF QA Task 11). */
+export const BANNER_HERO_HEIGHT =
+  "h-[200px] overflow-hidden sm:h-[220px] md:h-[240px]";
+
 /** Shared shape covering both the public `Banner` model and the admin draft/row. */
 export interface BannerHeroSlideData {
   image?: string | null;
@@ -53,36 +57,34 @@ export function BannerHeroSlide({
         />
       </div>
 
-      <div className="relative z-10 flex min-h-[200px] w-full flex-col justify-end sm:min-h-[220px] md:min-h-[240px]">
-        <div className="flex max-w-[86%] flex-col gap-[14px] p-[22px] pb-[30px] sm:max-w-[52%] sm:gap-[16px] sm:p-[36px] sm:pb-[44px]">
-          <span
-            className="inline-flex w-fit items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-medium uppercase tracking-wide text-white"
-            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
+      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[14px] overflow-hidden p-[22px] pb-[30px] sm:max-w-[52%] sm:gap-[16px] sm:p-[36px] sm:pb-[44px]">
+        <span
+          className="inline-flex w-fit shrink-0 items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-medium uppercase tracking-wide text-white"
+          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
+        >
+          <KindIcon className="h-[12px] w-[12px]" />
+          {kindLabel}
+          {banner.until ? <span className="opacity-70">· {banner.until}</span> : null}
+        </span>
+        <h2
+          className="line-clamp-2 shrink-0 break-words text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
+          style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
+        >
+          {banner.title || "Заголовок баннера"}
+        </h2>
+        {banner.text ? (
+          <p className="line-clamp-2 min-h-0 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{banner.text}</p>
+        ) : null}
+        <div className="mt-[6px] shrink-0">
+          <button
+            type="button"
+            onClick={onCtaClick}
+            disabled={ctaDisabled}
+            {...ctaPointerProps}
+            className="inline-flex items-center rounded-[10px] bg-white px-[16px] py-[9px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] sm:text-[14px] disabled:pointer-events-none"
           >
-            <KindIcon className="h-[12px] w-[12px]" />
-            {kindLabel}
-            {banner.until ? <span className="opacity-70">· {banner.until}</span> : null}
-          </span>
-          <h2
-            className="break-words text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
-            style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
-          >
-            {banner.title || "Заголовок баннера"}
-          </h2>
-          {banner.text ? (
-            <p className="line-clamp-3 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{banner.text}</p>
-          ) : null}
-          <div className="mt-[6px]">
-            <button
-              type="button"
-              onClick={onCtaClick}
-              disabled={ctaDisabled}
-              {...ctaPointerProps}
-              className="inline-flex items-center rounded-[10px] bg-white px-[16px] py-[9px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] sm:text-[14px] disabled:pointer-events-none"
-            >
-              {banner.cta || "Подробнее"}
-            </button>
-          </div>
+            {banner.cta || "Подробнее"}
+          </button>
         </div>
       </div>
     </>

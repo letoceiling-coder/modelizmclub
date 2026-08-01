@@ -7,7 +7,7 @@ import type { Banner } from "@/lib/mock";
 import { fetchBannersWithSettings, recordBannerEvent } from "@/lib/api/banners";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { BannerHeroSlide } from "@/components/feed/BannerHeroSlide";
+import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
 
 function sortBanners(list: Banner[]): Banner[] {
   return [...list].sort((a, b) => {
@@ -119,7 +119,7 @@ export function EventsHero() {
       onMouseLeave={() => setPaused(false)}
     >
       <div
-        className="relative min-h-[200px] cursor-pointer sm:min-h-[220px] md:min-h-[240px]"
+        className={`relative cursor-pointer ${BANNER_HERO_HEIGHT}`}
         style={{ touchAction: "pan-y" }}
         onPointerDown={onSlidePointerDown}
         onPointerUp={onSlidePointerUp}
@@ -130,7 +130,7 @@ export function EventsHero() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="relative block w-full"
+          className="relative block h-full w-full"
         >
             <BannerHeroSlide
               banner={current}

@@ -4,7 +4,7 @@ import { Eye, MousePointerClick, Pencil, Plus, Trash2, Upload } from "lucide-rea
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
-import { BannerHeroSlide } from "@/components/feed/BannerHeroSlide";
+import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import {
   createAdminBanner,
@@ -101,7 +101,7 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
               className="relative overflow-hidden rounded-[16px] border"
               style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
             >
-              <div className="relative min-h-[200px] sm:min-h-[220px] md:min-h-[240px]">
+              <div className={`relative ${BANNER_HERO_HEIGHT}`}>
                 <BannerHeroSlide
                   banner={{
                     image: banner.imageUrl,
