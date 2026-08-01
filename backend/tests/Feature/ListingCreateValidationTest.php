@@ -30,6 +30,15 @@ class ListingCreateValidationTest extends TestCase
         ])->id;
     }
 
+    /** @param array<string, mixed> $value */
+    private function upsertSetting(string $key, array $value, string $group): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => $key],
+            ['value' => $value, 'group' => $group],
+        );
+    }
+
     public function test_oversized_price_returns_russian_message_not_validation_key(): void
     {
         $this->actingAs($this->user, 'sanctum')
@@ -47,17 +56,8 @@ class ListingCreateValidationTest extends TestCase
 
     public function test_listing_publishes_for_free_when_payment_flag_disabled(): void
     {
-        SystemSetting::query()->create([
-            'key' => 'feature.listing_payment_enabled',
-            'value' => ['enabled' => false],
-            'group' => 'feature',
-        ]);
-
-        SystemSetting::query()->create([
-            'key' => 'moderation_auto_publish',
-            'value' => ['enabled' => true],
-            'group' => 'moderation',
-        ]);
+        $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => false], 'feature');
+        $this->upsertSetting('moderation_auto_publish', ['enabled' => true], 'moderation');
 
         $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/listings', [
@@ -73,17 +73,8 @@ class ListingCreateValidationTest extends TestCase
 
     public function test_listing_goes_to_moderation_when_auto_publish_disabled(): void
     {
-        SystemSetting::query()->create([
-            'key' => 'feature.listing_payment_enabled',
-            'value' => ['enabled' => false],
-            'group' => 'feature',
-        ]);
-
-        SystemSetting::query()->create([
-            'key' => 'moderation_auto_publish',
-            'value' => ['enabled' => false],
-            'group' => 'moderation',
-        ]);
+        $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => false], 'feature');
+        $this->upsertSetting('moderation_auto_publish', ['enabled' => false], 'moderation');
 
         $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/listings', [
@@ -108,17 +99,8 @@ class ListingCreateValidationTest extends TestCase
 
     public function test_published_listing_update_re_moderates_when_auto_publish_disabled(): void
     {
-        SystemSetting::query()->create([
-            'key' => 'feature.listing_payment_enabled',
-            'value' => ['enabled' => false],
-            'group' => 'feature',
-        ]);
-
-        SystemSetting::query()->create([
-            'key' => 'moderation_auto_publish',
-            'value' => ['enabled' => true],
-            'group' => 'moderation',
-        ]);
+        $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => false], 'feature');
+        $this->upsertSetting('moderation_auto_publish', ['enabled' => true], 'moderation');
 
         $created = $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/listings', [
@@ -137,9 +119,7 @@ class ListingCreateValidationTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
-        SystemSetting::query()
-            ->where('key', 'moderation_auto_publish')
-            ->update(['value' => ['enabled' => false]]);
+        $this->upsertSetting('moderation_auto_publish', ['enabled' => false], 'moderation');
 
         $this->actingAs($this->user, 'sanctum')
             ->patchJson("/api/v1/listings/{$uuid}", [
@@ -160,17 +140,8 @@ class ListingCreateValidationTest extends TestCase
 
     public function test_published_listing_update_stays_published_when_auto_publish_enabled(): void
     {
-        SystemSetting::query()->create([
-            'key' => 'feature.listing_payment_enabled',
-            'value' => ['enabled' => false],
-            'group' => 'feature',
-        ]);
-
-        SystemSetting::query()->create([
-            'key' => 'moderation_auto_publish',
-            'value' => ['enabled' => true],
-            'group' => 'moderation',
-        ]);
+        $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => false], 'feature');
+        $this->upsertSetting('moderation_auto_publish', ['enabled' => true], 'moderation');
 
         $created = $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/listings', [
@@ -200,11 +171,7 @@ class ListingCreateValidationTest extends TestCase
 
     public function test_listing_publish_requires_credit_when_payment_flag_enabled(): void
     {
-        SystemSetting::query()->create([
-            'key' => 'feature.listing_payment_enabled',
-            'value' => ['enabled' => true],
-            'group' => 'feature',
-        ]);
+        $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => true], 'feature');
 
         $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/listings', [
