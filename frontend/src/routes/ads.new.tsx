@@ -272,7 +272,7 @@ function NewAdPage() {
         resolvedCityId = found[0]?.id;
       }
       if (editId) {
-        await updateListing(editId, {
+        const updated = await updateListing(editId, {
           title: form.title.trim(),
           description: form.description.trim(),
           priceCents,
@@ -282,7 +282,11 @@ function NewAdPage() {
           deliveryMethods: form.deliveries,
           mediaIds,
         });
-        toast.success(t("pages.adsNew.updated"));
+        toast.success(
+          updated.moderation === "moderation"
+            ? t("pages.adsNew.sentModeration")
+            : t("pages.adsNew.updated"),
+        );
       } else {
         await loadFeatureFlagsFromServer();
         const paymentEnabled = getFeatureFlags().listingPaymentEnabled;

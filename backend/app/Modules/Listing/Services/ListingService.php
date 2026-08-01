@@ -319,6 +319,17 @@ class ListingService
                 $this->syncMedia($listing, $user, $data['media_ids'] ?? []);
             }
 
+            if (
+                ! $this->autoPublishEnabled()
+                && in_array($listing->status, [ListingStatus::Published, ListingStatus::Revision], true)
+            ) {
+                $listing->update([
+                    'status' => ListingStatus::PendingModeration,
+                    'published_at' => null,
+                ]);
+                $this->enqueueModeration($listing);
+            }
+
             return $listing->fresh($this->relations());
         });
     }

@@ -19,7 +19,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 7 | №9 | `/notifications` | Notifications | P1 | — | Partial work: undo toast; persist TBD | `NotificationController` | `notifications.tsx` | — | — | — | — | TODO |
 | 8 | №10 | `/profile` | Profile edit | P1 | — | TBD: overlay без dialog content | Profile API | `profile.tsx` modal | — | — | — | — | TODO |
 | 9 | №21 | `/admin`, nav | Settings | P1 | — | Partial: toggle exists; apply to nav TBD | `SystemSetting`, feature flags | `admin.tsx`, nav components | — | — | — | — | TODO |
-| 10 | №32 | `/ads/*` | Listing moderation | **P0** | — | TBD: edit bypasses re-moderation when autopublish off | `ListingService` | `ads.new`, edit flow | maybe revision | — | — | — | TODO |
+| 10 | №32 | `/ads/*` | Listing moderation | **P0** | FIXED | update() skipped re-moderation gate | `ListingService::update()` | `ads.new.tsx` edit toast | — | feature tests | — | — | FIXED |
 
 ---
 

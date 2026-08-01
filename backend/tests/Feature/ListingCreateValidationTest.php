@@ -106,6 +106,98 @@ class ListingCreateValidationTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    public function test_published_listing_update_re_moderates_when_auto_publish_disabled(): void
+    {
+        SystemSetting::query()->create([
+            'key' => 'feature.listing_payment_enabled',
+            'value' => ['enabled' => false],
+            'group' => 'feature',
+        ]);
+
+        SystemSetting::query()->create([
+            'key' => 'moderation_auto_publish',
+            'value' => ['enabled' => true],
+            'group' => 'moderation',
+        ]);
+
+        $created = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/v1/listings', [
+                'title' => 'Опубликованное объявление',
+                'description' => str_repeat('Описание объявления. ', 5),
+                'category_id' => $this->categoryId,
+                'price_cents' => 10_000,
+                'publish' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'published');
+
+        $uuid = $created->json('data.uuid');
+
+        $this->getJson('/api/v1/listings')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        SystemSetting::query()
+            ->where('key', 'moderation_auto_publish')
+            ->update(['value' => ['enabled' => false]]);
+
+        $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/listings/{$uuid}", [
+                'title' => 'Изменённое объявление',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending_moderation');
+
+        $this->assertDatabaseHas('moderation_queue', [
+            'queue' => 'listings',
+            'status' => 'pending',
+        ]);
+
+        $this->getJson('/api/v1/listings')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_published_listing_update_stays_published_when_auto_publish_enabled(): void
+    {
+        SystemSetting::query()->create([
+            'key' => 'feature.listing_payment_enabled',
+            'value' => ['enabled' => false],
+            'group' => 'feature',
+        ]);
+
+        SystemSetting::query()->create([
+            'key' => 'moderation_auto_publish',
+            'value' => ['enabled' => true],
+            'group' => 'moderation',
+        ]);
+
+        $created = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/v1/listings', [
+                'title' => 'Опубликованное объявление',
+                'description' => str_repeat('Описание объявления. ', 5),
+                'category_id' => $this->categoryId,
+                'price_cents' => 10_000,
+                'publish' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'published');
+
+        $uuid = $created->json('data.uuid');
+
+        $this->actingAs($this->user, 'sanctum')
+            ->patchJson("/api/v1/listings/{$uuid}", [
+                'title' => 'Изменённое объявление',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'published');
+
+        $this->getJson('/api/v1/listings')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Изменённое объявление');
+    }
+
     public function test_listing_publish_requires_credit_when_payment_flag_enabled(): void
     {
         SystemSetting::query()->create([
