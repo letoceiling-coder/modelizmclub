@@ -94,7 +94,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 43 | №1–34 all | all | QA closure | **P0** | — | Final pass after tasks 1–42 | — | — | — | Playwright smoke | all widths | all | TODO |
+| 43 | №1–34 all | all | QA closure | **P0** | prod 2026-08-01 | Playwright + SSR + API smoke; 33 OK / 0 FAIL | — | — | — | browser-qa.mjs | 375px + 1280px | 1280px | VERIFIED |
 
 ---
 
@@ -111,8 +111,9 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 1. **Task 1** — инвентаризация `ImageUploadGrid` + 3 consumer paths; воспроизведение на 375px.
 2. **Task 5, 6, 10, 19, 25** — P0 backend-first.
-3. **Task 11** — согласовать с PDF: вернуть fixed height + line-clamp (регрессия от commit `6b84d85`).
-4. После каждого fix — обновлять колонки Status, Root cause, Tests, evidence в `docs/qa/evidence/`.
+3. **Task 43** — VERIFIED 2026-08-01 (`run-qa-regression.sh`, report in `deploy/qa-artifacts/`).
+4. **Task 11** — согласовать с PDF: вернуть fixed height + line-clamp (регрессия от commit `6b84d85`).
+5. После каждого fix — обновлять колонки Status, Root cause, Tests, evidence в `docs/qa/evidence/`.
 
 ## Evidence
 

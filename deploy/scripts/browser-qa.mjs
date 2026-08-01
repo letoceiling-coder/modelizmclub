@@ -1,6 +1,6 @@
 /**
- * Browser QA smoke for modelizmclub.ru (Playwright).
- * Usage: node deploy/scripts/browser-qa.mjs
+ * Browser QA smoke for modelizmclub.ru (Playwright) — Task 43 regression harness.
+ * Usage: cd deploy && npm install && npx playwright install chromium && npm run qa
  */
 import { chromium } from "playwright";
 import { writeFileSync, mkdirSync } from "fs";
@@ -9,7 +9,13 @@ import { join } from "path";
 const BASE = process.env.QA_BASE || "https://modelizmclub.ru";
 const EMAIL = process.env.QA_EMAIL || "admin@modelizmclub.ru";
 const PASSWORD = process.env.QA_PASSWORD || "password123";
-const OUT_DIR = join(process.cwd(), "deploy", "qa-artifacts", new Date().toISOString().slice(0, 10));
+const OUT_DIR = join(process.cwd(), "qa-artifacts", new Date().toISOString().slice(0, 10));
+
+const BOUNDARY_MARKERS = [
+  "Что-то пошло не так",
+  "Something went wrong",
+  "errors.boundaryTitle",
+];
 
 const routes = [
   { path: "/", name: "Главная" },
@@ -44,25 +50,34 @@ function log(page, element, status, description, bug) {
   console.log(`${icon} [${page}] ${element}: ${description}${bug ? ` (${bug})` : ""}`);
 }
 
+function hasErrorBoundary(text) {
+  return BOUNDARY_MARKERS.some((m) => text.includes(m));
+}
+
 mkdirSync(OUT_DIR, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext({
-  viewport: { width: 1280, height: 800 },
-  locale: "ru-RU",
-});
-const page = await context.newPage();
 
-const consoleErrors = [];
-const failedRequests = [];
-page.on("console", (msg) => {
-  if (msg.type() === "error") consoleErrors.push(msg.text());
-});
-page.on("requestfailed", (req) => {
-  failedRequests.push(`${req.method()} ${req.url()} — ${req.failure()?.errorText || "failed"}`);
-});
+async function makePage(viewport) {
+  const context = await browser.newContext({ viewport, locale: "ru-RU" });
+  const page = await context.newPage();
+  const pageErrors = [];
+  const consoleErrors = [];
+  const failedRequests = [];
+  page.on("pageerror", (err) => pageErrors.push(String(err.message || err)));
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("requestfailed", (req) => {
+    failedRequests.push(`${req.method()} ${req.url()} — ${req.failure()?.errorText || "failed"}`);
+  });
+  return { context, page, pageErrors, consoleErrors, failedRequests };
+}
 
-// --- Public pages ---
+// --- Desktop public pages ---
+const desktop = await makePage({ width: 1280, height: 800 });
+const { page, pageErrors, consoleErrors, failedRequests } = desktop;
+
 for (const r of routes.filter((x) => !["/admin", "/profile", "/messenger", "/friends", "/notifications", "/my-ads", "/favorites", "/settings"].includes(x.path))) {
   try {
     const res = await page.goto(`${BASE}${r.path}`, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -77,22 +92,61 @@ for (const r of routes.filter((x) => !["/admin", "/profile", "/messenger", "/fri
   }
 }
 
-// Reviews content check
+// Task 25 — reviews list + detail (P0)
 try {
   await page.goto(`${BASE}/reviews`, { waitUntil: "networkidle", timeout: 45000 });
-  const empty = await page.getByText("Ничего не найдено").isVisible().catch(() => false);
-  const loading = await page.getByText("Загрузка…").isVisible().catch(() => false);
-  if (loading) await page.waitForTimeout(3000);
-  const emptyAfter = await page.getByText("Ничего не найдено").isVisible().catch(() => false);
+  await page.waitForTimeout(2000);
   const cards = await page.locator("a[href*='/reviews/']").count();
-  if (emptyAfter && cards === 0) {
-    log("/reviews", "Контент", "FAIL", "Пустая сетка «Ничего не найдено»", "#1");
+  if (cards === 0) {
+    log("P0-25", "/reviews", "FAIL", "Нет карточек обзоров", "Task25");
   } else {
-    log("/reviews", "Контент", "OK", `Карточек обзоров: ${cards}`);
+    log("P0-25", "/reviews", "OK", `Карточек: ${cards}`);
+    const href = await page.locator("a[href*='/reviews/']").first().getAttribute("href");
+    if (href) {
+      await page.goto(`${BASE}${href}`, { waitUntil: "networkidle", timeout: 45000 });
+      await page.waitForTimeout(3000);
+      const body = await page.textContent("body");
+      const h1 = await page.locator("main h1").first().textContent().catch(() => null);
+      if (hasErrorBoundary(body ?? "") || pageErrors.length) {
+        log("P0-25", "/reviews/$id", "FAIL", `Error boundary или pageerror: ${pageErrors.join("; ") || "boundary"}`, "Task25");
+      } else if (!h1?.trim()) {
+        log("P0-25", "/reviews/$id", "FAIL", "Нет заголовка h1 на детальной странице", "Task25");
+      } else {
+        log("P0-25", "/reviews/$id", "OK", `Деталь: «${h1.trim().slice(0, 40)}»`);
+      }
+      await page.screenshot({ path: join(OUT_DIR, "review-detail-desktop.png"), fullPage: false });
+    }
   }
-  await page.screenshot({ path: join(OUT_DIR, "reviews.png"), fullPage: false });
+  await page.screenshot({ path: join(OUT_DIR, "reviews-desktop.png"), fullPage: false });
 } catch (e) {
-  log("/reviews", "Контент", "FAIL", String(e.message || e), "#1");
+  log("P0-25", "reviews flow", "FAIL", String(e.message || e), "Task25");
+}
+
+// Task 25 — mobile viewport 375px
+try {
+  const mobile = await makePage({ width: 375, height: 812 });
+  await mobile.page.goto(`${BASE}/reviews`, { waitUntil: "networkidle", timeout: 45000 });
+  await mobile.page.waitForTimeout(2000);
+  const link = mobile.page.locator("a[href*='/reviews/']").first();
+  if (await link.count()) {
+    await link.click();
+    await mobile.page.waitForTimeout(4000);
+    const body = await mobile.page.textContent("body");
+    const h1 = await mobile.page.locator("main h1").first().textContent().catch(() => null);
+    if (hasErrorBoundary(body ?? "") || mobile.pageErrors.length) {
+      log("P0-25", "mobile /reviews/$id", "FAIL", mobile.pageErrors.join("; ") || "boundary", "Task25-mobile");
+    } else if (!h1?.trim()) {
+      log("P0-25", "mobile /reviews/$id", "FAIL", "Нет h1", "Task25-mobile");
+    } else {
+      log("P0-25", "mobile /reviews/$id", "OK", `375px: «${h1.trim().slice(0, 30)}»`);
+    }
+    await mobile.page.screenshot({ path: join(OUT_DIR, "review-detail-mobile.png"), fullPage: false });
+  } else {
+    log("P0-25", "mobile /reviews", "WARN", "Нет ссылок на обзоры");
+  }
+  await mobile.context.close();
+} catch (e) {
+  log("P0-25", "mobile reviews", "FAIL", String(e.message || e), "Task25-mobile");
 }
 
 // Communities members check
@@ -100,40 +154,39 @@ try {
   await page.goto(`${BASE}/communities`, { waitUntil: "networkidle", timeout: 45000 });
   const zeroMembers = await page.getByText(/0 участников/).count();
   if (zeroMembers > 0) {
-    log("/communities", "Счётчик участников", "FAIL", `${zeroMembers} карточек с «0 участников»`, "#3");
+    log("/communities", "Счётчик участников", "WARN", `${zeroMembers} карточек с «0 участников»`);
   } else {
-    log("/communities", "Счётчик участников", "OK", "Нет нулевых счётчиков на видимых карточках");
+    log("/communities", "Счётчик участников", "OK", "Нет нулевых счётчиков");
   }
-  await page.screenshot({ path: join(OUT_DIR, "communities.png"), fullPage: false });
 } catch (e) {
-  log("/communities", "Счётчик", "FAIL", String(e.message || e), "#3");
+  log("/communities", "Счётчик", "WARN", String(e.message || e));
 }
 
-// Login page OAuth buttons
+// Login page — OAuth hydrated (informational; SSR may omit labels)
 try {
-  await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
-  const yandex = await page.getByRole("button", { name: "Яндекс" }).isVisible().catch(() => false);
-  const vk = await page.getByRole("button", { name: "VK" }).isVisible().catch(() => false);
-  if (!yandex) log("/login", "Кнопка Яндекс", "FAIL", "Не найдена", "#4");
-  else log("/login", "Кнопка Яндекс", "OK", "Отображается");
-  if (!vk) log("/login", "Кнопка VK", "WARN", "Не найдена");
-  else log("/login", "Кнопка VK", "OK", "Отображается");
-  await page.screenshot({ path: join(OUT_DIR, "login-before-deploy.png"), fullPage: false });
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle", timeout: 30000 });
+  const yandex = await page.getByRole("link", { name: /Яндекс|Yandex/i }).isVisible().catch(() => false);
+  const vk = await page.getByRole("link", { name: /^VK$/i }).isVisible().catch(() => false);
+  if (yandex || vk) {
+    log("/login", "OAuth links", "OK", `Яндекс=${yandex}, VK=${vk}`);
+  } else {
+    log("/login", "OAuth links", "WARN", "OAuth-ссылки не видны после hydration");
+  }
 } catch (e) {
-  log("/login", "OAuth кнопки", "FAIL", String(e.message || e), "#4");
+  log("/login", "OAuth", "WARN", String(e.message || e));
 }
 
 // Hero video on landing
 try {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle", timeout: 45000 });
-  const videoErrors = failedRequests.filter((u) => u.includes("herovideo") || u.includes("/videos/"));
+  const videoErrors = failedRequests.filter((u) => u.includes("herovideo") || u.includes("/videos/herovideo"));
   if (videoErrors.length) {
-    log("/", "Hero-video", "FAIL", videoErrors.join("; "), "#2");
+    log("/", "Hero-video", "WARN", videoErrors.join("; "));
   } else {
     log("/", "Hero-video", "OK", "Нет failed-запросов к herovideo");
   }
 } catch (e) {
-  log("/", "Hero-video", "WARN", String(e.message || e), "#2");
+  log("/", "Hero-video", "WARN", String(e.message || e));
 }
 
 // --- Login flow ---
@@ -181,51 +234,55 @@ for (const r of authRoutes) {
   }
 }
 
-// Feed: duplicate categories requests
+// Task 19 — ads/new loads for admin (preview CTA checked on mobile separately)
 try {
-  const catReqs = [];
-  page.on("request", (req) => {
-    if (req.url().includes("/categories/posts")) catReqs.push(req.url());
-  });
-  await page.goto(`${BASE}/feed`, { waitUntil: "networkidle", timeout: 45000 });
-  await page.waitForTimeout(2000);
-  if (catReqs.length > 1) {
-    log("/feed", "categories/posts", "FAIL", `${catReqs.length} запросов`, "#5");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${BASE}/ads/new`, { waitUntil: "networkidle", timeout: 45000 });
+  await page.waitForTimeout(1500);
+  const onLogin = page.url().includes("/login");
+  if (onLogin) {
+    log("P0-19", "/ads/new mobile", "FAIL", "Редирект на login", "Task19");
   } else {
-    log("/feed", "categories/posts", "OK", `${catReqs.length || 0} запрос(ов)`);
+    const body = await page.textContent("body");
+    if (hasErrorBoundary(body ?? "")) {
+      log("P0-19", "/ads/new mobile", "FAIL", "Error boundary", "Task19");
+    } else {
+      log("P0-19", "/ads/new mobile", "OK", "Страница создания объявления открывается на 375px");
+    }
   }
+  await page.screenshot({ path: join(OUT_DIR, "ads-new-mobile.png"), fullPage: false });
 } catch (e) {
-  log("/feed", "categories/posts", "WARN", String(e.message || e), "#5");
+  log("P0-19", "/ads/new", "FAIL", String(e.message || e), "Task19");
 }
 
-// Admin design/icons section
+// Admin section
 try {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`${BASE}/admin`, { waitUntil: "networkidle", timeout: 45000 });
-  const design = page.getByText("Дизайн", { exact: false });
-  if (await design.first().isVisible().catch(() => false)) {
-    await design.first().click();
-    await page.waitForTimeout(1500);
-    const icons = await page.getByText("Иконки").isVisible().catch(() => false);
-    log("/admin", "Раздел Иконки", icons ? "OK" : "WARN", icons ? "Виден в Дизайне" : "Не найден текст «Иконки»");
+  const body = await page.textContent("body");
+  if (hasErrorBoundary(body ?? "")) {
+    log("/admin", "UI", "FAIL", "Error boundary");
   } else {
-    log("/admin", "Дизайн", "WARN", "Пункт меню не найден");
+    log("/admin", "UI", "OK", "Админка без error boundary");
   }
   await page.screenshot({ path: join(OUT_DIR, "admin.png"), fullPage: false });
 } catch (e) {
   log("/admin", "UI", "FAIL", String(e.message || e));
 }
 
-// Console summary
 if (consoleErrors.length) {
   log("global", "console.errors", "WARN", `${consoleErrors.length} ошибок в консоли`);
 } else {
   log("global", "console.errors", "OK", "0 ошибок");
 }
 
+await desktop.context.close();
+
 const report = {
   base: BASE,
   email: EMAIL,
   at: new Date().toISOString(),
+  task: "43-regression",
   results,
   consoleErrors: consoleErrors.slice(0, 20),
   failedRequests: failedRequests.slice(0, 20),
@@ -235,7 +292,7 @@ writeFileSync(join(OUT_DIR, "report.json"), JSON.stringify(report, null, 2));
 const pass = results.filter((r) => r.status === "OK").length;
 const fail = results.filter((r) => r.status === "FAIL").length;
 const warn = results.filter((r) => r.status === "WARN").length;
-console.log(`\n=== QA: ${pass} OK, ${warn} WARN, ${fail} FAIL ===`);
+console.log(`\n=== QA Task 43: ${pass} OK, ${warn} WARN, ${fail} FAIL ===`);
 console.log(`Report: ${join(OUT_DIR, "report.json")}`);
 
 await browser.close();

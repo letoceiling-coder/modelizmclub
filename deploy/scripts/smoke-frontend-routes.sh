@@ -10,7 +10,7 @@ check() {
   local path="$1"
   local name="$2"
   local code
-  code=$(curl -sS -o /tmp/smoke_fe_body -w "%{http_code}" "${BASE}${path}" 2>/dev/null || echo "000")
+  code=$(curl -sS -L -o /tmp/smoke_fe_body -w "%{http_code}" "${BASE}${path}" 2>/dev/null || echo "000")
   if [[ "$code" == "200" ]]; then
     echo "OK  [$code] $path — $name"
     PASS=$((PASS + 1))

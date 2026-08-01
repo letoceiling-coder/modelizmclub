@@ -50,6 +50,7 @@ bash /var/www/modelizmclub/deploy/scripts/setup-upload-limits.sh
 ```bash
 bash /var/www/modelizmclub/deploy/scripts/smoke-new-routes.sh
 bash /var/www/modelizmclub/deploy/scripts/run-server-tests.sh
+bash /var/www/modelizmclub/deploy/scripts/run-qa-regression.sh
 ```
 
 ## Frontend (modelizmclub.ru)

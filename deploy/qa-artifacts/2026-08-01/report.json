@@ -1,0 +1,217 @@
+{
+  "base": "https://modelizmclub.ru",
+  "email": "admin@modelizmclub.ru",
+  "at": "2026-08-01T15:58:26.197Z",
+  "task": "43-regression",
+  "results": [
+    {
+      "page": "/",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/login",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/register",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/ads",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/feed",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/reviews",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/communities",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/channels",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/categories",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/subscription",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/help",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/legal/privacy",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/legal/rules",
+      "element": "Загрузка",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "P0-25",
+      "element": "/reviews",
+      "status": "OK",
+      "description": "Карточек: 5"
+    },
+    {
+      "page": "P0-25",
+      "element": "/reviews/$id",
+      "status": "OK",
+      "description": "Деталь: «Визитная карточка»"
+    },
+    {
+      "page": "P0-25",
+      "element": "mobile /reviews/$id",
+      "status": "OK",
+      "description": "375px: «Визитная карточка»"
+    },
+    {
+      "page": "/communities",
+      "element": "Счётчик участников",
+      "status": "OK",
+      "description": "Нет нулевых счётчиков"
+    },
+    {
+      "page": "/login",
+      "element": "OAuth links",
+      "status": "OK",
+      "description": "Яндекс=true, VK=true"
+    },
+    {
+      "page": "/",
+      "element": "Hero-video",
+      "status": "OK",
+      "description": "Нет failed-запросов к herovideo"
+    },
+    {
+      "page": "/login",
+      "element": "Вход admin",
+      "status": "OK",
+      "description": "Редирект на https://modelizmclub.ru/feed"
+    },
+    {
+      "page": "/feed",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/profile",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/messenger",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/friends",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/notifications",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/my-ads",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/favorites",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/settings",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/admin",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/reviews/upload",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "/ads/new",
+      "element": "Доступ",
+      "status": "OK",
+      "description": "HTTP 200"
+    },
+    {
+      "page": "P0-19",
+      "element": "/ads/new mobile",
+      "status": "OK",
+      "description": "Страница создания объявления открывается на 375px"
+    },
+    {
+      "page": "/admin",
+      "element": "UI",
+      "status": "OK",
+      "description": "Админка без error boundary"
+    },
+    {
+      "page": "global",
+      "element": "console.errors",
+      "status": "WARN",
+      "description": "2 ошибок в консоли"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 ()",
+    "Failed to load resource: the server responded with a status of 401 ()"
+  ],
+  "failedRequests": []
+}

@@ -1,0 +1,12 @@
+{
+  "name": "modelizmclub-deploy-qa",
+  "private": true,
+  "type": "module",
+  "description": "Playwright browser QA for modelizmclub.ru",
+  "scripts": {
+    "qa": "node scripts/browser-qa.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}

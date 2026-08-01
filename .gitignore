@@ -18,6 +18,7 @@
 /.worktrees
 /frontend/.env
 /frontend/.env.local
+/deploy/node_modules
 .idea
 .vscode
 *.log
