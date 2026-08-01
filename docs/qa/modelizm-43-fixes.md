@@ -17,7 +17,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 5 | №5 | `/feed` | Moderation | **P0** | code review | bookmark без проверки status; FE не disabled | `PostInteractionRules`, services | `PostCard`, `PostActionMenu`, `RepostMenu` | — | unit + feature (VPS) | pending | pending | FIXED |
 | 6 | №7 | `/messenger` | Chat delivery | **P0** | FIXED | WS message dropped when dialog missing from store | `ChatService`, WS | `store.ts` ingestIncomingMessage | — | — | — | — | FIXED |
 | 7 | №9 | `/notifications` | Notifications | P1 | FIXED | delayed delete lost on unmount/refresh; sessionStorage flush + API persist | `NotificationController` | `notifications.tsx`, pending-delete helper | — | NotificationDeleteTest | pending | pending | FIXED |
-| 8 | №10 | `/profile` | Profile edit | P1 | — | TBD: overlay без dialog content | Profile API | `profile.tsx` modal | — | — | — | — | TODO |
+| 8 | №10 | `/profile` | Profile edit | P1 | FIXED | EditSheet clipped inside main overflow; mobile animation mismatch on first paint | Profile API | `profile.tsx` EditSheet portal, `use-mobile` | — | build pass | pending | pending | FIXED |
 | 9 | №21 | `/admin`, nav | Settings | P1 | — | Partial: toggle exists; apply to nav TBD | `SystemSetting`, feature flags | `admin.tsx`, nav components | — | — | — | — | TODO |
 | 10 | №32 | `/ads/*` | Listing moderation | **P0** | FIXED | update() skipped re-moderation gate | `ListingService::update()` | `ads.new.tsx` edit toast | — | feature tests | — | — | FIXED |
 

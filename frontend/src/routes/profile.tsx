@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
@@ -647,9 +648,22 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
 }) {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  const reduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const [cityId, setCityId] = useState<number | undefined>(draft.cityId);
   const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mounted]);
 
   useEffect(() => {
     setCityId(draft.cityId);
@@ -664,17 +678,39 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
     setDraft({ ...draft, interests: interestList.filter((x) => x !== i).join(", ") });
   };
 
-  const panelTransition = isMobile
-    ? { type: "spring" as const, stiffness: 300, damping: 35 }
-    : { duration: 0.2 };
+  const panelTransition = reduceMotion
+    ? { duration: 0 }
+    : isMobile
+      ? { type: "spring" as const, stiffness: 300, damping: 35 }
+      : { duration: 0.2 };
 
-  return (
+  const panelInitial = reduceMotion
+    ? { opacity: 1, y: 0, scale: 1 }
+    : isMobile
+      ? { y: "100%" }
+      : { opacity: 0, scale: 0.96 };
+
+  const panelAnimate = reduceMotion
+    ? { opacity: 1, y: 0, scale: 1 }
+    : isMobile
+      ? { y: 0 }
+      : { opacity: 1, scale: 1 };
+
+  const panelExit = reduceMotion
+    ? { opacity: 1, y: 0, scale: 1 }
+    : isMobile
+      ? { y: "100%" }
+      : { opacity: 0, scale: 0.96 };
+
+  if (!mounted) return null;
+
+  return createPortal(
     <motion.div
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-[100]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: reduceMotion ? 0 : 0.2 }}
     >
       <div
         className="absolute inset-0"
@@ -683,9 +719,9 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
         aria-hidden
       />
       <motion.div
-        initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96 }}
-        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
-        exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96 }}
+        initial={panelInitial}
+        animate={panelAnimate}
+        exit={panelExit}
         transition={panelTransition}
         className={
           isMobile
@@ -760,7 +796,8 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
           </Button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
 
