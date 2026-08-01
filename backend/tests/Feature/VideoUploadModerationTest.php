@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Models\Media;
 use App\Models\ModerationQueue;
 use App\Models\User;
+use App\Models\UserProfile;
 use App\Models\Video;
 use App\Models\VideoCategory;
 use Database\Seeders\RoleSeeder;
@@ -151,5 +152,58 @@ class VideoUploadModerationTest extends TestCase
             'id' => $video->id,
             'status' => 'published',
         ]);
+    }
+
+    public function test_guest_can_view_published_video_detail_with_uploader(): void
+    {
+        Storage::fake('s3');
+        config(['filesystems.default' => 's3']);
+
+        $uploader = User::factory()->create();
+        UserProfile::query()->create([
+            'user_id' => $uploader->id,
+            'display_name' => 'Review Author',
+            'slug' => 'review-author-'.uniqid(),
+        ]);
+
+        $category = VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'Авиация',
+            'slug' => 'aviation-'.uniqid(),
+            'sort_order' => 1,
+        ]);
+
+        $videoMedia = Media::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'disk' => 's3',
+            'path' => 'media/review_video/2026/07/clip.mp4',
+            'filename' => 'clip.mp4',
+            'mime_type' => 'video/mp4',
+            'size_bytes' => 5_242_880,
+            'uploaded_by' => $uploader->id,
+            'purpose' => 'review_video',
+            'status' => MediaStatus::Ready,
+        ]);
+
+        $video = Video::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'Обзор для гостя',
+            'description' => 'Описание',
+            'category_id' => $category->id,
+            'video_media_id' => $videoMedia->id,
+            'uploader_id' => $uploader->id,
+            'status' => 'published',
+            'published_at' => now(),
+            'tags' => ['test'],
+            'views_count' => 3,
+        ]);
+
+        $this->getJson('/api/v1/videos/'.$video->uuid)
+            ->assertOk()
+            ->assertJsonPath('data.uuid', $video->uuid)
+            ->assertJsonPath('data.status', 'published')
+            ->assertJsonPath('data.video_url', fn ($url) => is_string($url) && $url !== '')
+            ->assertJsonPath('data.uploader.uuid', $uploader->uuid)
+            ->assertJsonPath('data.uploader.display_name', fn ($name) => is_string($name) && $name !== '');
     }
 }

@@ -22,7 +22,7 @@ class VideoService
     public function list(array $filters, ?User $viewer, int $perPage = 50): LengthAwarePaginator
     {
         $query = Video::query()
-            ->with(['category', 'poster', 'videoMedia', 'uploader'])
+            ->with(['category', 'poster', 'videoMedia', 'uploader.profile.avatar'])
             ->where('status', 'published');
 
         if (! empty($filters['q'])) {
@@ -50,7 +50,7 @@ class VideoService
     public function show(string $uuid, ?User $viewer): Video
     {
         $video = Video::query()
-            ->with(['category', 'poster', 'videoMedia', 'uploader'])
+            ->with(['category', 'poster', 'videoMedia', 'uploader.profile.avatar'])
             ->where('uuid', $uuid)
             ->where('status', 'published')
             ->first();
@@ -120,7 +120,7 @@ class VideoService
 
         $video->save();
 
-        return $video->fresh(['category', 'poster', 'videoMedia', 'uploader']);
+        return $video->fresh(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']);
     }
 
     public function delete(Video $video, User $user): void

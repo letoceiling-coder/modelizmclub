@@ -180,6 +180,18 @@ function WatchPage() {
 
   const poster = video.posterUrl || categoryPlaceholder(video.id, "");
   const author = userById(video.uploaderId);
+  const authorProfileId = author.slug ?? author.id;
+  const viewsCount = Number.isFinite(Number(video.views)) ? Number(video.views) : 0;
+
+  const authorBlock = (
+    <>
+      <AuthorAvatar src={author.avatar} name={author.name} />
+      <div className="min-w-0">
+        <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{author.name}</div>
+        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.authorLabel")}</div>
+      </div>
+    </>
+  );
 
   return (
     <AppLayout rightColumn={false} footer>
@@ -246,24 +258,29 @@ function WatchPage() {
             {video.title}
           </h1>
           <div className="flex items-center gap-[12px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-            <span className="inline-flex items-center gap-[4px]"><Eye size={13} /> {t("pages.reviews.views", { count: video.views.toLocaleString("ru") })}</span>
+            <span className="inline-flex items-center gap-[4px]"><Eye size={13} /> {t("pages.reviews.views", { count: viewsCount.toLocaleString("ru-RU") })}</span>
             {video.publishedAt && <span>· {new Date(video.publishedAt).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" })}</span>}
           </div>
         </div>
 
         {/* author */}
-        <Link
-          to="/user/$id"
-          params={{ id: author.slug ?? author.id }}
-          className="flex items-center gap-[10px] border-b pb-[16px]"
-          style={{ borderColor: "var(--border)" }}
-        >
-          <AuthorAvatar src={author.avatar} name={author.name} />
-          <div className="min-w-0">
-            <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{author.name}</div>
-            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.authorLabel")}</div>
+        {authorProfileId ? (
+          <Link
+            to="/user/$id"
+            params={{ id: authorProfileId }}
+            className="flex items-center gap-[10px] border-b pb-[16px]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {authorBlock}
+          </Link>
+        ) : (
+          <div
+            className="flex items-center gap-[10px] border-b pb-[16px]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {authorBlock}
           </div>
-        </Link>
+        )}
 
         {/* actions row — Like / Share / Report, referenced against YouTube/Avito layout */}
         <div className="flex flex-wrap items-center gap-[4px]">
@@ -306,19 +323,22 @@ function WatchPage() {
             />
           </button>
 
-          {!commentsOpen && comments[0] && (
+          {!commentsOpen && comments[0] && (() => {
+            const previewAuthor = userById(comments[0].authorId);
+            return (
             <button
               type="button"
               onClick={() => setCommentsOpen(true)}
               className="flex w-full items-start gap-[10px] rounded-[var(--r-card-sm)] p-[10px] text-left transition-colors hover:bg-[var(--background-surface)]"
             >
-              <AuthorAvatar src={userById(comments[0].authorId).avatar} name={userById(comments[0].authorId).name} />
+              <AuthorAvatar src={previewAuthor.avatar} name={previewAuthor.name} />
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{userById(comments[0].authorId).name}</div>
+                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{previewAuthor.name}</div>
                 <div className="truncate text-[13px]" style={{ color: "var(--foreground-70)" }}>{comments[0].text}</div>
               </div>
             </button>
-          )}
+            );
+          })()}
 
           <AnimatePresence initial={false}>
             {commentsOpen && (

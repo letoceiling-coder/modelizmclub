@@ -5,6 +5,7 @@ namespace Modules\Video\Http\Resources;
 use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\User\Http\Resources\UserCompactResource;
 
 /** @mixin Video */
 class VideoResource extends JsonResource
@@ -26,7 +27,9 @@ class VideoResource extends JsonResource
             'is_featured' => $this->is_featured,
             'tags' => $this->tags ?? [],
             'published_at' => $this->published_at?->toIso8601String(),
-            'uploader' => $this->whenLoaded('uploader', fn () => ['uuid' => $this->uploader?->uuid]),
+            'uploader' => $this->whenLoaded('uploader', fn () => $this->uploader
+                ? new UserCompactResource($this->uploader)
+                : null),
             'status' => $this->status,
             'likes_count' => $this->likes_count,
             'comments_count' => $this->comments_count,

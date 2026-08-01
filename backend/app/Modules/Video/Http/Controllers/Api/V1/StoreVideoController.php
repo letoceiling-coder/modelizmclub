@@ -24,6 +24,6 @@ class StoreVideoController extends Controller
 
         $video = $videos->create($request->user(), $data);
 
-        return response()->json(['data' => new VideoResource($video->load(['category', 'poster', 'videoMedia', 'uploader']))], 201);
+        return response()->json(['data' => new VideoResource($video->load(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']))], 201);
     }
 }

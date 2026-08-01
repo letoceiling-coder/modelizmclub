@@ -40,7 +40,7 @@ interface Paginated<T> {
   meta?: { current_page?: number; last_page?: number; total?: number };
 }
 
-function registerAuthor(a?: ApiPostAuthor | null): User | null {
+export function registerAuthor(a?: ApiPostAuthor | null): User | null {
   if (!a?.uuid) return null;
   const user = mapApiUser({
     uuid: a.uuid,

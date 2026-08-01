@@ -1,7 +1,7 @@
 import type { Video, VideoCategory, Comment } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { mapComment, type ApiComment } from "./feed";
+import { mapComment, registerAuthor, type ApiComment } from "./feed";
 import {
   demoVideos,
   demoVideo,
@@ -32,7 +32,13 @@ interface ApiVideo {
   is_featured?: boolean;
   tags?: string[];
   published_at?: string;
-  uploader?: { uuid?: string } | null;
+  uploader?: {
+    id?: number;
+    uuid?: string;
+    display_name?: string | null;
+    slug?: string | null;
+    avatar?: { uuid?: string; url?: string | null } | null;
+  } | null;
   status?: "processing" | "published";
   likes_count?: number;
   comments_count?: number;
@@ -40,6 +46,17 @@ interface ApiVideo {
 }
 
 function mapVideo(v: ApiVideo): Video {
+  const uploader = registerAuthor(
+    v.uploader?.uuid
+      ? {
+          id: v.uploader.id,
+          uuid: v.uploader.uuid,
+          display_name: v.uploader.display_name,
+          slug: v.uploader.slug,
+          avatar: v.uploader.avatar,
+        }
+      : null,
+  );
   return {
     id: v.uuid,
     title: v.title,
@@ -48,14 +65,14 @@ function mapVideo(v: ApiVideo): Video {
     posterUrl: v.poster_url ?? "",
     videoUrl: v.video_url ?? "",
     durationSeconds: v.duration_seconds ?? 0,
-    views: v.views_count ?? 0,
+    views: Number(v.views_count ?? 0),
     isFeatured: v.is_featured ?? false,
     tags: v.tags ?? [],
     publishedAt: v.published_at ?? "",
-    uploaderId: v.uploader?.uuid ?? "",
+    uploaderId: uploader?.id ?? v.uploader?.uuid ?? "",
     status: v.status ?? "published",
-    likes: v.likes_count ?? 0,
-    comments: v.comments_count ?? 0,
+    likes: Number(v.likes_count ?? 0),
+    comments: Number(v.comments_count ?? 0),
     isLiked: v.is_liked ?? false,
   };
 }

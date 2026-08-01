@@ -55,7 +55,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 25 | №22 | `/reviews`, `/reviews/$id` | Review detail | **P0** | — | TBD: published review crashes detail page | `VideoService`, routes | `reviews.$id.tsx` | maybe | — | — | — | TODO |
+| 25 | №22 | `/reviews`, `/reviews/$id` | Review detail | **P0** | prod + code | uploader not registered in FE; sparse API uploader; unsafe views/author Link | `VideoResource`, `VideoService` | `reviews.ts`, `reviews.$id.tsx` | — | VideoUploadModerationTest | pending | pending | FIXED |
 | 26 | №25 (player) | `/reviews/$id` | Video player | P1 | — | TBD: player/metadata incomplete | Video module | review detail | — | — | — | — | TODO |
 | 27 | №25 (actions) | `/reviews/$id` | Engagement | P1 | — | TBD: like/favorite/share missing or broken | Video API | review detail | — | — | — | — | TODO |
 | 28 | №25 (comments) | `/reviews/$id` | Comments | P1 | — | TBD: comments module incomplete | Video comments | review detail | — | — | — | — | TODO |
