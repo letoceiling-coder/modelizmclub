@@ -111,9 +111,11 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* total space the fixed bottom nav occupies, incl. iOS home indicator */
   --bottom-nav-space: calc(var(--bottom-nav-h) + var(--safe-bottom));
-  /* z-index scale for the shell — header < bottom nav < sheets/toasts */
+  /* z-index scale for the shell — header < bottom nav < sheets/toasts < call overlay */
   --z-mobile-header: 30;
   --z-bottom-nav: 40;
+  --z-toaster: 100;
+  --z-call-overlay: 10000;
 }
 
 /* ===== DARK THEME (DEFAULT) ===== */
@@ -493,6 +495,11 @@ html, body {
   width: 20px !important;
   height: 20px !important;
   transform: scale(0.9);
+}
+
+/* Toasts above shell chrome but below full-screen call UI (QA Task 13). */
+[data-sonner-toaster] {
+  z-index: var(--z-toaster) !important;
 }
 
 /* Shimmer — Framer Motion driven skeleton loading */

@@ -31,6 +31,12 @@ export function CallScreen() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    if (active?.direction === "incoming" && active.status === "ringing") {
+      toast.dismiss();
+    }
+  }, [active?.id, active?.direction, active?.status]);
+
+  useEffect(() => {
     if (me?.id && me.id !== GUEST_USER.id) void calls.init(me.id);
   }, [me?.id]);
 
@@ -77,7 +83,7 @@ export function CallScreen() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[9999] flex flex-col overflow-hidden"
+          className="fixed inset-0 z-[10000] flex flex-col overflow-hidden"
           style={{
             height: "100dvh",
             background:

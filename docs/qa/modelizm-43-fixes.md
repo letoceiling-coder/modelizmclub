@@ -29,7 +29,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
 | 11 | №28 | `/feed`, `/admin` | Banner | P1 | FIXED | min-h regression from `6b84d85`; restored fixed h + line-clamp | Banner limits | `BannerHeroSlide`, `EventsHero`, admin preview | — | build pass | pending | pending | FIXED |
 | 12 | №29 | `/feed` | Comments | P1 | FIXED | comments only on expand + gated by canInteract; no inline preview | `PostCommentsController` | `PostCard`, `CommentSection` | — | build pass | pending | pending | FIXED |
-| 13 | №6 | `/messenger` | Calls | P1 | — | TBD: toast перекрывает Accept/Decline | — | call UI + toast z-index | — | — | — | — | TODO |
+| 13 | №6 | `/messenger` | Calls | P1 | FIXED | incoming-call toast at bottom overlapped Accept/Decline; Sonner z-index above call screen | — | `calls.ts`, `CallScreen`, `styles.css` | — | build pass | pending | pending | FIXED |
 | 14 | №13 | `/messenger` | Presence | P2 | — | TBD: status wraps in chat header | — | `messenger.tsx` header | — | — | — | — | TODO |
 | 15 | №14 | `/messenger` | Media bubbles | P2 | — | TBD: voice/image bubbles too large | — | `MessageFileBubble`, voice UI | — | — | — | — | TODO |
 | 16 | №8 | `/notifications` | Layout | P2 | — | TBD: header overflow 320px | — | `notifications.tsx` header | — | — | — | — | TODO |

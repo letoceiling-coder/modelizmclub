@@ -778,11 +778,7 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
     ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);
     unlockCallAudio();
     startRingtone();
-    const label = from.name ?? "Пользователь";
-    toast.info(`Входящий звонок — ${label}`, {
-      duration: 8000,
-      action: { label: "Принять", onClick: () => void calls.accept() },
-    });
+    toast.dismiss();
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate([300, 120, 300]);
     }
