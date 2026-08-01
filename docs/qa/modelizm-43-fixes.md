@@ -28,7 +28,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
 | 11 | №28 | `/feed`, `/admin` | Banner | P1 | FIXED | min-h regression from `6b84d85`; restored fixed h + line-clamp | Banner limits | `BannerHeroSlide`, `EventsHero`, admin preview | — | build pass | pending | pending | FIXED |
-| 12 | №29 | `/feed` | Comments | P1 | — | TBD: нет inline comments в `PostCard` | `PostCommentsController` exists | `PostCard`, feed | — | — | — | — | TODO |
+| 12 | №29 | `/feed` | Comments | P1 | FIXED | comments only on expand + gated by canInteract; no inline preview | `PostCommentsController` | `PostCard`, `CommentSection` | — | build pass | pending | pending | FIXED |
 | 13 | №6 | `/messenger` | Calls | P1 | — | TBD: toast перекрывает Accept/Decline | — | call UI + toast z-index | — | — | — | — | TODO |
 | 14 | №13 | `/messenger` | Presence | P2 | — | TBD: status wraps in chat header | — | `messenger.tsx` header | — | — | — | — | TODO |
 | 15 | №14 | `/messenger` | Media bubbles | P2 | — | TBD: voice/image bubbles too large | — | `MessageFileBubble`, voice UI | — | — | — | — | TODO |

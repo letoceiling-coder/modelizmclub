@@ -5,6 +5,7 @@ import { Heart, Reply, Send } from "lucide-react";
 import type { Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface Props {
   comments: Comment[];
@@ -12,6 +13,8 @@ interface Props {
   /** Show a placeholder while the first comments fetch is in flight — keeps the
    *  panel height stable so opening doesn't jump twice. */
   loading?: boolean;
+  /** Hide composer and reply controls — read-only thread view. */
+  readOnly?: boolean;
 }
 
 function CommentSkeleton() {
@@ -33,10 +36,12 @@ function CommentItem({
   comment,
   depth = 0,
   onReply,
+  readOnly = false,
 }: {
   comment: Comment;
   depth?: number;
   onReply: (parentId: string, text: string) => void;
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const author = userById(comment.authorId);
@@ -89,7 +94,7 @@ function CommentItem({
             </motion.span>
             {likes > 0 && <span>{likes}</span>}
           </button>
-          {depth < 1 && (
+          {!readOnly && depth < 1 && (
             <button onClick={() => setReplying((v) => !v)} className="flex items-center gap-[4px] hover:opacity-80">
               <Reply className="h-[12px] w-[12px]" /> {t("components.commentSection.reply")}
             </button>
@@ -97,7 +102,7 @@ function CommentItem({
         </div>
 
         <AnimatePresence>
-          {replying && (
+          {!readOnly && replying && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -134,7 +139,7 @@ function CommentItem({
         {comment.replies && comment.replies.length > 0 && (
           <div className="mt-[12px] space-y-[12px]">
             {comment.replies.map((r) => (
-              <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} />
+              <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} readOnly={readOnly} />
             ))}
           </div>
         )}
@@ -143,7 +148,7 @@ function CommentItem({
   );
 }
 
-export function CommentSection({ comments, onAdd, loading }: Props) {
+export function CommentSection({ comments, onAdd, loading, readOnly = false }: Props) {
   const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
@@ -161,44 +166,46 @@ export function CommentSection({ comments, onAdd, loading }: Props) {
       className="border-t px-[16px] py-[16px]"
       style={{ borderColor: "var(--border)", background: "var(--background-overlay)" }}
     >
-      <div className="flex items-center gap-[12px]">
-        <img src={me.avatar} alt={me.name} className="h-[32px] w-[32px] rounded-full" />
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          onFocus={(e) => {
-            // Keyboard covers the input when comments open near the page
-            // bottom. Wait for the on-screen keyboard to animate in, then
-            // centre the field in the (now shorter) viewport.
-            const el = e.currentTarget;
-            setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
-          }}
-          placeholder={t("components.commentSection.placeholder")}
-          className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[14px] outline-none"
-          style={{
-            background: "var(--background-elevated)",
-            borderColor: "var(--border)",
-            color: "var(--foreground)",
-          }}
-        />
-        <button
-          onClick={submit}
-          className="grid h-[36px] w-[36px] place-items-center rounded-[10px] transition-opacity hover:opacity-90"
-          style={{ background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-button)" }}
-          aria-label={t("components.commentSection.send")}
-        >
-          <Send className="h-[14px] w-[14px]" />
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="flex items-center gap-[12px]">
+          <img src={me.avatar} alt={me.name} className="h-[32px] w-[32px] rounded-full" />
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            onFocus={(e) => {
+              // Keyboard covers the input when comments open near the page
+              // bottom. Wait for the on-screen keyboard to animate in, then
+              // centre the field in the (now shorter) viewport.
+              const el = e.currentTarget;
+              setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+            }}
+            placeholder={t("components.commentSection.placeholder")}
+            className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[14px] outline-none"
+            style={{
+              background: "var(--background-elevated)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          />
+          <button
+            onClick={submit}
+            className="grid h-[36px] w-[36px] place-items-center rounded-[10px] transition-opacity hover:opacity-90"
+            style={{ background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-button)" }}
+            aria-label={t("components.commentSection.send")}
+          >
+            <Send className="h-[14px] w-[14px]" />
+          </button>
+        </div>
+      )}
 
       {loading && comments.length === 0 ? (
         <CommentSkeleton />
       ) : (
         comments.length > 0 && (
-          <div className="mt-[16px] space-y-[16px]">
+          <div className={cn(readOnly ? "" : "mt-[16px]", "space-y-[16px]")}>
             {comments.map((c) => (
-              <CommentItem key={c.id} comment={c} onReply={handleReply} />
+              <CommentItem key={c.id} comment={c} onReply={handleReply} readOnly={readOnly} />
             ))}
           </div>
         )

@@ -375,7 +375,8 @@ export const en: TranslationSchema = {
       reply: "Ответить",
       replyTo: "Ответить {{name}}…",
       placeholder: "Написать комментарий…",
-      send: "Отправить"
+      send: "Отправить",
+      viewAll: "View all {{count}} comments",
     },
     repostMenu: {
       ariaLabel: "Repost",

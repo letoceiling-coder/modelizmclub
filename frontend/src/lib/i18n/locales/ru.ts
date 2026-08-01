@@ -269,6 +269,7 @@ export const ru = {
       replyTo: "Ответить {{name}}…",
       placeholder: "Написать комментарий…",
       send: "Отправить",
+      viewAll: "Посмотреть все {{count}} комментариев",
     },
     repostMenu: {
       ariaLabel: "Репост",
