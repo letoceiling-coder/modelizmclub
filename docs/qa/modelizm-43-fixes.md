@@ -68,17 +68,17 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 31 | №23 | `/admin` reviews | Admin preview | P1 | — | TBD: no preview action | Admin video controllers | `admin.tsx` reviews section | — | — | — | — | TODO |
-| 32 | №23 | `/admin` | Admin actions | P1 | — | TBD: limited action menu | Admin API | admin reviews UI | — | — | — | — | TODO |
+| 31 | №23 | `/admin` reviews | Admin preview | P1 | yes | no preview modal/player | `AdminVideoController` | `admin.tsx` ReviewsSection preview modal | — | `AdminVideoTest` | pending | pending | FIXED |
+| 32 | №23 | `/admin` | Admin actions | P1 | yes | limited approve/delete/featured only | Admin video API | admin reviews table actions | — | `AdminVideoTest` | pending | pending | FIXED |
 | 33 | №23 | `/admin` | Admin metadata | P2 | — | TBD: table lacks metadata columns | Admin resources | admin reviews table | — | — | — | — | TODO |
 | 34 | №23 | `/admin` | Filters/search | P2 | — | TBD: no server-side filters | Admin index API | admin reviews | — | — | — | — | TODO |
 | 35 | №23 | `/admin` | Bulk actions | P2 | — | TBD: no bulk select (cf. listings bulk done) | bulk endpoints | admin reviews | — | — | — | — | TODO |
 | 36 | №23 | `/admin` | Stats | P3 | — | TBD: stats not shown / mock | analytics events | admin drawer | — | — | — | — | TODO |
 | 37 | №23 | `/admin` | Audit/errors | P2 | — | TBD: no change log / media check UI | AuditService | admin review detail | — | — | — | — | TODO |
 | 38 | №23 | `/admin` | Media mgmt | P2 | — | TBD: replace video/cover, hide | Media API | admin actions | — | — | — | — | TODO |
-| 39 | №24 | `/admin` | Review categories CRUD | P1 | — | TBD: categories hardcoded / no admin CRUD | Video categories | admin section | migration? | — | — | — | TODO |
-| 40 | №24 | `/admin`, upload | Category selector | P1 | — | TBD: selector not from DB / no ordering | Catalog API | `reviews.upload`, admin | — | — | — | — | TODO |
-| 41 | №27 | `/reviews/upload`, `/admin` | Scheduled review | P1 | — | Feed scheduling done; **reviews not** | Video schedule + cron | upload form, admin list | migration? | — | — | — | TODO |
+| 39 | №24 | `/admin` | Review categories CRUD | P1 | yes | categories hardcoded / no admin CRUD | `AdminVideoCategoryController` | admin Categories «Обзоры» | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
+| 40 | №24 | `/admin`, upload | Category selector | P1 | yes | selector not from DB / no ordering | video categories API | `reviews.upload`, `reviews.index` sortOrder | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
+| 41 | №27 | `/reviews/upload`, `/admin` | Scheduled review | P1 | yes | feed scheduling only | `ScheduleVideoController`, cron | upload `PostSchedulePicker`, admin list | `scheduled_at` migration | `ScheduledVideoTest` | pending | pending | FIXED |
 
 ---
 

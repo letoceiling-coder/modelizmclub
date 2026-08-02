@@ -775,7 +775,7 @@ export async function deleteAdminListing(uuid: string): Promise<void> {
 }
 
 // ---- Categories ----
-export type CategoryKind = "post" | "community" | "listing";
+export type CategoryKind = "post" | "community" | "listing" | "video";
 
 export interface AdminCategory {
   id: number;
@@ -874,6 +874,71 @@ export async function updateAdminCategory(
 
 export async function deleteAdminCategory(kind: CategoryKind, id: number): Promise<void> {
   await api(`/admin/categories/${kind}/${id}`, { method: "DELETE" });
+}
+
+// ---- Admin videos (reviews) ----
+export interface AdminVideoRow {
+  uuid: string;
+  title: string;
+  author: string;
+  category: string;
+  status: string;
+  views: number;
+  videoUrl?: string;
+  posterUrl?: string;
+  scheduledAt?: string;
+  isFeatured: boolean;
+}
+
+interface ApiAdminVideo {
+  uuid: string;
+  title?: string;
+  status?: string;
+  views_count?: number;
+  video_url?: string | null;
+  poster_url?: string | null;
+  scheduled_at?: string | null;
+  is_featured?: boolean;
+  category?: { title?: string | null } | null;
+  uploader?: { display_name?: string | null } | null;
+}
+
+function mapAdminVideo(v: ApiAdminVideo): AdminVideoRow {
+  return {
+    uuid: v.uuid,
+    title: v.title ?? "",
+    author: v.uploader?.display_name ?? "—",
+    category: v.category?.title ?? "—",
+    status: v.status ?? "processing",
+    views: Number(v.views_count ?? 0),
+    videoUrl: v.video_url ?? undefined,
+    posterUrl: v.poster_url ?? undefined,
+    scheduledAt: v.scheduled_at ?? undefined,
+    isFeatured: Boolean(v.is_featured),
+  };
+}
+
+export async function fetchAdminVideos(params?: { status?: string; q?: string }): Promise<AdminVideoRow[]> {
+  const res = await api<{ data: Paginated<ApiAdminVideo> | ApiAdminVideo[] }>("/admin/videos", {
+    query: { status: params?.status || undefined, q: params?.q || undefined, per_page: 100 },
+  });
+  const payload = res.data as Paginated<ApiAdminVideo> | ApiAdminVideo[] | undefined;
+  const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
+  return list.map(mapAdminVideo);
+}
+
+export async function updateAdminVideo(uuid: string, patch: { status?: string; isFeatured?: boolean }): Promise<void> {
+  await api(`/admin/videos/${uuid}`, {
+    method: "PATCH",
+    json: {
+      status: patch.status,
+      is_featured: patch.isFeatured,
+    },
+  });
+}
+
+export async function deleteAdminVideo(uuid: string): Promise<void> {
+  await api(`/admin/videos/${uuid}`, { method: "DELETE" });
 }
 
 // ---- System settings ----

@@ -34,8 +34,8 @@ function ReviewsPage() {
   const [loading, setLoading] = useState(true);
 
   const tabs = useMemo(() => {
-    const sorted = [...categories].sort((a, b) =>
-      (a.name ?? "").localeCompare(b.name ?? "", "ru"),
+    const sorted = [...categories].sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || (a.name ?? "").localeCompare(b.name ?? "", "ru"),
     );
     return [{ id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
   }, [categories, t]);

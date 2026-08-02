@@ -31,6 +31,7 @@ class VideoResource extends JsonResource
             'is_featured' => $this->is_featured,
             'tags' => $this->tags ?? [],
             'published_at' => $this->published_at?->toIso8601String(),
+            'scheduled_at' => $this->scheduled_at?->toIso8601String(),
             'uploader' => $this->whenLoaded('uploader', fn () => $this->uploader
                 ? new UserCompactResource($this->uploader)
                 : null),

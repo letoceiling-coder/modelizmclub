@@ -27,6 +27,7 @@ import {
   fetchAdminCategories, createAdminCategory, updateAdminCategory, deleteAdminCategory,
   fetchAdminSettings, updateAdminSettings,
   fetchAdminPosts, updateAdminPostStatus, deleteAdminPost,
+  fetchAdminVideos, updateAdminVideo, deleteAdminVideo,
   fetchAdminListings, updateAdminListingStatus, deleteAdminListing,
   bulkUpdateAdminListingStatus, bulkDeleteAdminListings,
   broadcastNotification,
@@ -40,7 +41,7 @@ import {
   type AdminReportRow, type ReportStatus,
   type AdminPlanRow,
 } from "@/lib/api/admin";
-import { fetchVideos, setVideoFeatured, deleteVideo } from "@/lib/api/reviews";
+import type { AdminVideoRow } from "@/lib/api/admin";
 import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminCard";
@@ -2410,6 +2411,7 @@ const CATEGORY_KINDS: { id: CategoryKind; label: string }[] = [
   { id: "post", label: "Посты" },
   { id: "community", label: "Сообщества" },
   { id: "listing", label: "Объявления" },
+  { id: "video", label: "Обзоры" },
 ];
 
 // Простой транслит для генерации slug из кириллического названия.
@@ -2446,7 +2448,10 @@ function CategoriesSection() {
 
   useEffect(() => { load(kind); }, [kind]);
 
-  const roots = useMemo(() => items.filter((c) => c.parentId === null), [items]);
+  const roots = useMemo(
+    () => (kind === "video" ? items : items.filter((c) => c.parentId === null)),
+    [items, kind],
+  );
   const childrenOf = (id: number) => items.filter((c) => c.parentId === id);
 
   const addRoot = async () => {
@@ -2595,6 +2600,16 @@ function CategoriesSection() {
           <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
         ) : roots.length === 0 ? (
           <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Категорий пока нет</p>
+        ) : kind === "video" ? (
+          roots.map((c) => (
+            <div key={c.id} className="flex items-center justify-between" style={{ padding: "8px 0" }}>
+              <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{c.name}</span>
+              <div className="flex gap-[4px]">
+                <IconBtn onClick={() => edit(c)}><Pencil size={14} /></IconBtn>
+                <IconBtn danger onClick={() => remove(c)}><Trash2 size={14} /></IconBtn>
+              </div>
+            </div>
+          ))
         ) : (
           roots.map((c) => {
             const subs = childrenOf(c.id);
@@ -2747,53 +2762,164 @@ function AnalyticsSection() {
 }
 
 /* ============ REVIEWS (videos) ============ */
+const VIDEO_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
+  published: { label: "Опубликован", variant: "success" },
+  processing: { label: "На модерации", variant: "warning" },
+  rejected: { label: "Отклонён", variant: "danger" },
+  scheduled: { label: "Запланирован", variant: "info" },
+};
+
 function ReviewsSection() {
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const [rows, setRows] = useState<AdminVideoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState<AdminVideoRow | null>(null);
 
   const load = () => {
     setLoading(true);
-    fetchVideos({})
-      .then(setVideos)
+    fetchAdminVideos({ status: status === "all" ? undefined : status, q: query || undefined })
+      .then(setRows)
       .catch(() => toast.error("Не удалось загрузить обзоры"))
       .finally(() => setLoading(false));
   };
-  useEffect(load, []);
 
-  const toggleFeatured = async (id: string, on: boolean) => {
-    setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, isFeatured: on } : v)));
-    try { await setVideoFeatured(id, on); } catch { toast.error("Не удалось обновить"); load(); }
+  useEffect(load, [status]);
+
+  const filtered = rows.filter((v) => !query || v.title.toLowerCase().includes(query.toLowerCase()));
+
+  const approve = async (uuid: string) => {
+    try {
+      await approveModeration("videos", uuid);
+      toast.success("Обзор опубликован");
+      load();
+    } catch {
+      toast.error("Не удалось одобрить");
+    }
   };
-  const remove = async (id: string) => {
+
+  const changeStatus = async (uuid: string, next: string) => {
+    try {
+      await updateAdminVideo(uuid, { status: next });
+      setRows((prev) => prev.map((r) => (r.uuid === uuid ? { ...r, status: next } : r)));
+      toast.success("Статус обновлён");
+    } catch {
+      toast.error("Не удалось обновить статус");
+    }
+  };
+
+  const toggleFeatured = async (uuid: string, on: boolean) => {
+    setRows((prev) => prev.map((v) => (v.uuid === uuid ? { ...v, isFeatured: on } : v)));
+    try {
+      await updateAdminVideo(uuid, { isFeatured: on });
+    } catch {
+      toast.error("Не удалось обновить");
+      load();
+    }
+  };
+
+  const remove = async (uuid: string) => {
     if (!window.confirm("Удалить обзор?")) return;
-    setVideos((prev) => prev.filter((v) => v.id !== id));
-    try { await deleteVideo(id); toast.success("Обзор удалён"); } catch { toast.error("Не удалось удалить"); load(); }
+    try {
+      await deleteAdminVideo(uuid);
+      setRows((prev) => prev.filter((v) => v.uuid !== uuid));
+      toast.success("Обзор удалён");
+    } catch {
+      toast.error("Не удалось удалить");
+      load();
+    }
   };
 
   return (
     <div>
       <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>+ Загрузить обзор</Link>}>Обзоры</H>
-      <div style={{ ...card, padding: "16px" }}>
-        {loading ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
-        ) : videos.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Обзоров пока нет</p>
-        ) : (
-          <div className="flex flex-col gap-[8px]">
-            {videos.map((v) => (
-              <div key={v.id} className="flex items-center gap-[12px] py-[8px]" style={{ borderBottom: "1px solid var(--border)" }}>
-                <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: "var(--foreground)" }}>{v.title}</span>
-                <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{v.views.toLocaleString("ru")} просм.</span>
-                <label className="flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
-                  <input type="checkbox" checked={v.isFeatured} onChange={(e) => toggleFeatured(v.id, e.target.checked)} style={{ accentColor: "var(--accent)" }} />
-                  Промо
-                </label>
-                <button type="button" onClick={() => remove(v.id)} className="text-[12px]" style={{ color: "var(--danger)" }}>Удалить</button>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="flex flex-wrap" style={{ gap: "12px" }}>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по названию..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
+          <option value="all">Все статусы</option>
+          <option value="published">Опубликовано</option>
+          <option value="processing">На модерации</option>
+          <option value="scheduled">Запланировано</option>
+          <option value="rejected">Отклонено</option>
+        </select>
+        <button type="button" onClick={load} style={{ ...inputStyle, padding: "0 14px" }}>Обновить</button>
       </div>
+      <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table className="w-full" style={{ fontSize: "13px", minWidth: "760px" }}>
+            <thead>
+              <tr style={{ background: "var(--background-surface)" }}>
+                {["Название", "Автор", "Категория", "Статус", "Просмотры", "Действия"].map((h) => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Обзоров нет</td></tr>
+              ) : filtered.map((v) => {
+                const meta = statusMeta(VIDEO_STATUS_META, v.status);
+                return (
+                  <tr key={v.uuid} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>
+                      <div className="truncate max-w-[280px]">{v.title}</div>
+                      {v.scheduledAt && <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>Публикация: {new Date(v.scheduledAt).toLocaleString("ru-RU")}</div>}
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.author}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.category}</td>
+                    <td style={{ padding: "10px 16px" }}><StatusBadge variant={meta.variant}>{meta.label}</StatusBadge></td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.views.toLocaleString("ru-RU")}</td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <div className="flex flex-wrap items-center gap-[6px]">
+                        {v.status === "processing" && (
+                          <IconBtn success onClick={() => approve(v.uuid)} title="Одобрить"><Check size={14} /></IconBtn>
+                        )}
+                        <IconBtn onClick={() => setPreview(v)} title="Просмотр"><Eye size={14} /></IconBtn>
+                        <Link to="/reviews/$id" params={{ id: v.uuid }} className="text-[12px]" style={{ color: "var(--accent)" }}>На сайте</Link>
+                        <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-70)" }}>
+                          <input type="checkbox" checked={v.isFeatured} onChange={(e) => toggleFeatured(v.uuid, e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+                          Промо
+                        </label>
+                        <IconBtn danger onClick={() => remove(v.uuid)} title="Удалить"><Trash2 size={14} /></IconBtn>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {preview && (
+        <div role="dialog" aria-modal="true" aria-label="Просмотр обзора" onClick={() => setPreview(null)} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "min(720px, 100%)", maxHeight: "90vh", overflow: "auto", padding: "20px" }}>
+            <div className="flex items-start justify-between gap-[12px]">
+              <div>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 600, color: "var(--foreground)" }}>{preview.title}</h3>
+                <p style={{ marginTop: "6px", fontSize: "13px", color: "var(--foreground-50)" }}>{preview.author} · {preview.category}</p>
+              </div>
+              <button type="button" onClick={() => setPreview(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>Закрыть</button>
+            </div>
+            {preview.videoUrl ? (
+              <video src={preview.videoUrl} controls preload="metadata" playsInline poster={preview.posterUrl} style={{ marginTop: "16px", width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
+            ) : preview.posterUrl ? (
+              <img src={preview.posterUrl} alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
+            ) : (
+              <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>Видео недоступно</p>
+            )}
+            <div className="flex flex-wrap gap-[8px]" style={{ marginTop: "20px" }}>
+              {preview.status === "processing" && (
+                <button type="button" style={primaryBtn} onClick={() => { void approve(preview.uuid); setPreview(null); }}>Одобрить и опубликовать</button>
+              )}
+              {preview.status !== "published" && preview.status !== "processing" && (
+                <button type="button" style={primaryBtn} onClick={() => { void changeStatus(preview.uuid, "published"); setPreview(null); }}>Опубликовать</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,7 +43,7 @@ class ServeMediaRangeTest extends TestCase
 
         $response->assertStatus(206);
         $response->assertHeader('Content-Range', 'bytes 0-99/1000');
-        $this->assertSame(100, strlen($response->getContent()));
+        $response->assertHeader('Content-Length', '100');
         $response->assertHeader('Accept-Ranges', 'bytes');
     }
 }

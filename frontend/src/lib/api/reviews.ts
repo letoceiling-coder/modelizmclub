@@ -119,6 +119,7 @@ function mapVideoCategory(c: ApiVideoCategory): VideoCategory {
     id: c.id,
     slug: c.slug,
     name: c.name ?? c.title ?? c.slug,
+    sortOrder: c.sort_order ?? 0,
   };
 }
 
@@ -242,4 +243,20 @@ export async function deleteVideo(id: string): Promise<void> {
 export async function setVideoFeatured(id: string, on: boolean): Promise<void> {
   if (isDemoMode()) { demoSetVideoFeatured(id, on); return; }
   await api(`/videos/${id}`, { method: "PATCH", json: { is_featured: on } });
+}
+
+export async function scheduleVideo(
+  uuid: string,
+  input: { scheduled_at?: string; scheduled_at_local?: string; timezone?: string },
+): Promise<Video> {
+  if (isDemoMode()) {
+    const v = demoVideo(uuid);
+    if (!v) throw new Error("Video not found");
+    return { ...v, status: "published" };
+  }
+  const res = await api<{ data: ApiVideo }>(`/videos/${uuid}/schedule`, {
+    method: "POST",
+    json: input,
+  });
+  return mapVideo(res.data);
 }

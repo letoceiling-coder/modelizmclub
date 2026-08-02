@@ -22,8 +22,7 @@ class VideoService
     public function list(array $filters, ?User $viewer, int $perPage = 50): LengthAwarePaginator
     {
         $query = Video::query()
-            ->with(['category', 'poster', 'videoMedia', 'uploader.profile.avatar'])
-            ->where('status', 'published');
+            ->with(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']);
 
         if (! empty($filters['q'])) {
             $q = '%'.$filters['q'].'%';
@@ -42,9 +41,122 @@ class VideoService
         }
 
         return $query
+            ->where('status', 'published')
             ->orderByDesc('published_at')
             ->paginate($perPage)
             ->through(fn (Video $video) => $this->attachViewerState($video, $viewer));
+    }
+
+    /** @param array<string, mixed> $filters */
+    public function adminList(array $filters, int $perPage = 50): LengthAwarePaginator
+    {
+        $query = Video::query()
+            ->with(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']);
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['q'])) {
+            $q = '%'.$filters['q'].'%';
+            $query->where(function ($w) use ($q): void {
+                $w->where('title', 'like', $q)
+                    ->orWhere('description', 'like', $q);
+            });
+        }
+
+        return $query
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
+
+    public function adminShow(string $uuid): Video
+    {
+        $video = Video::query()
+            ->with(['category', 'poster', 'videoMedia', 'uploader.profile.avatar'])
+            ->where('uuid', $uuid)
+            ->first();
+
+        if (! $video) {
+            throw new NotFoundHttpException('Видео не найдено.');
+        }
+
+        return $video;
+    }
+
+    /** @param array<string, mixed> $data */
+    public function adminUpdate(Video $video, array $data): Video
+    {
+        if (array_key_exists('status', $data) && $data['status'] !== null) {
+            $video->status = $data['status'];
+            if ($data['status'] === 'published' && ! $video->published_at) {
+                $video->published_at = now();
+            }
+        }
+
+        if (array_key_exists('is_featured', $data)) {
+            $video->is_featured = (bool) $data['is_featured'];
+        }
+
+        $video->save();
+
+        return $video->fresh(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']);
+    }
+
+    public function schedule(Video $video, User $user, \DateTimeInterface $scheduledAt): Video
+    {
+        $this->assertCanManage($video, $user);
+
+        if ($scheduledAt <= now()) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => ['Время публикации должно быть в будущем.'],
+            ]);
+        }
+
+        $video->update([
+            'status' => 'scheduled',
+            'scheduled_at' => $scheduledAt,
+            'published_at' => null,
+        ]);
+
+        return $video->fresh(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']);
+    }
+
+    public function cancelSchedule(Video $video, User $user): Video
+    {
+        $this->assertCanManage($video, $user);
+
+        if ($video->status !== 'scheduled') {
+            throw ValidationException::withMessages([
+                'video' => ['Обзор не запланирован.'],
+            ]);
+        }
+
+        $video->update([
+            'status' => 'processing',
+            'scheduled_at' => null,
+        ]);
+
+        return $video->fresh(['category', 'poster', 'videoMedia', 'uploader.profile.avatar']);
+    }
+
+    public function publishDueScheduled(): int
+    {
+        $due = Video::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_at')
+            ->where('scheduled_at', '<=', now())
+            ->get();
+
+        foreach ($due as $video) {
+            $video->update([
+                'status' => 'published',
+                'published_at' => now(),
+                'scheduled_at' => null,
+            ]);
+        }
+
+        return $due->count();
     }
 
     public function show(string $uuid, ?User $viewer): Video

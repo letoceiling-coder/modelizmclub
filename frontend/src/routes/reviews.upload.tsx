@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { VideoCategory } from "@/lib/mock";
-import { fetchVideoCategories, uploadVideo } from "@/lib/api/reviews";
+import { fetchVideoCategories, scheduleVideo, uploadVideo } from "@/lib/api/reviews";
+import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
+import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
 import { uploadMedia, validateReviewVideoFile } from "@/lib/api/media";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -45,6 +47,11 @@ function UploadPage() {
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [editingPoster, setEditingPoster] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const scheduleDefaults = useInitialScheduleState();
+  const [publishMode, setPublishMode] = useState<PublishMode>(scheduleDefaults.mode);
+  const [scheduleDate, setScheduleDate] = useState(scheduleDefaults.date);
+  const [scheduleTime, setScheduleTime] = useState(scheduleDefaults.time);
+  const [scheduleTimezone, setScheduleTimezone] = useState(scheduleDefaults.timezone);
 
   useEffect(() => {
     let alive = true;
@@ -81,7 +88,7 @@ function UploadPage() {
     try {
       const videoMedia = await uploadMedia(videoFile, "review_video");
       const posterMedia = posterFile ? await uploadMedia(posterFile, "post") : null;
-      await uploadVideo({
+      const video = await uploadVideo({
         title: title.trim(),
         description: description.trim(),
         categoryId,
@@ -92,7 +99,17 @@ function UploadPage() {
         videoUrl: videoUrl ?? videoMedia.url ?? "",
         isFeatured,
       });
-      toast.success(t("pages.reviews.published"));
+      if (publishMode === "schedule") {
+        if (!isScheduleDateTimeValid(scheduleDate, scheduleTime)) {
+          toast.error(t("components.postSchedule.invalidDateTime"));
+          setSubmitting(false);
+          return;
+        }
+        await scheduleVideo(video.id, buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone));
+        toast.success(t("components.createPostForm.scheduled"));
+      } else {
+        toast.success(t("pages.reviews.published"));
+      }
       void navigate({ to: "/reviews" });
     } catch (err) {
       const msg = err instanceof ApiError
@@ -150,8 +167,24 @@ function UploadPage() {
           <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>{t("pages.reviews.featuredCarousel")}</span>
         </label>
 
+        <PostSchedulePicker
+          mode={publishMode}
+          onModeChange={setPublishMode}
+          date={scheduleDate}
+          time={scheduleTime}
+          timezone={scheduleTimezone}
+          onDateChange={setScheduleDate}
+          onTimeChange={setScheduleTime}
+          onTimezoneChange={setScheduleTimezone}
+          disabled={submitting}
+        />
+
         <Button onClick={submit} disabled={!valid} loading={submitting} size="lg" className="rounded-[var(--r-button)]">
-          {submitting ? t("pages.reviews.publishing") : t("pages.reviews.publish")}
+          {submitting
+            ? t("pages.reviews.publishing")
+            : publishMode === "schedule"
+              ? t("components.createPostForm.scheduleSubmit")
+              : t("pages.reviews.publish")}
         </Button>
       </div>
     </AppLayout>

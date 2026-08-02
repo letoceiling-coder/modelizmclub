@@ -66,6 +66,7 @@ export interface VideoCategory {
   id: ID;
   name: string;
   slug: string;
+  sortOrder?: number;
 }
 
 export interface Video {

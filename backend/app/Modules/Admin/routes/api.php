@@ -26,7 +26,8 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminVideoController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\ApproveModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexModerationQueueController;
@@ -70,7 +71,13 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             Route::apiResource('post', AdminPostCategoryController::class);
             Route::apiResource('community', AdminCommunityCategoryController::class);
             Route::apiResource('listing', AdminListingCategoryController::class);
+            Route::apiResource('video', AdminVideoCategoryController::class);
         });
+
+        Route::get('videos', [AdminVideoController::class, 'index']);
+        Route::get('videos/{uuid}', [AdminVideoController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
+        Route::patch('videos/{uuid}', [AdminVideoController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
+        Route::delete('videos/{uuid}', [AdminVideoController::class, 'destroy'])->where('uuid', '[0-9a-f-]{36}');
 
         Route::get('posts', [AdminPostController::class, 'index']);
         Route::patch('posts/{uuid}', [AdminPostController::class, 'update']);

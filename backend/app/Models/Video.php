@@ -28,6 +28,7 @@ class Video extends Model
         'likes_count',
         'comments_count',
         'published_at',
+        'scheduled_at',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class Video extends Model
             'tags' => 'array',
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
+            'scheduled_at' => 'datetime',
         ];
     }
 

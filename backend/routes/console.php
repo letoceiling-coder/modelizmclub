@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('notifications:prune')->daily();
 Schedule::command('posts:publish-scheduled')->everyMinute();
+Schedule::command('videos:publish-scheduled')->everyMinute();
