@@ -6,6 +6,7 @@ import { isFullyVerified } from "@/lib/auth/verification";
 import { isPublicGuestRoute, isVerifiedRequiredRoute, pathnameToRouteAction } from "@/lib/feed-guest-access/routes";
 import { isGuestActionAllowed, loadFeedGuestAccess, resolveDenyMode } from "@/lib/feed-guest-access/store";
 import { ROUTES } from "@/lib/routes";
+import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { getState, selectors, setCurrentUser } from "@/lib/store";
 
 export type ClientRouteRedirect = {
@@ -26,6 +27,13 @@ function isAdminRoute(pathname: string): boolean {
 export async function enforceClientRouteAccess(pathname: string): Promise<ClientRouteRedirect | null> {
   if (typeof window === "undefined") return null;
   if (isDemoMode()) return null;
+
+  if (pathname === ROUTES.communities || pathname.startsWith("/communities/")) {
+    await loadFeatureFlagsFromServer();
+    if (!getFeatureFlags().communitiesEnabled) {
+      return { to: ROUTES.feed, replace: true };
+    }
+  }
 
   if (isAdminRoute(pathname)) {
     if (!getToken()) {

@@ -1,0 +1,33 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\SystemSetting;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class FeatureFlagsTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_public_feature_flags_reflect_communities_toggle(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => 'feature.communities_enabled'],
+            ['value' => ['enabled' => false], 'group' => 'features'],
+        );
+
+        $this->getJson('/api/v1/public/feature-flags')
+            ->assertOk()
+            ->assertJsonPath('data.communities_enabled', false);
+
+        SystemSetting::query()->updateOrCreate(
+            ['key' => 'feature.communities_enabled'],
+            ['value' => ['enabled' => true], 'group' => 'features'],
+        );
+
+        $this->getJson('/api/v1/public/feature-flags')
+            ->assertOk()
+            ->assertJsonPath('data.communities_enabled', true);
+    }
+}

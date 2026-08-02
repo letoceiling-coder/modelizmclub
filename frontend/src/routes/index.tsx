@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,7 @@ import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { fetchLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 import type { Ad } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
 import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
@@ -75,6 +76,7 @@ function TopNav() {
   const { t, i18n } = useTranslation();
   const enter = useEnter();
   const me = useStore(selectors.currentUser);
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const [sessionReady, setSessionReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -83,16 +85,19 @@ function TopNav() {
   }, []);
 
   const loggedIn = sessionReady && me.id !== GUEST_USER.id;
-  const navLinks: Array<
-    | { kind: "route"; to: "/ads" | "/communities" | "/channels" | "/subscription"; label: string }
-    | { kind: "hash"; href: "#how"; label: string }
-  > = [
-    { kind: "route", to: "/ads", label: t("landing.nav.ads") },
-    { kind: "route", to: "/communities", label: t("landing.nav.communities") },
-    { kind: "route", to: "/channels", label: t("landing.nav.channels") },
-    { kind: "hash", href: "#how", label: t("landing.nav.how") },
-    { kind: "route", to: "/subscription", label: t("landing.nav.subscription") },
-  ];
+  const navLinks = useMemo(
+    () =>
+      (
+        [
+          { kind: "route" as const, to: "/ads" as const, label: t("landing.nav.ads") },
+          { kind: "route" as const, to: "/communities" as const, label: t("landing.nav.communities") },
+          { kind: "route" as const, to: "/channels" as const, label: t("landing.nav.channels") },
+          { kind: "hash" as const, href: "#how", label: t("landing.nav.how") },
+          { kind: "route" as const, to: "/subscription" as const, label: t("landing.nav.subscription") },
+        ] as const
+      ).filter((l) => l.kind !== "route" || l.to !== "/communities" || communitiesEnabled),
+    [t, communitiesEnabled],
+  );
 
   return (
     <header
@@ -493,8 +498,19 @@ function LandingBlockLink({
 
 function QuickSections() {
   const { t } = useTranslation();
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const { section, loading } = useLandingSection("ecosystem");
-  const cards = section?.cards ?? [];
+  const cards = useMemo(
+    () =>
+      (section?.cards ?? []).filter((card) => {
+        const url = card.link_url?.trim() ?? "";
+        if (!communitiesEnabled && (url === "/communities" || url.startsWith("/communities/"))) {
+          return false;
+        }
+        return true;
+      }),
+    [section?.cards, communitiesEnabled],
+  );
 
   if (!loading && cards.length === 0) return null;
 

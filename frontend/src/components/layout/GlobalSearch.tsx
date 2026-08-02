@@ -3,12 +3,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { Search, User as UserIcon, Users2, Megaphone, Compass } from "lucide-react";
 import { useGlobalSearch, MIN_QUERY_LENGTH } from "@/lib/hooks/useGlobalSearch";
 import { SearchGroup, ResultRow } from "@/components/layout/search/SearchResultRow";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 /** Header search — live dropdown split by content type (люди, сообщества,
  *  объявления, направления), VK-style. Replaces the old behavior of only
  *  ever being able to search ads via a catalog redirect. */
 export function GlobalSearch() {
   const navigate = useNavigate();
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,7 +26,10 @@ export function GlobalSearch() {
   }, []);
 
   const hasAny =
-    results.users.length > 0 || results.communities.length > 0 || results.ads.length > 0 || results.categories.length > 0;
+    results.users.length > 0
+    || (communitiesEnabled && results.communities.length > 0)
+    || results.ads.length > 0
+    || results.categories.length > 0;
 
   const goToCatalog = () => {
     setOpen(false);
@@ -108,7 +113,7 @@ export function GlobalSearch() {
                   ))}
                 </SearchGroup>
               )}
-              {results.communities.length > 0 && (
+              {communitiesEnabled && results.communities.length > 0 && (
                 <SearchGroup label="Сообщества" icon={Users2}>
                   {results.communities.map((c) => (
                     <ResultRow

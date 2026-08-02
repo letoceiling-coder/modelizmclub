@@ -43,7 +43,7 @@ export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
   { key: "market", href: "https://modelizm23.ru", label: "Маркет", icon: ShoppingBag, group: "account", flag: "marketEnabled" },
 ];
 
-/** Routes surfaced as bottom tabs (communities only when its flag is on). */
+/** Routes surfaced as bottom tabs (communities only when feature.communities_enabled is on). */
 export const PRIMARY_TAB_ROUTES: string[] = [
   ROUTES.feed,
   ROUTES.messenger,

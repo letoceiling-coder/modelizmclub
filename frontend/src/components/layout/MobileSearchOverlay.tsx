@@ -7,6 +7,7 @@ import {
 import { useGlobalSearch, MIN_QUERY_LENGTH, type SearchResults } from "@/lib/hooks/useGlobalSearch";
 import { SearchGroup, ResultRow } from "@/components/layout/search/SearchResultRow";
 import { getViewHistory, type ViewHistoryItem } from "@/lib/view-history";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 type TabKey = "all" | "users" | "communities" | "ads" | "categories";
 
@@ -41,6 +42,8 @@ interface Props {
  *  "recent" block backed by the shared view-history mechanism. Desktop keeps
  *  the GlobalSearch dropdown; this is lg:hidden-scoped only. */
 export function MobileSearchOverlay({ open, onClose }: Props) {
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const tabs = communitiesEnabled ? TABS : TABS.filter((t) => t.key !== "communities");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const q = query.trim();
@@ -59,6 +62,11 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
+  useEffect(() => {
+    if (communitiesEnabled || activeTab !== "communities") return;
+    setActiveTab("all");
+  }, [activeTab, communitiesEnabled]);
+
   const close = () => {
     onClose();
     setQuery("");
@@ -66,9 +74,18 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
   };
 
   const hasAny =
-    results.users.length > 0 || results.communities.length > 0 || results.ads.length > 0 || results.categories.length > 0;
-  const activeHasAny = activeTab === "all" ? hasAny : results[TAB_RESULT_KEY[activeTab]].length > 0;
-  const recentItems = q.length === 0 ? getViewHistory() : [];
+    results.users.length > 0
+    || (communitiesEnabled && results.communities.length > 0)
+    || results.ads.length > 0
+    || results.categories.length > 0;
+  const activeHasAny = activeTab === "all"
+    ? hasAny
+    : activeTab === "communities"
+      ? communitiesEnabled && results.communities.length > 0
+      : results[TAB_RESULT_KEY[activeTab]].length > 0;
+  const recentItems = (q.length === 0 ? getViewHistory() : []).filter(
+    (item) => communitiesEnabled || item.kind !== "community",
+  );
 
   return (
     <AnimatePresence>
@@ -120,7 +137,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
             className="flex shrink-0 gap-[6px] overflow-x-auto px-4 py-[10px]"
             style={{ borderBottom: "1px solid var(--border)" }}
           >
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <button
                 key={t.key}
                 type="button"
@@ -183,7 +200,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
                     ))}
                   </SearchGroup>
                 )}
-                {results.communities.length > 0 && (
+                {communitiesEnabled && results.communities.length > 0 && (
                   <SearchGroup label="Сообщества" icon={Users2}>
                     {results.communities.slice(0, 4).map((c) => (
                       <ResultRow key={c.id} to="/communities/$id" params={{ id: c.id }} avatar={c.avatarImage} fallbackIcon={Users2} title={c.name} subtitle={`${c.members} участников`} onNavigate={close} />
@@ -206,7 +223,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
                 {activeTab === "users" && results.users.map((u) => (
                   <ResultRow key={u.id} to="/user/$id" params={{ id: u.slug ?? u.id }} avatar={u.avatar} fallbackIcon={UserIcon} title={u.name} subtitle={u.city} onNavigate={close} />
                 ))}
-                {activeTab === "communities" && results.communities.map((c) => (
+                {activeTab === "communities" && communitiesEnabled && results.communities.map((c) => (
                   <ResultRow key={c.id} to="/communities/$id" params={{ id: c.id }} avatar={c.avatarImage} fallbackIcon={Users2} title={c.name} subtitle={`${c.members} участников`} onNavigate={close} />
                 ))}
                 {activeTab === "ads" && results.ads.map((ad) => (
