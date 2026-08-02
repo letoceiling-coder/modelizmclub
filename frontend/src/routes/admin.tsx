@@ -436,6 +436,7 @@ function MediaSection() {
 }
 
 function DesignSystemSection() {
+  const { t } = useTranslation();
   const initial = loadTheme();
   const [mode, setMode] = useState<Mode>(initial?.mode ?? (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
   const [accent, setAccent] = useState<string>(initial?.accent ?? DEFAULT_ACCENT_ID);
@@ -466,10 +467,10 @@ function DesignSystemSection() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>
-            Дизайн-система / Основной цвет
+            {t("pages.adminDesignSystem.title")}
           </h1>
           <p style={{ fontSize: 13, color: "var(--foreground-70)" }}>
-            Выберите один из двух брендовых акцентов. Меняет CSS-переменные глобально, сохраняется в localStorage. Не влияет на логику и данные.
+            {t("pages.adminDesignSystem.subtitle")}
           </p>
         </div>
         <a
@@ -480,13 +481,13 @@ function DesignSystemSection() {
             background: "var(--accent-soft)", whiteSpace: "nowrap",
           }}
         >
-          Превью UI Kit 2.0 →
+          {t("pages.adminDesignSystem.uiKitLink")}
         </a>
       </div>
 
       {/* Controls */}
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr", }}>
-        <Panel title="Режим темы">
+        <Panel title={t("pages.adminDesignSystem.themeMode")}>
           <div style={{ display: "flex", gap: 8 }}>
             <ModeBtn active={mode === "light"} onClick={() => pickMode("light")} icon={<Sun size={16} />} label="Light" />
             <ModeBtn active={mode === "dark"} onClick={() => pickMode("dark")} icon={<Moon size={16} />} label="Dark" />
@@ -497,12 +498,12 @@ function DesignSystemSection() {
                 border: "1px solid var(--border)", background: "var(--background-surface)", color: "var(--foreground-70)",
               }}
             >
-              Сбросить
+              {t("pages.adminDesignSystem.reset")}
             </button>
           </div>
         </Panel>
 
-        <Panel title="Основной цвет бренда">
+        <Panel title={t("pages.adminDesignSystem.brandColor")}>
           <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             {ACCENT_PRESET_LIST.map((p) => (
               <PresetCard
@@ -518,7 +519,7 @@ function DesignSystemSection() {
         {/* Advanced / debug — free-form hex is intentionally NOT the main scenario. */}
         <details style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-card)", padding: 16 }}>
           <summary style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground-70)", cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Расширенный режим (debug) — свой цвет RGB
+            {t("pages.adminDesignSystem.advancedMode")}
           </summary>
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -526,7 +527,7 @@ function DesignSystemSection() {
                 type="color"
                 value={activeHex}
                 onChange={(e) => pickAccent(e.target.value)}
-                aria-label="Выбрать цвет акцента"
+                aria-label={t("pages.adminDesignSystem.pickAccentAria")}
                 style={{ width: 48, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer", padding: 2 }}
               />
               <input
@@ -544,7 +545,7 @@ function DesignSystemSection() {
                   fontFamily: "var(--font-mono)",
                 }}
               />
-              <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Только для отладки. Основной сценарий — два бренд-пресета выше.</span>
+              <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{t("pages.adminDesignSystem.debugHint")}</span>
             </div>
             <SwatchRow swatches={variations} active={activeHex} onPick={pickAccent} />
           </div>
@@ -552,13 +553,13 @@ function DesignSystemSection() {
       </div>
 
       {/* Preview */}
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>Превью компонентов</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>{t("pages.adminDesignSystem.previewTitle")}</h2>
       <PreviewArea />
 
       <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 24, padding: 16, borderRadius: 12, border: "1px solid var(--border)", background: "var(--background-elevated)" }}>
-        Управление иконками сайта — в разделе{" "}
+        {t("pages.adminDesignSystem.iconsHint")}{" "}
         <Link to="/admin" search={{ section: "icons" }} style={{ color: "var(--accent)", fontWeight: 600 }}>
-          Иконки сайта
+          {t("pages.adminDesignSystem.iconsLink")}
         </Link>
         .
       </p>
@@ -629,6 +630,7 @@ function SwatchRow({ swatches, active, onPick }: { swatches: AccentSwatch[]; act
 /** Brand preset chooser card — swatch + hex + live component samples (rendered
  *  with the preset's OWN colors so it previews before you apply it). */
 function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: boolean; onPick: () => void }) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -649,7 +651,7 @@ function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: 
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>{preset.label}</span>
             {active && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: preset.primary }}>
-                <CheckCircle2 size={13} /> Активен
+                <CheckCircle2 size={13} /> {t("pages.adminDesignSystem.presetActive")}
               </span>
             )}
           </div>
@@ -660,13 +662,13 @@ function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: 
       {/* live component samples in the preset's own colors */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
         <span style={{ padding: "8px 14px", borderRadius: 10, background: preset.primary, color: preset.foreground, fontSize: 13, fontWeight: 600 }}>
-          Кнопка
+          {t("pages.adminDesignSystem.presetButton")}
         </span>
         <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: preset.primary, color: preset.foreground, fontSize: 11, fontWeight: 700 }}>
           PRO
         </span>
         <span style={{ padding: "6px 12px", borderRadius: 8, background: preset.soft, color: preset.primary, fontSize: 12, fontWeight: 600 }}>
-          Активная вкладка
+          {t("pages.adminDesignSystem.presetTab")}
         </span>
       </div>
 
@@ -685,21 +687,28 @@ function PresetCard({ preset, active, onPick }: { preset: AccentPreset; active: 
           color: active ? "var(--foreground-50)" : preset.foreground,
         }}
       >
-        {active ? "Основной" : "Сделать основным"}
+        {active ? t("pages.adminDesignSystem.presetPrimary") : t("pages.adminDesignSystem.presetMakePrimary")}
       </button>
     </div>
   );
 }
 
 function PreviewArea() {
+  const { t } = useTranslation();
+  const navItems = useMemo(() => [
+    { label: t("pages.adminDesignSystem.preview.navHome"), active: true },
+    { label: t("pages.adminDesignSystem.preview.navFeed"), active: false },
+    { label: t("pages.adminDesignSystem.preview.navChannels"), active: false },
+    { label: t("pages.adminDesignSystem.preview.navMessages"), active: false },
+  ], [t]);
   return (
     <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
       {/* Buttons */}
-      <Panel title="Кнопки">
+      <Panel title={t("pages.adminDesignSystem.preview.buttons")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Основная</button>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>Мягкая</button>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 600, border: "1px solid var(--border)" }}>Контур</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>{t("pages.adminDesignSystem.preview.btnPrimary")}</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>{t("pages.adminDesignSystem.preview.btnSoft")}</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 600, border: "1px solid var(--border)" }}>{t("pages.adminDesignSystem.preview.btnOutline")}</button>
           <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--background-surface)", color: "var(--foreground-70)", fontSize: 13, fontWeight: 600 }} disabled>Disabled</button>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -710,71 +719,66 @@ function PreviewArea() {
       </Panel>
 
       {/* Badges */}
-      <Panel title="Бейджи">
+      <Panel title={t("pages.adminDesignSystem.preview.badges")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           <Badge bg="var(--accent)" fg="var(--accent-foreground)">PRO</Badge>
-          <Badge bg="var(--accent-soft)" fg="var(--accent)">Новое</Badge>
-          <Badge bg="var(--success-soft)" fg="var(--success)">Активно</Badge>
-          <Badge bg="var(--warning-soft)" fg="var(--warning)">На проверке</Badge>
-          <Badge bg="var(--error-soft)" fg="var(--error)">Отклонено</Badge>
-          <Badge bg="var(--info-soft)" fg="var(--info)">Инфо</Badge>
+          <Badge bg="var(--accent-soft)" fg="var(--accent)">{t("pages.adminDesignSystem.preview.badgeNew")}</Badge>
+          <Badge bg="var(--success-soft)" fg="var(--success)">{t("pages.adminDesignSystem.preview.badgeActive")}</Badge>
+          <Badge bg="var(--warning-soft)" fg="var(--warning)">{t("pages.adminDesignSystem.preview.badgeReview")}</Badge>
+          <Badge bg="var(--error-soft)" fg="var(--error)">{t("pages.adminDesignSystem.preview.badgeRejected")}</Badge>
+          <Badge bg="var(--info-soft)" fg="var(--info)">{t("pages.adminDesignSystem.preview.badgeInfo")}</Badge>
         </div>
       </Panel>
 
       {/* Alerts */}
-      <Panel title="Уведомления">
+      <Panel title={t("pages.adminDesignSystem.preview.alerts")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Alert icon={<CheckCircle2 size={16} />} bg="var(--success-soft)" fg="var(--success)" text="Изменения сохранены" />
-          <Alert icon={<Info size={16} />} bg="var(--info-soft)" fg="var(--info)" text="Подсказка для пользователя" />
-          <Alert icon={<AlertCircle size={16} />} bg="var(--error-soft)" fg="var(--error)" text="Произошла ошибка" />
+          <Alert icon={<CheckCircle2 size={16} />} bg="var(--success-soft)" fg="var(--success)" text={t("pages.adminDesignSystem.preview.alertSaved")} />
+          <Alert icon={<Info size={16} />} bg="var(--info-soft)" fg="var(--info)" text={t("pages.adminDesignSystem.preview.alertHint")} />
+          <Alert icon={<AlertCircle size={16} />} bg="var(--error-soft)" fg="var(--error)" text={t("pages.adminDesignSystem.preview.alertError")} />
         </div>
       </Panel>
 
       {/* Card */}
-      <Panel title="Карточка">
+      <Panel title={t("pages.adminDesignSystem.preview.card")}>
         <div style={{ padding: 14, borderRadius: 12, background: "var(--background-surface)", border: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Заголовок карточки</div>
-          <div style={{ fontSize: 12, color: "var(--foreground-70)", marginBottom: 10 }}>Краткое описание содержимого с акцентом на детали.</div>
-          <a style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)" }}>Подробнее →</a>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>{t("pages.adminDesignSystem.preview.cardTitle")}</div>
+          <div style={{ fontSize: 12, color: "var(--foreground-70)", marginBottom: 10 }}>{t("pages.adminDesignSystem.preview.cardDesc")}</div>
+          <a style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)" }}>{t("pages.adminDesignSystem.preview.cardMore")}</a>
         </div>
       </Panel>
 
       {/* Inputs */}
-      <Panel title="Поля ввода">
+      <Panel title={t("pages.adminDesignSystem.preview.inputs")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input placeholder="Email" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <input placeholder="Активное (focus)" autoFocus style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1.5px solid var(--accent)", color: "var(--foreground)", fontSize: 13, outline: "none" }} />
-          <textarea placeholder="Сообщение" rows={3} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13, resize: "none" }} />
+          <input placeholder={t("pages.adminDesignSystem.preview.inputFocus")} autoFocus style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1.5px solid var(--accent)", color: "var(--foreground)", fontSize: 13, outline: "none" }} />
+          <textarea placeholder={t("pages.adminDesignSystem.preview.inputMessage")} rows={3} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13, resize: "none" }} />
         </div>
       </Panel>
 
       {/* Upload */}
-      <Panel title="Загрузка файла">
+      <Panel title={t("pages.adminDesignSystem.preview.upload")}>
         <div style={{ padding: 20, borderRadius: 12, border: "2px dashed var(--border-accent)", background: "var(--accent-soft)", textAlign: "center" }}>
           <Upload size={20} style={{ color: "var(--accent)", margin: "0 auto 6px" }} />
-          <div style={{ fontSize: 12, color: "var(--foreground-70)" }}>Перетащите файл или <span style={{ color: "var(--accent)", fontWeight: 600 }}>выберите</span></div>
+          <div style={{ fontSize: 12, color: "var(--foreground-70)" }}>{t("pages.adminDesignSystem.preview.uploadHint")} <span style={{ color: "var(--accent)", fontWeight: 600 }}>{t("pages.adminDesignSystem.preview.uploadChoose")}</span></div>
         </div>
       </Panel>
 
       {/* Login form */}
-      <Panel title="Форма входа">
+      <Panel title={t("pages.adminDesignSystem.preview.loginForm")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input placeholder="Логин" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <input placeholder="Пароль" type="password" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>Войти</button>
-          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground-70)", fontSize: 13, fontWeight: 500, border: "1px solid var(--border)" }}>Создать аккаунт</button>
+          <input placeholder={t("pages.adminDesignSystem.preview.login")} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <input placeholder={t("pages.adminDesignSystem.preview.password")} type="password" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background-input)", border: "1px solid var(--border)", color: "var(--foreground)", fontSize: 13 }} />
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "var(--accent)", color: "var(--accent-foreground)", fontSize: 13, fontWeight: 600, boxShadow: "var(--shadow-button)" }}>{t("pages.adminDesignSystem.preview.signIn")}</button>
+          <button style={{ padding: "10px 18px", borderRadius: 10, background: "transparent", color: "var(--foreground-70)", fontSize: 13, fontWeight: 500, border: "1px solid var(--border)" }}>{t("pages.adminDesignSystem.preview.signUp")}</button>
         </div>
       </Panel>
 
       {/* Nav */}
-      <Panel title="Навигация">
+      <Panel title={t("pages.adminDesignSystem.preview.nav")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {[
-            { label: "Главная", active: true },
-            { label: "Лента", active: false },
-            { label: "Каналы", active: false },
-            { label: "Сообщения", active: false },
-          ].map((it) => (
+          {navItems.map((it) => (
             <div key={it.label} style={{
               padding: "8px 12px", borderRadius: 8, fontSize: 13,
               fontWeight: it.active ? 600 : 500,
@@ -931,15 +935,15 @@ function Dashboard({ role }: { role: AdminRole }) {
 }
 
 /* ============ USERS ============ */
-const ROLE_OPTIONS: { value: AdminUserRow["role"]; label: string }[] = [
-  { value: "user", label: "Пользователь" },
-  { value: "subscriber", label: "Подписчик" },
-  { value: "moderator", label: "Модератор" },
-  { value: "admin", label: "Суперадмин" },
-];
-
 function UsersSection() {
+  const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
+  const roleOptions = useMemo(() => ([
+    { value: "user" as const, label: t("pages.adminUsers.roleUser") },
+    { value: "subscriber" as const, label: t("pages.adminUsers.roleSubscriber") },
+    { value: "moderator" as const, label: t("pages.adminUsers.roleModerator") },
+    { value: "admin" as const, label: t("pages.adminUsers.roleAdmin") },
+  ]), [t]);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"all" | AdminUserRow["role"]>("all");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
@@ -955,16 +959,16 @@ function UsersSection() {
     const target = users.find((u) => u.uuid === uuid);
     if (!target || target.role === newRole) return;
     if (me.id === uuid) {
-      toast.error("Нельзя изменить собственную роль");
+      toast.error(t("pages.adminUsers.cannotChangeOwnRole"));
       return;
     }
     setSavingRole(uuid);
     try {
       await updateAdminUser(uuid, { role: newRole });
       setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, role: newRole } : u)));
-      toast.success(newRole === "admin" ? "Назначен суперадмином" : "Роль обновлена");
+      toast.success(newRole === "admin" ? t("pages.adminUsers.roleAdminAssigned") : t("pages.adminUsers.roleUpdated"));
     } catch {
-      toast.error("Не удалось изменить роль");
+      toast.error(t("pages.adminUsers.roleChangeFailed"));
     } finally {
       setSavingRole(null);
     }
@@ -986,18 +990,18 @@ function UsersSection() {
     try {
       await updateAdminUser(uuid, { status: ns });
       setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, status: ns } : u)));
-      toast.success(ns === "blocked" ? "Пользователь заблокирован" : "Пользователь разблокирован");
+      toast.success(ns === "blocked" ? t("pages.adminUsers.userBlocked") : t("pages.adminUsers.userUnblocked"));
     } catch {
-      toast.error("Не удалось изменить статус");
+      toast.error(t("pages.adminUsers.statusChangeFailed"));
     }
   };
 
   const roleBadge = (r: AdminUserRow["role"]) => {
     const map: Record<AdminUserRow["role"], { bg: string; c: string; l: string }> = {
-      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: "Суперадмин" },
-      moderator: { bg: "var(--info-soft)", c: "var(--info)", l: "Модератор" },
-      subscriber: { bg: "var(--success-soft)", c: "var(--success)", l: "Подписчик" },
-      user: { bg: "var(--background-surface)", c: "var(--foreground-50)", l: "Польз." },
+      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: t("pages.adminUsers.roleAdmin") },
+      moderator: { bg: "var(--info-soft)", c: "var(--info)", l: t("pages.adminUsers.roleModerator") },
+      subscriber: { bg: "var(--success-soft)", c: "var(--success)", l: t("pages.adminUsers.roleSubscriber") },
+      user: { bg: "var(--background-surface)", c: "var(--foreground-50)", l: t("pages.adminUsers.roleUserShort") },
     };
     const s = map[r];
     return (
@@ -1009,12 +1013,12 @@ function UsersSection() {
 
   return (
     <div>
-      <H>Пользователи</H>
+      <H>{t("pages.adminUsers.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по имени или email..."
+          placeholder={t("pages.adminUsers.searchPlaceholder")}
           className="outline-none"
           style={{ ...inputStyle, width: "320px", maxWidth: "100%" }}
         />
@@ -1024,11 +1028,11 @@ function UsersSection() {
           className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
-          <option value="all">Все роли</option>
-          <option value="user">Пользователь</option>
-          <option value="subscriber">Подписчик</option>
-          <option value="moderator">Модератор</option>
-          <option value="admin">Суперадмин</option>
+          <option value="all">{t("pages.adminUsers.allRoles")}</option>
+          <option value="user">{t("pages.adminUsers.roleUser")}</option>
+          <option value="subscriber">{t("pages.adminUsers.roleSubscriber")}</option>
+          <option value="moderator">{t("pages.adminUsers.roleModerator")}</option>
+          <option value="admin">{t("pages.adminUsers.roleAdmin")}</option>
         </select>
       </div>
 
@@ -1037,7 +1041,7 @@ function UsersSection() {
           <table className="w-full" style={{ fontSize: "13px", minWidth: "780px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Имя", "Email", "Город", "Подписка", "Роль", "Статус", "Действия"].map((h) => (
+                {[t("pages.adminCommon.colName"), t("pages.adminCommon.colEmail"), t("pages.adminCommon.colCity"), t("pages.adminCommon.colSubscription"), t("pages.adminCommon.colRole"), t("pages.adminCommon.colStatus"), t("pages.adminCommon.colActions")].map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>
                     {h}
                   </th>
@@ -1057,7 +1061,7 @@ function UsersSection() {
                   </td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.email}</td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.city || "—"}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.role === "subscriber" ? "Подписка" : "—"}</td>
+                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.role === "subscriber" ? t("pages.adminUsers.subscriptionActive") : "—"}</td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex flex-col" style={{ gap: "6px" }}>
                       {roleBadge(u.role)}
@@ -1066,7 +1070,7 @@ function UsersSection() {
                         disabled={me.id === u.uuid || savingRole === u.uuid}
                         onChange={(e) => changeRole(u.uuid, e.target.value as AdminUserRow["role"])}
                         className="outline-none"
-                        title={me.id === u.uuid ? "Нельзя изменить собственную роль" : "Изменить роль"}
+                        title={me.id === u.uuid ? t("pages.adminUsers.cannotChangeOwnRole") : t("pages.adminUsers.changeRoleTitle")}
                         style={{
                           fontSize: "12px",
                           height: "28px",
@@ -1078,7 +1082,7 @@ function UsersSection() {
                           opacity: me.id === u.uuid ? 0.5 : 1,
                         }}
                       >
-                        {ROLE_OPTIONS.map((o) => (
+                        {roleOptions.map((o) => (
                           <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </select>
@@ -1086,12 +1090,12 @@ function UsersSection() {
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <StatusBadge variant={u.status === "active" ? "published" : "rejected"}>
-                      {u.status === "active" ? "Активен" : u.status === "blocked" ? "Заблокирован" : "Ожидает"}
+                      {u.status === "active" ? t("pages.adminUsers.statusActive") : u.status === "blocked" ? t("pages.adminUsers.statusBlocked") : t("pages.adminUsers.statusPending")}
                     </StatusBadge>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex gap-[6px]">
-                      <IconBtn onClick={() => toast.info(`Просмотр: ${u.name}`)}><Eye size={14} /></IconBtn>
+                      <IconBtn onClick={() => toast.info(t("pages.adminUsers.previewToast", { name: u.name }))}><Eye size={14} /></IconBtn>
                       <IconBtn danger onClick={() => toggle(u.uuid)}><Ban size={14} /></IconBtn>
                     </div>
                   </td>
@@ -1128,18 +1132,6 @@ function IconBtn({ children, onClick, danger, success }: { children: React.React
 
 /* ============ CONTENT ============ */
 type BadgeVariant = "published" | "moderation" | "rejected" | "default";
-
-const LISTING_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
-  published: { label: "Опубликовано", variant: "published" },
-  pending_moderation: { label: "На модерации", variant: "moderation" },
-  awaiting_payment: { label: "Ждёт оплаты", variant: "moderation" },
-  revision: { label: "На доработке", variant: "moderation" },
-  rejected: { label: "Отклонено", variant: "rejected" },
-  draft: { label: "Черновик", variant: "default" },
-  unpublished: { label: "Снято", variant: "default" },
-  sold: { label: "Продано", variant: "default" },
-  expired: { label: "Истекло", variant: "default" },
-};
 
 function statusMeta(map: Record<string, { label: string; variant: BadgeVariant }>, status: string) {
   return map[status] ?? { label: status || "—", variant: "default" as BadgeVariant };
@@ -1332,6 +1324,18 @@ function ContentSection() {
 
 /* ============ ADS ============ */
 function AdsSection() {
+  const { t } = useTranslation();
+  const listingStatusMeta = useMemo(() => ({
+    published: { label: t("pages.adminCommon.statusPublished"), variant: "published" as BadgeVariant },
+    pending_moderation: { label: t("pages.adminCommon.statusPendingModeration"), variant: "moderation" as BadgeVariant },
+    awaiting_payment: { label: t("pages.adminCommon.statusAwaitingPayment"), variant: "moderation" as BadgeVariant },
+    revision: { label: t("pages.adminCommon.statusRevision"), variant: "moderation" as BadgeVariant },
+    rejected: { label: t("pages.adminCommon.statusRejected"), variant: "rejected" as BadgeVariant },
+    draft: { label: t("pages.adminCommon.statusDraft"), variant: "default" as BadgeVariant },
+    unpublished: { label: t("pages.adminCommon.statusUnpublished"), variant: "default" as BadgeVariant },
+    sold: { label: t("pages.adminCommon.statusSold"), variant: "default" as BadgeVariant },
+    expired: { label: t("pages.adminCommon.statusExpired"), variant: "default" as BadgeVariant },
+  }), [t]);
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -1346,9 +1350,9 @@ function AdsSection() {
     setLoading(true);
     fetchAdminListings(status === "all" ? {} : { status })
       .then(setRows)
-      .catch(() => toast.error("Не удалось загрузить объявления"))
+      .catch(() => toast.error(t("pages.adminAds.loadFailed")))
       .finally(() => setLoading(false));
-  }, [status]);
+  }, [status, t]);
 
   const filtered = useMemo(
     () => rows.filter((a) => !query || a.title.toLowerCase().includes(query.toLowerCase())),
@@ -1390,12 +1394,12 @@ function AdsSection() {
     try {
       await updateAdminListingStatus(uuid, next);
       setRows((prev) => prev.map((r) => (r.uuid === uuid ? { ...r, status: next } : r)));
-      toast.success("Статус обновлён");
-    } catch { toast.error("Не удалось обновить статус"); }
+      toast.success(t("pages.adminCommon.statusUpdated"));
+    } catch { toast.error(t("pages.adminCommon.statusUpdateFailed")); }
   };
 
   const remove = async (uuid: string) => {
-    if (!window.confirm("Удалить объявление?")) return;
+    if (!window.confirm(t("pages.adminAds.deleteConfirm"))) return;
     try {
       await deleteAdminListing(uuid);
       setRows((prev) => prev.filter((r) => r.uuid !== uuid));
@@ -1405,8 +1409,8 @@ function AdsSection() {
         next.delete(uuid);
         return next;
       });
-      toast.success("Удалено");
-    } catch { toast.error("Не удалось удалить"); }
+      toast.success(t("pages.adminCommon.deleted"));
+    } catch { toast.error(t("pages.adminCommon.deleteFailed")); }
   };
 
   const bulkChangeStatus = async (next: string) => {
@@ -1419,10 +1423,10 @@ function AdsSection() {
         setRows((prev) => prev.map((r) => (selected.has(r.uuid) ? { ...r, status: next } : r)));
       }
       setSelected(new Set());
-      if (failed > 0) toast.error(`Обновлено ${ok}, ошибок: ${failed}`);
-      else toast.success(`Обновлено объявлений: ${ok}`);
+      if (failed > 0) toast.error(t("pages.adminCommon.bulkPartialFail", { ok, failed }));
+      else toast.success(t("pages.adminAds.bulkStatusSuccess", { count: ok }));
     } catch {
-      toast.error("Не удалось выполнить массовое действие");
+      toast.error(t("pages.adminCommon.bulkFailed"));
     } finally {
       setBulkBusy(false);
     }
@@ -1439,10 +1443,10 @@ function AdsSection() {
         setSelected(new Set());
       }
       setDeleteConfirmOpen(false);
-      if (failed > 0) toast.error(`Удалено ${ok}, ошибок: ${failed}`);
-      else toast.success(`Удалено объявлений: ${ok}`);
+      if (failed > 0) toast.error(t("pages.adminCommon.bulkPartialFail", { ok, failed }));
+      else toast.success(t("pages.adminAds.bulkDeleteSuccess", { count: ok }));
     } catch {
-      toast.error("Не удалось удалить объявления");
+      toast.error(t("pages.adminCommon.deleteFailed"));
     } finally {
       setBulkBusy(false);
     }
@@ -1458,18 +1462,27 @@ function AdsSection() {
     opacity: bulkBusy ? 0.6 : 1,
   };
 
+  const tableHeaders = [
+    t("pages.adminCommon.colTitle"),
+    t("pages.adminCommon.colSeller"),
+    t("pages.adminCommon.colPrice"),
+    t("pages.adminCommon.colCategory"),
+    t("pages.adminCommon.colStatus"),
+    t("pages.adminCommon.colActions"),
+  ];
+
   return (
     <div>
-      <H>Объявления</H>
+      <H>{t("pages.adminAds.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("pages.adminCommon.searchPlaceholder")} className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
-          <option value="all">Все статусы</option>
-          <option value="published">Опубликовано</option>
-          <option value="pending_moderation">На модерации</option>
-          <option value="rejected">Отклонено</option>
-          <option value="unpublished">Снято</option>
-          <option value="sold">Продано</option>
+          <option value="all">{t("pages.adminCommon.allStatuses")}</option>
+          <option value="published">{t("pages.adminCommon.statusPublished")}</option>
+          <option value="pending_moderation">{t("pages.adminCommon.statusPendingModeration")}</option>
+          <option value="rejected">{t("pages.adminCommon.statusRejected")}</option>
+          <option value="unpublished">{t("pages.adminCommon.statusUnpublished")}</option>
+          <option value="sold">{t("pages.adminCommon.statusSold")}</option>
         </select>
       </div>
 
@@ -1486,16 +1499,16 @@ function AdsSection() {
           }}
         >
           <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)" }}>
-            Выбрано: {selected.size}
+            {t("pages.adminCommon.selectedCount", { count: selected.size })}
           </span>
           <button type="button" disabled={bulkBusy} style={{ ...bulkBtnStyle, display: "inline-flex", alignItems: "center", gap: "4px" }} onClick={() => void bulkChangeStatus("published")}>
-            <Check size={13} /> Опубликовать
+            <Check size={13} /> {t("pages.adminCommon.actionPublish")}
           </button>
           <button type="button" disabled={bulkBusy} style={bulkBtnStyle} onClick={() => void bulkChangeStatus("unpublished")}>
-            Снять с публикации
+            {t("pages.adminAds.bulkUnpublish")}
           </button>
           <button type="button" disabled={bulkBusy} style={bulkBtnStyle} onClick={() => void bulkChangeStatus("pending_moderation")}>
-            На модерацию
+            {t("pages.adminAds.bulkToModeration")}
           </button>
           <button
             type="button"
@@ -1503,7 +1516,7 @@ function AdsSection() {
             style={{ ...bulkBtnStyle, display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--error)", borderColor: "color-mix(in oklab, var(--error) 40%, var(--border))" }}
             onClick={() => setDeleteConfirmOpen(true)}
           >
-            <Trash2 size={13} /> Удалить
+            <Trash2 size={13} /> {t("pages.adminCommon.bulkDelete")}
           </button>
           <button
             type="button"
@@ -1511,7 +1524,7 @@ function AdsSection() {
             style={{ ...bulkBtnStyle, marginLeft: "auto", color: "var(--foreground-50)" }}
             onClick={() => setSelected(new Set())}
           >
-            Снять выбор
+            {t("pages.adminCommon.bulkClear")}
           </button>
         </div>
       )}
@@ -1527,22 +1540,22 @@ function AdsSection() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    aria-label="Выбрать все объявления"
+                    aria-label={t("pages.adminAds.selectAll")}
                     style={{ accentColor: "var(--accent)", width: "16px", height: "16px", cursor: "pointer" }}
                   />
                 </th>
-                {["Заголовок", "Продавец", "Цена", "Категория", "Статус", "Действия"].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>Объявлений нет</td></tr>
+                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminAds.empty")}</td></tr>
               ) : filtered.map((a) => {
-                const meta = statusMeta(LISTING_STATUS_META, a.status);
+                const meta = statusMeta(listingStatusMeta, a.status);
                 const isSelected = selected.has(a.uuid);
                 return (
                   <tr
@@ -1557,7 +1570,7 @@ function AdsSection() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleOne(a.uuid)}
-                        aria-label={`Выбрать «${a.title}»`}
+                        aria-label={t("pages.adminAds.selectRow", { title: a.title })}
                         style={{ accentColor: "var(--accent)", width: "16px", height: "16px", cursor: "pointer" }}
                       />
                     </td>
@@ -1570,14 +1583,14 @@ function AdsSection() {
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <div className="flex gap-[6px]">
-                        <IconBtn success onClick={() => changeStatus(a.uuid, "published")} title="Опубликовать"><Check size={14} /></IconBtn>
+                        <IconBtn success onClick={() => changeStatus(a.uuid, "published")} title={t("pages.adminCommon.actionPublish")}><Check size={14} /></IconBtn>
                         <IconBtn
                           onClick={() => navigate({ to: "/admin/listings/$uuid", params: { uuid: a.uuid } })}
-                          title="Просмотр и редактирование"
+                          title={t("pages.adminCommon.actionViewEdit")}
                         >
                           <Eye size={14} />
                         </IconBtn>
-                        <IconBtn danger onClick={() => remove(a.uuid)} title="Удалить"><Trash2 size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => remove(a.uuid)} title={t("pages.adminCommon.actionDelete")}><Trash2 size={14} /></IconBtn>
                       </div>
                     </td>
                   </tr>
@@ -1591,13 +1604,13 @@ function AdsSection() {
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить выбранные объявления?</AlertDialogTitle>
+            <AlertDialogTitle>{t("pages.adminAds.bulkDeleteConfirm")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Будет удалено объявлений: {selected.size}. Это действие нельзя отменить.
+              {t("pages.adminAds.bulkDeleteDesc", { count: selected.size })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkBusy}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={bulkBusy}>{t("pages.adminCommon.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={bulkBusy}
               onClick={(e) => {
@@ -1606,7 +1619,7 @@ function AdsSection() {
               }}
               className="bg-[var(--error)] text-white hover:bg-[var(--error)]/90"
             >
-              {bulkBusy ? "Удаление…" : "Удалить"}
+              {bulkBusy ? t("pages.adminCommon.bulkDeleting") : t("pages.adminCommon.bulkDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

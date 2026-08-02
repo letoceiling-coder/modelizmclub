@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin content/analytics/settings chrome | — | `adminCommon`, `adminContent`, `adminAnalytics`, `adminSettings` | — | build pass | pending | pending | IN_PROGRESS |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin (Delivery, Moderation, Settings feature cards, etc.) | — | `adminCommon`, `adminUsers`, `adminAds`, `adminDesignSystem`, shell/dashboard/reviews/content/analytics/settings chrome | — | build pass | pending | pending | FIXED |
 
 ---
 
@@ -118,6 +118,24 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 ## Evidence
 
 Скриншоты: `docs/qa/evidence/` (создавать по мере VERIFIED).
+
+### Prod verification 2026-08-02
+
+| Check | Result |
+|-------|--------|
+| VPS commit | `27604db` (matches `origin/master`) |
+| `modelizmclub-frontend.service` | active |
+| `https://modelizmclub.ru/` | HTTP 200 |
+| `https://api.modelizmclub.ru/api/v1/health` | HTTP 200 |
+| `smoke-frontend-routes.sh` | **22/22 OK** |
+| `smoke-prod-release.sh` | **SMOKE DONE** (auth, feed moderation, billing URL, delivery) |
+| QA PHPUnit filter (20 tests) | **20/20 OK** — AdminVideo, AdminVideoCategory, ScheduledVideo, ServeMediaRange, ChannelPostDelete, NotificationDelete, FeatureFlags, VideoUploadModeration |
+| Full PHPUnit (187 tests) | 179 pass, **8 fail** — pre-existing (AuthFlow, ChatFrontendIntegration×2, Community×2, ChannelPostMedia, OAuthVerification, SellerCabinet); **not in QA matrix scope** |
+| Playwright `browser-qa.mjs` on VPS | skipped — `npx playwright install` not run on server |
+
+**Task 42 (i18n):** `FIXED` with caveat **admin partial** — Users, Ads, Design System, shell, dashboard, reviews, content, analytics, settings chrome i18n'd; Delivery, Moderation, Settings feature toggle cards, Monetization, etc. remain RU.
+
+**Backlog (not blocking QA PDF):** 8 failing PHPUnit (AuthFlow, Chat, Community, SellerCabinet, …). Playwright on VPS pending: `cd deploy && npx playwright install && npm run qa` (Task 43 re-run).
 
 Финальные артефакты (после Task 43):
 
