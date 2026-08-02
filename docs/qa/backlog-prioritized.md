@@ -6,9 +6,9 @@
 
 | # | Задача | Статус | Файлы / команда |
 |---|--------|--------|-----------------|
-| 1 | **8 PHPUnit → 0 fail** | IN_PROGRESS | AuthService, UserService, ChatService, OAuthVerificationTest, Community*Test, ChannelPostMediaTest, notifications migration |
-| 2 | **Playwright WARN → 0** | IN_PROGRESS | `communities.index.tsx` (0 участников), `browser-qa.mjs` (лог console) |
-| 3 | Re-run prod regression | pending | `ssh VPS` → `cd deploy && npm run qa` + `run-server-tests.sh` |
+| 1 | **8 PHPUnit → 0 fail** | **DONE** (187/187) | commit `4e86e1b` |
+| 2 | **Playwright WARN → 0** | **DONE** | **34 OK, 0 WARN, 0 FAIL** (2026-08-03) |
+| 3 | Re-run prod regression | **DONE** | PHPUnit 187/187 + Playwright on VPS |
 
 ## P1 — i18n admin (Task 42 completion)
 

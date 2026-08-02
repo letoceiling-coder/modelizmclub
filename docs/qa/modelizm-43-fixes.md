@@ -125,7 +125,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 |-------|--------|
 | VPS commit | `1ee826d` |
 | Full PHPUnit | **187/187 OK** |
-| Playwright | **33 OK, 0 WARN, 0 FAIL** (target after console/communities QA script fix) |
+| Playwright | **34 OK, 0 WARN, 0 FAIL** (2026-08-03, commit `2947495`) |
 | Backlog doc | [`backlog-prioritized.md`](./backlog-prioritized.md) |
 | Evidence (auto) | `deploy/qa-artifacts/YYYY-MM-DD/*.png`, `report.json` on VPS |
 
