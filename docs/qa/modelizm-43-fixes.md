@@ -119,6 +119,16 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 Скриншоты: `docs/qa/evidence/` (создавать по мере VERIFIED).
 
+### Prod verification 2026-08-03 (Task 42 closure + Task 43 re-run)
+
+| Check | Result |
+|-------|--------|
+| VPS commit | `3bbd089` (Task 42 — Users/Ads/Design System i18n) |
+| `modelizmclub-frontend.service` | active (deploy-frontend.sh) |
+| `npm run build` (local) | pass |
+| Playwright `browser-qa.mjs` on VPS | **32 OK, 2 WARN, 0 FAIL** — report `deploy/qa-artifacts/2026-08-02/report.json` |
+| Playwright warnings | `/communities` «0 участников» (2 cards); 1 console.error (global) |
+
 ### Prod verification 2026-08-02
 
 | Check | Result |
