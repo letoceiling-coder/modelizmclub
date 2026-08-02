@@ -59,8 +59,8 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 26 | №25 (player) | `/reviews/$id` | Video player | P1 | FIXED | empty URL/errors ignored; hardcoded mp4; duration/category/tags hidden; no Range on proxy | `VideoResource`, `ServeMediaController`, `VideoService` | `reviews.$id.tsx`, `reviews.ts` | — | VideoUploadModerationTest, ServeMediaRangeTest | pending | pending | FIXED |
 | 27 | №25 (actions) | `/reviews/$id` | Engagement | P1 | FIXED | like/share already wired; no separate favorite API in spec | Video react API | `reviews.$id.tsx`, `VideoActionsMenu` | — | build pass | pending | pending | FIXED |
 | 28 | №25 (comments) | `/reviews/$id` | Comments | P1 | FIXED | comments module present with preview + expand + create | Video comments API | `reviews.$id.tsx`, `CommentSection` | — | build pass | pending | pending | FIXED |
-| 29 | №25 (similar) | `/reviews/$id` | Discovery | P2 | — | TBD: author + similar blocks | — | review detail | — | — | — | — | TODO |
-| 30 | №26 | `/reviews` | Category filter | P2 | — | TBD: title stays «Все обзоры» | — | `reviews.index.tsx` | — | — | — | — | TODO |
+| 29 | №25 (similar) | `/reviews/$id` | Discovery | P2 | yes | author + similar blocks missing | VideoResource | `reviews.$id.tsx` related carousel + author | — | build pass | pending | pending | FIXED |
+| 30 | №26 | `/reviews` | Category filter | P2 | yes | title stayed «Все обзоры» on category select | — | `reviews.index.tsx` dynamic sectionTitle | — | build pass | pending | pending | FIXED |
 
 ---
 
@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | — | TBD: hardcoded RU strings, mixed languages | API error i18n | `ru/en/zh.ts`, components | — | — | — | — | TODO |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in channels/messenger/admin reviews | — | `ru/en/zh.ts`, channel + chat + admin reviews i18n | — | build pass | pending | pending | IN_PROGRESS |
 
 ---
 

@@ -40,6 +40,13 @@ function ReviewsPage() {
     return [{ id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
   }, [categories, t]);
 
+  const sectionTitle = useMemo(() => {
+    if (query) return t("pages.reviews.searchResults");
+    if (activeCat === ALL) return t("pages.reviews.allReviews");
+    const cat = categories.find((c) => c.slug === activeCat);
+    return cat?.name ? t("pages.reviews.categoryReviews", { name: cat.name }) : t("pages.reviews.allReviews");
+  }, [query, activeCat, categories, t]);
+
   useEffect(() => {
     if (categoryFromUrl) setActiveCat(categoryFromUrl);
     if (typeof qFromUrl === "string") setQuery(qFromUrl);
@@ -122,7 +129,7 @@ function ReviewsPage() {
 
         <section className="space-y-[12px]">
           <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            {query ? t("pages.reviews.searchResults") : t("pages.reviews.allReviews")}
+            {sectionTitle}
           </h2>
           {loading ? (
             <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.loading")}</p>

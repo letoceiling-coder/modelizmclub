@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { deleteChannel } from "@/lib/channels";
 import { toast } from "@/lib/toast";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,12 +25,12 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
     setBusy(true);
     try {
       await deleteChannel(slug, confirmName.trim());
-      toast.success("Канал удалён");
+      toast.success(t("components.channelManage.deleted"));
       setOpen(false);
       setConfirmName("");
       onDeleted();
     } catch {
-      toast.error("Не удалось удалить канал");
+      toast.error(t("components.channelManage.deleteFailed"));
     } finally {
       setBusy(false);
     }
@@ -45,7 +47,7 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
         onClick={() => setOpen(true)}
       >
         <Trash2 size={compact ? 14 : 16} />
-        {compact ? "Удалить" : "Удалить канал"}
+        {compact ? t("components.channelManage.deleteCompact") : t("components.channelManage.deleteChannel")}
       </Button>
     );
   }
@@ -62,10 +64,10 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
-          Удалить канал?
+          {t("components.channelManage.deleteTitle")}
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          Это действие необратимо. Канал исчезнет из списка, подписчики потеряют доступ ко всем постам. Чтобы подтвердить, введите название{" "}
+          {t("components.channelManage.deleteDesc")}{" "}
           <span className="font-semibold" style={{ color: "var(--foreground)" }}>{name}</span>.
         </p>
         <input
@@ -78,7 +80,7 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
         />
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
-            Отмена
+            {t("components.channelManage.cancel")}
           </Button>
           <Button
             type="button"
@@ -86,7 +88,7 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
             onClick={() => void submit()}
             style={{ background: "rgb(220,38,38)", color: "#fff" }}
           >
-            {busy ? "Удаляем…" : "Удалить навсегда"}
+            {busy ? t("components.channelManage.deleting") : t("components.channelManage.deleteForever")}
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Phone, MoreHorizontal, Info, Search, Bell, BellOff, Archive, ArchiveRestore, Ban, ShieldOff, Users, Pin, PinOff, Trash2, Flag } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { userById } from "@/lib/mock";
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialogId, pinned, onSearch, onDeleted }: Props) {
+  const { t } = useTranslation();
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
   const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
@@ -87,10 +89,10 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
     if (!dialogId) return;
     if (meta.muted) {
       actions.setDialogMeta(dialogId, { muted: false, mutedUntil: undefined });
-      toast.success("Уведомления включены", { description: `Вы снова получаете уведомления от ${partnerName}` });
+      toast.success(t("components.chatHeader.muteEnabled"), { description: t("components.chatHeader.muteEnabledDesc", { name: partnerName }) });
     } else {
       actions.setDialogMeta(dialogId, { muted: true });
-      toast.success("Уведомления отключены", { description: `Чат с ${partnerName} больше не присылает уведомления` });
+      toast.success(t("components.chatHeader.muteDisabled"), { description: t("components.chatHeader.muteDisabledDesc", { name: partnerName }) });
     }
   };
 
@@ -99,10 +101,10 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
     if (!dialogId) return;
     if (meta.archived) {
       actions.setDialogMeta(dialogId, { archived: false });
-      toast.success("Чат восстановлен", { description: "Диалог вернулся в активный список" });
+      toast.success(t("components.chatHeader.restored"), { description: t("components.chatHeader.restoredDesc") });
     } else {
       actions.setDialogMeta(dialogId, { archived: true });
-      toast.success("Чат заархивирован", { description: "Чат перемещён в архив. Вы можете найти его в списке архивированных." });
+      toast.success(t("components.chatHeader.archived"), { description: t("components.chatHeader.archivedDesc") });
     }
   };
 
@@ -112,50 +114,50 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
     if (pinned) {
       actions.pinDialog(dialogId, false);
       if (!isDemoMode()) {
-        try { await unpinConversation(dialogId); } catch { toast.error("Не удалось открепить чат"); return; }
+        try { await unpinConversation(dialogId); } catch { toast.error(t("components.chatHeader.unpinFailed")); return; }
       }
-      toast.success("Чат откреплён");
+      toast.success(t("components.chatHeader.unpinned"));
     } else {
       actions.pinDialog(dialogId, true);
       if (!isDemoMode()) {
-        try { await pinConversation(dialogId); } catch { toast.error("Не удалось закрепить чат"); return; }
+        try { await pinConversation(dialogId); } catch { toast.error(t("components.chatHeader.pinFailed")); return; }
       }
-      toast.success("Чат закреплён", { description: "Теперь он вверху списка" });
+      toast.success(t("components.chatHeader.pinned"), { description: t("components.chatHeader.pinnedDesc") });
     }
   };
 
   const clearHistory = async () => {
     close();
     if (!dialogId) return;
-    if (!window.confirm(`Очистить историю переписки с ${partnerName}? Это действие нельзя отменить.`)) return;
+    if (!window.confirm(t("components.chatHeader.clearConfirm", { name: partnerName }))) return;
     if (!isDemoMode()) {
       try {
         await clearConversationHistory(dialogId);
       } catch {
-        toast.error("Не удалось очистить историю");
+        toast.error(t("components.chatHeader.clearFailed"));
         return;
       }
     }
     actions.clearHistory(dialogId);
-    toast.success("История очищена");
+    toast.success(t("components.chatHeader.historyCleared"));
   };
 
   const deleteChat = async () => {
     close();
     if (!dialogId) return;
-    if (!window.confirm(`Удалить чат с ${partnerName}? Переписка исчезнет из списка.`)) return;
+    if (!window.confirm(t("components.chatHeader.deleteConfirm", { name: partnerName }))) return;
     if (!isDemoMode()) {
       try {
         await clearConversationHistory(dialogId);
         await deleteConversation(dialogId);
       } catch {
-        toast.error("Не удалось удалить чат");
+        toast.error(t("components.chatHeader.deleteFailed"));
         return;
       }
     }
     actions.clearHistory(dialogId);
     markDialogDeleted(dialogId, partnerId);
-    toast.success("Чат удалён");
+    toast.success(t("components.chatHeader.chatDeleted"));
     onDeleted?.();
   };
 
@@ -170,16 +172,16 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
     const numericId = partner.numericId;
     if (blocked) {
       if (!isDemoMode() && numericId) {
-        try { await unblockUser(numericId); } catch { toast.error("Не удалось разблокировать"); return; }
+        try { await unblockUser(numericId); } catch { toast.error(t("components.chatHeader.unblockFailed")); return; }
       }
       actions.unblockUser(partnerId);
-      toast.success(`${partnerName} разблокирован`, { description: "Вы снова можете обмениваться сообщениями" });
+      toast.success(t("components.chatHeader.userUnblocked", { name: partnerName }), { description: t("components.chatHeader.userUnblockedDesc") });
     } else {
       if (!isDemoMode() && numericId) {
-        try { await blockUser(numericId); } catch { toast.error("Не удалось заблокировать"); return; }
+        try { await blockUser(numericId); } catch { toast.error(t("components.chatHeader.blockFailed")); return; }
       }
       actions.blockUser(partnerId);
-      toast.success(`${partnerName} заблокирован`, { description: "Вы больше не будете получать сообщения от этого пользователя, он исчез из ваших друзей" });
+      toast.success(t("components.chatHeader.userBlockedToast", { name: partnerName }), { description: t("components.chatHeader.userBlockedDesc") });
     }
   };
 
@@ -190,7 +192,7 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
         onClick={onSearch}
         className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
         style={{ color: "var(--foreground-50)" }}
-        aria-label="Поиск по сообщениям"
+        aria-label={t("components.chatHeader.searchAria")}
       >
         <Search size={19} />
       </button>
@@ -199,11 +201,11 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
         type="button"
         onClick={() => {
           if (callBusy) {
-            toast("Звонок уже идёт");
+            toast(t("components.chatHeader.callBusy"));
             return;
           }
           if (blocked) {
-            toast.error("Пользователь заблокирован", { description: "Разблокируйте, чтобы позвонить" });
+            toast.error(t("components.chatHeader.userBlocked"), { description: t("components.chatHeader.unblockToCall") });
             return;
           }
           setConfirmOpen(true);
@@ -211,7 +213,7 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
         disabled={callBusy}
         className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-50"
         style={{ color: "var(--accent)" }}
-        aria-label={`Позвонить ${partnerName}`}
+        aria-label={t("components.chatHeader.callAria", { name: partnerName })}
       >
         <Phone size={19} />
       </button>
@@ -227,7 +229,7 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
           onClick={() => setOpen((v) => !v)}
           className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-50)" }}
-          aria-label="Меню чата"
+          aria-label={t("components.chatHeader.menuAria")}
           aria-expanded={open}
         >
           <MoreHorizontal size={18} />
@@ -248,45 +250,45 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
                 boxShadow: "var(--shadow-float)",
               }}
             >
-              <Item icon={Info} label="Информация" onClick={goProfile} />
+              <Item icon={Info} label={t("components.chatHeader.info")} onClick={goProfile} />
               <Item
                 icon={Users}
-                label="Групповой звонок"
+                label={t("components.chatHeader.groupCall")}
                 onClick={() => {
                   close();
                   if (callBusy) {
-                    toast("Звонок уже идёт");
+                    toast(t("components.chatHeader.callBusy"));
                     return;
                   }
                   groupCalls.openPicker("start", [partnerId]);
                 }}
               />
-              {onSearch && <Item icon={Search} label="Поиск в чате" onClick={() => { close(); onSearch(); }} />}
+              {onSearch && <Item icon={Search} label={t("components.chatHeader.searchInChat")} onClick={() => { close(); onSearch(); }} />}
               <Item
                 icon={pinned ? PinOff : Pin}
-                label={pinned ? "Открепить чат" : "Закрепить чат"}
+                label={pinned ? t("components.dialogContextMenu.unpinChat") : t("components.dialogContextMenu.pinChat")}
                 onClick={togglePin}
               />
               <Item
                 icon={meta.muted ? Bell : BellOff}
-                label={meta.muted ? "Включить уведомления" : "Отключить уведомления"}
+                label={meta.muted ? t("components.dialogContextMenu.enableNotifications") : t("components.dialogContextMenu.disableNotifications")}
                 onClick={toggleMute}
               />
               <Item
                 icon={meta.archived ? ArchiveRestore : Archive}
-                label={meta.archived ? "Вернуть из архива" : "Архивировать"}
+                label={meta.archived ? t("components.dialogContextMenu.restoreFromArchive") : t("components.chatHeader.archive")}
                 onClick={toggleArchive}
               />
-              <Item icon={Trash2} label="Очистить историю" onClick={clearHistory} />
-              <Item icon={Trash2} label="Удалить чат" onClick={deleteChat} danger />
+              <Item icon={Trash2} label={t("components.dialogContextMenu.clearHistory")} onClick={clearHistory} />
+              <Item icon={Trash2} label={t("components.dialogContextMenu.deleteChat")} onClick={deleteChat} danger />
               <div className="border-t" style={{ borderColor: "var(--border)" }} />
               <Item
                 icon={blocked ? ShieldOff : Ban}
-                label={blocked ? "Разблокировать" : "Заблокировать"}
+                label={blocked ? t("components.dialogContextMenu.unblock") : t("components.dialogContextMenu.blockUser")}
                 onClick={toggleBlock}
                 danger={!blocked}
               />
-              <Item icon={Flag} label="Пожаловаться" onClick={reportUser} danger />
+              <Item icon={Flag} label={t("components.chatHeader.report")} onClick={reportUser} danger />
             </motion.div>
           )}
         </AnimatePresence>

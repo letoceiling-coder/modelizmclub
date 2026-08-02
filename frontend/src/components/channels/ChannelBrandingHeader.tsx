@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import {
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
+  const { t } = useTranslation();
   const [avatarUrl, setAvatarUrl] = useState(channel.avatarImage ?? "");
   const [bannerUrl, setBannerUrl] = useState(channel.bannerImage ?? "");
   const [brokenBanner, setBrokenBanner] = useState(false);
@@ -43,7 +45,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
 
   const saveBranding = async (patch: { avatar_media_uuid?: string | null; banner_media_uuid?: string | null }) => {
     if (isDemoMode()) {
-      toast("В демо-режиме оформление сохраняется только локально");
+      toast(t("components.channelBranding.demoLocalOnly"));
       return channel;
     }
     return updateChannelBranding(channel.slug, patch);
@@ -56,7 +58,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
     try {
       setPendingAvatar(await prepareProfileImageFile(file));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
     }
   };
 
@@ -67,7 +69,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
     try {
       setPendingBanner(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
     }
   };
 
@@ -84,9 +86,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
       } else {
         setAvatarUrl(media.url ?? URL.createObjectURL(file));
       }
-      toast.success("Аватар канала обновлён");
+      toast.success(t("components.channelBranding.avatarUpdated"));
     } catch {
-      toast.error("Не удалось загрузить аватар");
+      toast.error(t("components.channelBranding.avatarUploadFailed"));
     } finally {
       setAvatarUploading(false);
     }
@@ -99,9 +101,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
       const updated = await saveBranding({ avatar_media_uuid: null });
       setAvatarUrl("");
       if (updated) onUpdated(updated);
-      toast.success("Аватар удалён");
+      toast.success(t("components.channelBranding.avatarRemoved"));
     } catch {
-      toast.error("Не удалось удалить аватар");
+      toast.error(t("components.channelBranding.avatarRemoveFailed"));
     } finally {
       setAvatarUploading(false);
     }
@@ -121,9 +123,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         setBannerUrl(media.url ?? URL.createObjectURL(file));
       }
       setBrokenBanner(false);
-      toast.success("Обложка канала обновлена");
+      toast.success(t("components.channelBranding.bannerUpdated"));
     } catch {
-      toast.error("Не удалось загрузить обложку");
+      toast.error(t("components.channelBranding.bannerUploadFailed"));
     } finally {
       setBannerUploading(false);
     }
@@ -136,9 +138,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
       const updated = await saveBranding({ banner_media_uuid: null });
       setBannerUrl("");
       if (updated) onUpdated(updated);
-      toast.success("Обложка удалена");
+      toast.success(t("components.channelBranding.bannerRemoved"));
     } catch {
-      toast.error("Не удалось удалить обложку");
+      toast.error(t("components.channelBranding.bannerRemoveFailed"));
     } finally {
       setBannerUploading(false);
     }
@@ -170,19 +172,19 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
             />
             <button
               type="button"
-              aria-label="Изменить обложку"
+              aria-label={t("components.channelBranding.changeBannerAria")}
               onClick={() => bannerInputRef.current?.click()}
               disabled={bannerUploading}
               className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors hover:brightness-110 disabled:opacity-60"
               style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
             >
-              <Camera size={14} /> Изменить обложку
+              <Camera size={14} /> {t("components.channelBranding.changeBanner")}
             </button>
             <p
               className="absolute bottom-2 left-3 hidden text-[11px] sm:block"
               style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 2px rgba(0,0,0,0.45)" }}
             >
-              JPG, PNG, WEBP · до 10 МБ · рекомендуется 1400×400
+              {t("components.channelBranding.bannerHintShort")}
             </p>
           </>
         )}
@@ -218,7 +220,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
                 />
                 <button
                   type="button"
-                  aria-label="Изменить аватар"
+                  aria-label={t("components.channelBranding.changeAvatarAria")}
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 disabled:opacity-60"
@@ -232,7 +234,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         </div>
         {editable && (
           <p className="mt-2 text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            Аватар: JPG, PNG, WEBP · до 5 МБ · рекомендуется 480×480
+            {t("components.channelBranding.avatarHintShort")}
           </p>
         )}
       </div>
@@ -245,7 +247,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         lockShape
         outputWidth={480}
         outputHeight={480}
-        title="Аватар канала"
+        title={t("components.channelBranding.avatarEditorTitle")}
         onCancel={() => setPendingAvatar(null)}
         onCropped={uploadAvatar}
         onDelete={avatarUrl ? removeAvatar : undefined}
@@ -258,7 +260,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         lockShape
         outputWidth={1400}
         outputHeight={400}
-        title="Обложка канала"
+        title={t("components.channelBranding.bannerEditorTitle")}
         onCancel={() => setPendingBanner(null)}
         onCropped={uploadBanner}
         onDelete={bannerUrl ? removeBanner : undefined}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ChannelBrandingForm({ channel, onUpdated }: Props) {
+  const { t } = useTranslation();
   const [avatarUrl, setAvatarUrl] = useState(channel.avatarImage ?? "");
   const [bannerUrl, setBannerUrl] = useState(channel.bannerImage ?? "");
   const [brokenBanner, setBrokenBanner] = useState(false);
@@ -43,7 +45,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
 
   const saveBranding = async (patch: { avatar_media_uuid?: string | null; banner_media_uuid?: string | null }) => {
     if (isDemoMode()) {
-      toast("В демо-режиме оформление сохраняется только локально");
+      toast(t("components.channelBranding.demoLocalOnly"));
       return channel;
     }
     return updateChannelBranding(channel.slug, patch);
@@ -56,7 +58,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     try {
       setPendingAvatar(await prepareProfileImageFile(file));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
     }
   };
 
@@ -67,7 +69,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     try {
       setPendingBanner(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
+      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
     }
   };
 
@@ -80,9 +82,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
       const updated = await saveBranding({ avatar_media_uuid: media.uuid });
       setAvatarUrl(updated.avatarImage ?? media.url ?? "");
       onUpdated(updated);
-      toast.success("Аватар канала обновлён");
+      toast.success(t("components.channelBranding.avatarUpdated"));
     } catch {
-      toast.error("Не удалось загрузить аватар");
+      toast.error(t("components.channelBranding.avatarUploadFailed"));
     } finally {
       setAvatarUploading(false);
     }
@@ -95,9 +97,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
       const updated = await saveBranding({ avatar_media_uuid: null });
       setAvatarUrl("");
       onUpdated(updated);
-      toast.success("Аватар удалён");
+      toast.success(t("components.channelBranding.avatarRemoved"));
     } catch {
-      toast.error("Не удалось удалить аватар");
+      toast.error(t("components.channelBranding.avatarRemoveFailed"));
     } finally {
       setAvatarUploading(false);
     }
@@ -113,9 +115,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
       setBannerUrl(updated.bannerImage ?? media.url ?? "");
       setBrokenBanner(false);
       onUpdated(updated);
-      toast.success("Обложка канала обновлена");
+      toast.success(t("components.channelBranding.bannerUpdated"));
     } catch {
-      toast.error("Не удалось загрузить обложку");
+      toast.error(t("components.channelBranding.bannerUploadFailed"));
     } finally {
       setBannerUploading(false);
     }
@@ -128,9 +130,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
       const updated = await saveBranding({ banner_media_uuid: null });
       setBannerUrl("");
       onUpdated(updated);
-      toast.success("Обложка удалена");
+      toast.success(t("components.channelBranding.bannerRemoved"));
     } catch {
-      toast.error("Не удалось удалить обложку");
+      toast.error(t("components.channelBranding.bannerRemoveFailed"));
     } finally {
       setBannerUploading(false);
     }
@@ -142,7 +144,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     <>
       <div className="space-y-4">
         <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Аватар</div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelBranding.avatarLabel")}</div>
           <div className="mt-2 flex items-center gap-3">
             <Avatar
               className="h-16 w-16"
@@ -166,17 +168,17 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
                 disabled={avatarUploading}
                 onClick={() => avatarInputRef.current?.click()}
               >
-                <Camera size={14} /> {avatarUploading ? "Загрузка…" : "Изменить аватар"}
+                <Camera size={14} /> {avatarUploading ? t("components.channelBranding.uploading") : t("components.channelBranding.changeAvatar")}
               </Button>
               <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                JPG, PNG, WEBP · до 5 МБ · 480×480
+                {t("components.channelBranding.avatarHint")}
               </p>
             </div>
           </div>
         </div>
 
         <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Обложка</div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelBranding.bannerLabel")}</div>
           <div
             className="mt-2 overflow-hidden rounded-[10px]"
             style={{ background: showBanner ? "transparent" : channel.bannerColor, border: "1px solid var(--border)" }}
@@ -185,7 +187,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
               <img src={bannerUrl} alt="" className="h-24 w-full object-cover" onError={() => setBrokenBanner(true)} />
             ) : (
               <div className="grid h-24 place-items-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                Обложка не загружена
+                {t("components.channelBranding.bannerNotUploaded")}
               </div>
             )}
           </div>
@@ -199,10 +201,10 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
               disabled={bannerUploading}
               onClick={() => bannerInputRef.current?.click()}
             >
-              <Camera size={14} /> {bannerUploading ? "Загрузка…" : "Изменить обложку"}
+              <Camera size={14} /> {bannerUploading ? t("components.channelBranding.uploading") : t("components.channelBranding.changeBanner")}
             </Button>
             <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              JPG, PNG, WEBP · до 10 МБ · 1400×400
+              {t("components.channelBranding.bannerHint")}
             </p>
           </div>
         </div>
@@ -216,7 +218,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
         lockShape
         outputWidth={480}
         outputHeight={480}
-        title="Аватар канала"
+        title={t("components.channelBranding.avatarEditorTitle")}
         onCancel={() => setPendingAvatar(null)}
         onCropped={uploadAvatar}
         onDelete={avatarUrl ? removeAvatar : undefined}
@@ -229,7 +231,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
         lockShape
         outputWidth={1400}
         outputHeight={400}
-        title="Обложка канала"
+        title={t("components.channelBranding.bannerEditorTitle")}
         onCancel={() => setPendingBanner(null)}
         onCropped={uploadBanner}
         onDelete={bannerUrl ? removeBanner : undefined}

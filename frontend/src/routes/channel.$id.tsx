@@ -737,7 +737,7 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
       <PhotoEditorDialog
         open={editingPhotoIndex != null}
         src={editingPhotoIndex != null ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null) : null}
-        title="Редактирование фото"
+        title={t("pages.reviews.editPhoto")}
         onCancel={() => setEditingPhotoIndex(null)}
         onSave={(blob) => {
           if (editingPhotoIndex != null) replacePhoto(editingPhotoIndex, blob);

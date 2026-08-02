@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Save } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
 import { ChannelBrandingForm } from "@/components/channels/ChannelBrandingForm";
@@ -12,8 +13,6 @@ import {
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
-
-const OTHER_DIRECTION = "Другое";
 
 const EDITABLE_KINDS: ChannelKind[] = ["author", "expert", "brand", "shop"];
 
@@ -30,6 +29,8 @@ interface Props {
 }
 
 export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
+  const { t } = useTranslation();
+  const otherDirection = t("components.channelManage.otherDirection");
   const directions = usePostCategories();
   const directionNames = useMemo(() => directions.map((d) => d.name), [directions]);
 
@@ -37,7 +38,7 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
   const [description, setDescription] = useState(channel.description);
   const [kind, setKind] = useState<ChannelKind>(channel.kind);
   const [category, setCategory] = useState(
-    channel.category && !directionNames.includes(channel.category) ? OTHER_DIRECTION : channel.category,
+    channel.category && !directionNames.includes(channel.category) ? otherDirection : channel.category,
   );
   const [customCategory, setCustomCategory] = useState(
     channel.category && !directionNames.includes(channel.category) ? channel.category : "",
@@ -49,11 +50,11 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
     setDescription(channel.description);
     setKind(channel.kind);
     const inList = directionNames.includes(channel.category);
-    setCategory(inList ? channel.category : channel.category ? OTHER_DIRECTION : "");
+    setCategory(inList ? channel.category : channel.category ? otherDirection : "");
     setCustomCategory(inList ? "" : channel.category);
-  }, [channel, directionNames]);
+  }, [channel, directionNames, otherDirection]);
 
-  const resolvedCategory = category === OTHER_DIRECTION ? customCategory.trim() : category.trim();
+  const resolvedCategory = category === otherDirection ? customCategory.trim() : category.trim();
 
   const dirty =
     name.trim() !== channel.name
@@ -63,18 +64,18 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
 
   const save = async () => {
     if (!name.trim()) {
-      toast.error("Укажите название канала");
+      toast.error(t("components.channelManage.nameRequired"));
       return;
     }
-    if (category === OTHER_DIRECTION && !customCategory.trim()) {
-      toast.error("Укажите тематику канала");
+    if (category === otherDirection && !customCategory.trim()) {
+      toast.error(t("components.channelManage.themeRequired"));
       return;
     }
 
     setSaving(true);
     try {
       if (isDemoMode()) {
-        toast.success("Изменения сохранены (демо)");
+        toast.success(t("components.channelManage.savedDemo"));
         onUpdated({
           ...channel,
           name: name.trim(),
@@ -92,9 +93,9 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
         ...(channel.kind !== "official" ? { kind } : {}),
       });
       onUpdated(updated);
-      toast.success("Настройки канала сохранены");
+      toast.success(t("components.channelManage.saved"));
     } catch {
-      toast.error("Не удалось сохранить настройки");
+      toast.error(t("components.channelManage.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -104,17 +105,17 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
     <div className="space-y-5">
       <section className="space-y-4">
         <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
-          Оформление
+          {t("components.channelManage.sectionBranding")}
         </h3>
         <ChannelBrandingForm channel={channel} onUpdated={onUpdated} />
       </section>
 
       <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
         <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
-          Основное
+          {t("components.channelManage.sectionMain")}
         </h3>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Название</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.nameLabel")}</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -125,7 +126,7 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Описание</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.descriptionLabel")}</span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -137,29 +138,29 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Тематика</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.themeLabel")}</span>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
               style={inputStyle}
             >
-              <option value="">Выберите направление</option>
+              <option value="">{t("components.channelManage.selectDirection")}</option>
               {directions.map((d) => (
                 <option key={d.id} value={d.name}>{d.name}</option>
               ))}
-              <option value={OTHER_DIRECTION}>{OTHER_DIRECTION}</option>
+              <option value={otherDirection}>{otherDirection}</option>
             </select>
           </label>
 
-          {category === OTHER_DIRECTION && (
+          {category === otherDirection && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Уточните тематику</span>
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.customThemeLabel")}</span>
               <input
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
                 maxLength={120}
-                placeholder="Например: Стендовые модели"
+                placeholder={t("components.channelManage.customThemePlaceholder")}
                 className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
                 style={inputStyle}
               />
@@ -168,7 +169,7 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
 
           {channel.kind !== "official" ? (
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Тип канала</span>
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.channelTypeLabel")}</span>
               <select
                 value={kind}
                 onChange={(e) => setKind(e.target.value as ChannelKind)}
@@ -182,7 +183,7 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
             </label>
           ) : (
             <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              Тип: {kindLabel(channel.kind)} (официальный канал, изменение недоступно)
+              {t("components.channelManage.officialTypeLocked", { type: kindLabel(channel.kind) })}
             </p>
           )}
 
@@ -190,7 +191,7 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
             className="rounded-[10px] border p-3 text-[13px]"
             style={{ borderColor: "var(--border)", background: "var(--background-surface)", color: "var(--foreground-70)" }}
           >
-            Каналы на платформе публичные: их видят все пользователи. Настройка приватности пока недоступна.
+            {t("components.channelManage.publicNotice")}
           </div>
 
           <Button
@@ -200,16 +201,16 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
             className="w-full rounded-[12px] gap-2 sm:w-auto"
           >
             <Save size={16} />
-            {saving ? "Сохраняем…" : "Сохранить изменения"}
+            {saving ? t("components.channelManage.saving") : t("components.channelManage.saveChanges")}
           </Button>
       </section>
 
       <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
         <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
-          Опасная зона
+          {t("components.channelManage.sectionDanger")}
         </h3>
         <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          Удаление необратимо: канал исчезнет из каталога, подписчики потеряют доступ ко всем постам.
+          {t("components.channelManage.deleteWarning")}
         </p>
         <DeleteChannelDialog slug={channel.slug} name={channel.name} onDeleted={onDeleted} />
       </section>

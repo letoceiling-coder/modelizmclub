@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -2762,14 +2763,14 @@ function AnalyticsSection() {
 }
 
 /* ============ REVIEWS (videos) ============ */
-const VIDEO_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
-  published: { label: "Опубликован", variant: "success" },
-  processing: { label: "На модерации", variant: "warning" },
-  rejected: { label: "Отклонён", variant: "danger" },
-  scheduled: { label: "Запланирован", variant: "info" },
-};
-
 function ReviewsSection() {
+  const { t } = useTranslation();
+  const statusMetaMap = useMemo(() => ({
+    published: { label: t("pages.adminReviews.statusPublishedBadge"), variant: "success" as BadgeVariant },
+    processing: { label: t("pages.adminReviews.statusProcessingBadge"), variant: "warning" as BadgeVariant },
+    rejected: { label: t("pages.adminReviews.statusRejectedBadge"), variant: "danger" as BadgeVariant },
+    scheduled: { label: t("pages.adminReviews.statusScheduledBadge"), variant: "info" as BadgeVariant },
+  }), [t]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [rows, setRows] = useState<AdminVideoRow[]>([]);
@@ -2780,7 +2781,7 @@ function ReviewsSection() {
     setLoading(true);
     fetchAdminVideos({ status: status === "all" ? undefined : status, q: query || undefined })
       .then(setRows)
-      .catch(() => toast.error("Не удалось загрузить обзоры"))
+      .catch(() => toast.error(t("pages.adminReviews.loadFailed")))
       .finally(() => setLoading(false));
   };
 
@@ -2788,13 +2789,22 @@ function ReviewsSection() {
 
   const filtered = rows.filter((v) => !query || v.title.toLowerCase().includes(query.toLowerCase()));
 
+  const tableHeaders = [
+    t("pages.adminReviews.colTitle"),
+    t("pages.adminReviews.colAuthor"),
+    t("pages.adminReviews.colCategory"),
+    t("pages.adminReviews.colStatus"),
+    t("pages.adminReviews.colViews"),
+    t("pages.adminReviews.colActions"),
+  ];
+
   const approve = async (uuid: string) => {
     try {
       await approveModeration("videos", uuid);
-      toast.success("Обзор опубликован");
+      toast.success(t("pages.adminReviews.approved"));
       load();
     } catch {
-      toast.error("Не удалось одобрить");
+      toast.error(t("pages.adminReviews.approveFailed"));
     }
   };
 
@@ -2802,9 +2812,9 @@ function ReviewsSection() {
     try {
       await updateAdminVideo(uuid, { status: next });
       setRows((prev) => prev.map((r) => (r.uuid === uuid ? { ...r, status: next } : r)));
-      toast.success("Статус обновлён");
+      toast.success(t("pages.adminReviews.statusUpdated"));
     } catch {
-      toast.error("Не удалось обновить статус");
+      toast.error(t("pages.adminReviews.statusUpdateFailed"));
     }
   };
 
@@ -2813,76 +2823,80 @@ function ReviewsSection() {
     try {
       await updateAdminVideo(uuid, { isFeatured: on });
     } catch {
-      toast.error("Не удалось обновить");
+      toast.error(t("pages.adminReviews.updateFailed"));
       load();
     }
   };
 
   const remove = async (uuid: string) => {
-    if (!window.confirm("Удалить обзор?")) return;
+    if (!window.confirm(t("pages.adminReviews.deleteConfirm"))) return;
     try {
       await deleteAdminVideo(uuid);
       setRows((prev) => prev.filter((v) => v.uuid !== uuid));
-      toast.success("Обзор удалён");
+      toast.success(t("pages.adminReviews.deleted"));
     } catch {
-      toast.error("Не удалось удалить");
+      toast.error(t("pages.adminReviews.deleteFailed"));
       load();
     }
   };
 
   return (
     <div>
-      <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>+ Загрузить обзор</Link>}>Обзоры</H>
+      <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>{t("pages.adminReviews.uploadLink")}</Link>}>{t("pages.adminReviews.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по названию..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("pages.adminReviews.searchPlaceholder")} className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
-          <option value="all">Все статусы</option>
-          <option value="published">Опубликовано</option>
-          <option value="processing">На модерации</option>
-          <option value="scheduled">Запланировано</option>
-          <option value="rejected">Отклонено</option>
+          <option value="all">{t("pages.adminReviews.allStatuses")}</option>
+          <option value="published">{t("pages.adminReviews.statusPublished")}</option>
+          <option value="processing">{t("pages.adminReviews.statusProcessing")}</option>
+          <option value="scheduled">{t("pages.adminReviews.statusScheduled")}</option>
+          <option value="rejected">{t("pages.adminReviews.statusRejected")}</option>
         </select>
-        <button type="button" onClick={load} style={{ ...inputStyle, padding: "0 14px" }}>Обновить</button>
+        <button type="button" onClick={load} style={{ ...inputStyle, padding: "0 14px" }}>{t("pages.adminReviews.refresh")}</button>
       </div>
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table className="w-full" style={{ fontSize: "13px", minWidth: "760px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Название", "Автор", "Категория", "Статус", "Просмотры", "Действия"].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.loading")}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>Обзоров нет</td></tr>
+                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.empty")}</td></tr>
               ) : filtered.map((v) => {
-                const meta = statusMeta(VIDEO_STATUS_META, v.status);
+                const meta = statusMeta(statusMetaMap, v.status);
                 return (
                   <tr key={v.uuid} style={{ borderTop: "1px solid var(--border)" }}>
                     <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>
                       <div className="truncate max-w-[280px]">{v.title}</div>
-                      {v.scheduledAt && <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>Публикация: {new Date(v.scheduledAt).toLocaleString("ru-RU")}</div>}
+                      {v.scheduledAt && (
+                        <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                          {t("pages.adminReviews.scheduledAt", { date: new Date(v.scheduledAt).toLocaleString() })}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.author}</td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.category}</td>
                     <td style={{ padding: "10px 16px" }}><StatusBadge variant={meta.variant}>{meta.label}</StatusBadge></td>
-                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.views.toLocaleString("ru-RU")}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.views.toLocaleString()}</td>
                     <td style={{ padding: "10px 16px" }}>
                       <div className="flex flex-wrap items-center gap-[6px]">
                         {v.status === "processing" && (
-                          <IconBtn success onClick={() => approve(v.uuid)} title="Одобрить"><Check size={14} /></IconBtn>
+                          <IconBtn success onClick={() => approve(v.uuid)} title={t("pages.adminReviews.approve")}><Check size={14} /></IconBtn>
                         )}
-                        <IconBtn onClick={() => setPreview(v)} title="Просмотр"><Eye size={14} /></IconBtn>
-                        <Link to="/reviews/$id" params={{ id: v.uuid }} className="text-[12px]" style={{ color: "var(--accent)" }}>На сайте</Link>
+                        <IconBtn onClick={() => setPreview(v)} title={t("pages.adminReviews.preview")}><Eye size={14} /></IconBtn>
+                        <Link to="/reviews/$id" params={{ id: v.uuid }} className="text-[12px]" style={{ color: "var(--accent)" }}>{t("pages.adminReviews.onSite")}</Link>
                         <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-70)" }}>
                           <input type="checkbox" checked={v.isFeatured} onChange={(e) => toggleFeatured(v.uuid, e.target.checked)} style={{ accentColor: "var(--accent)" }} />
-                          Промо
+                          {t("pages.adminReviews.promo")}
                         </label>
-                        <IconBtn danger onClick={() => remove(v.uuid)} title="Удалить"><Trash2 size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => remove(v.uuid)} title={t("pages.adminReviews.delete")}><Trash2 size={14} /></IconBtn>
                       </div>
                     </td>
                   </tr>
@@ -2893,28 +2907,28 @@ function ReviewsSection() {
         </div>
       </div>
       {preview && (
-        <div role="dialog" aria-modal="true" aria-label="Просмотр обзора" onClick={() => setPreview(null)} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+        <div role="dialog" aria-modal="true" aria-label={t("pages.adminReviews.previewDialog")} onClick={() => setPreview(null)} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "min(720px, 100%)", maxHeight: "90vh", overflow: "auto", padding: "20px" }}>
             <div className="flex items-start justify-between gap-[12px]">
               <div>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 600, color: "var(--foreground)" }}>{preview.title}</h3>
                 <p style={{ marginTop: "6px", fontSize: "13px", color: "var(--foreground-50)" }}>{preview.author} · {preview.category}</p>
               </div>
-              <button type="button" onClick={() => setPreview(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>Закрыть</button>
+              <button type="button" onClick={() => setPreview(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>{t("pages.adminReviews.close")}</button>
             </div>
             {preview.videoUrl ? (
               <video src={preview.videoUrl} controls preload="metadata" playsInline poster={preview.posterUrl} style={{ marginTop: "16px", width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
             ) : preview.posterUrl ? (
               <img src={preview.posterUrl} alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
             ) : (
-              <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>Видео недоступно</p>
+              <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.videoUnavailable")}</p>
             )}
             <div className="flex flex-wrap gap-[8px]" style={{ marginTop: "20px" }}>
               {preview.status === "processing" && (
-                <button type="button" style={primaryBtn} onClick={() => { void approve(preview.uuid); setPreview(null); }}>Одобрить и опубликовать</button>
+                <button type="button" style={primaryBtn} onClick={() => { void approve(preview.uuid); setPreview(null); }}>{t("pages.adminReviews.approveAndPublish")}</button>
               )}
               {preview.status !== "published" && preview.status !== "processing" && (
-                <button type="button" style={primaryBtn} onClick={() => { void changeStatus(preview.uuid, "published"); setPreview(null); }}>Опубликовать</button>
+                <button type="button" style={primaryBtn} onClick={() => { void changeStatus(preview.uuid, "published"); setPreview(null); }}>{t("pages.adminReviews.publish")}</button>
               )}
             </div>
           </div>

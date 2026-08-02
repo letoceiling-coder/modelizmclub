@@ -151,7 +151,7 @@ function UploadPage() {
         <PhotoEditorDialog
           open={editingPoster}
           src={posterFile ?? posterUrl}
-          title="Редактирование обложки"
+          title={t("pages.reviews.editPoster")}
           onCancel={() => setEditingPoster(false)}
           onSave={(blob) => { replacePoster(blob); setEditingPoster(false); }}
         />
