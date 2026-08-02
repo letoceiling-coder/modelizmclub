@@ -1928,6 +1928,76 @@ export const en: TranslationSchema = {
         sat: "Sat",
         sun: "Sun"
       }
+    },
+    adminCommon: {
+      searchPlaceholder: "Search by title…",
+      allStatuses: "All statuses",
+      loading: "Loading…",
+      close: "Close",
+      colTitle: "Title",
+      colAuthor: "Author",
+      colCategory: "Category",
+      colStatus: "Status",
+      colActions: "Actions",
+      statusPublished: "Published",
+      statusPendingModeration: "In moderation",
+      statusRevision: "Needs revision",
+      statusRejected: "Rejected",
+      statusDraft: "Draft",
+      statusHidden: "Hidden",
+      statusArchived: "Archived",
+      actionApprove: "Approve",
+      actionPreview: "Preview",
+      actionDelete: "Delete",
+      approveAndPublish: "Approve and publish",
+      reject: "Reject",
+      statusUpdated: "Status updated",
+      statusUpdateFailed: "Could not update status",
+      deleted: "Deleted",
+      deleteFailed: "Could not delete"
+    },
+    adminContent: {
+      title: "Posts",
+      empty: "No posts",
+      loadFailed: "Could not load posts",
+      deleteConfirm: "Delete this post?",
+      previewDialog: "Post preview",
+      noMedia: "No media attached"
+    },
+    adminAnalytics: {
+      title: "Analytics",
+      statPlans: "Active plans",
+      statPromocodes: "Active promo codes",
+      chartPlaceholder: "Chart will be available after analytics is connected",
+      charts: {
+        dauMau: "DAU / MAU",
+        revenue: "Revenue by month",
+        listings: "Listings: created / sold",
+        topCategories: "Top categories by activity",
+        subscription: "Subscription conversion",
+        geo: "User geography"
+      }
+    },
+    adminSettings: {
+      title: "Settings",
+      platformTitle: "Platform system settings",
+      loadFailed: "Could not load settings",
+      saved: "Settings saved",
+      saveFailed: "Could not save settings",
+      save: "Save",
+      saving: "Saving…",
+      empty: "No settings yet",
+      systemManaged: "is managed by the system",
+      groups: {
+        feature: "Features",
+        general: "General",
+        marketing: "Marketing",
+        moderation: "Moderation",
+        design: "Design",
+        footer: "Footer",
+        feed: "Feed",
+        features: "Features"
+      }
     }
   }
 };

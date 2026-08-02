@@ -1129,16 +1129,6 @@ function IconBtn({ children, onClick, danger, success }: { children: React.React
 /* ============ CONTENT ============ */
 type BadgeVariant = "published" | "moderation" | "rejected" | "default";
 
-const POST_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
-  published: { label: "Опубликовано", variant: "published" },
-  pending_moderation: { label: "На модерации", variant: "moderation" },
-  revision: { label: "На доработке", variant: "moderation" },
-  rejected: { label: "Отклонено", variant: "rejected" },
-  draft: { label: "Черновик", variant: "default" },
-  hidden: { label: "Скрыто", variant: "default" },
-  archived: { label: "Архив", variant: "default" },
-};
-
 const LISTING_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
   published: { label: "Опубликовано", variant: "published" },
   pending_moderation: { label: "На модерации", variant: "moderation" },
@@ -1156,6 +1146,16 @@ function statusMeta(map: Record<string, { label: string; variant: BadgeVariant }
 }
 
 function ContentSection() {
+  const { t } = useTranslation();
+  const postStatusMeta = useMemo(() => ({
+    published: { label: t("pages.adminCommon.statusPublished"), variant: "published" as BadgeVariant },
+    pending_moderation: { label: t("pages.adminCommon.statusPendingModeration"), variant: "moderation" as BadgeVariant },
+    revision: { label: t("pages.adminCommon.statusRevision"), variant: "moderation" as BadgeVariant },
+    rejected: { label: t("pages.adminCommon.statusRejected"), variant: "rejected" as BadgeVariant },
+    draft: { label: t("pages.adminCommon.statusDraft"), variant: "default" as BadgeVariant },
+    hidden: { label: t("pages.adminCommon.statusHidden"), variant: "default" as BadgeVariant },
+    archived: { label: t("pages.adminCommon.statusArchived"), variant: "default" as BadgeVariant },
+  }), [t]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [rows, setRows] = useState<AdminPostRow[]>([]);
@@ -1166,9 +1166,9 @@ function ContentSection() {
     setLoading(true);
     fetchAdminPosts(status === "all" ? {} : { status })
       .then(setRows)
-      .catch(() => toast.error("Не удалось загрузить публикации"))
+      .catch(() => toast.error(t("pages.adminContent.loadFailed")))
       .finally(() => setLoading(false));
-  }, [status]);
+  }, [status, t]);
 
   const filtered = rows.filter((p) => !query || p.title.toLowerCase().includes(query.toLowerCase()));
 
@@ -1176,30 +1176,38 @@ function ContentSection() {
     try {
       await updateAdminPostStatus(uuid, next);
       setRows((prev) => prev.map((r) => (r.uuid === uuid ? { ...r, status: next } : r)));
-      toast.success("Статус обновлён");
-    } catch { toast.error("Не удалось обновить статус"); }
+      toast.success(t("pages.adminCommon.statusUpdated"));
+    } catch { toast.error(t("pages.adminCommon.statusUpdateFailed")); }
   };
   const remove = async (uuid: string) => {
-    if (!window.confirm("Удалить публикацию?")) return;
+    if (!window.confirm(t("pages.adminContent.deleteConfirm"))) return;
     try {
       await deleteAdminPost(uuid);
       setRows((prev) => prev.filter((r) => r.uuid !== uuid));
-      toast.success("Удалено");
-    } catch { toast.error("Не удалось удалить"); }
+      toast.success(t("pages.adminCommon.deleted"));
+    } catch { toast.error(t("pages.adminCommon.deleteFailed")); }
   };
+
+  const tableHeaders = [
+    t("pages.adminCommon.colTitle"),
+    t("pages.adminCommon.colAuthor"),
+    t("pages.adminCommon.colCategory"),
+    t("pages.adminCommon.colStatus"),
+    t("pages.adminCommon.colActions"),
+  ];
 
   return (
     <div>
-      <H>Публикации</H>
+      <H>{t("pages.adminContent.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по заголовку..." className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("pages.adminCommon.searchPlaceholder")} className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
-          <option value="all">Все статусы</option>
-          <option value="published">Опубликовано</option>
-          <option value="pending_moderation">На модерации</option>
-          <option value="rejected">Отклонено</option>
-          <option value="hidden">Скрыто</option>
-          <option value="draft">Черновик</option>
+          <option value="all">{t("pages.adminCommon.allStatuses")}</option>
+          <option value="published">{t("pages.adminCommon.statusPublished")}</option>
+          <option value="pending_moderation">{t("pages.adminCommon.statusPendingModeration")}</option>
+          <option value="rejected">{t("pages.adminCommon.statusRejected")}</option>
+          <option value="hidden">{t("pages.adminCommon.statusHidden")}</option>
+          <option value="draft">{t("pages.adminCommon.statusDraft")}</option>
         </select>
       </div>
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
@@ -1207,18 +1215,18 @@ function ContentSection() {
           <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Заголовок", "Автор", "Категория", "Статус", "Действия"].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+                <tr><td colSpan={5} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: "16px", color: "var(--foreground-50)" }}>Публикаций нет</td></tr>
+                <tr><td colSpan={5} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminContent.empty")}</td></tr>
               ) : filtered.map((p) => {
-                const meta = statusMeta(POST_STATUS_META, p.status);
+                const meta = statusMeta(postStatusMeta, p.status);
                 return (
                   <tr key={p.uuid} style={{ borderTop: "1px solid var(--border)" }}>
                     <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500 }}>{p.title}</td>
@@ -1229,9 +1237,9 @@ function ContentSection() {
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <div className="flex gap-[6px]">
-                        <IconBtn success onClick={() => changeStatus(p.uuid, "published")} title="Одобрить"><Check size={14} /></IconBtn>
-                        <IconBtn onClick={() => setPreview(p)} title="Просмотр"><Eye size={14} /></IconBtn>
-                        <IconBtn danger onClick={() => remove(p.uuid)} title="Удалить"><Trash2 size={14} /></IconBtn>
+                        <IconBtn success onClick={() => changeStatus(p.uuid, "published")} title={t("pages.adminCommon.actionApprove")}><Check size={14} /></IconBtn>
+                        <IconBtn onClick={() => setPreview(p)} title={t("pages.adminCommon.actionPreview")}><Eye size={14} /></IconBtn>
+                        <IconBtn danger onClick={() => remove(p.uuid)} title={t("pages.adminCommon.actionDelete")}><Trash2 size={14} /></IconBtn>
                       </div>
                     </td>
                   </tr>
@@ -1245,7 +1253,7 @@ function ContentSection() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Просмотр публикации"
+          aria-label={t("pages.adminContent.previewDialog")}
           onClick={() => setPreview(null)}
           style={{
             position: "fixed",
@@ -1278,7 +1286,7 @@ function ContentSection() {
                 </p>
               </div>
               <button type="button" onClick={() => setPreview(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>
-                Закрыть
+                {t("pages.adminCommon.close")}
               </button>
             </div>
             {preview.body && (
@@ -1301,18 +1309,18 @@ function ContentSection() {
                 style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }}
               />
             ) : (
-              <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>Медиа не прикреплено</p>
+              <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminContent.noMedia")}</p>
             )}
             <div className="flex flex-wrap gap-[8px]" style={{ marginTop: "20px" }}>
               <button type="button" style={primaryBtn} onClick={() => { void changeStatus(preview.uuid, "published"); setPreview(null); }}>
-                Одобрить и опубликовать
+                {t("pages.adminCommon.approveAndPublish")}
               </button>
               <button
                 type="button"
                 style={{ ...inputStyle, height: "40px", padding: "0 16px", fontWeight: 600 }}
                 onClick={() => { void changeStatus(preview.uuid, "rejected"); setPreview(null); }}
               >
-                Отклонить
+                {t("pages.adminCommon.reject")}
               </button>
             </div>
           </div>
@@ -2731,31 +2739,57 @@ function NotificationsSection() {
 
 /* ============ ANALYTICS ============ */
 function AnalyticsSection() {
-  const charts = [
-    "DAU / MAU (Daily/Monthly Active Users)",
-    "Доход по месяцам",
-    "Объявления: создано / продано",
-    "Топ категорий по активности",
-    "Конверсия в подписку",
-    "География пользователей",
+  const { t } = useTranslation();
+  const [data, setData] = useState<Awaited<ReturnType<typeof fetchDashboard>> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchDashboard()
+      .then((d) => active && setData(d))
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const chartKeys = ["dauMau", "revenue", "listings", "topCategories", "subscription", "geo"] as const;
+  const kpiStats = [
+    { v: (data?.usersTotal ?? 0).toLocaleString("ru"), l: t("pages.adminDashboard.statUsers") },
+    { v: (data?.postsTotal ?? 0).toLocaleString("ru"), l: t("pages.adminDashboard.statPosts") },
+    { v: String(data?.moderationPending ?? 0), l: t("pages.adminDashboard.statModeration") },
+    { v: String(data?.reportsPending ?? 0), l: t("pages.adminDashboard.statReports") },
+    { v: (data?.plansActive ?? 0).toLocaleString("ru"), l: t("pages.adminAnalytics.statPlans") },
+    { v: (data?.promocodesActive ?? 0).toLocaleString("ru"), l: t("pages.adminAnalytics.statPromocodes") },
   ];
+
   return (
     <div>
-      <H>Аналитика</H>
+      <H>{t("pages.adminAnalytics.title")}</H>
+      <motion.div
+        initial="hidden" animate="visible"
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
+        style={{ gap: "12px", marginBottom: "20px" }}
+      >
+        {kpiStats.map((s, i) => (
+          <motion.div key={i} variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }} style={{ ...card, padding: "14px" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "22px", color: "var(--foreground)" }}>{s.v}</div>
+            <div style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "0.4px", marginTop: "4px" }}>{s.l}</div>
+          </motion.div>
+        ))}
+      </motion.div>
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
-        {charts.map((c, i) => (
+        {chartKeys.map((key, i) => (
           <motion.div
-            key={i}
+            key={key}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: i * 0.05 }}
             style={{ ...card, padding: "20px" }}
           >
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{c}</div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{t(`pages.adminAnalytics.charts.${key}`)}</div>
             <div style={{ height: "180px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
               <BarChart3 size={32} style={{ color: "var(--foreground-15)" }} />
               <div style={{ fontSize: "13px", color: "var(--foreground-30)", textAlign: "center", maxWidth: "240px" }}>
-                График будет доступен после подключения аналитики
+                {t("pages.adminAnalytics.chartPlaceholder")}
               </div>
             </div>
           </motion.div>
@@ -3219,6 +3253,7 @@ function isEnabledShape(v: unknown): v is { enabled: boolean } {
 }
 
 function SettingsSection() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<AdminSetting[]>([]);
   const [drafts, setDrafts] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
@@ -3234,7 +3269,7 @@ function SettingsSection() {
         }
         setDrafts(d);
       })
-      .catch(() => toast.error("Не удалось загрузить настройки"))
+      .catch(() => toast.error(t("pages.adminSettings.loadFailed")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -3261,9 +3296,9 @@ function SettingsSection() {
       for (const s of updated) d[s.key] = structuredClone(s.value);
       setDrafts(d);
       await loadFeatureFlagsFromServer();
-      toast.success("Настройки сохранены");
+      toast.success(t("pages.adminSettings.saved"));
     } catch {
-      toast.error("Не удалось сохранить настройки");
+      toast.error(t("pages.adminSettings.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -3338,7 +3373,7 @@ function SettingsSection() {
     // Nested structures are system-managed — never expose raw JSON.
     return (
       <p key={field} style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
-        «{label}» настраивается системой
+        «{label}» {t("pages.adminSettings.systemManaged")}
       </p>
     );
   };
@@ -3402,7 +3437,7 @@ function SettingsSection() {
     // Arrays / null / anything exotic — system-managed, no raw JSON editing.
     return (
       <p key={s.key} style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
-        «{label}» настраивается системой
+        «{label}» {t("pages.adminSettings.systemManaged")}
       </p>
     );
   };
@@ -3531,7 +3566,7 @@ function SettingsSection() {
 
   return (
     <div>
-      <H>Настройки</H>
+      <H>{t("pages.adminSettings.title")}</H>
 
       {/* Client-only feature flags — reviews preview for this browser only. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
@@ -3665,19 +3700,19 @@ function SettingsSection() {
 
       <div style={{ ...card, padding: "24px", maxWidth: "640px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "16px" }}>
-          Системные настройки платформы
+          {t("pages.adminSettings.platformTitle")}
         </h4>
 
         {loading ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
         ) : settings.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Настроек пока нет</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminSettings.empty")}</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {groups.map(([group, rows]) => (
               <div key={group}>
                 <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--foreground-50)", marginBottom: "10px" }}>
-                  {SETTING_GROUP_LABELS[group] ?? group}
+                  {t(`pages.adminSettings.groups.${group}`, { defaultValue: SETTING_GROUP_LABELS[group] ?? group })}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {rows.map(renderSetting)}
@@ -3692,7 +3727,7 @@ function SettingsSection() {
           disabled={saving || loading}
           style={{ ...primaryBtn, height: "44px", padding: "0 32px", fontSize: "14px", marginTop: "20px", opacity: saving || loading ? 0.7 : 1 }}
         >
-          {saving ? "Сохраняем…" : "Сохранить"}
+          {saving ? t("pages.adminSettings.saving") : t("pages.adminSettings.save")}
         </button>
       </div>
     </div>

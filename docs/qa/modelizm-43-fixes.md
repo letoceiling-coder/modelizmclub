@@ -73,7 +73,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 33 | №23 | `/admin` | Admin metadata | P2 | code review | table lacked duration/engagement/date columns | VideoResource | admin reviews table + `AdminVideoRow` | — | build pass | pending | pending | FIXED |
 | 34 | №23 | `/admin` | Filters/search | P2 | code review | search was client-only; API q unused on typing | Admin index API | ReviewsSection server q on Enter/refresh | — | build pass | pending | pending | FIXED |
 | 35 | №23 | `/admin` | Bulk actions | P2 | code review | no bulk select on reviews table | — | ReviewsSection checkboxes + bulk bar | — | build pass | pending | pending | FIXED |
-| 36 | №23 | `/admin` | Stats | P3 | — | TBD: stats not shown / mock | analytics events | admin drawer | — | — | — | — | TODO |
+| 36 | №23 | `/admin` | Stats | P3 | code review | analytics showed only mock charts | fetchDashboard | AnalyticsSection KPI row + chart placeholders | — | build pass | pending | pending | FIXED |
 | 37 | №23 | `/admin` | Audit/errors | P2 | code review | no media check in preview | — | preview modal media status + stats | — | build pass | pending | pending | FIXED |
 | 38 | №23 | `/admin` | Media mgmt | P2 | code review | no hide/replace actions | status API | preview hide + replace link | — | build pass | pending | pending | FIXED |
 | 39 | №24 | `/admin` | Review categories CRUD | P1 | yes | categories hardcoded / no admin CRUD | `AdminVideoCategoryController` | admin Categories «Обзоры» | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin shell/dashboard + calls/messenger | — | `adminShell`, `adminDashboard`, reviews bulk | — | build pass | pending | pending | IN_PROGRESS |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin content/analytics/settings chrome | — | `adminCommon`, `adminContent`, `adminAnalytics`, `adminSettings` | — | build pass | pending | pending | IN_PROGRESS |
 
 ---
 
