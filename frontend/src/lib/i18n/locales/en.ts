@@ -674,7 +674,8 @@ export const en: TranslationSchema = {
       allChannels: "Все каналы",
       retry: "Повторить",
       backHome: "← На главную",
-      info: "Информация"
+      info: "Информация",
+      membersNew: "Новое сообщество"
     },
     feed: {
       metaTitle: "Лента — МоДелизМ",
