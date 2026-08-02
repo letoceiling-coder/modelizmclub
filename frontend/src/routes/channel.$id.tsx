@@ -1,14 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban } from "lucide-react";
+import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  useChannel, useChannelPosts, setChannelSubscription, createChannelPost, isChannelOwner,
+  useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner,
   formatCount, formatDate,
   type Channel, type ChannelPost, type ChannelPostMediaItem, type PostStatus, type PostKind, type ChannelKind,
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -335,7 +336,7 @@ function ChannelPage() {
             ) : (
               <ul className="space-y-3">
                 {list.map((p: ChannelPost) => (
-                  <PostItem key={p.id} post={p} isOwner={isOwner} />
+                  <PostItem key={p.id} post={p} isOwner={isOwner} channelSlug={channel.slug} onDeleted={reloadPosts} />
                 ))}
               </ul>
             )}
@@ -523,9 +524,35 @@ function ChannelPostMedia({ post }: { post: ChannelPost }) {
   );
 }
 
-function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
+function PostItem({
+  post,
+  isOwner,
+  channelSlug,
+  onDeleted,
+}: {
+  post: ChannelPost;
+  isOwner: boolean;
+  channelSlug: string;
+  onDeleted: () => void;
+}) {
   const { t } = useTranslation();
   const s = postStatusMeta(t)[post.status];
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm(t("pages.channelDetail.deletePostConfirm"))) return;
+    setDeleting(true);
+    try {
+      await deleteChannelPost(channelSlug, post.id);
+      toast.success(t("pages.channelDetail.deletePostSuccess"));
+      onDeleted();
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, t("pages.channelDetail.deletePostFailed")));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <li
       className="p-4"
@@ -546,6 +573,24 @@ function PostItem({ post, isOwner }: { post: ChannelPost; isOwner: boolean }) {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          {isOwner && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              aria-label={t("pages.channelDetail.deletePost")}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity disabled:opacity-50"
+              style={{
+                background: "rgba(239,68,68,0.08)",
+                color: "rgb(185,28,28)",
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid rgba(239,68,68,0.2)",
+              }}
+            >
+              <Trash2 size={11} /> {t("pages.channelDetail.deletePost")}
+            </button>
+          )}
           {post.kind && (
             <span
               className="inline-flex items-center gap-1 text-[11px] font-semibold"

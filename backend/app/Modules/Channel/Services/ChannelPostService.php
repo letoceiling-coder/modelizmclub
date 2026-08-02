@@ -11,6 +11,7 @@ use App\Models\PostCategory;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Modules\Channel\Support\ChannelPostMediaSync;
 use Modules\Feed\Services\PostService;
 
@@ -100,6 +101,36 @@ class ChannelPostService
             $this->updateQueue($channelPost, 'rejected');
 
             return $channelPost->fresh(['author.profile', 'channel', 'media.media', 'feedPost']);
+        });
+    }
+
+    public function delete(Channel $channel, ChannelPost $channelPost, User $user): void
+    {
+        if (! $channel->isOwnedBy($user)) {
+            throw ValidationException::withMessages([
+                'post' => ['Удалить пост может только владелец канала.'],
+            ]);
+        }
+
+        if ((int) $channelPost->channel_id !== (int) $channel->id) {
+            throw ValidationException::withMessages([
+                'post' => ['Пост не найден.'],
+            ]);
+        }
+
+        DB::transaction(function () use ($channelPost): void {
+            $channelPost->loadMissing('feedPost');
+
+            ModerationQueue::query()
+                ->where('moderatable_type', ChannelPost::class)
+                ->where('moderatable_id', $channelPost->id)
+                ->delete();
+
+            if ($channelPost->feedPost) {
+                $channelPost->feedPost->delete();
+            }
+
+            $channelPost->delete();
         });
     }
 

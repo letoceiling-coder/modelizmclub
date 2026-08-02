@@ -283,6 +283,13 @@ export async function setChannelSubscription(slug: string, subscribe: boolean): 
   await api(`/channels/${slug}/subscribe`, { method: subscribe ? "POST" : "DELETE" });
 }
 
+export async function deleteChannelPost(channelSlug: string, postId: string): Promise<void> {
+  if (isDemoMode()) {
+    return;
+  }
+  await api(`/channels/${channelSlug}/posts/${postId}`, { method: "DELETE" });
+}
+
 export async function createChannelPost(input: {
   channelSlug: string;
   text: string;

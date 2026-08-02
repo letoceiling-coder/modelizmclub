@@ -45,7 +45,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
 | 21 | №17 | `/channels` | Channel owner UI | P2 | — | TBD: owner actions inline, not in ⋮ menu | permissions | channels list card | — | — | — | — | TODO |
-| 22 | №18 | `/channel/*` | Delete post | P1 | — | TBD: no delete for channel owner | Channel post policy | `channel.$id`, post menu | — | — | — | — | TODO |
+| 22 | №18 | `/channel/*` | Delete post | P1 | FIXED | no DELETE route or owner UI for channel posts | `ChannelPostService::delete`, `DeleteChannelPostController` | `channel.$id` PostItem, `channels.ts` | — | ChannelPostDeleteTest | pending | pending | FIXED |
 | 23 | №20 | `/channel/*`, feed | Media carousel | P1 | — | TBD: video+photos stacked, not carousel | — | `PostCard` / channel post view | — | — | — | — | TODO |
 | 24 | №30 | `/channels` | Show all | P2 | — | TBD: «Показать все» expands vertical list | — | channels popular block | — | — | — | — | TODO |
 
