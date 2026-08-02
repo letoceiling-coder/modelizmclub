@@ -260,8 +260,8 @@ function NotificationsPage() {
   return (
     <AppLayout footer>
       <div className="mx-auto w-full max-w-[640px] px-[8px] py-[16px]">
-        <div className="mb-[16px] flex items-center justify-between gap-[8px]">
-          <div className="flex items-center gap-[10px]">
+        <div className="mb-[16px] flex flex-col gap-[10px] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-[10px]">
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>
               {t("pages.notifications.title")}
             </h1>
@@ -275,7 +275,7 @@ function NotificationsPage() {
             )}
           </div>
           {items.length > 0 && (
-            <div className="flex shrink-0 items-center gap-[4px]">
+            <div className="flex flex-wrap items-center gap-[4px] sm:justify-end">
               {unread > 0 && (
                 <Button
                   variant="ghost"
@@ -283,8 +283,10 @@ function NotificationsPage() {
                   onClick={markAll}
                   className="gap-[6px] rounded-[8px] text-[13px]"
                   style={{ color: "var(--accent)" }}
+                  aria-label={t("pages.notifications.markAllRead")}
                 >
-                  <CheckCheck size={15} /> {t("pages.notifications.markAllRead")}
+                  <CheckCheck size={15} />
+                  <span className="hidden min-[360px]:inline">{t("pages.notifications.markAllRead")}</span>
                 </Button>
               )}
               <Button
@@ -293,8 +295,10 @@ function NotificationsPage() {
                 onClick={clearAll}
                 className="gap-[6px] rounded-[8px] text-[13px]"
                 style={{ color: "var(--foreground-50)" }}
+                aria-label={t("pages.notifications.clearAll")}
               >
-                <Trash2 size={15} /> {t("pages.notifications.clearAll")}
+                <Trash2 size={15} />
+                <span className="hidden min-[360px]:inline">{t("pages.notifications.clearAll")}</span>
               </Button>
             </div>
           )}

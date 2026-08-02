@@ -195,16 +195,19 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
           </h3>
 
           {/* Meta row */}
-          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+          <div
+            className={compact ? "flex flex-col items-start gap-[4px]" : "flex items-center justify-between"}
+            style={{ marginBottom: 12 }}
+          >
             <span
-              className="inline-flex items-center gap-[4px] text-[13px]"
+              className="inline-flex min-w-0 max-w-full items-center gap-[4px] truncate text-[13px]"
               style={{ color: "var(--foreground-50)" }}
             >
-              <MapPin size={14} />
+              <MapPin size={14} className="shrink-0" />
               {ad.city}
             </span>
             <span
-              className="inline-flex items-center gap-[4px] text-[12px]"
+              className="inline-flex shrink-0 items-center gap-[4px] whitespace-nowrap text-[12px]"
               style={{ color: "var(--foreground-30)" }}
             >
               <Clock size={14} />

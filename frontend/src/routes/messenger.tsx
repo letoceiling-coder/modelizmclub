@@ -133,8 +133,8 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
   );
 }
 
-const IMAGE_MAX_W = 280;
-const IMAGE_MAX_H = 320;
+const IMAGE_MAX_W = 240;
+const IMAGE_MAX_H = 240;
 
 function fitImageSize(naturalW: number, naturalH: number): { w: number; h: number } {
   if (naturalW <= 0 || naturalH <= 0) {
@@ -1269,17 +1269,17 @@ function MessengerPage() {
                   <ChatAvatar src={partner!.avatar} name={partner!.name} size={40} />
                   <div className="min-w-0">
                     <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={partner!.name}>{partner!.name}</div>
-                    <div className="flex items-center gap-[6px] text-[12px]">
+                    <div className="flex min-w-0 items-center gap-[6px] truncate text-[12px]">
                       {(() => {
                         void presenceTick;
                         const { online, text } = presenceLabel(partner!.id, onlineSet, partner!);
                         return online ? (
                           <>
-                            <span className="h-[8px] w-[8px] rounded-full" style={{ background: "var(--success)" }} />
-                            <span style={{ color: "var(--success)" }}>{text}</span>
+                            <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ background: "var(--success)" }} />
+                            <span className="truncate whitespace-nowrap" style={{ color: "var(--success)" }}>{text}</span>
                           </>
                         ) : (
-                          <span style={{ color: "var(--foreground-50)" }}>{text}</span>
+                          <span className="truncate whitespace-nowrap" style={{ color: "var(--foreground-50)" }}>{text}</span>
                         );
                       })()}
                     </div>

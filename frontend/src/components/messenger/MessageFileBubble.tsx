@@ -1,22 +1,27 @@
 import { FileText } from "lucide-react";
 import type { MessageFile } from "@/lib/mock";
+import { useTranslation } from "react-i18next";
+
+const MEDIA_MAX = 240;
 
 export function MessageFileBubble({ file, isMe }: { file: MessageFile; isMe: boolean }) {
+  const { t } = useTranslation();
+
   if (file.kind === "video") {
     return (
       <video
         src={file.url}
         controls
         className="mb-[6px] w-full object-cover"
-        style={{ borderRadius: 12, maxWidth: 280, maxHeight: 320 }}
+        style={{ borderRadius: 12, maxWidth: MEDIA_MAX, maxHeight: MEDIA_MAX }}
       />
     );
   }
 
   const sizeLabel =
     file.size >= 1024 * 1024
-      ? `${(file.size / (1024 * 1024)).toFixed(1)} МБ`
-      : `${Math.max(1, Math.round(file.size / 1024))} КБ`;
+      ? t("components.messageFileBubble.sizeMb", { size: (file.size / (1024 * 1024)).toFixed(1) })
+      : t("components.messageFileBubble.sizeKb", { size: String(Math.max(1, Math.round(file.size / 1024))) });
 
   return (
     <a
@@ -26,7 +31,7 @@ export function MessageFileBubble({ file, isMe }: { file: MessageFile; isMe: boo
       style={{
         borderRadius: 12,
         background: isMe ? "rgba(255,255,255,0.14)" : "var(--background-elevated)",
-        maxWidth: 260,
+        maxWidth: MEDIA_MAX,
       }}
     >
       <div
@@ -46,7 +51,7 @@ export function MessageFileBubble({ file, isMe }: { file: MessageFile; isMe: boo
           className="text-[11px]"
           style={{ color: isMe ? "rgba(255,255,255,0.7)" : "var(--foreground-50)" }}
         >
-          {sizeLabel} · Скачать
+          {sizeLabel} · {t("components.messageFileBubble.download")}
         </div>
       </div>
     </a>

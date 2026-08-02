@@ -3,9 +3,10 @@ import { Play, Pause, ChevronDown, FileText, Loader2 } from "lucide-react";
 import type { VoiceMessage } from "@/lib/mock";
 import { transcribeVoiceMedia } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
+import { useTranslation } from "react-i18next";
 
 const EXPAND_MS = 280;
-const BUBBLE_WIDTH = 280;
+const BUBBLE_WIDTH = 240;
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -31,6 +32,7 @@ export function VoiceBubble({
   isMe: boolean;
   onResize?: () => void;
 }) {
+  const { t } = useTranslation();
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -109,11 +111,11 @@ export function VoiceBubble({
     };
   }, [expanded, transcript, voice.mediaUuid, transcriptStatus]);
 
-  const unavailableText = "Расшифровка недоступна — распознавание речи подключается на сервере.";
-  const demoText = "Тестовая расшифровка голосового сообщения.";
+  const unavailableText = t("components.voiceBubble.transcriptUnavailable");
+  const demoText = t("components.voiceBubble.demoTranscript");
   const showSkeleton = expanded && loadingTranscript;
   const transcriptBody = transcript
-    || (transcriptStatus === "empty" ? "Речь не распознана." : "")
+    || (transcriptStatus === "empty" ? t("components.voiceBubble.speechNotRecognized") : "")
     || (transcriptStatus === "unavailable" ? unavailableText : "")
     || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
     || (expanded && isDemoMode() ? demoText : "");
@@ -225,7 +227,7 @@ export function VoiceBubble({
           onClick={toggle}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full transition-transform active:scale-95"
           style={{ background: buttonBg, color: fg }}
-          aria-label={playing ? "Пауза" : "Воспроизвести"}
+          aria-label={playing ? t("components.voiceBubble.pause") : t("components.voiceBubble.play")}
         >
           {playing ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: 2 }} />}
         </button>
@@ -247,7 +249,7 @@ export function VoiceBubble({
           </div>
           <div className="flex items-center justify-between font-mono text-[10px]" style={{ color: subtle }}>
             <span>{fmt(playing || progress > 0 ? voice.duration * progress : voice.duration)}</span>
-            <span>голосовое</span>
+            <span>{t("components.voiceBubble.voiceLabel")}</span>
           </div>
         </div>
       </div>
@@ -262,7 +264,7 @@ export function VoiceBubble({
         aria-expanded={expanded}
       >
         <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
-        <span className="flex-1 text-[12px] font-medium">{expanded ? "Скрыть текст" : "Показать текст"}</span>
+        <span className="flex-1 text-[12px] font-medium">{expanded ? t("components.voiceBubble.hideText") : t("components.voiceBubble.showText")}</span>
         {showSkeleton && <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />}
         <ChevronDown
           size={12}

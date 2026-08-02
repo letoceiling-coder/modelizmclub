@@ -3,28 +3,33 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff, SwitchCamera, Volume2, VolumeX } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { useTranslation } from "react-i18next";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus, type CallResult } from "@/lib/calls";
 import { GUEST_USER, useStore, selectors } from "@/lib/store";
 
-const STATUS_LABEL: Record<CallStatus, string> = {
-  ringing: "Вызов…",
-  connecting: "Соединение…",
-  connected: "В разговоре",
-  reconnecting: "Переподключение…",
-  ended: "Звонок завершён",
-};
-
-const RESULT_LABEL: Record<CallResult, string> = {
-  rejected: "Вызов отклонён",
-  busy: "Абонент занят",
-  missed: "Нет ответа",
-  ended: "Звонок завершён",
-  answered: "Завершён",
-};
+function useCallLabels() {
+  const { t } = useTranslation();
+  const statusLabel: Record<CallStatus, string> = {
+    ringing: t("components.callScreen.statusRinging"),
+    connecting: t("components.callScreen.statusConnecting"),
+    connected: t("components.callScreen.statusConnected"),
+    reconnecting: t("components.callScreen.statusReconnecting"),
+    ended: t("components.callScreen.statusEnded"),
+  };
+  const resultLabel: Record<CallResult, string> = {
+    rejected: t("components.callScreen.resultRejected"),
+    busy: t("components.callScreen.resultBusy"),
+    missed: t("components.callScreen.resultMissed"),
+    ended: t("components.callScreen.statusEnded"),
+    answered: t("components.callScreen.resultAnswered"),
+  };
+  return { t, statusLabel, resultLabel };
+}
 
 export function CallScreen() {
   const active = useCalls((s) => s.active);
   const me = useStore(selectors.currentUser);
+  const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   const [mounted, setMounted] = useState(false);
 
@@ -55,22 +60,26 @@ export function CallScreen() {
     const unsub = onCallEvent({
       onEnded: (rec) => {
         if (rec.direction === "incoming" && rec.result === "ended") {
-          toast("Вы отклонили звонок");
+          toast(t("components.callScreen.toastDeclinedSelf"));
         } else if (rec.result === "missed") {
-          toast.error(rec.direction === "outgoing" ? `Нет ответа — ${rec.peerName}` : `Пропущенный звонок — ${rec.peerName}`);
+          toast.error(
+            rec.direction === "outgoing"
+              ? t("components.callScreen.toastNoAnswer", { name: rec.peerName })
+              : t("components.callScreen.toastMissed", { name: rec.peerName }),
+          );
         } else if (rec.result === "rejected") {
-          toast.error(`Звонок отклонён — ${rec.peerName}`);
+          toast.error(t("components.callScreen.toastRejected", { name: rec.peerName }));
         } else if (rec.result === "busy") {
-          toast.error(`Занято — ${rec.peerName}`);
+          toast.error(t("components.callScreen.toastBusy", { name: rec.peerName }));
         } else if (rec.result === "answered") {
-          toast.success(`Звонок завершён · ${formatCallDuration(rec.durationSec)}`);
+          toast.success(t("components.callScreen.toastAnsweredEnded", { duration: formatCallDuration(rec.durationSec) }));
         } else {
-          toast("Звонок завершён");
+          toast(t("components.callScreen.toastEnded"));
         }
       },
     });
     return unsub;
-  }, []);
+  }, [t]);
 
   if (!mounted) return null;
 
@@ -94,7 +103,7 @@ export function CallScreen() {
           }}
           role="dialog"
           aria-modal="true"
-          aria-label="Экран звонка"
+          aria-label={t("components.callScreen.ariaLabel")}
         >
           <VideoLayer />
           <RemoteAudio />
@@ -192,14 +201,15 @@ function RemoteAudio() {
 
 function CallBody({ elapsed }: { elapsed: number }) {
   const active = useCalls((s) => s.active);
+  const { t, statusLabel, resultLabel } = useCallLabels();
   if (!active) return null;
   const isVideoConnected = active.media === "video" && active.status === "connected";
   const statusText =
     active.status === "connected"
       ? formatCallDuration(elapsed)
       : active.status === "ended" && active.result
-        ? RESULT_LABEL[active.result] ?? STATUS_LABEL.ended
-        : STATUS_LABEL[active.status];
+        ? resultLabel[active.result] ?? statusLabel.ended
+        : statusLabel[active.status];
   const incomingRinging = active.direction === "incoming" && active.status === "ringing";
 
   if (isVideoConnected) {
@@ -219,8 +229,8 @@ function CallBody({ elapsed }: { elapsed: number }) {
       className={`relative z-[2] flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center ${incomingRinging ? "pb-2" : ""}`}
     >
       <div className="text-[12px] uppercase tracking-[0.18em]" style={{ color: "var(--foreground-50)" }}>
-        {active.direction === "outgoing" ? "Исходящий" : "Входящий"}
-        {active.media === "video" ? " · видео" : ""}
+        {active.direction === "outgoing" ? t("components.callScreen.directionOutgoing") : t("components.callScreen.directionIncoming")}
+        {active.media === "video" ? t("components.callScreen.videoSuffix") : ""}
       </div>
 
       <motion.div
@@ -254,6 +264,7 @@ function CallControls() {
   const cameraOff = useCalls((s) => s.cameraOff);
   const speakerOn = useCalls((s) => s.speakerOn);
   const canSwitchCamera = useCalls((s) => s.canSwitchCamera);
+  const { t } = useTranslation();
   if (!active) return null;
 
   const incomingRinging = active.direction === "incoming" && active.status === "ringing";
@@ -270,25 +281,25 @@ function CallControls() {
             <button
               type="button"
               onClick={() => void calls.decline()}
-              aria-label="Отклонить"
+              aria-label={t("components.callScreen.decline")}
               className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
               style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
             >
               <PhoneOff size={28} />
             </button>
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Отклонить</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.callScreen.decline")}</span>
           </div>
           <div className="flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={() => void calls.accept()}
-              aria-label="Принять"
+              aria-label={t("components.callScreen.accept")}
               className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
               style={{ background: "var(--success, #22c55e)", color: "white", boxShadow: "0 12px 30px -6px rgba(34,197,94,0.55)" }}
             >
               <Phone size={28} />
             </button>
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Принять</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.callScreen.accept")}</span>
           </div>
         </div>
       </div>
@@ -304,14 +315,14 @@ function CallControls() {
     >
       <div className="flex items-center justify-center gap-3 flex-wrap">
         <ToggleBtn
-          label={muted ? "Включить микрофон" : "Выключить микрофон"}
+          label={muted ? t("components.callScreen.micOn") : t("components.callScreen.micOff")}
           icon={muted ? MicOff : Mic}
           active={muted}
           onClick={() => calls.toggleMute()}
           disabled={ended}
         />
         <ToggleBtn
-          label={speakerOn ? "Выключить звук собеседника" : "Включить звук собеседника"}
+          label={speakerOn ? t("components.callScreen.speakerOff") : t("components.callScreen.speakerOn")}
           icon={speakerOn ? Volume2 : VolumeX}
           active={!speakerOn}
           onClick={() => void calls.toggleSpeaker()}
@@ -319,7 +330,7 @@ function CallControls() {
         />
         {isVideo && (
           <ToggleBtn
-            label={cameraOff ? "Включить камеру" : "Выключить камеру"}
+            label={cameraOff ? t("components.callScreen.cameraOn") : t("components.callScreen.cameraOff")}
             icon={cameraOff ? VideoOff : Video}
             active={cameraOff}
             onClick={() => calls.toggleCamera()}
@@ -328,7 +339,7 @@ function CallControls() {
         )}
         {isVideo && canSwitchCamera && (
           <ToggleBtn
-            label="Сменить камеру"
+            label={t("components.callScreen.switchCamera")}
             icon={SwitchCamera}
             onClick={() => void calls.switchCamera()}
             disabled={ended || cameraOff}
@@ -339,7 +350,7 @@ function CallControls() {
         type="button"
         onClick={() => calls.end()}
         disabled={ended}
-        aria-label="Завершить звонок"
+        aria-label={t("components.callScreen.endCall")}
         className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
         style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)", opacity: ended ? 0.6 : 1 }}
       >

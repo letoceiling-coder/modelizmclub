@@ -173,7 +173,7 @@ function ChannelSection({
 
       </div>
 
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className={`grid gap-3${expanded ? "" : " sm:grid-cols-2"}`}>
 
         {visible.map((c) =>
 

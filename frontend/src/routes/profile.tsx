@@ -593,7 +593,8 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
       className="sticky top-0 z-10 px-[16px] py-[6px] md:px-[32px] md:py-[8px]"
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
-      <div className="flex min-h-[52px] flex-wrap items-stretch gap-[2px] md:min-h-[56px] md:gap-[6px]">
+      <div className="-mx-[16px] overflow-x-auto px-[16px] md:mx-0 md:overflow-visible md:px-0">
+        <div className="flex min-h-[48px] w-max min-w-full flex-nowrap items-stretch gap-[2px] md:min-h-[56px] md:gap-[6px]">
         {visibleTabs.map(({ key, Icon }) => {
           const active = tab === key;
           const label = t(TAB_LABEL_KEYS[key]);
@@ -602,9 +603,9 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[8px] whitespace-nowrap rounded-[8px] px-[12px] py-[14px] font-display transition-colors duration-200 md:px-[18px] md:py-[16px]"
+              className="inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap rounded-[8px] px-[10px] py-[12px] font-display transition-colors duration-200 md:gap-[8px] md:px-[18px] md:py-[16px]"
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--accent)" : "var(--foreground-50)",
                 boxShadow: active ? "inset 0 -3px 0 var(--accent)" : "inset 0 -3px 0 transparent",
@@ -614,6 +615,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );

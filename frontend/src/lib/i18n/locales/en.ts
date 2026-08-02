@@ -598,6 +598,53 @@ export const en: TranslationSchema = {
       userUnblockedDesc: "You can exchange messages again",
       userBlockedToast: "{{name}} blocked",
       userBlockedDesc: "You will no longer receive messages from this user; they were removed from your friends"
+    },
+    callScreen: {
+      ariaLabel: "Call screen",
+      statusRinging: "Calling…",
+      statusConnecting: "Connecting…",
+      statusConnected: "In call",
+      statusReconnecting: "Reconnecting…",
+      statusEnded: "Call ended",
+      resultRejected: "Call declined",
+      resultBusy: "Line busy",
+      resultMissed: "No answer",
+      resultAnswered: "Ended",
+      toastDeclinedSelf: "You declined the call",
+      toastNoAnswer: "No answer — {{name}}",
+      toastMissed: "Missed call — {{name}}",
+      toastRejected: "Call declined — {{name}}",
+      toastBusy: "Busy — {{name}}",
+      toastAnsweredEnded: "Call ended · {{duration}}",
+      toastEnded: "Call ended",
+      directionOutgoing: "Outgoing",
+      directionIncoming: "Incoming",
+      videoSuffix: " · video",
+      decline: "Decline",
+      accept: "Accept",
+      micOn: "Unmute microphone",
+      micOff: "Mute microphone",
+      speakerOn: "Unmute peer audio",
+      speakerOff: "Mute peer audio",
+      cameraOn: "Turn camera on",
+      cameraOff: "Turn camera off",
+      switchCamera: "Switch camera",
+      endCall: "End call"
+    },
+    voiceBubble: {
+      transcriptUnavailable: "Transcript unavailable — speech recognition is being enabled on the server.",
+      demoTranscript: "Sample voice message transcript.",
+      speechNotRecognized: "Speech not recognized.",
+      pause: "Pause",
+      play: "Play",
+      voiceLabel: "voice",
+      hideText: "Hide text",
+      showText: "Show text"
+    },
+    messageFileBubble: {
+      download: "Download",
+      sizeMb: "{{size}} MB",
+      sizeKb: "{{size}} KB"
     }
   },
   pages: {

@@ -30,11 +30,11 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 11 | №28 | `/feed`, `/admin` | Banner | P1 | FIXED | min-h regression from `6b84d85`; restored fixed h + line-clamp | Banner limits | `BannerHeroSlide`, `EventsHero`, admin preview | — | build pass | pending | pending | FIXED |
 | 12 | №29 | `/feed` | Comments | P1 | FIXED | comments only on expand + gated by canInteract; no inline preview | `PostCommentsController` | `PostCard`, `CommentSection` | — | build pass | pending | pending | FIXED |
 | 13 | №6 | `/messenger` | Calls | P1 | FIXED | incoming-call toast at bottom overlapped Accept/Decline; Sonner z-index above call screen | — | `calls.ts`, `CallScreen`, `styles.css` | — | build pass | pending | pending | FIXED |
-| 14 | №13 | `/messenger` | Presence | P2 | — | TBD: status wraps in chat header | — | `messenger.tsx` header | — | — | — | — | TODO |
-| 15 | №14 | `/messenger` | Media bubbles | P2 | — | TBD: voice/image bubbles too large | — | `MessageFileBubble`, voice UI | — | — | — | — | TODO |
-| 16 | №8 | `/notifications` | Layout | P2 | — | TBD: header overflow 320px | — | `notifications.tsx` header | — | — | — | — | TODO |
-| 17 | №11 | `/profile` | Tabs | P2 | — | TBD: profile tabs cramped mobile | — | `profile.tsx` tabs | — | — | — | — | TODO |
-| 18 | №12 | `/profile` | Ad cards | P2 | — | TBD: date wraps in profile ad card | — | profile listings tab | — | — | — | — | TODO |
+| 14 | №13 | `/messenger` | Presence | P2 | code review | status text wrapped in chat header | — | `messenger.tsx` truncate + nowrap | — | build pass | pending | pending | FIXED |
+| 15 | №14 | `/messenger` | Media bubbles | P2 | code review | voice/image bubbles too large (280px) | — | `VoiceBubble`, `MessageFileBubble`, `messenger.tsx` 240px | — | build pass | pending | pending | FIXED |
+| 16 | №8 | `/notifications` | Layout | P2 | code review | header overflow at 320px | — | `notifications.tsx` stacked header, icon buttons | — | build pass | pending | pending | FIXED |
+| 17 | №11 | `/profile` | Tabs | P2 | code review | profile tabs cramped on mobile | — | `profile.tsx` horizontal scroll + compact padding | — | build pass | pending | pending | FIXED |
+| 18 | №12 | `/profile` | Ad cards | P2 | code review | date wrapped in compact ad card meta | — | `AdCard.tsx` stacked meta in compact | — | build pass | pending | pending | FIXED |
 | 19 | №16, №31 | `/ads/new` | CTA | **P0** | FIXED | Icon-only CTA + clipped label on mobile preview step | listing publish API | `ads.new.tsx` footer CTA | — | — | pending | pending | FIXED |
 | 20 | №33 | `/ads/$id` (owner) | Owner panel | P2 | — | Partial: `AdOwnerActionPanel` exists; stats layout TBD | — | `AdOwnerActionPanel`, `ads.$id` | — | — | — | — | TODO |
 
@@ -47,7 +47,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 21 | №17 | `/channels` | Channel owner UI | P2 | — | TBD: owner actions inline, not in ⋮ menu | permissions | channels list card | — | — | — | — | TODO |
 | 22 | №18 | `/channel/*` | Delete post | P1 | FIXED | no DELETE route or owner UI for channel posts | `ChannelPostService::delete`, `DeleteChannelPostController` | `channel.$id` PostItem, `channels.ts` | — | ChannelPostDeleteTest | pending | pending | FIXED |
 | 23 | №20 | `/channel/*`, feed | Media carousel | P1 | FIXED | video+photos stacked separately; PostCard ignored images when video set | — | `PostMediaCarousel`, `PostCard`, `channel.$id`, `feed.ts` | — | build pass | pending | pending | FIXED |
-| 24 | №30 | `/channels` | Show all | P2 | — | TBD: «Показать все» expands vertical list | — | channels popular block | — | — | — | — | TODO |
+| 24 | №30 | `/channels` | Show all | P2 | code review | expanded list still 2-col grid | — | `channels.index.tsx` single column when expanded | — | build pass | pending | pending | FIXED |
 
 ---
 
@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in channels/messenger/admin reviews | — | `ru/en/zh.ts`, channel + chat + admin reviews i18n | — | build pass | pending | pending | IN_PROGRESS |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in channels/messenger/calls/admin reviews | — | `ru/en/zh.ts`, CallScreen, VoiceBubble, MessageFileBubble | — | build pass | pending | pending | IN_PROGRESS |
 
 ---
 
