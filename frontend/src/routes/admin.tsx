@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -62,13 +62,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import i18n from "@/lib/i18n";
+
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
   | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
   | "auditLog" | "applications";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Админ-панель — МоДелизМ" }] }),
+  head: () => ({ meta: [{ title: i18n.t("pages.adminShell.metaTitle") }] }),
   validateSearch: (search: Record<string, unknown>): { section?: Section } => ({
     section: typeof search.section === "string" ? (search.section as Section) : undefined,
   }),
@@ -81,31 +83,32 @@ export const Route = createFileRoute("/admin")({
 
 type AdminRole = "admin" | "moderator";
 
-const navItems: { id: Section; label: string; icon: typeof Users; roles: AdminRole[] }[] = [
-  { id: "dashboard", label: "Дашборд", icon: LayoutDashboard, roles: ["admin", "moderator"] },
-  { id: "users", label: "Пользователи", icon: Users, roles: ["admin"] },
-  { id: "content", label: "Контент", icon: Newspaper, roles: ["admin"] },
-  { id: "ads", label: "Объявления", icon: Megaphone, roles: ["admin"] },
-  { id: "delivery", label: "Доставки", icon: Truck, roles: ["admin"] },
-  { id: "moderation", label: "Модерация", icon: ShieldCheck, roles: ["admin", "moderator"] },
-  { id: "applications", label: "Заявки", icon: Inbox, roles: ["admin"] },
-  { id: "monetization", label: "Монетизация", icon: DollarSign, roles: ["admin"] },
-  { id: "feedBanners", label: "Рекламный блок", icon: Megaphone, roles: ["admin"] },
-  { id: "feedGuestAccess", label: "Права гостей /feed", icon: ShieldCheck, roles: ["admin"] },
-  { id: "landingBlocks", label: "Главная страница", icon: Home, roles: ["admin"] },
-  { id: "icons", label: "Иконки сайта", icon: Image, roles: ["admin"] },
-  { id: "categories", label: "Категории", icon: FolderTree, roles: ["admin"] },
-  { id: "reviews", label: "Обзоры", icon: Clapperboard, roles: ["admin"] },
-  { id: "notifications", label: "Уведомления", icon: Bell, roles: ["admin"] },
-  { id: "analytics", label: "Аналитика", icon: BarChart3, roles: ["admin"] },
-  { id: "feedback", label: "Обращения", icon: Inbox, roles: ["admin", "moderator"] },
-  { id: "design", label: "Design System", icon: Palette, roles: ["admin"] },
-  { id: "media", label: "Медиа", icon: Image, roles: ["admin"] },
-  { id: "settings", label: "Настройки", icon: Settings, roles: ["admin"] },
-  { id: "auditLog", label: "История изменений", icon: Search, roles: ["admin"] },
+const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: AdminRole[] }[] = [
+  { id: "dashboard", labelKey: "pages.adminShell.nav.dashboard", icon: LayoutDashboard, roles: ["admin", "moderator"] },
+  { id: "users", labelKey: "pages.adminShell.nav.users", icon: Users, roles: ["admin"] },
+  { id: "content", labelKey: "pages.adminShell.nav.content", icon: Newspaper, roles: ["admin"] },
+  { id: "ads", labelKey: "pages.adminShell.nav.ads", icon: Megaphone, roles: ["admin"] },
+  { id: "delivery", labelKey: "pages.adminShell.nav.delivery", icon: Truck, roles: ["admin"] },
+  { id: "moderation", labelKey: "pages.adminShell.nav.moderation", icon: ShieldCheck, roles: ["admin", "moderator"] },
+  { id: "applications", labelKey: "pages.adminShell.nav.applications", icon: Inbox, roles: ["admin"] },
+  { id: "monetization", labelKey: "pages.adminShell.nav.monetization", icon: DollarSign, roles: ["admin"] },
+  { id: "feedBanners", labelKey: "pages.adminShell.nav.feedBanners", icon: Megaphone, roles: ["admin"] },
+  { id: "feedGuestAccess", labelKey: "pages.adminShell.nav.feedGuestAccess", icon: ShieldCheck, roles: ["admin"] },
+  { id: "landingBlocks", labelKey: "pages.adminShell.nav.landingBlocks", icon: Home, roles: ["admin"] },
+  { id: "icons", labelKey: "pages.adminShell.nav.icons", icon: Image, roles: ["admin"] },
+  { id: "categories", labelKey: "pages.adminShell.nav.categories", icon: FolderTree, roles: ["admin"] },
+  { id: "reviews", labelKey: "pages.adminShell.nav.reviews", icon: Clapperboard, roles: ["admin"] },
+  { id: "notifications", labelKey: "pages.adminShell.nav.notifications", icon: Bell, roles: ["admin"] },
+  { id: "analytics", labelKey: "pages.adminShell.nav.analytics", icon: BarChart3, roles: ["admin"] },
+  { id: "feedback", labelKey: "pages.adminShell.nav.feedback", icon: Inbox, roles: ["admin", "moderator"] },
+  { id: "design", labelKey: "pages.adminShell.nav.design", icon: Palette, roles: ["admin"] },
+  { id: "media", labelKey: "pages.adminShell.nav.media", icon: Image, roles: ["admin"] },
+  { id: "settings", labelKey: "pages.adminShell.nav.settings", icon: Settings, roles: ["admin"] },
+  { id: "auditLog", labelKey: "pages.adminShell.nav.auditLog", icon: Search, roles: ["admin"] },
 ];
 
 function AdminPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isNestedAdminRoute = pathname.startsWith("/admin/") && pathname !== "/admin";
@@ -174,7 +177,7 @@ function AdminPage() {
         className="min-h-screen grid place-items-center"
         style={{ background: "var(--background)", color: "var(--foreground-50)", fontSize: "13px" }}
       >
-        Проверка доступа…
+        {t("pages.adminShell.checkingAccess")}
       </div>
     );
   }
@@ -188,16 +191,14 @@ function AdminPage() {
         <div style={{ textAlign: "center", maxWidth: "420px" }}>
           <div style={{ fontSize: "64px", fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>403</div>
           <h1 style={{ marginTop: "16px", fontSize: "20px", fontWeight: 700, color: "var(--foreground)" }}>
-            Доступ запрещён
+            {t("pages.adminShell.forbiddenTitle")}
           </h1>
           <p style={{ marginTop: "8px", fontSize: "14px", color: "var(--foreground-70)" }}>
-            Админ-панель доступна только суперадминистраторам (роль <code>admin</code>).
+            {t("pages.adminShell.forbiddenDesc")}
           </p>
           {me.id !== "guest" && (
             <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-50)" }}>
-              Вы вошли как <strong style={{ color: "var(--foreground-70)" }}>{me.name}</strong>.
-              У вашего аккаунта нет роли суперадмина — обратитесь к действующему администратору
-              или войдите под другим аккаунтом.
+              {t("pages.adminShell.forbiddenSignedIn", { name: me.name })}
             </p>
           )}
           <div className="flex flex-wrap items-center justify-center gap-2" style={{ marginTop: "20px" }}>
@@ -214,7 +215,7 @@ function AdminPage() {
                 color: "var(--accent-foreground)",
               }}
             >
-              Войти другим аккаунтом
+              {t("pages.adminShell.loginOther")}
             </Link>
             <Link
               to="/"
@@ -228,7 +229,7 @@ function AdminPage() {
                 color: "var(--foreground-70)",
               }}
             >
-              <Home size={14} />На главную
+              <Home size={14} />{t("pages.adminShell.backHome")}
             </Link>
           </div>
         </div>
@@ -250,7 +251,7 @@ function AdminPage() {
       >
         <div className="flex items-center gap-[12px]">
           <Logo size={28} showText={false} />
-          <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--foreground)" }}>Админ-панель</span>
+          <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--foreground)" }}>{t("pages.adminShell.headerTitle")}</span>
         </div>
         <div className="flex items-center gap-[8px]">
           <ThemeToggle />
@@ -266,7 +267,7 @@ function AdminPage() {
               color: "var(--foreground-70)",
             }}
           >
-            <Home size={14} />К сайту
+            <Home size={14} />{t("pages.adminShell.toSite")}
           </Link>
         </div>
       </header>
@@ -313,7 +314,7 @@ function AdminPage() {
                   }}
                 >
                   <n.icon size={16} />
-                  {n.label}
+                  {t(n.labelKey)}
                 </button>
               );
             })}
@@ -338,7 +339,7 @@ function AdminPage() {
                 color: "var(--foreground)",
               }}
             >
-              {visibleNavItems.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+              {visibleNavItems.map((n) => <option key={n.id} value={n.id}>{t(n.labelKey)}</option>)}
             </select>
           </div>
 
@@ -2777,26 +2778,38 @@ function ReviewsSection() {
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<AdminVideoRow | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
-    fetchAdminVideos({ status: status === "all" ? undefined : status, q: query || undefined })
+    fetchAdminVideos({ status: status === "all" ? undefined : status, q: query.trim() || undefined })
       .then(setRows)
       .catch(() => toast.error(t("pages.adminReviews.loadFailed")))
       .finally(() => setLoading(false));
-  };
+  }, [status, query, t]);
 
-  useEffect(load, [status]);
-
-  const filtered = rows.filter((v) => !query || v.title.toLowerCase().includes(query.toLowerCase()));
+  useEffect(() => {
+    load();
+  }, [status]);
 
   const tableHeaders = [
     t("pages.adminReviews.colTitle"),
     t("pages.adminReviews.colAuthor"),
     t("pages.adminReviews.colCategory"),
+    t("pages.adminReviews.colDuration"),
+    t("pages.adminReviews.colEngagement"),
+    t("pages.adminReviews.colPublished"),
     t("pages.adminReviews.colStatus"),
     t("pages.adminReviews.colViews"),
     t("pages.adminReviews.colActions"),
   ];
+
+  const formatDuration = (sec?: number) => {
+    if (!sec || sec <= 0) return "—";
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
 
   const approve = async (uuid: string) => {
     try {
@@ -2844,7 +2857,14 @@ function ReviewsSection() {
     <div>
       <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>{t("pages.adminReviews.uploadLink")}</Link>}>{t("pages.adminReviews.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("pages.adminReviews.searchPlaceholder")} className="outline-none" style={{ ...inputStyle, width: "320px", maxWidth: "100%" }} />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") load(); }}
+          placeholder={t("pages.adminReviews.searchPlaceholder")}
+          className="outline-none"
+          style={{ ...inputStyle, width: "320px", maxWidth: "100%" }}
+        />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
           <option value="all">{t("pages.adminReviews.allStatuses")}</option>
           <option value="published">{t("pages.adminReviews.statusPublished")}</option>
@@ -2856,7 +2876,7 @@ function ReviewsSection() {
       </div>
       <div style={{ ...card, marginTop: "16px", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table className="w-full" style={{ fontSize: "13px", minWidth: "760px" }}>
+          <table className="w-full" style={{ fontSize: "13px", minWidth: "980px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
                 {tableHeaders.map((h) => (
@@ -2866,10 +2886,10 @@ function ReviewsSection() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.loading")}</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.empty")}</td></tr>
-              ) : filtered.map((v) => {
+                <tr><td colSpan={9} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.loading")}</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={9} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.empty")}</td></tr>
+              ) : rows.map((v) => {
                 const meta = statusMeta(statusMetaMap, v.status);
                 return (
                   <tr key={v.uuid} style={{ borderTop: "1px solid var(--border)" }}>
@@ -2883,6 +2903,11 @@ function ReviewsSection() {
                     </td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.author}</td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.category}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", fontFamily: "var(--font-mono, monospace)" }}>{formatDuration(v.durationSeconds)}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>
+                      {t("pages.adminReviews.engagementSummary", { likes: v.likesCount, comments: v.commentsCount })}
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>{formatDate(v.publishedAt)}</td>
                     <td style={{ padding: "10px 16px" }}><StatusBadge variant={meta.variant}>{meta.label}</StatusBadge></td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.views.toLocaleString()}</td>
                     <td style={{ padding: "10px 16px" }}>

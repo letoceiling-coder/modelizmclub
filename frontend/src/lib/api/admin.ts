@@ -888,6 +888,10 @@ export interface AdminVideoRow {
   posterUrl?: string;
   scheduledAt?: string;
   isFeatured: boolean;
+  durationSeconds?: number;
+  likesCount: number;
+  commentsCount: number;
+  publishedAt?: string;
 }
 
 interface ApiAdminVideo {
@@ -898,6 +902,10 @@ interface ApiAdminVideo {
   video_url?: string | null;
   poster_url?: string | null;
   scheduled_at?: string | null;
+  published_at?: string | null;
+  duration_seconds?: number | null;
+  likes_count?: number | null;
+  comments_count?: number | null;
   is_featured?: boolean;
   category?: { title?: string | null } | null;
   uploader?: { display_name?: string | null } | null;
@@ -914,6 +922,10 @@ function mapAdminVideo(v: ApiAdminVideo): AdminVideoRow {
     videoUrl: v.video_url ?? undefined,
     posterUrl: v.poster_url ?? undefined,
     scheduledAt: v.scheduled_at ?? undefined,
+    publishedAt: v.published_at ?? undefined,
+    durationSeconds: v.duration_seconds ?? undefined,
+    likesCount: Number(v.likes_count ?? 0),
+    commentsCount: Number(v.comments_count ?? 0),
     isFeatured: Boolean(v.is_featured),
   };
 }

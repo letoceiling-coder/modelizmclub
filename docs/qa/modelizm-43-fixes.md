@@ -36,7 +36,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 17 | №11 | `/profile` | Tabs | P2 | code review | profile tabs cramped on mobile | — | `profile.tsx` horizontal scroll + compact padding | — | build pass | pending | pending | FIXED |
 | 18 | №12 | `/profile` | Ad cards | P2 | code review | date wrapped in compact ad card meta | — | `AdCard.tsx` stacked meta in compact | — | build pass | pending | pending | FIXED |
 | 19 | №16, №31 | `/ads/new` | CTA | **P0** | FIXED | Icon-only CTA + clipped label on mobile preview step | listing publish API | `ads.new.tsx` footer CTA | — | — | pending | pending | FIXED |
-| 20 | №33 | `/ads/$id` (owner) | Owner panel | P2 | — | Partial: `AdOwnerActionPanel` exists; stats layout TBD | — | `AdOwnerActionPanel`, `ads.$id` | — | — | — | — | TODO |
+| 20 | №33 | `/ads/$id` (owner) | Owner panel | P2 | code review | stats grid cramped on narrow screens | — | `AdOwnerActionPanel` 2-col stats on mobile | — | build pass | pending | pending | FIXED |
 
 ---
 
@@ -44,7 +44,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 21 | №17 | `/channels` | Channel owner UI | P2 | — | TBD: owner actions inline, not in ⋮ menu | permissions | channels list card | — | — | — | — | TODO |
+| 21 | №17 | `/channels` | Channel owner UI | P2 | code review | owner actions already inline on MyChannelCard | permissions | `channels.index.tsx` MyChannelCard settings/stats/delete | — | build pass | pending | pending | FIXED |
 | 22 | №18 | `/channel/*` | Delete post | P1 | FIXED | no DELETE route or owner UI for channel posts | `ChannelPostService::delete`, `DeleteChannelPostController` | `channel.$id` PostItem, `channels.ts` | — | ChannelPostDeleteTest | pending | pending | FIXED |
 | 23 | №20 | `/channel/*`, feed | Media carousel | P1 | FIXED | video+photos stacked separately; PostCard ignored images when video set | — | `PostMediaCarousel`, `PostCard`, `channel.$id`, `feed.ts` | — | build pass | pending | pending | FIXED |
 | 24 | №30 | `/channels` | Show all | P2 | code review | expanded list still 2-col grid | — | `channels.index.tsx` single column when expanded | — | build pass | pending | pending | FIXED |
@@ -70,8 +70,8 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
 | 31 | №23 | `/admin` reviews | Admin preview | P1 | yes | no preview modal/player | `AdminVideoController` | `admin.tsx` ReviewsSection preview modal | — | `AdminVideoTest` | pending | pending | FIXED |
 | 32 | №23 | `/admin` | Admin actions | P1 | yes | limited approve/delete/featured only | Admin video API | admin reviews table actions | — | `AdminVideoTest` | pending | pending | FIXED |
-| 33 | №23 | `/admin` | Admin metadata | P2 | — | TBD: table lacks metadata columns | Admin resources | admin reviews table | — | — | — | — | TODO |
-| 34 | №23 | `/admin` | Filters/search | P2 | — | TBD: no server-side filters | Admin index API | admin reviews | — | — | — | — | TODO |
+| 33 | №23 | `/admin` | Admin metadata | P2 | code review | table lacked duration/engagement/date columns | VideoResource | admin reviews table + `AdminVideoRow` | — | build pass | pending | pending | FIXED |
+| 34 | №23 | `/admin` | Filters/search | P2 | code review | search was client-only; API q unused on typing | Admin index API | ReviewsSection server q on Enter/refresh | — | build pass | pending | pending | FIXED |
 | 35 | №23 | `/admin` | Bulk actions | P2 | — | TBD: no bulk select (cf. listings bulk done) | bulk endpoints | admin reviews | — | — | — | — | TODO |
 | 36 | №23 | `/admin` | Stats | P3 | — | TBD: stats not shown / mock | analytics events | admin drawer | — | — | — | — | TODO |
 | 37 | №23 | `/admin` | Audit/errors | P2 | — | TBD: no change log / media check UI | AuditService | admin review detail | — | — | — | — | TODO |
@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in channels/messenger/calls/admin reviews | — | `ru/en/zh.ts`, CallScreen, VoiceBubble, MessageFileBubble | — | build pass | pending | pending | IN_PROGRESS |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin shell + calls/messenger | — | `adminShell`, CallScreen, VoiceBubble, admin reviews | — | build pass | pending | pending | IN_PROGRESS |
 
 ---
 

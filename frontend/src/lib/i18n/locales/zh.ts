@@ -1846,7 +1846,45 @@ export const zh: TranslationSchema = {
       approved: "Review published",
       statusUpdated: "Status updated",
       deleted: "Review deleted",
-      deleteConfirm: "Delete this review?"
+      deleteConfirm: "Delete this review?",
+      colDuration: "Duration",
+      colEngagement: "Engagement",
+      colPublished: "Published",
+      engagementSummary: "♥ {{likes}} · 💬 {{comments}}"
+    },
+    adminShell: {
+      metaTitle: "Admin panel — Modelizm",
+      headerTitle: "Admin panel",
+      toSite: "Back to site",
+      checkingAccess: "Checking access…",
+      forbiddenTitle: "Access denied",
+      forbiddenDesc: "The admin panel is available only to super administrators (admin role).",
+      forbiddenSignedIn: "You are signed in as {{name}}. Your account does not have super admin rights — contact an existing administrator or sign in with another account.",
+      loginOther: "Sign in with another account",
+      backHome: "Back to home",
+      nav: {
+        dashboard: "Dashboard",
+        users: "Users",
+        content: "Content",
+        ads: "Listings",
+        delivery: "Delivery",
+        moderation: "Moderation",
+        applications: "Applications",
+        monetization: "Monetization",
+        feedBanners: "Feed banner",
+        feedGuestAccess: "Guest /feed access",
+        landingBlocks: "Landing page",
+        icons: "Site icons",
+        categories: "Categories",
+        reviews: "Reviews",
+        notifications: "Notifications",
+        analytics: "Analytics",
+        feedback: "Feedback",
+        design: "Design System",
+        media: "Media",
+        settings: "Settings",
+        auditLog: "Change history"
+      }
     }
   }
 };

@@ -131,7 +131,7 @@ export function AdOwnerActionPanel({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-[8px]">
+        <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-3">
           <StatTile
             icon={<Eye size={12} />}
             label={t("pages.adDetail.ownerStatViews")}
