@@ -72,10 +72,10 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | 32 | №23 | `/admin` | Admin actions | P1 | yes | limited approve/delete/featured only | Admin video API | admin reviews table actions | — | `AdminVideoTest` | pending | pending | FIXED |
 | 33 | №23 | `/admin` | Admin metadata | P2 | code review | table lacked duration/engagement/date columns | VideoResource | admin reviews table + `AdminVideoRow` | — | build pass | pending | pending | FIXED |
 | 34 | №23 | `/admin` | Filters/search | P2 | code review | search was client-only; API q unused on typing | Admin index API | ReviewsSection server q on Enter/refresh | — | build pass | pending | pending | FIXED |
-| 35 | №23 | `/admin` | Bulk actions | P2 | — | TBD: no bulk select (cf. listings bulk done) | bulk endpoints | admin reviews | — | — | — | — | TODO |
+| 35 | №23 | `/admin` | Bulk actions | P2 | code review | no bulk select on reviews table | — | ReviewsSection checkboxes + bulk bar | — | build pass | pending | pending | FIXED |
 | 36 | №23 | `/admin` | Stats | P3 | — | TBD: stats not shown / mock | analytics events | admin drawer | — | — | — | — | TODO |
-| 37 | №23 | `/admin` | Audit/errors | P2 | — | TBD: no change log / media check UI | AuditService | admin review detail | — | — | — | — | TODO |
-| 38 | №23 | `/admin` | Media mgmt | P2 | — | TBD: replace video/cover, hide | Media API | admin actions | — | — | — | — | TODO |
+| 37 | №23 | `/admin` | Audit/errors | P2 | code review | no media check in preview | — | preview modal media status + stats | — | build pass | pending | pending | FIXED |
+| 38 | №23 | `/admin` | Media mgmt | P2 | code review | no hide/replace actions | status API | preview hide + replace link | — | build pass | pending | pending | FIXED |
 | 39 | №24 | `/admin` | Review categories CRUD | P1 | yes | categories hardcoded / no admin CRUD | `AdminVideoCategoryController` | admin Categories «Обзоры» | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
 | 40 | №24 | `/admin`, upload | Category selector | P1 | yes | selector not from DB / no ordering | video categories API | `reviews.upload`, `reviews.index` sortOrder | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
 | 41 | №27 | `/reviews/upload`, `/admin` | Scheduled review | P1 | yes | feed scheduling only | `ScheduleVideoController`, cron | upload `PostSchedulePicker`, admin list | `scheduled_at` migration | `ScheduledVideoTest` | pending | pending | FIXED |
@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin shell + calls/messenger | — | `adminShell`, CallScreen, VoiceBubble, admin reviews | — | build pass | pending | pending | IN_PROGRESS |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin shell/dashboard + calls/messenger | — | `adminShell`, `adminDashboard`, reviews bulk | — | build pass | pending | pending | IN_PROGRESS |
 
 ---
 

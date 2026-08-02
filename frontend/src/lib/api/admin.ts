@@ -953,6 +953,33 @@ export async function deleteAdminVideo(uuid: string): Promise<void> {
   await api(`/admin/videos/${uuid}`, { method: "DELETE" });
 }
 
+export async function bulkUpdateAdminVideoStatus(
+  uuids: string[],
+  status: string,
+): Promise<{ ok: number; failed: number }> {
+  const results = await Promise.allSettled(uuids.map((uuid) => updateAdminVideo(uuid, { status })));
+  return {
+    ok: results.filter((r) => r.status === "fulfilled").length,
+    failed: results.filter((r) => r.status === "rejected").length,
+  };
+}
+
+export async function bulkDeleteAdminVideos(uuids: string[]): Promise<{ ok: number; failed: number }> {
+  const results = await Promise.allSettled(uuids.map((uuid) => deleteAdminVideo(uuid)));
+  return {
+    ok: results.filter((r) => r.status === "fulfilled").length,
+    failed: results.filter((r) => r.status === "rejected").length,
+  };
+}
+
+export async function bulkApproveAdminVideos(uuids: string[]): Promise<{ ok: number; failed: number }> {
+  const results = await Promise.allSettled(uuids.map((uuid) => approveModeration("videos", uuid)));
+  return {
+    ok: results.filter((r) => r.status === "fulfilled").length,
+    failed: results.filter((r) => r.status === "rejected").length,
+  };
+}
+
 // ---- System settings ----
 export interface AdminSetting {
   key: string;

@@ -1850,7 +1850,30 @@ export const zh: TranslationSchema = {
       colDuration: "Duration",
       colEngagement: "Engagement",
       colPublished: "Published",
-      engagementSummary: "♥ {{likes}} · 💬 {{comments}}"
+      engagementSummary: "♥ {{likes}} · 💬 {{comments}}",
+      selectedCount: "Selected: {{count}}",
+      selectAll: "Select all reviews",
+      selectRow: "Select “{{title}}”",
+      bulkApprove: "Approve",
+      bulkPublish: "Publish",
+      bulkReject: "Reject",
+      bulkDelete: "Delete",
+      bulkClear: "Clear selection",
+      bulkDeleteConfirm: "Delete selected reviews?",
+      bulkDeleteDesc: "{{count}} review(s) will be deleted. This cannot be undone.",
+      bulkApproveSuccess: "Approved reviews: {{count}}",
+      bulkStatusSuccess: "Updated reviews: {{count}}",
+      bulkDeleteSuccess: "Deleted reviews: {{count}}",
+      bulkPartialFail: "Succeeded: {{ok}}, failed: {{failed}}",
+      bulkFailed: "Bulk action failed",
+      mediaCheckTitle: "Media check",
+      mediaVideoOk: "Video: OK",
+      mediaVideoMissing: "Video: missing",
+      mediaPosterOk: "Cover: OK",
+      mediaPosterMissing: "Cover: missing",
+      previewStats: "Views {{views}} · {{duration}} · ♥ {{likes}} · 💬 {{comments}}",
+      hideReview: "Hide from site",
+      replaceMedia: "Replace media"
     },
     adminShell: {
       metaTitle: "Admin panel — Modelizm",
@@ -1884,6 +1907,26 @@ export const zh: TranslationSchema = {
         media: "Media",
         settings: "Settings",
         auditLog: "Change history"
+      }
+    },
+    adminDashboard: {
+      title: "Dashboard",
+      statUsers: "Total users",
+      statCommunities: "Communities",
+      statBanners: "Active banners",
+      statPosts: "Posts",
+      statModeration: "In moderation",
+      statReports: "Reports",
+      registrationsChart: "Registrations over 30 days",
+      recentActions: "Recent actions",
+      days: {
+        mon: "Mon",
+        tue: "Tue",
+        wed: "Wed",
+        thu: "Thu",
+        fri: "Fri",
+        sat: "Sat",
+        sun: "Sun"
       }
     }
   }
