@@ -29,6 +29,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
 use Modules\Admin\Http\Controllers\Api\V1\ApproveModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexModerationQueueController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexReportsController;
