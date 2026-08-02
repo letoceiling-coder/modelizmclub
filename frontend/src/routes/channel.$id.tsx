@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner,
   formatCount, formatDate,
-  type Channel, type ChannelPost, type ChannelPostMediaItem, type PostStatus, type PostKind, type ChannelKind,
+  type Channel, type ChannelPost, type PostStatus, type PostKind, type ChannelKind,
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -23,7 +23,7 @@ import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
-import { PostGallery } from "@/components/feed/PostGallery";
+import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
 import { useStore, selectors } from "@/lib/store";
 
 
@@ -408,118 +408,14 @@ function postStatusMeta(t: (key: string) => string): Record<PostStatus, { label:
   };
 }
 
-const CHANNEL_MEDIA_MAX_W = 520;
-const CHANNEL_MEDIA_MAX_H = 420;
-const CHANNEL_IMAGE_MAX_H = 360;
-
-function fitChannelMediaSize(
-  naturalW: number,
-  naturalH: number,
-  maxW: number,
-  maxH: number,
-): { w: number; h: number } {
-  if (naturalW <= 0 || naturalH <= 0) {
-    return { w: Math.min(maxW, 280), h: Math.min(maxH, 200) };
-  }
-  const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
-  return {
-    w: Math.max(1, Math.round(naturalW * scale)),
-    h: Math.max(1, Math.round(naturalH * scale)),
-  };
-}
-
-function ChannelPostVideo({ item }: { item: ChannelPostMediaItem }) {
-  const initialFrame = useMemo(
-    () => fitChannelMediaSize(item.width ?? 0, item.height ?? 0, CHANNEL_MEDIA_MAX_W, CHANNEL_MEDIA_MAX_H),
-    [item.width, item.height],
-  );
-  const [frame, setFrame] = useState(initialFrame);
-
-  useEffect(() => {
-    setFrame(initialFrame);
-  }, [initialFrame, item.url]);
-
-  return (
-    <div
-      className="overflow-hidden rounded-[10px] bg-black"
-      style={{ width: frame.w, maxWidth: "100%", height: frame.h }}
-    >
-      <video
-        src={item.url}
-        controls
-        preload="metadata"
-        playsInline
-        className="h-full w-full object-contain"
-        onLoadedMetadata={(event) => {
-          const video = event.currentTarget;
-          if (video.videoWidth <= 0 || video.videoHeight <= 0) return;
-          setFrame(fitChannelMediaSize(video.videoWidth, video.videoHeight, CHANNEL_MEDIA_MAX_W, CHANNEL_MEDIA_MAX_H));
-        }}
-      />
-    </div>
-  );
-}
-
-function ChannelPostImage({ item }: { item: ChannelPostMediaItem }) {
-  const initialFrame = useMemo(
-    () => fitChannelMediaSize(item.width ?? 0, item.height ?? 0, CHANNEL_MEDIA_MAX_W, CHANNEL_IMAGE_MAX_H),
-    [item.width, item.height],
-  );
-  const [frame, setFrame] = useState(initialFrame);
-
-  useEffect(() => {
-    setFrame(initialFrame);
-  }, [initialFrame, item.url]);
-
-  return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block overflow-hidden rounded-[10px]"
-      style={{ width: frame.w, maxWidth: "100%", background: "var(--background-surface)" }}
-    >
-      <div style={{ width: "100%", height: frame.h }}>
-        <img
-          src={item.url}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-contain"
-          onLoad={(event) => {
-            if (item.width && item.height) return;
-            const img = event.currentTarget;
-            if (img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
-            setFrame(
-              fitChannelMediaSize(img.naturalWidth, img.naturalHeight, CHANNEL_MEDIA_MAX_W, CHANNEL_IMAGE_MAX_H),
-            );
-          }}
-        />
-      </div>
-    </a>
-  );
-}
-
 function ChannelPostMedia({ post }: { post: ChannelPost }) {
   const { t } = useTranslation();
-  const items = post.media ?? [];
+  const items = (post.media ?? []).map((item) => ({ type: item.type, url: item.url }));
   if (items.length === 0) return null;
 
-  const videos = items.filter((item) => item.type === "video");
-  const imageItems = items.filter((item) => item.type !== "video");
-  const images = imageItems.map((item) => item.url);
-
   return (
-    <div className="mt-2 flex max-w-[520px] flex-col gap-2">
-      {videos.map((item, index) => (
-        <ChannelPostVideo key={`${post.id}-video-${index}`} item={item} />
-      ))}
-      {imageItems.length === 1 && videos.length === 0 ? (
-        <ChannelPostImage item={imageItems[0]} />
-      ) : images.length > 0 ? (
-        <div className="overflow-hidden rounded-[10px]">
-          <PostGallery images={images} alt={post.text.slice(0, 40) || t("pages.channelDetail.postAlt")} />
-        </div>
-      ) : null}
+    <div className="mt-2 max-w-[520px] overflow-hidden rounded-[10px]">
+      <PostMediaCarousel items={items} alt={post.text.slice(0, 40) || t("pages.channelDetail.postAlt")} />
     </div>
   );
 }

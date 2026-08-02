@@ -89,6 +89,8 @@ export interface Video {
   commentList?: Comment[];   // the SAME Comment type, reused unchanged
 }
 
+export type PostMediaItem = { type: "image" | "video"; url: string };
+
 export interface Post {
   id: ID;
   authorId: ID;
@@ -99,6 +101,8 @@ export interface Post {
   image?: string;
   images?: string[];
   video?: string;
+  /** Ordered media slides from API (video + images in publish order). */
+  mediaItems?: PostMediaItem[];
   tags?: string[];
   views?: number;
   likes: number;

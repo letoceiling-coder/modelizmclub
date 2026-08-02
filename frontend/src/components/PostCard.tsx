@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, Eye, Repeat2, ImageOff, Clock } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Eye, Repeat2, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
-import { PostGallery } from "@/components/feed/PostGallery";
+import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { SchedulePostDialog } from "@/components/feed/SchedulePostDialog";
@@ -68,60 +68,18 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   );
 }
 
-/** Media block: image or video with compact fallback on load failure. */
+/** Media block: mixed video/images in a single carousel. */
 function PostMediaBlock({ post }: { post: Post }) {
-  if (post.video) {
-    return (
-      <div className="aspect-video overflow-hidden bg-black">
-        <video
-          src={post.video}
-          controls
-          preload="metadata"
-          playsInline
-          className="h-full w-full object-contain"
-        />
-      </div>
-    );
-  }
+  const items =
+    post.mediaItems ??
+    [
+      ...(post.video ? [{ type: "video" as const, url: post.video }] : []),
+      ...(post.images?.length ? post.images.map((url) => ({ type: "image" as const, url })) : post.image ? [{ type: "image" as const, url: post.image }] : []),
+    ];
 
-  if (post.images && post.images.length > 1) {
-    return <PostGallery images={post.images} alt={post.title} />;
-  }
+  if (items.length === 0) return null;
 
-  if (post.image) {
-    return <PostImage src={post.image} alt={post.title} />;
-  }
-
-  return null;
-}
-
-/** Fixed 16:9 image; broken/missing URLs show a compact placeholder bar. */
-function PostImage({ src, alt }: { src: string; alt: string }) {
-  const [err, setErr] = useState(false);
-  if (err) {
-    return (
-      <div
-        className="flex h-[96px] w-full items-center justify-center gap-[8px]"
-        style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}
-        aria-label="Изображение недоступно"
-      >
-        <ImageOff className="h-[20px] w-[20px]" />
-        <span className="text-[12px]" style={{ color: "var(--foreground-30)" }}>Фото недоступно</span>
-      </div>
-    );
-  }
-  return (
-    <div className="aspect-video overflow-hidden">
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        className="h-full w-full object-cover"
-        onError={() => setErr(true)}
-      />
-    </div>
-  );
+  return <PostMediaCarousel items={items} alt={post.title} />;
 }
 
 /** Shared class for footer action buttons — ghost-style, accent hover */

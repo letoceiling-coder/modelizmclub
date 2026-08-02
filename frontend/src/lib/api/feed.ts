@@ -61,19 +61,23 @@ function isVideoMedia(m: ApiPostMedia): boolean {
   return mime.startsWith("video/");
 }
 
-export function mapPostMedia(p: ApiPost): { images: string[]; video?: string } {
-  const media = p.media ?? [];
-  const images = media
-    .filter((m) => !isVideoMedia(m))
-    .map((m) => m.media?.url)
-    .filter((u): u is string => Boolean(u));
-  const video = media.find(isVideoMedia)?.media?.url ?? undefined;
-  return { images, video };
+export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; mediaItems: Array<{ type: "image" | "video"; url: string }> } {
+  const mediaItems = (p.media ?? [])
+    .map((m) => {
+      const url = m.media?.url;
+      if (!url) return null;
+      return { type: isVideoMedia(m) ? ("video" as const) : ("image" as const), url };
+    })
+    .filter((item): item is { type: "image" | "video"; url: string } => item !== null);
+
+  const images = mediaItems.filter((m) => m.type === "image").map((m) => m.url);
+  const video = mediaItems.find((m) => m.type === "video")?.url;
+  return { images, video, mediaItems };
 }
 
 export function mapPost(p: ApiPost): Post {
   const author = registerAuthor(p.author);
-  const { images, video } = mapPostMedia(p);
+  const { images, video, mediaItems } = mapPostMedia(p);
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
@@ -84,6 +88,7 @@ export function mapPost(p: ApiPost): Post {
     image: images[0],
     images,
     video,
+    mediaItems,
     tags: p.hashtags ?? [],
     views: p.stats?.views ?? 0,
     likes: p.stats?.reactions ?? 0,
