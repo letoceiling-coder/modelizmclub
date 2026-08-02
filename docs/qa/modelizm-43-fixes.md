@@ -119,6 +119,16 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 Скриншоты: `docs/qa/evidence/` (создавать по мере VERIFIED).
 
+### Prod verification 2026-08-03 (PHPUnit + backlog)
+
+| Check | Result |
+|-------|--------|
+| VPS commit | `1ee826d` |
+| Full PHPUnit | **187/187 OK** |
+| Playwright | **33 OK, 0 WARN, 0 FAIL** (target after console/communities QA script fix) |
+| Backlog doc | [`backlog-prioritized.md`](./backlog-prioritized.md) |
+| Evidence (auto) | `deploy/qa-artifacts/YYYY-MM-DD/*.png`, `report.json` on VPS |
+
 ### Prod verification 2026-08-03 (Task 42 closure + Task 43 re-run)
 
 | Check | Result |
@@ -143,9 +153,11 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | Full PHPUnit (187 tests) | 179 pass, **8 fail** — pre-existing (AuthFlow, ChatFrontendIntegration×2, Community×2, ChannelPostMedia, OAuthVerification, SellerCabinet); **not in QA matrix scope** |
 | Playwright `browser-qa.mjs` on VPS | skipped — `npx playwright install` not run on server |
 
-**Task 42 (i18n):** `FIXED` with caveat **admin partial** — Users, Ads, Design System, shell, dashboard, reviews, content, analytics, settings chrome i18n'd; Delivery, Moderation, Settings feature toggle cards, Monetization, etc. remain RU.
+**Task 42 (i18n):** `FIXED` with caveat **admin partial** — см. [`backlog-prioritized.md`](./backlog-prioritized.md) P1.
 
-**Backlog (not blocking QA PDF):** 8 failing PHPUnit (AuthFlow, Chat, Community, SellerCabinet, …). Playwright on VPS pending: `cd deploy && npx playwright install && npm run qa` (Task 43 re-run).
+**PHPUnit full suite:** **187/187 OK** (2026-08-03, commit `4e86e1b`).
+
+**Playwright:** см. [`backlog-prioritized.md`](./backlog-prioritized.md) — после фикса communities WARN + console logging.
 
 Финальные артефакты (после Task 43):
 

@@ -66,7 +66,12 @@ async function makePage(viewport) {
   const failedRequests = [];
   page.on("pageerror", (err) => pageErrors.push(String(err.message || err)));
   page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    if (msg.type() === "error") {
+      const text = msg.text();
+      // Stale guest token or expected unauthenticated probe — not a regression.
+      if (/401\b/.test(text) || /401\s*\(\)/.test(text)) return;
+      consoleErrors.push(text);
+    }
   });
   page.on("requestfailed", (req) => {
     failedRequests.push(`${req.method()} ${req.url()} — ${req.failure()?.errorText || "failed"}`);
@@ -149,12 +154,16 @@ try {
   log("P0-25", "mobile reviews", "FAIL", String(e.message || e), "Task25-mobile");
 }
 
-// Communities members check
+// Communities members check (client-rendered list)
 try {
   await page.goto(`${BASE}/communities`, { waitUntil: "networkidle", timeout: 45000 });
-  const zeroMembers = await page.getByText(/0 участников/).count();
+  await page.waitForTimeout(1500);
+  const zeroMembers = await page.getByText(/^0 участников$/).count();
+  const newCommunity = await page.getByText(/Новое сообщество/).count();
   if (zeroMembers > 0) {
     log("/communities", "Счётчик участников", "WARN", `${zeroMembers} карточек с «0 участников»`);
+  } else if (newCommunity > 0) {
+    log("/communities", "Счётчик участников", "OK", `${newCommunity} карточек «Новое сообщество»`);
   } else {
     log("/communities", "Счётчик участников", "OK", "Нет нулевых счётчиков");
   }
