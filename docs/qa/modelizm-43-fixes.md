@@ -56,9 +56,9 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
 | 25 | №22 | `/reviews`, `/reviews/$id` | Review detail | **P0** | prod + code | uploader not registered in FE; sparse API uploader; unsafe views/author Link | `VideoResource`, `VideoService` | `reviews.ts`, `reviews.$id.tsx` | — | VideoUploadModerationTest | pending | pending | FIXED |
-| 26 | №25 (player) | `/reviews/$id` | Video player | P1 | — | TBD: player/metadata incomplete | Video module | review detail | — | — | — | — | TODO |
-| 27 | №25 (actions) | `/reviews/$id` | Engagement | P1 | — | TBD: like/favorite/share missing or broken | Video API | review detail | — | — | — | — | TODO |
-| 28 | №25 (comments) | `/reviews/$id` | Comments | P1 | — | TBD: comments module incomplete | Video comments | review detail | — | — | — | — | TODO |
+| 26 | №25 (player) | `/reviews/$id` | Video player | P1 | FIXED | empty URL/errors ignored; hardcoded mp4; duration/category/tags hidden; no Range on proxy | `VideoResource`, `ServeMediaController`, `VideoService` | `reviews.$id.tsx`, `reviews.ts` | — | VideoUploadModerationTest, ServeMediaRangeTest | pending | pending | FIXED |
+| 27 | №25 (actions) | `/reviews/$id` | Engagement | P1 | FIXED | like/share already wired; no separate favorite API in spec | Video react API | `reviews.$id.tsx`, `VideoActionsMenu` | — | build pass | pending | pending | FIXED |
+| 28 | №25 (comments) | `/reviews/$id` | Comments | P1 | FIXED | comments module present with preview + expand + create | Video comments API | `reviews.$id.tsx`, `CommentSection` | — | build pass | pending | pending | FIXED |
 | 29 | №25 (similar) | `/reviews/$id` | Discovery | P2 | — | TBD: author + similar blocks | — | review detail | — | — | — | — | TODO |
 | 30 | №26 | `/reviews` | Category filter | P2 | — | TBD: title stays «Все обзоры» | — | `reviews.index.tsx` | — | — | — | — | TODO |
 

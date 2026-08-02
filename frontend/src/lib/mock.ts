@@ -73,8 +73,11 @@ export interface Video {
   title: string;
   description: string;
   categoryId: ID;            // -> VideoCategory.id
+  categorySlug?: string;
+  categoryName?: string;
   posterUrl: string;
   videoUrl: string;
+  videoMimeType?: string;
   durationSeconds: number;
   views: number;             // passive watch counter, separate from likes/comments
   isFeatured: boolean;       // hero-carousel curation

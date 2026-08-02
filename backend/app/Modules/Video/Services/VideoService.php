@@ -86,6 +86,7 @@ class VideoService
             'category_id' => $category->id,
             'poster_media_id' => $posterId,
             'video_media_id' => $videoMedia->id,
+            'duration_seconds' => (int) ($videoMedia->duration_seconds ?? 0),
             'tags' => $data['tags'] ?? [],
             'is_featured' => (bool) ($data['is_featured'] ?? false),
             'uploader_id' => $user->id,

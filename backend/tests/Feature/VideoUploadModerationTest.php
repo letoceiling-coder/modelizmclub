@@ -180,6 +180,7 @@ class VideoUploadModerationTest extends TestCase
             'filename' => 'clip.mp4',
             'mime_type' => 'video/mp4',
             'size_bytes' => 5_242_880,
+            'duration_seconds' => 754,
             'uploaded_by' => $uploader->id,
             'purpose' => 'review_video',
             'status' => MediaStatus::Ready,
@@ -191,6 +192,7 @@ class VideoUploadModerationTest extends TestCase
             'description' => 'Описание',
             'category_id' => $category->id,
             'video_media_id' => $videoMedia->id,
+            'duration_seconds' => 754,
             'uploader_id' => $uploader->id,
             'status' => 'published',
             'published_at' => now(),
@@ -203,6 +205,10 @@ class VideoUploadModerationTest extends TestCase
             ->assertJsonPath('data.uuid', $video->uuid)
             ->assertJsonPath('data.status', 'published')
             ->assertJsonPath('data.video_url', fn ($url) => is_string($url) && $url !== '')
+            ->assertJsonPath('data.video_mime_type', 'video/mp4')
+            ->assertJsonPath('data.duration_seconds', 754)
+            ->assertJsonPath('data.category.title', 'Авиация')
+            ->assertJsonPath('data.category.slug', $category->slug)
             ->assertJsonPath('data.uploader.uuid', $uploader->uuid)
             ->assertJsonPath('data.uploader.display_name', fn ($name) => is_string($name) && $name !== '');
     }

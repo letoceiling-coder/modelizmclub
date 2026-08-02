@@ -19,10 +19,14 @@ class VideoResource extends JsonResource
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->uuid,
                 'slug' => $this->category->slug,
+                'title' => $this->category->title,
             ] : null),
             'poster_url' => $this->poster?->url,
             'video_url' => $this->videoMedia?->url,
-            'duration_seconds' => $this->duration_seconds,
+            'video_mime_type' => $this->videoMedia?->mime_type,
+            'duration_seconds' => $this->duration_seconds > 0
+                ? $this->duration_seconds
+                : (int) ($this->videoMedia?->duration_seconds ?? 0),
             'views_count' => $this->views_count,
             'is_featured' => $this->is_featured,
             'tags' => $this->tags ?? [],

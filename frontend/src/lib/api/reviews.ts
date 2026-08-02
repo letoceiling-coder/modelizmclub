@@ -24,9 +24,10 @@ interface ApiVideo {
   uuid: string;
   title: string;
   description?: string | null;
-  category?: { id?: string; slug?: string } | null;
+  category?: { id?: string; slug?: string; title?: string } | null;
   poster_url?: string | null;
   video_url?: string | null;
+  video_mime_type?: string | null;
   duration_seconds?: number;
   views_count?: number;
   is_featured?: boolean;
@@ -62,8 +63,11 @@ function mapVideo(v: ApiVideo): Video {
     title: v.title,
     description: v.description ?? "",
     categoryId: v.category?.id ?? "",
+    categorySlug: v.category?.slug ?? "",
+    categoryName: v.category?.title ?? "",
     posterUrl: v.poster_url ?? "",
     videoUrl: v.video_url ?? "",
+    videoMimeType: v.video_mime_type ?? undefined,
     durationSeconds: v.duration_seconds ?? 0,
     views: Number(v.views_count ?? 0),
     isFeatured: v.is_featured ?? false,

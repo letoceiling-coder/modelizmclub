@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Play, Eye, SearchX, RefreshCw, Heart, ChevronDown, Film } from "lucide-react";
+import { ChevronLeft, Play, Eye, SearchX, RefreshCw, Heart, ChevronDown, Film, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -12,6 +12,7 @@ import { VideoCard } from "@/components/reviews/VideoCard";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { VideoActionsMenu } from "@/components/reviews/VideoActionsMenu";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
+import { formatDuration } from "@/lib/format-duration";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -56,6 +57,8 @@ function WatchPage() {
 
   const [playing, setPlaying] = useState(false);   // has the user tapped play?
   const [buffering, setBuffering] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
+  const [posterFailed, setPosterFailed] = useState(false);
   const [saveData, setSaveData] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewedRef = useRef(false);
@@ -77,6 +80,8 @@ function WatchPage() {
     let alive = true;
     setState("loading");
     setPlaying(false);
+    setPlayError(null);
+    setPosterFailed(false);
     setCommentsOpen(false);
     viewedRef.current = false;
     fetchVideo(id)
@@ -88,7 +93,7 @@ function WatchPage() {
         setLiked(Boolean(v.isLiked));
         setLikeCount(v.likes);
         fetchVideoComments(v.id).then((cs) => { if (alive) setComments(cs); }).catch(() => {});
-        fetchVideos({ categorySlug: undefined })
+        fetchVideos({ categorySlug: v.categorySlug || undefined })
           .then((list) => { if (alive) setRelated(list.filter((x) => x.id !== v.id).slice(0, 8)); })
           .catch(() => {});
       })
@@ -101,18 +106,30 @@ function WatchPage() {
   }, [id]);
 
   const startPlay = () => {
+    if (!video?.videoUrl) {
+      toast.error(t("pages.reviews.playbackUnavailable"));
+      return;
+    }
+    if (video.status === "processing") {
+      toast.info(t("pages.reviews.processing"));
+      return;
+    }
     if (!getToken() && !isDemoMode()) {
       toast.info(t("pages.reviews.loginRequired"));
       navigate({ to: "/login" });
       return;
     }
+    setPlayError(null);
     setPlaying(true);
     // Attach src + play on the next tick (after the <video> renders with src).
     requestAnimationFrame(() => {
       const el = videoRef.current;
       if (!el) return;
       el.load();
-      void el.play().catch(() => {});
+      void el.play().catch(() => {
+        setPlayError(t("pages.reviews.playbackFailed"));
+        setBuffering(false);
+      });
     });
     if (!viewedRef.current) {
       viewedRef.current = true;
@@ -178,10 +195,12 @@ function WatchPage() {
     );
   }
 
-  const poster = video.posterUrl || categoryPlaceholder(video.id, "");
+  const poster = posterFailed ? categoryPlaceholder(video.id, "") : (video.posterUrl || categoryPlaceholder(video.id, ""));
   const author = userById(video.uploaderId);
   const authorProfileId = author.slug ?? author.id;
   const viewsCount = Number.isFinite(Number(video.views)) ? Number(video.views) : 0;
+  const durationLabel = video.durationSeconds > 0 ? formatDuration(video.durationSeconds) : null;
+  const canPlay = Boolean(video.videoUrl) && video.status !== "processing";
 
   const authorBlock = (
     <>
@@ -209,19 +228,34 @@ function WatchPage() {
                 alt={video.title}
                 className="h-full w-full object-contain"
                 loading={saveData ? "lazy" : "eager"}
+                onError={() => setPosterFailed(true)}
               />
-              <button
-                type="button"
-                onClick={startPlay}
-                aria-label={t("pages.reviews.watchAria")}
-                className="absolute inset-0 grid place-items-center"
-                style={{ background: "rgba(0,0,0,0.25)" }}
-              >
-                <span className="grid h-[64px] w-[64px] place-items-center rounded-full" style={{ background: "var(--accent)" }}>
-                  <Play size={28} fill="#fff" color="#fff" />
+              {canPlay ? (
+                <button
+                  type="button"
+                  onClick={startPlay}
+                  aria-label={t("pages.reviews.watchAria")}
+                  className="absolute inset-0 grid place-items-center"
+                  style={{ background: "rgba(0,0,0,0.25)" }}
+                >
+                  <span className="grid h-[64px] w-[64px] place-items-center rounded-full" style={{ background: "var(--accent)" }}>
+                    <Play size={28} fill="#fff" color="#fff" />
+                  </span>
+                </button>
+              ) : (
+                <div className="absolute inset-0 grid place-items-center px-[20px] text-center text-[13px] text-white" style={{ background: "rgba(0,0,0,0.55)" }}>
+                  <span className="inline-flex items-center gap-[6px]">
+                    <AlertTriangle size={16} />
+                    {video.status === "processing" ? t("pages.reviews.processing") : t("pages.reviews.playbackUnavailable")}
+                  </span>
+                </div>
+              )}
+              {durationLabel && (
+                <span className="absolute bottom-[10px] right-[10px] rounded-[6px] px-[8px] py-[3px] text-[11px] font-semibold text-white" style={{ background: "rgba(0,0,0,0.75)" }}>
+                  {durationLabel}
                 </span>
-              </button>
-              {saveData && (
+              )}
+              {saveData && canPlay && (
                 <span className="absolute left-[10px] top-[10px] rounded-[6px] px-[8px] py-[3px] text-[11px]" style={{ background: "rgba(0,0,0,0.7)", color: "#fff" }}>
                   {t("pages.reviews.dataSaver")}
                 </span>
@@ -231,18 +265,26 @@ function WatchPage() {
             <>
               <video
                 ref={videoRef}
+                src={video.videoUrl}
                 poster={poster}
                 controls
                 playsInline
                 preload="none"
                 controlsList="nodownload"
                 onWaiting={() => setBuffering(true)}
-                onPlaying={() => setBuffering(false)}
+                onPlaying={() => { setBuffering(false); setPlayError(null); }}
                 onCanPlay={() => setBuffering(false)}
+                onError={() => {
+                  setPlayError(t("pages.reviews.playbackFailed"));
+                  setBuffering(false);
+                }}
                 className="h-full w-full object-contain"
-              >
-                <source src={video.videoUrl} type="video/mp4" />
-              </video>
+              />
+              {playError && (
+                <div className="absolute inset-x-[12px] bottom-[12px] rounded-[10px] px-[12px] py-[10px] text-[12px] text-white" style={{ background: "rgba(0,0,0,0.75)" }}>
+                  {playError}
+                </div>
+              )}
               {buffering && (
                 <div className="pointer-events-none absolute inset-0 grid place-items-center">
                   <RefreshCw size={32} className="animate-spin" color="#fff" />
@@ -257,10 +299,38 @@ function WatchPage() {
           <h1 className="font-display text-[20px] font-bold leading-[1.25] sm:text-[24px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
             {video.title}
           </h1>
-          <div className="flex items-center gap-[12px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
+          <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
             <span className="inline-flex items-center gap-[4px]"><Eye size={13} /> {t("pages.reviews.views", { count: viewsCount.toLocaleString("ru-RU") })}</span>
+            {durationLabel && (
+              <span className="inline-flex items-center gap-[4px]"><Clock size={13} /> {durationLabel}</span>
+            )}
             {video.publishedAt && <span>· {new Date(video.publishedAt).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" })}</span>}
           </div>
+          {(video.categoryName || video.tags.length > 0) && (
+            <div className="flex flex-wrap items-center gap-[8px] pt-[2px]">
+              {video.categoryName && video.categorySlug && (
+                <Link
+                  to="/reviews"
+                  search={{ category: video.categorySlug }}
+                  className="rounded-full px-[10px] py-[4px] text-[11px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  {video.categoryName}
+                </Link>
+              )}
+              {video.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  to="/reviews"
+                  search={{ q: tag }}
+                  className="rounded-full px-[10px] py-[4px] text-[11px] font-medium"
+                  style={{ background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
+                >
+                  #{tag}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* author */}

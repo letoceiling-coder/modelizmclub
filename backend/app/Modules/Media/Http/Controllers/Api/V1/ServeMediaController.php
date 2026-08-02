@@ -45,18 +45,70 @@ class ServeMediaController extends Controller
             abort(404);
         }
 
-        $stream = $disk->readStream($media->path);
+        return $this->streamFile($request, $disk, $media, $uuid);
+    }
 
-        return response()->stream(function () use ($stream): void {
-            if (is_resource($stream)) {
-                fpassthru($stream);
-                fclose($stream);
-            }
-        }, 200, array_filter([
-            'Content-Type' => $media->mime_type ?: 'application/octet-stream',
-            'Content-Length' => $media->size_bytes ? (string) $media->size_bytes : null,
+    private function streamFile(Request $request, $disk, Media $media, string $uuid): StreamedResponse
+    {
+        $size = (int) ($media->size_bytes ?? 0);
+        $mime = $media->mime_type ?: 'application/octet-stream';
+        $filename = addslashes($media->filename ?: $uuid);
+
+        $headers = [
+            'Content-Type' => $mime,
+            'Accept-Ranges' => 'bytes',
             'Cache-Control' => 'public, max-age=31536000, immutable',
-            'Content-Disposition' => 'inline; filename="'.addslashes($media->filename ?: $uuid).'"',
-        ]));
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ];
+
+        $start = 0;
+        $end = $size > 0 ? $size - 1 : 0;
+        $status = 200;
+
+        if ($size > 0 && $request->headers->has('Range')) {
+            if (preg_match('/bytes=(\d+)-(\d*)/', (string) $request->header('Range'), $matches)) {
+                $start = (int) $matches[1];
+                $end = $matches[2] !== '' ? (int) $matches[2] : $size - 1;
+                $end = min($end, $size - 1);
+
+                if ($start <= $end) {
+                    $status = 206;
+                    $headers['Content-Range'] = "bytes {$start}-{$end}/{$size}";
+                    $headers['Content-Length'] = (string) ($end - $start + 1);
+                } else {
+                    $start = 0;
+                    $end = $size - 1;
+                }
+            }
+        } elseif ($size > 0) {
+            $headers['Content-Length'] = (string) $size;
+        }
+
+        $path = $media->path;
+        $rangeStart = $start;
+        $rangeEnd = $end;
+
+        return response()->stream(function () use ($disk, $path, $rangeStart, $rangeEnd): void {
+            $stream = $disk->readStream($path);
+            if (! is_resource($stream)) {
+                return;
+            }
+
+            if ($rangeStart > 0) {
+                fseek($stream, $rangeStart);
+            }
+
+            $remaining = $rangeEnd - $rangeStart + 1;
+            while ($remaining > 0 && ! feof($stream)) {
+                $chunk = fread($stream, (int) min(8192, $remaining));
+                if ($chunk === false) {
+                    break;
+                }
+                echo $chunk;
+                $remaining -= strlen($chunk);
+            }
+
+            fclose($stream);
+        }, $status, array_filter($headers));
     }
 }

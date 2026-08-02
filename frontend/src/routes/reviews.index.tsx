@@ -14,6 +14,10 @@ import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/reviews/")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.metaTitle") }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    category: typeof search.category === "string" ? search.category : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   component: ReviewsPage,
 });
 
@@ -21,11 +25,12 @@ const ALL = "all";
 
 function ReviewsPage() {
   const { t } = useTranslation();
+  const { category: categoryFromUrl, q: qFromUrl } = Route.useSearch();
   const [videos, setVideos] = useState<Video[]>([]);
   const [featured, setFeatured] = useState<Video[]>([]);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
-  const [activeCat, setActiveCat] = useState<string>(ALL);
-  const [query, setQuery] = useState("");
+  const [activeCat, setActiveCat] = useState<string>(categoryFromUrl ?? ALL);
+  const [query, setQuery] = useState(qFromUrl ?? "");
   const [loading, setLoading] = useState(true);
 
   const tabs = useMemo(() => {
@@ -34,6 +39,11 @@ function ReviewsPage() {
     );
     return [{ id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
   }, [categories, t]);
+
+  useEffect(() => {
+    if (categoryFromUrl) setActiveCat(categoryFromUrl);
+    if (typeof qFromUrl === "string") setQuery(qFromUrl);
+  }, [categoryFromUrl, qFromUrl]);
 
   useEffect(() => {
     let alive = true;

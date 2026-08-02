@@ -1647,6 +1647,9 @@ export const en: TranslationSchema = {
       authorLabel: "Review author",
       comments: "Comments",
       similar: "Similar reviews",
+      playbackFailed: "Could not play video",
+      playbackUnavailable: "Video is not available for playback",
+      processing: "Video is being processed",
       likeFailed: "Could not like",
       commentFailed: "Could not post comment"
     },
