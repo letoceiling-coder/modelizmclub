@@ -75,10 +75,6 @@ class ChatService
             ->orderByDesc('conversations.last_message_at')
             ->paginate($perPage);
 
-        $paginator->setCollection(
-            $this->dedupeDirectConversationsForUser($paginator->getCollection(), $user),
-        );
-
         return $paginator;
     }
 

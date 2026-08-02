@@ -183,12 +183,13 @@ class UserService
         }
 
         if (array_key_exists('phone', $data)) {
+            $user->forceFill(['phone' => $data['phone']])->save();
             unset($data['phone']);
         }
 
         $profile->fill($data)->save();
 
-        return $profile->fresh(['city', 'avatar', 'cover']);
+        return $profile->fresh(['city', 'avatar', 'cover', 'user']);
     }
 
     /** @return Collection<int, NotificationPreference> */

@@ -99,6 +99,7 @@ class AuthService
 
             if (! $user->profile) {
                 $this->createProfile($user);
+                $user->unsetRelation('profile');
             }
 
             if (! $user->hasRole('user')) {
@@ -252,7 +253,7 @@ class AuthService
 
     private function tokenResponse(User $user): array
     {
-        $user->loadMissing([
+        $user->load([
             'profile.city',
             'profile.avatar',
             'profile.cover',

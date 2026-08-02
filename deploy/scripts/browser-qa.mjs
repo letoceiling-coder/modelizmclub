@@ -271,7 +271,8 @@ try {
 }
 
 if (consoleErrors.length) {
-  log("global", "console.errors", "WARN", `${consoleErrors.length} ошибок в консоли`);
+  const preview = consoleErrors.slice(0, 3).join(" | ");
+  log("global", "console.errors", "WARN", `${consoleErrors.length} ошибок в консоли: ${preview}`);
 } else {
   log("global", "console.errors", "OK", "0 ошибок");
 }

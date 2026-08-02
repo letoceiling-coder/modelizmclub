@@ -546,6 +546,7 @@ export const ru = {
       collapse: "Свернуть",
       nothingFound: "Ничего не найдено",
       members: "{{count}} участников",
+      membersNew: "Новое сообщество",
       activeToday: "активны сегодня",
       goTo: "Перейти",
       subscribed: "Подписан",

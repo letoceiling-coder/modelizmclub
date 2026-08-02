@@ -117,7 +117,7 @@ class ChannelPostMediaTest extends TestCase
         $this->assertNotNull($channelPost->feed_post_id);
         $this->assertSame(ContentStatus::Draft, $channelPost->feedPost->status);
 
-        $this->assertDatabaseHas('moderation_queues', [
+        $this->assertDatabaseHas('moderation_queue', [
             'moderatable_type' => ChannelPost::class,
             'moderatable_id' => $channelPost->id,
             'queue' => 'channel_posts',

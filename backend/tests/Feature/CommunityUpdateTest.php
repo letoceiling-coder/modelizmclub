@@ -51,9 +51,20 @@ class CommunityUpdateTest extends TestCase
                 'category_id' => $nextCategory->id,
             ])
             ->assertOk()
-            ->assertJsonPath('data.name', 'New Community')
-            ->assertJsonPath('data.description', 'New description')
-            ->assertJsonPath('data.category.name', 'Бронетехника');
+            ->assertJsonPath('data.name', 'Old Community')
+            ->assertJsonPath('data.description', 'Old desc')
+            ->assertJsonPath('data.category.name', 'Авиация');
+
+        $community->refresh();
+        $this->assertSame('New Community', $community->settings['pending_revision']['name'] ?? null);
+        $this->assertSame('New description', $community->settings['pending_revision']['description'] ?? null);
+        $this->assertSame($nextCategory->id, $community->settings['pending_revision']['category_id'] ?? null);
+        $this->assertDatabaseHas('moderation_queue', [
+            'moderatable_type' => Community::class,
+            'moderatable_id' => $community->id,
+            'queue' => 'communities',
+            'status' => 'pending',
+        ]);
 
         $this->actingAs($other, 'sanctum')
             ->patchJson("/api/v1/communities/{$community->slug}", [

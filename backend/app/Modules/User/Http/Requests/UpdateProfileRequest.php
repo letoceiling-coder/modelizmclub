@@ -22,6 +22,7 @@ class UpdateProfileRequest extends FormRequest
             'vk_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
             'telegram_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
             'website_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'avatar_media_id' => ['sometimes', 'nullable'],
             'avatar_media_uuid' => ['sometimes', 'nullable', 'string', Rule::exists('media', 'uuid')],
             'cover_media_id' => ['sometimes', 'nullable'],

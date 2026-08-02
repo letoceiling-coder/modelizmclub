@@ -61,13 +61,17 @@ class CommunityBrandingTest extends TestCase
                 'cover_media_uuid' => $cover->uuid,
             ])
             ->assertOk()
-            ->assertJsonPath('data.avatar.uuid', $avatar->uuid)
-            ->assertJsonPath('data.cover.uuid', $cover->uuid)
             ->assertJsonPath('data.is_owner', true);
 
         $community->refresh();
-        $this->assertSame($avatar->id, $community->avatar_media_id);
-        $this->assertSame($cover->id, $community->cover_media_id);
+        $this->assertSame($avatar->id, $community->settings['pending_revision']['avatar_media_id'] ?? null);
+        $this->assertSame($cover->id, $community->settings['pending_revision']['cover_media_id'] ?? null);
+        $this->assertDatabaseHas('moderation_queue', [
+            'moderatable_type' => Community::class,
+            'moderatable_id' => $community->id,
+            'queue' => 'communities',
+            'status' => 'pending',
+        ]);
     }
 
     public function test_non_owner_cannot_update_community_branding(): void

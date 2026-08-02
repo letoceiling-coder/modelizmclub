@@ -129,7 +129,9 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         <div className="mt-auto flex items-center justify-between gap-[8px] pt-[4px]">
           <div className="flex flex-col gap-[2px]">
             <span className="inline-flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              <Users size={14} /> {t("pages.shared.members", { count: c.members.toLocaleString("ru") })}
+              <Users size={14} /> {c.members > 0
+                ? t("pages.shared.members", { count: c.members.toLocaleString("ru") })
+                : t("pages.shared.membersNew")}
             </span>
             <span className="inline-flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
               <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />

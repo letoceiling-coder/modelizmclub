@@ -10,6 +10,7 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Modules\Auth\Services\OAuthService;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class OAuthVerificationTest extends TestCase
