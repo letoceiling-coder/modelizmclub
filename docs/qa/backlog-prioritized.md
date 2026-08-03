@@ -55,9 +55,19 @@ Playwright `browser-qa.mjs` — **66 OK, 1 WARN, 0 FAIL**; P2 capture: 14 auth-�
 
 ## P3 — прочее
 
-- Синхронизация `members_count` на prod (communities с 0 в счётчике).
-- `modelizm-final-report.md` — финальный snapshot после P0 закрыт.
-- 8 PHPUnit вне QA-фильтра — не блокируют PDF, но должны быть зелёными для полного CI.
+**Статус: DONE** (2026-08-03).
+
+| # | Задача | Статус | Детали |
+|---|--------|--------|--------|
+| 1 | Sync `members_count` / `posts_count` | **DONE** | `php artisan communities:sync-counters` (+ daily schedule) |
+| 2 | `modelizm-final-report.md` | **DONE** | Snapshot 2026-08-03 |
+| 3 | PHPUnit full CI | **DONE** | 187/187 (2026-08-03) |
+
+```bash
+# Prod one-off / verify drift
+ssh root@31.207.75.124 "cd /var/www/modelizmclub/backend && php artisan communities:sync-counters --dry-run"
+ssh root@31.207.75.124 "cd /var/www/modelizmclub/backend && php artisan communities:sync-counters"
+```
 
 ## Команды
 

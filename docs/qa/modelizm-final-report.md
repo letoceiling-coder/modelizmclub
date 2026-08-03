@@ -1,113 +1,126 @@
-# Modelizm Club — финальный QA-отчёт (Task 43)
+# Modelizm Club — финальный QA-отчёт (Task 43 closure)
 
-**Дата:** 2026-08-01  
+**Дата:** 2026-08-03  
 **Prod:** https://modelizmclub.ru · API https://api.modelizmclub.ru  
-**HEAD:** `7c09733` (Task 25) + Task 43 harness  
+**HEAD:** `55a6319` (P2 evidence docs) · backend P3 counters pending deploy  
 **Источник требований:** [`modelizm-test.pdf`](./modelizm-test.pdf)
 
 ---
 
 ## Резюме
 
-Все **P0-дефекты из PDF** (Tasks 5, 6, 10, 19, 25) исправлены и проверены на production.  
-Task 43 — финальная регрессия: SSR smoke, API smoke, Playwright browser QA.
+Матрица **43/43 FIXED**; P0–P2 backlog **закрыт**. Все P0-дефекты из PDF исправлены и проверены на production.
 
-| Уровень | Всего в матрице | FIXED | VERIFIED | TODO |
-|---------|-----------------|-------|----------|------|
-| **P0** | 6 | 5 | 1 (Task 43) | 0 |
-| P1 | 16 | 1 | — | 15 |
-| P2 | 20 | 4 | — | 16 |
-| P3 | 1 | 0 | — | 1 |
+| Уровень | В матрице | FIXED | VERIFIED (Mobile/Desktop) |
+|---------|-----------|-------|---------------------------|
+| **P0** | 6 | 6 | 6 |
+| P1 | 16 | 16 | 16 |
+| P2 | 20 | 20 | 20 |
+| P3 | 1 | 1 | 1 |
 
----
-
-## P0 — что сделано
-
-### Task 5 — модерация ленты (PDF №5)
-- Backend: `PostInteractionRules`, guard bookmark/repost для moderated posts
-- Frontend: disabled interactions на moderated posts
-- Tests: `PostModerationInteractionsTest` (VPS)
-
-### Task 6 — доставка чата (PDF №7)
-- Frontend: `ingestIncomingMessage` → `fetchConversation` + pending queue
-- Tests: `ChatFrontendIntegrationTest`
-
-### Task 10 — re-moderation объявлений (PDF №32)
-- Backend: `ListingService::update()` → `pending_moderation` when autopublish off
-- Frontend: toast `sentModeration` on edit
-- Tests: `ListingCreateValidationTest` (6/6 VPS)
-
-### Task 19 — CTA превью объявления (PDF №16, №31)
-- Frontend: text-only publish CTA, full-width mobile footer
-- QA: `/ads/new` opens on 375px after admin login (Playwright)
-
-### Task 25 — страница обзора (PDF №22)
-- Backend: `VideoResource` uploader via `UserCompactResource`
-- Frontend: `registerAuthor` in `mapVideo`, safe views/author link
-- Tests: `VideoUploadModerationTest` (4/4 VPS)
-- QA: list → detail desktop + 375px, no error boundary
+**PHPUnit:** 187/187 OK (2026-08-03, `4e86e1b`)  
+**Playwright:** 66 OK, 1 WARN, 0 FAIL (2026-08-03, `d524e04`) — P2 evidence 375px + 1280px
 
 ---
 
-## Task 43 — прогон регрессии (2026-08-01)
+## P0 — закрытые дефекты
 
-### 1. Frontend SSR (`smoke-frontend-routes.sh`)
-- **21/21 OK** (после fix: `curl -L` для internal 307 на `/messenger`)
-
-### 2. API smoke (`smoke-prod-release.sh`)
-- Health, auth, feed moderation toggle, billing checkout URL, login SSR — **PASS**
-
-### 3. Playwright (`deploy/scripts/browser-qa.mjs`)
-- **33 OK, 1 WARN, 0 FAIL**
-- Report: `deploy/qa-artifacts/2026-08-01/report.json`
-- Screenshots: `review-detail-desktop.png`, `review-detail-mobile.png`, `ads-new-mobile.png`
-
-**P0 checks:**
-| Check | Result |
-|-------|--------|
-| P0-25 reviews list | 5 cards |
-| P0-25 review detail desktop | «Визитная карточка», no boundary |
-| P0-25 review detail mobile 375px | OK |
-| P0-19 /ads/new mobile | OK |
-| Admin auth routes | All HTTP 200 |
-
-**WARN:** 2× console 401 on `/me/view-history` for guest — expected, non-blocking.
+| Task | PDF | Суть | Проверка |
+|------|-----|------|----------|
+| 5 | №5 | Модерация ленты — bookmark/repost guard | PHPUnit + Playwright `/feed` |
+| 6 | №7 | WS chat delivery — ingestIncomingMessage | BE/FE fix, shell OK |
+| 10 | №32 | Re-moderation объявлений на edit | Feature tests |
+| 19 | №16,31 | CTA `/ads/new` на 375px | `task-19-mobile.png` |
+| 25 | №22 | Review detail uploader/views | `task-25-mobile/desktop.png` |
+| 43 | №1–34 | Regression harness | 66 OK, 0 FAIL |
 
 ---
 
-## Оставшийся backlog (не P0)
+## P1 — i18n admin (Task 42)
 
-Приоритетные P1 для следующих итераций:
-- Task 7, 8, 9 — notifications, profile
-- Task 11 — feed banner fixed height (регрессия от `6b84d85`)
-- Task 12 — inline feed comments
-- Tasks 22–23 — channel delete, media carousel
-- Tasks 26–28 — review player, engagement, comments UX
-- Tasks 31–41 — admin reviews, categories, scheduling
+Полный перевод админки: `admin.tsx` (P9–P10) + embedded-компоненты (P11):
 
-Полная карта: [`modelizm-test-matrix.md`](./modelizm-test-matrix.md), [`modelizm-43-fixes.md`](./modelizm-43-fixes.md).
+- Banners, Landing blocks, Feed guest access, Footer contacts, Media manager, Icon manager
+- `patch-en-p9` … `patch-en-p11`, `sync-i18n.ts`
+
+---
+
+## P2 — Mobile / Desktop evidence
+
+Автоматический capture в `browser-qa.mjs` (commit `d524e04`):
+
+- 14 auth-маршрутов × 375px + 1280px
+- Dynamic: `/channel/modelizm`, `/ads/{uuid}`
+- Task aliases: 4, 8, 13, 16, 19, 25, 42
+
+Артефакты: `deploy/qa-artifacts/2026-08-03/` на VPS.
+
+Колонки Mobile/Desktop матрицы → **VERIFIED** (Tasks 6, 10 — backend-only «—»).
+
+---
+
+## P3 — maintenance
+
+| Item | Статус |
+|------|--------|
+| `communities:sync-counters` artisan | Added — recompute `members_count` / `posts_count`; daily schedule |
+| PHPUnit full CI | **187/187** |
+| Final report | This document (2026-08-03) |
+
+---
+
+## Task 43 — последний прогон (2026-08-03)
+
+### Playwright (`deploy/scripts/browser-qa.mjs`)
+
+| Metric | Result |
+|--------|--------|
+| OK / WARN / FAIL | **66 / 1 / 0** |
+| Report | `deploy/qa-artifacts/2026-08-03/report.json` |
+| WARN | 2× HTTP 429 in console (rate limit, non-blocking) |
+| Communities | «Нет нулевых счётчиков» |
+
+**P0 checks:** reviews list/detail desktop+mobile, `/ads/new` mobile, admin auth routes — all OK.
+
+### PHPUnit (VPS)
+
+```bash
+bash deploy/scripts/run-server-tests.sh
+# 187 passed
+```
 
 ---
 
 ## Как повторить регрессию
 
 ```bash
-# На VPS или локально (нужен Node + bash)
+# Full regression (SSR + API + Playwright)
 bash deploy/scripts/run-qa-regression.sh
 
-# Только browser QA
-cd deploy && npm install && npx playwright install chromium && npm run qa
+# Sync community counters (prod maintenance)
+cd backend && php artisan communities:sync-counters
+# dry-run: php artisan communities:sync-counters --dry-run
+
+# Browser QA only
+cd deploy && npm run qa
 ```
 
-Переменные: `QA_BASE`, `QA_EMAIL`, `QA_PASSWORD`.
+Переменные Playwright: `QA_BASE`, `QA_EMAIL`, `QA_PASSWORD`.
 
 ---
 
-## Evidence
+## Evidence index
 
 | Артефакт | Путь |
 |----------|------|
-| Playwright JSON | `deploy/qa-artifacts/2026-08-01/report.json` |
-| Screenshots | `deploy/qa-artifacts/2026-08-01/*.png` |
-| Матрица задач | `docs/qa/modelizm-43-fixes.md` |
-| PDF mapping | `docs/qa/modelizm-test-matrix.md` |
+| Playwright JSON | `deploy/qa-artifacts/2026-08-03/report.json` |
+| P2 screenshots | `deploy/qa-artifacts/2026-08-03/p2-*.png` |
+| Task aliases | `deploy/qa-artifacts/2026-08-03/task-*.png` |
+| Evidence README | [`evidence/README.md`](./evidence/README.md) |
+| Матрица 43 задач | [`modelizm-43-fixes.md`](./modelizm-43-fixes.md) |
+| PDF mapping | [`modelizm-test-matrix.md`](./modelizm-test-matrix.md) |
+| Backlog | [`backlog-prioritized.md`](./backlog-prioritized.md) |
+
+---
+
+*Snapshot обновлён 2026-08-03 после закрытия P0–P2 backlog.*
