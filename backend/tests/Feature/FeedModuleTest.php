@@ -97,6 +97,11 @@ class FeedModuleTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.uuid', $uuid);
 
+        // Guest (unauthenticated) must not see posts pending moderation.
+        $this->getJson('/api/v1/feed')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
         // A different user does not see a post that is still on moderation.
         $other = User::factory()->create(['status' => UserStatus::Active]);
         $this->actingAs($other, 'sanctum')

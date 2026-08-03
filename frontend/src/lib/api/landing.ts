@@ -14,10 +14,13 @@ function demoStats(): LandingStats {
   return { users: 1200, communities: 45, listing_categories: categories.length };
 }
 
+/** Empty fallback when API has no data — never use mock stats on production. */
+const EMPTY_LANDING_STATS: LandingStats = { users: 0, communities: 0, listing_categories: 0 };
+
 export async function fetchLandingStats(): Promise<LandingStats> {
   if (isDemoMode()) return demoStats();
   const res = await api<{ data: LandingStats }>("/public/landing-stats");
-  return res.data ?? demoStats();
+  return res.data ?? EMPTY_LANDING_STATS;
 }
 
 /** Format platform stat for hero badges, e.g. 1200 → "1 200+" */

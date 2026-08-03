@@ -17,6 +17,14 @@
 
 const LS_KEY = "modelizm_demo_mode";
 
+/** Main production site — never serve mock/demo data, even via localStorage. */
+const PRODUCTION_HOSTS = new Set(["modelizmclub.ru", "www.modelizmclub.ru"]);
+
+function isProductionSite(): boolean {
+  if (typeof window === "undefined") return false;
+  return PRODUCTION_HOSTS.has(window.location.hostname);
+}
+
 function envFlag(): "on" | "off" | "unset" {
   const env = (import.meta as { env?: Record<string, string | undefined> }).env;
   const v = env?.VITE_DEMO_MODE;
@@ -31,6 +39,8 @@ function envFlag(): "on" | "off" | "unset" {
  * checks are client-only).
  */
 export function isDemoMode(): boolean {
+  if (isProductionSite()) return false;
+
   const env = envFlag();
   if (env === "off") return false;
   if (env === "on") return true;
