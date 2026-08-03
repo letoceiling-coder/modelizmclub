@@ -2,7 +2,7 @@
 
 **Дата:** 2026-08-03  
 **Prod:** https://modelizmclub.ru · API https://api.modelizmclub.ru  
-**HEAD:** `55a6319` (P2 evidence docs) · backend P3 counters pending deploy  
+**HEAD:** `ea842b4` (P3 counters + final report)  
 **Источник требований:** [`modelizm-test.pdf`](./modelizm-test.pdf)
 
 ---
