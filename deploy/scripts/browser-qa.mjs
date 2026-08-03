@@ -279,6 +279,117 @@ try {
   log("/admin", "UI", "FAIL", String(e.message || e));
 }
 
+/** P2 matrix evidence — 375px + 1280px screenshots keyed by route slug */
+const P2_ROUTES = [
+  { slug: "feed", path: "/feed" },
+  { slug: "profile", path: "/profile" },
+  { slug: "messenger", path: "/messenger" },
+  { slug: "notifications", path: "/notifications" },
+  { slug: "channels", path: "/channels" },
+  { slug: "ads", path: "/ads" },
+  { slug: "ads-new", path: "/ads/new" },
+  { slug: "reviews", path: "/reviews" },
+  { slug: "reviews-upload", path: "/reviews/upload" },
+  { slug: "admin", path: "/admin" },
+  { slug: "settings", path: "/settings" },
+  { slug: "my-ads", path: "/my-ads" },
+  { slug: "favorites", path: "/favorites" },
+  { slug: "friends", path: "/friends" },
+];
+
+async function captureP2Route(targetPage, path, slug) {
+  for (const [width, suffix] of [
+    [375, "mobile"],
+    [1280, "desktop"],
+  ]) {
+    try {
+      await targetPage.setViewportSize({ width, height: width === 375 ? 812 : 800 });
+      const res = await targetPage.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 45000 });
+      await targetPage.waitForTimeout(1200);
+      const onLogin = targetPage.url().includes("/login");
+      const body = await targetPage.textContent("body");
+      const httpOk = (res?.status() ?? 0) >= 200 && (res?.status() ?? 0) < 400;
+      if (onLogin) {
+        log("P2", `${slug}@${suffix}`, "FAIL", "Редирект на login", `#p2-${slug}`);
+      } else if (hasErrorBoundary(body ?? "")) {
+        log("P2", `${slug}@${suffix}`, "FAIL", "Error boundary", `#p2-${slug}`);
+      } else if (!httpOk) {
+        log("P2", `${slug}@${suffix}`, "FAIL", `HTTP ${res?.status()}`, `#p2-${slug}`);
+      } else {
+        await targetPage.screenshot({ path: join(OUT_DIR, `p2-${slug}-${suffix}.png`), fullPage: false });
+        log("P2", `${slug}@${suffix}`, "OK", `${path} ${width}px`);
+      }
+    } catch (e) {
+      log("P2", `${slug}@${suffix}`, "FAIL", String(e.message || e), `#p2-${slug}`);
+    }
+  }
+}
+
+console.log("\n--- P2 evidence capture (375px + 1280px) ---");
+for (const r of P2_ROUTES) {
+  await captureP2Route(page, r.path, r.slug);
+}
+
+// Dynamic detail routes: first channel + first listing
+try {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${BASE}/channels`, { waitUntil: "networkidle", timeout: 45000 });
+  await page.waitForTimeout(1500);
+  const channelHref = await page.locator("a[href*='/channel/']").first().getAttribute("href");
+  if (channelHref) {
+    await captureP2Route(page, channelHref.replace(BASE, "") || channelHref, "channel-detail");
+  } else {
+    log("P2", "channel-detail", "WARN", "Нет ссылок на канал");
+  }
+} catch (e) {
+  log("P2", "channel-detail", "WARN", String(e.message || e));
+}
+
+try {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${BASE}/ads`, { waitUntil: "networkidle", timeout: 45000 });
+  await page.waitForTimeout(1500);
+  const adLinks = page.locator("a[href*='/ads/']");
+  let adHref = null;
+  for (let i = 0; i < (await adLinks.count()); i++) {
+    const href = await adLinks.nth(i).getAttribute("href");
+    if (href && !href.includes("/ads/new") && !href.endsWith("/ads")) {
+      adHref = href;
+      break;
+    }
+  }
+  if (adHref) {
+    await captureP2Route(page, adHref.replace(BASE, "") || adHref, "ads-detail");
+  } else {
+    log("P2", "ads-detail", "WARN", "Нет карточек объявлений");
+  }
+} catch (e) {
+  log("P2", "ads-detail", "WARN", String(e.message || e));
+}
+
+// Alias task-specific names for matrix cross-ref
+try {
+  const aliases = [
+    ["ads-new-mobile.png", "task-19-mobile.png"],
+    ["p2-feed-mobile.png", "task-4-mobile.png"],
+    ["p2-feed-desktop.png", "task-4-desktop.png"],
+    ["p2-profile-mobile.png", "task-8-mobile.png"],
+    ["p2-notifications-mobile.png", "task-16-mobile.png"],
+    ["p2-messenger-desktop.png", "task-13-desktop.png"],
+    ["p2-admin-desktop.png", "task-42-desktop.png"],
+    ["review-detail-mobile.png", "task-25-mobile.png"],
+    ["review-detail-desktop.png", "task-25-desktop.png"],
+  ];
+  const { copyFileSync, existsSync } = await import("fs");
+  for (const [src, dst] of aliases) {
+    const from = join(OUT_DIR, src);
+    if (existsSync(from)) copyFileSync(from, join(OUT_DIR, dst));
+  }
+  log("P2", "aliases", "OK", `${aliases.length} task-* symlinks via copy`);
+} catch (e) {
+  log("P2", "aliases", "WARN", String(e.message || e));
+}
+
 if (consoleErrors.length) {
   const preview = consoleErrors.slice(0, 3).join(" | ");
   log("global", "console.errors", "WARN", `${consoleErrors.length} ошибок в консоли: ${preview}`);
@@ -292,7 +403,7 @@ const report = {
   base: BASE,
   email: EMAIL,
   at: new Date().toISOString(),
-  task: "43-regression",
+  task: "43-regression+p2-evidence",
   results,
   consoleErrors: consoleErrors.slice(0, 20),
   failedRequests: failedRequests.slice(0, 20),
