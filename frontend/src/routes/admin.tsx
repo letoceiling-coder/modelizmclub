@@ -2342,6 +2342,7 @@ function feedbackBtn(bg: string, color: string): React.CSSProperties {
 
 /* ============ MONETIZATION ============ */
 function MonetizationSection() {
+  const { t } = useTranslation();
   const [plans, setPlans] = useState<AdminPlanRow[]>([]);
   const [promos, setPromos] = useState<PromoCode[]>([]);
   const [defaultPlacementRub, setDefaultPlacementRub] = useState(30);
@@ -2375,9 +2376,9 @@ function MonetizationSection() {
           }),
         ),
       );
-      toast.success("Тарифы сохранены");
+      toast.success(t("pages.adminMonetization.plansSaved"));
     } catch {
-      toast.error("Не удалось сохранить тарифы");
+      toast.error(t("pages.adminMonetization.plansSaveFailed"));
     }
   };
 
@@ -2389,9 +2390,9 @@ function MonetizationSection() {
         value: { cents: Math.max(0, Math.round(defaultPlacementRub * 100)) },
         group: "billing",
       }]);
-      toast.success("Базовая цена размещения сохранена");
+      toast.success(t("pages.adminMonetization.placementPriceSaved"));
     } catch {
-      toast.error("Не удалось сохранить цену");
+      toast.error(t("pages.adminMonetization.placementPriceSaveFailed"));
     } finally {
       setSavingDefault(false);
     }
@@ -2399,25 +2400,25 @@ function MonetizationSection() {
 
   return (
     <div>
-      <H>Монетизация</H>
+      <H>{t("pages.adminMonetization.title")}</H>
 
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
-        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Размещение объявлений</h4>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("pages.adminMonetization.placementTitle")}</h4>
         <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>
-          Базовая цена, если в категории не задана своя. Цены по категориям — в разделе «Категории» → «Объявления».
+          {t("pages.adminMonetization.placementHint")}
         </p>
         <div className="flex flex-wrap items-end gap-[10px]" style={{ marginTop: "12px" }}>
           <label style={{ display: "grid", gap: "4px" }}>
-            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>Базовая цена, ₽</span>
+            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.basePriceLabel")}</span>
             <input type="number" min={0} value={defaultPlacementRub} onChange={(e) => setDefaultPlacementRub(+e.target.value)} style={{ ...inputStyle, width: 140 }} />
           </label>
-          <button onClick={saveDefaultPlacement} disabled={savingDefault} style={primaryBtn}>{savingDefault ? "…" : "Сохранить"}</button>
+          <button onClick={saveDefaultPlacement} disabled={savingDefault} style={primaryBtn}>{savingDefault ? "…" : t("pages.adminCommon.save")}</button>
         </div>
       </div>
 
       {/* Tariffs */}
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
-        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Управление тарифами</h4>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("pages.adminMonetization.tariffsTitle")}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4" style={{ gap: "12px", marginTop: "12px" }}>
           {plans.map((t, i) => (
             <div key={t.slug} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px" }}>
@@ -2435,17 +2436,17 @@ function MonetizationSection() {
                 style={{ fontSize: "20px", fontWeight: 700, color: "var(--accent)", background: "transparent", border: "none", padding: "4px 0", fontFamily: "var(--font-display)" }}
               />
               <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>Бесплатных объявлений / мес.</span>
+                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.freeListingsLabel")}</span>
                 <input type="number" min={0} value={t.freeListingsPerMonth} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x))} style={inputStyle} />
               </label>
               <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>Скидка на размещение, %</span>
+                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.discountLabel")}</span>
                 <input type="number" min={0} max={100} value={t.listingDiscountPercent} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, listingDiscountPercent: +e.target.value } : x))} style={inputStyle} />
               </label>
             </div>
           ))}
         </div>
-        <button onClick={savePlans} style={{ ...primaryBtn, marginTop: "12px" }}>Сохранить тарифы</button>
+        <button onClick={savePlans} style={{ ...primaryBtn, marginTop: "12px" }}>{t("pages.adminMonetization.savePlans")}</button>
       </div>
 
       {/* Promocodes */}
@@ -2455,20 +2456,22 @@ function MonetizationSection() {
 }
 
 function FeedBannersSection() {
+  const { t } = useTranslation();
   return (
     <div>
-      <H>Рекламный блок</H>
+      <H>{t("pages.adminFeedBanners.title")}</H>
       <BannersAdminCard cardStyle={card} />
     </div>
   );
 }
 
 function LandingBlocksSection() {
+  const { t } = useTranslation();
   return (
     <div>
-      <H>Главная страница</H>
+      <H>{t("pages.adminLanding.title")}</H>
       <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-        Блоки «Что есть в МоДелизМ» и «Всё, что движется и летает»: заголовки, карточки, иконки и ссылки. Перетаскивайте карточки для изменения порядка.
+        {t("pages.adminLanding.subtitle")}
       </p>
       <LandingBlocksAdminCard cardStyle={card} />
     </div>
@@ -2484,12 +2487,7 @@ function FeedGuestAccessSection() {
 }
 
 /* ============ CATEGORIES ============ */
-const CATEGORY_KINDS: { id: CategoryKind; label: string }[] = [
-  { id: "post", label: "Посты" },
-  { id: "community", label: "Сообщества" },
-  { id: "listing", label: "Объявления" },
-  { id: "video", label: "Обзоры" },
-];
+const CATEGORY_KIND_IDS: CategoryKind[] = ["post", "community", "listing", "video"];
 
 // Простой транслит для генерации slug из кириллического названия.
 function slugify(input: string): string {
@@ -2510,6 +2508,11 @@ function slugify(input: string): string {
 }
 
 function CategoriesSection() {
+  const { t } = useTranslation();
+  const categoryKinds = useMemo(
+    () => CATEGORY_KIND_IDS.map((id) => ({ id, label: t(`pages.adminCategories.kinds.${id}`) })),
+    [t],
+  );
   const [kind, setKind] = useState<CategoryKind>("post");
   const [items, setItems] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2519,7 +2522,7 @@ function CategoriesSection() {
     setLoading(true);
     fetchAdminCategories(k)
       .then(setItems)
-      .catch(() => toast.error("Не удалось загрузить категории"))
+      .catch(() => toast.error(t("pages.adminCategories.loadFailed")))
       .finally(() => setLoading(false));
   };
 
@@ -2532,21 +2535,21 @@ function CategoriesSection() {
   const childrenOf = (id: number) => items.filter((c) => c.parentId === id);
 
   const addRoot = async () => {
-    const name = window.prompt("Название категории")?.trim();
+    const name = window.prompt(t("pages.adminCategories.promptName"))?.trim();
     if (!name) return;
-    const slug = window.prompt("Slug (латиницей)", slugify(name))?.trim();
+    const slug = window.prompt(t("pages.adminCategories.promptSlug"), slugify(name))?.trim();
     if (!slug) return;
     try {
       const created = await createAdminCategory(kind, { name, slug, sortOrder: roots.length });
       setItems((p) => [...p, created]);
-      toast.success("Категория добавлена");
-    } catch { toast.error("Не удалось создать категорию (возможно, slug занят)"); }
+      toast.success(t("pages.adminCategories.added"));
+    } catch { toast.error(t("pages.adminCategories.addFailed")); }
   };
 
   const addSub = async (parent: AdminCategory) => {
-    const name = window.prompt(`Подкатегория в «${parent.name}»`)?.trim();
+    const name = window.prompt(t("pages.adminCategories.promptSubName", { name: parent.name }))?.trim();
     if (!name) return;
-    const slug = window.prompt("Slug (латиницей)", slugify(name))?.trim();
+    const slug = window.prompt(t("pages.adminCategories.promptSlug"), slugify(name))?.trim();
     if (!slug) return;
     try {
       const created = await createAdminCategory(kind, {
@@ -2554,14 +2557,14 @@ function CategoriesSection() {
       });
       setItems((p) => [...p, created]);
       setOpen((p) => ({ ...p, [parent.id]: true }));
-      toast.success("Подкатегория добавлена");
-    } catch { toast.error("Не удалось создать подкатегорию"); }
+      toast.success(t("pages.adminCategories.subAdded"));
+    } catch { toast.error(t("pages.adminCategories.subAddFailed")); }
   };
 
   const edit = async (c: AdminCategory) => {
-    const name = window.prompt("Название", c.name)?.trim();
+    const name = window.prompt(t("pages.adminCategories.promptEditName"), c.name)?.trim();
     if (!name) return;
-    const slug = window.prompt("Slug", c.slug)?.trim();
+    const slug = window.prompt(t("pages.adminCategories.promptEditSlug"), c.slug)?.trim();
     if (!slug) return;
     try {
       const updated = await updateAdminCategory(kind, c.id, {
@@ -2570,8 +2573,8 @@ function CategoriesSection() {
         subscriberListingPriceCents: c.subscriberListingPriceCents,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
-      toast.success("Сохранено");
-    } catch { toast.error("Не удалось обновить категорию"); }
+      toast.success(t("pages.adminCommon.saved"));
+    } catch { toast.error(t("pages.adminCategories.updateFailed")); }
   };
 
   const patchCategoryPrices = async (c: AdminCategory) => {
@@ -2587,9 +2590,9 @@ function CategoriesSection() {
         subscriberListingPriceCents: c.subscriberListingPriceCents,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
-      toast.success("Цены сохранены");
+      toast.success(t("pages.adminCategories.pricesSaved"));
     } catch {
-      toast.error("Не удалось сохранить цены");
+      toast.error(t("pages.adminCategories.pricesSaveFailed"));
     }
   };
 
@@ -2598,7 +2601,7 @@ function CategoriesSection() {
     return (
       <div className="flex flex-wrap items-center gap-[6px] ml-[24px] mt-[4px] mb-[6px]">
         <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-          ₽ обыч.
+          {t("pages.adminCategories.priceRegular")}
           <input
             type="number"
             min={0}
@@ -2613,7 +2616,7 @@ function CategoriesSection() {
           />
         </label>
         <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-          ₽ подписч.
+          {t("pages.adminCategories.priceSubscriber")}
           <input
             type="number"
             min={0}
@@ -2632,12 +2635,12 @@ function CategoriesSection() {
   };
 
   const remove = async (c: AdminCategory) => {
-    if (!window.confirm(`Удалить «${c.name}»?`)) return;
+    if (!window.confirm(t("pages.adminCategories.deleteConfirm", { name: c.name }))) return;
     try {
       await deleteAdminCategory(kind, c.id);
       setItems((p) => p.filter((x) => x.id !== c.id && x.parentId !== c.id));
-      toast.success("Удалено");
-    } catch { toast.error("Не удалось удалить категорию"); }
+      toast.success(t("pages.adminCommon.deleted"));
+    } catch { toast.error(t("pages.adminCategories.deleteFailed")); }
   };
 
   return (
@@ -2645,15 +2648,15 @@ function CategoriesSection() {
       <H
         action={
           <button style={{ ...primaryBtn }} onClick={addRoot}>
-            <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />Добавить
+            <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />{t("pages.adminCommon.add")}
           </button>
         }
       >
-        Категории
+        {t("pages.adminCategories.title")}
       </H>
 
       <div className="flex gap-[6px]" style={{ marginBottom: "12px" }}>
-        {CATEGORY_KINDS.map((k) => (
+        {categoryKinds.map((k) => (
           <button
             key={k.id}
             onClick={() => setKind(k.id)}
@@ -2674,9 +2677,9 @@ function CategoriesSection() {
 
       <div style={{ ...card, padding: "16px" }}>
         {loading ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
         ) : roots.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Категорий пока нет</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCategories.empty")}</p>
         ) : kind === "video" ? (
           roots.map((c) => (
             <div key={c.id} className="flex items-center justify-between" style={{ padding: "8px 0" }}>
@@ -2696,7 +2699,7 @@ function CategoriesSection() {
                   <button onClick={() => setOpen((p) => ({ ...p, [c.id]: !p[c.id] }))} className="flex items-center gap-[8px] flex-1">
                     <motion.span animate={{ rotate: open[c.id] ? 90 : 0 }} style={{ display: "inline-block", color: "var(--foreground-50)", fontSize: "10px" }}>▶</motion.span>
                     <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{c.name}</span>
-                    {!c.isActive && <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>(скрыта)</span>}
+                    {!c.isActive && <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminCategories.hidden")}</span>}
                     {subs.length > 0 && <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>({subs.length})</span>}
                   </button>
                   <div className="flex gap-[4px]">
@@ -2741,14 +2744,15 @@ function CategoriesSection() {
 
 /* ============ NOTIFICATIONS ============ */
 function NotificationsSection() {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
   const [sending, setSending] = useState(false);
 
   const send = async () => {
-    if (!title.trim()) return toast.error("Введите заголовок");
-    if (!window.confirm("Отправить уведомление всем активным пользователям?")) return;
+    if (!title.trim()) return toast.error(t("pages.adminNotifications.errTitle"));
+    if (!window.confirm(t("pages.adminNotifications.confirmSend"))) return;
     setSending(true);
     try {
       const sent = await broadcastNotification({
@@ -2756,10 +2760,10 @@ function NotificationsSection() {
         body: body.trim() || undefined,
         link: link.trim() || undefined,
       });
-      toast.success(`Отправлено получателям: ${sent}`);
+      toast.success(t("pages.adminNotifications.sent", { count: sent }));
       setTitle(""); setBody(""); setLink("");
     } catch {
-      toast.error("Не удалось отправить рассылку");
+      toast.error(t("pages.adminNotifications.sendFailed"));
     } finally {
       setSending(false);
     }
@@ -2767,26 +2771,26 @@ function NotificationsSection() {
 
   return (
     <div>
-      <H>Уведомления</H>
+      <H>{t("pages.adminNotifications.title")}</H>
       <div style={{ ...card, padding: "20px", maxWidth: "640px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Рассылка в приложении
+          {t("pages.adminNotifications.broadcastTitle")}
         </h4>
         <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Уведомление получат все активные пользователи. Оно появится в колокольчике и на странице «Уведомления».
+          {t("pages.adminNotifications.broadcastHint")}
         </p>
         <div className="space-y-[12px]">
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>Заголовок *</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="Например: Новое мероприятие в эти выходные" className="outline-none" style={{ ...inputStyle, width: "100%", marginTop: 4 }} />
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>{t("pages.adminNotifications.fieldTitle")}</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder={t("pages.adminNotifications.titlePlaceholder")} className="outline-none" style={{ ...inputStyle, width: "100%", marginTop: 4 }} />
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>Текст</label>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={1000} rows={3} placeholder="Подробности (необязательно)" className="outline-none" style={{ ...inputStyle, width: "100%", height: "auto", padding: "10px 12px", marginTop: 4, resize: "vertical" }} />
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>{t("pages.adminNotifications.fieldBody")}</label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={1000} rows={3} placeholder={t("pages.adminNotifications.bodyPlaceholder")} className="outline-none" style={{ ...inputStyle, width: "100%", height: "auto", padding: "10px 12px", marginTop: 4, resize: "vertical" }} />
           </div>
           <div>
-            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>Ссылка внутри приложения</label>
-            <input value={link} onChange={(e) => setLink(e.target.value)} maxLength={255} placeholder="/feed" className="outline-none" style={{ ...inputStyle, width: "100%", marginTop: 4 }} />
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>{t("pages.adminNotifications.fieldLink")}</label>
+            <input value={link} onChange={(e) => setLink(e.target.value)} maxLength={255} placeholder={t("pages.adminNotifications.linkPlaceholder")} className="outline-none" style={{ ...inputStyle, width: "100%", marginTop: 4 }} />
           </div>
         </div>
         <button
@@ -2795,7 +2799,7 @@ function NotificationsSection() {
           className="inline-flex items-center gap-[8px]"
           style={{ ...primaryBtn, height: "44px", padding: "0 24px", fontSize: "14px", marginTop: "16px", opacity: sending ? 0.7 : 1 }}
         >
-          <Send size={15} /> {sending ? "Отправляем…" : "Отправить всем"}
+          <Send size={15} /> {sending ? t("pages.adminNotifications.sending") : t("pages.adminNotifications.sendAll")}
         </button>
       </div>
     </div>
@@ -3825,6 +3829,16 @@ function SettingsSection() {
 
 /* ============ AUDIT LOG ============ */
 function AuditLogSection() {
+  const { t } = useTranslation();
+  const auditColumns = useMemo(
+    () => [
+      t("pages.adminAuditLog.columns.who"),
+      t("pages.adminAuditLog.columns.when"),
+      t("pages.adminAuditLog.columns.action"),
+      t("pages.adminAuditLog.columns.entity"),
+    ],
+    [t],
+  );
   const [page, setPage] = useState(1);
   const [entries, setEntries] = useState<AuditLogDetailEntry[]>([]);
   const [lastPage, setLastPage] = useState(1);
@@ -3873,7 +3887,7 @@ function AuditLogSection() {
     const newV = entry.newValues ?? {};
     const keys = Array.from(new Set([...Object.keys(oldV), ...Object.keys(newV)]));
     if (keys.length === 0) {
-      return <p style={{ fontSize: 12, color: "var(--foreground-50)" }}>Нет данных об изменении.</p>;
+      return <p style={{ fontSize: 12, color: "var(--foreground-50)" }}>{t("pages.adminAuditLog.noDiff")}</p>;
     }
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -3892,7 +3906,7 @@ function AuditLogSection() {
 
   return (
     <div>
-      <H>История изменений</H>
+      <H>{t("pages.adminAuditLog.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px", marginBottom: "16px" }}>
         <select
           value={userFilter}
@@ -3900,7 +3914,7 @@ function AuditLogSection() {
           className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
-          <option value="all">Все пользователи</option>
+          <option value="all">{t("pages.adminAuditLog.allUsers")}</option>
           {userOptions.map((u) => <option key={u} value={u}>{u}</option>)}
         </select>
         <select
@@ -3909,22 +3923,22 @@ function AuditLogSection() {
           className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
-          <option value="all">Все действия</option>
+          <option value="all">{t("pages.adminAuditLog.allActions")}</option>
           {actionPrefixOptions.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
 
       <div style={{ ...card, overflow: "hidden" }}>
         {loading ? (
-          <p style={{ padding: 16, fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>
+          <p style={{ padding: 16, fontSize: 13, color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
         ) : filtered.length === 0 ? (
-          <p style={{ padding: 16, fontSize: 13, color: "var(--foreground-50)" }}>Нет записей.</p>
+          <p style={{ padding: 16, fontSize: 13, color: "var(--foreground-50)" }}>{t("pages.adminAuditLog.empty")}</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table className="w-full" style={{ fontSize: "13px", minWidth: "700px" }}>
               <thead>
                 <tr style={{ background: "var(--background-surface)" }}>
-                  {["Кто", "Когда", "Действие", "Сущность"].map((h) => (
+                  {auditColumns.map((h) => (
                     <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>
                       {h}
                     </th>
@@ -3964,15 +3978,15 @@ function AuditLogSection() {
           disabled={page <= 1}
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: "var(--r-card-sm)", border: "1px solid var(--border)", color: "var(--foreground-70)", opacity: page <= 1 ? 0.5 : 1 }}
         >
-          ← Назад
+          {t("pages.adminAuditLog.prev")}
         </button>
-        <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Страница {page} из {lastPage}</span>
+        <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{t("pages.adminAuditLog.page", { page, last: lastPage })}</span>
         <button
           onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
           disabled={page >= lastPage}
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: "var(--r-card-sm)", border: "1px solid var(--border)", color: "var(--foreground-70)", opacity: page >= lastPage ? 0.5 : 1 }}
         >
-          Вперёд →
+          {t("pages.adminAuditLog.next")}
         </button>
       </div>
     </div>
@@ -3981,6 +3995,18 @@ function AuditLogSection() {
 
 /* ============ PROMO CODES BLOCK ============ */
 function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; setPromos: React.Dispatch<React.SetStateAction<PromoCode[]>>; reload?: () => void }) {
+  const { t } = useTranslation();
+  const promoColumns = useMemo(
+    () => [
+      t("pages.adminPromocodes.columns.code"),
+      t("pages.adminPromocodes.columns.discount"),
+      t("pages.adminPromocodes.columns.used"),
+      t("pages.adminPromocodes.columns.expires"),
+      t("pages.adminPromocodes.columns.status"),
+      "",
+    ],
+    [t],
+  );
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
@@ -4006,10 +4032,10 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
   });
 
   const create = async () => {
-    if (!form.code.trim()) return toast.error("Введите название");
-    if (!form.expiresAt) return toast.error("Укажите срок действия");
-    if (form.type === "percent" && (form.discount < 1 || form.discount > 100)) return toast.error("Скидка от 1 до 100%");
-    if (form.limit < 1) return toast.error("Лимит должен быть больше 0");
+    if (!form.code.trim()) return toast.error(t("pages.adminPromocodes.errCode"));
+    if (!form.expiresAt) return toast.error(t("pages.adminPromocodes.errExpires"));
+    if (form.type === "percent" && (form.discount < 1 || form.discount > 100)) return toast.error(t("pages.adminPromocodes.errDiscount"));
+    if (form.limit < 1) return toast.error(t("pages.adminPromocodes.errLimit"));
     try {
       const notifyMode = form.notifyUserIds.trim()
         ? "selected"
@@ -4035,19 +4061,19 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
       setOpen(false);
       reload?.();
       toast.success(result.notifications_sent
-        ? `Промокод создан. Уведомления отправлены: ${result.notifications_sent}`
-        : "Промокод создан");
+        ? t("pages.adminPromocodes.createdWithNotify", { count: result.notifications_sent })
+        : t("pages.adminPromocodes.created"));
     } catch {
-      toast.error("Не удалось создать промокод");
+      toast.error(t("pages.adminPromocodes.createFailed"));
     }
   };
 
   return (
     <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
       <div className="flex items-center justify-between flex-wrap gap-[12px]">
-        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>Промокоды</h4>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("pages.adminPromocodes.title")}</h4>
         <button onClick={() => setOpen((v) => !v)} style={primaryBtn}>
-          <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />Создать промокод
+          <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />{t("pages.adminPromocodes.create")}
         </button>
       </div>
 
@@ -4062,53 +4088,53 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
             <div style={{ marginTop: "12px", padding: "16px", background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "10px" }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Название</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.fieldCode")}</span>
                   <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="SUMMER2026" className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Тип</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.fieldType")}</span>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "percent" | "fixed" | "free" })} style={inputStyle}>
-                    <option value="percent">Процент</option>
-                    <option value="fixed">Фикс. сумма (коп.)</option>
-                    <option value="free">Бесплатно</option>
+                    <option value="percent">{t("pages.adminPromocodes.typePercent")}</option>
+                    <option value="fixed">{t("pages.adminPromocodes.typeFixed")}</option>
+                    <option value="free">{t("pages.adminPromocodes.typeFree")}</option>
                   </select>
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Скидка, %</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.fieldDiscount")}</span>
                   <input type="number" min={1} max={100} value={form.discount} disabled={form.type !== "percent"} onChange={(e) => setForm({ ...form, discount: +e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Срок действия</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.fieldExpires")}</span>
                   <input type="date" required value={form.expiresAt} min={today} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Лимит использований</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.fieldLimit")}</span>
                   <input type="number" min={1} value={form.limit} onChange={(e) => setForm({ ...form, limit: +e.target.value })} className="outline-none" style={inputStyle} />
                 </label>
                 <label className="md:col-span-2 flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
                   <input type="checkbox" checked={form.notifyAll} onChange={(e) => setForm({ ...form, notifyAll: e.target.checked, notifyUserIds: e.target.checked ? "" : form.notifyUserIds })} />
-                  Отправить всем пользователям уведомление с промокодом
+                  {t("pages.adminPromocodes.notifyAll")}
                 </label>
                 <label className="md:col-span-2" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Или ID пользователей (через запятую)</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.notifyUserIds")}</span>
                   <input value={form.notifyUserIds} onChange={(e) => setForm({ ...form, notifyUserIds: e.target.value, notifyAll: false })} placeholder="12, 45, 78" style={inputStyle} />
                 </label>
                 {form.notifyAll && (
                   <>
                     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Заголовок уведомления</span>
-                      <input value={form.notifyTitle} onChange={(e) => setForm({ ...form, notifyTitle: e.target.value })} placeholder="Промокод на размещение" style={inputStyle} />
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.notifyTitle")}</span>
+                      <input value={form.notifyTitle} onChange={(e) => setForm({ ...form, notifyTitle: e.target.value })} placeholder={t("pages.adminPromocodes.notifyTitlePlaceholder")} style={inputStyle} />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>Текст уведомления</span>
-                      <input value={form.notifyBody} onChange={(e) => setForm({ ...form, notifyBody: e.target.value })} placeholder="Используйте код при размещении объявления" style={inputStyle} />
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}>{t("pages.adminPromocodes.notifyBody")}</span>
+                      <input value={form.notifyBody} onChange={(e) => setForm({ ...form, notifyBody: e.target.value })} placeholder={t("pages.adminPromocodes.notifyBodyPlaceholder")} style={inputStyle} />
                     </label>
                   </>
                 )}
               </div>
               <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
-                <button onClick={create} style={primaryBtn}>Создать</button>
-                <button onClick={() => setOpen(false)} style={{ ...primaryBtn, background: "transparent", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>Отмена</button>
+                <button onClick={create} style={primaryBtn}>{t("pages.adminPromocodes.submit")}</button>
+                <button onClick={() => setOpen(false)} style={{ ...primaryBtn, background: "transparent", color: "var(--foreground-70)", border: "1px solid var(--border)" }}>{t("pages.adminCommon.cancel")}</button>
               </div>
             </div>
           </motion.div>
@@ -4119,7 +4145,7 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
       <div className="flex flex-wrap items-center" style={{ gap: "8px", marginTop: "12px" }}>
         <div style={{ position: "relative", flex: 1, minWidth: "180px" }}>
           <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--foreground-50)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по коду…" className="w-full outline-none" style={{ ...inputStyle, paddingLeft: "34px" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("pages.adminPromocodes.searchPlaceholder")} className="w-full outline-none" style={{ ...inputStyle, paddingLeft: "34px" }} />
         </div>
         <div className="flex" style={{ gap: "4px", background: "var(--background-surface)", padding: "3px", borderRadius: "var(--r-pill)" }}>
           {(["all", "active", "expired"] as const).map((f) => (
@@ -4135,7 +4161,7 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                 color: filter === f ? "var(--accent)" : "var(--foreground-70)",
               }}
             >
-              {f === "all" ? "Все" : f === "active" ? "Активные" : "Истекшие"}
+              {t(`pages.adminPromocodes.filters.${f}`)}
             </button>
           ))}
         </div>
@@ -4146,7 +4172,7 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
         <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
           <thead>
             <tr style={{ background: "var(--background-surface)" }}>
-              {["Код", "Скидка", "Использовано", "Срок", "Статус", ""].map((h) => (
+              {promoColumns.map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase" }}>{h}</th>
               ))}
             </tr>
@@ -4167,7 +4193,7 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                     background: p.status === "active" ? "var(--success-soft, rgba(34,197,94,0.12))" : "var(--background-surface)",
                     color: p.status === "active" ? "var(--success, #16a34a)" : "var(--foreground-50)",
                   }}>
-                    {p.status === "active" ? "Активен" : "Истёк"}
+                    {p.status === "active" ? t("pages.adminPromocodes.statusActive") : t("pages.adminPromocodes.statusExpired")}
                   </span>
                 </td>
                 <td style={{ padding: "10px 12px", textAlign: "right" }}>
@@ -4175,16 +4201,16 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
                     try {
                       await deletePromocode(p.code);
                       setPromos((q) => q.filter((x) => x.id !== p.id));
-                      toast.success("Промокод удалён");
+                      toast.success(t("pages.adminPromocodes.deleted"));
                     } catch {
-                      toast.error("Не удалось удалить промокод");
+                      toast.error(t("pages.adminPromocodes.deleteFailed"));
                     }
                   }}><Trash2 size={14} /></IconBtn>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--foreground-50)" }}>Ничего не найдено</td></tr>
+              <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--foreground-50)" }}>{t("pages.adminPromocodes.empty")}</td></tr>
             )}
           </tbody>
         </table>
@@ -4194,6 +4220,15 @@ function PromoCodesBlock({ promos, setPromos, reload }: { promos: PromoCode[]; s
 }
 
 function ApplicationsSection() {
+  const { t } = useTranslation();
+  const statuses = useMemo(
+    () => (["pending", "approved", "rejected"] as const).map((id) => ({ id, label: t(`pages.adminApplications.filters.${id}`) })),
+    [t],
+  );
+  const kindLabels = useMemo(
+    () => ({ channel: t("pages.adminApplications.kinds.channel"), community: t("pages.adminApplications.kinds.community") }) as Record<EntityKind, string>,
+    [t],
+  );
   const [status, setStatus] = useState<RequestStatus>("pending");
   const [items, setItems] = useState<EntityRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4219,22 +4254,14 @@ function ApplicationsSection() {
     }
   };
 
-  const STATUSES: { id: RequestStatus; label: string }[] = [
-    { id: "pending", label: "Новые" },
-    { id: "approved", label: "Одобрены" },
-    { id: "rejected", label: "Отклонены" },
-  ];
-
-  const KIND_LABEL: Record<EntityKind, string> = { channel: "Канал", community: "Сообщество" };
-
   return (
     <div>
       <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "18px", color: "var(--foreground)", marginBottom: "12px" }}>
-        Заявки на создание
+        {t("pages.adminApplications.title")}
       </h3>
 
       <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
-        {STATUSES.map((s) => (
+        {statuses.map((s) => (
           <button
             key={s.id}
             type="button"
@@ -4252,10 +4279,10 @@ function ApplicationsSection() {
       </div>
 
       {loading ? (
-        <div style={{ color: "var(--foreground-50)", fontSize: "13px" }}>Загрузка…</div>
+        <div style={{ color: "var(--foreground-50)", fontSize: "13px" }}>{t("pages.adminCommon.loading")}</div>
       ) : items.length === 0 ? (
         <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px", border: "1px solid var(--border)", borderRadius: "12px" }}>
-          Заявок нет
+          {t("pages.adminApplications.empty")}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -4263,7 +4290,7 @@ function ApplicationsSection() {
             <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: "12px", padding: "16px", background: "var(--background-elevated)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
                 <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: "var(--accent-soft)", color: "var(--accent)" }}>
-                  {KIND_LABEL[r.kind]}
+                  {kindLabels[r.kind]}
                 </span>
                 <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--foreground)" }}>{r.proposedName}</span>
               </div>
@@ -4282,13 +4309,13 @@ function ApplicationsSection() {
                     type="button" onClick={() => decide(r, true)}
                     style={{ flex: 1, height: "38px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, background: "var(--accent)", color: "var(--accent-foreground)", border: "none" }}
                   >
-                    Одобрить
+                    {t("pages.adminCommon.actionApprove")}
                   </button>
                   <button
                     type="button" onClick={() => decide(r, false)}
                     style={{ flex: 1, height: "38px", borderRadius: "9px", fontSize: "13px", fontWeight: 600, background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
                   >
-                    Отклонить
+                    {t("pages.adminCommon.reject")}
                   </button>
                 </div>
               )}

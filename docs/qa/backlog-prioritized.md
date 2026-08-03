@@ -18,12 +18,14 @@
 | 2 | `ModerationSection` + `ReportsSection` + `ModerationCard` | **DONE** |
 | 3 | `SettingsSection` — `SETTING_META`, feature cards | **DONE** |
 | 4 | `FeedbackSection` | **DONE** |
-| 5 | `MonetizationSection`, `FeedBannersSection`, `ApplicationsSection` | pending |
-| 6 | `CategoriesSection` (non-reviews), `NotificationsSection`, `AuditLogSection` | pending |
+| 5 | `MonetizationSection`, `FeedBannersSection`, `ApplicationsSection` | **DONE** |
+| 6 | `CategoriesSection`, `NotificationsSection`, `AuditLogSection` | **DONE** |
 
-**Сделано:** shell, dashboard, users, ads, design system, reviews, content, analytics, delivery, moderation, feedback, settings (feature cards + meta).
+**Сделано:** все секции `admin.tsx` переведены (P9–P10).
 
-**Паттерн:** `pages.adminX.*` в `ru.ts` → `patch-en-pN.ts` → `sync-i18n.ts`. Последний: **P9** (`patch-en-p9.ts`).
+**Остаётся (P1.1):** embedded admin-компоненты — `BannersAdminCard`, `LandingBlocksAdminCard`, `IconManagerSection`, `FeedGuestAccessAdminCard`, `FooterContactsAdminCard`.
+
+**Паттерн:** `pages.adminX.*` в `ru.ts` → `patch-en-pN.ts` → `sync-i18n.ts`. Последний: **P10** (`patch-en-p10.ts`).
 
 ## P2 — Mobile / Desktop evidence (матрица колонки)
 
