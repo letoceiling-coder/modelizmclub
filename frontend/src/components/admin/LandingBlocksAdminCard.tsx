@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { Reorder, useDragControls } from "framer-motion";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -16,11 +17,6 @@ import {
   type AdminLandingCard,
   type AdminLandingSection,
 } from "@/lib/api/admin";
-
-const SECTION_LABELS: Record<string, string> = {
-  ecosystem: "Что есть в МоДелизМ",
-  directions: "Всё, что движется и летает",
-};
 
 const inputStyle: CSSProperties = {
   height: "40px",
@@ -81,6 +77,7 @@ function CardRow({
   showDescription: boolean;
   categories: { id: number; name: string }[];
 }) {
+  const { t } = useTranslation();
   const dragControls = useDragControls();
 
   return (
@@ -96,7 +93,7 @@ function CardRow({
           type="button"
           className="mt-[6px] cursor-grab touch-none text-[var(--foreground-30)] active:cursor-grabbing"
           onPointerDown={(e) => dragControls.start(e)}
-          aria-label="Перетащить"
+          aria-label={t("pages.adminLandingBlocks.dragAria")}
         >
           <GripVertical size={18} />
         </button>
@@ -104,7 +101,7 @@ function CardRow({
           <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
         </IconBox>
         <div className="min-w-0 flex-1 grid gap-[8px]">
-          <input value={card.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Заголовок" style={inputStyle} />
+          <input value={card.title} onChange={(e) => onChange({ title: e.target.value })} placeholder={t("pages.adminLandingBlocks.titlePlaceholder")} style={inputStyle} />
           <LandingCardIconField
             icon={card.icon}
             iconUrl={card.icon_url}
@@ -114,16 +111,16 @@ function CardRow({
             })}
           />
           {showDescription && (
-            <textarea value={card.description ?? ""} onChange={(e) => onChange({ description: e.target.value })} placeholder="Описание" style={textareaStyle} />
+            <textarea value={card.description ?? ""} onChange={(e) => onChange({ description: e.target.value })} placeholder={t("pages.adminLandingBlocks.descriptionPlaceholder")} style={textareaStyle} />
           )}
-          <input value={card.link_url ?? ""} onChange={(e) => onChange({ link_url: e.target.value })} placeholder="/feed или https://…" style={inputStyle} />
+          <input value={card.link_url ?? ""} onChange={(e) => onChange({ link_url: e.target.value })} placeholder={t("pages.adminLandingBlocks.linkPlaceholder")} style={inputStyle} />
           {categories.length > 0 && (
             <select
               value={card.post_category_id ?? ""}
               onChange={(e) => onChange({ post_category_id: e.target.value ? +e.target.value : null })}
               style={inputStyle}
             >
-              <option value="">Без привязки к направлению</option>
+              <option value="">{t("pages.adminLandingBlocks.noCategoryBinding")}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -131,12 +128,12 @@ function CardRow({
           )}
           <label className="flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
             <input type="checkbox" checked={card.is_active} onChange={(e) => onChange({ is_active: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
-            Показывать на главной
+            {t("pages.adminLandingBlocks.showOnHomepage")}
           </label>
         </div>
         <div className="flex flex-col gap-[6px]">
-          <button type="button" onClick={onSave} disabled={saving} style={primaryBtn}>{saving ? "…" : "Сохранить"}</button>
-          <button type="button" onClick={onDelete} style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }} aria-label="Удалить">
+          <button type="button" onClick={onSave} disabled={saving} style={primaryBtn}>{saving ? "…" : t("pages.adminCommon.save")}</button>
+          <button type="button" onClick={onDelete} style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }} aria-label={t("pages.adminLandingBlocks.deleteAria")}>
             <Trash2 size={14} />
           </button>
         </div>
@@ -160,10 +157,17 @@ function SectionBlock({
   onCardsChange: (next: AdminLandingCard[]) => void;
   categories: { id: number; name: string }[];
 }) {
+  const { t } = useTranslation();
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savingSection, setSavingSection] = useState(false);
   const showDescription = section.slug === "ecosystem";
   const orderedIds = useMemo(() => cards.map((c) => c.id), [cards]);
+
+  const sectionLabel = section.slug === "ecosystem"
+    ? t("pages.adminLandingBlocks.sectionEcosystem")
+    : section.slug === "directions"
+      ? t("pages.adminLandingBlocks.sectionDirections")
+      : section.slug;
 
   const patchCard = (id: number, patch: Partial<AdminLandingCard>) => {
     onCardsChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -183,22 +187,22 @@ function SectionBlock({
         is_active: card.is_active,
       });
       onCardsChange(cards.map((c) => (c.id === card.id ? saved : c)));
-      toast.success("Карточка сохранена");
+      toast.success(t("pages.adminLandingBlocks.cardSaved"));
     } catch {
-      toast.error("Не удалось сохранить карточку");
+      toast.error(t("pages.adminLandingBlocks.cardSaveFailed"));
     } finally {
       setSavingId(null);
     }
   };
 
   const removeCard = async (id: number) => {
-    if (!window.confirm("Удалить карточку?")) return;
+    if (!window.confirm(t("pages.adminLandingBlocks.deleteConfirm"))) return;
     try {
       await deleteAdminLandingCard(id);
       onCardsChange(cards.filter((c) => c.id !== id));
-      toast.success("Карточка удалена");
+      toast.success(t("pages.adminLandingBlocks.cardDeleted"));
     } catch {
-      toast.error("Не удалось удалить");
+      toast.error(t("pages.adminCommon.deleteFailed"));
     }
   };
 
@@ -206,16 +210,16 @@ function SectionBlock({
     try {
       const created = await createAdminLandingCard({
         section_slug: section.slug,
-        title: "Новая карточка",
+        title: t("pages.adminLandingBlocks.newCardTitle"),
         description: showDescription ? "" : undefined,
         icon: "Box",
         link_url: "/",
         is_active: true,
       });
       onCardsChange([...cards, created]);
-      toast.success("Карточка добавлена");
+      toast.success(t("pages.adminLandingBlocks.cardAdded"));
     } catch {
-      toast.error("Не удалось добавить карточку");
+      toast.error(t("pages.adminLandingBlocks.cardAddFailed"));
     }
   };
 
@@ -226,34 +230,34 @@ function SectionBlock({
     try {
       await reorderAdminLandingCards(section.slug, nextIds);
     } catch {
-      toast.error("Не удалось сохранить порядок");
+      toast.error(t("pages.adminLandingBlocks.reorderFailed"));
     }
   };
 
   return (
     <div style={{ display: "grid", gap: "14px" }}>
       <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
-        {SECTION_LABELS[section.slug] ?? section.slug}
+        {sectionLabel}
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
         <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Надпись над заголовком</span>
+          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.eyebrowLabel")}</span>
           <input value={section.eyebrow ?? ""} onChange={(e) => onSectionChange({ eyebrow: e.target.value })} style={inputStyle} />
         </label>
         <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Заголовок блока</span>
+          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.blockTitleLabel")}</span>
           <input value={section.title} onChange={(e) => onSectionChange({ title: e.target.value })} style={inputStyle} />
         </label>
         {showDescription && (
           <label className="md:col-span-2" style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Подзаголовок</span>
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.subtitleLabel")}</span>
             <textarea value={section.subtitle ?? ""} onChange={(e) => onSectionChange({ subtitle: e.target.value })} style={textareaStyle} />
           </label>
         )}
         <label className="flex items-center gap-[8px]" style={{ height: 40 }}>
           <input type="checkbox" checked={section.is_enabled} onChange={(e) => onSectionChange({ is_enabled: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
-          <span style={{ fontSize: "13px" }}>Блок включён</span>
+          <span style={{ fontSize: "13px" }}>{t("pages.adminLandingBlocks.blockEnabled")}</span>
         </label>
       </div>
 
@@ -264,21 +268,21 @@ function SectionBlock({
           setSavingSection(true);
           try {
             await onSaveSection();
-            toast.success("Заголовки блока сохранены");
+            toast.success(t("pages.adminLandingBlocks.sectionHeadersSaved"));
           } catch {
-            toast.error("Не удалось сохранить блок");
+            toast.error(t("pages.adminLandingBlocks.sectionSaveFailed"));
           } finally {
             setSavingSection(false);
           }
         }}
         style={{ ...primaryBtn, width: "fit-content" }}
       >
-        {savingSection ? "Сохранение…" : "Сохранить заголовки блока"}
+        {savingSection ? t("pages.adminLandingBlocks.saving") : t("pages.adminLandingBlocks.saveSectionHeaders")}
       </button>
 
       <div className="flex items-center justify-between gap-[8px]">
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Перетаскивайте карточки за ⋮⋮ для изменения порядка</p>
-        <button type="button" onClick={addCard} style={ghostBtn}><Plus size={14} className="inline mr-1" /> Добавить</button>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminLandingBlocks.dragHint")}</p>
+        <button type="button" onClick={addCard} style={ghostBtn}><Plus size={14} className="inline mr-1" /> {t("pages.adminCommon.add")}</button>
       </div>
 
       <Reorder.Group axis="y" values={orderedIds} onReorder={onReorder} className="flex flex-col gap-[10px]">
@@ -300,6 +304,7 @@ function SectionBlock({
 }
 
 export function LandingBlocksAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
+  const { t } = useTranslation();
   const [sections, setSections] = useState<AdminLandingSection[]>([]);
   const [cards, setCards] = useState<AdminLandingCard[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -314,9 +319,9 @@ export function LandingBlocksAdminCard({ cardStyle }: { cardStyle: CSSProperties
   useEffect(() => {
     Promise.all([reload(), fetchPostCategories()])
       .then(([, cats]) => setCategories(cats.map((c) => ({ id: +c.id, name: c.name }))))
-      .catch(() => toast.error("Не удалось загрузить блоки главной"))
+      .catch(() => toast.error(t("pages.adminLandingBlocks.loadFailed")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const cardsFor = (slug: string) =>
     cards.filter((c) => c.section_slug === slug).sort((a, b) => a.sort_order - b.sort_order);
@@ -324,7 +329,7 @@ export function LandingBlocksAdminCard({ cardStyle }: { cardStyle: CSSProperties
   if (loading) {
     return (
       <div style={{ ...cardStyle, padding: "24px" }}>
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
       </div>
     );
   }

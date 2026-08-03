@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { ImagePlus, Loader2, Search, X } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -30,6 +31,7 @@ const panelStyle: CSSProperties = {
 };
 
 export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -64,11 +66,11 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
 
   const handleUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast.error("Загрузите PNG, SVG или WebP");
+      toast.error(t("pages.adminLandingIcon.invalidFormat"));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Иконка не больше 2 МБ");
+      toast.error(t("pages.adminLandingIcon.tooLarge"));
       return;
     }
     setUploading(true);
@@ -77,9 +79,9 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
       if (!media.url) throw new Error("no url");
       onChange({ icon_url: media.url, icon: icon || "Box" });
       setOpen(false);
-      toast.success("Иконка загружена");
+      toast.success(t("pages.adminLandingIcon.uploaded"));
     } catch {
-      toast.error("Не удалось загрузить иконку");
+      toast.error(t("pages.adminLandingIcon.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -106,7 +108,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
       <PhotoEditorDialog
         open={editingFile != null}
         src={editingFile}
-        title="Редактирование иконки"
+        title={t("pages.adminLandingIcon.editTitle")}
         onCancel={() => {
           setEditingFile(null);
           if (fileRef.current) fileRef.current.value = "";
@@ -129,10 +131,10 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
         </IconBox>
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
-            {iconUrl ? "Своя иконка" : icon || "Box"}
+            {iconUrl ? t("pages.adminLandingIcon.customIcon") : icon || "Box"}
           </div>
           <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            Нажмите, чтобы выбрать или загрузить
+            {t("pages.adminLandingIcon.pickHint")}
           </div>
         </div>
         {iconUrl && (
@@ -141,7 +143,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
             tabIndex={0}
             className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full"
             style={{ color: "var(--foreground-50)" }}
-            aria-label="Убрать загруженную иконку"
+            aria-label={t("pages.adminLandingIcon.removeCustomAria")}
             onClick={(e) => {
               e.stopPropagation();
               onChange({ icon_url: null });
@@ -174,7 +176,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск иконки…"
+                placeholder={t("pages.adminLandingIcon.searchPlaceholder")}
                 className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
                 style={{ color: "var(--foreground)" }}
               />
@@ -205,7 +207,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
               </div>
               {filtered.length === 0 && (
                 <p className="py-[12px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  Ничего не найдено
+                  {t("pages.adminLandingIcon.nothingFound")}
                 </p>
               )}
             </div>
@@ -219,7 +221,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
                 style={{ color: "var(--foreground)" }}
               >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-                {uploading ? "Загрузка…" : "Загрузить PNG / SVG / WebP (до 2 МБ)"}
+                {uploading ? t("pages.adminCommon.loading") : t("pages.adminLandingIcon.uploadLabel")}
               </button>
             </div>
           </motion.div>

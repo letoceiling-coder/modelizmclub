@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Search, RotateCcw, Upload } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -14,7 +15,7 @@ import {
 } from "@/lib/icon-overrides";
 import {
   buildAdminSlotEntries, GROUP_LABELS, PAGE_LABELS, TOKEN_OPTIONS,
-  type AdminIconSlotEntry, type IconPage, type TokenKey,
+  type AdminIconSlotEntry, type IconPage, type IconSlotGroup, type TokenKey,
 } from "@/lib/icon-slots";
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -31,7 +32,20 @@ const card: CSSProperties = {
   borderRadius: "var(--r-card)",
 };
 
+function slotI18nKey(key: string) { return key.replace(/[.:-]/g, "_"); }
+function tokenI18nKey(key: TokenKey) { return key.replace(/-/g, "_"); }
+
 export function IconManagerSection() {
+  const { t } = useTranslation();
+  const slotLabel = (key: string, fallback: string) =>
+    t(`pages.adminIcons.slots.${slotI18nKey(key)}`, { defaultValue: fallback });
+  const pageLabel = (p: IconPage) =>
+    t(`pages.adminIcons.pages.${p}`, { defaultValue: PAGE_LABELS[p] });
+  const groupLabel = (g: IconSlotGroup) =>
+    t(`pages.adminIcons.groups.${g}`, { defaultValue: GROUP_LABELS[g] });
+  const tokenLabel = (key: TokenKey, fallback: string) =>
+    t(`pages.adminIcons.tokens.${tokenI18nKey(key)}`, { defaultValue: fallback });
+
   const categories = usePostCategories();
   const [landingCards, setLandingCards] = useState<{ id: number; title: string; icon: string; icon_url?: string | null; section_slug: string }[]>([]);
   const [assets, setAssets] = useState<IconAsset[]>([]);
@@ -120,25 +134,27 @@ export function IconManagerSection() {
         try {
           newAssets.push(await registerIconFromMedia(media.uuid));
         } catch {
-          failed.push({ filename: media.filename, error: "Не удалось добавить в библиотеку" });
+          failed.push({ filename: media.filename, error: t("pages.adminIcons.toasts.addToLibraryFailed") });
         }
       }
       if (newAssets.length > 0) {
         setAssets((prev) => [...newAssets, ...prev]);
         setAssetId(newAssets[0].id);
         toast.success(
-          newAssets.length === 1 ? "Иконка загружена" : `Загружено иконок: ${newAssets.length}`,
+          newAssets.length === 1
+            ? t("pages.adminIcons.toasts.iconUploaded")
+            : t("pages.adminIcons.toasts.iconsUploaded", { count: newAssets.length }),
         );
       }
       if (failed.length > 0) {
         toast.error(
           failed.length === 1
-            ? `${failed[0].filename}: ${failed[0].error}`
-            : `Ошибок: ${failed.length} из ${list.length}`,
+            ? t("pages.adminIcons.toasts.uploadErrorSingle", { filename: failed[0].filename, error: failed[0].error })
+            : t("pages.adminIcons.toasts.uploadErrors", { failed: failed.length, total: list.length }),
         );
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось загрузить");
+      toast.error(e instanceof Error ? e.message : t("pages.adminIcons.toasts.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -154,7 +170,7 @@ export function IconManagerSection() {
     const asset = await registerIconFromMedia(item.uuid);
     setAssets((prev) => [asset, ...prev]);
     setAssetId(asset.id);
-    toast.success("Иконка добавлена из медиа");
+    toast.success(t("pages.adminIcons.toasts.iconAddedFromMedia"));
   }
 
   async function onDeleteAsset(id: string) {
@@ -163,7 +179,7 @@ export function IconManagerSection() {
       setAssets((prev) => prev.filter((a) => a.id !== id));
       if (assetId === id) setAssetId("");
     } catch {
-      toast.error("Не удалось удалить");
+      toast.error(t("pages.adminIcons.toasts.deleteFailed"));
     }
   }
 
@@ -171,13 +187,13 @@ export function IconManagerSection() {
     if (!selected) return;
     if (assetId === "") {
       setDraftOverride(selected.key, null);
-      toast("Сброшено на иконку по умолчанию (превью)");
+      toast(t("pages.adminIcons.toasts.resetToDefaultPreview"));
       return;
     }
     const asset = assets.find((a) => a.id === assetId);
     if (!asset) return;
     setDraftOverride(selected.key, assetToOverride(asset, token));
-    toast("Превью применено");
+    toast(t("pages.adminIcons.toasts.previewApplied"));
   }
 
   function buildPublishMap(): IconOverrideMap {
@@ -191,9 +207,9 @@ export function IconManagerSection() {
       await publishIconOverrides(map);
       applyPublishedMap(map);
       setCanRollback(true);
-      toast.success(isDemoMode() ? "Опубликовано (demo)" : "Иконки опубликованы для всех");
+      toast.success(isDemoMode() ? t("pages.adminIcons.toasts.publishedDemo") : t("pages.adminIcons.toasts.publishedAll"));
     } catch (err) {
-      toast.error(formatApiErrorMessage(err, "Не удалось опубликовать"));
+      toast.error(formatApiErrorMessage(err, t("pages.adminIcons.toasts.publishFailed")));
     } finally {
       setPublishing(false);
     }
@@ -205,9 +221,9 @@ export function IconManagerSection() {
       if (prev === null) { setCanRollback(false); return; }
       await publishIconOverrides(prev);
       applyPublishedMap(prev);
-      toast.success("Откат выполнен");
+      toast.success(t("pages.adminIcons.toasts.rollbackDone"));
     } catch (err) {
-      toast.error(formatApiErrorMessage(err, "Не удалось откатить"));
+      toast.error(formatApiErrorMessage(err, t("pages.adminIcons.toasts.rollbackFailed")));
     }
   }
 
@@ -218,7 +234,7 @@ export function IconManagerSection() {
   };
 
   if (!selected) {
-    return <div style={{ padding: 24, color: "var(--foreground-50)" }}>Загрузка слотов…</div>;
+    return <div style={{ padding: 24, color: "var(--foreground-50)" }}>{t("pages.adminIcons.loadingSlots")}</div>;
   }
 
   const hasOverride = Boolean(getMergedMap()[selected.key]);
@@ -228,31 +244,30 @@ export function IconManagerSection() {
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--foreground)" }}>
-            Иконки сайта
+            {t("pages.adminIcons.title")}
           </h2>
           <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4, maxWidth: 560 }}>
-            Замените иконки в меню, на главной и в блоках направлений. По умолчанию — текущие иконки платформы.
-            Превью видите только вы; «Опубликовать» — для всех пользователей.
+            {t("pages.adminIcons.subtitle")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {draftCount > 0 && (
             <span style={{ fontSize: 12, padding: "8px 12px", borderRadius: 10, background: "var(--accent-soft)", color: "var(--accent)", alignSelf: "center" }}>
-              Изменено: {draftCount}
+              {t("pages.adminIcons.changesCount", { count: draftCount })}
             </span>
           )}
           <button type="button" disabled={publishing} onClick={onPublish}
             style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: "var(--accent)", color: "var(--accent-foreground)", opacity: publishing ? 0.6 : 1 }}>
-            {publishing ? "Публикация…" : "Опубликовать для всех"}
+            {publishing ? t("pages.adminIcons.publishing") : t("pages.adminIcons.publishAll")}
           </button>
-          <button type="button" onClick={() => { resetDraft(); toast("Превью сброшено"); }}
+          <button type="button" onClick={() => { resetDraft(); toast(t("pages.adminIcons.toasts.previewReset")); }}
             style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
-            Сбросить превью
+            {t("pages.adminIcons.resetPreview")}
           </button>
           {canRollback && (
             <button type="button" onClick={onRollback}
               style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, border: "1px solid var(--border)", color: "var(--foreground-70)" }}>
-              Откатить
+              {t("pages.adminIcons.rollback")}
             </button>
           )}
         </div>
@@ -266,14 +281,14 @@ export function IconManagerSection() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск иконки…"
+              placeholder={t("pages.adminIcons.searchPlaceholder")}
               style={{ ...selectStyle, paddingLeft: 32 }}
             />
           </div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-            <FilterChip active={expandedPage === "all"} onClick={() => setExpandedPage("all")} label="Все" />
+            <FilterChip active={expandedPage === "all"} onClick={() => setExpandedPage("all")} label={t("pages.adminIcons.filterAll")} />
             {(Object.keys(PAGE_LABELS) as IconPage[]).map((p) => (
-              <FilterChip key={p} active={expandedPage === p} onClick={() => setExpandedPage(p)} label={PAGE_LABELS[p]} />
+              <FilterChip key={p} active={expandedPage === p} onClick={() => setExpandedPage(p)} label={pageLabel(p)} />
             ))}
           </div>
           {(Object.keys(PAGE_LABELS) as IconPage[]).map((page) => {
@@ -282,7 +297,7 @@ export function IconManagerSection() {
             return (
               <div key={page} style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--foreground-50)", marginBottom: 6 }}>
-                  {PAGE_LABELS[page]}
+                  {pageLabel(page)}
                 </div>
                 {items.map((s) => {
                   const active = s.key === selectedKey;
@@ -300,10 +315,10 @@ export function IconManagerSection() {
                         fontWeight: active ? 600 : 400,
                       }}
                     >
-                      {s.label}
+                      {slotLabel(s.key, s.label)}
                       {changed && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--accent)" }}>●</span>}
                       <span style={{ display: "block", fontSize: 10, color: "var(--foreground-50)", marginTop: 2 }}>
-                        {GROUP_LABELS[s.group]}
+                        {groupLabel(s.group)}
                       </span>
                     </button>
                   );
@@ -315,25 +330,25 @@ export function IconManagerSection() {
 
         {/* Editor */}
         <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 4 }}>{PAGE_LABELS[selected.page]} · {GROUP_LABELS[selected.group]}</div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginBottom: 16 }}>{selected.label}</h3>
+          <div style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 4 }}>{pageLabel(selected.page)} · {groupLabel(selected.group)}</div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginBottom: 16 }}>{slotLabel(selected.key, selected.label)}</h3>
 
-          <IconSlotPreview slot={selected} label={selected.label} />
+          <IconSlotPreview slot={selected} label={slotLabel(selected.key, selected.label)} />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20, marginBottom: 20 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>Текущая (дефолт)</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>{t("pages.adminIcons.currentDefault")}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--background-surface)" }}>
                 <IconSlotPreview slot={selected} label="" size={28} forceDefault />
                 <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{selected.defaultLucide}{selected.defaultImageUrl ? " / PNG" : ""}</span>
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>Превью (с изменениями)</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>{t("pages.adminIcons.previewWithChanges")}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderRadius: 10, border: `1px solid ${hasOverride ? "var(--accent)" : "var(--border)"}`, background: "var(--background-surface)" }}>
                 <IconSlotPreview slot={selected} label="" size={28} />
                 <span style={{ fontSize: 12, color: hasOverride ? "var(--accent)" : "var(--foreground-50)" }}>
-                  {hasOverride ? "Кастомная" : "Как дефолт"}
+                  {hasOverride ? t("pages.adminIcons.custom") : t("pages.adminIcons.asDefault")}
                 </span>
               </div>
             </div>
@@ -341,11 +356,11 @@ export function IconManagerSection() {
 
           {/* Library mini */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>Библиотека иконок</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--foreground-70)", marginBottom: 8 }}>{t("pages.adminIcons.iconLibrary")}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               <button type="button" onClick={() => setAssetId("")}
                 style={{ width: 48, height: 48, borderRadius: 10, border: `1px solid ${assetId === "" ? "var(--accent)" : "var(--border)"}`, fontSize: 10, color: "var(--foreground-50)" }}>
-                Дефолт
+                {t("pages.adminIcons.default")}
               </button>
               {assets.map((a) => (
                 <button key={a.id} type="button" title={a.name} onClick={() => setAssetId(a.id)}
@@ -361,7 +376,7 @@ export function IconManagerSection() {
               {!isDemoMode() && (
                 <button type="button" onClick={() => setMediaPickerOpen(true)}
                   style={{ height: 48, padding: "0 10px", borderRadius: 10, border: "1px dashed var(--border)", fontSize: 11, color: "var(--foreground-50)" }}>
-                  Из медиа
+                  {t("pages.adminIcons.fromMedia")}
                 </button>
               )}
             </div>
@@ -378,43 +393,45 @@ export function IconManagerSection() {
 
           {selected.supportsRecolor && (
             <label style={{ display: "grid", gap: 4, marginBottom: 12 }}>
-              <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>Цвет (для SVG)</span>
+              <span style={{ fontSize: 12, color: "var(--foreground-70)" }}>{t("pages.adminIcons.colorForSvg")}</span>
               <select value={token} onChange={(e) => setToken(e.target.value as TokenKey)} style={selectStyle}>
-                {TOKEN_OPTIONS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                {TOKEN_OPTIONS.map((opt) => (
+                  <option key={opt.key} value={opt.key}>{tokenLabel(opt.key, opt.label)}</option>
+                ))}
               </select>
             </label>
           )}
           {!selected.supportsRecolor && (
-            <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 12 }}>PNG-иллюстрации не перекрашиваются.</p>
+            <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 12 }}>{t("pages.adminIcons.pngNoRecolor")}</p>
           )}
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" onClick={onApply}
               style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--accent-soft)" }}>
-              Применить превью
+              {t("pages.adminIcons.applyPreview")}
             </button>
             <button type="button" onClick={() => { setAssetId(""); onApply(); }}
               style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, border: "1px solid var(--border)", color: "var(--foreground-70)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <RotateCcw size={14} /> Сбросить слот
+              <RotateCcw size={14} /> {t("pages.adminIcons.resetSlot")}
             </button>
           </div>
 
           {selected.group === "landing" && (
             <p style={{ fontSize: 12, color: "var(--foreground-50)", marginTop: 16 }}>
-              Тексты карточки редактируются в{" "}
-              <Link to="/admin" search={{ section: "landingBlocks" }} style={{ color: "var(--accent)" }}>Главная страница</Link>.
+              {t("pages.adminIcons.landingCardHintPrefix")}{" "}
+              <Link to="/admin" search={{ section: "landingBlocks" }} style={{ color: "var(--accent)" }}>{t("pages.adminIcons.landingCardLink")}</Link>.
             </p>
           )}
         </div>
       </div>
 
       <MediaPickerDialog open={mediaPickerOpen} onClose={() => setMediaPickerOpen(false)} purpose="icon"
-        title="Выбор иконки из медиаменеджера" onSelect={onPickFromMedia} />
+        title={t("pages.adminIcons.mediaPickerTitle")} onSelect={onPickFromMedia} />
 
       <PhotoEditorDialog
         open={editingFile != null}
         src={editingFile}
-        title="Редактирование иконки"
+        title={t("pages.adminIcons.photoEditorTitle")}
         onCancel={() => {
           setEditingFile(null);
           if (fileRef.current) fileRef.current.value = "";

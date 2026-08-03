@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import {
   fetchAdminFeedGuestAccess,
@@ -48,6 +49,7 @@ function ActionRow({
   config: FeedGuestAccessConfig;
   onChange: (patch: Partial<{ allowed: boolean; deny_mode: "inherit" | "popup" | "redirect" }>) => void;
 }) {
+  const { t } = useTranslation();
   const current = config.actions[item.key] ?? { allowed: item.default_allowed, deny_mode: "inherit" as const };
 
   return (
@@ -66,7 +68,7 @@ function ActionRow({
           checked={current.allowed}
           onChange={(e) => onChange({ allowed: e.target.checked })}
         />
-        Доступно гостям
+        {t("pages.adminFeedGuestAccess.guestAllowed")}
       </label>
       <select
         value={current.deny_mode}
@@ -74,15 +76,16 @@ function ActionRow({
         disabled={current.allowed}
         style={{ ...inputStyle, width: 160, opacity: current.allowed ? 0.5 : 1 }}
       >
-        <option value="inherit">По умолчанию</option>
-        <option value="popup">Попап</option>
-        <option value="redirect">Редирект</option>
+        <option value="inherit">{t("pages.adminFeedGuestAccess.denyInherit")}</option>
+        <option value="popup">{t("pages.adminFeedGuestAccess.denyPopup")}</option>
+        <option value="redirect">{t("pages.adminFeedGuestAccess.denyRedirect")}</option>
       </select>
     </div>
   );
 }
 
 export function FeedGuestAccessAdminCard() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<FeedGuestAccessConfig | null>(null);
   const [registry, setRegistry] = useState<FeedGuestAccessRegistryItem[]>([]);
   const [groupLabels, setGroupLabels] = useState<Record<string, string>>({});
@@ -96,9 +99,9 @@ export function FeedGuestAccessAdminCard() {
         setRegistry(data.registry);
         setGroupLabels(data.group_labels);
       })
-      .catch(() => toast.error("Не удалось загрузить права доступа"))
+      .catch(() => toast.error(t("pages.adminFeedGuestAccess.loadFailed")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, FeedGuestAccessRegistryItem[]>();
@@ -132,29 +135,29 @@ export function FeedGuestAccessAdminCard() {
       setConfig(data.config);
       invalidateFeedGuestAccessCache();
       await loadFeedGuestAccess();
-      toast.success("Права доступа сохранены");
+      toast.success(t("pages.adminFeedGuestAccess.saved"));
     } catch {
-      toast.error("Не удалось сохранить");
+      toast.error(t("pages.adminFeedGuestAccess.saveFailed"));
     } finally {
       setSaving(false);
     }
   };
 
   if (loading || !config) {
-    return <p className="text-sm" style={{ color: "var(--foreground-50)" }}>Загрузка…</p>;
+    return <p className="text-sm" style={{ color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>Права гостей на /feed</h2>
+        <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>{t("pages.adminFeedGuestAccess.title")}</h2>
         <p className="mt-1 text-sm" style={{ color: "var(--foreground-50)" }}>
-          Управление доступом для неавторизованных пользователей: клики в ленте, меню и переходы по URL.
+          {t("pages.adminFeedGuestAccess.subtitle")}
         </p>
       </div>
 
       <div className="rounded-[var(--r-card)] border p-4" style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}>
-        <h3 className="mb-3 text-sm font-semibold">Поведение при запрете</h3>
+        <h3 className="mb-3 text-sm font-semibold">{t("pages.adminFeedGuestAccess.denyBehaviorTitle")}</h3>
         <div className="grid gap-3 lg:grid-cols-2">
           <label className="flex items-center gap-2 text-[13px]">
             <input
@@ -163,7 +166,7 @@ export function FeedGuestAccessAdminCard() {
               checked={config.default_deny_mode === "popup"}
               onChange={() => setConfig({ ...config, default_deny_mode: "popup" })}
             />
-            Показывать попап
+            {t("pages.adminFeedGuestAccess.showPopup")}
           </label>
           <label className="flex items-center gap-2 text-[13px]">
             <input
@@ -172,12 +175,12 @@ export function FeedGuestAccessAdminCard() {
               checked={config.default_deny_mode === "redirect"}
               onChange={() => setConfig({ ...config, default_deny_mode: "redirect" })}
             />
-            Перенаправлять на /subscription
+            {t("pages.adminFeedGuestAccess.redirectSubscription")}
           </label>
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           <label className="block text-[12px]" style={{ color: "var(--foreground-70)" }}>
-            Заголовок попапа
+            {t("pages.adminFeedGuestAccess.popupTitleLabel")}
             <input
               style={{ ...inputStyle, marginTop: 6 }}
               value={config.popup.title}
@@ -185,7 +188,7 @@ export function FeedGuestAccessAdminCard() {
             />
           </label>
           <label className="block text-[12px]" style={{ color: "var(--foreground-70)" }}>
-            Кнопка «Оформить»
+            {t("pages.adminFeedGuestAccess.primaryCtaLabel")}
             <input
               style={{ ...inputStyle, marginTop: 6 }}
               value={config.popup.primary_cta}
@@ -193,7 +196,7 @@ export function FeedGuestAccessAdminCard() {
             />
           </label>
           <label className="block text-[12px] lg:col-span-2" style={{ color: "var(--foreground-70)" }}>
-            Текст попапа
+            {t("pages.adminFeedGuestAccess.popupTextLabel")}
             <textarea
               style={{ ...textareaStyle, marginTop: 6 }}
               value={config.popup.description}
@@ -218,7 +221,7 @@ export function FeedGuestAccessAdminCard() {
       ))}
 
       <button type="button" style={primaryBtn} disabled={saving} onClick={() => void save()}>
-        {saving ? "Сохранение…" : "Сохранить права доступа"}
+        {saving ? t("pages.adminFeedGuestAccess.saving") : t("pages.adminFeedGuestAccess.saveButton")}
       </button>
     </div>
   );

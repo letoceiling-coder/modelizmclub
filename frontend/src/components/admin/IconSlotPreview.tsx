@@ -1,6 +1,7 @@
 import { Icon, CategoryIcon, LandingCardIconSlot, IconBox } from "@/components/ui/Icon";
 import type { AdminIconSlotEntry } from "@/lib/icon-slots";
 import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   slot: AdminIconSlotEntry;
@@ -12,6 +13,7 @@ interface Props {
 
 /** Inline preview of how an icon slot renders on the site. */
 export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props) {
+  const { t } = useTranslation();
   const previewLabel = label ?? slot.label;
 
   if (forceDefault) {
@@ -52,7 +54,7 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
         {previewLabel && (
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{previewLabel}</div>
-            <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>Карточка на главной</div>
+            <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>{t("pages.adminIcons.preview.landingCard")}</div>
           </div>
         )}
       </div>
@@ -68,7 +70,7 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
         {previewLabel && (
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>{previewLabel}</div>
-            <div style={{ fontSize: 12, color: "var(--foreground-70)", marginTop: 4 }}>Блок «Почему моделисты выбирают нас»</div>
+            <div style={{ fontSize: 12, color: "var(--foreground-70)", marginTop: 4 }}>{t("pages.adminIcons.preview.valueBlock")}</div>
           </div>
         )}
       </div>
@@ -78,7 +80,7 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
   if (slot.previewKind === "faq") {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderRadius: 12, border: "1px solid var(--border)", maxWidth: 320 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{previewLabel || "Вопрос FAQ"}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{previewLabel || t("pages.adminIcons.preview.faqQuestion")}</span>
         <span style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", border: "1px solid var(--border)", background: "var(--background-surface)" }}>
           <Icon slot={slot.key} size={14} inheritColor />
         </span>

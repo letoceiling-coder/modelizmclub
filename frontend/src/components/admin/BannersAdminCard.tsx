@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Eye, MousePointerClick, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -16,17 +17,6 @@ import {
   type BannerCarouselSettings,
 } from "@/lib/api/admin";
 import { uploadAdminMedia } from "@/lib/api/admin-media";
-
-const PLACEMENTS = [
-  { value: "events", label: "Лента — верхний слайдер" },
-  { value: "feed", label: "Лента — встроенные объявления" },
-] as const;
-
-const KINDS = [
-  { value: "event", label: "Событие" },
-  { value: "news", label: "Новость" },
-  { value: "promo", label: "Акция" },
-] as const;
 
 const inputStyle: CSSProperties = {
   height: "40px",
@@ -70,8 +60,6 @@ const ghostBtn: CSSProperties = {
   cursor: "pointer",
 };
 
-const BANNER_IMAGE_HINT = "Рекомендуемый размер: 1920×500 px (JPG, PNG или WebP).";
-
 type PreviewableBanner = Pick<
   AdminBannerRow,
   "id" | "imageUrl" | "title" | "text" | "ctaText" | "kind" | "untilLabel"
@@ -83,7 +71,16 @@ type PreviewableBanner = Pick<
  * the CTA button always match production pixel-for-pixel instead of drifting
  * out of sync with a hand-rolled approximation.
  */
-function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; placement: string }) {
+function BannerImagePreview({
+  banner,
+  placement,
+  defaultCta,
+}: {
+  banner: PreviewableBanner;
+  placement: string;
+  defaultCta: string;
+}) {
+  const { t } = useTranslation();
   const isHero = placement === "events";
 
   return (
@@ -95,7 +92,7 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
               className="mb-[6px] text-[11px] font-semibold uppercase tracking-[0.06em]"
               style={{ color: "var(--foreground-50)" }}
             >
-              Как на ленте
+              {t("pages.adminBanners.preview.asOnFeed")}
             </div>
             <div
               className="relative overflow-hidden rounded-[16px] border"
@@ -107,7 +104,7 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
                     image: banner.imageUrl,
                     title: banner.title,
                     text: banner.text,
-                    cta: banner.ctaText || "Подробнее",
+                    cta: banner.ctaText || defaultCta,
                     kind: banner.kind || "news",
                     until: banner.untilLabel,
                   }}
@@ -122,7 +119,7 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
                 className="mb-[6px] text-[11px] font-semibold uppercase tracking-[0.06em]"
                 style={{ color: "var(--foreground-50)" }}
               >
-                Загруженное изображение целиком
+                {t("pages.adminBanners.preview.fullImage")}
               </div>
               <div
                 className="flex min-h-[100px] items-center justify-center rounded-[12px] border p-[10px]"
@@ -139,14 +136,14 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
             className="mb-[6px] text-[11px] font-semibold uppercase tracking-[0.06em]"
             style={{ color: "var(--foreground-50)" }}
           >
-            Как на ленте (нативный пост)
+            {t("pages.adminBanners.preview.asNativePost")}
           </div>
           <SponsoredPostCard
             banner={{
               id: banner.id,
-              title: banner.title || "Заголовок баннера",
+              title: banner.title || t("pages.adminBanners.preview.bannerTitleFallback"),
               text: banner.text,
-              cta: banner.ctaText || "Подробнее",
+              cta: banner.ctaText || defaultCta,
               until: banner.untilLabel,
               color: "from-rose-500 to-orange-600",
             }}
@@ -157,25 +154,26 @@ function BannerImagePreview({ banner, placement }: { banner: PreviewableBanner; 
   );
 }
 
-type ScheduleStatus = { label: string; variant: "default" | "success" | "warning" | "info" | "published" };
+type ScheduleStatusKey = "hidden" | "test" | "scheduled" | "ended" | "active";
+type ScheduleStatus = { key: ScheduleStatusKey; variant: "default" | "success" | "warning" | "info" | "published" };
 
 function bannerScheduleStatus(b: Pick<AdminBannerRow, "isActive" | "forceVisible" | "startsAt" | "endsAt">): ScheduleStatus {
-  if (!b.isActive) return { label: "Скрыт", variant: "default" };
-  if (b.forceVisible) return { label: "Тестовый показ", variant: "warning" };
+  if (!b.isActive) return { key: "hidden", variant: "default" };
+  if (b.forceVisible) return { key: "test", variant: "warning" };
   const now = Date.now();
   const start = b.startsAt ? Date.parse(`${b.startsAt}T00:00:00`) : NaN;
   const end = b.endsAt ? Date.parse(`${b.endsAt}T23:59:59`) : NaN;
-  if (!Number.isNaN(start) && start > now) return { label: "Запланирован", variant: "info" };
-  if (!Number.isNaN(end) && end < now) return { label: "Завершён", variant: "default" };
-  return { label: "Активен", variant: "success" };
+  if (!Number.isNaN(start) && start > now) return { key: "scheduled", variant: "info" };
+  if (!Number.isNaN(end) && end < now) return { key: "ended", variant: "default" };
+  return { key: "active", variant: "success" };
 }
 
-function emptyBanner(): Omit<AdminBannerRow, "id" | "impressionsCount" | "clicksCount"> {
+function emptyBanner(defaultCta: string): Omit<AdminBannerRow, "id" | "impressionsCount" | "clicksCount"> {
   return {
     placement: "events",
     title: "",
     text: "",
-    ctaText: "Подробнее",
+    ctaText: defaultCta,
     kind: "event",
     untilLabel: "",
     linkUrl: "",
@@ -192,6 +190,28 @@ function emptyBanner(): Omit<AdminBannerRow, "id" | "impressionsCount" | "clicks
 }
 
 export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
+  const { t } = useTranslation();
+  const defaultCta = t("pages.adminBanners.defaultCta");
+
+  const placements = useMemo(
+    () =>
+      [
+        { value: "events", label: t("pages.adminBanners.placements.events") },
+        { value: "feed", label: t("pages.adminBanners.placements.feed") },
+      ] as const,
+    [t],
+  );
+
+  const kinds = useMemo(
+    () =>
+      [
+        { value: "event", label: t("pages.adminBanners.kinds.event") },
+        { value: "news", label: t("pages.adminBanners.kinds.news") },
+        { value: "promo", label: t("pages.adminBanners.kinds.promo") },
+      ] as const,
+    [t],
+  );
+
   const [carousel, setCarousel] = useState<BannerCarouselSettings>({
     enabled: true,
     placement: "events",
@@ -203,7 +223,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
   const [savingCarousel, setSavingCarousel] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState(emptyBanner());
+  const [draft, setDraft] = useState(() => emptyBanner(defaultCta));
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<string | "new" | null>(null);
 
@@ -213,20 +233,20 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
         setBanners(list);
         setCarousel(c);
       })
-      .catch(() => toast.error("Не удалось загрузить баннеры"));
+      .catch(() => toast.error(t("pages.adminBanners.toast.loadFailed")));
 
   useEffect(() => {
     reload().finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const saveCarousel = async () => {
     setSavingCarousel(true);
     try {
       const next = await updateBannerCarouselSettings(carousel);
       setCarousel(next);
-      toast.success("Настройки слайдера сохранены");
+      toast.success(t("pages.adminBanners.carousel.saved"));
     } catch {
-      toast.error("Не удалось сохранить настройки слайдера");
+      toast.error(t("pages.adminBanners.carousel.saveFailed"));
     } finally {
       setSavingCarousel(false);
     }
@@ -256,28 +276,28 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
         sort_order: row.sortOrder,
       });
       patchBanner(row.id, { ...saved, imageMediaUuid: null });
-      toast.success("Баннер сохранён");
+      toast.success(t("pages.adminBanners.toast.bannerSaved"));
     } catch {
-      toast.error("Не удалось сохранить баннер");
+      toast.error(t("pages.adminBanners.toast.bannerSaveFailed"));
     } finally {
       setSavingId(null);
     }
   };
 
   const removeBanner = async (id: string) => {
-    if (!window.confirm("Удалить баннер?")) return;
+    if (!window.confirm(t("pages.adminBanners.toast.deleteConfirm"))) return;
     try {
       await deleteAdminBanner(id);
       setBanners((prev) => prev.filter((b) => b.id !== id));
-      toast.success("Баннер удалён");
+      toast.success(t("pages.adminBanners.toast.bannerDeleted"));
     } catch {
-      toast.error("Не удалось удалить баннер");
+      toast.error(t("pages.adminBanners.toast.bannerDeleteFailed"));
     }
   };
 
   const createBanner = async () => {
     if (!draft.title.trim()) {
-      toast.error("Укажите заголовок баннера");
+      toast.error(t("pages.adminBanners.toast.titleRequired"));
       return;
     }
     setCreating(true);
@@ -300,10 +320,10 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
         sort_order: draft.sortOrder,
       });
       setBanners((prev) => [created, ...prev]);
-      setDraft(emptyBanner());
-      toast.success("Баннер создан");
+      setDraft(emptyBanner(defaultCta));
+      toast.success(t("pages.adminBanners.toast.bannerCreated"));
     } catch {
-      toast.error("Не удалось создать баннер");
+      toast.error(t("pages.adminBanners.toast.bannerCreateFailed"));
     } finally {
       setCreating(false);
     }
@@ -342,15 +362,16 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
       } else {
         patchBanner(target, { imageMediaUuid: media.uuid, imageUrl: media.url });
       }
-      toast.success("Изображение загружено — сохраните баннер");
+      toast.success(t("pages.adminBanners.toast.imageUploaded"));
     } catch {
-      toast.error("Не загрузить изображение");
+      toast.error(t("pages.adminBanners.toast.imageUploadFailed"));
     } finally {
       setUploadTarget(null);
     }
   };
 
   const heroBanners = banners.filter((b) => b.placement === carousel.placement);
+  const carouselPlacementLabel = placements.find((p) => p.value === carousel.placement)?.label ?? carousel.placement;
 
   return (
     <div style={{ display: "grid", gap: "16px" }}>
@@ -358,7 +379,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
       <PhotoEditorDialog
         open={editorSrc != null}
         src={editorSrc}
-        title="Редактирование фото баннера"
+        title={t("pages.adminBanners.photoEditorTitle")}
         onCancel={() => {
           setEditorSrc(null);
           setUploadTarget(null);
@@ -368,30 +389,30 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
 
       <div style={{ ...cardStyle, padding: "24px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "8px" }}>
-          Слайдер на ленте
+          {t("pages.adminBanners.carousel.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Блок над лентой постов. Переключение слайдов, лимит показа и статистика просмотров настраиваются здесь.
+          {t("pages.adminBanners.carousel.hint")}
         </p>
 
         {loading ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>Загрузка…</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: "12px" }}>
             <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Размещение слайдера</span>
+              <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.carousel.placementLabel")}</span>
               <select
                 value={carousel.placement}
                 onChange={(e) => setCarousel((c) => ({ ...c, placement: e.target.value }))}
                 style={inputStyle}
               >
-                {PLACEMENTS.map((p) => (
+                {placements.map((p) => (
                   <option key={p.value} value={p.value}>{p.label}</option>
                 ))}
               </select>
             </label>
             <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Интервал, сек</span>
+              <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.carousel.intervalLabel")}</span>
               <input
                 type="number"
                 min={3}
@@ -402,7 +423,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
               />
             </label>
             <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Макс. слайдов</span>
+              <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.carousel.maxSlidesLabel")}</span>
               <input
                 type="number"
                 min={1}
@@ -419,74 +440,84 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                 onChange={(e) => setCarousel((c) => ({ ...c, enabled: e.target.checked }))}
                 style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
               />
-              <span style={{ fontSize: "13px", color: "var(--foreground-70)" }}>Показывать слайдер</span>
+              <span style={{ fontSize: "13px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.carousel.enabledLabel")}</span>
             </label>
           </div>
         )}
 
         <button type="button" onClick={saveCarousel} disabled={savingCarousel} style={{ ...primaryBtn, marginTop: "14px" }}>
-          {savingCarousel ? "Сохранение…" : "Сохранить настройки слайдера"}
+          {savingCarousel ? t("pages.adminBanners.carousel.saving") : t("pages.adminBanners.carousel.save")}
         </button>
       </div>
 
       <div style={{ ...cardStyle, padding: "24px" }}>
         <div className="flex items-center justify-between gap-[8px] flex-wrap">
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
-            Новый баннер
+            {t("pages.adminBanners.form.newTitle")}
           </h4>
           <div className="flex items-center gap-[8px]">
             {draft.imageUrl && (
               <button type="button" onClick={() => onEditImage("new", draft.imageUrl!)} style={ghostBtn}>
-                <Pencil size={14} className="inline mr-1" /> Редактировать
+                <Pencil size={14} className="inline mr-1" /> {t("pages.adminBanners.form.edit")}
               </button>
             )}
             <button type="button" onClick={() => onPickImage("new")} style={ghostBtn}>
-              <Upload size={14} className="inline mr-1" /> Загрузить фото
+              <Upload size={14} className="inline mr-1" /> {t("pages.adminBanners.form.uploadPhoto")}
             </button>
           </div>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "8px" }}>{BANNER_IMAGE_HINT}</p>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "8px" }}>{t("pages.adminBanners.imageHint")}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "12px", marginTop: "12px" }}>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Размещение</span>
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.placement")}</span>
             <select value={draft.placement} onChange={(e) => setDraft((d) => ({ ...d, placement: e.target.value }))} style={inputStyle}>
-              {PLACEMENTS.map((p) => (
+              {placements.map((p) => (
                 <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Тип</span>
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.kind")}</span>
             <select
               value={draft.kind}
               onChange={(e) => setDraft((d) => ({ ...d, kind: e.target.value as AdminBannerRow["kind"] }))}
               style={inputStyle}
             >
-              {KINDS.map((k) => (
+              {kinds.map((k) => (
                 <option key={k.value} value={k.value}>{k.label}</option>
               ))}
             </select>
           </label>
           <label style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Заголовок</span>
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.title")}</span>
             <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} style={inputStyle} />
           </label>
           <label style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Текст</span>
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.text")}</span>
             <textarea value={draft.text} onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))} style={textareaStyle} />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Кнопка (CTA)</span>
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.cta")}</span>
             <input value={draft.ctaText} onChange={(e) => setDraft((d) => ({ ...d, ctaText: e.target.value }))} style={inputStyle} />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Подпись срока</span>
-            <input value={draft.untilLabel} onChange={(e) => setDraft((d) => ({ ...d, untilLabel: e.target.value }))} placeholder="до 15 авг" style={inputStyle} />
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.untilLabel")}</span>
+            <input
+              value={draft.untilLabel}
+              onChange={(e) => setDraft((d) => ({ ...d, untilLabel: e.target.value }))}
+              placeholder={t("pages.adminBanners.form.untilPlaceholder")}
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>Ссылка</span>
-            <input value={draft.linkUrl} onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))} placeholder="/communities или https://…" style={inputStyle} />
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.link")}</span>
+            <input
+              value={draft.linkUrl}
+              onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))}
+              placeholder={t("pages.adminBanners.form.linkPlaceholder")}
+              style={inputStyle}
+            />
           </label>
         </div>
 
@@ -501,174 +532,193 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
             untilLabel: draft.untilLabel,
           }}
           placement={draft.placement}
+          defaultCta={defaultCta}
         />
 
         <button type="button" onClick={createBanner} disabled={creating} style={{ ...primaryBtn, marginTop: "14px" }}>
           <Plus size={14} className="inline mr-1" />
-          {creating ? "Создание…" : "Добавить баннер"}
+          {creating ? t("pages.adminBanners.form.creating") : t("pages.adminBanners.form.add")}
         </button>
       </div>
 
       <div style={{ ...cardStyle, padding: "24px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Баннеры ({banners.length})
+          {t("pages.adminBanners.list.title", { count: banners.length })}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          В слайдере сейчас: {heroBanners.filter((b) => b.isActive).length} активных из placement «{carousel.placement}»
+          {t("pages.adminBanners.list.sliderSummary", {
+            active: heroBanners.filter((b) => b.isActive).length,
+            placement: carouselPlacementLabel,
+          })}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {banners.map((b) => (
-            <div
-              key={b.id}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-card-sm)",
-                padding: "16px",
-                background: b.isPinned ? "var(--accent-soft)" : "transparent",
-              }}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-[12px]">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-[8px]">
-                    <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--foreground)" }}>{b.title || "Без названия"}</div>
-                    {(() => {
-                      const st = bannerScheduleStatus(b);
-                      return <StatusBadge variant={st.variant}>{st.label}</StatusBadge>;
-                    })()}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: 2 }}>
-                    {PLACEMENTS.find((p) => p.value === b.placement)?.label ?? b.placement}
-                    {b.startsAt || b.endsAt ? (
-                      <span>
-                        {" · "}
-                        {b.startsAt ? `с ${new Date(`${b.startsAt}T00:00:00`).toLocaleDateString("ru-RU")}` : "без начала"}
-                        {b.endsAt ? ` по ${new Date(`${b.endsAt}T00:00:00`).toLocaleDateString("ru-RU")}` : ""}
-                      </span>
-                    ) : null}
-                  </div>
-                  {bannerScheduleStatus(b).label === "Запланирован" && (
-                    <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: 6 }}>
-                      Баннер появится в ленте после наступления даты «С». Для теста включите «Тестовый показ».
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-[12px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
-                  <span className="inline-flex items-center gap-[4px]"><Eye size={14} /> {b.impressionsCount.toLocaleString("ru")}</span>
-                  <span className="inline-flex items-center gap-[4px]"><MousePointerClick size={14} /> {b.clicksCount.toLocaleString("ru")}</span>
-                  <button type="button" onClick={() => removeBanner(b.id)} style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
+          {banners.map((b) => {
+            const schedule = bannerScheduleStatus(b);
+            const placementLabel = placements.find((p) => p.value === b.placement)?.label ?? b.placement;
 
-              <BannerImagePreview
-                banner={{
-                  id: b.id,
-                  imageUrl: b.imageUrl,
-                  title: b.title,
-                  text: b.text,
-                  ctaText: b.ctaText,
-                  kind: b.kind,
-                  untilLabel: b.untilLabel,
+            return (
+              <div
+                key={b.id}
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-card-sm)",
+                  padding: "16px",
+                  background: b.isPinned ? "var(--accent-soft)" : "transparent",
                 }}
-                placement={b.placement}
-              />
+              >
+                <div className="flex flex-wrap items-start justify-between gap-[12px]">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-[8px]">
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--foreground)" }}>
+                        {b.title || t("pages.adminBanners.form.untitled")}
+                      </div>
+                      <StatusBadge variant={schedule.variant}>
+                        {t(`pages.adminBanners.scheduleStatus.${schedule.key}`)}
+                      </StatusBadge>
+                    </div>
+                    <div style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: 2 }}>
+                      {placementLabel}
+                      {b.startsAt || b.endsAt ? (
+                        <span>
+                          {" · "}
+                          {b.startsAt
+                            ? t("pages.adminBanners.list.dateFrom", {
+                                date: new Date(`${b.startsAt}T00:00:00`).toLocaleDateString("ru-RU"),
+                              })
+                            : t("pages.adminBanners.list.dateNoStart")}
+                          {b.endsAt
+                            ? t("pages.adminBanners.list.dateTo", {
+                                date: new Date(`${b.endsAt}T00:00:00`).toLocaleDateString("ru-RU"),
+                              })
+                            : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                    {schedule.key === "scheduled" && (
+                      <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: 6 }}>
+                        {t("pages.adminBanners.list.scheduledHint")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-[12px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                    <span className="inline-flex items-center gap-[4px]"><Eye size={14} /> {b.impressionsCount.toLocaleString("ru")}</span>
+                    <span className="inline-flex items-center gap-[4px]"><MousePointerClick size={14} /> {b.clicksCount.toLocaleString("ru")}</span>
+                    <button type="button" onClick={() => removeBanner(b.id)} style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "10px", marginTop: "12px" }}>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Заголовок</span>
-                  <input value={b.title} onChange={(e) => patchBanner(b.id, { title: e.target.value })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Размещение</span>
-                  <select value={b.placement} onChange={(e) => patchBanner(b.id, { placement: e.target.value })} style={inputStyle}>
-                    {PLACEMENTS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Тип</span>
-                  <select
-                    value={b.kind}
-                    onChange={(e) => patchBanner(b.id, { kind: e.target.value as AdminBannerRow["kind"] })}
-                    style={inputStyle}
-                  >
-                    <option value="">—</option>
-                    {KINDS.map((k) => (
-                      <option key={k.value} value={k.value}>{k.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label style={{ display: "grid", gap: "4px", gridColumn: "1 / -1" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Текст</span>
-                  <textarea value={b.text} onChange={(e) => patchBanner(b.id, { text: e.target.value })} style={textareaStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>CTA</span>
-                  <input value={b.ctaText} onChange={(e) => patchBanner(b.id, { ctaText: e.target.value })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Срок</span>
-                  <input value={b.untilLabel} onChange={(e) => patchBanner(b.id, { untilLabel: e.target.value })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Ссылка</span>
-                  <input value={b.linkUrl} onChange={(e) => patchBanner(b.id, { linkUrl: e.target.value })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Приоритет</span>
-                  <input type="number" min={0} value={b.priority} onChange={(e) => patchBanner(b.id, { priority: +e.target.value || 0 })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>Порядок</span>
-                  <input type="number" min={0} value={b.sortOrder} onChange={(e) => patchBanner(b.id, { sortOrder: +e.target.value || 0 })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>С</span>
-                  <input type="date" value={b.startsAt} onChange={(e) => patchBanner(b.id, { startsAt: e.target.value })} style={inputStyle} />
-                </label>
-                <label style={{ display: "grid", gap: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>По</span>
-                  <input type="date" value={b.endsAt} onChange={(e) => patchBanner(b.id, { endsAt: e.target.value })} style={inputStyle} />
-                </label>
-              </div>
+                <BannerImagePreview
+                  banner={{
+                    id: b.id,
+                    imageUrl: b.imageUrl,
+                    title: b.title,
+                    text: b.text,
+                    ctaText: b.ctaText,
+                    kind: b.kind,
+                    untilLabel: b.untilLabel,
+                  }}
+                  placement={b.placement}
+                  defaultCta={defaultCta}
+                />
 
-              <div className="flex flex-wrap items-center gap-[12px] mt-[12px]">
-                <label className="flex items-center gap-[6px] cursor-pointer">
-                  <input type="checkbox" checked={b.isActive} onChange={(e) => patchBanner(b.id, { isActive: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
-                  <span style={{ fontSize: "13px" }}>Показывать</span>
-                </label>
-                <label className="flex items-center gap-[6px] cursor-pointer">
-                  <input type="checkbox" checked={b.isPinned} onChange={(e) => patchBanner(b.id, { isPinned: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
-                  <span style={{ fontSize: "13px" }}>Закрепить</span>
-                </label>
-                <label className="flex items-center gap-[6px] cursor-pointer" title="Показывать в ленте до наступления даты «С»">
-                  <input type="checkbox" checked={b.forceVisible} onChange={(e) => patchBanner(b.id, { forceVisible: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
-                  <span style={{ fontSize: "13px" }}>Тестовый показ</span>
-                </label>
-                <button type="button" onClick={() => onPickImage(b.id)} style={ghostBtn}>Фото</button>
-                {b.imageUrl && (
-                  <button type="button" onClick={() => onEditImage(b.id, b.imageUrl!)} style={ghostBtn}>
-                    <Pencil size={14} className="inline mr-1" /> Редактировать
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "10px", marginTop: "12px" }}>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.title")}</span>
+                    <input value={b.title} onChange={(e) => patchBanner(b.id, { title: e.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.placement")}</span>
+                    <select value={b.placement} onChange={(e) => patchBanner(b.id, { placement: e.target.value })} style={inputStyle}>
+                      {placements.map((p) => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.kind")}</span>
+                    <select
+                      value={b.kind}
+                      onChange={(e) => patchBanner(b.id, { kind: e.target.value as AdminBannerRow["kind"] })}
+                      style={inputStyle}
+                    >
+                      <option value="">—</option>
+                      {kinds.map((k) => (
+                        <option key={k.value} value={k.value}>{k.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ display: "grid", gap: "4px", gridColumn: "1 / -1" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.text")}</span>
+                    <textarea value={b.text} onChange={(e) => patchBanner(b.id, { text: e.target.value })} style={textareaStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.cta")}</span>
+                    <input value={b.ctaText} onChange={(e) => patchBanner(b.id, { ctaText: e.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.deadline")}</span>
+                    <input value={b.untilLabel} onChange={(e) => patchBanner(b.id, { untilLabel: e.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.link")}</span>
+                    <input value={b.linkUrl} onChange={(e) => patchBanner(b.id, { linkUrl: e.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.priority")}</span>
+                    <input type="number" min={0} value={b.priority} onChange={(e) => patchBanner(b.id, { priority: +e.target.value || 0 })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.sortOrder")}</span>
+                    <input type="number" min={0} value={b.sortOrder} onChange={(e) => patchBanner(b.id, { sortOrder: +e.target.value || 0 })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.startsAt")}</span>
+                    <input type="date" value={b.startsAt} onChange={(e) => patchBanner(b.id, { startsAt: e.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={{ display: "grid", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)", textTransform: "uppercase" }}>{t("pages.adminBanners.form.endsAt")}</span>
+                    <input type="date" value={b.endsAt} onChange={(e) => patchBanner(b.id, { endsAt: e.target.value })} style={inputStyle} />
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-[12px] mt-[12px]">
+                  <label className="flex items-center gap-[6px] cursor-pointer">
+                    <input type="checkbox" checked={b.isActive} onChange={(e) => patchBanner(b.id, { isActive: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
+                    <span style={{ fontSize: "13px" }}>{t("pages.adminBanners.form.show")}</span>
+                  </label>
+                  <label className="flex items-center gap-[6px] cursor-pointer">
+                    <input type="checkbox" checked={b.isPinned} onChange={(e) => patchBanner(b.id, { isPinned: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
+                    <span style={{ fontSize: "13px" }}>{t("pages.adminBanners.form.pin")}</span>
+                  </label>
+                  <label className="flex items-center gap-[6px] cursor-pointer" title={t("pages.adminBanners.form.testShowTitle")}>
+                    <input type="checkbox" checked={b.forceVisible} onChange={(e) => patchBanner(b.id, { forceVisible: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
+                    <span style={{ fontSize: "13px" }}>{t("pages.adminBanners.form.testShow")}</span>
+                  </label>
+                  <button type="button" onClick={() => onPickImage(b.id)} style={ghostBtn}>{t("pages.adminBanners.form.photo")}</button>
+                  {b.imageUrl && (
+                    <button type="button" onClick={() => onEditImage(b.id, b.imageUrl!)} style={ghostBtn}>
+                      <Pencil size={14} className="inline mr-1" /> {t("pages.adminBanners.form.edit")}
+                    </button>
+                  )}
+                  {(b.forceVisible || schedule.key === "active") && b.placement === "events" && (
+                    <Link to="/feed" target="_blank" style={{ ...ghostBtn, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+                      <Eye size={14} className="mr-1" /> {t("pages.adminBanners.form.preview")}
+                    </Link>
+                  )}
+                  <button type="button" onClick={() => saveBanner(b)} disabled={savingId === b.id} style={primaryBtn}>
+                    {savingId === b.id ? t("pages.adminBanners.form.saving") : t("pages.adminCommon.save")}
                   </button>
-                )}
-                {(b.forceVisible || bannerScheduleStatus(b).label === "Активен") && b.placement === "events" && (
-                  <Link to="/feed" target="_blank" style={{ ...ghostBtn, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
-                    <Eye size={14} className="mr-1" /> Предпросмотр
-                  </Link>
-                )}
-                <button type="button" onClick={() => saveBanner(b)} disabled={savingId === b.id} style={primaryBtn}>
-                  {savingId === b.id ? "…" : "Сохранить"}
-                </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {!loading && banners.length === 0 && (
             <p style={{ fontSize: "13px", color: "var(--foreground-50)", textAlign: "center", padding: "24px 0" }}>
-              Баннеров пока нет — добавьте первый выше.
+              {t("pages.adminBanners.list.empty")}
             </p>
           )}
         </div>

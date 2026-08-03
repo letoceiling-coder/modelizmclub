@@ -21,11 +21,20 @@
 | 5 | `MonetizationSection`, `FeedBannersSection`, `ApplicationsSection` | **DONE** |
 | 6 | `CategoriesSection`, `NotificationsSection`, `AuditLogSection` | **DONE** |
 
-**Сделано:** все секции `admin.tsx` переведены (P9–P10).
+**Сделано:** все секции `admin.tsx` переведены (P9–P10); embedded-компоненты (P11) — **DONE**.
 
-**Остаётся (P1.1):** embedded admin-компоненты — `BannersAdminCard`, `LandingBlocksAdminCard`, `IconManagerSection`, `FeedGuestAccessAdminCard`, `FooterContactsAdminCard`.
+| # | Компонент | Статус |
+|---|-----------|--------|
+| 1 | `BannersAdminCard` | **DONE** |
+| 2 | `LandingBlocksAdminCard` + `LandingCardIconField` | **DONE** |
+| 3 | `FeedGuestAccessAdminCard` | **DONE** |
+| 4 | `FooterContactsAdminCard` | **DONE** |
+| 5 | `MediaManagerCard` (+ picker) | **DONE** |
+| 6 | `IconManagerSection` + `IconSlotPreview` | **DONE** |
 
-**Паттерн:** `pages.adminX.*` в `ru.ts` → `patch-en-pN.ts` → `sync-i18n.ts`. Последний: **P10** (`patch-en-p10.ts`).
+**Паттерн:** `pages.adminX.*` в `ru.ts` → `patch-en-pN.ts` → `sync-i18n.ts`. Последний: **P11** (`patch-en-p11.ts`).
+
+**Task 42 (i18n admin):** полностью закрыт — следующий приоритет **P2** mobile/desktop evidence.
 
 ## P2 — Mobile / Desktop evidence (матрица колонки)
 

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { ImagePlus, Loader2, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
   adminMediaAccept,
-  adminMediaPurposeLabel,
   fetchAdminMedia,
   uploadAdminMediaMany,
   type AdminMediaItem,
@@ -37,6 +37,15 @@ const selectStyle: CSSProperties = {
 
 const PURPOSES: AdminMediaPurpose[] = ["icon", "banner", "cover", "post", "listing", "avatar"];
 
+function useMediaPurposeLabel() {
+  const { t } = useTranslation();
+  return useCallback(
+    (purpose: string) =>
+      t(`pages.adminMedia.purposes.${purpose}`, { defaultValue: purpose }),
+    [t],
+  );
+}
+
 function MediaThumb({ item }: { item: AdminMediaItem }) {
   if (!item.url) {
     return (
@@ -59,6 +68,8 @@ function MediaThumb({ item }: { item: AdminMediaItem }) {
 }
 
 export function MediaManagerCard() {
+  const { t } = useTranslation();
+  const purposeLabel = useMediaPurposeLabel();
   const [purpose, setPurpose] = useState<AdminMediaPurpose | "">("");
   const [mime, setMime] = useState<"" | "image" | "svg" | "png" | "jpeg" | "webp">("");
   const [query, setQuery] = useState("");
@@ -80,11 +91,11 @@ export function MediaManagerCard() {
       setTotal(res.total);
       setLastPage(res.lastPage);
     } catch {
-      toast.error("Не удалось загрузить медиафайлы");
+      toast.error(t("pages.adminMedia.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [purpose, mime, page]);
+  }, [purpose, mime, page, t]);
 
   useEffect(() => {
     void load();
@@ -108,8 +119,8 @@ export function MediaManagerCard() {
       if (uploaded.length > 0) {
         toast.success(
           uploaded.length === 1
-            ? "Файл загружен в медиаменеджер"
-            : `Загружено файлов: ${uploaded.length}`,
+            ? t("pages.adminMedia.fileUploaded")
+            : t("pages.adminMedia.filesUploaded", { count: uploaded.length }),
         );
         if (uploadPurpose === purpose || purpose === "") {
           setPage(1);
@@ -119,12 +130,12 @@ export function MediaManagerCard() {
       if (failed.length > 0) {
         toast.error(
           failed.length === 1
-            ? `${failed[0].filename}: ${failed[0].error}`
-            : `Не загружено: ${failed.length} из ${list.length}`,
+            ? t("pages.adminMedia.uploadOneFailed", { filename: failed[0].filename, error: failed[0].error })
+            : t("pages.adminMedia.uploadManyFailed", { failed: failed.length, total: list.length }),
         );
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось загрузить файлы");
+      toast.error(e instanceof Error ? e.message : t("pages.adminMedia.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -134,22 +145,22 @@ export function MediaManagerCard() {
   return (
     <div style={{ ...card, padding: 24 }}>
       <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--foreground)", marginBottom: 4 }}>
-        Медиаменеджер
+        {t("pages.adminMedia.title")}
       </h3>
       <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 16 }}>
-        Загружайте и выбирайте изображения (PNG, JPEG, WebP, SVG). Файлы с назначением «Иконки» можно добавить в библиотеку иконок в разделе Design System.
+        {t("pages.adminMedia.subtitle")}
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16, alignItems: "center" }}>
         <select value={purpose} onChange={(e) => setPurpose(e.target.value as AdminMediaPurpose | "")} style={selectStyle}>
-          <option value="">Все назначения</option>
+          <option value="">{t("pages.adminMedia.allPurposes")}</option>
           {PURPOSES.map((p) => (
-            <option key={p} value={p}>{adminMediaPurposeLabel(p)}</option>
+            <option key={p} value={p}>{purposeLabel(p)}</option>
           ))}
         </select>
         <select value={mime} onChange={(e) => setMime(e.target.value as typeof mime)} style={selectStyle}>
-          <option value="">Все форматы</option>
-          <option value="image">Изображения</option>
+          <option value="">{t("pages.adminMedia.allFormats")}</option>
+          <option value="image">{t("pages.adminMedia.formatImage")}</option>
           <option value="png">PNG</option>
           <option value="jpeg">JPEG</option>
           <option value="webp">WebP</option>
@@ -160,13 +171,13 @@ export function MediaManagerCard() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по имени…"
+            placeholder={t("pages.adminMedia.searchPlaceholder")}
             style={{ ...selectStyle, width: "100%", paddingLeft: 32 }}
           />
         </div>
         <select value={uploadPurpose} onChange={(e) => setUploadPurpose(e.target.value as AdminMediaPurpose)} style={selectStyle}>
           {PURPOSES.map((p) => (
-            <option key={p} value={p}>Загрузить как: {adminMediaPurposeLabel(p)}</option>
+            <option key={p} value={p}>{t("pages.adminMedia.uploadAs", { purpose: purposeLabel(p) })}</option>
           ))}
         </select>
         <button
@@ -188,7 +199,7 @@ export function MediaManagerCard() {
           }}
         >
           {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-          {uploading ? "Загрузка…" : "Загрузить файлы"}
+          {uploading ? t("pages.adminCommon.loading") : t("pages.adminMedia.uploadFiles")}
         </button>
         <input
           ref={fileRef}
@@ -211,7 +222,7 @@ export function MediaManagerCard() {
       <PhotoEditorDialog
         open={editingFile != null}
         src={editingFile}
-        title="Редактирование изображения"
+        title={t("pages.adminMedia.editImageTitle")}
         onCancel={() => {
           setEditingFile(null);
           if (fileRef.current) fileRef.current.value = "";
@@ -225,10 +236,10 @@ export function MediaManagerCard() {
       />
 
       {loading ? (
-        <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>
+        <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
       ) : filtered.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
-          Файлов пока нет. Загрузите PNG, SVG или фото через кнопку «Загрузить файлы».
+          {t("pages.adminMedia.emptyState")}
         </p>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
@@ -260,18 +271,18 @@ export function MediaManagerCard() {
                   {item.filename}
                 </div>
                 <div style={{ fontSize: 10, color: "var(--foreground-50)", marginTop: 2 }}>
-                  {adminMediaPurposeLabel(item.purpose)} · {item.mimeType.replace("image/", "").toUpperCase()}
+                  {purposeLabel(item.purpose)} · {item.mimeType.replace("image/", "").toUpperCase()}
                 </div>
                 {item.url && (
                   <button
                     type="button"
                     onClick={() => {
                       void navigator.clipboard.writeText(item.url!);
-                      toast.success("URL скопирован");
+                      toast.success(t("pages.adminMedia.urlCopied"));
                     }}
                     style={{ marginTop: 6, fontSize: 10, color: "var(--accent)" }}
                   >
-                    Копировать URL
+                    {t("pages.adminMedia.copyUrl")}
                   </button>
                 )}
               </div>
@@ -288,10 +299,10 @@ export function MediaManagerCard() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             style={{ ...selectStyle, height: 32, opacity: page <= 1 ? 0.5 : 1 }}
           >
-            Назад
+            {t("pages.adminMedia.back")}
           </button>
           <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>
-            {page} / {lastPage} · всего {total}
+            {t("pages.adminMedia.pagination", { page, lastPage, total })}
           </span>
           <button
             type="button"
@@ -299,7 +310,7 @@ export function MediaManagerCard() {
             onClick={() => setPage((p) => p + 1)}
             style={{ ...selectStyle, height: 32, opacity: page >= lastPage ? 0.5 : 1 }}
           >
-            Вперёд
+            {t("pages.adminMedia.forward")}
           </button>
         </div>
       )}
@@ -316,6 +327,8 @@ interface MediaPickerDialogProps {
 }
 
 export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSelect }: MediaPickerDialogProps) {
+  const { t } = useTranslation();
+  const purposeLabel = useMediaPurposeLabel();
   const [mime, setMime] = useState<"" | "svg" | "png" | "image">("");
   const [items, setItems] = useState<AdminMediaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -329,10 +342,10 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
     setLoading(true);
     fetchAdminMedia({ purpose, mime: mime || undefined, perPage: 100 })
       .then((res) => { if (alive) setItems(res.items); })
-      .catch(() => toast.error("Не удалось загрузить медиа"))
+      .catch(() => toast.error(t("pages.adminMedia.loadMediaFailed")))
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [open, purpose, mime]);
+  }, [open, purpose, mime, t]);
 
   if (!open) return null;
 
@@ -346,18 +359,18 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
       if (uploaded.length > 0) {
         setItems((prev) => [...uploaded, ...prev]);
         toast.success(
-          uploaded.length === 1 ? "Файл загружен" : `Загружено файлов: ${uploaded.length}`,
+          uploaded.length === 1 ? t("pages.adminMedia.fileUploadedShort") : t("pages.adminMedia.filesUploaded", { count: uploaded.length }),
         );
       }
       if (failed.length > 0) {
         toast.error(
           failed.length === 1
-            ? `${failed[0].filename}: ${failed[0].error}`
-            : `Не загружено: ${failed.length} из ${list.length}`,
+            ? t("pages.adminMedia.uploadOneFailed", { filename: failed[0].filename, error: failed[0].error })
+            : t("pages.adminMedia.uploadManyFailed", { failed: failed.length, total: list.length }),
         );
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось загрузить");
+      toast.error(e instanceof Error ? e.message : t("pages.adminMedia.uploadFailedShort"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -370,7 +383,7 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
       await onSelect(item);
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось выбрать файл");
+      toast.error(e instanceof Error ? e.message : t("pages.adminMedia.pickFailed"));
     } finally {
       setPicking(null);
     }
@@ -398,19 +411,19 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", gap: 12 }}>
           <div>
             <h4 style={{ fontSize: 16, fontWeight: 600, color: "var(--foreground)", margin: 0 }}>
-              {title ?? "Выбор из медиаменеджера"}
+              {title ?? t("pages.adminMedia.pickerDefaultTitle")}
             </h4>
             <p style={{ fontSize: 12, color: "var(--foreground-50)", margin: "4px 0 0" }}>
-              {adminMediaPurposeLabel(purpose)} · PNG, SVG, JPEG, WebP
+              {t("pages.adminMedia.pickerFormatsHint", { purpose: purposeLabel(purpose) })}
             </p>
           </div>
-          <button type="button" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, color: "var(--foreground-50)" }} aria-label="Закрыть">×</button>
+          <button type="button" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, color: "var(--foreground-50)" }} aria-label={t("pages.adminCommon.close")}>×</button>
         </div>
 
         <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", borderBottom: "1px solid var(--border)" }}>
           <select value={mime} onChange={(e) => setMime(e.target.value as typeof mime)} style={selectStyle}>
-            <option value="">Все форматы</option>
-            <option value="image">Изображения</option>
+            <option value="">{t("pages.adminMedia.allFormats")}</option>
+            <option value="image">{t("pages.adminMedia.formatImage")}</option>
             <option value="png">PNG</option>
             <option value="svg">SVG</option>
           </select>
@@ -432,7 +445,7 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
             }}
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
-            Загрузить файлы
+            {t("pages.adminMedia.uploadFiles")}
           </button>
           <input
             ref={fileRef}
@@ -449,10 +462,10 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
 
         <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
           {loading ? (
-            <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>
+            <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
           ) : items.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
-              Нет файлов. Загрузите PNG или SVG в медиаменеджер.
+              {t("pages.adminMedia.pickerEmpty")}
             </p>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 8 }}>
