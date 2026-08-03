@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin (Delivery, Moderation, Settings feature cards, etc.) | — | `adminCommon`, `adminUsers`, `adminAds`, `adminDesignSystem`, shell/dashboard/reviews/content/analytics/settings chrome | — | build pass | pending | pending | FIXED |
+| 42 | №34 | site-wide | i18n | P1 | partial | hardcoded RU in admin (Monetization, Categories, AuditLog, etc.) | — | P9: delivery, moderation, reports, feedback, settings feature cards + meta; prior: users/ads/design/reviews/content/analytics | — | build pass | pending | pending | FIXED |
 
 ---
 
@@ -153,7 +153,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | Full PHPUnit (187 tests) | 179 pass, **8 fail** — pre-existing (AuthFlow, ChatFrontendIntegration×2, Community×2, ChannelPostMedia, OAuthVerification, SellerCabinet); **not in QA matrix scope** |
 | Playwright `browser-qa.mjs` on VPS | skipped — `npx playwright install` not run on server |
 
-**Task 42 (i18n):** `FIXED` with caveat **admin partial** — см. [`backlog-prioritized.md`](./backlog-prioritized.md) P1.
+**Task 42 (i18n):** `FIXED` with caveat **admin partial** — P9 закрыл Delivery, Moderation, Reports, Feedback, Settings; остаются Monetization, Categories, AuditLog и др. ([`backlog-prioritized.md`](./backlog-prioritized.md) P1).
 
 **PHPUnit full suite:** **187/187 OK** (2026-08-03, commit `4e86e1b`).
 

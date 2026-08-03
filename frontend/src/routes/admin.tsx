@@ -1629,26 +1629,25 @@ function AdsSection() {
 }
 
 /* ============ DELIVERY ============ */
-const SHIPMENT_STATUS_META: Record<string, { label: string; variant: "default" | "success" | "warning" | "danger" | "info" }> = {
-  draft: { label: "Черновик", variant: "default" },
-  quoted: { label: "Рассчитано", variant: "info" },
-  awaiting_seller: { label: "Ждёт продавца", variant: "warning" },
-  creating: { label: "Создание", variant: "info" },
-  created: { label: "Создано", variant: "info" },
-  accepted: { label: "Принято", variant: "info" },
-  in_transit: { label: "В пути", variant: "info" },
-  at_pickup: { label: "В ПВЗ", variant: "warning" },
-  delivered: { label: "Доставлено", variant: "success" },
-  cancelled: { label: "Отменено", variant: "default" },
-  error: { label: "Ошибка", variant: "danger" },
-};
-
-const PROVIDER_LABELS: Record<string, string> = {
-  cdek: "СДЭК",
-  yandex: "Яндекс",
-};
-
 function DeliverySection() {
+  const { t } = useTranslation();
+  const shipmentStatusMeta = useMemo(() => ({
+    draft: { label: t("pages.adminDelivery.status.draft"), variant: "default" as const },
+    quoted: { label: t("pages.adminDelivery.status.quoted"), variant: "info" as const },
+    awaiting_seller: { label: t("pages.adminDelivery.status.awaiting_seller"), variant: "warning" as const },
+    creating: { label: t("pages.adminDelivery.status.creating"), variant: "info" as const },
+    created: { label: t("pages.adminDelivery.status.created"), variant: "info" as const },
+    accepted: { label: t("pages.adminDelivery.status.accepted"), variant: "info" as const },
+    in_transit: { label: t("pages.adminDelivery.status.in_transit"), variant: "info" as const },
+    at_pickup: { label: t("pages.adminDelivery.status.at_pickup"), variant: "warning" as const },
+    delivered: { label: t("pages.adminDelivery.status.delivered"), variant: "success" as const },
+    cancelled: { label: t("pages.adminDelivery.status.cancelled"), variant: "default" as const },
+    error: { label: t("pages.adminDelivery.status.error"), variant: "danger" as const },
+  }), [t]);
+  const providerLabels = useMemo(() => ({
+    cdek: t("pages.adminDelivery.providers.cdek"),
+    yandex: t("pages.adminDelivery.providers.yandex"),
+  }), [t]);
   const [stats, setStats] = useState<AdminDeliveryStats | null>(null);
   const [status, setStatus] = useState("all");
   const [provider, setProvider] = useState("all");
@@ -1662,19 +1661,19 @@ function DeliverySection() {
     let active = true;
     fetchAdminDeliveryStats()
       .then((d) => active && setStats(d))
-      .catch(() => active && toast.error("Не удалось загрузить статистику доставки"));
+      .catch(() => active && toast.error(t("pages.adminDelivery.loadStatsFailed")));
     return () => { active = false; };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     fetchAdminShipments({ status, provider })
       .then((list) => active && setRows(list))
-      .catch(() => active && toast.error("Не удалось загрузить отправления"))
+      .catch(() => active && toast.error(t("pages.adminDelivery.loadShipmentsFailed")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [status, provider]);
+  }, [status, provider, t]);
 
   const openRow = (row: AdminShipmentRow) => {
     setSelected(row);
@@ -1688,32 +1687,42 @@ function DeliverySection() {
       const updated = await updateAdminShipment(selected.uuid, { admin_note: noteDraft.trim() || null });
       setRows((list) => list.map((r) => (r.uuid === updated.uuid ? updated : r)));
       setSelected(updated);
-      toast.success("Заметка сохранена");
+      toast.success(t("pages.adminDelivery.noteSaved"));
     } catch {
-      toast.error("Не удалось сохранить заметку");
+      toast.error(t("pages.adminDelivery.noteSaveFailed"));
     } finally {
       setSavingNote(false);
     }
   };
 
-  const statCards = [
-    { v: String(stats?.shipmentsTotal ?? 0), l: "Отправлений", icon: Truck },
+  const statCards = useMemo(() => [
+    { v: String(stats?.shipmentsTotal ?? 0), l: t("pages.adminDelivery.statShipments"), icon: Truck },
     {
       v: `${Math.round((stats?.deliveryRevenueCents ?? 0) / 100).toLocaleString("ru")} ₽`,
-      l: "Сумма доставки",
+      l: t("pages.adminDelivery.statRevenue"),
       icon: DollarSign,
     },
-    { v: String(stats?.errorsLast7d ?? 0), l: "Ошибок за 7 дней", icon: AlertCircle, warn: (stats?.errorsLast7d ?? 0) > 0 },
+    { v: String(stats?.errorsLast7d ?? 0), l: t("pages.adminDelivery.statErrors"), icon: AlertCircle, warn: (stats?.errorsLast7d ?? 0) > 0 },
     {
-      v: stats?.avgDeliveryDays != null ? `${stats.avgDeliveryDays} дн.` : "—",
-      l: "Средний срок",
+      v: stats?.avgDeliveryDays != null ? `${stats.avgDeliveryDays} ${t("pages.adminDelivery.daysShort")}` : "—",
+      l: t("pages.adminDelivery.statAvgDays"),
       icon: BarChart3,
     },
-  ];
+  ], [stats, t]);
+
+  const tableHeaders = useMemo(() => [
+    t("pages.adminDelivery.colListing"),
+    t("pages.adminDelivery.colProvider"),
+    t("pages.adminDelivery.colStatus"),
+    t("pages.adminDelivery.colTrack"),
+    t("pages.adminDelivery.colCost"),
+    t("pages.adminDelivery.colCreated"),
+    "",
+  ], [t]);
 
   return (
     <div>
-      <H>Доставки (СДЭК / Яндекс)</H>
+      <H>{t("pages.adminDelivery.title")}</H>
 
       <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: "12px", marginBottom: "20px" }}>
         {statCards.map((s, i) => (
@@ -1735,10 +1744,10 @@ function DeliverySection() {
 
       {stats && Object.keys(stats.shipmentsByProvider).length > 0 && (
         <div style={{ ...card, padding: "16px", marginBottom: "16px", fontSize: "13px", color: "var(--foreground-70)" }}>
-          По провайдерам:{" "}
+          {t("pages.adminDelivery.byProviders")}{" "}
           {Object.entries(stats.shipmentsByProvider).map(([p, n]) => (
             <span key={p} style={{ marginRight: "12px" }}>
-              <strong style={{ color: "var(--foreground)" }}>{PROVIDER_LABELS[p] ?? p}</strong>: {n}
+              <strong style={{ color: "var(--foreground)" }}>{providerLabels[p as keyof typeof providerLabels] ?? p}</strong>: {n}
             </span>
           ))}
         </div>
@@ -1746,15 +1755,15 @@ function DeliverySection() {
 
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
-          <option value="all">Все статусы</option>
-          {Object.entries(SHIPMENT_STATUS_META).map(([k, m]) => (
+          <option value="all">{t("pages.adminCommon.allStatuses")}</option>
+          {Object.entries(shipmentStatusMeta).map(([k, m]) => (
             <option key={k} value={k}>{m.label}</option>
           ))}
         </select>
         <select value={provider} onChange={(e) => setProvider(e.target.value)} className="outline-none" style={{ ...inputStyle, padding: "0 12px" }}>
-          <option value="all">Все провайдеры</option>
-          <option value="cdek">СДЭК</option>
-          <option value="yandex">Яндекс</option>
+          <option value="all">{t("pages.adminDelivery.allProviders")}</option>
+          <option value="cdek">{providerLabels.cdek}</option>
+          <option value="yandex">{providerLabels.yandex}</option>
         </select>
       </div>
 
@@ -1763,27 +1772,27 @@ function DeliverySection() {
           <table className="w-full" style={{ fontSize: "13px", minWidth: "860px" }}>
             <thead>
               <tr style={{ background: "var(--background-surface)" }}>
-                {["Объявление", "Провайдер", "Статус", "Трек", "Стоимость", "Создано", ""].map((h) => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
+                {tableHeaders.map((h) => (
+                  <th key={h || "actions"} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)", textTransform: "uppercase", letterSpacing: "1px" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>Загрузка…</td></tr>
+                <tr><td colSpan={7} style={{ padding: "16px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</td></tr>
               ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)" }}>
                     <Truck size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
-                    Отправлений пока нет
+                    {t("pages.adminDelivery.empty")}
                   </td>
                 </tr>
               ) : rows.map((row) => {
-                const meta = SHIPMENT_STATUS_META[row.status] ?? { label: row.status, variant: "default" as const };
+                const meta = shipmentStatusMeta[row.status] ?? { label: row.status, variant: "default" as const };
                 return (
                   <tr key={row.uuid} style={{ borderTop: "1px solid var(--border)" }}>
                     <td style={{ padding: "10px 16px", color: "var(--foreground)", fontWeight: 500, maxWidth: "220px" }}>{row.listingTitle}</td>
-                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{PROVIDER_LABELS[row.provider] ?? row.provider}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{providerLabels[row.provider as keyof typeof providerLabels] ?? row.provider}</td>
                     <td style={{ padding: "10px 16px" }}>
                       <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>
                     </td>
@@ -1798,7 +1807,7 @@ function DeliverySection() {
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <button type="button" onClick={() => openRow(row)} style={{ ...primaryBtn, height: "32px", fontSize: "12px" }}>
-                        Детали
+                        {t("pages.adminDelivery.details")}
                       </button>
                     </td>
                   </tr>
@@ -1823,14 +1832,14 @@ function DeliverySection() {
               <h3 style={{ fontWeight: 700, fontSize: "16px", color: "var(--foreground)" }}>{selected.listingTitle}</h3>
               <p style={{ marginTop: "4px", fontSize: "12px", color: "var(--foreground-50)" }}>UUID: {selected.uuid}</p>
             </div>
-            <button type="button" onClick={() => setSelected(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>Закрыть</button>
+            <button type="button" onClick={() => setSelected(null)} style={{ ...inputStyle, height: "32px", padding: "0 12px" }}>{t("pages.adminCommon.close")}</button>
           </div>
 
           <div className="grid md:grid-cols-2" style={{ gap: "12px", marginTop: "16px", fontSize: "13px" }}>
-            <div><span style={{ color: "var(--foreground-50)" }}>Провайдер:</span> {PROVIDER_LABELS[selected.provider] ?? selected.provider}</div>
-            <div><span style={{ color: "var(--foreground-50)" }}>Статус:</span> {SHIPMENT_STATUS_META[selected.status]?.label ?? selected.status}</div>
-            <div><span style={{ color: "var(--foreground-50)" }}>Трек:</span> {selected.trackingNumber ?? "—"}</div>
-            <div><span style={{ color: "var(--foreground-50)" }}>External ID:</span> {selected.externalId ?? "—"}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>{t("pages.adminDelivery.detailProvider")}</span> {providerLabels[selected.provider as keyof typeof providerLabels] ?? selected.provider}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>{t("pages.adminDelivery.detailStatus")}</span> {shipmentStatusMeta[selected.status]?.label ?? selected.status}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>{t("pages.adminDelivery.detailTrack")}</span> {selected.trackingNumber ?? "—"}</div>
+            <div><span style={{ color: "var(--foreground-50)" }}>{t("pages.adminDelivery.detailExternalId")}</span> {selected.externalId ?? "—"}</div>
           </div>
 
           {selected.errorMessage && (
@@ -1841,7 +1850,7 @@ function DeliverySection() {
 
           <div style={{ marginTop: "16px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--foreground-50)", marginBottom: "6px" }}>
-              Заметка администратора
+              {t("pages.adminDelivery.adminNote")}
             </label>
             <textarea
               value={noteDraft}
@@ -1854,10 +1863,10 @@ function DeliverySection() {
                 minHeight: "80px",
                 padding: "10px 14px",
               }}
-              placeholder="Внутренняя заметка по отправлению…"
+              placeholder={t("pages.adminDelivery.adminNotePlaceholder")}
             />
             <button type="button" disabled={savingNote} onClick={() => void saveNote()} style={{ ...primaryBtn, marginTop: "8px" }}>
-              {savingNote ? "Сохранение…" : "Сохранить заметку"}
+              {savingNote ? t("pages.adminDelivery.savingNote") : t("pages.adminDelivery.saveNote")}
             </button>
           </div>
         </div>
@@ -1868,6 +1877,7 @@ function DeliverySection() {
 
 /* ============ MODERATION ============ */
 function ModerationSection() {
+  const { t } = useTranslation();
   const [queue, setQueue] = useState<ModerationItem[]>([]);
 
   useEffect(() => {
@@ -1885,20 +1895,20 @@ function ModerationSection() {
       if (ok) await approveModeration(item.type, item.targetId);
       else await rejectModeration(item.type, item.targetId);
       setQueue((q) => q.filter((x) => x.id !== item.id));
-      ok ? toast.success("Одобрено") : toast.error("Отклонено");
+      ok ? toast.success(t("pages.adminModeration.approved")) : toast.error(t("pages.adminModeration.rejected"));
     } catch {
-      toast.error("Не удалось выполнить действие");
+      toast.error(t("pages.adminModeration.actionFailed"));
     }
   };
 
   return (
     <div>
-      <H>Модерация</H>
+      <H>{t("pages.adminModeration.title")}</H>
       <ReportsSection />
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px", marginTop: "24px" }}>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Публикации на модерации ({postQueue.length})
+            {t("pages.adminModeration.postsTitle", { count: postQueue.length })}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
@@ -1913,12 +1923,12 @@ function ModerationSection() {
                 />
               ))}
             </AnimatePresence>
-            {postQueue.length === 0 && <EmptyQueue label="Нет постов на модерации" />}
+            {postQueue.length === 0 && <EmptyQueue label={t("pages.adminModeration.emptyPosts")} />}
           </div>
         </div>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Публикации каналов на модерации ({channelPostQueue.length})
+            {t("pages.adminModeration.channelPostsTitle", { count: channelPostQueue.length })}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
@@ -1933,12 +1943,12 @@ function ModerationSection() {
                 />
               ))}
             </AnimatePresence>
-            {channelPostQueue.length === 0 && <EmptyQueue label="Нет постов каналов на модерации" />}
+            {channelPostQueue.length === 0 && <EmptyQueue label={t("pages.adminModeration.emptyChannelPosts")} />}
           </div>
         </div>
         <div>
           <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            Сообщества на модерации ({communityQueue.length})
+            {t("pages.adminModeration.communitiesTitle", { count: communityQueue.length })}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <AnimatePresence>
@@ -1953,7 +1963,7 @@ function ModerationSection() {
                 />
               ))}
             </AnimatePresence>
-            {communityQueue.length === 0 && <EmptyQueue label="Нет сообществ на модерации" />}
+            {communityQueue.length === 0 && <EmptyQueue label={t("pages.adminModeration.emptyCommunities")} />}
           </div>
         </div>
       </div>
@@ -1970,34 +1980,58 @@ function EmptyQueue({ label }: { label: string }) {
   );
 }
 
-const REPORT_FILTERS: { id: ReportStatus | "all"; label: string }[] = [
-  { id: "all", label: "Все" },
-  { id: "pending", label: "Новые" },
-  { id: "reviewing", label: "На рассмотрении" },
-  { id: "resolved", label: "Решено" },
-  { id: "rejected", label: "Отклонено" },
-  { id: "dismissed", label: "Без действий" },
-];
+const REPORT_FILTER_IDS = ["all", "pending", "reviewing", "resolved", "rejected", "dismissed"] as const;
+type ReportFilterId = (typeof REPORT_FILTER_IDS)[number];
 
-const REPORT_STATUS_META: Record<ReportStatus, { label: string; bg: string; color: string }> = {
-  pending: { label: "Новая", bg: "var(--accent-soft)", color: "var(--accent)" },
-  reviewing: { label: "На рассмотрении", bg: "var(--warning-soft)", color: "var(--warning)" },
-  resolved: { label: "Решено", bg: "color-mix(in oklab, var(--success) 18%, transparent)", color: "var(--success)" },
-  rejected: { label: "Отклонено", bg: "color-mix(in oklab, var(--error) 15%, transparent)", color: "var(--error)" },
-  dismissed: { label: "Без действий", bg: "var(--background-subtle)", color: "var(--foreground-50)" },
-};
+const REPORT_STATUS_IDS: ReportStatus[] = ["pending", "reviewing", "resolved", "rejected", "dismissed"];
 
-const REPORT_TARGET_LABELS: Record<string, string> = {
-  user: "Пользователь",
-  message: "Сообщение",
-  conversation: "Чат",
-  post: "Публикация",
-  listing: "Объявление",
-  comment: "Комментарий",
-  video: "Обзор",
-};
+const REPORT_TARGET_IDS = ["user", "message", "conversation", "post", "listing", "comment", "video"] as const;
 
 function ReportsSection() {
+  const { t } = useTranslation();
+  const reportFilters = useMemo(
+    () => REPORT_FILTER_IDS.map((id) => ({ id, label: t(`pages.adminModeration.filters.${id}`) })),
+    [t],
+  );
+  const reportStatusMeta = useMemo(
+    () =>
+      Object.fromEntries(
+        REPORT_STATUS_IDS.map((id) => [
+          id,
+          {
+            label: t(`pages.adminModeration.reportStatus.${id}`),
+            bg:
+              id === "pending"
+                ? "var(--accent-soft)"
+                : id === "reviewing"
+                  ? "var(--warning-soft)"
+                  : id === "resolved"
+                    ? "color-mix(in oklab, var(--success) 18%, transparent)"
+                    : id === "rejected"
+                      ? "color-mix(in oklab, var(--error) 15%, transparent)"
+                      : "var(--background-subtle)",
+            color:
+              id === "pending"
+                ? "var(--accent)"
+                : id === "reviewing"
+                  ? "var(--warning)"
+                  : id === "resolved"
+                    ? "var(--success)"
+                    : id === "rejected"
+                      ? "var(--error)"
+                      : "var(--foreground-50)",
+          },
+        ]),
+      ) as Record<ReportStatus, { label: string; bg: string; color: string }>,
+    [t],
+  );
+  const reportTargetLabels = useMemo(
+    () =>
+      Object.fromEntries(
+        REPORT_TARGET_IDS.map((id) => [id, t(`pages.adminModeration.reportTargets.${id}`)]),
+      ) as Record<string, string>,
+    [t],
+  );
   const [filter, setFilter] = useState<ReportStatus | "all">("pending");
   const [items, setItems] = useState<AdminReportRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2007,7 +2041,7 @@ function ReportsSection() {
     setLoading(true);
     fetchAdminReports(filter === "all" ? undefined : filter)
       .then((rows) => active && setItems(rows))
-      .catch(() => active && toast.error("Не удалось загрузить жалобы"))
+      .catch(() => active && toast.error(t("pages.adminModeration.reportsLoadFailed")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [filter]);
@@ -2017,20 +2051,20 @@ function ReportsSection() {
     setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status } : x)));
     try {
       await updateAdminReportStatus(row.id, status);
-      toast.success("Статус жалобы обновлён");
+      toast.success(t("pages.adminModeration.reportStatusUpdated"));
     } catch {
       setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
-      toast.error("Не удалось обновить статус");
+      toast.error(t("pages.adminModeration.reportStatusFailed"));
     }
   };
 
   return (
     <div>
       <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-        Жалобы пользователей
+        {t("pages.adminModeration.reportsTitle")}
       </h4>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "12px" }}>
-        {REPORT_FILTERS.map((f) => (
+        {reportFilters.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
@@ -2052,16 +2086,16 @@ function ReportsSection() {
 
       {loading ? (
         <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
-          Загрузка…
+          {t("pages.adminCommon.loading")}
         </div>
       ) : items.length === 0 ? (
-        <EmptyQueue label="Жалоб нет" />
+        <EmptyQueue label={t("pages.adminModeration.noReports")} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {items.map((row) => {
-            const meta = REPORT_STATUS_META[row.status];
+            const meta = reportStatusMeta[row.status];
             const reasonLabel = REPORT_REASON_LABELS[row.reason as ReportReason] ?? row.reason;
-            const targetLabel = REPORT_TARGET_LABELS[row.targetType] ?? row.targetType;
+            const targetLabel = reportTargetLabels[row.targetType] ?? row.targetType;
             return (
               <div key={row.id} style={{ ...card, padding: "16px" }}>
                 <div className="flex items-center justify-between flex-wrap gap-[8px]">
@@ -2069,7 +2103,7 @@ function ReportsSection() {
                     <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--foreground)" }}>
                       {targetLabel}
                       {row.targetUuid && row.targetType === "user" ? (
-                        <> · <Link to="/user/$id" params={{ id: row.targetUuid }} style={{ color: "var(--accent)" }}>открыть профиль</Link></>
+                        <> · <Link to="/user/$id" params={{ id: row.targetUuid }} style={{ color: "var(--accent)" }}>{t("pages.adminModeration.openProfile")}</Link></>
                       ) : null}
                     </span>
                     <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>
@@ -2090,27 +2124,30 @@ function ReportsSection() {
                 )}
                 <div className="flex items-center justify-between flex-wrap gap-[8px]" style={{ marginTop: "10px" }}>
                   <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
-                    От: {row.reporterName}{row.reporterEmail ? ` (${row.reporterEmail})` : ""}
+                    {t("pages.adminModeration.reportFrom", {
+                      name: row.reporterName,
+                      email: row.reporterEmail ? ` (${row.reporterEmail})` : "",
+                    })}
                   </span>
                   <div className="flex flex-wrap gap-[8px]">
                     {row.status === "pending" && (
                       <button onClick={() => setStatus(row, "reviewing")} style={feedbackBtn("var(--warning-soft)", "var(--warning)")}>
-                        Взять в работу
+                        {t("pages.adminModeration.takeReview")}
                       </button>
                     )}
                     {row.status !== "resolved" && (
                       <button onClick={() => setStatus(row, "resolved")} style={feedbackBtn("var(--success)", "#fff")}>
-                        Решено
+                        {t("pages.adminModeration.markResolved")}
                       </button>
                     )}
                     {row.status !== "dismissed" && (
                       <button onClick={() => setStatus(row, "dismissed")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
-                        Без действий
+                        {t("pages.adminModeration.markDismissed")}
                       </button>
                     )}
                     {row.status !== "rejected" && (
                       <button onClick={() => setStatus(row, "rejected")} style={feedbackBtn("var(--error)", "#fff")}>
-                        Отклонить
+                        {t("pages.adminModeration.markRejected")}
                       </button>
                     )}
                   </div>
@@ -2125,6 +2162,7 @@ function ReportsSection() {
 }
 
 function ModerationCard({ title, author, category, onApprove, onReject }: { title: string; author: string; category: string; onApprove: () => void; onReject: () => void }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -2141,29 +2179,43 @@ function ModerationCard({ title, author, category, onApprove, onReject }: { titl
         </span>
       </div>
       <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
-        <button onClick={onApprove} style={{ height: "36px", padding: "0 16px", background: "var(--success)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>Одобрить</button>
-        <button onClick={onReject} style={{ height: "36px", padding: "0 16px", background: "var(--error)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>Отклонить</button>
-        <button style={{ height: "36px", padding: "0 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--foreground-70)", fontWeight: 500, fontSize: "12px", borderRadius: "var(--r-button)" }} onClick={() => toast.info("Открыть детали")}>Открыть</button>
+        <button onClick={onApprove} style={{ height: "36px", padding: "0 16px", background: "var(--success)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>{t("pages.adminModeration.cardApprove")}</button>
+        <button onClick={onReject} style={{ height: "36px", padding: "0 16px", background: "var(--error)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>{t("pages.adminModeration.cardReject")}</button>
+        <button style={{ height: "36px", padding: "0 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--foreground-70)", fontWeight: 500, fontSize: "12px", borderRadius: "var(--r-button)" }} onClick={() => toast.info(t("pages.adminModeration.cardOpenToast"))}>{t("pages.adminModeration.cardOpen")}</button>
       </div>
     </motion.div>
   );
 }
 
 /* ============ FEEDBACK (Книга жалоб) ============ */
-const FEEDBACK_FILTERS: { id: FeedbackStatus | "all"; label: string }[] = [
-  { id: "all", label: "Все" },
-  { id: "new", label: "Новые" },
-  { id: "read", label: "Прочитано" },
-  { id: "resolved", label: "Решено" },
-];
-
-const FEEDBACK_STATUS_META: Record<FeedbackStatus, { label: string; bg: string; color: string }> = {
-  new: { label: "Новое", bg: "var(--accent-soft)", color: "var(--accent)" },
-  read: { label: "Прочитано", bg: "var(--background-subtle)", color: "var(--foreground-70)" },
-  resolved: { label: "Решено", bg: "color-mix(in oklab, var(--success) 18%, transparent)", color: "var(--success)" },
-};
+const FEEDBACK_FILTER_IDS = ["all", "new", "read", "resolved"] as const;
+const FEEDBACK_STATUS_IDS: FeedbackStatus[] = ["new", "read", "resolved"];
 
 function FeedbackSection() {
+  const { t } = useTranslation();
+  const feedbackFilters = useMemo(
+    () => FEEDBACK_FILTER_IDS.map((id) => ({ id, label: t(`pages.adminFeedback.filters.${id}`) })),
+    [t],
+  );
+  const feedbackStatusMeta = useMemo(
+    () =>
+      Object.fromEntries(
+        FEEDBACK_STATUS_IDS.map((id) => [
+          id,
+          {
+            label: t(`pages.adminFeedback.status.${id}`),
+            bg:
+              id === "new"
+                ? "var(--accent-soft)"
+                : id === "read"
+                  ? "var(--background-subtle)"
+                  : "color-mix(in oklab, var(--success) 18%, transparent)",
+            color: id === "new" ? "var(--accent)" : id === "read" ? "var(--foreground-70)" : "var(--success)",
+          },
+        ]),
+      ) as Record<FeedbackStatus, { label: string; bg: string; color: string }>,
+    [t],
+  );
   const [filter, setFilter] = useState<FeedbackStatus | "all">("all");
   const [items, setItems] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2173,7 +2225,7 @@ function FeedbackSection() {
     setLoading(true);
     fetchAdminFeedback(filter === "all" ? undefined : filter)
       .then((rows) => active && setItems(rows))
-      .catch(() => active && toast.error("Не удалось загрузить обращения"))
+      .catch(() => active && toast.error(t("pages.adminFeedback.loadFailed")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [filter]);
@@ -2185,15 +2237,15 @@ function FeedbackSection() {
       await updateAdminFeedbackStatus(row.id, status);
     } catch {
       setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
-      toast.error("Не удалось обновить статус");
+      toast.error(t("pages.adminFeedback.statusFailed"));
     }
   };
 
   return (
     <div>
-      <H>Книга замечаний и предложений</H>
+      <H>{t("pages.adminFeedback.title")}</H>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
-        {FEEDBACK_FILTERS.map((f) => (
+        {feedbackFilters.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
@@ -2215,23 +2267,23 @@ function FeedbackSection() {
 
       {loading ? (
         <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
-          Загрузка…
+          {t("pages.adminCommon.loading")}
         </div>
       ) : items.length === 0 ? (
         <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
           <Inbox size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
-          Обращений пока нет
+          {t("pages.adminFeedback.empty")}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {items.map((row) => {
-            const meta = FEEDBACK_STATUS_META[row.status];
+            const meta = feedbackStatusMeta[row.status];
             return (
               <div key={row.id} style={{ ...card, padding: "16px" }}>
                 <div className="flex items-center justify-between flex-wrap gap-[8px]">
                   <div className="flex items-center gap-[8px]">
                     <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--foreground)" }}>
-                      {row.subject || "Без темы"}
+                      {row.subject || t("pages.adminFeedback.noSubject")}
                     </span>
                     <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>
                       {meta.label}
@@ -2251,17 +2303,17 @@ function FeedbackSection() {
                   <div className="flex gap-[8px]">
                     {row.status !== "read" && (
                       <button onClick={() => setStatus(row, "read")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
-                        Прочитано
+                        {t("pages.adminFeedback.markRead")}
                       </button>
                     )}
                     {row.status !== "resolved" && (
                       <button onClick={() => setStatus(row, "resolved")} style={feedbackBtn("var(--success)", "#fff")}>
-                        Решено
+                        {t("pages.adminFeedback.markResolved")}
                       </button>
                     )}
                     {row.status !== "new" && (
                       <button onClick={() => setStatus(row, "new")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
-                        В новые
+                        {t("pages.adminFeedback.backToNew")}
                       </button>
                     )}
                   </div>
@@ -3228,33 +3280,56 @@ function ReviewsSection() {
    raw JSON — every known key gets a labeled toggle/input; unknown keys fall
    back by value shape (boolean → тумблер, string/number → инпут, plain
    object → labeled per-field inputs). */
-const SETTING_META: Record<string, { label: string; hint?: string; hidden?: boolean; fieldLabels?: Record<string, string> }> = {
-  "feature.communities_enabled": {
-    label: "Показывать раздел «Сообщества» всем пользователям",
-    hint: "Единственный переключатель раздела — управляется карточкой выше, не localStorage",
-    hidden: true,
-  },
-  // Managed by the dedicated cards above — hidden here to avoid duplicates.
-  "feature.market_enabled": { label: "Кнопка «Маркет»", hidden: true },
-  "feature.escrow_enabled": { label: "Бейдж «Безопасная сделка»", hidden: true },
-  "feature.feed_auto_publish": { label: "Авто-публикация ленты", hidden: true },
-  "feature.listing_payment_enabled": { label: "Платное размещение объявлений", hidden: true },
-  // Icon slots are managed visually from the «Дизайн» section.
-  icon_overrides: { label: "Иконки", hidden: true },
-  "footer.contacts": { label: "Контакты футера", hidden: true },
-  site_name: { label: "Название сайта", fieldLabels: { ru: "Название (рус.)", en: "Название (англ.)" } },
-  first_hundred_stats: { label: "Счётчик «Первая сотня»", fieldLabels: { taken: "Занято мест", total: "Всего мест" } },
-  moderation_auto_publish: { label: "Автопубликация объявлений", hint: "Публиковать объявления сразу, без ручной модерации" },
-};
-
-const SETTING_GROUP_LABELS: Record<string, string> = {
-  feature: "Функции",
-  general: "Общие",
-  marketing: "Маркетинг",
-  moderation: "Модерация",
-  design: "Дизайн",
-  footer: "Футер",
-};
+function useSettingMeta() {
+  const { t } = useTranslation();
+  return useMemo(
+    () =>
+      ({
+        "feature.communities_enabled": {
+          label: t("pages.adminSettings.settingMeta.feature_communities_enabled.label"),
+          hint: t("pages.adminSettings.settingMeta.feature_communities_enabled.hint"),
+          hidden: true,
+        },
+        "feature.market_enabled": {
+          label: t("pages.adminSettings.settingMeta.feature_market_enabled.label"),
+          hidden: true,
+        },
+        "feature.escrow_enabled": {
+          label: t("pages.adminSettings.settingMeta.feature_escrow_enabled.label"),
+          hidden: true,
+        },
+        "feature.feed_auto_publish": {
+          label: t("pages.adminSettings.settingMeta.feature_feed_auto_publish.label"),
+          hidden: true,
+        },
+        "feature.listing_payment_enabled": {
+          label: t("pages.adminSettings.settingMeta.feature_listing_payment_enabled.label"),
+          hidden: true,
+        },
+        icon_overrides: { label: t("pages.adminSettings.settingMeta.icon_overrides.label"), hidden: true },
+        "footer.contacts": { label: t("pages.adminSettings.settingMeta.footer_contacts.label"), hidden: true },
+        site_name: {
+          label: t("pages.adminSettings.settingMeta.site_name.label"),
+          fieldLabels: {
+            ru: t("pages.adminSettings.settingMeta.site_name.fields.ru"),
+            en: t("pages.adminSettings.settingMeta.site_name.fields.en"),
+          },
+        },
+        first_hundred_stats: {
+          label: t("pages.adminSettings.settingMeta.first_hundred_stats.label"),
+          fieldLabels: {
+            taken: t("pages.adminSettings.settingMeta.first_hundred_stats.fields.taken"),
+            total: t("pages.adminSettings.settingMeta.first_hundred_stats.fields.total"),
+          },
+        },
+        moderation_auto_publish: {
+          label: t("pages.adminSettings.settingMeta.moderation_auto_publish.label"),
+          hint: t("pages.adminSettings.settingMeta.moderation_auto_publish.hint"),
+        },
+      }) satisfies Record<string, { label: string; hint?: string; hidden?: boolean; fieldLabels?: Record<string, string> }>,
+    [t],
+  );
+}
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -3267,6 +3342,7 @@ function isEnabledShape(v: unknown): v is { enabled: boolean } {
 
 function SettingsSection() {
   const { t } = useTranslation();
+  const SETTING_META = useSettingMeta();
   const [settings, setSettings] = useState<AdminSetting[]>([]);
   const [drafts, setDrafts] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
@@ -3326,7 +3402,7 @@ function SettingsSection() {
       map.set(s.group, arr);
     }
     return Array.from(map.entries()).filter(([, rows]) => rows.length > 0);
-  }, [settings]);
+  }, [settings, SETTING_META]);
 
   const inputStyle: CSSProperties = {
     height: "40px",
@@ -3480,7 +3556,7 @@ function SettingsSection() {
 
   const toggleFeedAutoPublish = async (checked: boolean) => {
     if (isDemoMode()) {
-      toast("В демо-режиме настройка не сохраняется на сервере");
+      toast(t("pages.adminSettings.demoModeToast"));
       return;
     }
     setSavingFeedAutoPublish(true);
@@ -3492,9 +3568,9 @@ function SettingsSection() {
         const rest = prev.filter((s) => s.key !== "feature.feed_auto_publish");
         return updated ? [...rest, updated] : rest;
       });
-      toast.success(checked ? "Лента публикуется сразу, без модерации" : "Посты ленты уходят в модерацию");
+      toast.success(checked ? t("pages.adminSettings.featureCards.feedAutoPublish.enabled") : t("pages.adminSettings.featureCards.feedAutoPublish.disabled"));
     } catch {
-      toast.error("Не удалось сохранить настройку");
+      toast.error(t("pages.adminSettings.saveSettingFailed"));
     } finally {
       setSavingFeedAutoPublish(false);
     }
@@ -3502,7 +3578,7 @@ function SettingsSection() {
 
   const toggleCommunities = async (checked: boolean) => {
     if (isDemoMode()) {
-      toast("В демо-режиме настройка не сохраняется на сервере");
+      toast(t("pages.adminSettings.demoModeToast"));
       return;
     }
     setSavingCommunities(true);
@@ -3515,9 +3591,9 @@ function SettingsSection() {
         return updated ? [...rest, updated] : rest;
       });
       await loadFeatureFlagsFromServer();
-      toast.success(checked ? "Раздел «Сообщества» включён для всех" : "Раздел «Сообщества» отключён для всех");
+      toast.success(checked ? t("pages.adminSettings.featureCards.communities.enabled") : t("pages.adminSettings.featureCards.communities.disabled"));
     } catch {
-      toast.error("Не удалось сохранить настройку");
+      toast.error(t("pages.adminSettings.saveSettingFailed"));
     } finally {
       setSavingCommunities(false);
     }
@@ -3526,16 +3602,16 @@ function SettingsSection() {
   const toggleMarket = async (checked: boolean) => {
     if (isDemoMode()) {
       setFeatureFlag("marketEnabled", checked);
-      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      toast(t("pages.adminSettings.demoModeFlagToast"));
       return;
     }
     setSavingMarket(true);
     try {
       await updateAdminSettings([{ key: "feature.market_enabled", value: { enabled: checked }, group: "feature" }]);
       await loadFeatureFlagsFromServer();
-      toast.success(checked ? "Кнопка «Маркет» включена для всех" : "Кнопка «Маркет» отключена для всех");
+      toast.success(checked ? t("pages.adminSettings.featureCards.market.enabled") : t("pages.adminSettings.featureCards.market.disabled"));
     } catch {
-      toast.error("Не удалось сохранить настройку");
+      toast.error(t("pages.adminSettings.saveSettingFailed"));
     } finally {
       setSavingMarket(false);
     }
@@ -3544,16 +3620,16 @@ function SettingsSection() {
   const toggleEscrow = async (checked: boolean) => {
     if (isDemoMode()) {
       setFeatureFlag("escrowEnabled", checked);
-      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      toast(t("pages.adminSettings.demoModeFlagToast"));
       return;
     }
     setSavingEscrow(true);
     try {
       await updateAdminSettings([{ key: "feature.escrow_enabled", value: { enabled: checked }, group: "feature" }]);
       await loadFeatureFlagsFromServer();
-      toast.success(checked ? "Бейдж «Безопасная сделка» включён для всех" : "Бейдж «Безопасная сделка» отключён для всех");
+      toast.success(checked ? t("pages.adminSettings.featureCards.escrow.enabled") : t("pages.adminSettings.featureCards.escrow.disabled"));
     } catch {
-      toast.error("Не удалось сохранить настройку");
+      toast.error(t("pages.adminSettings.saveSettingFailed"));
     } finally {
       setSavingEscrow(false);
     }
@@ -3562,16 +3638,16 @@ function SettingsSection() {
   const toggleListingPayment = async (checked: boolean) => {
     if (isDemoMode()) {
       setFeatureFlag("listingPaymentEnabled", checked);
-      toast("В демо-режиме флаг сохраняется только локально, без реального сервера");
+      toast(t("pages.adminSettings.demoModeFlagToast"));
       return;
     }
     setSavingListingPayment(true);
     try {
       await updateAdminSettings([{ key: "feature.listing_payment_enabled", value: { enabled: checked }, group: "feature" }]);
       await loadFeatureFlagsFromServer();
-      toast.success(checked ? "Платное размещение объявлений включено" : "Объявления публикуются бесплатно");
+      toast.success(checked ? t("pages.adminSettings.featureCards.listingPayment.enabled") : t("pages.adminSettings.featureCards.listingPayment.disabled"));
     } catch {
-      toast.error("Не удалось сохранить настройку");
+      toast.error(t("pages.adminSettings.saveSettingFailed"));
     } finally {
       setSavingListingPayment(false);
     }
@@ -3584,10 +3660,10 @@ function SettingsSection() {
       {/* Client-only feature flags — reviews preview for this browser only. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Feature flags (демо)
+          {t("pages.adminSettings.featureCards.demoFlags.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Локальные флаги только для этого браузера. Раздел «Сообщества» и другие публичные переключатели ниже сохраняются на сервере и действуют для всех пользователей.
+          {t("pages.adminSettings.featureCards.demoFlags.subtitle")}
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
           <input
@@ -3596,17 +3672,17 @@ function SettingsSection() {
             onChange={(e) => setFeatureFlag("reviewsEnabled", e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Обзоры»</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.demoFlags.reviews")}</span>
         </label>
       </div>
 
       {/* Server-persisted (SystemSetting: feature.communities_enabled). */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Раздел «Сообщества»
+          {t("pages.adminSettings.featureCards.communities.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Единственная настройка видимости раздела. Сохраняется на сервере и сразу включает или скрывает пункт «Сообщества» в меню для всех пользователей и устройств.
+          {t("pages.adminSettings.featureCards.communities.subtitle")}
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingCommunities ? 0.6 : 1 }}>
           <input
@@ -3616,7 +3692,7 @@ function SettingsSection() {
             onChange={(e) => void toggleCommunities(e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать раздел «Сообщества» всем пользователям</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.communities.toggle")}</span>
         </label>
       </div>
 
@@ -3625,10 +3701,10 @@ function SettingsSection() {
           actually changes what every visitor sees, not just this browser. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Кнопка «Маркет»
+          {t("pages.adminSettings.featureCards.market.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Сохраняется на сервере — включает/выключает кнопку для всех пользователей сразу, без деплоя фронта.
+          {t("pages.adminSettings.featureCards.market.subtitle")}
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingMarket ? 0.6 : 1 }}>
           <input
@@ -3638,7 +3714,7 @@ function SettingsSection() {
             onChange={(e) => void toggleMarket(e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать кнопку «Маркет»</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.market.toggle")}</span>
         </label>
       </div>
 
@@ -3647,10 +3723,10 @@ function SettingsSection() {
           backend, so the escrow badge never promises an unimplemented feature. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Бейдж «Безопасная сделка»
+          {t("pages.adminSettings.featureCards.escrow.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Сохраняется на сервере — показывает бейдж «Безопасная сделка / эскроу» на объявлениях для всех сразу, без деплоя. Включать только когда ЮKassa Безопасная сделка реально подключена на бэке.
+          {t("pages.adminSettings.featureCards.escrow.subtitle")}
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingEscrow ? 0.6 : 1 }}>
           <input
@@ -3660,7 +3736,7 @@ function SettingsSection() {
             onChange={(e) => void toggleEscrow(e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Показывать бейдж «Безопасная сделка»</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.escrow.toggle")}</span>
         </label>
       </div>
 
@@ -3668,10 +3744,10 @@ function SettingsSection() {
           by default — ads publish for free until billing is wired in the wizard. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Платное размещение объявлений
+          {t("pages.adminSettings.featureCards.listingPayment.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Сохраняется на сервере. Включено — перед публикацией объявления требуется оплата размещения (или бесплатная квота по подписке / промокод).
+          {t("pages.adminSettings.featureCards.listingPayment.subtitle")}
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingListingPayment ? 0.6 : 1 }}>
           <input
@@ -3681,7 +3757,7 @@ function SettingsSection() {
             onChange={(e) => void toggleListingPayment(e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Требовать оплату за размещение объявления</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.listingPayment.toggle")}</span>
         </label>
       </div>
 
@@ -3690,10 +3766,10 @@ function SettingsSection() {
           auto-publishes them without a redeploy. */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          Авто-публикация ленты
+          {t("pages.adminSettings.featureCards.feedAutoPublish.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          Сохраняется на сервере. Выключено — новые посты ленты и каналов уходят на модерацию (рекомендуется). Включено — публикуются сразу, без ручной проверки.
+          {t("pages.adminSettings.featureCards.feedAutoPublish.subtitle")}
         </p>
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingFeedAutoPublish ? 0.6 : 1 }}>
           <input
@@ -3703,7 +3779,7 @@ function SettingsSection() {
             onChange={(e) => void toggleFeedAutoPublish(e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>Публиковать посты ленты сразу</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.feedAutoPublish.toggle")}</span>
         </label>
       </div>
 
@@ -3725,7 +3801,7 @@ function SettingsSection() {
             {groups.map(([group, rows]) => (
               <div key={group}>
                 <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--foreground-50)", marginBottom: "10px" }}>
-                  {t(`pages.adminSettings.groups.${group}`, { defaultValue: SETTING_GROUP_LABELS[group] ?? group })}
+                  {t(`pages.adminSettings.groups.${group}`, { defaultValue: group })}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {rows.map(renderSetting)}

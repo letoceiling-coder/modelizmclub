@@ -12,17 +12,18 @@
 
 ## P1 — i18n admin (Task 42 completion)
 
-| # | Секция admin.tsx | Оценка строк RU |
-|---|------------------|-----------------|
-| 1 | `DeliverySection` | ~120 |
-| 2 | `ModerationSection` | ~200 |
-| 3 | `SettingsSection` — `SETTING_META`, feature cards | ~80 |
-| 4 | `MonetizationSection`, `FeedBannersSection`, `ApplicationsSection` | ~150 each |
-| 5 | `CategoriesSection` (non-reviews), `NotificationsSection`, `FeedbackSection`, `AuditLogSection` | ~100 each |
+| # | Секция admin.tsx | Статус |
+|---|------------------|--------|
+| 1 | `DeliverySection` | **DONE** |
+| 2 | `ModerationSection` + `ReportsSection` + `ModerationCard` | **DONE** |
+| 3 | `SettingsSection` — `SETTING_META`, feature cards | **DONE** |
+| 4 | `FeedbackSection` | **DONE** |
+| 5 | `MonetizationSection`, `FeedBannersSection`, `ApplicationsSection` | pending |
+| 6 | `CategoriesSection` (non-reviews), `NotificationsSection`, `AuditLogSection` | pending |
 
-**Сделано:** shell, dashboard, users, ads, design system, reviews, content, analytics, settings chrome.
+**Сделано:** shell, dashboard, users, ads, design system, reviews, content, analytics, delivery, moderation, feedback, settings (feature cards + meta).
 
-**Паттерн:** `pages.adminX.*` в `ru.ts` → `patch-en-pN.ts` → `sync-i18n.ts`.
+**Паттерн:** `pages.adminX.*` в `ru.ts` → `patch-en-pN.ts` → `sync-i18n.ts`. Последний: **P9** (`patch-en-p9.ts`).
 
 ## P2 — Mobile / Desktop evidence (матрица колонки)
 
