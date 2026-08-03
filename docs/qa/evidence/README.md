@@ -2,7 +2,7 @@
 
 ## Автоматические артефакты (prod VPS)
 
-**Последний прогон:** 2026-08-03 — commit `d524e04`, **66 OK / 1 WARN / 0 FAIL**
+**Последний прогон:** 2026-08-03 — commit `202d806`, **67 OK / 0 WARN / 0 FAIL**
 
 - Путь: `/var/www/modelizmclub/deploy/qa-artifacts/2026-08-03/`
 - Report: `report.json`

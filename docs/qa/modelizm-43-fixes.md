@@ -119,6 +119,29 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 Скриншоты: `docs/qa/evidence/` (создавать по мере VERIFIED).
 
+### Prod verification 2026-08-03 — **closing snapshot** (`run-qa-regression.sh`)
+
+| Check | Result |
+|-------|--------|
+| VPS commit | `202d806` |
+| Command | `bash deploy/scripts/run-qa-regression.sh` |
+| SSR smoke | **22/22 OK** |
+| API smoke | **SMOKE DONE** |
+| Playwright | **67 OK, 0 WARN, 0 FAIL** |
+| PHPUnit (full) | **189/189 OK** (879 assertions) |
+| Artifacts | `deploy/qa-artifacts/2026-08-03/` — 47 PNG + `report.json` |
+| Communities counters | sync-counters applied; Playwright: no zero members |
+
+### Prod verification 2026-08-03 (P2 evidence)
+
+| Check | Result |
+|-------|--------|
+| VPS commit | `d524e04` |
+| Playwright P2 capture | **66 OK, 1 WARN, 0 FAIL** |
+| Viewports | 375px + 1280px × 14 routes + channel/ads detail |
+| Artifacts | `deploy/qa-artifacts/2026-08-03/` (`p2-*.png`, `task-*.png`, `report.json`) |
+| Matrix Mobile/Desktop | **VERIFIED** (Tasks 1–5, 7–9, 11–42; 6/10 BE-only) |
+
 ### Prod verification 2026-08-03 (PHPUnit + backlog)
 
 | Check | Result |
@@ -153,11 +176,9 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 | Full PHPUnit (187 tests) | 179 pass, **8 fail** — pre-existing (AuthFlow, ChatFrontendIntegration×2, Community×2, ChannelPostMedia, OAuthVerification, SellerCabinet); **not in QA matrix scope** |
 | Playwright `browser-qa.mjs` on VPS | skipped — `npx playwright install` not run on server |
 
-**Task 42 (i18n):** `FIXED` — admin.tsx + embedded components (P9–P11). Следующий backlog: **P2** mobile/desktop evidence.
+**Task 42 (i18n):** `FIXED` — admin.tsx + embedded components (P9–P11).
 
-**PHPUnit full suite:** **187/187 OK** (2026-08-03, commit `4e86e1b`).
-
-**Playwright:** см. [`backlog-prioritized.md`](./backlog-prioritized.md) — после фикса communities WARN + console logging.
+**Закрывающий snapshot:** `run-qa-regression.sh` — SSR 22/22, API SMOKE DONE, Playwright **67/0/0**, PHPUnit **189/189** (commit `202d806`).
 
 Финальные артефакты (после Task 43):
 
