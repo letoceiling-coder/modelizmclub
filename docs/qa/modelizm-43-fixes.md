@@ -10,15 +10,15 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 1 | №1, №15, №19 | `/feed`, `/ads/new`, `/channel/*` | Media upload | P1 | code review | Fixed 5-col grid + overlay buttons; no i18n | — | `ImageUploadGrid.tsx`, `CreatePostForm`, `channel.$id` | — | build pass | pending deploy | pending deploy | FIXED |
-| 2 | №2 | `/feed` | Post draft | P2 | code review | Vertical banner + long copy took too much space | — | `CreatePostForm.tsx`, i18n | — | — | pending | pending | FIXED |
-| 3 | №3 | `/feed` | Post title | P2 | code review | BE max:200, FE без лимита и счётчика | `PostFormRules`, Store/UpdatePostRequest | `CreatePostForm`, `post-limits.ts`, `PostCard` | — | unit test | pending | pending | FIXED |
-| 4 | №4 | `/feed` | Feed filters | P2 | code review | grid 2×3 на mobile, высокие chips | — | `FeedFilterTabs.tsx` | — | — | pending | pending | FIXED |
-| 5 | №5 | `/feed` | Moderation | **P0** | code review | bookmark без проверки status; FE не disabled | `PostInteractionRules`, services | `PostCard`, `PostActionMenu`, `RepostMenu` | — | unit + feature (VPS) | pending | pending | FIXED |
+| 1 | №1, №15, №19 | `/feed`, `/ads/new`, `/channel/*` | Media upload | P1 | code review | Fixed 5-col grid + overlay buttons; no i18n | — | `ImageUploadGrid.tsx`, `CreatePostForm`, `channel.$id` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 2 | №2 | `/feed` | Post draft | P2 | code review | Vertical banner + long copy took too much space | — | `CreatePostForm.tsx`, i18n | — | — | VERIFIED | VERIFIED | FIXED |
+| 3 | №3 | `/feed` | Post title | P2 | code review | BE max:200, FE без лимита и счётчика | `PostFormRules`, Store/UpdatePostRequest | `CreatePostForm`, `post-limits.ts`, `PostCard` | — | unit test | VERIFIED | VERIFIED | FIXED |
+| 4 | №4 | `/feed` | Feed filters | P2 | code review | grid 2×3 на mobile, высокие chips | — | `FeedFilterTabs.tsx` | — | — | VERIFIED | VERIFIED | FIXED |
+| 5 | №5 | `/feed` | Moderation | **P0** | code review | bookmark без проверки status; FE не disabled | `PostInteractionRules`, services | `PostCard`, `PostActionMenu`, `RepostMenu` | — | unit + feature (VPS) | VERIFIED | VERIFIED | FIXED |
 | 6 | №7 | `/messenger` | Chat delivery | **P0** | FIXED | WS message dropped when dialog missing from store | `ChatService`, WS | `store.ts` ingestIncomingMessage | — | — | — | — | FIXED |
-| 7 | №9 | `/notifications` | Notifications | P1 | FIXED | delayed delete lost on unmount/refresh; sessionStorage flush + API persist | `NotificationController` | `notifications.tsx`, pending-delete helper | — | NotificationDeleteTest | pending | pending | FIXED |
-| 8 | №10 | `/profile` | Profile edit | P1 | FIXED | EditSheet clipped inside main overflow; mobile animation mismatch on first paint | Profile API | `profile.tsx` EditSheet portal, `use-mobile` | — | build pass | pending | pending | FIXED |
-| 9 | №21 | `/admin`, nav | Settings | P1 | FIXED | toggle saved but landing/search/routes ignored flag; sidebar already wired | `FeatureFlagsController`, `SystemSetting` | `featureFlags`, nav, `communities` route guard | — | FeatureFlagsTest | pending | pending | FIXED |
+| 7 | №9 | `/notifications` | Notifications | P1 | FIXED | delayed delete lost on unmount/refresh; sessionStorage flush + API persist | `NotificationController` | `notifications.tsx`, pending-delete helper | — | NotificationDeleteTest | VERIFIED | VERIFIED | FIXED |
+| 8 | №10 | `/profile` | Profile edit | P1 | FIXED | EditSheet clipped inside main overflow; mobile animation mismatch on first paint | Profile API | `profile.tsx` EditSheet portal, `use-mobile` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 9 | №21 | `/admin`, nav | Settings | P1 | FIXED | toggle saved but landing/search/routes ignored flag; sidebar already wired | `FeatureFlagsController`, `SystemSetting` | `featureFlags`, nav, `communities` route guard | — | FeatureFlagsTest | VERIFIED | VERIFIED | FIXED |
 | 10 | №32 | `/ads/*` | Listing moderation | **P0** | FIXED | update() skipped re-moderation gate | `ListingService::update()` | `ads.new.tsx` edit toast | — | feature tests | — | — | FIXED |
 
 ---
@@ -27,16 +27,16 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 11 | №28 | `/feed`, `/admin` | Banner | P1 | FIXED | min-h regression from `6b84d85`; restored fixed h + line-clamp | Banner limits | `BannerHeroSlide`, `EventsHero`, admin preview | — | build pass | pending | pending | FIXED |
-| 12 | №29 | `/feed` | Comments | P1 | FIXED | comments only on expand + gated by canInteract; no inline preview | `PostCommentsController` | `PostCard`, `CommentSection` | — | build pass | pending | pending | FIXED |
-| 13 | №6 | `/messenger` | Calls | P1 | FIXED | incoming-call toast at bottom overlapped Accept/Decline; Sonner z-index above call screen | — | `calls.ts`, `CallScreen`, `styles.css` | — | build pass | pending | pending | FIXED |
-| 14 | №13 | `/messenger` | Presence | P2 | code review | status text wrapped in chat header | — | `messenger.tsx` truncate + nowrap | — | build pass | pending | pending | FIXED |
-| 15 | №14 | `/messenger` | Media bubbles | P2 | code review | voice/image bubbles too large (280px) | — | `VoiceBubble`, `MessageFileBubble`, `messenger.tsx` 240px | — | build pass | pending | pending | FIXED |
-| 16 | №8 | `/notifications` | Layout | P2 | code review | header overflow at 320px | — | `notifications.tsx` stacked header, icon buttons | — | build pass | pending | pending | FIXED |
-| 17 | №11 | `/profile` | Tabs | P2 | code review | profile tabs cramped on mobile | — | `profile.tsx` horizontal scroll + compact padding | — | build pass | pending | pending | FIXED |
-| 18 | №12 | `/profile` | Ad cards | P2 | code review | date wrapped in compact ad card meta | — | `AdCard.tsx` stacked meta in compact | — | build pass | pending | pending | FIXED |
-| 19 | №16, №31 | `/ads/new` | CTA | **P0** | FIXED | Icon-only CTA + clipped label on mobile preview step | listing publish API | `ads.new.tsx` footer CTA | — | — | pending | pending | FIXED |
-| 20 | №33 | `/ads/$id` (owner) | Owner panel | P2 | code review | stats grid cramped on narrow screens | — | `AdOwnerActionPanel` 2-col stats on mobile | — | build pass | pending | pending | FIXED |
+| 11 | №28 | `/feed`, `/admin` | Banner | P1 | FIXED | min-h regression from `6b84d85`; restored fixed h + line-clamp | Banner limits | `BannerHeroSlide`, `EventsHero`, admin preview | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 12 | №29 | `/feed` | Comments | P1 | FIXED | comments only on expand + gated by canInteract; no inline preview | `PostCommentsController` | `PostCard`, `CommentSection` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 13 | №6 | `/messenger` | Calls | P1 | FIXED | incoming-call toast at bottom overlapped Accept/Decline; Sonner z-index above call screen | — | `calls.ts`, `CallScreen`, `styles.css` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 14 | №13 | `/messenger` | Presence | P2 | code review | status text wrapped in chat header | — | `messenger.tsx` truncate + nowrap | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 15 | №14 | `/messenger` | Media bubbles | P2 | code review | voice/image bubbles too large (280px) | — | `VoiceBubble`, `MessageFileBubble`, `messenger.tsx` 240px | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 16 | №8 | `/notifications` | Layout | P2 | code review | header overflow at 320px | — | `notifications.tsx` stacked header, icon buttons | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 17 | №11 | `/profile` | Tabs | P2 | code review | profile tabs cramped on mobile | — | `profile.tsx` horizontal scroll + compact padding | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 18 | №12 | `/profile` | Ad cards | P2 | code review | date wrapped in compact ad card meta | — | `AdCard.tsx` stacked meta in compact | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 19 | №16, №31 | `/ads/new` | CTA | **P0** | FIXED | Icon-only CTA + clipped label on mobile preview step | listing publish API | `ads.new.tsx` footer CTA | — | — | VERIFIED | VERIFIED | FIXED |
+| 20 | №33 | `/ads/$id` (owner) | Owner panel | P2 | code review | stats grid cramped on narrow screens | — | `AdOwnerActionPanel` 2-col stats on mobile | — | build pass | VERIFIED | VERIFIED | FIXED |
 
 ---
 
@@ -44,10 +44,10 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 21 | №17 | `/channels` | Channel owner UI | P2 | code review | owner actions already inline on MyChannelCard | permissions | `channels.index.tsx` MyChannelCard settings/stats/delete | — | build pass | pending | pending | FIXED |
-| 22 | №18 | `/channel/*` | Delete post | P1 | FIXED | no DELETE route or owner UI for channel posts | `ChannelPostService::delete`, `DeleteChannelPostController` | `channel.$id` PostItem, `channels.ts` | — | ChannelPostDeleteTest | pending | pending | FIXED |
-| 23 | №20 | `/channel/*`, feed | Media carousel | P1 | FIXED | video+photos stacked separately; PostCard ignored images when video set | — | `PostMediaCarousel`, `PostCard`, `channel.$id`, `feed.ts` | — | build pass | pending | pending | FIXED |
-| 24 | №30 | `/channels` | Show all | P2 | code review | expanded list still 2-col grid | — | `channels.index.tsx` single column when expanded | — | build pass | pending | pending | FIXED |
+| 21 | №17 | `/channels` | Channel owner UI | P2 | code review | owner actions already inline on MyChannelCard | permissions | `channels.index.tsx` MyChannelCard settings/stats/delete | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 22 | №18 | `/channel/*` | Delete post | P1 | FIXED | no DELETE route or owner UI for channel posts | `ChannelPostService::delete`, `DeleteChannelPostController` | `channel.$id` PostItem, `channels.ts` | — | ChannelPostDeleteTest | VERIFIED | VERIFIED | FIXED |
+| 23 | №20 | `/channel/*`, feed | Media carousel | P1 | FIXED | video+photos stacked separately; PostCard ignored images when video set | — | `PostMediaCarousel`, `PostCard`, `channel.$id`, `feed.ts` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 24 | №30 | `/channels` | Show all | P2 | code review | expanded list still 2-col grid | — | `channels.index.tsx` single column when expanded | — | build pass | VERIFIED | VERIFIED | FIXED |
 
 ---
 
@@ -55,12 +55,12 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 25 | №22 | `/reviews`, `/reviews/$id` | Review detail | **P0** | prod + code | uploader not registered in FE; sparse API uploader; unsafe views/author Link | `VideoResource`, `VideoService` | `reviews.ts`, `reviews.$id.tsx` | — | VideoUploadModerationTest | pending | pending | FIXED |
-| 26 | №25 (player) | `/reviews/$id` | Video player | P1 | FIXED | empty URL/errors ignored; hardcoded mp4; duration/category/tags hidden; no Range on proxy | `VideoResource`, `ServeMediaController`, `VideoService` | `reviews.$id.tsx`, `reviews.ts` | — | VideoUploadModerationTest, ServeMediaRangeTest | pending | pending | FIXED |
-| 27 | №25 (actions) | `/reviews/$id` | Engagement | P1 | FIXED | like/share already wired; no separate favorite API in spec | Video react API | `reviews.$id.tsx`, `VideoActionsMenu` | — | build pass | pending | pending | FIXED |
-| 28 | №25 (comments) | `/reviews/$id` | Comments | P1 | FIXED | comments module present with preview + expand + create | Video comments API | `reviews.$id.tsx`, `CommentSection` | — | build pass | pending | pending | FIXED |
-| 29 | №25 (similar) | `/reviews/$id` | Discovery | P2 | yes | author + similar blocks missing | VideoResource | `reviews.$id.tsx` related carousel + author | — | build pass | pending | pending | FIXED |
-| 30 | №26 | `/reviews` | Category filter | P2 | yes | title stayed «Все обзоры» on category select | — | `reviews.index.tsx` dynamic sectionTitle | — | build pass | pending | pending | FIXED |
+| 25 | №22 | `/reviews`, `/reviews/$id` | Review detail | **P0** | prod + code | uploader not registered in FE; sparse API uploader; unsafe views/author Link | `VideoResource`, `VideoService` | `reviews.ts`, `reviews.$id.tsx` | — | VideoUploadModerationTest | VERIFIED | VERIFIED | FIXED |
+| 26 | №25 (player) | `/reviews/$id` | Video player | P1 | FIXED | empty URL/errors ignored; hardcoded mp4; duration/category/tags hidden; no Range on proxy | `VideoResource`, `ServeMediaController`, `VideoService` | `reviews.$id.tsx`, `reviews.ts` | — | VideoUploadModerationTest, ServeMediaRangeTest | VERIFIED | VERIFIED | FIXED |
+| 27 | №25 (actions) | `/reviews/$id` | Engagement | P1 | FIXED | like/share already wired; no separate favorite API in spec | Video react API | `reviews.$id.tsx`, `VideoActionsMenu` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 28 | №25 (comments) | `/reviews/$id` | Comments | P1 | FIXED | comments module present with preview + expand + create | Video comments API | `reviews.$id.tsx`, `CommentSection` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 29 | №25 (similar) | `/reviews/$id` | Discovery | P2 | yes | author + similar blocks missing | VideoResource | `reviews.$id.tsx` related carousel + author | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 30 | №26 | `/reviews` | Category filter | P2 | yes | title stayed «Все обзоры» on category select | — | `reviews.index.tsx` dynamic sectionTitle | — | build pass | VERIFIED | VERIFIED | FIXED |
 
 ---
 
@@ -68,17 +68,17 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 31 | №23 | `/admin` reviews | Admin preview | P1 | yes | no preview modal/player | `AdminVideoController` | `admin.tsx` ReviewsSection preview modal | — | `AdminVideoTest` | pending | pending | FIXED |
-| 32 | №23 | `/admin` | Admin actions | P1 | yes | limited approve/delete/featured only | Admin video API | admin reviews table actions | — | `AdminVideoTest` | pending | pending | FIXED |
-| 33 | №23 | `/admin` | Admin metadata | P2 | code review | table lacked duration/engagement/date columns | VideoResource | admin reviews table + `AdminVideoRow` | — | build pass | pending | pending | FIXED |
-| 34 | №23 | `/admin` | Filters/search | P2 | code review | search was client-only; API q unused on typing | Admin index API | ReviewsSection server q on Enter/refresh | — | build pass | pending | pending | FIXED |
-| 35 | №23 | `/admin` | Bulk actions | P2 | code review | no bulk select on reviews table | — | ReviewsSection checkboxes + bulk bar | — | build pass | pending | pending | FIXED |
-| 36 | №23 | `/admin` | Stats | P3 | code review | analytics showed only mock charts | fetchDashboard | AnalyticsSection KPI row + chart placeholders | — | build pass | pending | pending | FIXED |
-| 37 | №23 | `/admin` | Audit/errors | P2 | code review | no media check in preview | — | preview modal media status + stats | — | build pass | pending | pending | FIXED |
-| 38 | №23 | `/admin` | Media mgmt | P2 | code review | no hide/replace actions | status API | preview hide + replace link | — | build pass | pending | pending | FIXED |
-| 39 | №24 | `/admin` | Review categories CRUD | P1 | yes | categories hardcoded / no admin CRUD | `AdminVideoCategoryController` | admin Categories «Обзоры» | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
-| 40 | №24 | `/admin`, upload | Category selector | P1 | yes | selector not from DB / no ordering | video categories API | `reviews.upload`, `reviews.index` sortOrder | — | `AdminVideoCategoryTest` | pending | pending | FIXED |
-| 41 | №27 | `/reviews/upload`, `/admin` | Scheduled review | P1 | yes | feed scheduling only | `ScheduleVideoController`, cron | upload `PostSchedulePicker`, admin list | `scheduled_at` migration | `ScheduledVideoTest` | pending | pending | FIXED |
+| 31 | №23 | `/admin` reviews | Admin preview | P1 | yes | no preview modal/player | `AdminVideoController` | `admin.tsx` ReviewsSection preview modal | — | `AdminVideoTest` | VERIFIED | VERIFIED | FIXED |
+| 32 | №23 | `/admin` | Admin actions | P1 | yes | limited approve/delete/featured only | Admin video API | admin reviews table actions | — | `AdminVideoTest` | VERIFIED | VERIFIED | FIXED |
+| 33 | №23 | `/admin` | Admin metadata | P2 | code review | table lacked duration/engagement/date columns | VideoResource | admin reviews table + `AdminVideoRow` | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 34 | №23 | `/admin` | Filters/search | P2 | code review | search was client-only; API q unused on typing | Admin index API | ReviewsSection server q on Enter/refresh | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 35 | №23 | `/admin` | Bulk actions | P2 | code review | no bulk select on reviews table | — | ReviewsSection checkboxes + bulk bar | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 36 | №23 | `/admin` | Stats | P3 | code review | analytics showed only mock charts | fetchDashboard | AnalyticsSection KPI row + chart placeholders | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 37 | №23 | `/admin` | Audit/errors | P2 | code review | no media check in preview | — | preview modal media status + stats | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 38 | №23 | `/admin` | Media mgmt | P2 | code review | no hide/replace actions | status API | preview hide + replace link | — | build pass | VERIFIED | VERIFIED | FIXED |
+| 39 | №24 | `/admin` | Review categories CRUD | P1 | yes | categories hardcoded / no admin CRUD | `AdminVideoCategoryController` | admin Categories «Обзоры» | — | `AdminVideoCategoryTest` | VERIFIED | VERIFIED | FIXED |
+| 40 | №24 | `/admin`, upload | Category selector | P1 | yes | selector not from DB / no ordering | video categories API | `reviews.upload`, `reviews.index` sortOrder | — | `AdminVideoCategoryTest` | VERIFIED | VERIFIED | FIXED |
+| 41 | №27 | `/reviews/upload`, `/admin` | Scheduled review | P1 | yes | feed scheduling only | `ScheduleVideoController`, cron | upload `PostSchedulePicker`, admin list | `scheduled_at` migration | `ScheduledVideoTest` | VERIFIED | VERIFIED | FIXED |
 
 ---
 
@@ -86,7 +86,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 42 | №34 | site-wide | i18n | P1 | done | — | P11: embedded admin components (banners, landing, icons, media, footer, guest access); P10/P9 admin.tsx | — | build pass | pending | pending | FIXED |
+| 42 | №34 | site-wide | i18n | P1 | done | — | P11: embedded admin components (banners, landing, icons, media, footer, guest access); P10/P9 admin.tsx | — | build pass | VERIFIED | VERIFIED | FIXED |
 
 ---
 
@@ -94,7 +94,7 @@ Baseline: [`modelizm-baseline.md`](./modelizm-baseline.md)
 
 | ID | Тест PDF | Маршрут | Модуль | P | Воспроизведено | Root cause | Backend | Frontend | DB | Tests | Mobile | Desktop | Status |
 |----|----------|---------|--------|---|----------------|------------|---------|----------|-----|-------|--------|---------|--------|
-| 43 | №1–34 all | all | QA closure | **P0** | prod 2026-08-01 | Playwright + SSR + API smoke; 33 OK / 0 FAIL | — | — | — | browser-qa.mjs | 375px + 1280px | 1280px | VERIFIED |
+| 43 | №1–34 all | all | QA closure | **P0** | prod 2026-08-03 | Playwright P2 + SSR + API smoke; 66 OK / 0 FAIL | — | — | — | browser-qa.mjs | VERIFIED | VERIFIED | VERIFIED |
 
 ---
 

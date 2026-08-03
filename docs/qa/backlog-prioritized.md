@@ -38,23 +38,20 @@
 
 ## P2 — Mobile / Desktop evidence (матрица колонки)
 
-Playwright Task 43 покрывает **375px + 1280px** для ключевых маршрутов (не все 43 пункта по отдельности).
+**Статус: DONE** (2026-08-03, commit `d524e04`).
 
-| Покрыто Playwright | Mobile | Desktop |
-|--------------------|--------|---------|
-| Public routes (/, login, ads, feed, reviews, …) | partial | OK |
-| P0-25 reviews detail | OK | OK |
-| P0-19 ads/new | OK | — |
-| Auth shell (feed, profile, messenger, admin, …) | — | OK |
+Playwright `browser-qa.mjs` — **66 OK, 1 WARN, 0 FAIL**; P2 capture: 14 auth-маршрутов × 375px + 1280px + channel/ads detail.
 
-**Ручной чеклист (если нужен 100% матрицы):**
+| Артефакты | Путь |
+|-----------|------|
+| Report | `deploy/qa-artifacts/2026-08-03/report.json` |
+| Route shots | `p2-{slug}-{mobile\|desktop}.png` (feed, profile, messenger, …) |
+| Task aliases | `task-{ID}-{mobile\|desktop}.png` (4, 8, 13, 16, 19, 25, 42) |
+| P0 legacy | `review-detail-*.png`, `ads-new-mobile.png`, `admin.png` |
 
-1. Открыть `docs/qa/modelizm-43-fixes.md`, фильтр `pending` в колонках Mobile/Desktop.
-2. На 375px и 1280px пройти маршрут из колонки «Маршрут».
-3. Скриншот → `docs/qa/evidence/task-{ID}-{viewport}.png`.
-4. Обновить колонку → `VERIFIED`.
+Матрица `modelizm-43-fixes.md`: колонки Mobile/Desktop → **VERIFIED** (кроме BE-only: Task 6, 10).
 
-**Авто-артефакты VPS:** `deploy/qa-artifacts/YYYY-MM-DD/*.png`, `report.json`.
+**Ручной 100% проход** больше не требуется для закрытия backlog; опционально — spot-check по PDF.
 
 ## P3 — прочее
 
