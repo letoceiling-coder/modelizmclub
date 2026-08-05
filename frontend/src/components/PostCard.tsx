@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2, Clock } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -98,7 +97,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const saved = isSavedExternal ?? savedInner;
   const [reposted, setReposted] = useState(!!post.isReposted);
   const [expanded, setExpanded] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
   const commentsRef = useRef<HTMLDivElement>(null);
 
   const [likes, setLikes] = useState(post.likes);
@@ -109,7 +108,6 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const [commentsFetched, setCommentsFetched] = useState((post.commentList?.length ?? 0) > 0);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const { guardAction } = useGuestAccess();
-  const { t } = useTranslation();
   const isScheduled = post.status === "scheduled";
   const canInteract = post.canInteract ?? post.status === "published";
   const hasCommentsHint = (post.comments ?? 0) > 0 || (post.commentList?.length ?? 0) > 0;
@@ -126,39 +124,32 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   }, [commentsFetchStarted, post.id]);
 
   useEffect(() => {
-    if (hasCommentsHint) startCommentsFetch();
-  }, [hasCommentsHint, startCommentsFetch]);
-
-  useEffect(() => {
-    if (commentsOpen) startCommentsFetch();
-  }, [commentsOpen, startCommentsFetch]);
-
-  // When comments open, bring the input (top of the section) into view — a
-  // post tapped near the bottom of the feed would otherwise open its comments
-  // off-screen. Waits out the expand animation before measuring.
-  useEffect(() => {
-    if (!commentsOpen) return;
-    const t = setTimeout(() => {
-      commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }, 280);
-    return () => clearTimeout(t);
-  }, [commentsOpen]);
+    if (hasCommentsHint || canInteract) startCommentsFetch();
+  }, [hasCommentsHint, canInteract, startCommentsFetch]);
 
   const isLong = post.text.length > 220;
   const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
   const commentsCount =
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
-  const previewComment = commentList[0];
-  const previewAuthor = previewComment ? userById(previewComment.authorId) : null;
-  const canViewComments = hasCommentsHint || commentsCount > 0;
+
+  const focusComments = () => {
+    commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const input = commentsRef.current?.querySelector("input");
+    if (input instanceof HTMLInputElement) input.focus();
+  };
 
   const toggleComments = () => {
-    if (canViewComments) {
-      setCommentsOpen((v) => !v);
+    if (showAllComments) {
+      focusComments();
       return;
     }
-    if (!canInteract) return;
-    guardAction("feed.post.comment", () => setCommentsOpen((v) => !v));
+    if (commentsCount > 3) {
+      setShowAllComments(true);
+      startCommentsFetch();
+      return;
+    }
+    if (!canInteract && commentsCount === 0) return;
+    guardAction("feed.post.comment", focusComments);
   };
 
   const toggleLike = () => {
@@ -201,33 +192,35 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
   const addComment = (text: string, parentId?: string) => {
     if (!canInteract) return;
-    const tempId = `nc${Date.now()}`;
-    const newC: Comment = {
-      id: tempId,
-      authorId: me.id,
-      time: "только что",
-      text,
-      likes: 0,
-      replies: [],
-    };
-    setCommentList((list) => {
-      if (!parentId) return [...list, newC];
-      return list.map((c) =>
-        c.id === parentId ? { ...c, replies: [...(c.replies ?? []), newC] } : c,
-      );
+    guardAction("feed.post.comment", () => {
+      const tempId = `nc${Date.now()}`;
+      const newC: Comment = {
+        id: tempId,
+        authorId: me.id,
+        time: "только что",
+        text,
+        likes: 0,
+        replies: [],
+      };
+      setCommentList((list) => {
+        if (!parentId) return [...list, newC];
+        return list.map((c) =>
+          c.id === parentId ? { ...c, replies: [...(c.replies ?? []), newC] } : c,
+        );
+      });
+      createComment(post.id, text, parentId)
+        .then((saved) => {
+          setCommentList((list) => {
+            if (!parentId) return list.map((c) => (c.id === tempId ? saved : c));
+            return list.map((c) =>
+              c.id === parentId
+                ? { ...c, replies: (c.replies ?? []).map((r) => (r.id === tempId ? saved : r)) }
+                : c,
+            );
+          });
+        })
+        .catch(() => {});
     });
-    createComment(post.id, text, parentId)
-      .then((saved) => {
-        setCommentList((list) => {
-          if (!parentId) return list.map((c) => (c.id === tempId ? saved : c));
-          return list.map((c) =>
-            c.id === parentId
-              ? { ...c, replies: (c.replies ?? []).map((r) => (r.id === tempId ? saved : r)) }
-              : c,
-          );
-        });
-      })
-      .catch(() => {});
   };
 
   return (
@@ -433,12 +426,11 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
           <button
             onClick={toggleComments}
-            disabled={!canInteract && !canViewComments}
+            disabled={!canInteract && commentsCount === 0}
             className={actionCls}
-            style={{ color: commentsOpen ? "var(--accent)" : "var(--foreground-70)" }}
+            style={{ color: "var(--foreground-70)" }}
             aria-label="Комментарии"
-            aria-expanded={commentsOpen}
-            aria-disabled={!canInteract && !canViewComments}
+            aria-disabled={!canInteract && commentsCount === 0}
           >
             <MessageCircle className="h-[16px] w-[16px]" />
             <span className="tabular-nums">{commentsCount}</span>
@@ -473,72 +465,21 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           </div>
         </footer>
 
-        {/* Inline comment preview — collapsed */}
-        {!commentsOpen && hasCommentsHint && (
-          <div
-            className="border-t px-[16px] py-[10px]"
-            style={{ borderColor: "var(--border)", background: "var(--background-overlay)" }}
-          >
-            {!commentsFetched ? (
-              <div className="flex items-start gap-[10px]" aria-hidden>
-                <div className="h-[32px] w-[32px] shrink-0 animate-pulse rounded-full" style={{ background: "var(--background-surface)" }} />
-                <div className="min-w-0 flex-1">
-                  <div className="h-[40px] w-full animate-pulse rounded-[12px]" style={{ background: "var(--background-surface)" }} />
-                </div>
-              </div>
-            ) : previewComment && previewAuthor ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setCommentsOpen(true)}
-                  className="flex w-full items-start gap-[10px] rounded-[var(--r-card-sm)] p-[6px] text-left transition-colors hover:bg-[var(--background-surface)]"
-                >
-                  <AuthorAvatar src={previewAuthor.avatar} name={previewAuthor.name} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
-                      {previewAuthor.name}
-                    </div>
-                    <div className="truncate text-[13px]" style={{ color: "var(--foreground-70)" }}>
-                      {previewComment.text}
-                    </div>
-                  </div>
-                </button>
-                {commentsCount > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setCommentsOpen(true)}
-                    className="mt-[4px] pl-[48px] text-[12px] font-semibold transition-opacity hover:opacity-80"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    {t("components.commentSection.viewAll", { count: commentsCount })}
-                  </button>
-                )}
-              </>
-            ) : null}
-          </div>
-        )}
-
-        {/* Comments section */}
-        <AnimatePresence initial={false}>
-          {commentsOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <div ref={commentsRef}>
-                <CommentSection
-                  comments={commentList}
-                  onAdd={addComment}
-                  loading={commentsOpen && !commentsFetched}
-                  readOnly={!canInteract}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div ref={commentsRef}>
+          <CommentSection
+            comments={commentList}
+            onAdd={addComment}
+            loading={commentsFetchStarted && !commentsFetched}
+            readOnly={!canInteract}
+            previewLimit={3}
+            showAll={showAllComments}
+            onShowAll={() => {
+              setShowAllComments(true);
+              startCommentsFetch();
+            }}
+            totalCount={commentsCount}
+          />
+        </div>
       </Card>
 
       <SchedulePostDialog

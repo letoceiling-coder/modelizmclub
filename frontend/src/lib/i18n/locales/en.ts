@@ -372,11 +372,18 @@ export const en: TranslationSchema = {
       reportSuffix: " (публикация)"
     },
     commentSection: {
-      reply: "Ответить",
-      replyTo: "Ответить {{name}}…",
-      placeholder: "Написать комментарий…",
-      send: "Отправить",
-      viewAll: "View all {{count}} comments"
+      reply: "Reply",
+      replyTo: "Reply to {{name}}…",
+      placeholder: "Write a comment…",
+      send: "Send",
+      viewAll: "Show all comments ({{count}})",
+      attachFile: "Attach file",
+      attachPhoto: "Attach photo",
+      attachSoon: "Comment attachments coming soon",
+      actions: "Comment actions",
+      report: "Report",
+      reportSuffix: " (comment)",
+      reportDesc: "Describe what is wrong with this comment.",
     },
     repostMenu: {
       ariaLabel: "Repost",

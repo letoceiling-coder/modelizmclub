@@ -188,8 +188,14 @@ export function mapComment(c: ApiComment): Comment {
 
 export async function fetchPostComments(uuid: string): Promise<Comment[]> {
   if (isDemoMode()) return demoPostComments(uuid);
-  const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`);
-  return (res.data ?? []).map(mapComment);
+  const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`, { auth: false });
+  const rows = Array.isArray(res.data) ? res.data : [];
+  return rows.map(mapComment);
+}
+
+export async function reactToComment(uuid: string, on: boolean): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/comments/${uuid}/react`, { method: on ? "POST" : "DELETE" });
 }
 
 export async function createComment(
