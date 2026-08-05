@@ -72,6 +72,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             Route::apiResource('post', AdminPostCategoryController::class);
             Route::apiResource('community', AdminCommunityCategoryController::class);
             Route::apiResource('listing', AdminListingCategoryController::class);
+            Route::patch('video/reorder', [AdminVideoCategoryController::class, 'reorder']);
             Route::apiResource('video', AdminVideoCategoryController::class);
         });
 

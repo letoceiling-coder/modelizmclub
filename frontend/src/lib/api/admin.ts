@@ -787,6 +787,7 @@ export interface AdminCategory {
   isActive: boolean;
   listingPriceCents: number | null;
   subscriberListingPriceCents: number | null;
+  videosCount?: number;
 }
 
 interface ApiAdminCategory {
@@ -799,6 +800,7 @@ interface ApiAdminCategory {
   is_active?: boolean;
   listing_price_cents?: number | null;
   subscriber_listing_price_cents?: number | null;
+  videos_count?: number;
 }
 
 function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
@@ -812,6 +814,7 @@ function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
     isActive: c.is_active ?? true,
     listingPriceCents: c.listing_price_cents ?? null,
     subscriberListingPriceCents: c.subscriber_listing_price_cents ?? null,
+    videosCount: c.videos_count,
   };
 }
 
@@ -874,6 +877,13 @@ export async function updateAdminCategory(
 
 export async function deleteAdminCategory(kind: CategoryKind, id: number): Promise<void> {
   await api(`/admin/categories/${kind}/${id}`, { method: "DELETE" });
+}
+
+export async function reorderAdminVideoCategories(ids: number[]): Promise<void> {
+  await api("/admin/categories/video/reorder", {
+    method: "PATCH",
+    json: { ids },
+  });
 }
 
 // ---- Admin videos (reviews) ----

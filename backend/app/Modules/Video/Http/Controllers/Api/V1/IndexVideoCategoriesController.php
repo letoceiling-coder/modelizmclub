@@ -10,7 +10,10 @@ class IndexVideoCategoriesController extends Controller
 {
     public function __invoke(): JsonResponse
     {
-        $rows = VideoCategory::query()->orderBy('sort_order')->get();
+        $rows = VideoCategory::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
 
         return response()->json([
             'data' => $rows->map(fn (VideoCategory $c) => [

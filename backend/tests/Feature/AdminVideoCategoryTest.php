@@ -47,7 +47,10 @@ class AdminVideoCategoryTest extends TestCase
             'name' => 'Суда',
             'slug' => 'ships-'.uniqid(),
             'sort_order' => 2,
-        ], $headers)->assertCreated();
+            'is_active' => true,
+        ], $headers)->assertCreated()
+            ->assertJsonPath('data.is_active', true)
+            ->assertJsonPath('data.videos_count', 0);
 
         $id = $create->json('data.id');
 
@@ -55,13 +58,66 @@ class AdminVideoCategoryTest extends TestCase
             'name' => 'Флот',
             'slug' => 'fleet-'.uniqid(),
             'sort_order' => 3,
+            'is_active' => false,
         ], $headers)->assertOk()
-            ->assertJsonPath('data.name', 'Флот');
+            ->assertJsonPath('data.name', 'Флот')
+            ->assertJsonPath('data.is_active', false);
 
         $this->deleteJson('/api/v1/admin/categories/video/'.$id, [], $headers)
             ->assertOk();
 
         $this->assertDatabaseMissing('video_categories', ['id' => $id]);
+    }
+
+    public function test_admin_can_reorder_video_categories(): void
+    {
+        $a = VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'A',
+            'slug' => 'a-'.uniqid(),
+            'sort_order' => 10,
+        ]);
+        $b = VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'B',
+            'slug' => 'b-'.uniqid(),
+            'sort_order' => 20,
+        ]);
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $token = $admin->createToken('api')->plainTextToken;
+
+        $this->patchJson('/api/v1/admin/categories/video/reorder', [
+            'ids' => [$b->id, $a->id],
+        ], ['Authorization' => 'Bearer '.$token])
+            ->assertOk();
+
+        $this->assertSame(10, $b->fresh()->sort_order);
+        $this->assertSame(20, $a->fresh()->sort_order);
+    }
+
+    public function test_public_video_categories_hide_inactive(): void
+    {
+        VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'Visible',
+            'slug' => 'visible-'.uniqid(),
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'Hidden',
+            'slug' => 'hidden-'.uniqid(),
+            'sort_order' => 2,
+            'is_active' => false,
+        ]);
+
+        $res = $this->getJson('/api/v1/videos/categories')->assertOk();
+        $titles = collect($res->json('data'))->pluck('title')->all();
+
+        $this->assertContains('Visible', $titles);
+        $this->assertNotContains('Hidden', $titles);
     }
 
     public function test_moderator_cannot_manage_video_categories(): void

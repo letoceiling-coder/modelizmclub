@@ -47,6 +47,7 @@ import type { AdminVideoRow } from "@/lib/api/admin";
 import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminCard";
+import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
@@ -67,7 +68,7 @@ import i18n from "@/lib/i18n";
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
-  | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
+  | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "reviewCategories" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
   | "auditLog" | "applications";
 
 export const Route = createFileRoute("/admin")({
@@ -99,6 +100,7 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
   { id: "icons", labelKey: "pages.adminShell.nav.icons", icon: Image, roles: ["admin"] },
   { id: "categories", labelKey: "pages.adminShell.nav.categories", icon: FolderTree, roles: ["admin"] },
   { id: "reviews", labelKey: "pages.adminShell.nav.reviews", icon: Clapperboard, roles: ["admin"] },
+  { id: "reviewCategories", labelKey: "pages.adminShell.nav.reviewCategories", icon: FolderTree, roles: ["admin"] },
   { id: "notifications", labelKey: "pages.adminShell.nav.notifications", icon: Bell, roles: ["admin"] },
   { id: "analytics", labelKey: "pages.adminShell.nav.analytics", icon: BarChart3, roles: ["admin"] },
   { id: "feedback", labelKey: "pages.adminShell.nav.feedback", icon: Inbox, roles: ["admin", "moderator"] },
@@ -409,6 +411,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "icons") return <IconManagerSection />;
   if (section === "categories") return <CategoriesSection />;
   if (section === "reviews") return <ReviewsSection />;
+  if (section === "reviewCategories") return <ReviewCategoriesAdminSection />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
   if (section === "feedback") return <FeedbackSection />;

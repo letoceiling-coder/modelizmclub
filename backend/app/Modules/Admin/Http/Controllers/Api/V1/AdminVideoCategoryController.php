@@ -15,6 +15,7 @@ class AdminVideoCategoryController extends Controller
     public function index(): JsonResponse
     {
         $items = VideoCategory::query()
+            ->withCount('videos')
             ->orderBy('sort_order')
             ->orderBy('title')
             ->paginate((int) request()->integer('per_page', 50));
@@ -30,14 +31,19 @@ class AdminVideoCategoryController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'slug' => ['required', 'string', 'max:120', 'unique:video_categories,slug'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
+
+        $maxOrder = (int) VideoCategory::query()->max('sort_order');
 
         $category = VideoCategory::query()->create([
             'title' => $data['name'],
             'slug' => $data['slug'],
-            'sort_order' => $data['sort_order'] ?? 0,
+            'sort_order' => $data['sort_order'] ?? ($maxOrder + 10),
+            'is_active' => $data['is_active'] ?? true,
         ]);
 
+        $category->loadCount('videos');
         $audit->log($request->user(), 'video_category.create', $category, null, $category->toArray(), $request);
 
         return response()->json(['data' => $this->format($category)], 201);
@@ -57,6 +63,7 @@ class AdminVideoCategoryController extends Controller
             'name' => ['sometimes', 'string', 'max:120'],
             'slug' => ['sometimes', 'string', 'max:120', Rule::unique('video_categories', 'slug')->ignore($category->id)],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         if (array_key_exists('name', $data)) {
@@ -68,8 +75,12 @@ class AdminVideoCategoryController extends Controller
         if (array_key_exists('sort_order', $data)) {
             $category->sort_order = $data['sort_order'];
         }
+        if (array_key_exists('is_active', $data)) {
+            $category->is_active = $data['is_active'];
+        }
         $category->save();
 
+        $category->loadCount('videos');
         $audit->log($request->user(), 'video_category.update', $category, $old, $category->fresh()->toArray(), $request);
 
         return response()->json(['data' => $this->format($category->fresh())]);
@@ -84,9 +95,25 @@ class AdminVideoCategoryController extends Controller
         return response()->json(['data' => ['message' => 'Категория удалена.']]);
     }
 
+    public function reorder(Request $request, AuditService $audit): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:video_categories,id'],
+        ]);
+
+        foreach ($data['ids'] as $order => $id) {
+            VideoCategory::query()->whereKey($id)->update(['sort_order' => ($order + 1) * 10]);
+        }
+
+        $audit->log($request->user(), 'video_category.reorder', null, null, ['ids' => $data['ids']], $request);
+
+        return response()->json(['data' => ['message' => 'Порядок сохранён.']]);
+    }
+
     private function find(int $id): VideoCategory
     {
-        $category = VideoCategory::query()->find($id);
+        $category = VideoCategory::query()->withCount('videos')->find($id);
 
         if (! $category) {
             throw new NotFoundHttpException('Категория не найдена.');
@@ -105,7 +132,8 @@ class AdminVideoCategoryController extends Controller
             'slug' => $category->slug,
             'icon' => null,
             'sort_order' => $category->sort_order,
-            'is_active' => true,
+            'is_active' => (bool) ($category->is_active ?? true),
+            'videos_count' => (int) ($category->videos_count ?? 0),
         ];
     }
 }
