@@ -727,6 +727,7 @@ export const ru = {
       createChannel: "Создать канал",
       sectionMine: "Мои каналы",
       sectionMineSub: "Каналы, где вы владелец или автор",
+      ownerMenuAria: "Действия с каналом",
       sectionSubscriptions: "Мои подписки",
       sectionSubscriptionsSub: "Каналы, на которые вы подписаны",
       sectionPopular: "Популярные каналы",

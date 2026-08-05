@@ -10,11 +10,16 @@ interface Props {
   name: string;
   onDeleted: () => void;
   compact?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
+export function DeleteChannelDialog({ slug, name, onDeleted, compact, open: controlledOpen, onOpenChange, hideTrigger }: Props) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [confirmName, setConfirmName] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -37,6 +42,7 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact }: Props) {
   };
 
   if (!open) {
+    if (hideTrigger) return null;
     return (
       <Button
         type="button"

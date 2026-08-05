@@ -19,6 +19,7 @@ import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider"
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { restoreSession } from "@/lib/auth/session";
+import { loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
 
@@ -164,6 +165,7 @@ function RootComponent() {
   useEffect(() => {
     bindCallAudioUnlock();
     void restoreSession();
+    void loadFeatureFlagsFromServer();
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void restoreSession();
     };

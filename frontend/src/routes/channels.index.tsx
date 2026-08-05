@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
-import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2, BarChart2 } from "lucide-react";
+import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2, BarChart2, MoreVertical, Trash2 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -27,6 +27,12 @@ import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 
@@ -373,6 +379,8 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
 
   const KindIcon = KIND_ICON[c.kind];
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   return (
 
     <li>
@@ -385,125 +393,171 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
 
       >
 
-        <Link
+        <div className="flex items-start gap-2">
 
-          to="/channel/$id"
+          <Link
 
-          params={{ id: c.id }}
+            to="/channel/$id"
 
-          className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 transition-colors hover:opacity-90"
+            params={{ id: c.id }}
 
-        >
-
-          <div
-
-            className="grid h-12 w-12 shrink-0 place-items-center font-display text-[18px] font-bold text-white"
-
-            style={{ background: c.avatarColor, borderRadius: 12 }}
+            className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 transition-colors hover:opacity-90"
 
           >
 
-            {c.name.slice(0, 1)}
+            <div
 
-          </div>
+              className="grid h-12 w-12 shrink-0 place-items-center font-display text-[18px] font-bold text-white"
 
-          <div className="min-w-0">
-
-            <div className="flex items-center gap-1.5">
-
-              <span className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-
-                {c.name}
-
-              </span>
-
-              {c.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
-
-            </div>
-
-            <p
-
-              className="mt-1 text-[13px]"
-
-              style={{ color: "var(--foreground-70)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+              style={{ background: c.avatarColor, borderRadius: 12 }}
 
             >
 
-              {c.description}
-
-            </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-
-              <span
-
-                className="inline-flex items-center gap-1 text-[11px] font-medium"
-
-                style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
-
-              >
-
-                {channelOwnerRoleLabel(c.kind, t)}
-
-              </span>
-
-              <span
-
-                className="inline-flex items-center gap-1 text-[11px] font-medium"
-
-                style={{ background: "var(--background-surface)", color: "var(--foreground-70)", padding: "3px 7px", borderRadius: 6 }}
-
-              >
-
-                <KindIcon size={11} /> {channelKindLabel(c.kind, t)}
-
-              </span>
-
-              <span className="inline-flex items-center gap-1 text-[12px]" style={{ color: "var(--foreground-50)" }}>
-
-                <Users size={12} /> {formatCount(c.subscribers)}
-
-              </span>
+              {c.name.slice(0, 1)}
 
             </div>
 
-          </div>
+            <div className="min-w-0">
 
-        </Link>
+              <div className="flex items-center gap-1.5">
 
-        <div className="mt-auto flex flex-col gap-2">
+                <span className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {c.name}
 
-            <Button asChild variant="default" className="h-9 rounded-[10px] gap-1.5" size="sm">
+                </span>
 
-              <Link to="/channel/$id" params={{ id: c.id }} search={{ settings: true }}>
+                {c.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
 
-                <Settings2 size={14} /> {t("pages.shared.settings")}
+              </div>
 
-              </Link>
+              <p
 
-            </Button>
+                className="mt-1 text-[13px]"
 
-            <Button asChild variant="outline" className="h-9 rounded-[10px] gap-1.5" size="sm">
+                style={{ color: "var(--foreground-70)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
 
-              <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about", section: "stats" }}>
+              >
 
-                <BarChart2 size={14} /> {t("pages.shared.statistics")}
+                {c.description}
 
-              </Link>
+              </p>
 
-            </Button>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
 
-          </div>
+                <span
 
-          <div className="flex justify-end">
+                  className="inline-flex items-center gap-1 text-[11px] font-medium"
 
-            <DeleteChannelDialog slug={c.slug} name={c.name} onDeleted={onChanged} compact />
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
 
-          </div>
+                >
+
+                  {channelOwnerRoleLabel(c.kind, t)}
+
+                </span>
+
+                <span
+
+                  className="inline-flex items-center gap-1 text-[11px] font-medium"
+
+                  style={{ background: "var(--background-surface)", color: "var(--foreground-70)", padding: "3px 7px", borderRadius: 6 }}
+
+                >
+
+                  <KindIcon size={11} /> {channelKindLabel(c.kind, t)}
+
+                </span>
+
+                <span className="inline-flex items-center gap-1 text-[12px]" style={{ color: "var(--foreground-50)" }}>
+
+                  <Users size={12} /> {formatCount(c.subscribers)}
+
+                </span>
+
+              </div>
+
+            </div>
+
+          </Link>
+
+          <DropdownMenu>
+
+            <DropdownMenuTrigger asChild>
+
+              <button
+
+                type="button"
+
+                aria-label={t("pages.channels.ownerMenuAria")}
+
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-surface)]"
+
+                style={{ color: "var(--foreground-70)" }}
+
+              >
+
+                <MoreVertical size={16} />
+
+              </button>
+
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="min-w-[180px]">
+
+              <DropdownMenuItem asChild>
+
+                <Link to="/channel/$id" params={{ id: c.id }} search={{ settings: true }} className="gap-2">
+
+                  <Settings2 size={14} /> {t("pages.shared.settings")}
+
+                </Link>
+
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
+
+                <Link to="/channel/$id" params={{ id: c.id }} search={{ tab: "about", section: "stats" }} className="gap-2">
+
+                  <BarChart2 size={14} /> {t("pages.shared.statistics")}
+
+                </Link>
+
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+
+                className="gap-2 text-[rgb(185,28,28)] focus:text-[rgb(185,28,28)]"
+
+                onSelect={() => setDeleteOpen(true)}
+
+              >
+
+                <Trash2 size={14} /> {t("components.channelManage.deleteChannel")}
+
+              </DropdownMenuItem>
+
+            </DropdownMenuContent>
+
+          </DropdownMenu>
 
         </div>
+
+        <DeleteChannelDialog
+
+          slug={c.slug}
+
+          name={c.name}
+
+          onDeleted={onChanged}
+
+          open={deleteOpen}
+
+          onOpenChange={setDeleteOpen}
+
+          hideTrigger
+
+        />
 
       </div>
 

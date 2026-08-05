@@ -3344,6 +3344,15 @@ function isEnabledShape(v: unknown): v is { enabled: boolean } {
   return isPlainObject(v) && Object.keys(v).length === 1 && typeof v.enabled === "boolean";
 }
 
+/** Saved immediately by dedicated cards — must not be overwritten by the bulk «Сохранить» drafts. */
+const CARD_MANAGED_SETTING_KEYS = new Set([
+  "feature.communities_enabled",
+  "feature.market_enabled",
+  "feature.escrow_enabled",
+  "feature.feed_auto_publish",
+  "feature.listing_payment_enabled",
+]);
+
 function SettingsSection() {
   const { t } = useTranslation();
   const SETTING_META = useSettingMeta();
@@ -3376,11 +3385,13 @@ function SettingsSection() {
     });
 
   const save = async () => {
-    const next: AdminSetting[] = settings.map((s) => ({
-      key: s.key,
-      value: drafts[s.key] ?? s.value,
-      group: s.group,
-    }));
+    const next: AdminSetting[] = settings
+      .filter((s) => !CARD_MANAGED_SETTING_KEYS.has(s.key))
+      .map((s) => ({
+        key: s.key,
+        value: drafts[s.key] ?? s.value,
+        group: s.group,
+      }));
     setSaving(true);
     try {
       const updated = await updateAdminSettings(next);
@@ -3535,10 +3546,7 @@ function SettingsSection() {
     );
   };
 
-  const communitiesEnabled = (() => {
-    const row = settings.find((s) => s.key === "feature.communities_enabled");
-    return isEnabledShape(row?.value) ? row.value.enabled : false;
-  })();
+  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
   const [savingCommunities, setSavingCommunities] = useState(false);
@@ -3572,6 +3580,7 @@ function SettingsSection() {
         const rest = prev.filter((s) => s.key !== "feature.feed_auto_publish");
         return updated ? [...rest, updated] : rest;
       });
+      setDrafts((prev) => ({ ...prev, "feature.feed_auto_publish": { enabled: checked } }));
       toast.success(checked ? t("pages.adminSettings.featureCards.feedAutoPublish.enabled") : t("pages.adminSettings.featureCards.feedAutoPublish.disabled"));
     } catch {
       toast.error(t("pages.adminSettings.saveSettingFailed"));
@@ -3594,6 +3603,7 @@ function SettingsSection() {
         const rest = prev.filter((s) => s.key !== "feature.communities_enabled");
         return updated ? [...rest, updated] : rest;
       });
+      setDrafts((prev) => ({ ...prev, "feature.communities_enabled": { enabled: checked } }));
       await loadFeatureFlagsFromServer();
       toast.success(checked ? t("pages.adminSettings.featureCards.communities.enabled") : t("pages.adminSettings.featureCards.communities.disabled"));
     } catch {

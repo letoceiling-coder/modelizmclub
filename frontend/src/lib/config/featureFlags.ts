@@ -86,6 +86,7 @@ export async function loadFeatureFlagsFromServer(): Promise<void> {
 if (typeof window !== "undefined" && !serverFetchStarted) {
   serverFetchStarted = true;
   void loadFeatureFlagsFromServer();
+  window.addEventListener("focus", () => void loadFeatureFlagsFromServer());
 }
 
 /** Read a flag outside React (e.g. plain non-component modules). */

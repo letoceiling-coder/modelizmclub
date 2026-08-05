@@ -834,6 +834,7 @@ export const en: TranslationSchema = {
       createChannel: "Create channel",
       sectionMine: "My channels",
       sectionMineSub: "Channels where you are owner or author",
+      ownerMenuAria: "Channel actions",
       sectionSubscriptions: "My subscriptions",
       sectionSubscriptionsSub: "Channels you subscribed to",
       sectionPopular: "Popular channels",
