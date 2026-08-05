@@ -66,7 +66,7 @@ function notify() {
 }
 
 export async function loadFeatureFlagsFromServer(): Promise<void> {
-  if (isDemoMode() || typeof window === "undefined") return;
+  if (isDemoMode()) return;
   try {
     const res = await api<{ data: { communities_enabled?: boolean; market_enabled?: boolean; escrow_enabled?: boolean; listing_payment_enabled?: boolean } }>("/public/feature-flags", {
       auth: false,
@@ -77,7 +77,9 @@ export async function loadFeatureFlagsFromServer(): Promise<void> {
       escrowEnabled: Boolean(res.data?.escrow_enabled),
       listingPaymentEnabled: Boolean(res.data?.listing_payment_enabled),
     };
-    notify();
+    if (typeof window !== "undefined") {
+      notify();
+    }
   } catch {
     // Keep defaults/localStorage on error.
   }
