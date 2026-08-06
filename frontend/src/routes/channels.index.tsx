@@ -67,6 +67,7 @@ const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
 
 
 const SECTION_LIMIT = 6;
+const CHANNEL_CARD_SCROLL_WIDTH = 300;
 
 function channelKindLabel(kind: ChannelKind, tr: (key: string) => string): string {
   const map: Record<ChannelKind, string> = {
@@ -179,22 +180,21 @@ function ChannelSection({
 
       </div>
 
-      <ul className={`grid gap-3${expanded ? "" : " sm:grid-cols-2"}`}>
-
+      <ul
+        className={
+          expanded
+            ? "-mx-[16px] flex snap-x snap-mandatory gap-3 overflow-x-auto px-[16px] pb-2 sm:mx-0 sm:px-0"
+            : "grid gap-3 sm:grid-cols-2"
+        }
+        style={expanded ? { scrollbarWidth: "thin" } : undefined}
+      >
         {visible.map((c) =>
-
           mine ? (
-
-            <MyChannelCard key={c.id} channel={c} onChanged={onChanged} />
-
+            <MyChannelCard key={c.id} channel={c} onChanged={onChanged} inScrollRow={expanded} />
           ) : (
-
-            <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={onChanged} />
-
+            <ChannelCard key={c.id} channel={c} subscribed={Boolean(c.isSubscribed)} onChanged={onChanged} inScrollRow={expanded} />
           ),
-
         )}
-
       </ul>
 
     </section>
@@ -373,7 +373,7 @@ function ChannelsPage() {
 
 
 
-function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged: () => void }) {
+function MyChannelCard({ channel: c, onChanged, inScrollRow }: { channel: Channel; onChanged: () => void; inScrollRow?: boolean }) {
 
   const { t } = useTranslation();
 
@@ -383,7 +383,10 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
 
   return (
 
-    <li>
+    <li
+      className={inScrollRow ? "shrink-0 snap-start" : undefined}
+      style={inScrollRow ? { flex: `0 0 ${CHANNEL_CARD_SCROLL_WIDTH}px` } : undefined}
+    >
 
       <div
 
@@ -569,7 +572,7 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
 
 
 
-function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; subscribed: boolean; onChanged: () => void }) {
+function ChannelCard({ channel: c, subscribed, onChanged, inScrollRow }: { channel: Channel; subscribed: boolean; onChanged: () => void; inScrollRow?: boolean }) {
 
   const { t } = useTranslation();
 
@@ -597,7 +600,10 @@ function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; 
 
   return (
 
-    <li>
+    <li
+      className={inScrollRow ? "shrink-0 snap-start" : undefined}
+      style={inScrollRow ? { flex: `0 0 ${CHANNEL_CARD_SCROLL_WIDTH}px` } : undefined}
+    >
 
       <div
 
