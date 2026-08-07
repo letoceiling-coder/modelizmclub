@@ -2369,13 +2369,13 @@ function MonetizationSection() {
   const savePlans = async () => {
     try {
       await Promise.all(
-        plans.map((t) =>
-          updateAdminPlan(t.slug, {
-            name: t.name,
-            price_cents: t.priceCents,
-            period_days: t.periodDays,
-            free_listings_per_month: t.freeListingsPerMonth,
-            listing_discount_percent: t.listingDiscountPercent,
+        plans.map((plan) =>
+          updateAdminPlan(plan.slug, {
+            name: plan.name,
+            price_cents: plan.priceCents,
+            period_days: plan.periodDays,
+            free_listings_per_month: plan.freeListingsPerMonth,
+            listing_discount_percent: plan.listingDiscountPercent,
           }),
         ),
       );
@@ -2423,28 +2423,28 @@ function MonetizationSection() {
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("pages.adminMonetization.tariffsTitle")}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4" style={{ gap: "12px", marginTop: "12px" }}>
-          {plans.map((t, i) => (
-            <div key={t.slug} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px" }}>
+          {plans.map((plan, i) => (
+            <div key={plan.slug} style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px" }}>
               <input
-                value={t.name}
+                value={plan.name}
                 onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                 className="w-full outline-none"
                 style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)", background: "transparent", border: "none", padding: 0 }}
               />
               <input
                 type="number"
-                value={Math.round(t.priceCents / 100)}
+                value={Math.round(plan.priceCents / 100)}
                 onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, priceCents: Math.max(0, +e.target.value) * 100 } : x))}
                 className="w-full outline-none"
                 style={{ fontSize: "20px", fontWeight: 700, color: "var(--accent)", background: "transparent", border: "none", padding: "4px 0", fontFamily: "var(--font-display)" }}
               />
               <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
                 <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.freeListingsLabel")}</span>
-                <input type="number" min={0} value={t.freeListingsPerMonth} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x))} style={inputStyle} />
+                <input type="number" min={0} value={plan.freeListingsPerMonth} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x))} style={inputStyle} />
               </label>
               <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
                 <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.discountLabel")}</span>
-                <input type="number" min={0} max={100} value={t.listingDiscountPercent} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, listingDiscountPercent: +e.target.value } : x))} style={inputStyle} />
+                <input type="number" min={0} max={100} value={plan.listingDiscountPercent} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, listingDiscountPercent: +e.target.value } : x))} style={inputStyle} />
               </label>
             </div>
           ))}
