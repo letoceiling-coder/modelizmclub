@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Loader2, SearchX } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, VideoCategory } from "@/lib/mock";
 import { fetchVideos, fetchVideoCategories } from "@/lib/api/reviews";
@@ -8,7 +9,8 @@ import { VideoCard } from "@/components/reviews/VideoCard";
 import { ReviewsHero } from "@/components/reviews/ReviewsHero";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SearchX } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
 
@@ -22,6 +24,28 @@ export const Route = createFileRoute("/reviews/")({
 });
 
 const ALL = "all";
+const SKELETON_COUNT = 8;
+
+function VideoCardSkeleton() {
+  return (
+    <div className="flex flex-col">
+      <Skeleton className="w-full rounded-[var(--r-card)]" style={{ aspectRatio: "16 / 9" }} />
+      <Skeleton className="mt-[8px] h-[14px] w-[92%] rounded-[6px]" />
+      <Skeleton className="mt-[6px] h-[14px] w-[65%] rounded-[6px]" />
+      <Skeleton className="mt-[6px] h-[11px] w-[45%] rounded-[6px]" />
+    </div>
+  );
+}
+
+function VideoGridSkeleton({ count = SKELETON_COUNT }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: count }, (_, i) => (
+        <VideoCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
 
 function ReviewsPage() {
   const { t } = useTranslation();
@@ -31,7 +55,9 @@ function ReviewsPage() {
   const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [activeCat, setActiveCat] = useState<string>(categoryFromUrl ?? ALL);
   const [query, setQuery] = useState(qFromUrl ?? "");
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
   const tabs = useMemo(() => {
     const sorted = [...categories].sort(
@@ -66,11 +92,21 @@ function ReviewsPage() {
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const isInitial = !hasLoadedOnceRef.current;
+    if (isInitial) setInitialLoading(true);
+    else setRefreshing(true);
+
     fetchVideos({ q: query || undefined, categorySlug: activeCat })
-      .then((list) => { if (alive) setVideos(list); })
+      .then((list) => {
+        if (alive) setVideos(list);
+      })
       .catch(() => {})
-      .finally(() => { if (alive) setLoading(false); });
+      .finally(() => {
+        if (!alive) return;
+        setInitialLoading(false);
+        setRefreshing(false);
+        hasLoadedOnceRef.current = true;
+      });
     return () => { alive = false; };
   }, [query, activeCat]);
 
@@ -127,19 +163,35 @@ function ReviewsPage() {
           </section>
         )}
 
-        <section className="space-y-[12px]">
+        <section className="relative space-y-[12px]">
           <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
             {sectionTitle}
           </h2>
-          {loading ? (
-            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.loading")}</p>
+          {((initialLoading || refreshing) && videos.length === 0) ? (
+            <VideoGridSkeleton />
           ) : videos.length === 0 ? (
             <EmptyState icon={SearchX} title={t("pages.reviews.nothingFound")} description={t("pages.reviews.nothingFoundDesc")} />
           ) : (
-            <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
+            <div
+              className={cn(
+                "grid grid-cols-2 gap-[16px] transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4",
+                refreshing && "pointer-events-none opacity-55",
+              )}
+            >
               {videos.map((v) => (
                 <VideoCard key={v.id} video={v} />
               ))}
+            </div>
+          )}
+          {refreshing && videos.length > 0 && (
+            <div className="pointer-events-none absolute inset-x-0 top-[44px] flex justify-center pt-[48px]">
+              <span
+                className="inline-flex items-center gap-[8px] rounded-full px-[12px] py-[6px] text-[12px] font-medium"
+                style={{ background: "var(--background-elevated)", color: "var(--foreground-70)", boxShadow: "var(--shadow-card)" }}
+              >
+                <Loader2 size={14} className="animate-spin" style={{ color: "var(--accent)" }} />
+                {t("pages.reviews.loading")}
+              </span>
             </div>
           )}
         </section>
