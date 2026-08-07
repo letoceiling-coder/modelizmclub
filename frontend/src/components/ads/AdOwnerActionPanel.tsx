@@ -42,20 +42,20 @@ interface AdOwnerActionPanelProps {
 function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
     <div
-      className="flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-[6px] rounded-[10px] px-[8px] py-[10px] text-center"
+      className="grid h-full min-h-[92px] grid-rows-[18px_minmax(0,1fr)_auto] items-center justify-items-center gap-[4px] rounded-[10px] px-[6px] py-[10px] text-center"
       style={{ background: "var(--background-surface)" }}
     >
-      <span className="grid h-[16px] w-[16px] shrink-0 place-items-center" style={{ color: "var(--foreground-50)" }}>
+      <span className="grid h-[16px] w-[16px] place-items-center" style={{ color: "var(--foreground-50)" }}>
         {icon}
-      </span>
-      <span
-        className="flex min-h-[28px] items-center justify-center text-[10px] font-medium leading-[1.25]"
-        style={{ color: "var(--foreground-50)" }}
-      >
-        {label}
       </span>
       <span className="font-display text-[18px] font-bold tabular-nums leading-none" style={{ color: "var(--foreground)" }}>
         {value}
+      </span>
+      <span
+        className="line-clamp-2 text-[10px] font-medium leading-[1.2]"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {label}
       </span>
     </div>
   );
@@ -136,7 +136,7 @@ export function AdOwnerActionPanel({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-[8px]">
+        <div className="grid grid-cols-3 items-stretch gap-[8px]">
           <StatTile
             icon={<Eye size={14} />}
             label={t("pages.adDetail.ownerStatViews")}
@@ -183,36 +183,36 @@ export function AdOwnerActionPanel({
             {!ad.promoted && (
               <Button
                 variant="outline"
-                size="lg"
                 onClick={() => setBoostOpen(true)}
-                className="h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[10px] text-[13px] leading-tight"
+                className="inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug"
                 disabled={busy}
               >
-                <Zap size={16} className="shrink-0" /> {t("pages.adDetail.ownerBoost")}
+                <Zap size={16} className="shrink-0" />
+                <span className="min-w-0 text-center">{t("pages.adDetail.ownerBoost")}</span>
               </Button>
             )}
             <Button
               variant="outline"
-              size="lg"
               onClick={onShare}
               className={cn(
-                "h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[10px] text-[13px] leading-tight",
+                "inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug",
                 ad.promoted && "col-span-2",
               )}
               disabled={busy}
             >
-              <Share2 size={16} className="shrink-0" /> {t("pages.adDetail.ownerShare")}
+              <Share2 size={16} className="shrink-0" />
+              <span className="min-w-0 text-center">{t("pages.adDetail.ownerShare")}</span>
             </Button>
           </div>
           <Button
             variant="outline"
-            size="lg"
             onClick={onDelete}
-            className="h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[10px] text-[13px] leading-tight"
+            className="inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug"
             disabled={busy}
             style={{ color: "var(--error)", borderColor: "color-mix(in oklab, var(--error) 35%, var(--border))" }}
           >
-            <Trash2 size={16} className="shrink-0" /> {t("pages.adDetail.ownerDelete")}
+            <Trash2 size={16} className="shrink-0" />
+            <span className="min-w-0 text-center">{t("pages.adDetail.ownerDelete")}</span>
           </Button>
         </div>
       </Card>
