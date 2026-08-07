@@ -73,7 +73,9 @@ export function BannerHeroSlide({
           {banner.title || "Заголовок баннера"}
         </h2>
         {banner.text ? (
-          <p className="line-clamp-2 min-h-0 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">{banner.text}</p>
+          <p className="line-clamp-3 shrink-0 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">
+            {banner.text}
+          </p>
         ) : null}
         <div className="mt-[6px] shrink-0">
           <button
