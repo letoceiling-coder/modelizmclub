@@ -42,11 +42,16 @@ interface AdOwnerActionPanelProps {
 function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
     <div
-      className="flex flex-col gap-[4px] rounded-[10px] px-[10px] py-[8px]"
+      className="flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-[6px] rounded-[10px] px-[8px] py-[10px] text-center"
       style={{ background: "var(--background-surface)" }}
     >
-      <span className="inline-flex items-center gap-[5px] text-[11px] font-medium" style={{ color: "var(--foreground-50)" }}>
+      <span className="grid h-[16px] w-[16px] shrink-0 place-items-center" style={{ color: "var(--foreground-50)" }}>
         {icon}
+      </span>
+      <span
+        className="flex min-h-[28px] items-center justify-center text-[10px] font-medium leading-[1.25]"
+        style={{ color: "var(--foreground-50)" }}
+      >
         {label}
       </span>
       <span className="font-display text-[18px] font-bold tabular-nums leading-none" style={{ color: "var(--foreground)" }}>
@@ -131,19 +136,19 @@ export function AdOwnerActionPanel({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-[8px]">
           <StatTile
-            icon={<Eye size={12} />}
+            icon={<Eye size={14} />}
             label={t("pages.adDetail.ownerStatViews")}
             value={ad.views ?? 0}
           />
           <StatTile
-            icon={<Heart size={12} />}
+            icon={<Heart size={14} />}
             label={t("pages.adDetail.ownerStatFavorites")}
             value={ad.likes ?? 0}
           />
           <StatTile
-            icon={<MessageSquare size={12} />}
+            icon={<MessageSquare size={14} />}
             label={t("pages.adDetail.ownerStatMessages")}
             value="—"
           />
@@ -173,28 +178,41 @@ export function AdOwnerActionPanel({
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-[8px]">
-          {!ad.promoted && (
+        <div className="flex flex-col gap-[8px]">
+          <div className="grid grid-cols-2 gap-[8px]">
+            {!ad.promoted && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setBoostOpen(true)}
+                className="h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[10px] text-[13px] leading-tight"
+                disabled={busy}
+              >
+                <Zap size={16} className="shrink-0" /> {t("pages.adDetail.ownerBoost")}
+              </Button>
+            )}
             <Button
               variant="outline"
-              onClick={() => setBoostOpen(true)}
-              className="rounded-[var(--r-button)]"
+              size="lg"
+              onClick={onShare}
+              className={cn(
+                "h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[10px] text-[13px] leading-tight",
+                ad.promoted && "col-span-2",
+              )}
               disabled={busy}
             >
-              <Zap size={14} /> {t("pages.adDetail.ownerBoost")}
+              <Share2 size={16} className="shrink-0" /> {t("pages.adDetail.ownerShare")}
             </Button>
-          )}
-          <Button variant="outline" onClick={onShare} className="rounded-[var(--r-button)]" disabled={busy}>
-            <Share2 size={14} /> {t("pages.adDetail.ownerShare")}
-          </Button>
+          </div>
           <Button
             variant="outline"
+            size="lg"
             onClick={onDelete}
-            className={cn("rounded-[var(--r-button)]", !ad.promoted && "col-span-2")}
+            className="h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[10px] text-[13px] leading-tight"
             disabled={busy}
             style={{ color: "var(--error)", borderColor: "color-mix(in oklab, var(--error) 35%, var(--border))" }}
           >
-            <Trash2 size={14} /> {t("pages.adDetail.ownerDelete")}
+            <Trash2 size={16} className="shrink-0" /> {t("pages.adDetail.ownerDelete")}
           </Button>
         </div>
       </Card>
