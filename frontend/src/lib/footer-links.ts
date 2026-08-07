@@ -1,5 +1,5 @@
 export interface FooterLink {
-  label: string;
+  labelKey: string;
   to: string;
 }
 
@@ -9,20 +9,20 @@ export interface FooterSocial {
 }
 
 export const SUPPORT_LINKS: FooterLink[] = [
-  { label: "Помощь и FAQ", to: "/help" },
-  { label: "Написать в поддержку", to: "/info/support" },
-  { label: "Оставить отзыв", to: "/info/feedback" },
+  { labelKey: "components.footerLinks.helpFaq", to: "/help" },
+  { labelKey: "components.footerLinks.writeSupport", to: "/info/support" },
+  { labelKey: "components.footerLinks.leaveFeedback", to: "/info/feedback" },
 ];
 
 export const COMPANY_LINKS: FooterLink[] = [
-  { label: "О компании", to: "/info/company" },
-  { label: "Реклама", to: "/info/advertising" },
-  { label: "Контакты", to: "/info/contacts" },
+  { labelKey: "components.footerLinks.aboutCompany", to: "/info/company" },
+  { labelKey: "components.footerLinks.advertising", to: "/info/advertising" },
+  { labelKey: "components.footerLinks.contacts", to: "/info/contacts" },
 ];
 
 export const DOCS_LINKS: FooterLink[] = [
-  { label: "Правила", to: "/legal/rules" },
-  { label: "Безопасность", to: "/info/security" },
+  { labelKey: "components.footerLinks.rules", to: "/legal/rules" },
+  { labelKey: "components.footerLinks.security", to: "/info/security" },
 ];
 
 // href: null — no confirmed real account. Rendered as a disabled/TODO chip,
@@ -30,4 +30,10 @@ export const DOCS_LINKS: FooterLink[] = [
 export const SOCIAL_LINKS: FooterSocial[] = [
   { label: "MAX", href: null },
   { label: "VK", href: null },
+];
+
+export const FOOTER_COLUMNS: { titleKey: string; links: FooterLink[] }[] = [
+  { titleKey: "components.footerLinks.supportTitle", links: SUPPORT_LINKS },
+  { titleKey: "components.footerLinks.companyTitle", links: COMPANY_LINKS },
+  { titleKey: "components.footerLinks.docsTitle", links: DOCS_LINKS },
 ];

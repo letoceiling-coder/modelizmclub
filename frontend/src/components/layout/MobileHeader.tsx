@@ -58,7 +58,7 @@ export function MobileHeader() {
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            aria-label="Поиск"
+            aria-label={t("common.search")}
             onClick={() => setSearchOpen(true)}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
@@ -68,7 +68,7 @@ export function MobileHeader() {
 
           <Link
             to="/favorites"
-            aria-label="Избранное"
+            aria-label={t("nav.favorites")}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
           >
@@ -77,7 +77,7 @@ export function MobileHeader() {
 
           <Link
             to="/notifications"
-            aria-label="Уведомления"
+            aria-label={t("nav.notifications")}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
           >
@@ -112,7 +112,7 @@ export function MobileHeader() {
 
 function MoreMenu() {
   const [open, setOpen] = useState(false);
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const lang = (i18n.language as Locale) || "ru";
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
@@ -140,7 +140,7 @@ function MoreMenu() {
         <span style={{ display: "inline-flex", color: "var(--foreground-70)" }}>
           <SlotIcon slot={navSlotKey(s.key)} inheritColor size={20} />
         </span>
-        <span className="flex-1 text-[15px] font-medium">{s.label}</span>
+        <span className="flex-1 text-[15px] font-medium">{t(s.labelKey)}</span>
         {s.href && <ExternalLink size={15} style={{ color: "var(--foreground-50)" }} />}
       </>
     );
@@ -162,7 +162,7 @@ function MoreMenu() {
     <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
       <DrawerTrigger asChild>
         <button
-          aria-label="Ещё"
+          aria-label={t("common.more")}
           className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
           style={{ color: "var(--foreground-70)" }}
         >
@@ -172,7 +172,7 @@ function MoreMenu() {
 
       <DrawerContent className="pb-[calc(var(--safe-bottom)+12px)]">
         <div className="px-4 pt-3">
-          <DrawerTitle className="text-base">Меню</DrawerTitle>
+          <DrawerTitle className="text-base">{t("landing.nav.menu")}</DrawerTitle>
         </div>
 
         <div className="mt-2 flex max-h-[70dvh] flex-col overflow-y-auto px-2 pb-1">
@@ -191,7 +191,7 @@ function MoreMenu() {
               className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide"
               style={{ color: "var(--foreground-50)" }}
             >
-              <Languages size={14} /> Язык
+              <Languages size={14} /> {t("lang.title")}
             </span>
           </div>
           {LANGS.map((l) => (

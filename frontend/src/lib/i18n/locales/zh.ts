@@ -44,7 +44,8 @@ export const zh: TranslationSchema = {
     myAds: "My Listings",
     favorites: "Favorites",
     reviews: "Reviews",
-    settings: "Settings"
+    settings: "Settings",
+    messagesTab: "消息"
   },
   auth: {
     login: "Sign in",
@@ -57,10 +58,49 @@ export const zh: TranslationSchema = {
     verifyEmail: "Email verification"
   },
   lang: {
-    title: "Language",
+    title: "语言",
     ru: "Русский",
     en: "English",
     zh: "中文"
+  },
+  search: {
+    placeholder: "搜索网站",
+    adsPlaceholder: "搜索公告…",
+    searching: "搜索中…",
+    recent: "最近",
+    allAdsForQuery: "查询「{{q}}」的所有公告",
+    tabs: {
+      all: "全部",
+      users: "用户",
+      communities: "社区",
+      ads: "公告",
+      categories: "分类"
+    },
+    groups: {
+      categories: "分类",
+      users: "用户",
+      communities: "社区",
+      ads: "公告"
+    }
+  },
+  presence: {
+    online: "在线",
+    longAgo: "很久未上线",
+    justNow: "刚刚在线",
+    minutesAgo: "{{count}}{{unit}}前在线",
+    todayAt: "今天 {{time}} 在线",
+    yesterdayAt: "昨天 {{time}} 在线",
+    dateAt: "{{date}} {{time}} 在线",
+    fullDateAt: "{{date}} {{time}} 在线",
+    minute_one: "分钟",
+    minute_few: "分钟",
+    minute_many: "分钟"
+  },
+  site: {
+    metaTitle: "模艺社 — 模型爱好者社区",
+    metaDescription: "模型爱好者社交平台：遥控车、飞机、无人机、舰船、电子。聊天、公告、社区。",
+    rootMetaTitle: "模艺社 — 模型爱好者社区",
+    rootMetaDescription: "模型爱好者社交平台：遥控车、飞机、无人机、舰船、电子。聊天、公告、社区。"
   },
   landing: {
     nav: {
@@ -79,6 +119,8 @@ export const zh: TranslationSchema = {
       brand: "Modelizm",
       tagline: "A marketplace, feed and community for modelers",
       subtitle: "Buy models and parts, share your builds, find clubs and connect with modelers across the country.",
+      metaTitle: "模艺社 — 模型爱好者市场与社区",
+      metaDescription: "模型爱好者的市场、动态和社区：遥控车、飞机、无人机、舰船、电子。购买、分享作品、寻找俱乐部。",
       ctaBrowse: "Listings",
       scroll: "Scroll",
       videoAlt: "RC model builds",
@@ -395,6 +437,80 @@ export const zh: TranslationSchema = {
       sendFailed: "Couldn't attach the post, a link was sent instead",
       copied: "Copied",
       copyLink: "Copy link"
+    },
+    postCard: {
+      reposted: "转发了",
+      moderation: "审核中",
+      scheduled: "已计划",
+      published: "已发布",
+      publishFailed: "发布失败",
+      cancelScheduleConfirm: "取消定时发布？",
+      cancelled: "已取消发布",
+      cancelFailed: "取消失败",
+      scheduledFor: "将于以下时间发布：",
+      readMore: "阅读全文",
+      collapse: "收起",
+      likeAria: "点赞",
+      commentsAria: "评论",
+      saveAria: "保存",
+      justNow: "刚刚"
+    },
+    createPostMenu: {
+      placeholder: "有什么新动态？",
+      post: "帖子",
+      video: "视频",
+      sendAria: "发送",
+      createAria: "创建帖子或视频",
+      addMediaAria: "添加照片或视频"
+    },
+    adsCatalog: {
+      sortNew: "最新优先",
+      sortCheap: "价格从低到高",
+      sortExpensive: "价格从高到低",
+      sortPopular: "热门",
+      filters: "筛选",
+      sortAria: "排序",
+      refreshing: "刷新列表…",
+      found: "找到：",
+      listing_one: "条公告",
+      listing_few: "条公告",
+      listing_many: "条公告",
+      category: "分类",
+      subcategory: "子分类",
+      status: "状态",
+      price: "价格，₽",
+      city: "城市",
+      anyCity: "任意城市",
+      resetFilters: "重置筛选",
+      from: "从",
+      to: "到",
+      dealSell: "出售",
+      dealBuy: "求购",
+      dealExchange: "交换",
+      favAria: "加入收藏",
+      recently: "最近",
+      justNow: "刚刚",
+      hoursAgo: "{{count}} 小时前",
+      yesterday: "昨天",
+      daysAgo: "{{count}} 天前"
+    },
+    footerLinks: {
+      supportTitle: "支持",
+      companyTitle: "公司",
+      docsTitle: "文档",
+      helpFaq: "帮助与常见问题",
+      writeSupport: "联系支持",
+      leaveFeedback: "留下反馈",
+      aboutCompany: "关于我们",
+      advertising: "广告",
+      contacts: "联系方式",
+      rules: "规则",
+      security: "安全"
+    },
+    themeToggle: {
+      aria: "切换主题",
+      light: "浅色主题",
+      dark: "深色主题"
     },
     createPostForm: {
       photosRestoreFailed: "Фото из черновика восстановить не удалось — добавьте их заново",
@@ -1095,6 +1211,8 @@ export const zh: TranslationSchema = {
       copyFromBar: "Copy the link from the address bar",
       loginForFavorite: "Sign in to add to favorites",
       favoriteFailed: "Could not update favorites",
+      loginRequiredAction: "请登录以执行此操作",
+      featureSoon: "{{label}}：即将推出",
       removedFromFavorites: "Removed from favorites",
       addedToFavorites: "Added to favorites",
       noDescription: "No description.",

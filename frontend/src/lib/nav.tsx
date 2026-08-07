@@ -11,7 +11,7 @@ export interface MobileMenuSection {
   to?: string;
   /** External link (mutually exclusive with `to`). */
   href?: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
   group: NavGroup;
   authOnly?: boolean;
@@ -32,15 +32,15 @@ export interface MobileMenuSection {
  */
 export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
   // — Контент —
-  { key: "channels", to: ROUTES.channels, label: "Каналы", icon: Radio, group: "content" },
-  { key: "reviews", to: ROUTES.reviews, label: "Обзоры", icon: Clapperboard, group: "content", flag: "reviewsEnabled" },
-  { key: "my-ads", to: ROUTES.myAds, label: "Мои объявления", icon: ClipboardList, group: "content", authOnly: true },
-  { key: "favorites", to: ROUTES.favorites, label: "Избранное", icon: Heart, group: "content", authOnly: true },
-  { key: "ad-create", to: ROUTES.adCreate, label: "Разместить объявление", icon: Plus, group: "content" },
+  { key: "channels", to: ROUTES.channels, labelKey: "nav.channels", icon: Radio, group: "content" },
+  { key: "reviews", to: ROUTES.reviews, labelKey: "nav.reviews", icon: Clapperboard, group: "content", flag: "reviewsEnabled" },
+  { key: "my-ads", to: ROUTES.myAds, labelKey: "nav.myAds", icon: ClipboardList, group: "content", authOnly: true },
+  { key: "favorites", to: ROUTES.favorites, labelKey: "nav.favorites", icon: Heart, group: "content", authOnly: true },
+  { key: "ad-create", to: ROUTES.adCreate, labelKey: "nav.adCreate", icon: Plus, group: "content" },
   // — Аккаунт —
-  { key: "settings", to: ROUTES.settings, label: "Настройки", icon: Settings, group: "account", authOnly: true },
-  { key: "subscription", to: ROUTES.subscription, label: "Подписка", icon: Crown, group: "account" },
-  { key: "market", href: "https://modelizm23.ru", label: "Маркет", icon: ShoppingBag, group: "account", flag: "marketEnabled" },
+  { key: "settings", to: ROUTES.settings, labelKey: "nav.settings", icon: Settings, group: "account", authOnly: true },
+  { key: "subscription", to: ROUTES.subscription, labelKey: "nav.subscription", icon: Crown, group: "account" },
+  { key: "market", href: "https://modelizm23.ru", labelKey: "nav.market", icon: ShoppingBag, group: "account", flag: "marketEnabled" },
 ];
 
 /** Routes surfaced as bottom tabs (communities only when feature.communities_enabled is on). */

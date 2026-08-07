@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Search as SearchIcon, User as UserIcon, Users2, Megaphone, Compass, Clock, Clapperboard,
   type LucideIcon,
@@ -11,13 +12,7 @@ import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 type TabKey = "all" | "users" | "communities" | "ads" | "categories";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "all", label: "Все" },
-  { key: "users", label: "Люди" },
-  { key: "communities", label: "Сообщества" },
-  { key: "ads", label: "Объявления" },
-  { key: "categories", label: "Направления" },
-];
+const TAB_KEYS: TabKey[] = ["all", "users", "communities", "ads", "categories"];
 
 const KIND_ROUTE: Record<ViewHistoryItem["kind"], { to: string; icon: LucideIcon }> = {
   ad: { to: "/ads/$id", icon: Megaphone },
@@ -42,8 +37,10 @@ interface Props {
  *  "recent" block backed by the shared view-history mechanism. Desktop keeps
  *  the GlobalSearch dropdown; this is lg:hidden-scoped only. */
 export function MobileSearchOverlay({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
-  const tabs = communitiesEnabled ? TABS : TABS.filter((t) => t.key !== "communities");
+  const tabs = (communitiesEnabled ? TAB_KEYS : TAB_KEYS.filter((k) => k !== "communities"))
+    .map((key) => ({ key, label: t(`search.tabs.${key}`) }));
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const q = query.trim();
@@ -109,7 +106,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
               <input
                 type="search"
                 autoFocus
-                placeholder="Поиск по сайту"
+                placeholder={t("search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full text-[14px] outline-none transition-colors"
@@ -129,7 +126,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
               className="shrink-0 text-[14px] font-medium"
               style={{ color: "var(--accent)" }}
             >
-              Отмена
+              {t("common.cancel")}
             </button>
           </div>
 
@@ -160,7 +157,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
           <div className="flex-1 overflow-y-auto">
             {q.length === 0 ? (
               recentItems.length > 0 && (
-                <SearchGroup label="Недавние" icon={Clock}>
+                <SearchGroup label={t("search.recent")} icon={Clock}>
                   {recentItems.map((item) => {
                     const { to, icon } = KIND_ROUTE[item.kind];
                     return (
@@ -179,7 +176,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
               )
             ) : q.length < MIN_QUERY_LENGTH ? null : !activeHasAny ? (
               <div className="px-[14px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                {loading ? "Ищем…" : "Ничего не найдено"}
+                {loading ? t("search.searching") : t("pages.shared.nothingFound")}
               </div>
             ) : activeTab === "all" ? (
               // "Все" mirrors desktop's per-group limits (4/4/5/5) by slicing
@@ -187,28 +184,28 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
               // no extra fetch, see the useGlobalSearch call above.
               <>
                 {results.categories.length > 0 && (
-                  <SearchGroup label="Направления" icon={Compass}>
+                  <SearchGroup label={t("search.groups.categories")} icon={Compass}>
                     {results.categories.slice(0, 5).map((c) => (
                       <ResultRow key={c.id} to="/categories/$id" params={{ id: c.id }} fallbackIcon={Compass} title={c.name} onNavigate={close} />
                     ))}
                   </SearchGroup>
                 )}
                 {results.users.length > 0 && (
-                  <SearchGroup label="Люди" icon={UserIcon}>
+                  <SearchGroup label={t("search.groups.users")} icon={UserIcon}>
                     {results.users.slice(0, 4).map((u) => (
                       <ResultRow key={u.id} to="/user/$id" params={{ id: u.slug ?? u.id }} avatar={u.avatar} fallbackIcon={UserIcon} title={u.name} subtitle={u.city} onNavigate={close} />
                     ))}
                   </SearchGroup>
                 )}
                 {communitiesEnabled && results.communities.length > 0 && (
-                  <SearchGroup label="Сообщества" icon={Users2}>
+                  <SearchGroup label={t("search.groups.communities")} icon={Users2}>
                     {results.communities.slice(0, 4).map((c) => (
-                      <ResultRow key={c.id} to="/communities/$id" params={{ id: c.id }} avatar={c.avatarImage} fallbackIcon={Users2} title={c.name} subtitle={`${c.members} участников`} onNavigate={close} />
+                      <ResultRow key={c.id} to="/communities/$id" params={{ id: c.id }} avatar={c.avatarImage} fallbackIcon={Users2} title={c.name} subtitle={t("pages.shared.members", { count: c.members })} onNavigate={close} />
                     ))}
                   </SearchGroup>
                 )}
                 {results.ads.length > 0 && (
-                  <SearchGroup label="Объявления" icon={Megaphone}>
+                  <SearchGroup label={t("search.groups.ads")} icon={Megaphone}>
                     {results.ads.slice(0, 5).map((ad) => (
                       <ResultRow key={ad.id} to="/ads/$id" params={{ id: ad.id }} avatar={ad.image} fallbackIcon={Megaphone} title={ad.title} subtitle={`${ad.price.toLocaleString("ru-RU")} ₽`} onNavigate={close} />
                     ))}

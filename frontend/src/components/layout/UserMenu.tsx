@@ -120,7 +120,7 @@ export function UserMenu() {
             className="flex items-center gap-2"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            {isDark ? "Светлая тема" : "Тёмная тема"}
+            {isDark ? t("components.themeToggle.light") : t("components.themeToggle.dark")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={handleSignOut} className="flex items-center gap-2">

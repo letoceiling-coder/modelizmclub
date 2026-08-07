@@ -1,13 +1,16 @@
 import { Search, SlidersHorizontal } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export type SortKey = "new" | "cheap" | "expensive" | "popular";
 export type ViewMode = "grid" | "list";
 
-const SORT_LABEL: Record<SortKey, string> = {
-  new: "Сначала новые",
-  cheap: "Сначала дешевле",
-  expensive: "Сначала дороже",
-  popular: "Популярные",
+const SORT_KEYS: SortKey[] = ["new", "cheap", "expensive", "popular"];
+
+const SORT_LABEL_KEY: Record<SortKey, string> = {
+  new: "components.adsCatalog.sortNew",
+  cheap: "components.adsCatalog.sortCheap",
+  expensive: "components.adsCatalog.sortExpensive",
+  popular: "components.adsCatalog.sortPopular",
 };
 
 interface Props {
@@ -22,9 +25,10 @@ interface Props {
 }
 
 export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, filterCount = 0, refreshing = false }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-[10px]">
-      {/* Row 1 — search + compact filter button (icon-only on mobile, Avito-style) */}
       <div className="flex items-center gap-[8px]">
         <div className="relative min-w-0 flex-1">
           <Search
@@ -35,7 +39,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
           <input
             value={query}
             onChange={(e) => onQuery(e.target.value)}
-            placeholder="Поиск по объявлениям…"
+            placeholder={t("search.adsPlaceholder")}
             className="w-full text-[14px] outline-none transition-colors"
             style={{
               background: "var(--background-elevated)",
@@ -53,7 +57,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
         <button
           type="button"
           onClick={onOpenFilters}
-          aria-label="Фильтры"
+          aria-label={t("components.adsCatalog.filters")}
           className="relative inline-flex w-[44px] shrink-0 items-center justify-center gap-[8px] px-0 text-[14px] font-medium sm:w-auto sm:px-[16px] xl:hidden"
           style={{
             background: "var(--background-elevated)",
@@ -64,7 +68,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
           }}
         >
           <SlidersHorizontal size={18} />
-          <span className="hidden sm:inline">Фильтры</span>
+          <span className="hidden sm:inline">{t("components.adsCatalog.filters")}</span>
           {filterCount > 0 && (
             <span
               className="absolute -right-[6px] -top-[6px] grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold sm:static sm:min-w-[20px] sm:px-[6px] sm:text-[11px]"
@@ -76,21 +80,22 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
         </button>
       </div>
 
-      {/* Row 2 — result count (left) + sort (right) */}
       <div className="flex items-center justify-between gap-[8px]">
         <div className="min-w-0 truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
           {refreshing ? (
-            <>Обновление списка…</>
+            <>{t("components.adsCatalog.refreshing")}</>
           ) : (
             <>
-              Найдено: <span style={{ color: "var(--foreground)" }}>{count}</span> {plural(count)}
+              {t("components.adsCatalog.found")}{" "}
+              <span style={{ color: "var(--foreground)" }}>{count}</span>{" "}
+              {pluralListings(count, t)}
             </>
           )}
         </div>
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as SortKey)}
-          aria-label="Сортировка"
+          aria-label={t("components.adsCatalog.sortAria")}
           className="shrink-0 cursor-pointer text-[13px] font-medium outline-none"
           style={{
             background: "var(--background-elevated)",
@@ -101,8 +106,8 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
             padding: "0 10px",
           }}
         >
-          {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
-            <option key={k} value={k}>{SORT_LABEL[k]}</option>
+          {SORT_KEYS.map((k) => (
+            <option key={k} value={k}>{t(SORT_LABEL_KEY[k])}</option>
           ))}
         </select>
       </div>
@@ -110,10 +115,10 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
   );
 }
 
-function plural(n: number) {
+function pluralListings(n: number, t: (key: string) => string) {
   const mod10 = n % 10;
   const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return "объявление";
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "объявления";
-  return "объявлений";
+  if (mod10 === 1 && mod100 !== 11) return t("components.adsCatalog.listing_one");
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return t("components.adsCatalog.listing_few");
+  return t("components.adsCatalog.listing_many");
 }

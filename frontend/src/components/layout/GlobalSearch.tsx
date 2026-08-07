@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Search, User as UserIcon, Users2, Megaphone, Compass } from "lucide-react";
 import { useGlobalSearch, MIN_QUERY_LENGTH } from "@/lib/hooks/useGlobalSearch";
 import { SearchGroup, ResultRow } from "@/components/layout/search/SearchResultRow";
@@ -9,6 +10,7 @@ import { useFeatureFlag } from "@/lib/config/featureFlags";
  *  объявления, направления), VK-style. Replaces the old behavior of only
  *  ever being able to search ads via a catalog redirect. */
 export function GlobalSearch() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const [value, setValue] = useState("");
@@ -45,7 +47,7 @@ export function GlobalSearch() {
       />
       <input
         type="search"
-        placeholder="Поиск по сайту"
+        placeholder={t("search.placeholder")}
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
@@ -79,12 +81,12 @@ export function GlobalSearch() {
         >
           {!hasAny ? (
             <div className="px-[14px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              {loading ? "Ищем…" : "Ничего не найдено"}
+              {loading ? t("search.searching") : t("pages.shared.nothingFound")}
             </div>
           ) : (
             <>
               {results.categories.length > 0 && (
-                <SearchGroup label="Направления" icon={Compass}>
+                <SearchGroup label={t("search.groups.categories")} icon={Compass}>
                   {results.categories.map((c) => (
                     <ResultRow
                       key={c.id}
@@ -98,7 +100,7 @@ export function GlobalSearch() {
                 </SearchGroup>
               )}
               {results.users.length > 0 && (
-                <SearchGroup label="Люди" icon={UserIcon}>
+                <SearchGroup label={t("search.groups.users")} icon={UserIcon}>
                   {results.users.map((u) => (
                     <ResultRow
                       key={u.id}
@@ -114,7 +116,7 @@ export function GlobalSearch() {
                 </SearchGroup>
               )}
               {communitiesEnabled && results.communities.length > 0 && (
-                <SearchGroup label="Сообщества" icon={Users2}>
+                <SearchGroup label={t("search.groups.communities")} icon={Users2}>
                   {results.communities.map((c) => (
                     <ResultRow
                       key={c.id}
@@ -123,14 +125,14 @@ export function GlobalSearch() {
                       avatar={c.avatarImage}
                       fallbackIcon={Users2}
                       title={c.name}
-                      subtitle={`${c.members} участников`}
+                      subtitle={t("pages.shared.members", { count: c.members })}
                       onNavigate={() => setOpen(false)}
                     />
                   ))}
                 </SearchGroup>
               )}
               {results.ads.length > 0 && (
-                <SearchGroup label="Объявления" icon={Megaphone}>
+                <SearchGroup label={t("search.groups.ads")} icon={Megaphone}>
                   {results.ads.map((ad) => (
                     <ResultRow
                       key={ad.id}
@@ -153,7 +155,7 @@ export function GlobalSearch() {
             className="w-full px-[14px] py-[10px] text-left text-[13px] font-medium transition-colors hover:bg-[var(--background-surface)]"
             style={{ borderTop: "1px solid var(--border)", color: "var(--accent)" }}
           >
-            Все объявления по запросу «{q}»
+            {t("search.allAdsForQuery", { q })}
           </button>
         </div>
       )}

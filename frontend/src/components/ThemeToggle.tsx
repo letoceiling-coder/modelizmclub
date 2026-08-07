@@ -1,16 +1,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/components/ThemeProvider";
 
 export function ThemeToggle({ size = 40, alwaysVisible = false }: { size?: number; alwaysVisible?: boolean }) {
+  const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
 
   return (
     <button
       onClick={toggleTheme}
-      aria-label="Переключить тему"
-      title="Переключить тему"
+      aria-label={t("components.themeToggle.aria")}
+      title={t("components.themeToggle.aria")}
       // Theme switching is desktop-only by default — hidden below lg across
       // most surfaces (auth, onboarding, admin). Callers that need it on
       // mobile too (landing footer, landing burger menu) pass alwaysVisible.

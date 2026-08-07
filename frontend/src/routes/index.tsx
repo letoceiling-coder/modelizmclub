@@ -32,11 +32,13 @@ import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/
 
 const HERO_VIDEO = "/videos/herovideo.mp4";
 
+import i18n from "@/lib/i18n";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "МоДелизМ — маркетплейс и сообщество моделистов" },
-      { name: "description", content: "Маркетплейс, лента и сообщество для моделистов: RC авто, самолёты, квадрокоптеры, корабли, электроника. Покупайте, публикуйте сборки, находите клубы." },
+      { title: i18n.t("landing.hero.metaTitle") },
+      { name: "description", content: i18n.t("landing.hero.metaDescription") },
     ],
   }),
   component: LandingPage,
@@ -698,7 +700,7 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
         aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
         onClick={async () => {
           if (!getToken() && !isDemoMode()) {
-            toast.info("Войдите, чтобы добавить в избранное");
+            toast.info(t("pages.adDetail.loginForFavorite"));
             navigate({ to: "/login" });
             return;
           }
@@ -710,11 +712,11 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
               else await removeFavoriteListing(ad.id);
             } catch {
               actions.toggleFavoriteAd(ad.id);
-              toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
+              toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
               return;
             }
           }
-          toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
+          toast.success(next ? t("landing.card.favAdd") : t("landing.card.favRemove"), { id: "favorite-toggle" });
         }}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
@@ -740,11 +742,11 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
               <button key={label} onClick={() => {
                 setMenuOpen(false);
                 if (!getToken() && !isDemoMode()) {
-                  toast.info("Войдите, чтобы выполнить это действие");
+                  toast.info(t("pages.adDetail.loginRequiredAction"));
                   navigate({ to: "/login" });
                   return;
                 }
-                toast(`${label}: будет доступно позже`);
+                toast(t("pages.adDetail.featureSoon", { label }));
               }}
                 className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}

@@ -44,7 +44,8 @@ export const en: TranslationSchema = {
     myAds: "My Listings",
     favorites: "Favorites",
     reviews: "Reviews",
-    settings: "Settings"
+    settings: "Settings",
+    messagesTab: "Messages"
   },
   auth: {
     login: "Sign in",
@@ -61,6 +62,45 @@ export const en: TranslationSchema = {
     ru: "Русский",
     en: "English",
     zh: "中文"
+  },
+  search: {
+    placeholder: "Search the site",
+    adsPlaceholder: "Search listings…",
+    searching: "Searching…",
+    recent: "Recent",
+    allAdsForQuery: "All listings for «{{q}}»",
+    tabs: {
+      all: "All",
+      users: "People",
+      communities: "Communities",
+      ads: "Listings",
+      categories: "Categories"
+    },
+    groups: {
+      categories: "Categories",
+      users: "People",
+      communities: "Communities",
+      ads: "Listings"
+    }
+  },
+  presence: {
+    online: "online",
+    longAgo: "last seen a long time ago",
+    justNow: "last seen just now",
+    minutesAgo: "last seen {{count}} {{unit}} ago",
+    todayAt: "last seen today at {{time}}",
+    yesterdayAt: "last seen yesterday at {{time}}",
+    dateAt: "last seen {{date}} at {{time}}",
+    fullDateAt: "last seen {{date}} at {{time}}",
+    minute_one: "minute",
+    minute_few: "minutes",
+    minute_many: "minutes"
+  },
+  site: {
+    metaTitle: "MoDelizM — modelers community",
+    metaDescription: "Social platform for modelers: RC cars, planes, drones, ships, electronics. Chats, listings, communities.",
+    rootMetaTitle: "MoDelizM — modelers community",
+    rootMetaDescription: "Social platform for modelers: RC cars, planes, drones, ships, electronics. Chats, listings, communities."
   },
   landing: {
     nav: {
@@ -79,6 +119,8 @@ export const en: TranslationSchema = {
       brand: "Modelizm",
       tagline: "A marketplace, feed and community for modelers",
       subtitle: "Buy models and parts, share your builds, find clubs and connect with modelers across the country.",
+      metaTitle: "MoDelizM — marketplace and modelers community",
+      metaDescription: "Marketplace, feed and community for modelers: RC cars, planes, drones, ships, electronics. Buy, share builds, find clubs.",
       ctaBrowse: "Listings",
       scroll: "Scroll",
       videoAlt: "RC model builds",
@@ -402,6 +444,80 @@ export const en: TranslationSchema = {
       sendFailed: "Couldn't attach the post, a link was sent instead",
       copied: "Copied",
       copyLink: "Copy link"
+    },
+    postCard: {
+      reposted: "reposted",
+      moderation: "Under moderation",
+      scheduled: "Scheduled",
+      published: "Post published",
+      publishFailed: "Failed to publish",
+      cancelScheduleConfirm: "Cancel scheduled post?",
+      cancelled: "Post cancelled",
+      cancelFailed: "Failed to cancel",
+      scheduledFor: "Will be published:",
+      readMore: "Read more",
+      collapse: "Collapse",
+      likeAria: "Like",
+      commentsAria: "Comments",
+      saveAria: "Save",
+      justNow: "just now"
+    },
+    createPostMenu: {
+      placeholder: "What's new?",
+      post: "Post",
+      video: "Video",
+      sendAria: "Send",
+      createAria: "Create post or video",
+      addMediaAria: "Add photo or video"
+    },
+    adsCatalog: {
+      sortNew: "Newest first",
+      sortCheap: "Cheapest first",
+      sortExpensive: "Most expensive",
+      sortPopular: "Popular",
+      filters: "Filters",
+      sortAria: "Sort",
+      refreshing: "Refreshing list…",
+      found: "Found:",
+      listing_one: "listing",
+      listing_few: "listings",
+      listing_many: "listings",
+      category: "Category",
+      subcategory: "Subcategory",
+      status: "Status",
+      price: "Price, ₽",
+      city: "City",
+      anyCity: "Any city",
+      resetFilters: "Reset filters",
+      from: "from",
+      to: "to",
+      dealSell: "Selling",
+      dealBuy: "Buying",
+      dealExchange: "Exchange",
+      favAria: "Add to favorites",
+      recently: "recently",
+      justNow: "just now",
+      hoursAgo: "{{count}} h ago",
+      yesterday: "Yesterday",
+      daysAgo: "{{count}} d ago"
+    },
+    footerLinks: {
+      supportTitle: "Support",
+      companyTitle: "Company",
+      docsTitle: "Legal",
+      helpFaq: "Help & FAQ",
+      writeSupport: "Contact support",
+      leaveFeedback: "Leave feedback",
+      aboutCompany: "About us",
+      advertising: "Advertising",
+      contacts: "Contacts",
+      rules: "Terms",
+      security: "Security"
+    },
+    themeToggle: {
+      aria: "Toggle theme",
+      light: "Light theme",
+      dark: "Dark theme"
     },
     createPostForm: {
       photosRestoreFailed: "Фото из черновика восстановить не удалось — добавьте их заново",
@@ -1103,6 +1219,8 @@ export const en: TranslationSchema = {
       copyFromBar: "Copy the link from the address bar",
       loginForFavorite: "Sign in to add to favorites",
       favoriteFailed: "Could not update favorites",
+      loginRequiredAction: "Sign in to perform this action",
+      featureSoon: "{{label}}: coming soon",
       removedFromFavorites: "Removed from favorites",
       addedToFavorites: "Added to favorites",
       noDescription: "No description.",

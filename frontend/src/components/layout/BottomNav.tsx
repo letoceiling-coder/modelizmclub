@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User, UserPlus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { getActiveSection, ROUTES } from "@/lib/routes";
@@ -11,20 +12,21 @@ import { getToken } from "@/lib/api/client";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
-  label: string;
+  labelKey: string;
   icon: typeof Newspaper;
   section: string;
 };
 
 const ALL_ITEMS: Item[] = [
-  { to: "/feed", label: "Лента", icon: Newspaper, section: "feed" },
-  { to: "/communities", label: "Сообщества", icon: Users2, section: "communities" },
-  { to: "/messenger", label: "Сообщения", icon: MessageSquare, section: "messenger" },
-  { to: "/ads", label: "Объявления", icon: Megaphone, section: "ads" },
-  { to: "/profile", label: "Профиль", icon: User, section: "profile" },
-  { to: "/friends", label: "Друзья", icon: UserPlus, section: "friends" },
+  { to: "/feed", labelKey: "nav.feed", icon: Newspaper, section: "feed" },
+  { to: "/communities", labelKey: "nav.communities", icon: Users2, section: "communities" },
+  { to: "/messenger", labelKey: "nav.messagesTab", icon: MessageSquare, section: "messenger" },
+  { to: "/ads", labelKey: "nav.ads", icon: Megaphone, section: "ads" },
+  { to: "/profile", labelKey: "nav.profile", icon: User, section: "profile" },
+  { to: "/friends", labelKey: "nav.friends", icon: UserPlus, section: "friends" },
 ];
 export function BottomNav() {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeSection = getActiveSection(pathname);
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
@@ -54,6 +56,7 @@ export function BottomNav() {
           <NavTab
             key={it.to}
             item={it}
+            label={t(it.labelKey)}
             active={activeSection === it.section}
             badge={it.section === "messenger" ? unreadMessages : 0}
           />
@@ -63,7 +66,7 @@ export function BottomNav() {
   );
 }
 
-function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: number }) {
+function NavTab({ item, label, active, badge }: { item: Item; label: string; active: boolean; badge: number }) {
   const isGuest = !getToken();
   const actionKey = NAV_ROUTE_TO_ACTION[item.to];
   const content = (
@@ -90,7 +93,7 @@ function NavTab({ item, active, badge }: { item: Item; active: boolean; badge: n
         className="font-medium"
         style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}
       >
-        {item.label}
+        {label}
       </span>
     </>
   );

@@ -1,4 +1,5 @@
 import { hasFooterContacts, phoneTelHref, type FooterContacts } from "@/lib/footer-contacts";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   contacts: FooterContacts | null | undefined;
@@ -10,17 +11,18 @@ interface Props {
 
 export function FooterContactsBlock({
   contacts,
-  title = "Контакты",
+  title,
   className,
   listClassName = "mt-4 flex flex-col gap-2.5 text-sm",
   titleClassName = "text-sm font-semibold",
 }: Props) {
+  const { t } = useTranslation();
   if (!hasFooterContacts(contacts)) return null;
 
   return (
     <div className={className}>
       <div className={titleClassName} style={{ color: "var(--foreground)" }}>
-        {title}
+        {title ?? t("landing.footer.contacts")}
       </div>
       <ul className={listClassName} style={{ color: "var(--foreground-50)" }}>
         {contacts?.email && (

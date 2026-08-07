@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, Bookmark, Eye, Repeat2, Clock } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
@@ -86,6 +87,7 @@ const actionCls =
   "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
 
 export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost }: Props) {
+  const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
   const author = userById(post.authorId);
   const reposter = post.repostedBy ? userById(post.repostedBy) : null;
@@ -197,7 +199,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
       const newC: Comment = {
         id: tempId,
         authorId: me.id,
-        time: "только что",
+        time: t("components.postCard.justNow"),
         text,
         likes: 0,
         replies: [],
@@ -248,7 +250,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             <Repeat2 className="h-[14px] w-[14px]" style={{ color: "var(--accent)" }} />
             <span>
               <span style={{ color: "var(--foreground)", fontWeight: 600 }}>{reposter.name}</span>{" "}
-              сделал репост
+              {t("components.postCard.reposted")}
             </span>
           </div>
         )}
@@ -265,10 +267,10 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
                 {author.name}
               </span>
               {post.status === "moderation" && (
-                <StatusBadge variant="moderation">На модерации</StatusBadge>
+                <StatusBadge variant="moderation">{t("components.postCard.moderation")}</StatusBadge>
               )}
               {isScheduled && (
-                <StatusBadge variant="info">Запланировано</StatusBadge>
+                <StatusBadge variant="info">{t("components.postCard.scheduled")}</StatusBadge>
               )}
             </div>
             <div className="mt-[1px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
@@ -305,20 +307,20 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               try {
                 const updated = await publishPost(post.id);
                 onTogglePost?.(post.id, { status: updated.status, scheduledAt: undefined });
-                toast.success("Публикация отправлена");
+                toast.success(t("components.postCard.published"));
               } catch (err) {
-                toast.error(formatApiErrorMessage(err, "Не удалось опубликовать"));
+                toast.error(formatApiErrorMessage(err, t("components.postCard.publishFailed")));
               }
             }}
             onReschedule={() => setScheduleDialogOpen(true)}
             onCancelSchedule={async () => {
-              if (!window.confirm("Отменить запланированную публикацию?")) return;
+              if (!window.confirm(t("components.postCard.cancelScheduleConfirm"))) return;
               try {
                 await cancelScheduledPost(post.id);
                 onDelete?.(post.id);
-                toast.success("Публикация отменена");
+                toast.success(t("components.postCard.cancelled"));
               } catch (err) {
-                toast.error(formatApiErrorMessage(err, "Не удалось отменить"));
+                toast.error(formatApiErrorMessage(err, t("components.postCard.cancelFailed")));
               }
             }}
           />
@@ -335,7 +337,8 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           >
             <Clock className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--accent)" }} />
             <span>
-              Будет опубликовано: <strong style={{ color: "var(--foreground)" }}>{formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())}</strong>
+              {t("components.postCard.scheduledFor")}{" "}
+              <strong style={{ color: "var(--foreground)" }}>{formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())}</strong>
             </span>
           </div>
         )}
@@ -381,7 +384,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               className="mt-[6px] text-[12px] font-semibold transition-opacity hover:opacity-80"
               style={{ color: "var(--accent)" }}
             >
-              {expanded ? "Свернуть" : "Читать полностью"}
+              {expanded ? t("components.postCard.collapse") : t("components.postCard.readMore")}
             </button>
           )}
         </div>
@@ -399,7 +402,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             disabled={!canInteract}
             className={actionCls}
             style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
-            aria-label="Нравится"
+            aria-label={t("components.postCard.likeAria")}
             aria-disabled={!canInteract}
           >
             <motion.span
@@ -429,7 +432,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             disabled={!canInteract && commentsCount === 0}
             className={actionCls}
             style={{ color: "var(--foreground-70)" }}
-            aria-label="Комментарии"
+            aria-label={t("components.postCard.commentsAria")}
             aria-disabled={!canInteract && commentsCount === 0}
           >
             <MessageCircle className="h-[16px] w-[16px]" />
@@ -443,7 +446,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             disabled={!canInteract}
             className={actionCls}
             style={{ color: saved ? "var(--accent)" : "var(--foreground-70)" }}
-            aria-label="Сохранить"
+            aria-label={t("components.postCard.saveAria")}
             aria-disabled={!canInteract}
           >
             <motion.span
