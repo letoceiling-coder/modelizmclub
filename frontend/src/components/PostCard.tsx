@@ -390,7 +390,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
         </div>
 
         {/* Media */}
-        {(post.video || post.image) && <PostMediaBlock post={post} />}
+        {(post.video || post.image || (post.images?.length ?? 0) > 0 || (post.mediaItems?.length ?? 0) > 0) && (
+          <PostMediaBlock post={post} />
+        )}
 
         {/* Footer actions */}
         <footer

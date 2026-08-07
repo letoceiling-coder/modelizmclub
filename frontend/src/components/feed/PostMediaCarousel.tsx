@@ -1,14 +1,66 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff, X } from "lucide-react";
 
 export type MediaCarouselItem = { type: "image" | "video"; url: string };
 
+/** Portrait 4:5 … landscape 16:9 — keeps feed layout predictable. */
+const MIN_ASPECT = 4 / 5;
+const MAX_ASPECT = 16 / 9;
+const DEFAULT_IMAGE_ASPECT = 1;
+const VIDEO_ASPECT = 16 / 9;
+
+const aspectCache = new Map<string, number>();
+
+function clampAspect(ratio: number): number {
+  if (!Number.isFinite(ratio) || ratio <= 0) return DEFAULT_IMAGE_ASPECT;
+  return Math.min(MAX_ASPECT, Math.max(MIN_ASPECT, ratio));
+}
+
+function useNaturalAspectRatio(url: string | null | undefined): number | null {
+  const [aspect, setAspect] = useState<number | null>(() => (url ? aspectCache.get(url) ?? null : null));
+
+  useEffect(() => {
+    if (!url) {
+      setAspect(null);
+      return;
+    }
+    const cached = aspectCache.get(url);
+    if (cached != null) {
+      setAspect(cached);
+      return;
+    }
+    let active = true;
+    const img = new Image();
+    img.onload = () => {
+      if (!active || !img.naturalWidth || !img.naturalHeight) return;
+      const ratio = clampAspect(img.naturalWidth / img.naturalHeight);
+      aspectCache.set(url, ratio);
+      setAspect(ratio);
+    };
+    img.onerror = () => {
+      if (active) setAspect(null);
+    };
+    img.src = url;
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  return aspect;
+}
+
+function useSlideAspect(item: MediaCarouselItem): number {
+  const imageAspect = useNaturalAspectRatio(item.type === "image" ? item.url : null);
+  if (item.type === "video") return VIDEO_ASPECT;
+  return imageAspect ?? DEFAULT_IMAGE_ASPECT;
+}
+
 function GalleryImage({
   src,
   alt,
   onClick,
-  contain = false,
+  contain = true,
 }: {
   src: string;
   alt: string;
@@ -35,7 +87,7 @@ function GalleryImage({
       loading="lazy"
       decoding="async"
       onClick={onClick}
-      className={`h-full w-full ${contain ? "object-contain" : "cursor-zoom-in object-cover"}`}
+      className={`h-full w-full ${contain ? "object-contain" : "cursor-zoom-in object-cover"} ${onClick ? "cursor-zoom-in" : ""}`}
       onError={() => setErr(true)}
     />
   );
@@ -59,6 +111,25 @@ function CarouselVideo({ src }: { src: string }) {
       playsInline
       className="h-full w-full object-contain"
     />
+  );
+}
+
+function MediaFrame({
+  aspect,
+  className = "",
+  children,
+}: {
+  aspect: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`w-full overflow-hidden transition-[aspect-ratio] duration-200 ease-out ${className}`}
+      style={{ aspectRatio: aspect }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -157,18 +228,20 @@ function Lightbox({
 }
 
 function SingleMedia({ item, alt, onImageClick }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void }) {
+  const aspect = useSlideAspect(item);
+
   if (item.type === "video") {
     return (
-      <div className="aspect-video overflow-hidden bg-black">
+      <MediaFrame aspect={aspect} className="bg-black">
         <CarouselVideo src={item.url} />
-      </div>
+      </MediaFrame>
     );
   }
 
   return (
-    <div className="aspect-video overflow-hidden">
+    <MediaFrame aspect={aspect} className="bg-[var(--background-surface)]">
       <GalleryImage src={item.url} alt={alt} onClick={onImageClick} />
-    </div>
+    </MediaFrame>
   );
 }
 
@@ -182,6 +255,8 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
   const imageUrls = items.filter((item) => item.type === "image").map((item) => item.url);
   let imageCounter = 0;
   const imageIndexBySlide = items.map((item) => (item.type === "image" ? imageCounter++ : -1));
+
+  const currentAspect = useSlideAspect(items[selected] ?? items[0]);
 
   const onSelect = useCallback(() => {
     if (!embla) return;
@@ -203,6 +278,10 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
     };
   }, [embla, onSelect]);
 
+  useEffect(() => {
+    embla?.reInit();
+  }, [embla, currentAspect]);
+
   if (items.length === 0) return null;
 
   if (items.length === 1) {
@@ -223,36 +302,38 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
 
   return (
     <div className="relative">
-      <div className="aspect-video overflow-hidden bg-black" ref={viewportRef}>
-        <div className="flex h-full">
-          {items.map((item, i) => (
-            <div key={`${item.type}-${item.url}-${i}`} className="h-full min-w-0 flex-[0_0_100%]">
-              {item.type === "video" ? (
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current.set(i, el);
-                    else videoRefs.current.delete(i);
-                  }}
-                  src={item.url}
-                  controls
-                  preload="metadata"
-                  playsInline
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <GalleryImage
-                  src={item.url}
-                  alt={`${alt} — фото ${i + 1}`}
-                  onClick={() => {
-                    const idx = imageIndexBySlide[i];
-                    if (idx >= 0) setLightbox(idx);
-                  }}
-                />
-              )}
-            </div>
-          ))}
+      <MediaFrame aspect={currentAspect} className="bg-black">
+        <div className="h-full overflow-hidden" ref={viewportRef}>
+          <div className="flex h-full">
+            {items.map((item, i) => (
+              <div key={`${item.type}-${item.url}-${i}`} className="h-full min-w-0 flex-[0_0_100%]">
+                {item.type === "video" ? (
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current.set(i, el);
+                      else videoRefs.current.delete(i);
+                    }}
+                    src={item.url}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <GalleryImage
+                    src={item.url}
+                    alt={`${alt} — фото ${i + 1}`}
+                    onClick={() => {
+                      const idx = imageIndexBySlide[i];
+                      if (idx >= 0) setLightbox(idx);
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </MediaFrame>
 
       <div className="pointer-events-none absolute right-[10px] top-[10px] rounded-full px-[9px] py-[3px] text-[11px] font-medium text-white" style={{ background: "rgba(0,0,0,0.55)" }}>
         {selected + 1}/{items.length}
