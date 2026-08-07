@@ -233,6 +233,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
         outputWidth={1400}
         outputHeight={400}
         title="Обложка сообщества"
+        safeZonePreset="cover-wide"
         onCancel={() => setPendingCover(null)}
         onCropped={uploadCover}
         onDelete={coverUrl ? removeCover : undefined}

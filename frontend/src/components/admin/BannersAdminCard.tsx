@@ -380,6 +380,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
         open={editorSrc != null}
         src={editorSrc}
         title={t("pages.adminBanners.photoEditorTitle")}
+        safeZonePreset="feed-banner"
         onCancel={() => {
           setEditorSrc(null);
           setUploadTarget(null);

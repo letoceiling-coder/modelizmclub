@@ -519,6 +519,11 @@ export const en: TranslationSchema = {
       light: "Light theme",
       dark: "Dark theme"
     },
+    photoEditor: {
+      safeZoneMobile: "This area is visible on mobile devices",
+      safeZoneDesktop: "This area is visible on desktop",
+      safeZoneHint: "Dimmed areas may be cropped on some screens. Place text and logos inside the overlapping frames so they stay visible on phones and desktops."
+    },
     createPostForm: {
       photosRestoreFailed: "Фото из черновика восстановить не удалось — добавьте их заново",
       titleRequired: "Введите заголовок",

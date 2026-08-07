@@ -253,6 +253,7 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
         lockShape
         outputWidth={1400}
         outputHeight={400}
+        safeZonePreset="cover-wide"
         title="Обложка сообщества"
         onCancel={() => setPendingCover(null)}
         onCropped={uploadCover}

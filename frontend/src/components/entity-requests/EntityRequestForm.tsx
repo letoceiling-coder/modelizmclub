@@ -270,6 +270,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
         outputWidth={1400}
         outputHeight={400}
         title="Обложка канала"
+        safeZonePreset="cover-wide"
         onCancel={() => setPendingBanner(null)}
         onCropped={(blob) => {
           const file = new File([blob], "channel-banner.jpg", { type: "image/jpeg" });

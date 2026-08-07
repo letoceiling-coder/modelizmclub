@@ -232,6 +232,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
         outputWidth={1400}
         outputHeight={400}
         title={t("components.channelBranding.bannerEditorTitle")}
+        safeZonePreset="cover-wide"
         onCancel={() => setPendingBanner(null)}
         onCropped={uploadBanner}
         onDelete={bannerUrl ? removeBanner : undefined}

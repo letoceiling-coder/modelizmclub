@@ -1054,6 +1054,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
         outputWidth={1400}
         outputHeight={400}
         title={t("pages.profile.cropCoverTitle")}
+        safeZonePreset="cover-wide"
         onCancel={() => setPendingFile(null)}
         onCropped={uploadCropped}
       />

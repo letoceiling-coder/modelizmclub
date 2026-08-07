@@ -512,6 +512,11 @@ export const zh: TranslationSchema = {
       light: "浅色主题",
       dark: "深色主题"
     },
+    photoEditor: {
+      safeZoneMobile: "此区域在移动设备上可见",
+      safeZoneDesktop: "此区域在电脑上可见",
+      safeZoneHint: "变暗的区域可能在部分屏幕上被裁剪。请将文字和标志放在重叠框内，以确保在手机和电脑上均可见。"
+    },
     createPostForm: {
       photosRestoreFailed: "Фото из черновика восстановить не удалось — добавьте их заново",
       titleRequired: "Введите заголовок",

@@ -260,6 +260,7 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
         lockShape
         outputWidth={1400}
         outputHeight={400}
+        safeZonePreset="cover-wide"
         title={t("components.channelBranding.bannerEditorTitle")}
         onCancel={() => setPendingBanner(null)}
         onCropped={uploadBanner}

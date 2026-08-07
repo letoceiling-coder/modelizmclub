@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Cropper from "cropperjs";
 import "cropperjs/dist/cropper.css";
 import {
@@ -29,6 +30,8 @@ import {
   type PhotoEffects,
   type PhotoShape,
 } from "@/lib/photo-editor";
+import { CropSafeZoneOverlay } from "@/components/media/CropSafeZoneOverlay";
+import type { SafeZonePreset } from "@/lib/photo-editor-safe-zones";
 
 export interface PhotoEditorDialogProps {
   /** Explicit visibility control. Omit to derive it from `file`/`src` being non-null (legacy ImageCropDialog-compatible mode). */
@@ -54,6 +57,8 @@ export interface PhotoEditorDialogProps {
   /** Legacy alias for `onSave`. */
   onCropped?: (blob: Blob) => void;
   onDelete?: () => void;
+  /** VK-style mobile/desktop safe-zone guides for banners and covers. */
+  safeZonePreset?: SafeZonePreset;
 }
 
 const SHAPES: { value: PhotoShape; label: string; icon: typeof Square }[] = [
@@ -84,7 +89,9 @@ export function PhotoEditorDialog({
   onSave,
   onCropped,
   onDelete,
+  safeZonePreset,
 }: PhotoEditorDialogProps) {
+  const { t } = useTranslation();
   const resolvedSrc = src ?? file ?? null;
   const isOpen = open ?? resolvedSrc != null;
   const emitSave = (blob: Blob) => {
@@ -106,6 +113,9 @@ export function PhotoEditorDialog({
   const [shapeState, setShapeState] = useState<PhotoShape>(shape);
   const [effects, setEffects] = useState<PhotoEffects>(DEFAULT_EFFECTS);
   const [saving, setSaving] = useState(false);
+  const [activeCropper, setActiveCropper] = useState<Cropper | null>(null);
+  const [activeContainer, setActiveContainer] = useState<HTMLElement | null>(null);
+  const [overlayTick, setOverlayTick] = useState(0);
 
   // Resolve whatever source we were given into a same-origin blob: URL.
   useEffect(() => {
@@ -162,11 +172,21 @@ export function PhotoEditorDialog({
       responsive: true,
       zoomOnWheel: true,
       ready() {
-        containerElRef.current = (img.nextElementSibling as HTMLElement) ?? null;
+        const container = (img.nextElementSibling as HTMLElement) ?? null;
+        containerElRef.current = container;
+        setActiveContainer(container);
+        setActiveCropper(cropper);
         setReady(true);
+      },
+      crop() {
+        setOverlayTick((n) => n + 1);
+      },
+      cropmove() {
+        setOverlayTick((n) => n + 1);
       },
       zoom(event) {
         setZoom(event.detail.ratio);
+        setOverlayTick((n) => n + 1);
       },
     });
     cropperRef.current = cropper;
@@ -174,6 +194,8 @@ export function PhotoEditorDialog({
       cropper.destroy();
       cropperRef.current = null;
       containerElRef.current = null;
+      setActiveCropper(null);
+      setActiveContainer(null);
       setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -297,9 +319,18 @@ export function PhotoEditorDialog({
                     <Loader2 className="h-8 w-8 animate-spin text-white/70" />
                   </div>
                 )}
-                <div className="h-full w-full">
+                <div className="relative h-full w-full">
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
                   <img ref={imgRef} src={localUrl} className="block max-h-full max-w-full" />
+                  {safeZonePreset && (
+                    <CropSafeZoneOverlay
+                      cropper={activeCropper}
+                      container={activeContainer}
+                      preset={safeZonePreset}
+                      enabled={ready && tab === "crop"}
+                      syncTrigger={overlayTick}
+                    />
+                  )}
                 </div>
                 <style>{`
                   .pe-round-mask .cropper-view-box,
@@ -412,6 +443,11 @@ export function PhotoEditorDialog({
                   <p className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
                     Перетащите края рамки на фото, чтобы изменить размер и положение области обрезки.
                   </p>
+                  {safeZonePreset && (
+                    <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
+                      {t("components.photoEditor.safeZoneHint")}
+                    </p>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="effects" className="mt-0 space-y-[18px]">
