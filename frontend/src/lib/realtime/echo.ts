@@ -177,12 +177,21 @@ export async function subscribeConversation(
   if (!getToken()) return () => {};
   const e = await getEcho();
   if (!e) return () => {};
+  const channelKey = `conversation.${uuid}`;
+  let channel: ReturnType<typeof e.private> | null = null;
   try {
-    const channel = e.private(`conversation.${uuid}`);
+    try {
+      e.leave(channelKey);
+    } catch {
+      /* channel may not exist yet */
+    }
+    channel = e.private(channelKey);
+    channel.stopListening(".message.sent");
     channel.listen(".message.sent", (payload: { message: any }) => {
       if (payload?.message) onMessage(mapMessage(payload.message));
     });
     if (onMessageDeleted) {
+      channel.stopListening(".message.deleted");
       channel.listen(".message.deleted", (payload: { message_uuid?: string }) => {
         if (payload?.message_uuid) onMessageDeleted(payload.message_uuid);
       });
@@ -192,7 +201,9 @@ export async function subscribeConversation(
   }
   return () => {
     try {
-      e.leave(`conversation.${uuid}`);
+      channel?.stopListening(".message.sent");
+      if (onMessageDeleted) channel?.stopListening(".message.deleted");
+      e.leave(channelKey);
     } catch {
       /* ignore */
     }

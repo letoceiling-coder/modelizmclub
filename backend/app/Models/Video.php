@@ -26,6 +26,7 @@ class Video extends Model
         'uploader_id',
         'status',
         'likes_count',
+        'dislikes_count',
         'comments_count',
         'published_at',
         'scheduled_at',

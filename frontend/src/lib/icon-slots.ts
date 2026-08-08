@@ -63,6 +63,7 @@ export const ICON_SLOTS: IconSlot[] = [
   { key: "nav.subscription", label: "Подписка", group: "nav", page: "navigation", defaultLucide: "Crown", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.market", label: "Маркет", group: "nav", page: "navigation", defaultLucide: "ShoppingBag", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.feedback", label: "Обратная связь", group: "nav", page: "navigation", defaultLucide: "MessageSquarePlus", defaultToken: "foreground-70", previewKind: "nav" },
+  { key: "nav.invite-friend", label: "Пригласи друга", group: "nav", page: "navigation", defaultLucide: "Gift", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.admin", label: "Админ-панель (меню)", group: "nav", page: "navigation", defaultLucide: "ShieldCheck", defaultToken: "foreground-70", previewKind: "nav" },
 
   { key: "header.notifications", label: "Уведомления", group: "header", page: "navigation", defaultLucide: "Bell", defaultToken: "foreground-70", previewKind: "header" },

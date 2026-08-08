@@ -452,6 +452,17 @@ function TabBtn({
 
 /* --------------------------- CHAT TAB --------------------------- */
 
+function dedupeRoomMessages(messages: RoomMessage[]): RoomMessage[] {
+  const out: RoomMessage[] = [];
+  const seenIds = new Set<string>();
+  for (const m of messages) {
+    if (seenIds.has(m.id)) continue;
+    seenIds.add(m.id);
+    out.push(m);
+  }
+  return out;
+}
+
 function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
   const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
@@ -483,19 +494,52 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
   const searchInputRef = useRef<HTMLInputElement>(null);
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const upsertRoomMessage = (incoming: RoomMessage) => {
+  const upsertRoomMessage = useCallback((incoming: RoomMessage) => {
     setMessages((prev) => {
-      const idx = prev.findIndex(
-        (m) => m.id === incoming.id || (m.clientKey && m.clientKey === incoming.clientKey),
-      );
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = incoming;
-        return next;
+      const merged: RoomMessage = {
+        ...incoming,
+        clientKey:
+          prev.find((m) => m.id === incoming.id || m.clientKey === incoming.clientKey)?.clientKey ??
+          prev.find(
+            (m) =>
+              Boolean(m.clientKey) &&
+              m.authorId === incoming.authorId &&
+              (m.text || "") === (incoming.text || "") &&
+              m.id.startsWith("local-"),
+          )?.clientKey ??
+          incoming.clientKey,
+      };
+
+      if (prev.some((m) => m.id === incoming.id)) {
+        return dedupeRoomMessages(prev.map((m) => (m.id === incoming.id ? merged : m)));
       }
-      return [...prev, incoming];
+
+      const byClientKey =
+        incoming.clientKey != null
+          ? prev.findIndex((m) => m.clientKey === incoming.clientKey)
+          : -1;
+      if (byClientKey >= 0) {
+        const next = [...prev];
+        next[byClientKey] = merged;
+        return dedupeRoomMessages(next);
+      }
+
+      const pendingIdx = prev.findIndex(
+        (m) =>
+          Boolean(m.clientKey) &&
+          m.authorId === incoming.authorId &&
+          (m.text || "") === (incoming.text || "") &&
+          m.id.startsWith("local-"),
+      );
+      if (pendingIdx >= 0) {
+        const next = [...prev];
+        next[pendingIdx] = merged;
+        return dedupeRoomMessages(next);
+      }
+
+      return dedupeRoomMessages([...prev, merged]);
     });
-  };
+  }, []);
 
   // Load room conversation + history from API (prod only).
   useEffect(() => {
@@ -544,7 +588,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
     }
     setHubConversation(conversationUuid, (m) => upsertRoomMessage(mapMessageToRoom(m)));
     return () => setHubConversation(null);
-  }, [conversationUuid, me.id]);
+  }, [conversationUuid, me.id, upsertRoomMessage]);
 
   // reset local UI when room changes
   useEffect(() => {
@@ -685,7 +729,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
     };
 
     setSending(true);
-    setMessages((prev) => [...prev, optimistic]);
+    upsertRoomMessage(optimistic);
     setText("");
     const replyUuid = replyTo?.id;
     setReplyTo(null);
@@ -698,9 +742,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
         mediaUuids.push(await uploadRoomAttachment(conversationUuid, file));
       }
       const saved = await sendRoomMessage(conversationUuid, v, replyUuid, mediaUuids.length ? mediaUuids : undefined);
-      setMessages((prev) =>
-        prev.map((m) => (m.clientKey === clientKey ? saved : m)),
-      );
+      upsertRoomMessage({ ...saved, clientKey });
     } catch {
       setMessages((prev) => prev.filter((m) => m.clientKey !== clientKey));
       toast.error(t("pages.subcategoryDetail.sendFailed"));
@@ -843,7 +885,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           const isActive = trimmedQuery && m.id === activeMsgId;
           return (
             <div
-              key={m.id}
+              key={m.clientKey ?? m.id}
               ref={(el) => {
                 if (el) msgRefs.current.set(m.id, el);
                 else msgRefs.current.delete(m.id);

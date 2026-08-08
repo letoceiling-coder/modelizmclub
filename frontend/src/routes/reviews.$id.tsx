@@ -1,22 +1,51 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Play, Eye, SearchX, RefreshCw, Heart, ChevronDown, Film, Clock, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Play, Eye, SearchX, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Flag, Film, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { AnimatePresence, motion } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, Comment } from "@/lib/mock";
 import { userById } from "@/lib/mock";
 import { fetchVideo, fetchVideos, incrementVideoView, reactToVideo, fetchVideoComments, createVideoComment } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
 import { CommentSection } from "@/components/feed/CommentSection";
-import { VideoActionsMenu } from "@/components/reviews/VideoActionsMenu";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatDuration } from "@/lib/format-duration";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
+import { isWatchLater, toggleWatchLater } from "@/lib/watch-later";
+import { useStore, selectors } from "@/lib/store";
+
+const actionCls =
+  "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]";
+
+async function loadRelatedVideos(video: Video): Promise<Video[]> {
+  try {
+    let list = await fetchVideos({ categorySlug: video.categorySlug || undefined });
+    list = list.filter((x) => x.id !== video.id);
+    if (list.length < 4) {
+      const [featured, all] = await Promise.all([fetchVideos({ featured: true }), fetchVideos({})]);
+      const seen = new Set(list.map((x) => x.id));
+      seen.add(video.id);
+      for (const src of [featured, all]) {
+        for (const item of src) {
+          if (!seen.has(item.id)) {
+            list.push(item);
+            seen.add(item.id);
+            if (list.length >= 8) break;
+          }
+        }
+        if (list.length >= 8) break;
+      }
+    }
+    return list.slice(0, 8);
+  } catch {
+    return [];
+  }
+}
 
 /** Avatar with initials fallback — mirrors PostCard.AuthorAvatar */
 function AuthorAvatar({ src, name }: { src: string; name: string }) {
@@ -65,8 +94,12 @@ function WatchPage() {
 
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [disliked, setDisliked] = useState(false);
+  const [dislikeCount, setDislikeCount] = useState(0);
+  const [watchLater, setWatchLater] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const currentUser = useStore(selectors.currentUser);
 
   useEffect(() => {
     // Reuse the landing's connection gate — only affects passive/ambient loading.
@@ -82,7 +115,6 @@ function WatchPage() {
     setPlaying(false);
     setPlayError(null);
     setPosterFailed(false);
-    setCommentsOpen(false);
     viewedRef.current = false;
     fetchVideo(id)
       .then((v) => {
@@ -92,10 +124,11 @@ function WatchPage() {
         recordView({ id: v.id, kind: "review", title: v.title, thumb: v.posterUrl });
         setLiked(Boolean(v.isLiked));
         setLikeCount(v.likes);
+        setDisliked(Boolean(v.isDisliked));
+        setDislikeCount(v.dislikes ?? 0);
+        setWatchLater(isWatchLater(v.id));
         fetchVideoComments(v.id).then((cs) => { if (alive) setComments(cs); }).catch(() => {});
-        fetchVideos({ categorySlug: v.categorySlug || undefined })
-          .then((list) => { if (alive) setRelated(list.filter((x) => x.id !== v.id).slice(0, 8)); })
-          .catch(() => {});
+        loadRelatedVideos(v).then((list) => { if (alive) setRelated(list); }).catch(() => {});
       })
       .catch((err) => {
         if (!alive) return;
@@ -137,15 +170,86 @@ function WatchPage() {
     }
   };
 
+  const requireAuth = () => {
+    if (getToken() || isDemoMode()) return true;
+    toast.info(t("pages.reviews.loginRequired"));
+    navigate({ to: "/login" });
+    return false;
+  };
+
   const toggleLike = () => {
-    const next = !liked;
-    setLiked(next);
-    setLikeCount((n) => n + (next ? 1 : -1));
-    reactToVideo(id, next).catch(() => {
-      setLiked(!next);
-      setLikeCount((n) => n + (next ? -1 : 1));
+    if (!requireAuth()) return;
+    if (liked) {
+      setLiked(false);
+      setLikeCount((n) => n - 1);
+      reactToVideo(id, null).catch(() => {
+        setLiked(true);
+        setLikeCount((n) => n + 1);
+        toast.error(t("pages.reviews.likeFailed"));
+      });
+      return;
+    }
+    setLiked(true);
+    setLikeCount((n) => n + 1);
+    if (disliked) {
+      setDisliked(false);
+      setDislikeCount((n) => n - 1);
+    }
+    reactToVideo(id, "like").catch(() => {
+      setLiked(false);
+      setLikeCount((n) => n - 1);
+      if (disliked) {
+        setDisliked(true);
+        setDislikeCount((n) => n + 1);
+      }
       toast.error(t("pages.reviews.likeFailed"));
     });
+  };
+
+  const toggleDislike = () => {
+    if (!requireAuth()) return;
+    if (disliked) {
+      setDisliked(false);
+      setDislikeCount((n) => n - 1);
+      reactToVideo(id, null).catch(() => {
+        setDisliked(true);
+        setDislikeCount((n) => n + 1);
+        toast.error(t("pages.reviews.dislikeFailed"));
+      });
+      return;
+    }
+    setDisliked(true);
+    setDislikeCount((n) => n + 1);
+    if (liked) {
+      setLiked(false);
+      setLikeCount((n) => n - 1);
+    }
+    reactToVideo(id, "dislike").catch(() => {
+      setDisliked(false);
+      setDislikeCount((n) => n - 1);
+      if (liked) {
+        setLiked(true);
+        setLikeCount((n) => n + 1);
+      }
+      toast.error(t("pages.reviews.dislikeFailed"));
+    });
+  };
+
+  const shareReview = async () => {
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/reviews/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(t("pages.reviews.linkCopied"));
+    } catch {
+      toast.info(t("pages.reviews.copyFromAddressBar"));
+    }
+  };
+
+  const toggleWatchLaterState = () => {
+    if (!video) return;
+    const next = toggleWatchLater({ id: video.id, title: video.title, posterUrl: video.posterUrl });
+    setWatchLater(next);
+    toast.success(next ? t("pages.reviews.watchLaterAdded") : t("pages.reviews.watchLaterRemoved"));
   };
 
   const addComment = (text: string, parentId?: string) => {
@@ -198,9 +302,12 @@ function WatchPage() {
   const poster = posterFailed ? categoryPlaceholder(video.id, "") : (video.posterUrl || categoryPlaceholder(video.id, ""));
   const author = userById(video.uploaderId);
   const authorProfileId = author.slug ?? author.id;
+  const isOwnReview = Boolean(currentUser?.id && (currentUser.id === video.uploaderId || currentUser.id === author.id));
   const viewsCount = Number.isFinite(Number(video.views)) ? Number(video.views) : 0;
   const durationLabel = video.durationSeconds > 0 ? formatDuration(video.durationSeconds) : null;
   const canPlay = Boolean(video.videoUrl) && video.status !== "processing";
+  const commentsCount =
+    comments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || video.comments;
 
   const authorBlock = (
     <>
@@ -352,22 +459,70 @@ function WatchPage() {
           </div>
         )}
 
-        {/* actions row — Like / Share / Report, referenced against YouTube/Avito layout */}
-        <div className="flex flex-wrap items-center gap-[4px]">
-          <button
-            type="button"
-            onClick={toggleLike}
-            aria-pressed={liked}
-            className="inline-flex items-center gap-[6px] rounded-full px-[14px] py-[8px] text-[13px] font-medium transition-colors"
-            style={{
-              background: liked ? "var(--accent-soft)" : "var(--background-surface)",
-              color: liked ? "var(--accent)" : "var(--foreground-70)",
-              border: `1px solid ${liked ? "var(--border-accent)" : "var(--border)"}`,
-            }}
+        {/* actions row — Rutube-style like/dislike + watch later + share */}
+        <div className="flex flex-wrap items-center justify-between gap-[8px]">
+          <div
+            className="inline-flex items-center overflow-hidden rounded-full border"
+            style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
           >
-            <Heart size={15} fill={liked ? "currentColor" : "none"} /> {likeCount}
-          </button>
-          <VideoActionsMenu videoId={video.id} />
+            <button
+              type="button"
+              onClick={toggleLike}
+              aria-pressed={liked}
+              className="inline-flex items-center gap-[6px] px-[14px] py-[8px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]"
+              style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
+            >
+              <ThumbsUp size={15} fill={liked ? "currentColor" : "none"} /> {likeCount}
+            </button>
+            <span className="h-[20px] w-px shrink-0" style={{ background: "var(--border)" }} aria-hidden />
+            <button
+              type="button"
+              onClick={toggleDislike}
+              aria-pressed={disliked}
+              className="inline-flex items-center gap-[6px] px-[14px] py-[8px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]"
+              style={{ color: disliked ? "var(--accent)" : "var(--foreground-70)" }}
+            >
+              <ThumbsDown size={15} fill={disliked ? "currentColor" : "none"} /> {dislikeCount > 0 ? dislikeCount : ""}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-[4px]">
+            <button
+              type="button"
+              onClick={toggleWatchLaterState}
+              aria-pressed={watchLater}
+              className={actionCls}
+              style={{
+                color: watchLater ? "var(--accent)" : "var(--foreground-70)",
+                background: watchLater ? "var(--accent-soft)" : undefined,
+              }}
+            >
+              <Bookmark size={16} fill={watchLater ? "currentColor" : "none"} /> {t("pages.reviews.watchLater")}
+            </button>
+            <button
+              type="button"
+              onClick={shareReview}
+              aria-label={t("pages.reviews.share")}
+              className={actionCls}
+              style={{ color: "var(--foreground-70)" }}
+            >
+              <Share2 size={16} /> {t("pages.reviews.share")}
+            </button>
+            {!isOwnReview && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!requireAuth()) return;
+                  setReportOpen(true);
+                }}
+                aria-label={t("pages.reviews.report")}
+                className={actionCls}
+                style={{ color: "var(--foreground-70)" }}
+              >
+                <Flag size={16} /> {t("pages.reviews.report")}
+              </button>
+            )}
+          </div>
         </div>
 
         {video.description && (
@@ -376,64 +531,23 @@ function WatchPage() {
           </p>
         )}
 
-        {/* comments — collapsed by default, expand on click */}
-        <section className="space-y-[12px] border-t pt-[16px]" style={{ borderColor: "var(--border)" }}>
-          <button
-            type="button"
-            onClick={() => setCommentsOpen((v) => !v)}
-            className="flex w-full items-center justify-between text-left"
-            aria-expanded={commentsOpen}
-          >
-            <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              {t("pages.reviews.comments")} {comments.length > 0 && <span style={{ color: "var(--foreground-50)" }}>{comments.length}</span>}
-            </h2>
-            <ChevronDown
-              size={18}
-              style={{ color: "var(--foreground-50)", transform: commentsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-            />
-          </button>
-
-          {!commentsOpen && comments[0] && (() => {
-            const previewAuthor = userById(comments[0].authorId);
-            return (
-            <button
-              type="button"
-              onClick={() => setCommentsOpen(true)}
-              className="flex w-full items-start gap-[10px] rounded-[var(--r-card-sm)] p-[10px] text-left transition-colors hover:bg-[var(--background-surface)]"
-            >
-              <AuthorAvatar src={previewAuthor.avatar} name={previewAuthor.name} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{previewAuthor.name}</div>
-                <div className="truncate text-[13px]" style={{ color: "var(--foreground-70)" }}>{comments[0].text}</div>
-              </div>
-            </button>
-            );
-          })()}
-
-          <AnimatePresence initial={false}>
-            {commentsOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <CommentSection comments={comments} onAdd={addComment} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* comments — always open with input visible */}
+        <section className="space-y-[12px]">
+          <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+            {t("pages.reviews.commentsCount", { count: commentsCount })}
+          </h2>
+          <CommentSection comments={comments} onAdd={addComment} previewLimit={0} showAll />
         </section>
 
-        {/* related videos */}
-        {related.length > 0 && (
-          <section
-            className="space-y-[12px] rounded-[var(--r-card)] border p-[16px]"
-            style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
-          >
-            <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              <Film size={18} style={{ color: "var(--foreground-50)" }} /> {t("pages.reviews.similar")}
-            </h2>
+        {/* recommended reviews */}
+        <section
+          className="space-y-[12px] rounded-[var(--r-card)] border p-[16px]"
+          style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+        >
+          <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+            <Film size={18} style={{ color: "var(--foreground-50)" }} /> {t("pages.reviews.recommended")}
+          </h2>
+          {related.length > 0 ? (
             <div className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0" style={{ scrollbarWidth: "thin" }}>
               {related.map((v) => (
                 <div key={v.id} className="snap-start" style={{ flex: "0 0 240px" }}>
@@ -441,9 +555,24 @@ function WatchPage() {
                 </div>
               ))}
             </div>
-          </section>
-        )}
+          ) : (
+            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.reviews.recommendedEmpty")}
+            </p>
+          )}
+        </section>
       </div>
+
+      {reportOpen && (
+        <ComplaintDialog
+          target={author}
+          report={{ type: "video", targetId: video.id }}
+          descriptionOverride={t("pages.reviews.reportDescription", { title: video.title ? ` «${video.title}»` : "" })}
+          page={`/reviews/${video.id}`}
+          subjectSuffix={t("pages.reviews.reportSuffix")}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </AppLayout>
   );
 }

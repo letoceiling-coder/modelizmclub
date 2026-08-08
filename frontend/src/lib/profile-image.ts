@@ -70,3 +70,10 @@ export async function prepareProfileImageFile(
   await decodeImageFile(prepared);
   return prepared;
 }
+
+/** Preserve blob MIME when wrapping for upload (avoid PNG labeled as JPEG). */
+export function blobToImageFile(blob: Blob, baseName: string): File {
+  const type = blob.type === "image/png" ? "image/png" : "image/jpeg";
+  const ext = type === "image/png" ? "png" : "jpg";
+  return new File([blob], `${baseName}.${ext}`, { type });
+}

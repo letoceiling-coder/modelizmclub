@@ -88,8 +88,10 @@ export interface Video {
   status: "processing" | "published";
   // Social fields — mirror the relevant Post interaction fields. Likes + comments only.
   likes: number;
+  dislikes?: number;
   comments: number;
   isLiked?: boolean;
+  isDisliked?: boolean;
   commentList?: Comment[];   // the SAME Comment type, reused unchanged
 }
 

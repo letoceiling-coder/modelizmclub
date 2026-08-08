@@ -22,11 +22,41 @@ export interface PricingPlan {
   best?: boolean;
 }
 
-export const PRICING_PLANS: PricingPlan[] = [
+const PLAN_MONTHS: Record<PricingPlan["id"], number> = {
+  month: 1,
+  half: 6,
+  year: 12,
+};
+
+function savingsVsMonthly(plan: Omit<PricingPlan, "best">, monthlyPrice: number): number {
+  return monthlyPrice * PLAN_MONTHS[plan.id] - plan.price;
+}
+
+/** Marks the tier with the largest savings vs paying month-by-month. */
+function markBestPlan(plans: Omit<PricingPlan, "best">[]): PricingPlan[] {
+  const monthlyPrice = plans.find((p) => p.id === "month")?.price ?? 0;
+  let bestId: PricingPlan["id"] | null = null;
+  let maxSavings = 0;
+
+  for (const plan of plans) {
+    const savings = savingsVsMonthly(plan, monthlyPrice);
+    if (savings > maxSavings) {
+      maxSavings = savings;
+      bestId = plan.id;
+    }
+  }
+
+  return plans.map((plan) => ({
+    ...plan,
+    best: plan.id === bestId && maxSavings > 0,
+  }));
+}
+
+export const PRICING_PLANS: PricingPlan[] = markBestPlan([
   { id: "month", name: "Месяц", price: 99, period: "месяц" },
-  { id: "half", name: "Полгода", price: 499, period: "6 месяцев", savings: "Выгода 95 ₽", best: true },
+  { id: "half", name: "Полгода", price: 499, period: "6 месяцев", savings: "Выгода 95 ₽" },
   { id: "year", name: "Год", price: 799, period: "12 месяцев", savings: "Выгода 389 ₽" },
-];
+]);
 
 /** Same benefits apply to every tier — only price/duration differ. */
 export const PRICING_FEATURES: string[] = [

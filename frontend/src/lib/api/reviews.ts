@@ -42,8 +42,10 @@ interface ApiVideo {
   } | null;
   status?: "processing" | "published";
   likes_count?: number;
+  dislikes_count?: number;
   comments_count?: number;
   is_liked?: boolean;
+  is_disliked?: boolean;
 }
 
 function mapVideo(v: ApiVideo): Video {
@@ -76,8 +78,10 @@ function mapVideo(v: ApiVideo): Video {
     uploaderId: uploader?.id ?? v.uploader?.uuid ?? "",
     status: v.status ?? "published",
     likes: Number(v.likes_count ?? 0),
+    dislikes: Number(v.dislikes_count ?? 0),
     comments: Number(v.comments_count ?? 0),
     isLiked: v.is_liked ?? false,
+    isDisliked: v.is_disliked ?? false,
   };
 }
 
@@ -200,9 +204,13 @@ export async function uploadVideo(input: VideoUploadInput): Promise<Video> {
 
 // ── Social interactions — exact parity copies of feed.ts (path /posts/ → /videos/) ──
 
-export async function reactToVideo(uuid: string, on: boolean): Promise<void> {
+export async function reactToVideo(uuid: string, type: "like" | "dislike" | null): Promise<void> {
   if (isDemoMode()) return;
-  await api(`/videos/${uuid}/react`, { method: on ? "POST" : "DELETE" });
+  if (type === null) {
+    await api(`/videos/${uuid}/react`, { method: "DELETE" });
+    return;
+  }
+  await api(`/videos/${uuid}/react`, { method: "POST", json: { type } });
 }
 
 export async function fetchVideoComments(uuid: string): Promise<Comment[]> {

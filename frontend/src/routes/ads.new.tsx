@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -524,13 +524,17 @@ function usePhotoGridHandlers(
   photoItems: PhotoItem[],
   setPhotoItems: (next: PhotoItem[]) => void,
 ) {
+  const photoItemsRef = useRef(photoItems);
+  photoItemsRef.current = photoItems;
+
   const photos = photoItems.map((p) => p.preview);
   const photoIds = photoItems.map((p) => p.id);
 
   const reorderByUrls = (newPhotos: string[]) => {
-    const byPreview = new Map(photoItems.map((p) => [p.preview, p]));
+    const items = photoItemsRef.current;
+    const byPreview = new Map(items.map((p) => [p.preview, p]));
     const next = newPhotos.map((url) => byPreview.get(url)).filter((p): p is PhotoItem => p != null);
-    if (next.length === photoItems.length) setPhotoItems(next);
+    if (next.length === items.length) setPhotoItems(next);
   };
 
   return {
@@ -538,7 +542,8 @@ function usePhotoGridHandlers(
     photoIds,
     onAdd: (picked: File[]) => {
       void (async () => {
-        const room = MAX_PHOTOS - photoItems.length;
+        const current = photoItemsRef.current;
+        const room = MAX_PHOTOS - current.length;
         if (room <= 0) return;
 
         const accepted: PhotoItem[] = [];
@@ -557,24 +562,24 @@ function usePhotoGridHandlers(
         }
 
         if (accepted.length > 0) {
-          setPhotoItems([...photoItems, ...accepted]);
+          setPhotoItems([...current, ...accepted]);
         }
       })();
     },
-    onRemove: (i: number) => setPhotoItems(photoItems.filter((_, j) => j !== i)),
+    onRemove: (i: number) => setPhotoItems(photoItemsRef.current.filter((_, j) => j !== i)),
     onMakeMain: (i: number) => {
-      const next = [...photoItems];
+      const next = [...photoItemsRef.current];
       const [m] = next.splice(i, 1);
       next.unshift(m);
       setPhotoItems(next);
     },
     onReorder: reorderByUrls,
     onReplace: (i: number, blob: Blob) => {
-      const old = photoItems[i];
+      const old = photoItemsRef.current[i];
       if (!old) return;
       const preview = URL.createObjectURL(blob);
       const file = new File([blob], `${old.id}.jpg`, { type: blob.type || "image/jpeg" });
-      const next = [...photoItems];
+      const next = [...photoItemsRef.current];
       next[i] = { ...old, preview, file, mediaId: undefined };
       setPhotoItems(next);
       if (old.preview.startsWith("blob:")) URL.revokeObjectURL(old.preview);

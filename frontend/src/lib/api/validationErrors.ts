@@ -37,10 +37,10 @@ export function formatApiErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError) {
     const code = (err.payload as { code?: string } | undefined)?.code;
     if (code === "phone_not_verified") {
-      return "Подтвердите номер телефона по SMS в настройках аккаунта, чтобы публиковать.";
+      return "Подтвердите номер телефона по SMS в настройках аккаунта.";
     }
     if (code === "email_not_verified") {
-      return "Подтвердите email в настройках аккаунта, чтобы публиковать.";
+      return "Подтвердите email в настройках аккаунта.";
     }
     if (err.errors) {
       return firstFieldError(err.errors, err.message || fallback);

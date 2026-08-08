@@ -10,6 +10,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { submitFeedback } from "@/lib/api/feedback";
+import { getToken } from "@/lib/api/client";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 
 const OTHER_DIRECTION = "Другое";
@@ -33,6 +35,10 @@ export function FeedbackDialog() {
       toast.error("Напишите сообщение");
       return;
     }
+    if (!getToken()) {
+      toast.error("Войдите в аккаунт, чтобы отправить обращение");
+      return;
+    }
     setSending(true);
     try {
       await submitFeedback({
@@ -43,8 +49,8 @@ export function FeedbackDialog() {
       toast.success("Спасибо! Ваше сообщение отправлено");
       resetForm();
       setOpen(false);
-    } catch {
-      toast.error("Не удалось отправить. Попробуйте позже");
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, "Не удалось отправить. Попробуйте позже"));
     } finally {
       setSending(false);
     }

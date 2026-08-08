@@ -261,28 +261,50 @@ class VideoService
         $video->increment('views_count');
     }
 
-    public function react(Video $video, User $user): void
+    public function react(Video $video, User $user, string $type = 'like'): void
     {
-        $created = VideoReaction::query()->firstOrCreate([
+        if (! in_array($type, ['like', 'dislike'], true)) {
+            $type = 'like';
+        }
+
+        $existing = VideoReaction::query()
+            ->where('video_id', $video->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existing) {
+            if ($existing->type === $type) {
+                return;
+            }
+
+            $this->decrementReactionCounter($video, $existing->type);
+            $existing->update(['type' => $type]);
+            $this->incrementReactionCounter($video, $type);
+
+            return;
+        }
+
+        VideoReaction::query()->create([
             'video_id' => $video->id,
             'user_id' => $user->id,
-        ], ['type' => 'like']);
-
-        if ($created->wasRecentlyCreated) {
-            $video->increment('likes_count');
-        }
+            'type' => $type,
+        ]);
+        $this->incrementReactionCounter($video, $type);
     }
 
     public function unreact(Video $video, User $user): void
     {
-        $deleted = VideoReaction::query()
+        $existing = VideoReaction::query()
             ->where('video_id', $video->id)
             ->where('user_id', $user->id)
-            ->delete();
+            ->first();
 
-        if ($deleted) {
-            $video->decrement('likes_count');
+        if (! $existing) {
+            return;
         }
+
+        $this->decrementReactionCounter($video, $existing->type);
+        $existing->delete();
     }
 
     public function listComments(Video $video, int $perPage = 50): LengthAwarePaginator
@@ -347,10 +369,31 @@ class VideoService
 
     private function attachViewerState(Video $video, ?User $viewer): Video
     {
-        $video->setAttribute('is_liked', $viewer
-            ? VideoReaction::query()->where('video_id', $video->id)->where('user_id', $viewer->id)->exists()
-            : false);
+        $reaction = $viewer
+            ? VideoReaction::query()->where('video_id', $video->id)->where('user_id', $viewer->id)->first()
+            : null;
+
+        $video->setAttribute('is_liked', $reaction?->type === 'like');
+        $video->setAttribute('is_disliked', $reaction?->type === 'dislike');
 
         return $video;
+    }
+
+    private function incrementReactionCounter(Video $video, string $type): void
+    {
+        if ($type === 'dislike') {
+            $video->increment('dislikes_count');
+        } else {
+            $video->increment('likes_count');
+        }
+    }
+
+    private function decrementReactionCounter(Video $video, string $type): void
+    {
+        if ($type === 'dislike') {
+            $video->decrement('dislikes_count');
+        } else {
+            $video->decrement('likes_count');
+        }
     }
 }

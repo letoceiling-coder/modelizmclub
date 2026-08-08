@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
@@ -7,15 +8,89 @@ import {
   REFERRAL_BONUS_PER_INVITE,
 } from "@/lib/referral";
 import { useReferral } from "@/lib/api/referral";
-import { useStore, selectors } from "@/lib/store";
+import { isAuthenticated } from "@/lib/auth/session";
+import { isDemoMode } from "@/lib/demo-mode";
+import { GUEST_USER, useStore, selectors } from "@/lib/store";
+import { ROUTES } from "@/lib/routes";
+
+const sectionStyle = {
+  background: "var(--background-elevated)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--r-card-lg)",
+  padding: 20,
+} as const;
+
+function InviteHeader() {
+  return (
+    <div className="flex items-start gap-[12px]">
+      <div
+        className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
+        <Gift size={18} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 18,
+            color: "var(--foreground)",
+          }}
+        >
+          Пригласи друга
+        </h3>
+        <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
+          +{REFERRAL_BONUS_PER_INVITE} бесплатное объявление за каждого друга, который зарегистрируется. Максимум — {REFERRAL_MAX_BONUS} объявлений.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function InviteGuestCta() {
+  return (
+    <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
+      <InviteHeader />
+      <p className="mt-[16px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+        Войдите или создайте аккаунт, чтобы получить персональную реферальную ссылку и бонусы за приглашённых друзей.
+      </p>
+      <div className="mt-[16px] flex flex-wrap gap-[10px]">
+        <Link
+          to="/register"
+          className="inline-flex h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[20px] text-[14px] font-semibold transition-opacity hover:opacity-90"
+          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+        >
+          Создать аккаунт
+        </Link>
+        <Link
+          to="/login"
+          search={{ redirect: "/subscription" }}
+          className="inline-flex h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[20px] text-[14px] font-semibold transition-colors"
+          style={{ border: "1px solid var(--border)", color: "var(--foreground-70)" }}
+        >
+          Войти
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 export function InviteBlock() {
   const me = useStore(selectors.currentUser);
+  const isGuest = me.id === GUEST_USER.id && !isAuthenticated() && !isDemoMode();
+
+  if (isGuest) {
+    return <InviteGuestCta />;
+  }
+
+  return <InviteBlockAuthenticated meId={me.id} />;
+}
+
+function InviteBlockAuthenticated({ meId }: { meId: string }) {
   const [copied, setCopied] = useState(false);
   const { data } = useReferral();
-  // SSR + first client paint use the stable canonical link so hydration matches;
-  // the real API-backed link/stats replace it once loaded.
-  const link = data?.link ?? getReferralLink(me.id);
+  const link = data?.link ?? getReferralLink(meId);
   const invitedCount = data?.invitedCount ?? 0;
   const bonus = data?.bonus ?? 0;
   const remaining = Math.max(0, REFERRAL_MAX_BONUS - bonus);
@@ -48,38 +123,8 @@ export function InviteBlock() {
   };
 
   return (
-    <section
-      className="mt-[40px]"
-      style={{
-        background: "var(--background-elevated)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-card-lg)",
-        padding: 20,
-      }}
-    >
-      <div className="flex items-start gap-[12px]">
-        <div
-          className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-        >
-          <Gift size={18} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3
-            style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
-              fontSize: 18,
-              color: "var(--foreground)",
-            }}
-          >
-            Пригласи друга
-          </h3>
-          <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-            +{REFERRAL_BONUS_PER_INVITE} бесплатное объявление за каждого друга, который зарегистрируется. Максимум — {REFERRAL_MAX_BONUS} объявлений.
-          </p>
-        </div>
-      </div>
+    <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
+      <InviteHeader />
 
       <div
         className="mt-[16px] flex items-center gap-[8px]"
@@ -97,6 +142,7 @@ export function InviteBlock() {
           {link}
         </span>
         <button
+          type="button"
           onClick={copy}
           className="inline-flex shrink-0 items-center gap-[6px] transition-colors"
           style={{
@@ -129,6 +175,7 @@ export function InviteBlock() {
           )}
         </div>
         <button
+          type="button"
           onClick={share}
           className="inline-flex items-center gap-[6px] transition-colors"
           style={{

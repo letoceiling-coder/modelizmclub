@@ -7,6 +7,7 @@ import { Gift, Zap, CalendarClock } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
+import { ROUTES } from "@/lib/routes";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useMySubscription, formatSubscriptionEndDate, invalidateMySubscription } from "@/lib/subscription";
 import { isAuthenticated } from "@/lib/auth/session";
@@ -117,8 +118,20 @@ function SubscriptionPage() {
     else if (p === "failed") toast.error(t("pages.subscription.payFailed"));
     params.delete("payment");
     const qs = params.toString();
-    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
   }, [t]);
+
+  useEffect(() => {
+    const scrollIfNeeded = () => {
+      if (window.location.hash.replace("#", "") !== ROUTES.subscriptionInviteHash) return;
+      window.requestAnimationFrame(() => {
+        document.getElementById(ROUTES.subscriptionInviteHash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    };
+    scrollIfNeeded();
+    window.addEventListener("hashchange", scrollIfNeeded);
+    return () => window.removeEventListener("hashchange", scrollIfNeeded);
+  }, []);
 
   return (
     <AppLayout rightColumn={false}>

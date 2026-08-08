@@ -26,13 +26,21 @@ let convHandler: ((m: Message) => void) | null = null;
 let convDeleteHandler: ((messageUuid: string) => void) | null = null;
 let convUnsub: (() => void) | null = null;
 
+let bindSeq = 0;
+
 async function bindConversation(): Promise<void> {
+  const seq = ++bindSeq;
   if (convUnsub) {
     convUnsub();
     convUnsub = null;
   }
   if (!convId || !convHandler || !getToken()) return;
-  convUnsub = await subscribeConversation(convId, convHandler, convDeleteHandler ?? undefined);
+  const unsub = await subscribeConversation(convId, convHandler, convDeleteHandler ?? undefined);
+  if (seq !== bindSeq) {
+    unsub();
+    return;
+  }
+  convUnsub = unsub;
 }
 
 /** Re-subscribe personal channels after socket (re)connect. */

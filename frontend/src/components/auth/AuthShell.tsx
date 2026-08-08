@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { getToken } from "@/lib/api/client";
+import { ROUTES } from "@/lib/routes";
 import cover from "@/assets/cover-modelizm.jpg";
 
 interface Props {
@@ -15,10 +18,26 @@ interface Props {
   leftContent?: ReactNode;
 }
 
+export function AuthLogoLink({ size = 40 }: { size?: number }) {
+  const { t } = useTranslation();
+  const isGuest = !getToken();
+  const to = isGuest ? ROUTES.home : ROUTES.feed;
+
+  return (
+    <Link
+      to={to}
+      className="inline-flex w-fit rounded-[var(--r-button)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      aria-label={isGuest ? t("pages.homeLink") : t("nav.feed")}
+    >
+      <Logo size={size} />
+    </Link>
+  );
+}
+
 function DefaultLeftContent() {
   return (
     <>
-      <Logo size={40} />
+      <AuthLogoLink size={40} />
       <div>
         <div
           style={{
@@ -79,7 +98,7 @@ export function AuthShell({ title, subtitle, children, footer, leftContent }: Pr
       {/* RIGHT — form */}
       <div className="relative flex flex-col">
         <div className="flex items-center justify-between px-[24px] py-[20px] lg:hidden">
-          <Link to="/"><Logo /></Link>
+          <AuthLogoLink />
           <ThemeToggle />
         </div>
         <div className="hidden justify-end p-[24px] lg:flex">

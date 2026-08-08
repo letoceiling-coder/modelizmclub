@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -550,6 +550,10 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const photosRef = useRef(photos);
+  const photoFilesRef = useRef(photoFiles);
+  photosRef.current = photos;
+  photoFilesRef.current = photoFiles;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
@@ -570,7 +574,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
     setPhotoFiles((f) => f.filter((_, j) => j !== i));
   };
   const reorderPhotos = (next: string[]) => {
-    setPhotoFiles(next.map((url) => photoFiles[photos.indexOf(url)]));
+    const currentPhotos = photosRef.current;
+    const currentFiles = photoFilesRef.current;
+    setPhotoFiles(next.map((url) => currentFiles[currentPhotos.indexOf(url)]));
     setPhotos(next);
   };
   const replacePhoto = (i: number, blob: Blob) => {

@@ -58,6 +58,30 @@ class FeedbackModuleTest extends TestCase
             ->assertJsonValidationErrors('message');
     }
 
+    public function test_phone_unverified_user_can_submit_feedback(): void
+    {
+        $user = User::factory()->create([
+            'status' => UserStatus::Active,
+            'email_verified_at' => now(),
+            'phone_verified_at' => null,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/feedback', [
+                'subject' => 'Бронетехника',
+                'message' => 'тест',
+                'page' => '/feed',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'new');
+
+        $this->assertDatabaseHas('feedback', [
+            'user_id' => $user->id,
+            'subject' => 'Бронетехника',
+            'message' => 'тест',
+        ]);
+    }
+
     public function test_feedback_list_requires_moderator(): void
     {
         $user = User::factory()->create(['role' => UserRole::User]);

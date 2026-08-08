@@ -5,6 +5,7 @@ import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -234,7 +235,8 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         </span>
       </Link>
 
-      <div className="mt-2">
+      <div className="mt-2 space-y-0.5">
+        <InviteFriendNavLink />
         <FeedbackDialog />
       </div>
     </div>

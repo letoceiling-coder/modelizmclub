@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "./client";
+import { api, getToken } from "./client";
+import { isDemoMode } from "@/lib/demo-mode";
 import { PUBLIC_ORIGIN } from "@/lib/referral";
 
 export interface ReferralInvitedUser {
@@ -66,6 +67,10 @@ export function useReferral(): { data: ReferralData | null; loading: boolean } {
   const [data, setData] = useState<ReferralData | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!getToken() && !isDemoMode()) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     fetchReferral()
       .then((d) => active && setData(d))

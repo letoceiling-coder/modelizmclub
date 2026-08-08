@@ -3347,6 +3347,24 @@ function isEnabledShape(v: unknown): v is { enabled: boolean } {
   return isPlainObject(v) && Object.keys(v).length === 1 && typeof v.enabled === "boolean";
 }
 
+function readEnabledSetting(settings: AdminSetting[], key: string, fallback = false): boolean {
+  const row = settings.find((s) => s.key === key);
+  return isEnabledShape(row?.value) ? row.value.enabled : fallback;
+}
+
+function mergeAdminSettings(prev: AdminSetting[], updated: AdminSetting[]): AdminSetting[] {
+  if (updated.length === 0) return prev;
+  const byKey = new Map(prev.map((s) => [s.key, s]));
+  for (const row of updated) byKey.set(row.key, row);
+  return Array.from(byKey.values());
+}
+
+function draftsFromSettings(rows: AdminSetting[]): Record<string, unknown> {
+  const d: Record<string, unknown> = {};
+  for (const s of rows) d[s.key] = structuredClone(s.value);
+  return d;
+}
+
 /** Saved immediately by dedicated cards — must not be overwritten by the bulk «Сохранить» drafts. */
 const CARD_MANAGED_SETTING_KEYS = new Set([
   "feature.communities_enabled",
@@ -3366,17 +3384,14 @@ function SettingsSection() {
 
   useEffect(() => {
     fetchAdminSettings()
-      .then((rows) => {
+      .then(async (rows) => {
         setSettings(rows);
-        const d: Record<string, unknown> = {};
-        for (const s of rows) {
-          d[s.key] = structuredClone(s.value);
-        }
-        setDrafts(d);
+        setDrafts(draftsFromSettings(rows));
+        await loadFeatureFlagsFromServer();
       })
       .catch(() => toast.error(t("pages.adminSettings.loadFailed")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const setDraft = (key: string, value: unknown) => setDrafts((p) => ({ ...p, [key]: value }));
 
@@ -3397,11 +3412,12 @@ function SettingsSection() {
       }));
     setSaving(true);
     try {
-      const updated = await updateAdminSettings(next);
-      setSettings(updated);
-      const d: Record<string, unknown> = {};
-      for (const s of updated) d[s.key] = structuredClone(s.value);
-      setDrafts(d);
+      if (next.length > 0) {
+        await updateAdminSettings(next);
+      }
+      const rows = await fetchAdminSettings();
+      setSettings(rows);
+      setDrafts(draftsFromSettings(rows));
       await loadFeatureFlagsFromServer();
       toast.success(t("pages.adminSettings.saved"));
     } catch {
@@ -3549,24 +3565,21 @@ function SettingsSection() {
     );
   };
 
-  const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
-  const marketEnabled = useFeatureFlag("marketEnabled");
+  const communitiesEnabled = readEnabledSetting(settings, "feature.communities_enabled", false);
+  const marketEnabled = readEnabledSetting(settings, "feature.market_enabled", false);
+  const escrowEnabled = readEnabledSetting(settings, "feature.escrow_enabled", false);
+  const listingPaymentEnabled = readEnabledSetting(settings, "feature.listing_payment_enabled", true);
   const [savingCommunities, setSavingCommunities] = useState(false);
   const [savingMarket, setSavingMarket] = useState(false);
-  const escrowEnabled = useFeatureFlag("escrowEnabled");
   const [savingEscrow, setSavingEscrow] = useState(false);
-  const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
   const [savingListingPayment, setSavingListingPayment] = useState(false);
 
   // Server-persisted (SystemSetting: feature.feed_auto_publish). Not part of the
   // public feature-flags endpoint — it only affects the backend publish path.
   // Absent/false → moderation ON (posts wait in queue). Read straight from the
   // loaded settings so it reflects the real server state.
-  const feedAutoPublish = (() => {
-    const row = settings.find((s) => s.key === "feature.feed_auto_publish");
-    return isEnabledShape(row?.value) ? row.value.enabled : false;
-  })();
+  const feedAutoPublish = readEnabledSetting(settings, "feature.feed_auto_publish", false);
   const [savingFeedAutoPublish, setSavingFeedAutoPublish] = useState(false);
 
   const toggleFeedAutoPublish = async (checked: boolean) => {
@@ -3579,10 +3592,7 @@ function SettingsSection() {
       const [updated] = await updateAdminSettings([
         { key: "feature.feed_auto_publish", value: { enabled: checked }, group: "feed" },
       ]);
-      setSettings((prev) => {
-        const rest = prev.filter((s) => s.key !== "feature.feed_auto_publish");
-        return updated ? [...rest, updated] : rest;
-      });
+      setSettings((prev) => mergeAdminSettings(prev, updated ? [updated] : []));
       setDrafts((prev) => ({ ...prev, "feature.feed_auto_publish": { enabled: checked } }));
       toast.success(checked ? t("pages.adminSettings.featureCards.feedAutoPublish.enabled") : t("pages.adminSettings.featureCards.feedAutoPublish.disabled"));
     } catch {
@@ -3602,10 +3612,7 @@ function SettingsSection() {
       const [updated] = await updateAdminSettings([
         { key: "feature.communities_enabled", value: { enabled: checked }, group: "features" },
       ]);
-      setSettings((prev) => {
-        const rest = prev.filter((s) => s.key !== "feature.communities_enabled");
-        return updated ? [...rest, updated] : rest;
-      });
+      setSettings((prev) => mergeAdminSettings(prev, updated ? [updated] : []));
       setDrafts((prev) => ({ ...prev, "feature.communities_enabled": { enabled: checked } }));
       await loadFeatureFlagsFromServer();
       toast.success(checked ? t("pages.adminSettings.featureCards.communities.enabled") : t("pages.adminSettings.featureCards.communities.disabled"));
@@ -3624,7 +3631,9 @@ function SettingsSection() {
     }
     setSavingMarket(true);
     try {
-      await updateAdminSettings([{ key: "feature.market_enabled", value: { enabled: checked }, group: "feature" }]);
+      const [updated] = await updateAdminSettings([{ key: "feature.market_enabled", value: { enabled: checked }, group: "feature" }]);
+      setSettings((prev) => mergeAdminSettings(prev, updated ? [updated] : []));
+      setDrafts((prev) => ({ ...prev, "feature.market_enabled": { enabled: checked } }));
       await loadFeatureFlagsFromServer();
       toast.success(checked ? t("pages.adminSettings.featureCards.market.enabled") : t("pages.adminSettings.featureCards.market.disabled"));
     } catch {
@@ -3642,7 +3651,9 @@ function SettingsSection() {
     }
     setSavingEscrow(true);
     try {
-      await updateAdminSettings([{ key: "feature.escrow_enabled", value: { enabled: checked }, group: "feature" }]);
+      const [updated] = await updateAdminSettings([{ key: "feature.escrow_enabled", value: { enabled: checked }, group: "feature" }]);
+      setSettings((prev) => mergeAdminSettings(prev, updated ? [updated] : []));
+      setDrafts((prev) => ({ ...prev, "feature.escrow_enabled": { enabled: checked } }));
       await loadFeatureFlagsFromServer();
       toast.success(checked ? t("pages.adminSettings.featureCards.escrow.enabled") : t("pages.adminSettings.featureCards.escrow.disabled"));
     } catch {
@@ -3660,7 +3671,9 @@ function SettingsSection() {
     }
     setSavingListingPayment(true);
     try {
-      await updateAdminSettings([{ key: "feature.listing_payment_enabled", value: { enabled: checked }, group: "feature" }]);
+      const [updated] = await updateAdminSettings([{ key: "feature.listing_payment_enabled", value: { enabled: checked }, group: "feature" }]);
+      setSettings((prev) => mergeAdminSettings(prev, updated ? [updated] : []));
+      setDrafts((prev) => ({ ...prev, "feature.listing_payment_enabled": { enabled: checked } }));
       await loadFeatureFlagsFromServer();
       toast.success(checked ? t("pages.adminSettings.featureCards.listingPayment.enabled") : t("pages.adminSettings.featureCards.listingPayment.disabled"));
     } catch {

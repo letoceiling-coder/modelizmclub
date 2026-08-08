@@ -1267,19 +1267,19 @@ function MessengerPage() {
                 </Button>
                 <Link to="/user/$id" params={{ id: partner!.slug ?? partner!.id }} className="flex min-w-0 items-center gap-[12px]">
                   <ChatAvatar src={partner!.avatar} name={partner!.name} size={40} />
-                  <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                     <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={partner!.name}>{partner!.name}</div>
-                    <div className="flex min-w-0 items-center gap-[6px] truncate text-[12px]">
+                    <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
                       {(() => {
                         void presenceTick;
-                        const { online, text } = presenceLabel(partner!.id, onlineSet, partner!);
+                        const { online, text, title } = presenceLabel(partner!.id, onlineSet, partner!, { compact: true });
                         return online ? (
                           <>
                             <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ background: "var(--success)" }} />
-                            <span className="truncate whitespace-nowrap" style={{ color: "var(--success)" }}>{text}</span>
+                            <span style={{ color: "var(--success)" }}>{text}</span>
                           </>
                         ) : (
-                          <span className="truncate whitespace-nowrap" style={{ color: "var(--foreground-50)" }}>{text}</span>
+                          <span title={title} style={{ color: "var(--foreground-50)" }}>{text}</span>
                         );
                       })()}
                     </div>

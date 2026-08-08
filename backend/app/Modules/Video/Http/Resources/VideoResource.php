@@ -37,8 +37,10 @@ class VideoResource extends JsonResource
                 : null),
             'status' => $this->status,
             'likes_count' => $this->likes_count,
+            'dislikes_count' => $this->dislikes_count ?? 0,
             'comments_count' => $this->comments_count,
             'is_liked' => (bool) $this->getAttribute('is_liked'),
+            'is_disliked' => (bool) $this->getAttribute('is_disliked'),
         ];
     }
 }

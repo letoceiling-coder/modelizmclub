@@ -4,17 +4,25 @@ namespace Tests\Feature;
 
 use App\Enums\ContentStatus;
 use App\Enums\MediaStatus;
+use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Channel;
 use App\Models\ChannelPost;
 use App\Models\Media;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ChannelPostMediaTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RoleSeeder::class);
+    }
 
     public function test_owner_can_publish_post_with_media_and_it_duplicates_into_feed(): void
     {
@@ -128,5 +136,51 @@ class ChannelPostMediaTest extends TestCase
             ->getJson("/api/v1/channels/{$channel->slug}/posts")
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_admin_approving_feed_post_publishes_linked_channel_post(): void
+    {
+        config(['feed.auto_publish' => false]);
+
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $owner = User::factory()->create(['status' => UserStatus::Active]);
+        $channel = Channel::create([
+            'owner_id' => $owner->id,
+            'name' => 'Admin Sync Channel',
+            'slug' => 'admin-sync-channel',
+            'kind' => 'author',
+        ]);
+
+        $this->actingAs($owner, 'sanctum')
+            ->postJson("/api/v1/channels/{$channel->slug}/posts", [
+                'text' => '123131312',
+                'kind' => 'news',
+            ])
+            ->assertCreated();
+
+        $channelPost = ChannelPost::query()->firstOrFail();
+        $feedPost = $channelPost->feedPost;
+        $this->assertSame('moderation', $channelPost->status);
+        $this->assertSame(ContentStatus::Draft, $feedPost->status);
+
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/admin/posts/{$feedPost->uuid}", ['status' => 'published'])
+            ->assertOk();
+
+        $channelPost->refresh();
+        $this->assertSame('published', $channelPost->status);
+        $this->assertNotNull($channelPost->published_at);
+        $this->assertSame(ContentStatus::Published, $feedPost->fresh()->status);
+
+        $this->assertDatabaseHas('moderation_queue', [
+            'moderatable_type' => ChannelPost::class,
+            'moderatable_id' => $channelPost->id,
+            'status' => 'approved',
+        ]);
+
+        $this->actingAs($owner, 'sanctum')
+            ->getJson("/api/v1/channels/{$channel->slug}/posts")
+            ->assertOk()
+            ->assertJsonPath('data.0.status', 'published');
     }
 }

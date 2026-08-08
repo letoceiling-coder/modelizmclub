@@ -25,7 +25,11 @@ const PhoneInput = React.forwardRef<HTMLInputElement, Omit<InputProps, "type" | 
 
     React.useEffect(() => {
       if (defaultValue == null || String(defaultValue).trim() === "") return;
-      setValue(formatRuPhone(String(defaultValue)));
+      const formatted = formatRuPhone(String(defaultValue));
+      setValue((prev) => {
+        if (prev.replace(/\D/g, "") === formatted.replace(/\D/g, "")) return prev;
+        return formatted;
+      });
     }, [defaultValue]);
 
     return (

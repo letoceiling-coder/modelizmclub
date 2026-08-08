@@ -8,6 +8,7 @@ import {
   PROFILE_COVER_MAX_BYTES,
   PROFILE_IMAGE_ACCEPT,
   prepareProfileImageFile,
+  blobToImageFile,
 } from "@/lib/profile-image";
 import { uploadMedia } from "@/lib/api/media";
 import { updateChannelBranding, type Channel } from "@/lib/channels";
@@ -77,7 +78,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     setPendingAvatar(null);
     setAvatarUploading(true);
     try {
-      const file = new File([blob], "channel-avatar.jpg", { type: "image/jpeg" });
+      const file = blobToImageFile(blob, "channel-avatar");
       const media = await uploadMedia(file, "avatar");
       const updated = await saveBranding({ avatar_media_uuid: media.uuid });
       setAvatarUrl(updated.avatarImage ?? media.url ?? "");
@@ -109,7 +110,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     setPendingBanner(null);
     setBannerUploading(true);
     try {
-      const file = new File([blob], "channel-banner.jpg", { type: "image/jpeg" });
+      const file = blobToImageFile(blob, "channel-banner");
       const media = await uploadMedia(file, "banner");
       const updated = await saveBranding({ banner_media_uuid: media.uuid });
       setBannerUrl(updated.bannerImage ?? media.url ?? "");
@@ -148,9 +149,13 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
           <div className="mt-2 flex items-center gap-3">
             <Avatar
               className="h-16 w-16"
-              style={{ borderRadius: 16, border: "2px solid var(--border)", background: channel.avatarColor }}
+              style={{
+                borderRadius: 16,
+                border: "2px solid var(--border)",
+                background: avatarUrl ? "transparent" : channel.avatarColor,
+              }}
             >
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="object-cover" /> : null}
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : null}
               <AvatarFallback
                 className="font-display text-[22px] font-bold text-white"
                 style={{ background: channel.avatarColor, borderRadius: 14 }}
@@ -214,10 +219,11 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
         file={pendingAvatar}
         aspect={1}
         lockAspect
-        shape="circle"
+        shape="rect"
         lockShape
         outputWidth={480}
         outputHeight={480}
+        outputMime="image/jpeg"
         title={t("components.channelBranding.avatarEditorTitle")}
         onCancel={() => setPendingAvatar(null)}
         onCropped={uploadAvatar}

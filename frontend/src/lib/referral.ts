@@ -15,7 +15,8 @@ export function getInvitedFriends(): InvitedFriend[] {
 }
 
 export function getReferralCode(userId: string): string {
-  return userId ? `MDLZM-${userId.toUpperCase().slice(0, 6)}` : "";
+  if (!userId || userId === "guest") return "";
+  return `MDLZM-${userId.toUpperCase().slice(0, 6)}`;
 }
 
 // Canonical public origin. Used on the server and during initial client

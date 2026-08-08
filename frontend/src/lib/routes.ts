@@ -29,7 +29,11 @@ export const ROUTES = {
   review: (id: string) => `/reviews/${id}` as const,
   reviewUpload: "/reviews/upload",
   settings: "/settings",
+  /** Scroll target on /subscription for the referral block. */
+  subscriptionInviteHash: "invite-friend",
 } as const;
+
+export const SUBSCRIPTION_INVITE_URL = `${ROUTES.subscription}#${ROUTES.subscriptionInviteHash}`;
 
 // Maps sidebar section ids to URL prefixes that should highlight it.
 export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {

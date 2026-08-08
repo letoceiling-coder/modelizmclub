@@ -4,6 +4,7 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ChannelPost;
 use App\Models\Post;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -14,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
 use Modules\Admin\Services\AuditService;
+use Modules\Channel\Services\ChannelPostService;
 use Modules\Feed\Http\Resources\PostResource;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -40,7 +42,7 @@ class AdminPostController extends Controller
     #[Endpoint(title: 'Изменить статус публикации')]
     #[PathParameter('uuid', description: 'UUID публикации')]
     #[BodyParameter('status', description: 'Новый статус', example: 'hidden')]
-    public function update(string $uuid, AuditService $audit): PostResource
+    public function update(string $uuid, AuditService $audit, ChannelPostService $channelPosts): PostResource
     {
         $post = Post::query()->where('uuid', $uuid)->first();
 
@@ -63,9 +65,26 @@ class AdminPostController extends Controller
         $post->moderated_at = now();
         $post->save();
 
+        $this->syncLinkedChannelPost($channelPosts, $post, $status);
+
         $audit->log(request()->user(), 'admin.posts.update', $post, $old, $post->fresh()->toArray(), request());
 
         return new PostResource($post->fresh(['author.profile', 'category', 'community', 'mediaItems.media']));
+    }
+
+    private function syncLinkedChannelPost(ChannelPostService $channelPosts, Post $post, ContentStatus $status): void
+    {
+        $channelPost = ChannelPost::query()->where('feed_post_id', $post->id)->first();
+
+        if (! $channelPost) {
+            return;
+        }
+
+        if ($status === ContentStatus::Published && $channelPost->status !== 'published') {
+            $channelPosts->publish($channelPost);
+        } elseif ($status === ContentStatus::Rejected && $channelPost->status !== 'rejected') {
+            $channelPosts->reject($channelPost);
+        }
     }
 
     #[PathParameter('uuid', description: 'UUID публикации')]

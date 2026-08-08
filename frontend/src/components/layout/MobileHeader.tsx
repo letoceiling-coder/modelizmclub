@@ -8,6 +8,7 @@ import { setLocale, type Locale } from "@/lib/i18n";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
 import { MobileSearchOverlay } from "@/components/layout/MobileSearchOverlay";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
@@ -180,7 +181,12 @@ function MoreMenu() {
 
           <div className="my-1 h-px" style={{ background: "var(--border)" }} />
           {account.map(renderRow)}
-          {/* Feedback is a dialog, not a route — lives in the account group. */}
+          <div onClick={() => setOpen(false)}>
+            <InviteFriendNavLink
+              className="flex min-h-[52px] w-full items-center gap-3 rounded-[var(--r-card-sm)] px-3 text-[15px] font-medium transition-colors hover:bg-[var(--background-surface)]"
+              onNavigate={() => setOpen(false)}
+            />
+          </div>
           <div onClick={() => setOpen(false)}>
             <FeedbackMenuRow />
           </div>

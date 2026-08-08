@@ -14,7 +14,8 @@ class VideoReactionController extends Controller
     public function store(string $uuid, Request $request, VideoService $videos): JsonResponse
     {
         $video = Video::query()->where('uuid', $uuid)->firstOrFail();
-        $videos->react($video, $request->user());
+        $type = $request->input('type', 'like');
+        $videos->react($video, $request->user(), is_string($type) ? $type : 'like');
 
         return response()->json(['message' => 'ok']);
     }

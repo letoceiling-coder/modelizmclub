@@ -3,12 +3,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
-import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthShell, AuthLogoLink } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
 import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
@@ -81,7 +80,7 @@ function RegisterPage() {
 
   const leftContent = (
     <>
-      <Logo size={40} />
+      <AuthLogoLink size={40} />
       <div className="flex flex-col gap-[20px]">
         <h2
           style={{

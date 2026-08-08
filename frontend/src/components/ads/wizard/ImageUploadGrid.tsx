@@ -367,7 +367,7 @@ export function ImageUploadGrid({
   const isMobile = useIsMobile();
   const compact = variant === "compact";
   const minimalControls = controls === "minimal";
-  const dragFromHandleOnly = isMobile || minimalControls;
+  const dragFromHandleOnly = isMobile;
   const tileFallback = Math.round((compact ? TILE_COMPACT : TILE_DEFAULT) * sizeScale);
   const full = photos.length >= max;
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -381,6 +381,9 @@ export function ImageUploadGrid({
   const gridRef = useRef<HTMLDivElement>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
   const fileDragDepthRef = useRef(0);
+
+  const onReorderRef = useRef(onReorder);
+  onReorderRef.current = onReorder;
 
   photosRef.current = photos;
   const tile = compact ? tileFallback : measuredTile;
@@ -454,11 +457,10 @@ export function ImageUploadGrid({
     const next = [...list];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    onReorder(next);
+    onReorderRef.current(next);
   };
 
   const onTilePointerDown = (index: number, e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest("button, [role=menu]")) return;
     const tileEl =
       (e.currentTarget as HTMLElement).dataset.tileIndex != null
         ? (e.currentTarget as HTMLElement)
@@ -543,10 +545,14 @@ export function ImageUploadGrid({
   };
 
   useEffect(() => {
-    if (!drag) return;
-
-    const onMove = (e: PointerEvent) => handlePointerMove(e.clientX, e.clientY);
-    const onUp = () => endDrag();
+    const onMove = (e: PointerEvent) => {
+      if (!dragRef.current) return;
+      handlePointerMove(e.clientX, e.clientY);
+    };
+    const onUp = () => {
+      if (!dragRef.current) return;
+      endDrag();
+    };
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
@@ -556,7 +562,7 @@ export function ImageUploadGrid({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [drag]);
+  }, []);
 
   const overlayPos = drag?.lifted
     ? {

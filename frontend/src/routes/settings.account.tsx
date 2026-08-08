@@ -245,7 +245,7 @@ function AccountSection() {
           )}
         </div>
         <Field label={t("pages.settings.phoneNumber")}>
-          <PhoneInput key={phone || "empty"} defaultValue={phone} onValueChange={onPhoneChange} />
+          <PhoneInput defaultValue={phone} onValueChange={onPhoneChange} />
         </Field>
 
         {!phoneMatchesVerified && (

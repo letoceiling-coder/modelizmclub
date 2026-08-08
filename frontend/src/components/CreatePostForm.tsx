@@ -96,6 +96,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   const [channelKind, setChannelKind] = useState<PostKind>("news");
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const photosRef = useRef(photos);
+  const photoFilesRef = useRef(photoFiles);
+  photosRef.current = photos;
+  photoFilesRef.current = photoFiles;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
@@ -217,7 +221,9 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
     setPhotoFiles((f) => f.filter((_, idx) => idx !== i));
   };
   const reorderPhotos = (next: string[]) => {
-    setPhotoFiles(next.map((url) => photoFiles[photos.indexOf(url)]));
+    const currentPhotos = photosRef.current;
+    const currentFiles = photoFilesRef.current;
+    setPhotoFiles(next.map((url) => currentFiles[currentPhotos.indexOf(url)]));
     setPhotos(next);
   };
   const replacePhoto = (i: number, blob: Blob) => {

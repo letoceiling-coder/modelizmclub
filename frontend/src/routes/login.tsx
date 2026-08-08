@@ -2,11 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
-import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthShell, AuthLogoLink } from "@/components/auth/AuthShell";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
 import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { login, completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
@@ -128,7 +127,7 @@ function LoginPage() {
 
   const leftContent = (
     <>
-      <Logo size={40} />
+      <AuthLogoLink size={40} />
       <div>
         <h2
           style={{
