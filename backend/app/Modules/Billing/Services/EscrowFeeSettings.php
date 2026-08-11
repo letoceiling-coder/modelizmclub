@@ -92,6 +92,32 @@ class EscrowFeeSettings
         return $base === 'item_plus_delivery' ? 'item_plus_delivery' : 'item';
     }
 
+    public function autoReleaseDays(): int
+    {
+        $v = $this->value('escrow.release.auto_release_days');
+
+        return max(1, (int) ($v['days'] ?? 7));
+    }
+
+    public function sellerShipDeadlineDays(): int
+    {
+        $v = $this->value('escrow.release.seller_ship_deadline_days');
+
+        return max(1, (int) ($v['days'] ?? 5));
+    }
+
+    public function disputeWindowDays(): int
+    {
+        $v = $this->value('escrow.dispute.window_days');
+
+        return max(1, (int) ($v['days'] ?? 14));
+    }
+
+    public function paymentTimeoutHours(): int
+    {
+        return 48;
+    }
+
     /**
      * @return array<string, mixed>
      */

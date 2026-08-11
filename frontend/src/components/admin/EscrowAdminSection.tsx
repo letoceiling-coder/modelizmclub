@@ -99,6 +99,9 @@ export function EscrowAdminSection() {
   const [noteDraft, setNoteDraft] = useState("");
   const [actionReason, setActionReason] = useState("");
   const [partialAmount, setPartialAmount] = useState("");
+  const [resolveOutcome, setResolveOutcome] = useState<"buyer" | "seller" | "split">("buyer");
+  const [buyerSplitAmount, setBuyerSplitAmount] = useState("");
+  const [sellerSplitAmount, setSellerSplitAmount] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -130,6 +133,9 @@ export function EscrowAdminSection() {
       setNoteDraft(full.admin_note ?? "");
       setActionReason("");
       setPartialAmount("");
+      setResolveOutcome("buyer");
+      setBuyerSplitAmount("");
+      setSellerSplitAmount("");
     } catch {
       toast.error(t("pages.adminEscrow.loadDealFailed"));
     }
@@ -139,6 +145,39 @@ export function EscrowAdminSection() {
     const full = await fetchAdminEscrowDeal(uuid);
     setSelected(full);
     setRows((list) => list.map((r) => (r.uuid === uuid ? { ...r, ...full } : r)));
+  };
+
+  const runResolveDispute = async () => {
+    if (!selected) return;
+    const note = actionReason.trim();
+    if (note.length < 10) {
+      toast.error(t("pages.adminEscrow.reasonRequired"));
+      return;
+    }
+    const body: Record<string, unknown> = { outcome: resolveOutcome, note };
+    if (resolveOutcome === "split") {
+      const buyerCents = buyerSplitAmount
+        ? Math.round(parseFloat(buyerSplitAmount.replace(",", ".")) * 100)
+        : null;
+      const sellerCents = sellerSplitAmount
+        ? Math.round(parseFloat(sellerSplitAmount.replace(",", ".")) * 100)
+        : null;
+      if (buyerCents != null) body.buyer_amount_cents = buyerCents;
+      if (sellerCents != null) body.seller_amount_cents = sellerCents;
+    }
+    setBusy(true);
+    try {
+      await adminEscrowAction(selected.uuid, "resolve-dispute", body);
+      toast.success(t("pages.adminEscrow.actionOk"));
+      await refreshSelected(selected.uuid);
+      const list = await fetchAdminEscrowDeals({ status: statusFilter, q: search.trim() || undefined });
+      setRows(list);
+      fetchAdminEscrowStats().then(setStats).catch(() => {});
+    } catch {
+      toast.error(t("pages.adminEscrow.actionFailed"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const runAction = async (
@@ -389,6 +428,47 @@ export function EscrowAdminSection() {
               {t("pages.adminEscrow.actions.cancel")}
             </button>
           </div>
+
+          {selected.dispute_status === "open" && (
+            <div style={{ marginTop: "20px", padding: "16px", borderRadius: "var(--r-card)", border: "1px solid var(--danger)", background: "var(--background-surface)" }}>
+              <h4 style={{ fontWeight: 700, fontSize: "14px", marginBottom: "12px", color: "var(--danger)" }}>
+                {t("pages.adminEscrow.resolve.title")}
+              </h4>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--foreground-50)", marginBottom: "6px" }}>
+                {t("pages.adminEscrow.resolve.outcome")}
+              </label>
+              <select
+                value={resolveOutcome}
+                onChange={(e) => setResolveOutcome(e.target.value as "buyer" | "seller" | "split")}
+                style={{ ...inputStyle, marginBottom: "10px" }}
+              >
+                <option value="buyer">{t("pages.adminEscrow.resolve.buyer")}</option>
+                <option value="seller">{t("pages.adminEscrow.resolve.seller")}</option>
+                <option value="split">{t("pages.adminEscrow.resolve.split")}</option>
+              </select>
+              {resolveOutcome === "split" && (
+                <div className="flex flex-wrap gap-2" style={{ marginBottom: "10px" }}>
+                  <input
+                    type="text"
+                    value={buyerSplitAmount}
+                    onChange={(e) => setBuyerSplitAmount(e.target.value)}
+                    placeholder="Покупателю, ₽"
+                    style={{ ...inputStyle, maxWidth: "160px" }}
+                  />
+                  <input
+                    type="text"
+                    value={sellerSplitAmount}
+                    onChange={(e) => setSellerSplitAmount(e.target.value)}
+                    placeholder="Продавцу, ₽"
+                    style={{ ...inputStyle, maxWidth: "160px" }}
+                  />
+                </div>
+              )}
+              <button type="button" disabled={busy} style={{ ...primaryBtn, background: "var(--danger)" }} onClick={() => void runResolveDispute()}>
+                {t("pages.adminEscrow.actions.resolveDispute")}
+              </button>
+            </div>
+          )}
 
           {selected.operations && selected.operations.length > 0 && (
             <div style={{ marginTop: "20px" }}>

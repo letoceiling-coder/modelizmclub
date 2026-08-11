@@ -12,3 +12,5 @@ Schedule::command('notifications:prune')->daily();
 Schedule::command('posts:publish-scheduled')->everyMinute();
 Schedule::command('videos:publish-scheduled')->everyMinute();
 Schedule::command('communities:sync-counters')->daily();
+Schedule::command('delivery:sync-statuses')->everyThirtyMinutes();
+Schedule::command('escrow:process-timeouts')->hourly();

@@ -15,13 +15,19 @@ export interface EscrowQuote {
 export interface EscrowDeal {
   uuid: string;
   listing_uuid: string | null;
+  listing_title?: string | null;
+  listing_slug?: string | null;
   status: string;
+  dispute_status?: string;
   payment_provider: string;
   amount_cents: number;
   item_amount_cents: number;
   delivery_amount_cents: number;
   seller_payout_cents: number;
   platform_fee_cents: number;
+  captured_cents?: number;
+  refunded_cents?: number;
+  paid_out_cents?: number;
   currency: string;
   paid_at: string | null;
   completed_at: string | null;
@@ -29,11 +35,15 @@ export interface EscrowDeal {
   role: "buyer" | "seller" | null;
   can_confirm_receipt: boolean;
   can_cancel: boolean;
+  can_open_dispute?: boolean;
+  can_mark_shipped?: boolean;
+  can_confirm_shipment?: boolean;
   shipment: {
     uuid: string;
     status: string;
     tracking_number: string | null;
     provider: string;
+    delivered_at?: string | null;
   } | null;
 }
 
@@ -42,6 +52,11 @@ export interface EscrowCheckoutResult {
   checkout_url: string | null;
   status: string;
   provider: string;
+}
+
+export interface EscrowDealsPage {
+  data: EscrowDeal[];
+  meta: { current_page: number; last_page: number; per_page: number; total: number };
 }
 
 export async function fetchEscrowQuote(listingUuid: string, deliveryCents = 0): Promise<EscrowQuote> {
@@ -61,6 +76,21 @@ export async function fetchListingEscrowDeal(listingUuid: string): Promise<Escro
 export async function fetchEscrowDeal(uuid: string): Promise<EscrowDeal> {
   const res = await api<{ data: EscrowDeal }>(`/escrow/${uuid}`);
   return res.data;
+}
+
+export async function fetchMyEscrowDeals(opts: {
+  role?: "buyer" | "seller";
+  status?: string;
+  page?: number;
+  perPage?: number;
+} = {}): Promise<EscrowDealsPage> {
+  const params = new URLSearchParams();
+  if (opts.role) params.set("role", opts.role);
+  if (opts.status) params.set("status", opts.status);
+  if (opts.page) params.set("page", String(opts.page));
+  if (opts.perPage) params.set("per_page", String(opts.perPage));
+  const qs = params.toString();
+  return api<EscrowDealsPage>(`/users/me/escrow-deals${qs ? `?${qs}` : ""}`);
 }
 
 export async function startEscrowCheckout(
@@ -95,6 +125,22 @@ export async function cancelEscrowDeal(uuid: string, reason?: string): Promise<E
   return res.data;
 }
 
+export async function openEscrowDispute(uuid: string, reason: string): Promise<EscrowDeal> {
+  const res = await api<{ data: EscrowDeal }>(`/escrow/${uuid}/open-dispute`, {
+    method: "POST",
+    json: { reason },
+  });
+  return res.data;
+}
+
+export async function markEscrowShipped(uuid: string, trackingNumber?: string): Promise<EscrowDeal> {
+  const res = await api<{ data: EscrowDeal }>(`/escrow/${uuid}/mark-shipped`, {
+    method: "POST",
+    json: trackingNumber ? { tracking_number: trackingNumber } : {},
+  });
+  return res.data;
+}
+
 export function escrowStatusLabel(status: string): string {
   const map: Record<string, string> = {
     pending_payment: "Ожидает оплаты",
@@ -114,6 +160,20 @@ export function escrowStatusLabel(status: string): string {
     reversed: "Отменено",
     cancelled: "Отменено",
     failed: "Ошибка",
+  };
+  return map[status] ?? status;
+}
+
+export function shipmentStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    created: "Создано",
+    quoted: "Рассчитано",
+    awaiting_seller: "Ждёт продавца",
+    in_transit: "В пути",
+    at_pickup: "В пункте выдачи",
+    delivered: "Доставлено",
+    cancelled: "Отменено",
+    error: "Ошибка",
   };
   return map[status] ?? status;
 }

@@ -10,6 +10,8 @@ use Modules\Billing\Http\Controllers\Api\V1\EscrowQuoteController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexMyEscrowDealsController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
 use Modules\Billing\Http\Controllers\Api\V1\ListingEscrowDealController;
+use Modules\Billing\Http\Controllers\Api\V1\MarkEscrowShippedController;
+use Modules\Billing\Http\Controllers\Api\V1\OpenEscrowDisputeController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowEscrowDealController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
@@ -44,4 +46,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('escrow/{uuid}/sync', SyncEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('escrow/{uuid}/confirm-receipt', ConfirmEscrowReceiptController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('escrow/{uuid}/cancel', CancelEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::post('escrow/{uuid}/open-dispute', OpenEscrowDisputeController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::post('escrow/{uuid}/mark-shipped', MarkEscrowShippedController::class)->where('uuid', '[0-9a-f-]{36}');
 });

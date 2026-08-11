@@ -16,6 +16,7 @@ const SLUG_KEYS: Record<string, { title: string; desc: string }> = {
   feedback: { title: "feedbackTitle", desc: "feedbackDesc" },
   contacts: { title: "contactsTitle", desc: "contactsDesc" },
   security: { title: "securityTitle", desc: "securityDesc" },
+  "escrow-rules": { title: "escrowRulesTitle", desc: "escrowRulesDesc" },
 };
 
 export const Route = createFileRoute("/info/$slug")({

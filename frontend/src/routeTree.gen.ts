@@ -49,6 +49,7 @@ import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
 import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.payment-methods'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
+import { Route as SettingsEscrowDealsRouteImport } from './routes/settings.escrow-deals'
 import { Route as SettingsDashboardRouteImport } from './routes/settings.dashboard'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
 import { Route as SettingsAccountRouteImport } from './routes/settings.account'
@@ -268,6 +269,11 @@ const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsEscrowDealsRoute = SettingsEscrowDealsRouteImport.update({
+  id: '/escrow-deals',
+  path: '/escrow-deals',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsDashboardRoute = SettingsDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -399,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/dashboard': typeof SettingsDashboardRoute
+  '/settings/escrow-deals': typeof SettingsEscrowDealsRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
@@ -453,6 +460,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/dashboard': typeof SettingsDashboardRoute
+  '/settings/escrow-deals': typeof SettingsEscrowDealsRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
@@ -514,6 +522,7 @@ export interface FileRoutesById {
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/dashboard': typeof SettingsDashboardRoute
+  '/settings/escrow-deals': typeof SettingsEscrowDealsRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/payment-methods': typeof SettingsPaymentMethodsRoute
@@ -576,6 +585,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/dashboard'
+    | '/settings/escrow-deals'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/payment-methods'
@@ -630,6 +640,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/dashboard'
+    | '/settings/escrow-deals'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/payment-methods'
@@ -690,6 +701,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/dashboard'
+    | '/settings/escrow-deals'
     | '/settings/history'
     | '/settings/notifications'
     | '/settings/payment-methods'
@@ -1028,6 +1040,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsHistoryRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/escrow-deals': {
+      id: '/settings/escrow-deals'
+      path: '/escrow-deals'
+      fullPath: '/settings/escrow-deals'
+      preLoaderRoute: typeof SettingsEscrowDealsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/dashboard': {
       id: '/settings/dashboard'
       path: '/dashboard'
@@ -1244,6 +1263,7 @@ interface SettingsRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
   SettingsDashboardRoute: typeof SettingsDashboardRoute
+  SettingsEscrowDealsRoute: typeof SettingsEscrowDealsRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsPaymentMethodsRoute: typeof SettingsPaymentMethodsRoute
@@ -1259,6 +1279,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountRoute: SettingsAccountRoute,
   SettingsAppearanceRoute: SettingsAppearanceRoute,
   SettingsDashboardRoute: SettingsDashboardRoute,
+  SettingsEscrowDealsRoute: SettingsEscrowDealsRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsPaymentMethodsRoute: SettingsPaymentMethodsRoute,

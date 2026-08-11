@@ -2,14 +2,18 @@
 
 namespace Modules\Billing\Services;
 
+use App\Enums\DeliveryCarrier;
 use App\Enums\EscrowDealStatus;
 use App\Enums\ListingStatus;
+use App\Enums\ShipmentStatus;
 use App\Models\EscrowDeal;
 use App\Models\Listing;
 use App\Models\Payment;
+use App\Models\Shipment;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserPayoutRequisites;
+use App\Enums\EscrowOperationType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -180,6 +184,105 @@ class EscrowService
         return $deal->fresh(['listing', 'shipment']);
     }
 
+    public function openDispute(User $user, EscrowDeal $escrow, string $reason): EscrowDeal
+    {
+        $this->assertAvailable();
+        $this->assertParticipant($user, $escrow);
+
+        if ($escrow->status->isTerminal()) {
+            throw ValidationException::withMessages(['escrow' => ['Сделка уже завершена.']]);
+        }
+
+        if ($escrow->status === EscrowDealStatus::PendingPayment) {
+            throw ValidationException::withMessages(['escrow' => ['Спор доступен после оплаты.']]);
+        }
+
+        if ($escrow->dispute_status === 'open') {
+            throw ValidationException::withMessages(['escrow' => ['Спор уже открыт.']]);
+        }
+
+        if ($escrow->paid_at === null) {
+            throw ValidationException::withMessages(['escrow' => ['Сделка ещё не оплачена.']]);
+        }
+
+        $windowDays = $this->feeSettings->disputeWindowDays();
+        if ($escrow->paid_at->addDays($windowDays)->isPast()) {
+            throw ValidationException::withMessages([
+                'escrow' => ["Срок открытия спора истёк ({$windowDays} дн.)."],
+            ]);
+        }
+
+        $recorder = app(EscrowOperationRecorder::class);
+        $op = $recorder->start(
+            $escrow,
+            EscrowOperationType::DisputeOpen,
+            $user->id === $escrow->buyer_id ? 'buyer' : 'seller',
+            null,
+            reason: $reason,
+        );
+        $recorder->succeed($op);
+
+        $escrow->update([
+            'status' => EscrowDealStatus::DisputeOpen,
+            'dispute_status' => 'open',
+            'admin_note' => trim($reason),
+        ]);
+
+        return $escrow->fresh(['listing', 'shipment']);
+    }
+
+    /** Seller marks order shipped (pickup or manual; carrier flow uses shipments/confirm). */
+    public function markShipped(User $seller, EscrowDeal $escrow, ?string $trackingNumber = null): EscrowDeal
+    {
+        $this->assertAvailable();
+
+        if ($escrow->seller_id !== $seller->id) {
+            throw ValidationException::withMessages(['escrow' => ['Отметить отправку может только продавец.']]);
+        }
+
+        $allowed = [
+            EscrowDealStatus::Funded,
+            EscrowDealStatus::Paid,
+            EscrowDealStatus::AwaitingShipment,
+        ];
+
+        if (! in_array($escrow->status, $allowed, true)) {
+            throw ValidationException::withMessages(['escrow' => ['Отправка недоступна в текущем статусе.']]);
+        }
+
+        if ($escrow->isFrozen()) {
+            throw ValidationException::withMessages(['escrow' => ['Сделка заморожена.']]);
+        }
+
+        $shipment = $escrow->shipment;
+
+        if (! $shipment) {
+            $shipment = Shipment::query()->create([
+                'uuid' => (string) Str::uuid(),
+                'listing_id' => $escrow->listing_id,
+                'seller_id' => $escrow->seller_id,
+                'buyer_id' => $escrow->buyer_id,
+                'provider' => DeliveryCarrier::Cdek,
+                'status' => ShipmentStatus::InTransit,
+                'delivery_cost_cents' => $escrow->delivery_amount_cents,
+                'currency' => $escrow->currency,
+                'weight_kg' => 1.0,
+                'destination_point' => ['label' => 'Самовывоз / ручная отправка'],
+                'tracking_number' => $trackingNumber,
+            ]);
+            $escrow->update(['shipment_id' => $shipment->id]);
+        } else {
+            $shipment->update([
+                'status' => ShipmentStatus::InTransit,
+                'tracking_number' => $trackingNumber ?? $shipment->tracking_number,
+            ]);
+        }
+
+        app(EscrowShipmentSync::class)->onShipmentUpdated($shipment->fresh());
+
+        return $escrow->fresh(['listing', 'shipment']);
+    }
+
     public function markPaid(EscrowDeal $escrow, ?string $providerPaymentId = null): void
     {
         if ($escrow->status !== EscrowDealStatus::PendingPayment) {
@@ -269,17 +372,26 @@ class EscrowService
     {
         $isBuyer = $viewer && $escrow->buyer_id === $viewer->id;
         $isSeller = $viewer && $escrow->seller_id === $viewer->id;
+        $disputeOpen = ($escrow->dispute_status ?? 'none') === 'open';
+        $withinDisputeWindow = $escrow->paid_at !== null
+            && $escrow->paid_at->addDays($this->feeSettings->disputeWindowDays())->isFuture();
 
         return [
             'uuid' => $escrow->uuid,
             'listing_uuid' => $escrow->listing?->uuid,
+            'listing_title' => $escrow->listing?->title,
+            'listing_slug' => $escrow->listing?->slug,
             'status' => $escrow->status->value,
+            'dispute_status' => $escrow->dispute_status ?? 'none',
             'payment_provider' => $escrow->payment_provider,
             'amount_cents' => $escrow->amount_cents,
             'item_amount_cents' => $escrow->item_amount_cents,
             'delivery_amount_cents' => $escrow->delivery_amount_cents,
             'seller_payout_cents' => $escrow->seller_payout_cents,
             'platform_fee_cents' => $escrow->platform_fee_cents,
+            'captured_cents' => $escrow->captured_cents,
+            'refunded_cents' => $escrow->refunded_cents,
+            'paid_out_cents' => $escrow->paid_out_cents,
             'currency' => $escrow->currency,
             'paid_at' => $escrow->paid_at?->toIso8601String(),
             'completed_at' => $escrow->completed_at?->toIso8601String(),
@@ -292,18 +404,34 @@ class EscrowService
                 EscrowDealStatus::AwaitingBuyerConfirm,
                 EscrowDealStatus::Delivered,
                 EscrowDealStatus::InTransit,
-            ], true) && ! $escrow->isFrozen(),
+            ], true) && ! $escrow->isFrozen() && ! $disputeOpen,
             'can_cancel' => ($isBuyer || $isSeller) && in_array($escrow->status, [
                 EscrowDealStatus::PendingPayment,
                 EscrowDealStatus::Funded,
                 EscrowDealStatus::Paid,
                 EscrowDealStatus::AwaitingShipment,
-            ], true),
+            ], true) && ! $disputeOpen,
+            'can_open_dispute' => ($isBuyer || $isSeller)
+                && ! $escrow->status->isTerminal()
+                && $escrow->status !== EscrowDealStatus::PendingPayment
+                && ! $disputeOpen
+                && $withinDisputeWindow
+                && ! $escrow->isFrozen(),
+            'can_mark_shipped' => $isSeller && in_array($escrow->status, [
+                EscrowDealStatus::Funded,
+                EscrowDealStatus::Paid,
+                EscrowDealStatus::AwaitingShipment,
+            ], true) && ! $escrow->isFrozen() && ! $disputeOpen,
+            'can_confirm_shipment' => $isSeller
+                && $escrow->shipment !== null
+                && in_array($escrow->shipment->status->value, ['quoted', 'awaiting_seller'], true)
+                && ! $disputeOpen,
             'shipment' => $escrow->shipment ? [
                 'uuid' => $escrow->shipment->uuid,
                 'status' => $escrow->shipment->status->value,
                 'tracking_number' => $escrow->shipment->tracking_number,
-                'provider' => $escrow->shipment->provider,
+                'provider' => $escrow->shipment->provider->value ?? (string) $escrow->shipment->provider,
+                'delivered_at' => $escrow->shipment->delivered_at?->toIso8601String(),
             ] : null,
         ];
     }

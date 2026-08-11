@@ -34,10 +34,23 @@ class IndexMyEscrowDealsController extends Controller
             $query->where('status', $status);
         }
 
-        $deals = $query->limit(min((int) $request->query('per_page', 20), 50))->get();
+        if ($request->query('dispute') === 'open') {
+            $query->where('dispute_status', 'open');
+        }
+
+        $perPage = min((int) $request->query('per_page', 20), 50);
+        $paginator = $query->paginate($perPage);
 
         return response()->json([
-            'data' => $deals->map(fn (EscrowDeal $d) => $escrow->toArray($d, $user))->values(),
+            'data' => collect($paginator->items())
+                ->map(fn (EscrowDeal $d) => $escrow->toArray($d, $user))
+                ->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
         ]);
     }
 }
