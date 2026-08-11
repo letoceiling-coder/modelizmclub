@@ -54,6 +54,29 @@ class VtbAcquiringClient
     }
 
     /**
+     * POST without throwing on VTB business errorCode (for preAuth capability probe).
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function postAllowError(string $endpoint, array $params): array
+    {
+        $auth = $this->authParams();
+        $response = Http::asForm()
+            ->timeout(30)
+            ->post($this->apiUrl($endpoint), array_merge($auth, $params));
+
+        if (! $response->successful()) {
+            throw new RuntimeException("VTB {$endpoint} HTTP {$response->status()}");
+        }
+
+        /** @var array<string, mixed>|null $data */
+        $data = $response->json();
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */

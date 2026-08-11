@@ -109,7 +109,7 @@ class VtbEscrowService
                 ],
             );
 
-            $register = $this->client->registerPreAuthOrder([
+            $registerParams = [
                 'orderNumber' => $payment->uuid,
                 'amount' => $totalCents,
                 'currency' => config('billing.vtb.currency_code'),
@@ -119,21 +119,42 @@ class VtbEscrowService
                 'language' => config('billing.vtb.language'),
                 'clientId' => (string) $buyer->id,
                 'dynamicCallbackUrl' => url('/api/v1/payments/webhooks/vtb'),
-            ]);
+            ];
+
+            $mode = (string) config('billing.vtb.escrow_mode', 'auto');
+            $vtbMode = 'preauth';
+            $register = null;
+
+            if ($mode !== 'single') {
+                $attempt = $this->client->postAllowError('registerPreAuth.do', $registerParams);
+                if ((string) ($attempt['errorCode'] ?? '') === '0' && ! empty($attempt['orderId'])) {
+                    $register = $attempt;
+                } elseif ($mode === 'preauth') {
+                    throw new RuntimeException((string) ($attempt['errorMessage'] ?? 'PreAuth недоступен на мерчанте ВТБ.'));
+                }
+            }
+
+            if ($register === null) {
+                $register = $this->client->registerOrder($registerParams);
+                $vtbMode = 'single';
+            }
 
             $orderId = (string) ($register['orderId'] ?? '');
             $formUrl = $register['formUrl'] ?? null;
 
             if ($orderId === '' || ! is_string($formUrl) || $formUrl === '') {
-                throw new RuntimeException('Не удалось зарегистрировать preAuth в ВТБ.');
+                throw new RuntimeException('Не удалось зарегистрировать заказ в ВТБ.');
             }
 
             $payment->update([
                 'provider_payment_id' => $orderId,
-                'metadata' => array_merge($payment->metadata ?? [], ['checkout_url' => $formUrl]),
+                'metadata' => array_merge($payment->metadata ?? [], ['checkout_url' => $formUrl, 'vtb_mode' => $vtbMode]),
             ]);
 
-            $escrow->update(['vtb_order_id' => $orderId]);
+            $escrow->update([
+                'vtb_order_id' => $orderId,
+                'metadata' => ['vtb_mode' => $vtbMode],
+            ]);
 
             return [
                 'escrow_uuid' => $escrow->uuid,
@@ -189,6 +210,19 @@ class VtbEscrowService
     /** Buyer confirms receipt — capture hold and queue seller payout. */
     public function confirmReceipt(EscrowDeal $deal): EscrowDeal
     {
+        if ($this->isSingleStage($deal)) {
+            if ($deal->payment && $deal->payment->status !== 'paid') {
+                throw new RuntimeException('Сделка ещё не оплачена.');
+            }
+
+            $deal->update([
+                'captured_cents' => $deal->amount_cents,
+                'status' => EscrowDealStatus::PayoutPending,
+            ]);
+
+            return $deal->fresh(['listing', 'shipment']);
+        }
+
         if ($deal->captured_cents > 0) {
             throw new RuntimeException('Средства уже списаны.');
         }
@@ -254,6 +288,16 @@ class VtbEscrowService
                 $payment->update(['status' => 'paid', 'paid_at' => now()]);
             }
 
+            if ($this->isSingleStage($deal)) {
+                $deal->update([
+                    'status' => EscrowDealStatus::AwaitingShipment,
+                    'paid_at' => $deal->paid_at ?? now(),
+                    'captured_cents' => $deal->amount_cents,
+                ]);
+
+                return;
+            }
+
             if ($deal->status !== EscrowDealStatus::Completed && $deal->status !== EscrowDealStatus::PayoutPending) {
                 $deal->update([
                     'captured_cents' => $deal->amount_cents,
@@ -285,5 +329,13 @@ class VtbEscrowService
         $separator = str_contains($url, '?') ? '&' : '?';
 
         return $url.$separator.http_build_query($params);
+    }
+
+    private function isSingleStage(EscrowDeal $deal): bool
+    {
+        $meta = is_array($deal->metadata) ? $deal->metadata : [];
+        $paymentMeta = is_array($deal->payment?->metadata) ? $deal->payment->metadata : [];
+
+        return ($meta['vtb_mode'] ?? $paymentMeta['vtb_mode'] ?? '') === 'single';
     }
 }
