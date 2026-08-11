@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Modules\Billing\Clients\VtbAcquiringClient;
 use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Billing\Services\EscrowService;
 use RuntimeException;
 
 class VtbPaymentGateway implements PaymentGateway
@@ -111,6 +112,12 @@ class VtbPaymentGateway implements PaymentGateway
 
         if (! $payment) {
             Log::warning('VTB payment not found', ['orderId' => $orderId]);
+
+            return;
+        }
+
+        if (($payment->metadata['payable_type'] ?? null) === 'escrow') {
+            app(EscrowService::class)->syncFromVtbPayment($payment);
 
             return;
         }

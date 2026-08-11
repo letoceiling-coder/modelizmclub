@@ -8,6 +8,7 @@ import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
 import { AdActionPanel } from "@/components/ads/AdActionPanel";
+import { EscrowDealPanel } from "@/components/ads/EscrowDealPanel";
 import { AdOwnerActionPanel } from "@/components/ads/AdOwnerActionPanel";
 import { AdOwnerMobileBar } from "@/components/ads/AdOwnerMobileBar";
 import { AskSellerWidget } from "@/components/ads/AskSellerWidget";
@@ -26,6 +27,8 @@ import { openConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { fetchListingEscrowDeal, fetchEscrowDeal, syncEscrowDeal, type EscrowDeal } from "@/lib/api/escrow";
 
 import i18n from "@/lib/i18n";
 
@@ -94,6 +97,8 @@ function AdDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
+  const escrowEnabled = useFeatureFlag("escrowEnabled");
+  const [escrowDeal, setEscrowDeal] = useState<EscrowDeal | null>(null);
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -121,6 +126,38 @@ function AdDetailPage() {
       alive = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!ad || !getToken() || isDemoMode()) {
+      setEscrowDeal(null);
+      return;
+    }
+    let active = true;
+    fetchListingEscrowDeal(ad.id)
+      .then((d) => active && setEscrowDeal(d))
+      .catch(() => active && setEscrowDeal(null));
+    return () => {
+      active = false;
+    };
+  }, [ad?.id, me?.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !ad) return;
+    const params = new URLSearchParams(window.location.search);
+    const escrowUuid = params.get("escrow_uuid");
+    if (params.get("escrow") !== "success" || !escrowUuid || !getToken()) return;
+    let active = true;
+    syncEscrowDeal(escrowUuid)
+      .then((d) => {
+        if (!active) return;
+        setEscrowDeal(d);
+        toast.success(t("pages.adDetail.escrowPaymentPending"));
+      })
+      .catch(() => fetchEscrowDeal(escrowUuid).then((d) => active && setEscrowDeal(d)).catch(() => {}));
+    return () => {
+      active = false;
+    };
+  }, [ad?.id, t]);
 
   const [deliveryPickerOpen, setDeliveryPickerOpen] = useState(false);
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
@@ -386,16 +423,27 @@ function AdDetailPage() {
               </Alert>
             )}
             {showBuyerUi ? (
-              <AdActionPanel
-                ad={ad}
-                saved={saved}
-                onWrite={writeToSeller}
-                onToggleSave={toggleSave}
-                onShare={share}
-                phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
-                revealedPhone={revealedPhone}
-                onRevealPhone={() => void revealPhone()}
-              />
+              <>
+                <AdActionPanel
+                  ad={ad}
+                  saved={saved}
+                  onWrite={writeToSeller}
+                  onToggleSave={toggleSave}
+                  onShare={share}
+                  phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
+                  revealedPhone={revealedPhone}
+                  onRevealPhone={() => void revealPhone()}
+                  hideEscrowBadge={escrowEnabled && !!getToken()}
+                />
+                {escrowEnabled && getToken() && !isDemoMode() && (
+                  <EscrowDealPanel
+                    listingUuid={ad.id}
+                    listingPriceRub={ad.price}
+                    deal={escrowDeal}
+                    onDealChange={setEscrowDeal}
+                  />
+                )}
+              </>
             ) : (
               <AdOwnerActionPanel
                 ad={ad}

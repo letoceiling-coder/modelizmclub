@@ -320,6 +320,7 @@ class ShipmentService
 
         if ($mapped !== null) {
             $this->recordEvent($shipment, $mapped, $providerStatus, 'Webhook: обновление статуса', $payload);
+            app(\Modules\Billing\Services\EscrowShipmentSync::class)->onShipmentUpdated($shipment->fresh());
         }
 
         return $shipment;

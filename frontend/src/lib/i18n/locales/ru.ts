@@ -1154,6 +1154,7 @@ export const ru = {
       descriptionHeading: "Описание",
       deliveryHeading: "Доставка",
       sellerIntro: "Здравствуйте! Пишу по объявлению «{{title}}». Оно ещё актуально?",
+      escrowPaymentPending: "Оплата принята. Следите за статусом сделки ниже.",
       ownerModeTitle: "Ваше объявление",
       ownerModeDesc: "Управляйте публикацией, следите за статистикой и редактируйте материалы.",
       ownerModeShort: "Режим владельца",
