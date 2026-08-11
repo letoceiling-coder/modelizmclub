@@ -35,7 +35,7 @@ if [[ -z "${TOKEN:-}" ]]; then
 fi
 echo "OK  demo login"
 
-ME_ID=$(curl -sf "${API}/users/me" -H "Authorization: Bearer ${TOKEN}" \
+ME_ID=$(curl -sf "${API}/auth/me" -H "Authorization: Bearer ${TOKEN}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
 
 LISTING=$(curl -sf "${API}/listings?per_page=20" -H "Authorization: Bearer ${TOKEN}" \
@@ -43,8 +43,10 @@ LISTING=$(curl -sf "${API}/listings?per_page=20" -H "Authorization: Bearer ${TOK
 import sys,json
 me='$ME_ID'
 for row in json.load(sys.stdin).get('data',[]):
-    if row.get('seller',{}).get('id') != me and (row.get('price_cents') or 0) > 0:
-        print(row['id']); break
+    seller = row.get('seller') or {}
+    sid = seller.get('id') or seller.get('uuid') or ''
+    if sid and sid != me and (row.get('price_cents') or row.get('price') or 0):
+        print(row.get('id') or row.get('uuid')); break
 ")
 
 if [[ -z "${LISTING:-}" ]]; then
