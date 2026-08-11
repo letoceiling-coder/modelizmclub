@@ -47,6 +47,7 @@ class VtbEscrowE2eFlowTest extends TestCase
             'billing.vtb.password' => 'test-pass',
             'billing.vtb.api_url' => 'https://vtb.test/payment/rest/',
             'billing.vtb.escrow_mode' => 'single',
+            'billing.vtb.callback_token' => null,
         ]);
     }
 
