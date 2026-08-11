@@ -31,26 +31,36 @@ VTB_CALLBACK_TOKEN=***
 
 **Настройки → Мерчант → Callback уведомления**
 
-1. Включить «Callback уведомления»
-2. Тип: **Статический** (дополнительно per-order передаётся `dynamicCallbackUrl`)
-3. Метод: **POST**
-4. URL:
+На скриншотах видно, что форма требует заполнить все обязательные поля (иначе красные ошибки «Тип callback уведомления не указан», «URL не может быть пустым», «Не выбрано ни одной callback операции»).
 
-   `https://api.modelizmclub.ru/api/v1/payments/webhooks/vtb`
+| Поле | Значение |
+|------|----------|
+| Callback уведомления | **Включены** |
+| Тип | **Статический** |
+| Метод | **POST** |
+| URL | `https://api.modelizmclub.ru/api/v1/payments/webhooks/vtb` |
+| Тип подписи | **Симметричный** → нажать **Сгенерировать** |
+| Операции | ✅ Успешный холд · ✅ Успешное списание · ✅ Отмены · ✅ Возврат |
 
-5. Тип подписи: **Симметричный** → «Сгенерировать» callback token → сохранить в `VTB_CALLBACK_TOKEN`
-6. Операции (отметить):
-   - Успешный холд
-   - Успешное списание
-   - Отмены
-   - Возврат
+После генерации токена:
 
-7. Сохранить
+1. Скопировать callback token в `.env` на сервере: `VTB_CALLBACK_TOKEN=<токен>`
+2. Выполнить `php artisan config:cache` в `/var/www/modelizmclub/backend`
+3. Сохранить настройки в портале ВТБ
 
-Проверка доступности:
+Backend проверяет HMAC-SHA256 checksum (параметр `checksum`) когда `VTB_CALLBACK_TOKEN` задан. Без токена webhook принимает запросы без checksum (только для отладки).
+
+Проверка доступности (до настройки checksum в портале):
 
 ```bash
 curl -sS "https://api.modelizmclub.ru/api/v1/payments/webhooks/vtb?mdOrder=test"
+# → {"status":"ok"}
+```
+
+После включения симметричной подписи без checksum:
+
+```bash
+# → {"status":"invalid_checksum"}  HTTP 400
 ```
 
 ## PreAuth на мерчанте

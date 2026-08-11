@@ -21,6 +21,9 @@ FLAGS=$(curl -sf "${API}/public/feature-flags")
 echo "$FLAGS" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; assert d.get('escrow_enabled'), 'escrow disabled'; print('OK  escrow_enabled=true')" \
   || { echo "WARN escrow_enabled=false — enable in Admin → Settings"; }
 
+echo "--- Seed smoke listing ---"
+php "${APP_DIR}/deploy/scripts/seed-escrow-smoke-listing.php" | tee /tmp/escrow-listing.out
+
 login() {
   curl -sf "${API}/auth/login" \
     -H 'Content-Type: application/json' \
