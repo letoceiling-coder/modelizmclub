@@ -107,6 +107,7 @@ class VtbEscrowE2eFlowTest extends TestCase
             'delivery_cost_cents' => self::DELIVERY_CENTS,
             'currency' => 'RUB',
             'weight_kg' => 1.0,
+            'destination_point' => ['label' => 'Test PVZ', 'external_point_id' => 'pvz-1'],
         ]);
         $deal->update(['shipment_id' => $shipment->id]);
 
