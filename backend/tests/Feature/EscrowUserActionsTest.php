@@ -27,6 +27,14 @@ class EscrowUserActionsTest extends TestCase
             ['value' => ['enabled' => true], 'group' => 'features'],
         );
         $this->seed(EscrowSettingsSeeder::class);
+        config([
+            'billing.provider' => 'vtb',
+            'billing.vtb.enabled' => true,
+            'billing.vtb.username' => 'test-api',
+            'billing.vtb.password' => 'test-pass',
+            'billing.vtb.api_url' => 'https://vtb.test/payment/rest/',
+            'billing.vtb.escrow_mode' => 'single',
+        ]);
     }
 
     private function user(string $suffix): User
