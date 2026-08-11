@@ -106,14 +106,14 @@ export function EscrowFeeSettingsCard() {
 
   if (loading) {
     return (
-      <div style={{ ...card, padding: "20px", marginTop: "16px", color: "var(--foreground-50)", fontSize: "13px" }}>
+      <div style={{ ...card, padding: "20px", marginTop: 0, marginBottom: "16px", color: "var(--foreground-50)", fontSize: "13px" }}>
         {t("pages.adminCommon.loading")}
       </div>
     );
   }
 
   return (
-    <div style={{ ...card, padding: "20px", marginTop: "16px" }}>
+    <div style={{ ...card, padding: "20px", marginTop: 0, marginBottom: "16px" }}>
       <h3 style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>{t("pages.adminSettings.escrowFees.title")}</h3>
       <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>{t("pages.adminSettings.escrowFees.subtitle")}</p>
 

@@ -12,6 +12,7 @@ import {
   type AdminEscrowDealRow,
   type AdminEscrowStats,
 } from "@/lib/api/admin-escrow";
+import { EscrowFeeSettingsCard } from "@/components/admin/EscrowFeeSettingsCard";
 
 const card = {
   background: "var(--background-elevated)",
@@ -214,7 +215,9 @@ export function EscrowAdminSection() {
         ))}
       </div>
 
-      <div style={{ ...card, padding: "16px" }}>
+      <EscrowFeeSettingsCard />
+
+      <div style={{ ...card, padding: "16px", marginTop: "16px" }}>
         <div className="flex flex-wrap gap-3" style={{ marginBottom: "16px" }}>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={inputStyle}>
             <option value="all">{t("pages.adminEscrow.filterAll")}</option>
