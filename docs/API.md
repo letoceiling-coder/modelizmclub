@@ -373,6 +373,46 @@ Flow: `POST /shipments` → `POST …/quote` → (опц.) `POST …/request-sel
 | GET/POST | `/payments/webhooks/vtb` | — | Вебхук ВТБ |
 | POST | `/payments/webhooks/yookassa` | — | Вебхук ЮKassa |
 
+Подробнее: `backend/config/billing.php`, `deploy/README.md` (env-ключи).
+
+---
+
+## Escrow — безопасная сделка (`/escrow`, `/listings/.../escrow`)
+
+**Статус:** реализовано для **ЮKassa Safe Deal**; проектирование для **ВТБ** — см. [VTB-SAFE-DEAL-DESIGN.md](./VTB-SAFE-DEAL-DESIGN.md).
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| POST | `/listings/{uuid}/escrow/checkout` | ✓ | Старт оплаты по объявлению (escrow) |
+| GET | `/escrow/{uuid}` | ✓ | Статус сделки (участник: buyer/seller) |
+| POST | `/escrow/{uuid}/confirm-receipt` | ✓ | Покупатель подтверждает получение → выплата продавцу |
+
+Feature flag: `GET /public/feature-flags` → `escrow_enabled` (серверный `feature.escrow_enabled`).
+
+Тарифы комиссии: SystemSetting `escrow.fee.*` — см. [VTB-SAFE-DEAL-DESIGN.md §18](./VTB-SAFE-DEAL-DESIGN.md#18-настройки-тарифов-сервиса-безопасная-сделка).
+
+### Admin — безопасные сделки (`/admin/escrow`)
+
+Role: `admin`. Полная спецификация: [VTB-SAFE-DEAL-DESIGN.md §17](./VTB-SAFE-DEAL-DESIGN.md#17-админ-панель--управление-безопасными-сделками).
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/admin/escrow` | Список (фильтры: status, shipment, frozen, dispute) |
+| GET | `/admin/escrow/stats` | Сводка |
+| GET | `/admin/escrow/{uuid}` | Карточка: deal + users + shipment + payment |
+| POST | `/admin/escrow/{uuid}/sync-payment` | Sync с ВТБ |
+| POST | `/admin/escrow/{uuid}/capture` | Списание (полное/частичное) |
+| POST | `/admin/escrow/{uuid}/reverse` | Отмена холда |
+| POST | `/admin/escrow/{uuid}/refund` | Возврат покупателю (полный/частичный) |
+| POST | `/admin/escrow/{uuid}/payout` | Выплата продавцу (полная/частичная) |
+| POST | `/admin/escrow/{uuid}/freeze` | Заморозка |
+| POST | `/admin/escrow/{uuid}/unfreeze` | Разморозка |
+| POST | `/admin/escrow/{uuid}/cancel` | Отмена сделки |
+| POST | `/admin/escrow/{uuid}/resolve-dispute` | Закрыть спор |
+| GET | `/admin/escrow/{uuid}/audit` | Журнал операций |
+
+Целевой flow с доставкой СДЭК и ВТБ preAuth — [VTB-SAFE-DEAL-DESIGN.md](./VTB-SAFE-DEAL-DESIGN.md).
+
 ---
 
 ## Reports — жалобы (`/reports`)

@@ -66,7 +66,8 @@
 | Выбор провайдера | **Да** — авто: ВТБ → ЮKassa → stub | `backend/.../Billing/Services/PaymentGatewayManager.php`, `backend/config/billing.php` | — |
 | Текущее состояние (без env) | **Заглушка (stub)** — оба провайдера `enabled=false` по умолчанию → `resolveAuto()` возвращает stub | `config/billing.php` (env-флаги default `false`) | Заполнить env → провайдер активируется автоматически |
 | Роуты оплаты | **Да** — `POST /payments`, `GET /payments/{uuid}`, `POST /payments/{uuid}/sync`, webhooks | `backend/.../Billing/routes/api.php` | — |
-| **Фронт-интеграция оплаты** | **Нет** — нет модуля `api/payment.ts`; кнопка «Оформить подписку» просто показывает toast «Оплата будет доступна после подключения эквайринга» | `frontend/src/routes/subscription.tsx` (`payClick` → `toast(...)`); модуля оплаты в `frontend/src/lib/api/` нет | Клиент оплаты на фронте: `POST /payments` → редирект на `checkout_url` → возврат по `return_url` |
+| **Фронт-интеграция оплаты** | **Частично** — подписка/размещение через `api/payment.ts`; escrow UI — в разработке | `frontend/src/lib/api/payment.ts`, `subscription.tsx` | — |
+| **Безопасная сделка ВТБ** | **Проектирование** | [docs/VTB-SAFE-DEAL-DESIGN.md](../docs/VTB-SAFE-DEAL-DESIGN.md) | Договор ВТБ + двухстадийный эквайринг + выплаты |
 | Неиспользуемый прототип | `PaymentModal.tsx` — незалинкованная заглушка, в тексте упоминает «ЮKassa или Т-Банк» | `frontend/src/components/PaymentModal.tsx` (нет импортёров) | — |
 | Расхождение по провайдерам | Бэк = **ВТБ + ЮKassa**; фронт-заглушка и часть проектных заметок говорят **«Т-Банк/Тинькофф»** | — | Свериться: Тинькофф в бэке **не** реализован, реализован ВТБ |
 

@@ -1,6 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Admin\Http\Controllers\Api\V1\AdminEscrowFeePreviewController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminEscrowOperationsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminEscrowStatsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIndexEscrowDealsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminShowEscrowDealController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryStatsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
@@ -123,6 +128,23 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             Route::get('shipments', AdminIndexShipmentsController::class);
             Route::get('shipments/{shipment}', AdminShowShipmentController::class);
             Route::patch('shipments/{shipment}', AdminUpdateShipmentController::class);
+        });
+
+        Route::prefix('escrow')->group(function (): void {
+            Route::get('stats', AdminEscrowStatsController::class);
+            Route::get('fee-preview', AdminEscrowFeePreviewController::class);
+            Route::get('/', AdminIndexEscrowDealsController::class);
+            Route::get('{uuid}', AdminShowEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
+            Route::patch('{uuid}/note', [AdminEscrowOperationsController::class, 'updateNote'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/sync-payment', [AdminEscrowOperationsController::class, 'sync'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/capture', [AdminEscrowOperationsController::class, 'capture'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/reverse', [AdminEscrowOperationsController::class, 'reverse'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/refund', [AdminEscrowOperationsController::class, 'refund'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/payout', [AdminEscrowOperationsController::class, 'payout'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/freeze', [AdminEscrowOperationsController::class, 'freeze'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/unfreeze', [AdminEscrowOperationsController::class, 'unfreeze'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/cancel', [AdminEscrowOperationsController::class, 'cancel'])->where('uuid', '[0-9a-f-]{36}');
+            Route::post('{uuid}/resolve-dispute', [AdminEscrowOperationsController::class, 'resolveDispute'])->where('uuid', '[0-9a-f-]{36}');
         });
 
         Route::get('settings', [AdminSettingsController::class, 'index']);

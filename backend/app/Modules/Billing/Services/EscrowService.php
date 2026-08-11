@@ -24,6 +24,8 @@ class EscrowService
     public function __construct(
         private readonly YooKassaClient $yookassa,
         private readonly PaymentRecorder $recorder,
+        private readonly EscrowFeeCalculator $feeCalculator,
+        private readonly EscrowFeeSettings $feeSettings,
     ) {}
 
     public function isEnabled(): bool
@@ -69,9 +71,9 @@ class EscrowService
         }
 
         $amountCents = $listing->price_cents;
-        $feePercent = (float) config('billing.safe_deal.platform_fee_percent', 5);
-        $platformFeeCents = (int) round($amountCents * $feePercent / 100);
-        $sellerPayoutCents = $amountCents - $platformFeeCents;
+        $feeQuote = $this->feeCalculator->quote($amountCents, 0);
+        $platformFeeCents = $feeQuote['platform_fee_cents'];
+        $sellerPayoutCents = $feeQuote['seller_payout_cents'];
 
         if ($sellerPayoutCents <= 0) {
             throw ValidationException::withMessages([
@@ -117,12 +119,16 @@ class EscrowService
                 'buyer_id' => $buyer->id,
                 'seller_id' => $seller->id,
                 'amount_cents' => $amountCents,
+                'item_amount_cents' => $amountCents,
+                'delivery_amount_cents' => 0,
                 'seller_payout_cents' => $sellerPayoutCents,
                 'platform_fee_cents' => $platformFeeCents,
                 'currency' => $listing->currency ?? 'RUB',
                 'status' => EscrowDealStatus::PendingPayment,
+                'payment_provider' => 'yookassa',
                 'yookassa_deal_id' => $yookassaDealId,
                 'payment_id' => $payment->id,
+                'fee_snapshot' => $this->feeSettings->snapshot(),
             ]);
 
             $returnUrl = str_replace(

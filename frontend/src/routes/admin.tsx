@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image, HandCoins,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -52,6 +52,8 @@ import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
 import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
+import { EscrowAdminSection } from "@/components/admin/EscrowAdminSection";
+import { EscrowFeeSettingsCard } from "@/components/admin/EscrowFeeSettingsCard";
 import { MediaManagerCard } from "@/components/admin/MediaManagerCard";
 import {
   AlertDialog,
@@ -67,7 +69,7 @@ import {
 import i18n from "@/lib/i18n";
 
 type Section =
-  | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
+  | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery" | "escrow"
   | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "reviewCategories" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
   | "auditLog" | "applications";
 
@@ -91,6 +93,7 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
   { id: "content", labelKey: "pages.adminShell.nav.content", icon: Newspaper, roles: ["admin"] },
   { id: "ads", labelKey: "pages.adminShell.nav.ads", icon: Megaphone, roles: ["admin"] },
   { id: "delivery", labelKey: "pages.adminShell.nav.delivery", icon: Truck, roles: ["admin"] },
+  { id: "escrow", labelKey: "pages.adminShell.nav.escrow", icon: HandCoins, roles: ["admin"] },
   { id: "moderation", labelKey: "pages.adminShell.nav.moderation", icon: ShieldCheck, roles: ["admin", "moderator"] },
   { id: "applications", labelKey: "pages.adminShell.nav.applications", icon: Inbox, roles: ["admin"] },
   { id: "monetization", labelKey: "pages.adminShell.nav.monetization", icon: DollarSign, roles: ["admin"] },
@@ -402,6 +405,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
   if (section === "delivery") return <DeliverySection />;
+  if (section === "escrow") return <EscrowAdminSection />;
   if (section === "moderation") return <ModerationSection />;
   if (section === "applications") return <ApplicationsSection />;
   if (section === "monetization") return <MonetizationSection />;
@@ -3372,6 +3376,11 @@ const CARD_MANAGED_SETTING_KEYS = new Set([
   "feature.escrow_enabled",
   "feature.feed_auto_publish",
   "feature.listing_payment_enabled",
+  "escrow.fee.enabled",
+  "escrow.fee.flat_amount_cents",
+  "escrow.fee.flat_threshold_cents",
+  "escrow.fee.percent",
+  "escrow.fee.min_cents",
 ]);
 
 function SettingsSection() {
@@ -3769,6 +3778,8 @@ function SettingsSection() {
           <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.escrow.toggle")}</span>
         </label>
       </div>
+
+      <EscrowFeeSettingsCard />
 
       {/* Server-persisted (SystemSetting: feature.listing_payment_enabled). Off
           by default — ads publish for free until billing is wired in the wizard. */}

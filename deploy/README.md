@@ -92,6 +92,8 @@ bash /var/www/modelizmclub/deploy/scripts/deploy-frontend.sh
 `VTB_ACQUIRING_ENABLED=true` + `VTB_ACQUIRING_USERNAME` / `VTB_ACQUIRING_PASSWORD`, либо
 `YOOKASSA_ENABLED=true` + `YOOKASSA_SHOP_ID` / `YOOKASSA_SECRET_KEY` (см. `backend/.env.example`).
 
+**Безопасная сделка (escrow) на ВТБ** — проектная логика, доставка, возвраты: [docs/VTB-SAFE-DEAL-DESIGN.md](../docs/VTB-SAFE-DEAL-DESIGN.md).
+
 ## CI
 
 Тесты запускаются в GitHub Actions (без локального окружения). См. `.github/workflows/tests.yml` в `backend/`.
