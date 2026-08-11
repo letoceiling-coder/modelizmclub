@@ -139,7 +139,7 @@ class EscrowUserActionsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.uuid', $deal->uuid)
-            ->assertJsonStructure(['data' => [['uuid', 'status', 'can_open_dispute', 'listing']]]);
+            ->assertJsonStructure(['data' => [['uuid', 'status', 'can_open_dispute', 'listing_title']]]);
     }
 
     public function test_process_timeouts_dry_run(): void
