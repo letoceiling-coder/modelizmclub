@@ -10,6 +10,9 @@ export interface EscrowQuote {
   fee_mode: string;
   currency: string;
   provider: string | null;
+  max_total_cents?: number;
+  can_checkout?: boolean;
+  checkout_block_reason?: string | null;
 }
 
 export interface EscrowDeal {

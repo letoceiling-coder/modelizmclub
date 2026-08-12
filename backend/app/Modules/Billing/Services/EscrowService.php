@@ -25,6 +25,9 @@ use RuntimeException;
  */
 class EscrowService
 {
+    /** Max kopecks storable in PostgreSQL integer columns (~21.47M ₽). */
+    public const MAX_AMOUNT_CENTS = 2_147_483_647;
+
     public function __construct(
         private readonly YooKassaClient $yookassa,
         private readonly PaymentRecorder $recorder,
@@ -74,6 +77,7 @@ class EscrowService
     {
         $itemCents = $listing->price_cents;
         $feeQuote = $this->feeCalculator->quote($itemCents, $deliveryAmountCents);
+        $blockReason = $this->escrowAmountBlockReason($itemCents, $deliveryAmountCents);
 
         return [
             'listing_uuid' => $listing->uuid,
@@ -85,6 +89,9 @@ class EscrowService
             'fee_mode' => $feeQuote['fee_mode'] ?? 'unknown',
             'currency' => $listing->currency ?? 'RUB',
             'provider' => $this->resolveProvider(),
+            'max_total_cents' => self::MAX_AMOUNT_CENTS,
+            'can_checkout' => $blockReason === null && $this->isAvailable(),
+            'checkout_block_reason' => $blockReason,
         ];
     }
 
@@ -108,6 +115,8 @@ class EscrowService
                 'listing' => ['Сумма слишком мала для безопасной сделки.'],
             ]);
         }
+
+        $this->assertEscrowAmountLimit($itemCents, $deliveryAmountCents);
 
         $seller = $listing->author;
 
@@ -734,5 +743,34 @@ class EscrowService
         $separator = str_contains($url, '?') ? '&' : '?';
 
         return $url.$separator.http_build_query($params);
+    }
+
+    private function escrowAmountBlockReason(int $itemCents, int $deliveryAmountCents): ?string
+    {
+        if ($itemCents > self::MAX_AMOUNT_CENTS || $deliveryAmountCents > self::MAX_AMOUNT_CENTS) {
+            return $this->amountLimitMessage();
+        }
+
+        if ($itemCents + $deliveryAmountCents > self::MAX_AMOUNT_CENTS) {
+            return $this->amountLimitMessage();
+        }
+
+        return null;
+    }
+
+    private function assertEscrowAmountLimit(int $itemCents, int $deliveryAmountCents): void
+    {
+        $reason = $this->escrowAmountBlockReason($itemCents, $deliveryAmountCents);
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['listing' => [$reason]]);
+        }
+    }
+
+    private function amountLimitMessage(): string
+    {
+        $maxRub = number_format(intdiv(self::MAX_AMOUNT_CENTS, 100), 0, '', ' ');
+
+        return "Сумма сделки слишком велика для безопасной оплаты. Максимум — {$maxRub} ₽.";
     }
 }

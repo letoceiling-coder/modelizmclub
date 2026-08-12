@@ -64,7 +64,10 @@ export function EscrowDealPanel({ listingUuid, listingPriceRub, deal, onDealChan
       }
       toast.error("Не получена ссылка на оплату");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Не удалось начать оплату";
+      const msg =
+        err instanceof ApiError
+          ? err.errors?.listing?.[0] ?? err.errors?.delivery_amount_cents?.[0] ?? err.message
+          : "Не удалось начать оплату";
       toast.error(msg);
     } finally {
       setBusy(false);
@@ -268,10 +271,17 @@ export function EscrowDealPanel({ listingUuid, listingPriceRub, deal, onDealChan
         />
       )}
 
+      {!loadingQuote && quote?.checkout_block_reason && (
+        <Alert variant="destructive" className="mt-[10px]">
+          <AlertTitle>Оплата недоступна</AlertTitle>
+          <AlertDescription>{quote.checkout_block_reason}</AlertDescription>
+        </Alert>
+      )}
+
       <Button
         size="lg"
         className="w-full mt-[10px] rounded-[var(--r-button)]"
-        disabled={busy || loadingQuote}
+        disabled={busy || loadingQuote || quote?.can_checkout === false}
         loading={busy}
         onClick={() => void handleBuy()}
       >

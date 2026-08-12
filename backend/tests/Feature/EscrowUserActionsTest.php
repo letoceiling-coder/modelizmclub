@@ -154,4 +154,17 @@ class EscrowUserActionsTest extends TestCase
         $this->artisan('escrow:process-timeouts', ['--dry-run' => true])
             ->assertSuccessful();
     }
+
+    public function test_checkout_rejects_amount_over_integer_limit(): void
+    {
+        $deal = $this->fundedDeal();
+        $listing = Listing::query()->findOrFail($deal->listing_id);
+        $listing->update(['price_cents' => 23_123_131_200]);
+        $buyer = User::query()->findOrFail($deal->buyer_id);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/escrow/checkout")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['listing']);
+    }
 }
