@@ -25,11 +25,10 @@ interface AdActionPanelProps {
   phoneRevealState: "idle" | "loading" | "revealed";
   revealedPhone: string | null;
   onRevealPhone: () => void;
-  hideEscrowBadge?: boolean;
   className?: string;
 }
 
-export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phoneRevealState, revealedPhone, onRevealPhone, hideEscrowBadge, className }: AdActionPanelProps) {
+export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phoneRevealState, revealedPhone, onRevealPhone, className }: AdActionPanelProps) {
   // «Безопасная сделка» (escrow) badge is gated behind a server feature flag
   // (default off) — same pattern as the «Маркет» link — so it only appears
   // once ЮKassa Безопасная сделка is actually live and an admin flips it on,
@@ -150,7 +149,7 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
         </div>
       </div>
 
-      {escrowEnabled && !hideEscrowBadge && (
+      {escrowEnabled && (
         <div
           className="flex items-center gap-[8px] p-[10px] text-[11px]"
           style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}

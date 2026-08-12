@@ -216,10 +216,7 @@ class ShipmentService
             throw $e;
         }
 
-        $fresh = $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
-        app(\Modules\Billing\Services\EscrowShipmentSync::class)->onShipmentUpdated($fresh);
-
-        return $fresh;
+        return $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
     }
 
     public function cancel(User $actor, Shipment $shipment): Shipment
@@ -236,10 +233,7 @@ class ShipmentService
         ]);
         $this->recordEvent($shipment, ShipmentStatus::Cancelled, null, 'Отправление отменено');
 
-        $fresh = $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
-        app(\Modules\Billing\Services\EscrowShipmentSync::class)->onShipmentUpdated($fresh);
-
-        return $fresh;
+        return $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
     }
 
     public function syncStatus(Shipment $shipment): Shipment
@@ -277,12 +271,7 @@ class ShipmentService
             $this->recordEvent($shipment, $mapped, $result['external_status'], 'Статус обновлён', $result['raw']);
         }
 
-        $fresh = $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
-        if ($mapped !== null) {
-            app(\Modules\Billing\Services\EscrowShipmentSync::class)->onShipmentUpdated($fresh);
-        }
-
-        return $fresh;
+        return $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
     }
 
     /**
@@ -331,7 +320,6 @@ class ShipmentService
 
         if ($mapped !== null) {
             $this->recordEvent($shipment, $mapped, $providerStatus, 'Webhook: обновление статуса', $payload);
-            app(\Modules\Billing\Services\EscrowShipmentSync::class)->onShipmentUpdated($shipment->fresh());
         }
 
         return $shipment;

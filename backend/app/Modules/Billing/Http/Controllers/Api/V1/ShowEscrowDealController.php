@@ -21,6 +21,6 @@ class ShowEscrowDealController extends Controller
             abort(403);
         }
 
-        return response()->json(['data' => $escrow->toArray($deal, $user)]);
+        return response()->json(['data' => $escrow->toArray($deal)]);
     }
 }

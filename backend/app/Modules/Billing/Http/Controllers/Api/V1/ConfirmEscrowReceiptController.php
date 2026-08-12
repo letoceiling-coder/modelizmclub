@@ -19,7 +19,7 @@ class ConfirmEscrowReceiptController extends Controller
         $deal = $escrow->confirmReceipt($request->user(), $deal);
 
         return response()->json([
-            'data' => $escrow->toArray($deal, $request->user()),
+            'data' => $escrow->toArray($deal),
             'message' => 'Получение подтверждено. Выплата продавцу инициирована.',
         ]);
     }

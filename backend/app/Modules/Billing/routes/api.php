@@ -1,21 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Billing\Http\Controllers\Api\V1\CancelEscrowDealController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmEscrowReceiptController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreateEscrowCheckoutController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
-use Modules\Billing\Http\Controllers\Api\V1\EscrowQuoteController;
-use Modules\Billing\Http\Controllers\Api\V1\IndexMyEscrowDealsController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
-use Modules\Billing\Http\Controllers\Api\V1\ListingEscrowDealController;
-use Modules\Billing\Http\Controllers\Api\V1\MarkEscrowShippedController;
-use Modules\Billing\Http\Controllers\Api\V1\OpenEscrowDisputeController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowEscrowDealController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
-use Modules\Billing\Http\Controllers\Api\V1\SyncEscrowDealController;
 use Modules\Billing\Http\Controllers\Api\V1\SyncPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\VtbWebhookController;
 use Modules\Billing\Http\Controllers\Api\V1\WalletBalanceController;
@@ -23,7 +16,6 @@ use Modules\Billing\Http\Controllers\Api\V1\WalletTransactionsController;
 use Modules\Billing\Http\Controllers\Api\V1\YooKassaWebhookController;
 
 Route::get('plans', IndexPlansController::class);
-Route::get('escrow/quote', EscrowQuoteController::class);
 
 Route::match(['get', 'post'], 'payments/webhooks/vtb', VtbWebhookController::class);
 Route::post('payments/webhooks/yookassa', YooKassaWebhookController::class);
@@ -38,14 +30,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('wallet', WalletBalanceController::class);
     Route::get('wallet/transactions', WalletTransactionsController::class);
 
-    Route::get('users/me/escrow-deals', IndexMyEscrowDealsController::class);
-
     Route::post('listings/{uuid}/escrow/checkout', CreateEscrowCheckoutController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::get('listings/{uuid}/escrow/deal', ListingEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::get('escrow/{uuid}', ShowEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::post('escrow/{uuid}/sync', SyncEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('escrow/{uuid}/confirm-receipt', ConfirmEscrowReceiptController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::post('escrow/{uuid}/cancel', CancelEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::post('escrow/{uuid}/open-dispute', OpenEscrowDisputeController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::post('escrow/{uuid}/mark-shipped', MarkEscrowShippedController::class)->where('uuid', '[0-9a-f-]{36}');
 });

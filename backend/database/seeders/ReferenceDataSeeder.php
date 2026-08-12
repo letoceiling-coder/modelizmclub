@@ -349,17 +349,15 @@ class ReferenceDataSeeder extends Seeder
             return;
         }
 
-        $post = Post::withTrashed()->updateOrCreate(
-            ['uuid' => SwaggerFixtures::MODERATION_POST_UUID],
-            [
-                'user_id' => $author->id,
-                'category_id' => $category->id,
-                'title' => 'Swagger: пост на модерации',
-                'body' => 'Тестовый пост для approve/reject/revision в Swagger.',
-                'status' => ContentStatus::PendingModeration,
-                'deleted_at' => null,
-            ],
-        );
+        $post = Post::query()->firstOrNew(['uuid' => SwaggerFixtures::MODERATION_POST_UUID]);
+        $post->fill([
+            'user_id' => $author->id,
+            'category_id' => $category->id,
+            'title' => 'Swagger: пост на модерации',
+            'body' => 'Тестовый пост для approve/reject/revision в Swagger.',
+            'status' => ContentStatus::PendingModeration,
+        ]);
+        $post->save();
 
         ModerationQueue::query()->updateOrCreate(
             [

@@ -44,9 +44,6 @@ return [
         // ISO 4217 numeric (643 = RUB)
         'currency_code' => (int) env('VTB_ACQUIRING_CURRENCY', 643),
         'language' => env('VTB_ACQUIRING_LANGUAGE', 'ru'),
-        // Escrow capture: preauth (two-phase) | single (one-stage, sandbox fallback) | auto
-        'escrow_mode' => env('VTB_ESCROW_MODE', 'auto'),
-        'callback_token' => env('VTB_CALLBACK_TOKEN'),
     ],
 
     /*

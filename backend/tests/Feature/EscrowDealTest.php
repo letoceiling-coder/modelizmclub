@@ -56,8 +56,6 @@ class EscrowDealTest extends TestCase
 
     public function test_escrow_checkout_requires_seller_payout_card(): void
     {
-        $this->seedFeatureFlag();
-
         config([
             'billing.provider' => 'yookassa',
             'billing.yookassa.enabled' => true,
@@ -79,8 +77,6 @@ class EscrowDealTest extends TestCase
 
     public function test_escrow_checkout_creates_deal_and_payment(): void
     {
-        $this->seedFeatureFlag();
-
         config([
             'billing.provider' => 'yookassa',
             'billing.yookassa.enabled' => true,
@@ -128,14 +124,5 @@ class EscrowDealTest extends TestCase
             ->getJson("/api/v1/escrow/{$escrowUuid}")
             ->assertOk()
             ->assertJsonPath('data.status', 'pending_payment');
-    }
-
-    private function seedFeatureFlag(): void
-    {
-        \App\Models\SystemSetting::query()->updateOrCreate(
-            ['key' => 'feature.escrow_enabled'],
-            ['value' => ['enabled' => true], 'group' => 'features'],
-        );
-        $this->seed(\Database\Seeders\EscrowSettingsSeeder::class);
     }
 }

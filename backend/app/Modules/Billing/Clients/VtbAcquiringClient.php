@@ -16,64 +16,11 @@ class VtbAcquiringClient
         return $this->post('register.do', $params);
     }
 
-    public function registerPreAuthOrder(array $params): array
-    {
-        return $this->post('registerPreAuth.do', $params);
-    }
-
-    public function depositOrder(string $orderId, ?int $amountCents = null): array
-    {
-        $params = ['orderId' => $orderId];
-        if ($amountCents !== null) {
-            $params['amount'] = $amountCents;
-        }
-
-        return $this->post('deposit.do', $params);
-    }
-
-    public function reverseOrder(string $orderId): array
-    {
-        return $this->post('reverse.do', ['orderId' => $orderId]);
-    }
-
-    public function refundOrder(string $orderId, ?int $amountCents = null): array
-    {
-        $params = ['orderId' => $orderId];
-        if ($amountCents !== null) {
-            $params['amount'] = $amountCents;
-        }
-
-        return $this->post('refund.do', $params);
-    }
-
     public function getOrderStatusExtended(string $orderId): array
     {
         return $this->post('getOrderStatusExtended.do', [
             'orderId' => $orderId,
         ]);
-    }
-
-    /**
-     * POST without throwing on VTB business errorCode (for preAuth capability probe).
-     *
-     * @param  array<string, mixed>  $params
-     * @return array<string, mixed>
-     */
-    public function postAllowError(string $endpoint, array $params): array
-    {
-        $auth = $this->authParams();
-        $response = Http::asForm()
-            ->timeout(30)
-            ->post($this->apiUrl($endpoint), array_merge($auth, $params));
-
-        if (! $response->successful()) {
-            throw new RuntimeException("VTB {$endpoint} HTTP {$response->status()}");
-        }
-
-        /** @var array<string, mixed>|null $data */
-        $data = $response->json();
-
-        return is_array($data) ? $data : [];
     }
 
     /**
@@ -146,39 +93,5 @@ class VtbAcquiringClient
         }
 
         return in_array((int) $orderStatus, [1, 2], true);
-    }
-
-    /** Pre-authorized (hold) but not yet deposited. */
-    public static function isAuthorizedHold(array $statusResponse): bool
-    {
-        $orderStatus = $statusResponse['orderStatus'] ?? null;
-
-        if (is_array($orderStatus)) {
-            $orderStatus = $orderStatus['orderStatus'] ?? null;
-        }
-
-        return (int) $orderStatus === 1;
-    }
-
-    public static function isDeposited(array $statusResponse): bool
-    {
-        $orderStatus = $statusResponse['orderStatus'] ?? null;
-
-        if (is_array($orderStatus)) {
-            $orderStatus = $orderStatus['orderStatus'] ?? null;
-        }
-
-        return (int) $orderStatus === 2;
-    }
-
-    public static function isReversed(array $statusResponse): bool
-    {
-        $orderStatus = $statusResponse['orderStatus'] ?? null;
-
-        if (is_array($orderStatus)) {
-            $orderStatus = $orderStatus['orderStatus'] ?? null;
-        }
-
-        return in_array((int) $orderStatus, [3, 4], true);
     }
 }
