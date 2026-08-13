@@ -37,6 +37,9 @@ use Modules\Delivery\Services\CdekClientFactory;
 use Modules\Delivery\Services\CdekService;
 use Modules\Delivery\Services\CdekTokenCache;
 use Modules\Delivery\Services\YandexDeliveryService;
+use App\Services\Sms\IqSmsClient;
+use App\Services\Sms\MtsMarketologSmsClient;
+use App\Services\Sms\SmsSender;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -66,6 +69,15 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CdekGateway::class, CdekService::class);
         $this->app->singleton(YandexDeliveryService::class);
         $this->app->bind(YandexGateway::class, YandexDeliveryService::class);
+
+        $this->app->bind(SmsSender::class, function ($app): SmsSender {
+            $driver = (string) config('sms.driver', 'iqsms');
+
+            return match ($driver) {
+                'mts' => $app->make(MtsMarketologSmsClient::class),
+                default => $app->make(IqSmsClient::class),
+            };
+        });
     }
 
     /**

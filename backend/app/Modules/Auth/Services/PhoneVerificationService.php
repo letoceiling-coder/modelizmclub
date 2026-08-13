@@ -4,8 +4,9 @@ namespace Modules\Auth\Services;
 
 use App\Models\PhoneVerificationCode;
 use App\Models\User;
-use App\Services\Sms\IqSmsClient;
 use App\Services\Sms\SmsDeliveryException;
+use App\Services\Sms\SmsMessenger;
+use App\Services\Sms\SmsTemplate;
 use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -16,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 class PhoneVerificationService
 {
     public function __construct(
-        private readonly IqSmsClient $sms,
+        private readonly SmsMessenger $sms,
     ) {}
 
     public function sendCode(User $user, string $rawPhone, ?Request $request = null): void
@@ -56,14 +57,10 @@ class PhoneVerificationService
             'expires_at' => now()->addMinutes($ttl),
         ]);
 
-        $message = str_replace(
-            [':code', ':minutes'],
-            [$code, (string) $ttl],
-            (string) config('sms.message')
-        );
+        $template = $this->resolveVerificationTemplate($user);
 
         try {
-            $this->sms->send($phone, $message);
+            $this->sms->sendTemplate($phone, $template, [(int) $code]);
         } catch (SmsDeliveryException $e) {
             Log::error('Phone verification SMS failed', [
                 'user_id' => $user->id,
@@ -154,6 +151,15 @@ class PhoneVerificationService
     private function generateCode(): string
     {
         return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    private function resolveVerificationTemplate(User $user): SmsTemplate
+    {
+        if ($user->phone !== null && $user->phone_verified_at !== null) {
+            return SmsTemplate::PhoneChange;
+        }
+
+        return SmsTemplate::Verification;
     }
 
     private function assertPhoneAvailable(User $user, string $phone): void

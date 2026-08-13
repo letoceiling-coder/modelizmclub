@@ -7,6 +7,7 @@ return [
     | SMS driver
     |--------------------------------------------------------------------------
     | iqsms — JSON API https://api.iqsms.ru (see iqsms.ru/api/api_about/)
+    | mts   — MTS Marketolog REST API (Рассылки по своей базе PRO)
     | log   — write message to laravel.log (local/staging)
     */
     'driver' => env('SMS_DRIVER', 'iqsms'),
@@ -16,6 +17,18 @@ return [
         'login' => env('IQSMS_LOGIN'),
         'password' => env('IQSMS_PASSWORD'),
         'sender' => env('IQSMS_SENDER', 'ModelizmClub'),
+    ],
+
+    'mts' => [
+        /** basic — login/password (Basic auth); token — Bearer token from ЛК */
+        'auth' => env('MTS_AUTH', 'basic'),
+        'login' => env('MTS_LOGIN'),
+        'password' => env('MTS_PASSWORD'),
+        'token' => env('MTS_TOKEN'),
+        /** Approved sender name from MTS Marketolog cabinet (MODELIZM) */
+        'sender' => env('MTS_SENDER', 'MODELIZM'),
+        'omnichannel_url' => rtrim(env('MTS_OMNICHANNEL_URL', 'https://omnichannel.mts.ru/http-api/v1'), '/'),
+        'token_api_url' => rtrim(env('MTS_TOKEN_API_URL', 'https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages'), '/'),
     ],
 
     'verification' => [
@@ -39,7 +52,5 @@ return [
             'decay_minutes' => (int) env('SMS_SEND_PER_IP_DECAY', 60),
         ],
     ],
-
-    'message' => 'Код подтверждения МоДелизМ: :code. Действует :minutes мин.',
 
 ];

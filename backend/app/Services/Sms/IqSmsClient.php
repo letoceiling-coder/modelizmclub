@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
  * iqsms JSON API — https://iqsms.ru/api/api_about/
  * POST {access_point}/messages/v2/send.json
  */
-class IqSmsClient
+class IqSmsClient implements SmsSender
 {
     /** @var list<string> Per-message statuses that mean the gateway accepted the SMS. */
     private const ACCEPTED_MESSAGE_STATUSES = ['accepted', 'queued'];
