@@ -10,13 +10,7 @@ export const LOCALES: Locale[] = ["ru", "en", "zh"];
 export const LANG_KEY = "mc_lang";
 
 export function readStoredLocale(): Locale {
-  if (typeof window === "undefined") return "ru";
-  try {
-    const v = window.localStorage.getItem(LANG_KEY);
-    return v === "en" || v === "zh" ? v : "ru";
-  } catch {
-    return "ru";
-  }
+  return "ru";
 }
 
 // Initialised synchronously with bundled resources so SSR and the first client

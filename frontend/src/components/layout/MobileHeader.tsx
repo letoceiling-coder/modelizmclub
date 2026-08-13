@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Search, Menu, Check, Languages, Heart, ExternalLink } from "lucide-react";
+import { Bell, Search, Menu, Heart, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
-import { setLocale, type Locale } from "@/lib/i18n";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
@@ -20,16 +19,10 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 
-const LANGS: { code: Locale; native: string; flag: string }[] = [
-  { code: "ru", native: "Русский", flag: "🇷🇺" },
-  { code: "en", native: "English", flag: "🇬🇧" },
-  { code: "zh", native: "中文", flag: "🇨🇳" },
-];
-
 /**
  * Compact mobile header — brand on the left, max two context actions
  * (search + notifications) on the right, and a "more" button that opens a
- * bottom action sheet for the secondary actions (channels, theme, language).
+ * bottom action sheet for the secondary actions (channels, theme).
  */
 export function MobileHeader() {
   const { t } = useTranslation();
@@ -113,8 +106,7 @@ export function MobileHeader() {
 
 function MoreMenu() {
   const [open, setOpen] = useState(false);
-  const { i18n, t } = useTranslation();
-  const lang = (i18n.language as Locale) || "ru";
+  const { t } = useTranslation();
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
@@ -190,32 +182,6 @@ function MoreMenu() {
           <div onClick={() => setOpen(false)}>
             <FeedbackMenuRow />
           </div>
-
-          {/* Language */}
-          <div className="mt-1 px-3 pb-1 pt-2">
-            <span
-              className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide"
-              style={{ color: "var(--foreground-50)" }}
-            >
-              <Languages size={14} /> {t("lang.title")}
-            </span>
-          </div>
-          {LANGS.map((l) => (
-            <button
-              key={l.code}
-              type="button"
-              onClick={() => {
-                setLocale(l.code);
-                setOpen(false);
-              }}
-              className="flex min-h-[52px] items-center gap-3 rounded-[var(--r-card-sm)] px-3 text-left transition-colors hover:bg-[var(--background-surface)]"
-              style={{ color: "var(--foreground)" }}
-            >
-              <span style={{ fontSize: 18 }}>{l.flag}</span>
-              <span className="flex-1 text-[15px] font-medium">{l.native}</span>
-              {l.code === lang && <Check size={16} style={{ color: "var(--accent)" }} />}
-            </button>
-          ))}
         </div>
       </DrawerContent>
     </Drawer>

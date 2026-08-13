@@ -12,8 +12,6 @@ import { landingValueSlotKey } from "@/lib/icon-slots";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LegalRequisites } from "@/components/legal/LegalRequisites";
-import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher";
-import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
@@ -76,7 +74,7 @@ function LandingPage() {
 /* ===================== TopNav (sticky) ===================== */
 
 function TopNav() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const enter = useEnter();
   const me = useStore(selectors.currentUser);
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
@@ -134,9 +132,6 @@ function TopNav() {
 
         {/* right controls */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
-          </div>
           {loggedIn ? (
             <>
               {me.isAdmin && (
@@ -240,28 +235,6 @@ function TopNav() {
               <div className="mt-1 flex items-center justify-between px-3 py-1.5 lg:hidden">
                 <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.footer.theme")}</span>
                 <ThemeToggle size={32} alwaysVisible />
-              </div>
-              {/* language — quiet inline chips, at the bottom (mobile only; sm+ has it in the header) */}
-              <div className="mt-1 flex items-center gap-1.5 px-3 pt-1 sm:hidden">
-                {LANGS.map((l) => {
-                  const active = i18n.language === l.code;
-                  return (
-                    <button
-                      key={l.code}
-                      type="button"
-                      onClick={() => { setLocale(l.code); setMenuOpen(false); }}
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium"
-                      style={{
-                        background: active ? "var(--background-surface)" : "transparent",
-                        color: active ? "var(--foreground)" : "var(--foreground-60)",
-                        border: `1px solid ${active ? "var(--border-strong)" : "var(--border)"}`,
-                      }}
-                    >
-                      <span style={{ fontSize: 13 }}>{l.flag}</span>
-                      {l.code.toUpperCase()}
-                    </button>
-                  );
-                })}
               </div>
             </div>
           </motion.div>

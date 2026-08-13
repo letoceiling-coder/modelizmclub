@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
-import { LanguageSwitcher } from "@/components/messenger/LanguageSwitcher";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
@@ -52,7 +51,6 @@ export function DesktopTopBar() {
       <GlobalSearch />
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
-        <LanguageSwitcher />
         <NavIcon actionKey="layout.nav.favorites" to={ROUTES.favorites} label={t("nav.favorites")}>
           <SlotIcon slot="header.favorites" size={20} inheritColor />
           {favCount > 0 && (

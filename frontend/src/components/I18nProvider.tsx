@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 
-import i18n, { readStoredLocale, setLocale } from "@/lib/i18n";
+import i18n, { LANG_KEY, setLocale } from "@/lib/i18n";
 
 const FADE_MS = 160;
 
@@ -35,11 +35,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const stored = readStoredLocale();
-    if (stored !== i18n.language) {
-      setLocale(stored);
+    if (i18n.language !== "ru") {
+      setLocale("ru");
     } else if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("lang", stored);
+      document.documentElement.setAttribute("lang", "ru");
+    }
+    try {
+      window.localStorage.removeItem(LANG_KEY);
+    } catch {
+      /* ignore */
     }
     setReady(true);
   }, []);
