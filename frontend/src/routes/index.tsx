@@ -10,6 +10,7 @@ import {
 import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
 import { landingValueSlotKey } from "@/lib/icon-slots";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { LegalRequisites } from "@/components/legal/LegalRequisites";
 import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher";
 import { setLocale } from "@/lib/i18n";
