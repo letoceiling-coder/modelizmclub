@@ -15,6 +15,8 @@ import {
   Trash2,
   ZoomIn,
   ZoomOut,
+  Hand,
+  Crop,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,9 @@ import {
   type PhotoShape,
 } from "@/lib/photo-editor";
 import { CropSafeZoneOverlay } from "@/components/media/CropSafeZoneOverlay";
-import type { SafeZonePreset } from "@/lib/photo-editor-safe-zones";
+import { BANNER_ASPECT, BANNER_EXPORT_HEIGHT, BANNER_EXPORT_WIDTH, type SafeZonePreset } from "@/lib/photo-editor-safe-zones";
+
+export type CropInteractionMode = "pan" | "frame";
 
 export interface PhotoEditorDialogProps {
   /** Explicit visibility control. Omit to derive it from `file`/`src` being non-null (legacy ImageCropDialog-compatible mode). */
@@ -61,11 +65,11 @@ export interface PhotoEditorDialogProps {
   safeZonePreset?: SafeZonePreset;
 }
 
-const SHAPES: { value: PhotoShape; label: string; icon: typeof Square }[] = [
-  { value: "free", label: "Свободно", icon: RectangleHorizontal },
-  { value: "rect", label: "Прямоугольник", icon: Square },
-  { value: "rounded", label: "Скруглённое", icon: SquareRoundCorner },
-  { value: "circle", label: "Круг", icon: Circle },
+const SHAPES: { value: PhotoShape; labelKey: string; hintKey: string; icon: typeof Square }[] = [
+  { value: "free", labelKey: "components.photoEditor.shapeFree", hintKey: "components.photoEditor.shapeFreeHint", icon: RectangleHorizontal },
+  { value: "rect", labelKey: "components.photoEditor.shapeRect", hintKey: "components.photoEditor.shapeRectHint", icon: Square },
+  { value: "rounded", labelKey: "components.photoEditor.shapeRounded", hintKey: "components.photoEditor.shapeRoundedHint", icon: SquareRoundCorner },
+  { value: "circle", labelKey: "components.photoEditor.shapeCircle", hintKey: "components.photoEditor.shapeCircleHint", icon: Circle },
 ];
 
 /**
@@ -98,6 +102,13 @@ export function PhotoEditorDialog({
     onSave?.(blob);
     onCropped?.(blob);
   };
+  const isBannerEditor = safeZonePreset === "feed-banner";
+  const effectiveAspect = isBannerEditor ? BANNER_ASPECT : aspect;
+  const effectiveLockAspect = lockAspect || isBannerEditor;
+  const effectiveLockShape = lockShape || isBannerEditor;
+  const exportWidth = outputWidth ?? (isBannerEditor ? BANNER_EXPORT_WIDTH : undefined);
+  const exportHeight = outputHeight ?? (isBannerEditor ? BANNER_EXPORT_HEIGHT : undefined);
+
   const imgRef = useRef<HTMLImageElement>(null);
   const cropperRef = useRef<Cropper | null>(null);
   const containerElRef = useRef<HTMLElement | null>(null);
@@ -116,6 +127,30 @@ export function PhotoEditorDialog({
   const [activeCropper, setActiveCropper] = useState<Cropper | null>(null);
   const [activeContainer, setActiveContainer] = useState<HTMLElement | null>(null);
   const [overlayTick, setOverlayTick] = useState(0);
+  const [interactionMode, setInteractionMode] = useState<CropInteractionMode>("pan");
+  const [cropBoxSize, setCropBoxSize] = useState<{ width: number; height: number } | null>(null);
+
+  const syncCropMetrics = () => {
+    const cropper = cropperRef.current;
+    if (!cropper) return;
+    const data = cropper.getData(true);
+    if (data.width > 0 && data.height > 0) {
+      setCropBoxSize({ width: Math.round(data.width), height: Math.round(data.height) });
+    }
+    setOverlayTick((n) => n + 1);
+  };
+
+  const ensureImageCoversCrop = (cropper: Cropper) => {
+    const image = cropper.getImageData();
+    const cropBox = cropper.getCropBoxData();
+    if (image.width >= cropBox.width && image.height >= cropBox.height) return;
+    const scaleW = cropBox.width / Math.max(image.width, 1);
+    const scaleH = cropBox.height / Math.max(image.height, 1);
+    const factor = Math.max(scaleW, scaleH, 1);
+    if (factor > 1.001) {
+      cropper.zoomTo(image.ratio * factor);
+    }
+  };
 
   // Resolve whatever source we were given into a same-origin blob: URL.
   useEffect(() => {
@@ -154,39 +189,53 @@ export function PhotoEditorDialog({
     setShapeState(shape);
     setEffects(DEFAULT_EFFECTS);
     setTab("crop");
+    setInteractionMode("pan");
+    setCropBoxSize(null);
   }, [localUrl, shape]);
 
   // Mount/destroy the Cropper.js instance against the resolved image.
   useEffect(() => {
     if (!localUrl || !imgRef.current) return;
     const img = imgRef.current;
-    const initialAspect = shapeState === "circle" ? 1 : aspect;
+    const initialAspect = shapeState === "circle" ? 1 : effectiveAspect;
     const cropper = new Cropper(img, {
       aspectRatio: initialAspect,
-      viewMode: 1,
-      dragMode: "move",
-      autoCropArea: 1,
+      viewMode: 0,
+      dragMode: interactionMode === "pan" ? "move" : "crop",
+      autoCropArea: isBannerEditor ? 0.92 : 0.85,
       background: false,
       guides: true,
       center: true,
       responsive: true,
+      movable: true,
+      zoomable: true,
       zoomOnWheel: true,
+      cropBoxMovable: true,
+      cropBoxResizable: !effectiveLockAspect,
+      toggleDragModeOnDblclick: false,
       ready() {
         const container = (img.nextElementSibling as HTMLElement) ?? null;
         containerElRef.current = container;
         setActiveContainer(container);
         setActiveCropper(cropper);
+        if (effectiveAspect) {
+          cropper.setAspectRatio(initialAspect ?? NaN);
+        }
+        if (isBannerEditor) {
+          ensureImageCoversCrop(cropper);
+        }
+        syncCropMetrics();
         setReady(true);
       },
       crop() {
-        setOverlayTick((n) => n + 1);
+        syncCropMetrics();
       },
       cropmove() {
-        setOverlayTick((n) => n + 1);
+        syncCropMetrics();
       },
       zoom(event) {
         setZoom(event.detail.ratio);
-        setOverlayTick((n) => n + 1);
+        syncCropMetrics();
       },
     });
     cropperRef.current = cropper;
@@ -197,9 +246,15 @@ export function PhotoEditorDialog({
       setActiveCropper(null);
       setActiveContainer(null);
       setReady(false);
+      setCropBoxSize(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localUrl]);
+  }, [localUrl, isBannerEditor, effectiveAspect]);
+
+  useEffect(() => {
+    if (!ready || !cropperRef.current) return;
+    cropperRef.current.setDragMode(interactionMode === "pan" ? "move" : "crop");
+  }, [interactionMode, ready]);
 
   // Live filter preview — applied to the whole cropper container (canvas +
   // crop box), baked into the actual pixels only on save.
@@ -239,14 +294,18 @@ export function PhotoEditorDialog({
   const applyZoom = (value: number) => {
     setZoom(value);
     cropperRef.current?.zoomTo(value);
+    syncCropMetrics();
   };
+
+  const setPanMode = () => setInteractionMode("pan");
+  const setFrameMode = () => setInteractionMode("frame");
 
   const changeShape = (next: PhotoShape) => {
     setShapeState(next);
     if (next === "circle") {
       cropperRef.current?.setAspectRatio(1);
-    } else if (!lockAspect) {
-      cropperRef.current?.setAspectRatio(aspect ?? NaN);
+    } else if (!effectiveLockAspect) {
+      cropperRef.current?.setAspectRatio(effectiveAspect ?? NaN);
     }
   };
 
@@ -257,6 +316,11 @@ export function PhotoEditorDialog({
     setFlipY(1);
     setEffects(DEFAULT_EFFECTS);
     setShapeState(shape);
+    setInteractionMode("pan");
+    if (cropperRef.current && isBannerEditor) {
+      ensureImageCoversCrop(cropperRef.current);
+    }
+    syncCropMetrics();
   };
 
   const handleCancel = () => {
@@ -275,8 +339,8 @@ export function PhotoEditorDialog({
     setSaving(true);
     try {
       const canvas = cropper.getCroppedCanvas({
-        width: outputWidth,
-        height: outputHeight,
+        width: exportWidth,
+        height: exportHeight,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: "high",
         fillColor: outputMime === "image/png" ? undefined : "#ffffff",
@@ -319,9 +383,9 @@ export function PhotoEditorDialog({
                     <Loader2 className="h-8 w-8 animate-spin text-white/70" />
                   </div>
                 )}
-                <div className="relative h-full w-full">
+                <div className="relative h-full min-h-[280px] w-full [&_.cropper-container]:!max-h-full">
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <img ref={imgRef} src={localUrl} className="block max-h-full max-w-full" />
+                  <img ref={imgRef} src={localUrl} className="block max-w-full" style={{ maxHeight: "min(70vh, 720px)" }} />
                   {safeZonePreset && (
                     <CropSafeZoneOverlay
                       cropper={activeCropper}
@@ -353,7 +417,49 @@ export function PhotoEditorDialog({
               </TabsList>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[18px]">
-                <TabsContent value="crop" className="mt-0 space-y-[22px]">
+                <TabsContent value="crop" className="mt-0 space-y-[18px]">
+                  <div className="space-y-[8px]">
+                    <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                      {t("components.photoEditor.interactionTitle")}
+                    </span>
+                    <div className="grid grid-cols-2 gap-[8px]">
+                      <button
+                        type="button"
+                        onClick={setPanMode}
+                        disabled={!ready}
+                        className="flex items-center gap-[8px] rounded-[var(--r-card-sm)] border px-[12px] py-[10px] text-left text-[12px] transition-colors disabled:opacity-50"
+                        style={{
+                          borderColor: interactionMode === "pan" ? "var(--accent)" : "var(--border)",
+                          background: interactionMode === "pan" ? "var(--accent-soft)" : "transparent",
+                          color: interactionMode === "pan" ? "var(--accent)" : "var(--foreground-70)",
+                        }}
+                      >
+                        <Hand className="h-[16px] w-[16px] shrink-0" />
+                        <span>
+                          <span className="block font-semibold">{t("components.photoEditor.modePan")}</span>
+                          <span className="block text-[10px] opacity-80">{t("components.photoEditor.modePanHint")}</span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={setFrameMode}
+                        disabled={!ready}
+                        className="flex items-center gap-[8px] rounded-[var(--r-card-sm)] border px-[12px] py-[10px] text-left text-[12px] transition-colors disabled:opacity-50"
+                        style={{
+                          borderColor: interactionMode === "frame" ? "var(--accent)" : "var(--border)",
+                          background: interactionMode === "frame" ? "var(--accent-soft)" : "transparent",
+                          color: interactionMode === "frame" ? "var(--accent)" : "var(--foreground-70)",
+                        }}
+                      >
+                        <Crop className="h-[16px] w-[16px] shrink-0" />
+                        <span>
+                          <span className="block font-semibold">{t("components.photoEditor.modeFrame")}</span>
+                          <span className="block text-[10px] opacity-80">{t("components.photoEditor.modeFrameHint")}</span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-center gap-[8px]">
                     <Button type="button" variant="outline" size="icon" onClick={() => rotate(-90)} title="Повернуть влево" disabled={!ready}>
                       <RotateCcw />
@@ -388,60 +494,73 @@ export function PhotoEditorDialog({
                     </div>
                   </div>
 
-                  {!lockShape && (
+                  {!effectiveLockShape && (
                     <div className="space-y-[8px]">
-                      <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>Маска / форма</span>
-                      <div className="grid grid-cols-4 gap-[6px]">
-                        {SHAPES.map(({ value, label, icon: Icon }) => (
+                      <div>
+                        <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                          {t("components.photoEditor.shapeTitle")}
+                        </span>
+                        <p className="mt-[4px] text-[10px] leading-snug" style={{ color: "var(--foreground-50)" }}>
+                          {t("components.photoEditor.shapeSectionHint")}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-[6px]">
+                        {SHAPES.map(({ value, labelKey, hintKey, icon: Icon }) => (
                           <button
                             key={value}
                             type="button"
-                            title={label}
+                            title={t(hintKey)}
                             onClick={() => changeShape(value)}
                             disabled={!ready}
-                            className="flex flex-col items-center gap-[4px] rounded-[var(--r-card-sm)] border py-[10px] text-[10px] transition-colors"
+                            className="flex flex-col items-start gap-[2px] rounded-[var(--r-card-sm)] border px-[10px] py-[8px] text-left text-[10px] transition-colors"
                             style={{
                               borderColor: shapeState === value ? "var(--accent)" : "var(--border)",
                               color: shapeState === value ? "var(--accent)" : "var(--foreground-70)",
                               background: shapeState === value ? "var(--accent-soft)" : "transparent",
                             }}
                           >
-                            <Icon className="h-[18px] w-[18px]" />
-                            {label}
+                            <span className="flex items-center gap-[6px] font-semibold">
+                              <Icon className="h-[16px] w-[16px]" />
+                              {t(labelKey)}
+                            </span>
+                            <span className="opacity-75">{t(hintKey)}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-[10px]">
-                    <label className="space-y-[4px]">
-                      <span className="text-[11px] uppercase" style={{ color: "var(--foreground-50)" }}>Ширина, px</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={outputWidth ?? ""}
-                        placeholder="авто"
-                        readOnly
-                        className="h-[36px] w-full rounded-[var(--r-input)] border px-[10px] text-[13px]"
-                        style={{ borderColor: "var(--border)", background: "var(--background-surface)", color: "var(--foreground-50)" }}
-                      />
-                    </label>
-                    <label className="space-y-[4px]">
-                      <span className="text-[11px] uppercase" style={{ color: "var(--foreground-50)" }}>Высота, px</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={outputHeight ?? ""}
-                        placeholder="авто"
-                        readOnly
-                        className="h-[36px] w-full rounded-[var(--r-input)] border px-[10px] text-[13px]"
-                        style={{ borderColor: "var(--border)", background: "var(--background-surface)", color: "var(--foreground-50)" }}
-                      />
-                    </label>
+                  <div
+                    className="rounded-[var(--r-card-sm)] border px-[12px] py-[10px] space-y-[8px]"
+                    style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+                  >
+                    {exportWidth && exportHeight && (
+                      <div className="flex items-center justify-between text-[12px]">
+                        <span style={{ color: "var(--foreground-50)" }}>{t("components.photoEditor.exportSize")}</span>
+                        <span className="font-mono font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                          {exportWidth} × {exportHeight} px
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span style={{ color: "var(--foreground-50)" }}>{t("components.photoEditor.cropBoxSize")}</span>
+                      <span className="font-mono font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                        {cropBoxSize ? `${cropBoxSize.width} × ${cropBoxSize.height} px` : "—"}
+                      </span>
+                    </div>
+                    {effectiveLockAspect && effectiveAspect && (
+                      <div className="flex items-center justify-between text-[12px]">
+                        <span style={{ color: "var(--foreground-50)" }}>{t("components.photoEditor.aspectLocked")}</span>
+                        <span className="font-mono tabular-nums" style={{ color: "var(--foreground-70)" }}>
+                          {effectiveAspect.toFixed(2)}:1
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                    Перетащите края рамки на фото, чтобы изменить размер и положение области обрезки.
+                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
+                    {interactionMode === "pan"
+                      ? t("components.photoEditor.helpPan")
+                      : t("components.photoEditor.helpFrame")}
                   </p>
                   {safeZonePreset && (
                     <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>

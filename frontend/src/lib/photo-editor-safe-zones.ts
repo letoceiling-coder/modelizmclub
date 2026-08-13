@@ -1,3 +1,8 @@
+/** Recommended export size for feed hero banners (matches admin hint). */
+export const BANNER_EXPORT_WIDTH = 1920;
+export const BANNER_EXPORT_HEIGHT = 500;
+export const BANNER_ASPECT = BANNER_EXPORT_WIDTH / BANNER_EXPORT_HEIGHT;
+
 /** How a saved image is displayed with `object-cover` in a viewport. */
 export type SafeZonePreset = "feed-banner" | "cover-wide" | "review-cover";
 

@@ -5,6 +5,7 @@ import { Eye, MousePointerClick, Pencil, Plus, Trash2, Upload } from "lucide-rea
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { BANNER_ASPECT, BANNER_EXPORT_HEIGHT, BANNER_EXPORT_WIDTH } from "@/lib/photo-editor-safe-zones";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import {
@@ -402,6 +403,11 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
         src={editorSrc}
         title={t("pages.adminBanners.photoEditorTitle")}
         safeZonePreset="feed-banner"
+        aspect={BANNER_ASPECT}
+        lockAspect
+        lockShape
+        outputWidth={BANNER_EXPORT_WIDTH}
+        outputHeight={BANNER_EXPORT_HEIGHT}
         onCancel={() => {
           setEditorSrc(null);
           setUploadTarget(null);
