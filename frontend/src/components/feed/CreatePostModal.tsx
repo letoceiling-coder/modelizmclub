@@ -8,13 +8,14 @@ interface Props {
   selection?: ComposerSelection;
   initialDraft?: ComposerDraft;
   formKey?: number;
+  communityId?: number;
   onClose: () => void;
   onCreate: (p: Post) => void;
 }
 
 const EXIT_MS = 200;
 
-export function CreatePostModal({ open, selection, initialDraft, formKey, onClose, onCreate }: Props) {
+export function CreatePostModal({ open, selection, initialDraft, formKey, communityId, onClose, onCreate }: Props) {
   // Plain CSS transition instead of framer-motion's AnimatePresence: that
   // component's exit-sequencing on this tree was taking 1.2-1.4s to actually
   // unmount (proven by A/B — removing it dropped close time to ~55ms), likely
@@ -74,6 +75,7 @@ export function CreatePostModal({ open, selection, initialDraft, formKey, onClos
           key={formKey}
           selection={open ? selection : undefined}
           initialDraft={open ? initialDraft : undefined}
+          communityId={communityId}
           onCreate={onCreate}
           onClose={onClose}
         />

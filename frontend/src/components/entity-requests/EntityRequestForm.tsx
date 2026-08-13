@@ -8,6 +8,7 @@ import {
 import { uploadMedia } from "@/lib/api/media";
 import { prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX } from "@/lib/community-limits";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 const OTHER_DIRECTION = "Другое";
 
@@ -122,22 +123,35 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
 
         <div className="flex flex-col gap-3 overflow-y-auto px-4 py-4">
           <label className="flex flex-col gap-1">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Название</span>
+            <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              <span>Название</span>
+              {kind === "community" && (
+                <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{name.length}/{COMMUNITY_NAME_MAX}</span>
+              )}
+            </span>
             <input
-              value={name} onChange={(e) => setName(e.target.value)} maxLength={120}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={kind === "community" ? COMMUNITY_NAME_MAX : 120}
               placeholder={kind === "channel" ? "Название канала" : "Название сообщества"}
               className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle}
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-              Описание <span style={{ color: "var(--foreground-50)" }}>(необязательно)</span>
+            <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              <span>Описание <span style={{ color: "var(--foreground-50)" }}>(необязательно)</span></span>
+              {kind === "community" && (
+                <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{description.length}/{COMMUNITY_DESCRIPTION_MAX}</span>
+              )}
             </span>
             <textarea
-              value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={kind === "community" ? COMMUNITY_DESCRIPTION_MAX : 5000}
+              rows={3}
               placeholder="Коротко о теме"
-              className="resize-none rounded-[10px] border px-3 py-2 text-[14px] outline-none" style={inputStyle}
+              className="resize-none rounded-[10px] border px-3 py-2 text-[14px] outline-none break-words" style={inputStyle}
             />
           </label>
 

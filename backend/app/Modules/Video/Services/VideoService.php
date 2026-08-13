@@ -36,6 +36,10 @@ class VideoService
             $query->whereHas('category', fn ($c) => $c->where('slug', $filters['category']));
         }
 
+        if (! empty($filters['tag'])) {
+            $query->whereJsonContains('tags', $filters['tag']);
+        }
+
         if (! empty($filters['featured'])) {
             $query->where('is_featured', true);
         }
@@ -45,6 +49,39 @@ class VideoService
             ->orderByDesc('published_at')
             ->paginate($perPage)
             ->through(fn (Video $video) => $this->attachViewerState($video, $viewer));
+    }
+
+    /** @return list<string> */
+    public function listTags(?string $query = null, int $limit = 30): array
+    {
+        $rows = Video::query()
+            ->where('status', 'published')
+            ->whereNotNull('tags')
+            ->pluck('tags');
+
+        $counts = [];
+        foreach ($rows as $tags) {
+            if (! is_array($tags)) {
+                continue;
+            }
+            foreach ($tags as $tag) {
+                if (! is_string($tag) || $tag === '') {
+                    continue;
+                }
+                $key = mb_strtolower($tag);
+                $counts[$key] = ($counts[$key] ?? 0) + 1;
+            }
+        }
+
+        $tags = array_keys($counts);
+        if ($query !== null && $query !== '') {
+            $needle = mb_strtolower($query);
+            $tags = array_values(array_filter($tags, fn ($t) => str_contains($t, $needle)));
+        }
+
+        usort($tags, fn ($a, $b) => ($counts[$b] ?? 0) <=> ($counts[$a] ?? 0) ?: strcmp($a, $b));
+
+        return array_slice($tags, 0, $limit);
     }
 
     /** @param array<string, mixed> $filters */
@@ -85,8 +122,49 @@ class VideoService
     }
 
     /** @param array<string, mixed> $data */
-    public function adminUpdate(Video $video, array $data): Video
+    public function adminUpdate(Video $video, array $data, ?User $actor = null): Video
     {
+        $actor ??= $video->uploader;
+
+        if (array_key_exists('title', $data) && $data['title'] !== null) {
+            $video->title = $data['title'];
+        }
+
+        if (array_key_exists('description', $data)) {
+            $video->description = $data['description'];
+        }
+
+        if (array_key_exists('category_id', $data) && $data['category_id'] !== null) {
+            $category = VideoCategory::query()->where('uuid', $data['category_id'])->first();
+            if (! $category) {
+                throw ValidationException::withMessages(['category_id' => ['Категория не найдена.']]);
+            }
+            $video->category_id = $category->id;
+        }
+
+        if (array_key_exists('tags', $data)) {
+            $video->tags = $data['tags'] ?? [];
+        }
+
+        if (array_key_exists('poster_media_id', $data)) {
+            $posterUuid = trim((string) ($data['poster_media_id'] ?? ''));
+            if ($posterUuid === '') {
+                $video->poster_media_id = null;
+            } else {
+                $video->poster_media_id = $this->ownedMedia(
+                    $actor,
+                    $posterUuid,
+                    ['post', 'listing', 'avatar', 'cover', 'banner'],
+                )->id;
+            }
+        }
+
+        if (array_key_exists('video_media_id', $data) && $data['video_media_id'] !== null) {
+            $videoMedia = $this->ownedMedia($actor, $data['video_media_id'], ['post', 'post_video', 'review_video']);
+            $video->video_media_id = $videoMedia->id;
+            $video->duration_seconds = (int) ($videoMedia->duration_seconds ?? 0);
+        }
+
         if (array_key_exists('status', $data) && $data['status'] !== null) {
             $video->status = $data['status'];
             if ($data['status'] === 'published' && ! $video->published_at) {

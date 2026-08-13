@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, SearchX } from "lucide-react";
+import { Loader2, SearchX, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, VideoCategory } from "@/lib/mock";
 import { fetchVideos, fetchVideoCategories } from "@/lib/api/reviews";
+import { getWatchLater, type WatchLaterItem } from "@/lib/watch-later";
+import { Link } from "@tanstack/react-router";
 import { VideoCard } from "@/components/reviews/VideoCard";
 import { ReviewsHero } from "@/components/reviews/ReviewsHero";
 import { SearchInput } from "@/components/ui/search-input";
@@ -19,12 +21,40 @@ export const Route = createFileRoute("/reviews/")({
   validateSearch: (search: Record<string, unknown>) => ({
     category: typeof search.category === "string" ? search.category : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
+    tag: typeof search.tag === "string" ? search.tag : undefined,
   }),
   component: ReviewsPage,
 });
 
 const ALL = "all";
+const WATCH_LATER = "watch-later";
 const SKELETON_COUNT = 8;
+
+function WatchLaterCard({ item }: { item: WatchLaterItem }) {
+  return (
+    <Link
+      to="/reviews/$id"
+      params={{ id: item.id }}
+      className="group flex flex-col"
+    >
+      <div
+        className="relative w-full overflow-hidden rounded-[var(--r-card)]"
+        style={{ aspectRatio: "16 / 9", background: "var(--background-surface)" }}
+      >
+        {item.posterUrl ? (
+          <img src={item.posterUrl} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            <Bookmark size={24} />
+          </div>
+        )}
+      </div>
+      <div className="mt-[8px] line-clamp-2 text-[13px] font-semibold leading-[1.35]" style={{ color: "var(--foreground)" }}>
+        {item.title}
+      </div>
+    </Link>
+  );
+}
 
 function VideoCardSkeleton() {
   return (
@@ -49,10 +79,11 @@ function VideoGridSkeleton({ count = SKELETON_COUNT }: { count?: number }) {
 
 function ReviewsPage() {
   const { t } = useTranslation();
-  const { category: categoryFromUrl, q: qFromUrl } = Route.useSearch();
+  const { category: categoryFromUrl, q: qFromUrl, tag: tagFromUrl } = Route.useSearch();
   const [videos, setVideos] = useState<Video[]>([]);
   const [featured, setFeatured] = useState<Video[]>([]);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
+  const [watchLaterItems, setWatchLaterItems] = useState<WatchLaterItem[]>(() => getWatchLater());
   const [activeCat, setActiveCat] = useState<string>(categoryFromUrl ?? ALL);
   const [query, setQuery] = useState(qFromUrl ?? "");
   const [initialLoading, setInitialLoading] = useState(true);
@@ -63,20 +94,32 @@ function ReviewsPage() {
     const sorted = [...categories].sort(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || (a.name ?? "").localeCompare(b.name ?? "", "ru"),
     );
-    return [{ id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
+    return [{ id: WATCH_LATER, name: t("pages.reviews.watchLaterTab"), slug: WATCH_LATER }, { id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
   }, [categories, t]);
 
+  const isWatchLaterTab = activeCat === WATCH_LATER;
+
   const sectionTitle = useMemo(() => {
+    if (isWatchLaterTab) return t("pages.reviews.watchLaterTab");
     if (query) return t("pages.reviews.searchResults");
+    if (tagFromUrl) return t("pages.reviews.tagResults", { tag: tagFromUrl });
     if (activeCat === ALL) return t("pages.reviews.allReviews");
     const cat = categories.find((c) => c.slug === activeCat);
     return cat?.name ? t("pages.reviews.categoryReviews", { name: cat.name }) : t("pages.reviews.allReviews");
-  }, [query, activeCat, categories, t]);
+  }, [query, activeCat, categories, t, isWatchLaterTab, tagFromUrl]);
 
   useEffect(() => {
     if (categoryFromUrl) setActiveCat(categoryFromUrl);
+    else if (tagFromUrl) setActiveCat(ALL);
     if (typeof qFromUrl === "string") setQuery(qFromUrl);
-  }, [categoryFromUrl, qFromUrl]);
+  }, [categoryFromUrl, qFromUrl, tagFromUrl]);
+
+  useEffect(() => {
+    const refresh = () => setWatchLaterItems(getWatchLater());
+    refresh();
+    window.addEventListener("watch-later-changed", refresh);
+    return () => window.removeEventListener("watch-later-changed", refresh);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -91,12 +134,13 @@ function ReviewsPage() {
   }, []);
 
   useEffect(() => {
+    if (isWatchLaterTab) return;
     let alive = true;
     const isInitial = !hasLoadedOnceRef.current;
     if (isInitial) setInitialLoading(true);
     else setRefreshing(true);
 
-    fetchVideos({ q: query || undefined, categorySlug: activeCat })
+    fetchVideos({ q: query || undefined, categorySlug: activeCat, tag: tagFromUrl || undefined })
       .then((list) => {
         if (alive) setVideos(list);
       })
@@ -108,7 +152,7 @@ function ReviewsPage() {
         hasLoadedOnceRef.current = true;
       });
     return () => { alive = false; };
-  }, [query, activeCat]);
+  }, [query, activeCat, isWatchLaterTab, tagFromUrl]);
 
   const newest = videos.slice(0, 10);
 
@@ -146,9 +190,9 @@ function ReviewsPage() {
           })}
         </div>
 
-        {activeCat === ALL && !query && featured.length > 0 && <ReviewsHero videos={featured} />}
+        {activeCat === ALL && !query && !tagFromUrl && featured.length > 0 && <ReviewsHero videos={featured} />}
 
-        {activeCat === ALL && !query && newest.length > 0 && (
+        {activeCat === ALL && !query && !tagFromUrl && newest.length > 0 && (
           <section className="space-y-[12px]">
             <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
               {t("pages.reviews.newReleases")}
@@ -167,8 +211,18 @@ function ReviewsPage() {
           <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
             {sectionTitle}
           </h2>
-          {((initialLoading || refreshing) && videos.length === 0) ? (
+          {((initialLoading || refreshing) && videos.length === 0 && !isWatchLaterTab) ? (
             <VideoGridSkeleton />
+          ) : isWatchLaterTab ? (
+            watchLaterItems.length === 0 ? (
+              <EmptyState icon={Bookmark} title={t("pages.reviews.watchLaterEmpty")} description={t("pages.reviews.watchLaterEmptyDesc")} />
+            ) : (
+              <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
+                {watchLaterItems.map((item) => (
+                  <WatchLaterCard key={item.id} item={item} />
+                ))}
+              </div>
+            )
           ) : videos.length === 0 ? (
             <EmptyState icon={SearchX} title={t("pages.reviews.nothingFound")} description={t("pages.reviews.nothingFoundDesc")} />
           ) : (

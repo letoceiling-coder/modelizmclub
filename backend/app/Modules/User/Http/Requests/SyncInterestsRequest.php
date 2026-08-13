@@ -14,7 +14,7 @@ class SyncInterestsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_ids' => ['present', 'array', 'max:50'],
+            'category_ids' => ['present', 'array', 'max:10'],
             'category_ids.*' => ['integer', 'distinct'],
         ];
     }

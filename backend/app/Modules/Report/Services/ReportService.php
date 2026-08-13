@@ -39,6 +39,12 @@ class ReportService
         'community' => Community::class,
     ];
 
+    /** @return array<string, class-string<Model>> */
+    public static function reportableTypes(): array
+    {
+        return self::TYPES;
+    }
+
     public function create(User $reporter, string $type, string $targetUuid, string $reason, ?string $description): Report
     {
         $target = $this->resolveTarget($type, $targetUuid);

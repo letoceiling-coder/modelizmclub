@@ -12,7 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
-import { fetchCommunity, joinCommunity, leaveCommunity, fetchOwnedCommunities, fetchCommunityMembers, type CommunityMember } from "@/lib/api/communities";
+import { fetchCommunity, fetchCommunityPosts, joinCommunity, leaveCommunity, fetchOwnedCommunities, fetchCommunityMembers, type CommunityMember } from "@/lib/api/communities";
 import { recordView } from "@/lib/view-history";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
@@ -27,6 +27,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
+import { CreatePostModal } from "@/components/feed/CreatePostModal";
+import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
@@ -432,6 +434,10 @@ function CommunityDetailPage() {
   const [hasOwnCommunity, setHasOwnCommunity] = useState(false);
   const [memberList, setMemberList] = useState<CommunityMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [composerSelection] = useState<ComposerSelection>({ kind: "photo", source: "profile" });
 
   useEffect(() => {
     fetchOwnedCommunities()
@@ -456,12 +462,24 @@ function CommunityDetailPage() {
     return () => { alive = false; };
   }, [id]);
 
-  // Demo content for the tabs (backend not wired yet → empty in production).
+  // Demo content for tabs without backend wiring.
   const demo = isDemoMode();
-  const posts = useMemo(() => (community && demo ? demoCommunityPosts(community.id) : []), [community, demo]);
   const discussions = useMemo(() => (community && demo ? demoCommunityDiscussions(community.id) : []), [community, demo]);
   const events = useMemo(() => (community && demo ? demoCommunityEvents(community.id) : []), [community, demo]);
   const demoMemberList = useMemo(() => (community && demo ? demoCommunityMembers(community.id) : []), [community, demo]);
+
+  useEffect(() => {
+    if (!community || tab !== "posts") return;
+    if (demo) {
+      setPosts(demoCommunityPosts(community.id));
+      return;
+    }
+    setPostsLoading(true);
+    fetchCommunityPosts(community.id)
+      .then(setPosts)
+      .catch(() => setPosts([]))
+      .finally(() => setPostsLoading(false));
+  }, [community, tab, demo]);
 
   useEffect(() => {
     if (!community || tab !== "members") return;
@@ -496,6 +514,7 @@ function CommunityDetailPage() {
   const admin = community.adminId ? userById(community.adminId) : null;
   const url = typeof window !== "undefined" ? window.location.href : "";
   const isOwner = Boolean(community.isOwner);
+  const canCreatePost = isOwner || community.role === "moderator";
 
   const toggleJoin = async () => {
     if (busy || isOwner) return;
@@ -658,13 +677,35 @@ function CommunityDetailPage() {
 
         {/* Tab panels */}
         {tab === "posts" && (
-          posts.length > 0 ? (
-            <div className="space-y-[16px]">
-              {posts.map((p) => <CommunityPostCard key={p.id} post={p} community={community} Icon={Icon} />)}
-            </div>
-          ) : (
-            <EmptyState icon={ImageOff} title={t("pages.communityDetail.emptyPosts")} description={t("pages.communityDetail.emptyPostsDesc")} variant="compact" />
-          )
+          <>
+            {canCreatePost && (
+              <div className="mb-[16px] flex justify-end">
+                <Button type="button" onClick={() => setCreatePostOpen(true)} className="gap-[6px]">
+                  <Plus size={16} />
+                  {posts.length > 0 ? t("pages.communityDetail.createPost") : t("pages.communityDetail.createFirstPost")}
+                </Button>
+              </div>
+            )}
+            {postsLoading ? (
+              <div className="space-y-[16px]">
+                <Skeleton className="h-[120px] w-full rounded-[var(--r-card)]" />
+                <Skeleton className="h-[120px] w-full rounded-[var(--r-card)]" />
+              </div>
+            ) : posts.length > 0 ? (
+              <div className="space-y-[16px]">
+                {posts.map((p) => <CommunityPostCard key={p.id} post={p} community={community} Icon={Icon} />)}
+              </div>
+            ) : (
+              <EmptyState icon={ImageOff} title={t("pages.communityDetail.emptyPosts")} description={t("pages.communityDetail.emptyPostsDesc")} variant="compact">
+                {canCreatePost && (
+                  <Button type="button" onClick={() => setCreatePostOpen(true)} className="mt-[12px] gap-[6px]">
+                    <Plus size={16} />
+                    {t("pages.communityDetail.createFirstPost")}
+                  </Button>
+                )}
+              </EmptyState>
+            )}
+          </>
         )}
 
         {tab === "discussions" && (
@@ -758,6 +799,16 @@ function CommunityDetailPage() {
         />
       )}
       <EventSignupModal event={signupEvent} onClose={() => setSignupEvent(null)} />
+      <CreatePostModal
+        open={createPostOpen}
+        selection={composerSelection}
+        communityId={community.backendId}
+        onClose={() => setCreatePostOpen(false)}
+        onCreate={(post) => {
+          setPosts((prev) => [post, ...prev]);
+          setCreatePostOpen(false);
+        }}
+      />
       <ComplaintDialog
         target={reportOpen ? {
           id: community.id,

@@ -1,7 +1,8 @@
-import type { Community } from "@/lib/mock";
+import type { Community, Post } from "@/lib/mock";
 import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoCommunities, demoCommunity, setDemoCommunitySubscription } from "@/lib/demo-data";
+import { demoCommunities, demoCommunity, demoCommunityPosts, setDemoCommunitySubscription } from "@/lib/demo-data";
+import { mapPost, type ApiPost } from "./feed";
 import { useCallback, useEffect, useState } from "react";
 
 interface ApiCommunity {
@@ -57,6 +58,7 @@ const ROLE_LABELS: Record<string, string> = {
 export function mapCommunity(c: ApiCommunity): Community {
   return {
     id: c.slug,
+    backendId: c.id,
     uuid: c.uuid,
     name: c.name,
     description: c.description ?? "",
@@ -115,6 +117,19 @@ export async function fetchCommunity(slug: string): Promise<Community> {
   }
   const res = await api<{ data: ApiCommunity }>(`/communities/${slug}`);
   return mapCommunity(res.data);
+}
+
+export async function fetchCommunityPosts(slug: string): Promise<Post[]> {
+  if (isDemoMode()) {
+    const c = demoCommunity(slug);
+    return c ? demoCommunityPosts(c.id) : [];
+  }
+  const res = await api<{ data: ApiPost[] }>(`/communities/${slug}/posts`, {
+    query: { per_page: 50 },
+  });
+  const payload = res.data;
+  const list = Array.isArray(payload) ? payload : [];
+  return list.map(mapPost);
 }
 
 export async function joinCommunity(slug: string): Promise<void> {

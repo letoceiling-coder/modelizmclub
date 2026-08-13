@@ -88,7 +88,14 @@ function mapVideo(v: ApiVideo): Video {
 export interface VideoListParams {
   q?: string;
   categorySlug?: string;
+  tag?: string;
   featured?: boolean;
+}
+
+export async function fetchVideoTags(q?: string): Promise<string[]> {
+  if (isDemoMode()) return ["танки", "авиа", "корабли"];
+  const res = await api<{ data: string[] }>("/videos/tags", { query: { q: q || undefined } });
+  return res.data ?? [];
 }
 
 export async function fetchVideos(params: VideoListParams = {}): Promise<Video[]> {
@@ -102,6 +109,7 @@ export async function fetchVideos(params: VideoListParams = {}): Promise<Video[]
     query: {
       q: params.q || undefined,
       category: categorySlug,
+      tag: params.tag || undefined,
       featured: params.featured ? 1 : undefined,
       sort: "new",
       per_page: 50,

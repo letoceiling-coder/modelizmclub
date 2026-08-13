@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff,
+  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff, Plus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Community } from "@/lib/mock";
@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
+import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 
 import i18n from "@/lib/i18n";
 
@@ -89,7 +90,7 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
-          style={{ background: "var(--background)", border: "3px solid var(--background)", borderRadius: "var(--r-card)" }}
+          style={{ border: "3px solid var(--background)", borderRadius: "var(--r-card)", background: "transparent" }}
         >
           {showAvatar ? (
             <img
@@ -245,6 +246,7 @@ function CommunitySection({
 function CommunitiesPage() {
   const { t } = useTranslation();
   const [all, setAll] = useState<Community[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     fetchCommunities().then(setAll).catch(() => {});
@@ -289,7 +291,8 @@ function CommunitiesPage() {
   return (
     <AppLayout rightColumn={false} footer>
       <div className="space-y-[24px]">
-        <header>
+        <header className="flex flex-col gap-[12px] sm:flex-row sm:items-end sm:justify-between">
+          <div>
           <h1
             className="font-display text-[24px] font-bold sm:text-[28px]"
             style={{ color: "var(--foreground)" }}
@@ -299,6 +302,10 @@ function CommunitiesPage() {
           <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
             {t("pages.communities.subtitle")}
           </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)} className="shrink-0 gap-[6px]">
+            <Plus size={16} /> {t("pages.communities.createCommunity")}
+          </Button>
         </header>
 
         {/* Search */}
@@ -334,6 +341,13 @@ function CommunitiesPage() {
           </div>
         )}
       </div>
+      {createOpen && (
+        <EntityRequestForm
+          kind="community"
+          onClose={() => setCreateOpen(false)}
+          onSubmitted={() => { setCreateOpen(false); reloadCommunities(); }}
+        />
+      )}
     </AppLayout>
   );
 }

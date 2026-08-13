@@ -17,6 +17,27 @@ import {
   type BannerCarouselSettings,
 } from "@/lib/api/admin";
 import { uploadAdminMedia } from "@/lib/api/admin-media";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+
+const BANNER_LIMITS = {
+  title: 200,
+  text: 2000,
+  cta: 100,
+  untilLabel: 128,
+  linkUrl: 500,
+} as const;
+
+function CharCounter({ value, max }: { value: string; max: number }) {
+  const over = value.length > max;
+  return (
+    <span
+      className="text-[11px] tabular-nums"
+      style={{ color: over ? "var(--destructive, #c0392b)" : "var(--foreground-40)" }}
+    >
+      {value.length}/{max}
+    </span>
+  );
+}
 
 const inputStyle: CSSProperties = {
   height: "40px",
@@ -277,8 +298,8 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
       });
       patchBanner(row.id, { ...saved, imageMediaUuid: null });
       toast.success(t("pages.adminBanners.toast.bannerSaved"));
-    } catch {
-      toast.error(t("pages.adminBanners.toast.bannerSaveFailed"));
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, t("pages.adminBanners.toast.bannerSaveFailed")));
     } finally {
       setSavingId(null);
     }
@@ -322,8 +343,8 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
       setBanners((prev) => [created, ...prev]);
       setDraft(emptyBanner(defaultCta));
       toast.success(t("pages.adminBanners.toast.bannerCreated"));
-    } catch {
-      toast.error(t("pages.adminBanners.toast.bannerCreateFailed"));
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, t("pages.adminBanners.toast.bannerCreateFailed")));
     } finally {
       setCreating(false);
     }
@@ -491,30 +512,62 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
             </select>
           </label>
           <label style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.title")}</span>
-            <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} style={inputStyle} />
+            <span className="flex items-center justify-between gap-[8px]" style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+              {t("pages.adminBanners.form.title")}
+              <CharCounter value={draft.title} max={BANNER_LIMITS.title} />
+            </span>
+            <input
+              value={draft.title}
+              maxLength={BANNER_LIMITS.title}
+              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.text")}</span>
-            <textarea value={draft.text} onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))} style={textareaStyle} />
+            <span className="flex items-center justify-between gap-[8px]" style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+              {t("pages.adminBanners.form.text")}
+              <CharCounter value={draft.text} max={BANNER_LIMITS.text} />
+            </span>
+            <textarea
+              value={draft.text}
+              maxLength={BANNER_LIMITS.text}
+              onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+              style={textareaStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.cta")}</span>
-            <input value={draft.ctaText} onChange={(e) => setDraft((d) => ({ ...d, ctaText: e.target.value }))} style={inputStyle} />
+            <span className="flex items-center justify-between gap-[8px]" style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+              {t("pages.adminBanners.form.cta")}
+              <CharCounter value={draft.ctaText} max={BANNER_LIMITS.cta} />
+            </span>
+            <input
+              value={draft.ctaText}
+              maxLength={BANNER_LIMITS.cta}
+              onChange={(e) => setDraft((d) => ({ ...d, ctaText: e.target.value }))}
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.untilLabel")}</span>
+            <span className="flex items-center justify-between gap-[8px]" style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+              {t("pages.adminBanners.form.untilLabel")}
+              <CharCounter value={draft.untilLabel} max={BANNER_LIMITS.untilLabel} />
+            </span>
             <input
               value={draft.untilLabel}
+              maxLength={BANNER_LIMITS.untilLabel}
               onChange={(e) => setDraft((d) => ({ ...d, untilLabel: e.target.value }))}
               placeholder={t("pages.adminBanners.form.untilPlaceholder")}
               style={inputStyle}
             />
           </label>
           <label style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminBanners.form.link")}</span>
+            <span className="flex items-center justify-between gap-[8px]" style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+              {t("pages.adminBanners.form.link")}
+              <CharCounter value={draft.linkUrl} max={BANNER_LIMITS.linkUrl} />
+            </span>
             <input
               value={draft.linkUrl}
+              maxLength={BANNER_LIMITS.linkUrl}
               onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))}
               placeholder={t("pages.adminBanners.form.linkPlaceholder")}
               style={inputStyle}

@@ -15,7 +15,7 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'display_name' => ['sometimes', 'string', 'min:2', 'max:64'],
+            'display_name' => ['sometimes', 'string', 'min:2', 'max:40', 'regex:/^[\p{L}\s\-]+$/u'],
             'slug' => ['sometimes', 'string', 'min:2', 'max:64', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'bio' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'city_id' => ['sometimes', 'nullable', 'integer', Rule::exists('cities', 'id')],

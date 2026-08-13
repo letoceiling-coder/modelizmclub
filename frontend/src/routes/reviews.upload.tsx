@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { VideoCategory } from "@/lib/mock";
-import { fetchVideoCategories, scheduleVideo, uploadVideo } from "@/lib/api/reviews";
+import { fetchVideoCategories, fetchVideoTags, scheduleVideo, uploadVideo } from "@/lib/api/reviews";
+import { TagInput } from "@/components/reviews/TagInput";
+import { fetchAdminVideo, updateAdminVideo } from "@/lib/api/admin";
 import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
 import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
 import { uploadMedia, validateReviewVideoFile } from "@/lib/api/media";
@@ -15,31 +17,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getState, selectors } from "@/lib/store";
 import { ensureSession } from "@/lib/auth/session";
-import { ApiError } from "@/lib/api/client";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 
 import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/reviews/upload")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.uploadMetaTitle") }] }),
+  validateSearch: (search: Record<string, unknown>): { edit?: string } => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
   beforeLoad: async ({ location }) => {
     const { requireAdmin } = await import("@/lib/auth/requireAdmin");
     await requireAdmin(location);
   },
   component: UploadPage,
 });
-
 type Access = "checking" | "granted" | "forbidden";
 
 function UploadPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { edit: editUuid } = Route.useSearch();
+  const isEditMode = Boolean(editUuid);
   const [access, setAccess] = useState<Access>("checking");
+  const [loadingEdit, setLoadingEdit] = useState(Boolean(editUuid));
   const [categories, setCategories] = useState<VideoCategory[]>([]);
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -61,10 +68,38 @@ function UploadPage() {
       const me = selectors.currentUser(getState());
       setAccess(me.isAdmin ? "granted" : "forbidden");
     });
-    fetchVideoCategories().then((c) => { if (alive) { setCategories(c); setCategoryId(c[0]?.id ?? ""); } }).catch(() => {});
+    fetchVideoCategories()
+      .then((c) => {
+        if (!alive) return;
+        setCategories(c);
+        if (!editUuid) setCategoryId(c[0]?.id ?? "");
+      })
+      .catch(() => {});
+    fetchVideoTags().then((list) => setTagSuggestions(list)).catch(() => {});
     return () => { alive = false; };
-  }, [navigate]);
+  }, [navigate, editUuid]);
 
+  useEffect(() => {
+    if (!editUuid || access !== "granted") return;
+    let alive = true;
+    setLoadingEdit(true);
+    fetchAdminVideo(editUuid)
+      .then((video) => {
+        if (!alive) return;
+        setTitle(video.title);
+        setDescription(video.description);
+        setCategoryId(video.categoryId ?? categories[0]?.id ?? "");
+        setTags(video.tags);
+        setIsFeatured(video.isFeatured);
+        setVideoUrl(video.videoUrl ?? null);
+        setPosterUrl(video.posterUrl ?? null);
+      })
+      .catch(() => {
+        if (alive) toast.error(t("pages.reviews.loadEditFailed"));
+      })
+      .finally(() => { if (alive) setLoadingEdit(false); });
+    return () => { alive = false; };
+  }, [editUuid, access, t, categories]);
   const pickVideo = (f: File) => {
     const err = validateReviewVideoFile(f);
     if (err) { toast.error(err); return; }
@@ -78,21 +113,41 @@ function UploadPage() {
     setPosterUrl(URL.createObjectURL(newFile));
   };
 
-  const valid = title.trim().length >= 3 && categoryId && videoFile;
+  const valid = title.trim().length >= 3 && categoryId && (videoFile || (isEditMode && videoUrl));
 
   const submit = async () => {
-    if (!valid || submitting || !videoFile) return;
-    const err = validateReviewVideoFile(videoFile);
-    if (err) { toast.error(err); return; }
+    if (!valid || submitting) return;
+    if (videoFile) {
+      const err = validateReviewVideoFile(videoFile);
+      if (err) { toast.error(err); return; }
+    }
     setSubmitting(true);
     try {
+      if (isEditMode && editUuid) {
+        const videoMedia = videoFile ? await uploadMedia(videoFile, "review_video") : null;
+        const posterMedia = posterFile ? await uploadMedia(posterFile, "post") : null;
+        await updateAdminVideo(editUuid, {
+          title: title.trim(),
+          description: description.trim(),
+          categoryId,
+          tags,
+          isFeatured,
+          ...(posterMedia ? { posterMediaId: posterMedia.uuid } : {}),
+          ...(videoMedia ? { videoMediaId: videoMedia.uuid } : {}),
+        });
+        toast.success(t("pages.reviews.saved"));
+        void navigate({ to: "/admin", search: { section: "reviews" } });
+        return;
+      }
+
+      if (!videoFile) return;
       const videoMedia = await uploadMedia(videoFile, "review_video");
       const posterMedia = posterFile ? await uploadMedia(posterFile, "post") : null;
       const video = await uploadVideo({
         title: title.trim(),
         description: description.trim(),
         categoryId,
-        tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        tags,
         posterMediaId: posterMedia?.uuid,
         videoMediaId: videoMedia.uuid,
         posterUrl: posterUrl ?? "",
@@ -112,18 +167,13 @@ function UploadPage() {
       }
       void navigate({ to: "/reviews" });
     } catch (err) {
-      const msg = err instanceof ApiError
-        ? err.message || t("pages.reviews.publishFailed")
-        : t("pages.reviews.publishFailed");
-      toast.error(msg);
+      toast.error(formatApiErrorMessage(err, t("pages.reviews.publishFailed")));
       setSubmitting(false);
     }
   };
-
-  if (access === "checking") {
+  if (access === "checking" || loadingEdit) {
     return <AppLayout rightColumn={false}><div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.checkingAccess")}</div></AppLayout>;
-  }
-  if (access === "forbidden") {
+  }  if (access === "forbidden") {
     return (
       <AppLayout rightColumn={false}>
         <div className="mx-auto max-w-[480px] py-[60px] text-center">
@@ -137,8 +187,9 @@ function UploadPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[720px] flex-col gap-[16px] py-[8px]">
-        <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>{t("pages.reviews.newReview")}</h1>
-
+        <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+          {isEditMode ? t("pages.reviews.editReview") : t("pages.reviews.newReview")}
+        </h1>
         <VideoUploadField fileUrl={videoUrl} onPick={pickVideo} onClear={() => { setVideoFile(null); setVideoUrl(null); }} accept="video/*" label={t("pages.reviews.uploadVideo")} />
         <VideoUploadField
           fileUrl={posterUrl}
@@ -152,6 +203,9 @@ function UploadPage() {
           open={editingPoster}
           src={posterFile ?? posterUrl}
           title={t("pages.reviews.editPoster")}
+          aspect={16 / 9}
+          lockAspect
+          safeZonePreset="review-cover"
           onCancel={() => setEditingPoster(false)}
           onSave={(blob) => { replacePoster(blob); setEditingPoster(false); }}
         />
@@ -161,32 +215,35 @@ function UploadPage() {
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full text-[14px] outline-none" style={{ background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "var(--r-input)", height: 44, padding: "0 12px" }}>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t("pages.reviews.tagsPlaceholder")} />
+        <TagInput tags={tags} onChange={setTags} suggestions={tagSuggestions} />
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
           <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
           <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>{t("pages.reviews.featuredCarousel")}</span>
         </label>
 
-        <PostSchedulePicker
-          mode={publishMode}
-          onModeChange={setPublishMode}
-          date={scheduleDate}
-          time={scheduleTime}
-          timezone={scheduleTimezone}
-          onDateChange={setScheduleDate}
-          onTimeChange={setScheduleTime}
-          onTimezoneChange={setScheduleTimezone}
-          disabled={submitting}
-        />
+        {!isEditMode && (
+          <PostSchedulePicker
+            mode={publishMode}
+            onModeChange={setPublishMode}
+            date={scheduleDate}
+            time={scheduleTime}
+            timezone={scheduleTimezone}
+            onDateChange={setScheduleDate}
+            onTimeChange={setScheduleTime}
+            onTimezoneChange={setScheduleTimezone}
+            disabled={submitting}
+          />
+        )}
 
         <Button onClick={submit} disabled={!valid} loading={submitting} size="lg" className="rounded-[var(--r-button)]">
           {submitting
             ? t("pages.reviews.publishing")
-            : publishMode === "schedule"
-              ? t("components.createPostForm.scheduleSubmit")
-              : t("pages.reviews.publish")}
-        </Button>
-      </div>
+            : isEditMode
+              ? t("pages.reviews.saveChanges")
+              : publishMode === "schedule"
+                ? t("components.createPostForm.scheduleSubmit")
+                : t("pages.reviews.publish")}
+        </Button>      </div>
     </AppLayout>
   );
 }

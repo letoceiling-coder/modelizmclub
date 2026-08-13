@@ -1,14 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Play, Eye, SearchX, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Flag, Film, Clock, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Play, Eye, SearchX, ThumbsUp, ThumbsDown, Bookmark, Share2, Flag, Film, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, Comment } from "@/lib/mock";
 import { userById } from "@/lib/mock";
 import { fetchVideo, fetchVideos, incrementVideoView, reactToVideo, fetchVideoComments, createVideoComment } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
+import { ReviewPlayerSettings } from "@/components/reviews/ReviewPlayerSettings";
 import { CommentSection } from "@/components/feed/CommentSection";
+import { CollapsibleText } from "@/components/ui/CollapsibleText";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatDuration } from "@/lib/format-duration";
@@ -16,7 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
-import { isWatchLater, toggleWatchLater } from "@/lib/watch-later";
+import { isWatchLater, toggleWatchLater, notifyWatchLaterChanged } from "@/lib/watch-later";
 import { useStore, selectors } from "@/lib/store";
 
 const actionCls =
@@ -81,11 +84,10 @@ function WatchPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [video, setVideo] = useState<Video | null>(null);
-  const [related, setRelated] = useState<Video[]>([]);
+  const [related, setRelated] = useState<Video[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
 
-  const [playing, setPlaying] = useState(false);   // has the user tapped play?
-  const [buffering, setBuffering] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
   const [posterFailed, setPosterFailed] = useState(false);
   const [saveData, setSaveData] = useState(false);
@@ -115,6 +117,7 @@ function WatchPage() {
     setPlaying(false);
     setPlayError(null);
     setPosterFailed(false);
+    setRelated(null);
     viewedRef.current = false;
     fetchVideo(id)
       .then((v) => {
@@ -128,7 +131,7 @@ function WatchPage() {
         setDislikeCount(v.dislikes ?? 0);
         setWatchLater(isWatchLater(v.id));
         fetchVideoComments(v.id).then((cs) => { if (alive) setComments(cs); }).catch(() => {});
-        loadRelatedVideos(v).then((list) => { if (alive) setRelated(list); }).catch(() => {});
+        loadRelatedVideos(v).then((list) => { if (alive) setRelated(list); }).catch(() => { if (alive) setRelated([]); });
       })
       .catch((err) => {
         if (!alive) return;
@@ -161,7 +164,6 @@ function WatchPage() {
       el.load();
       void el.play().catch(() => {
         setPlayError(t("pages.reviews.playbackFailed"));
-        setBuffering(false);
       });
     });
     if (!viewedRef.current) {
@@ -249,6 +251,7 @@ function WatchPage() {
     if (!video) return;
     const next = toggleWatchLater({ id: video.id, title: video.title, posterUrl: video.posterUrl });
     setWatchLater(next);
+    notifyWatchLaterChanged();
     toast.success(next ? t("pages.reviews.watchLaterAdded") : t("pages.reviews.watchLaterRemoved"));
   };
 
@@ -378,23 +381,14 @@ function WatchPage() {
                 playsInline
                 preload="none"
                 controlsList="nodownload"
-                onWaiting={() => setBuffering(true)}
-                onPlaying={() => { setBuffering(false); setPlayError(null); }}
-                onCanPlay={() => setBuffering(false)}
-                onError={() => {
-                  setPlayError(t("pages.reviews.playbackFailed"));
-                  setBuffering(false);
-                }}
+                onPlaying={() => setPlayError(null)}
+                onError={() => setPlayError(t("pages.reviews.playbackFailed"))}
                 className="h-full w-full object-contain"
               />
+              <ReviewPlayerSettings videoRef={videoRef} visible={playing} />
               {playError && (
                 <div className="absolute inset-x-[12px] bottom-[12px] rounded-[10px] px-[12px] py-[10px] text-[12px] text-white" style={{ background: "rgba(0,0,0,0.75)" }}>
                   {playError}
-                </div>
-              )}
-              {buffering && (
-                <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <RefreshCw size={32} className="animate-spin" color="#fff" />
                 </div>
               )}
             </>
@@ -412,32 +406,20 @@ function WatchPage() {
               <span className="inline-flex items-center gap-[4px]"><Clock size={13} /> {durationLabel}</span>
             )}
             {video.publishedAt && <span>· {new Date(video.publishedAt).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" })}</span>}
-          </div>
-          {(video.categoryName || video.tags.length > 0) && (
-            <div className="flex flex-wrap items-center gap-[8px] pt-[2px]">
-              {video.categoryName && video.categorySlug && (
+            {video.categoryName && video.categorySlug && (
+              <>
+                <span aria-hidden>·</span>
                 <Link
                   to="/reviews"
                   search={{ category: video.categorySlug }}
-                  className="rounded-full px-[10px] py-[4px] text-[11px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                  className="font-semibold transition-opacity hover:opacity-80"
+                  style={{ color: "var(--accent)" }}
                 >
                   {video.categoryName}
                 </Link>
-              )}
-              {video.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  to="/reviews"
-                  search={{ q: tag }}
-                  className="rounded-full px-[10px] py-[4px] text-[11px] font-medium"
-                  style={{ background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* author */}
@@ -445,14 +427,14 @@ function WatchPage() {
           <Link
             to="/user/$id"
             params={{ id: authorProfileId }}
-            className="flex items-center gap-[10px] border-b pb-[16px]"
+            className="flex items-center gap-[10px] border-b pb-[12px]"
             style={{ borderColor: "var(--border)" }}
           >
             {authorBlock}
           </Link>
         ) : (
           <div
-            className="flex items-center gap-[10px] border-b pb-[16px]"
+            className="flex items-center gap-[10px] border-b pb-[12px]"
             style={{ borderColor: "var(--border)" }}
           >
             {authorBlock}
@@ -482,7 +464,7 @@ function WatchPage() {
               className="inline-flex items-center gap-[6px] px-[14px] py-[8px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]"
               style={{ color: disliked ? "var(--accent)" : "var(--foreground-70)" }}
             >
-              <ThumbsDown size={15} fill={disliked ? "currentColor" : "none"} /> {dislikeCount > 0 ? dislikeCount : ""}
+              <ThumbsDown size={15} fill={disliked ? "currentColor" : "none"} /> {dislikeCount}
             </button>
           </div>
 
@@ -497,7 +479,7 @@ function WatchPage() {
                 background: watchLater ? "var(--accent-soft)" : undefined,
               }}
             >
-              <Bookmark size={16} fill={watchLater ? "currentColor" : "none"} /> {t("pages.reviews.watchLater")}
+              <Bookmark size={16} fill={watchLater ? "currentColor" : "none"} /> {watchLater ? t("pages.reviews.watchLaterRemove") : t("pages.reviews.watchLater")}
             </button>
             <button
               type="button"
@@ -526,9 +508,23 @@ function WatchPage() {
         </div>
 
         {video.description && (
-          <p className="whitespace-pre-line text-[14px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
-            {video.description}
-          </p>
+          <CollapsibleText text={video.description} maxLines={6} />
+        )}
+
+        {video.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-[8px]">
+            {video.tags.map((tag) => (
+              <Link
+                key={tag}
+                to="/reviews"
+                search={{ tag }}
+                className="rounded-full px-[10px] py-[4px] text-[11px] font-medium transition-colors hover:bg-[var(--accent-soft)]"
+                style={{ background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
+              >
+                #{tag}
+              </Link>
+            ))}
+          </div>
         )}
 
         {/* comments — always open with input visible */}
@@ -541,13 +537,22 @@ function WatchPage() {
 
         {/* recommended reviews */}
         <section
-          className="space-y-[12px] rounded-[var(--r-card)] border p-[16px]"
+          className="min-h-[220px] space-y-[12px] rounded-[var(--r-card)] border p-[16px]"
           style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
         >
           <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
             <Film size={18} style={{ color: "var(--foreground-50)" }} /> {t("pages.reviews.recommended")}
           </h2>
-          {related.length > 0 ? (
+          {related === null ? (
+            <div className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-hidden px-[16px] sm:mx-0 sm:px-0">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className="snap-start shrink-0" style={{ flex: "0 0 240px" }}>
+                  <Skeleton className="w-full rounded-[var(--r-card)]" style={{ aspectRatio: "16 / 9" }} />
+                  <Skeleton className="mt-[8px] h-[14px] w-[90%]" />
+                </div>
+              ))}
+            </div>
+          ) : related.length > 0 ? (
             <div className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0" style={{ scrollbarWidth: "thin" }}>
               {related.map((v) => (
                 <div key={v.id} className="snap-start" style={{ flex: "0 0 240px" }}>

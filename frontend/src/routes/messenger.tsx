@@ -11,7 +11,7 @@ import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
 import type { Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
-  setDialogs, setDialogMessages, replaceMessage, upsertMessage,
+  setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage,
   GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog,
   openOrCreateDialogWith,
 } from "@/lib/store";
@@ -704,7 +704,7 @@ function MessengerPage() {
     const id = activeId;
     const syncStatuses = () => {
       fetchMessages(id)
-        .then((msgs) => setDialogMessages(id, msgs))
+        .then((msgs) => mergeDialogMessages(id, msgs))
         .catch(() => {});
     };
     syncStatuses();
@@ -958,7 +958,11 @@ function MessengerPage() {
         replyId,
       );
       replaceMessage(dialogId, tempId, saved);
-      URL.revokeObjectURL(url);
+      if (saved.file?.url && !saved.file.url.startsWith("blob:")) {
+        URL.revokeObjectURL(url);
+      } else if (saved.image && !saved.image.startsWith("blob:")) {
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       actions.removeMessage(dialogId, tempId);
       URL.revokeObjectURL(url);

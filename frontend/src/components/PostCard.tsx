@@ -68,7 +68,9 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   );
 }
 
-/** Media block: mixed video/images in a single carousel. */
+import { FeedMediaGrid } from "@/components/feed/FeedMediaGrid";
+
+/** Media block: VK grid for images-only; carousel when video is present. */
 function PostMediaBlock({ post }: { post: Post }) {
   const items =
     post.mediaItems ??
@@ -79,7 +81,13 @@ function PostMediaBlock({ post }: { post: Post }) {
 
   if (items.length === 0) return null;
 
-  return <PostMediaCarousel items={items} alt={post.title} />;
+  const hasVideo = items.some((item) => item.type === "video");
+  if (hasVideo) {
+    return <PostMediaCarousel items={items} alt={post.title} />;
+  }
+
+  const imageUrls = items.map((item) => item.url);
+  return <FeedMediaGrid images={imageUrls} alt={post.title} />;
 }
 
 /** Shared class for footer action buttons — ghost-style, accent hover */

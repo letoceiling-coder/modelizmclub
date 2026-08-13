@@ -1,6 +1,6 @@
 import type { Dialog, DialogAdRef, DialogPostRef, Message, User } from "@/lib/mock";
 import { registerUser, makeMockWaveform } from "@/lib/mock";
-import { api } from "./client";
+import { api, API_BASE_URL } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoConversations, demoMessages } from "@/lib/demo-data";
@@ -116,9 +116,18 @@ function mapMessageStatus(raw?: string | null): Message["status"] {
   return "sent";
 }
 
+function resolveMediaUrl(media?: { url?: string | null; uuid?: string | null } | null): string | undefined {
+  if (!media) return undefined;
+  if (media.url) return media.url;
+  if (media.uuid) return `${API_BASE_URL}/media/${media.uuid}`;
+  return undefined;
+}
+
 export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   registerCompact(m.author);
-  const media = (m.attachments ?? []).map((a) => a.media).filter((x): x is NonNullable<typeof x> => Boolean(x?.url));
+  const media = (m.attachments ?? [])
+    .map((a) => a.media)
+    .filter((x): x is NonNullable<typeof x> => Boolean(x?.url || x?.uuid));
   const msgType = m.type ?? "text";
 
   const base: Message = {
@@ -133,52 +142,59 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   };
 
   const audio = media.find((x) => msgType === "voice" || (x.mime_type ?? "").startsWith("audio/"));
-  if (audio?.url) {
-    base.voice = {
-      duration: Math.max(1, Math.round(audio.duration ?? 1)),
-      waveform: makeMockWaveform(seedFromId(m.uuid)),
-      src: audio.url,
-      mediaUuid: audio.uuid ?? undefined,
-    };
+  if (audio) {
+    const audioUrl = resolveMediaUrl(audio);
+    if (audioUrl) {
+      base.voice = {
+        duration: Math.max(1, Math.round(audio.duration ?? 1)),
+        waveform: makeMockWaveform(seedFromId(m.uuid)),
+        src: audioUrl,
+        mediaUuid: audio.uuid ?? undefined,
+      };
+    }
   }
 
   const nonAudio = media.filter((x) => x !== audio);
 
   if (msgType === "image") {
     const imageMedia = nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/")) ?? nonAudio[0];
-    if (imageMedia?.url) {
-      base.image = imageMedia.url;
-      if (imageMedia.width && imageMedia.height) {
+    const imageUrl = resolveMediaUrl(imageMedia);
+    if (imageUrl) {
+      base.image = imageUrl;
+      if (imageMedia?.width && imageMedia?.height) {
         base.imageSize = { w: imageMedia.width, h: imageMedia.height };
       }
     }
   } else if (msgType === "file") {
     const fileMedia = nonAudio[0];
-    if (fileMedia?.url) {
-      const mime = fileMedia.mime_type ?? "";
+    const fileUrl = resolveMediaUrl(fileMedia);
+    if (fileUrl) {
+      const mime = fileMedia?.mime_type ?? "";
       base.file = {
-        name: fileMedia.filename ?? fileMedia.url.split("/").pop() ?? "file",
-        size: fileMedia.size_bytes ?? 0,
+        name: fileMedia?.filename ?? fileMedia?.url?.split("/").pop() ?? "file",
+        size: fileMedia?.size_bytes ?? 0,
         kind: mime.startsWith("video/") ? "video" : "file",
-        url: fileMedia.url,
+        url: fileUrl,
       };
     }
   } else if (nonAudio.length > 0) {
     const imageMedia = nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/"));
     const fileMedia = nonAudio.find((x) => !(x.mime_type ?? "").startsWith("image/"));
-    if (imageMedia?.url) {
-      base.image = imageMedia.url;
-      if (imageMedia.width && imageMedia.height) {
+    const imageUrl = resolveMediaUrl(imageMedia);
+    if (imageUrl) {
+      base.image = imageUrl;
+      if (imageMedia?.width && imageMedia?.height) {
         base.imageSize = { w: imageMedia.width, h: imageMedia.height };
       }
     }
-    if (fileMedia?.url) {
-      const mime = fileMedia.mime_type ?? "";
+    const fileUrl = resolveMediaUrl(fileMedia);
+    if (fileUrl) {
+      const mime = fileMedia?.mime_type ?? "";
       base.file = {
-        name: fileMedia.filename ?? fileMedia.url.split("/").pop() ?? "file",
-        size: fileMedia.size_bytes ?? 0,
+        name: fileMedia?.filename ?? fileMedia?.url?.split("/").pop() ?? "file",
+        size: fileMedia?.size_bytes ?? 0,
         kind: mime.startsWith("video/") ? "video" : "file",
-        url: fileMedia.url,
+        url: fileUrl,
       };
     }
   }

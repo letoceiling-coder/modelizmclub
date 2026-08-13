@@ -438,6 +438,22 @@ export const zh: TranslationSchema = {
       send: "Отправить",
       viewAll: "View all {{count}} comments"
     },
+    collapsibleText: {
+      expand: "Show more",
+      collapse: "Show less",
+    },
+    reviewPlayer: {
+      settings: "Player settings",
+      quality: "Quality",
+      qualityAuto: "Auto",
+      speed: "Speed",
+      speedNormal: "Normal",
+    },
+    tagInput: {
+      placeholder: "Type a tag and press Enter",
+      hint: "{{count}} of {{max}} tags",
+      remove: "Remove tag {{tag}}",
+    },
     repostMenu: {
       ariaLabel: "Repost",
       undoRepost: "Undo repost",
@@ -916,7 +932,8 @@ export const zh: TranslationSchema = {
       sectionSubscriptionsSub: "Сообщества, в которых вы состоите",
       sectionRecommended: "Рекомендованные",
       sectionRecommendedSubNone: "Подобрали клубы, школы и магазины моделизма",
-      sectionRecommendedSub: "Подобрано по вашим интересам"
+      sectionRecommendedSub: "Подобрано по вашим интересам",
+      createCommunity: "创建社区",
     },
     communityDetail: {
       metaTitle: "Community — MoDelizM",
@@ -939,6 +956,8 @@ export const zh: TranslationSchema = {
       wantOwnCommunity: "I want my own community",
       emptyPosts: "No posts yet",
       emptyPostsDesc: "Community posts will appear here",
+      createPost: "Create post",
+      createFirstPost: "Create first post",
       discussionsHeading: "Discussions",
       emptyDiscussions: "No discussions yet",
       emptyDiscussionsDesc: "Start the first topic in this community",
@@ -1155,7 +1174,7 @@ export const zh: TranslationSchema = {
       emptyCommunitiesShort: "Not in any communities",
       profileUpdated: "Profile updated",
       profileSaveFailed: "Could not save profile",
-      fieldName: "Name",
+      fieldName: "姓名",
       fieldCity: "City",
       cityPlaceholder: "City",
       fieldBio: "About",
@@ -1190,7 +1209,12 @@ export const zh: TranslationSchema = {
       cropCoverTitle: "Crop cover photo",
       changeCover: "Change cover",
       coverUpdated: "Cover updated",
-      coverUploadFailed: "Could not upload cover"
+      coverUploadFailed: "Could not upload cover",
+      nameLengthError: "姓名长度应为 2–{{max}} 个字符",
+      nameFormatError: "姓名只能包含字母、空格和连字符",
+      bioLengthError: "简介最多 {{max}} 个字符",
+      interestsLimitError: "兴趣最多 {{max}} 个",
+      interestsUnknownError: "请从平台分类中选择兴趣",
     },
     user: {
       metaTitle: "Profile — MoDelizM",
@@ -1912,6 +1936,10 @@ export const zh: TranslationSchema = {
       accessDenied: "Access restricted",
       accessDeniedDesc: "Only platform administrators can upload reviews.",
       newReview: "New review",
+      editReview: "Edit review",
+      saveChanges: "Save changes",
+      saved: "Review updated",
+      loadEditFailed: "Could not load review for editing",
       uploadVideo: "Upload video (mp4)",
       uploadPoster: "Cover (optional)",
       titlePlaceholder: "Review title",
@@ -1939,6 +1967,11 @@ export const zh: TranslationSchema = {
       recommendedEmpty: "No other reviews to recommend yet.",
       share: "Share",
       watchLater: "Watch later",
+      watchLaterRemove: "Remove from list",
+      watchLaterTab: "Watch later",
+      watchLaterEmpty: "Nothing saved yet",
+      watchLaterEmptyDesc: "Add reviews with the Watch later button on a review page.",
+      tagResults: "Reviews tagged #{{tag}}",
       watchLaterAdded: "Added to Watch later",
       watchLaterRemoved: "Removed from Watch later",
       linkCopied: "Link copied",
@@ -1962,6 +1995,8 @@ export const zh: TranslationSchema = {
     homeLink: "Home",
     adminReviews: {
       title: "Reviews",
+      subTabList: "Reviews",
+      subTabCategories: "Categories",
       uploadLink: "+ Upload review",
       searchPlaceholder: "Search by title…",
       allStatuses: "All statuses",
@@ -2452,8 +2487,17 @@ export const zh: TranslationSchema = {
         post: "Post",
         listing: "Listing",
         comment: "Comment",
-        video: "Review"
-      }
+        video: "Review",
+        community: "Community",
+      },
+      entityTabs: {
+        all: "全部",
+        posts: "帖子",
+        listings: "广告",
+        videos: "评测",
+        communities: "社区",
+        users: "用户",
+      },
     },
     adminFeedback: {
       title: "Feedback book",

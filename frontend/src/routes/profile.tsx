@@ -70,6 +70,7 @@ function toAdStatus(k: AdStatusKey): AdStatus {
 }
 
 function ProfilePage() {
+  const { t } = useTranslation();
   const currentUser = useStore(selectors.currentUser);
   const [myAds, setMyAds] = useState<{ ad: Ad; status: AdStatus }[]>([]);
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
@@ -106,18 +107,36 @@ function ProfilePage() {
 
   const saveProfile = async (draft: User, cityId?: number) => {
     if (!currentUser) return;
+    const trimmedName = draft.name.trim();
+    if (trimmedName.length < 2 || trimmedName.length > PROFILE_NAME_MAX) {
+      throw new Error(t("pages.profile.nameLengthError", { max: PROFILE_NAME_MAX }));
+    }
+    if (!PROFILE_NAME_REGEX.test(trimmedName)) {
+      throw new Error(t("pages.profile.nameFormatError"));
+    }
+    const bio = (draft.bio ?? "").trim();
+    if (bio.length > PROFILE_BIO_MAX) {
+      throw new Error(t("pages.profile.bioLengthError", { max: PROFILE_BIO_MAX }));
+    }
+
     const resolvedCityId = cityId ?? draft.cityId ?? null;
     const profile = await updateOwnProfile({
-      display_name: draft.name,
-      bio: draft.bio ?? "",
+      display_name: trimmedName,
+      bio,
       city_id: resolvedCityId,
     });
 
     await fetchPostCategories();
     const interestNames = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (interestNames.length > PROFILE_INTERESTS_MAX) {
+      throw new Error(t("pages.profile.interestsLimitError", { max: PROFILE_INTERESTS_MAX }));
+    }
     const categoryIds = interestNames
       .map((name) => categoryIdByName(name))
       .filter((id): id is number => id !== undefined);
+    if (categoryIds.length !== interestNames.length) {
+      throw new Error(t("pages.profile.interestsUnknownError"));
+    }
     const interests = await syncOwnInterests(categoryIds);
 
     setCurrentUser({
@@ -167,6 +186,11 @@ const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send: SendIcon, Code2, Wrench, Cpu, BatteryCharging,
 };
 
+const PROFILE_NAME_MAX = 40;
+const PROFILE_BIO_MAX = 2000;
+const PROFILE_INTERESTS_MAX = 10;
+const PROFILE_NAME_REGEX = /^[\p{L}\s-]+$/u;
+
 type AdStatus = "active" | "moderation" | "rejected" | "archived";
 const AD_STATUS_FILTER_KEYS: { key: AdStatus | "all"; labelKey: string }[] = [
   { key: "all", labelKey: "pages.profile.adFilterAll" },
@@ -175,16 +199,6 @@ const AD_STATUS_FILTER_KEYS: { key: AdStatus | "all"; labelKey: string }[] = [
   { key: "rejected", labelKey: "pages.profile.adFilterRejected" },
   { key: "archived", labelKey: "pages.profile.adFilterArchived" },
 ];
-
-function adStatusBadge(t: (key: string) => string, status: AdStatus) {
-  const map: Record<AdStatus, { label: string; variant: "published" | "moderation" | "warning" | "draft" }> = {
-    active: { label: t("pages.profile.adBadgeActive"), variant: "published" },
-    moderation: { label: t("pages.profile.adBadgeModeration"), variant: "moderation" },
-    rejected: { label: t("pages.profile.adBadgeRejected"), variant: "warning" },
-    archived: { label: t("pages.profile.adBadgeArchived"), variant: "draft" },
-  };
-  return map[status];
-}
 
 export interface ProfileViewProps {
   user: User;
@@ -415,7 +429,7 @@ export function ProfileView({
               {tab === "ads" && (
                 loading ? <ProfileTabSkeleton /> :
                 userAds.length === 0 ? (
-                  <EmptyTab text={t("pages.profile.emptyAdsShort")}>
+                  <EmptyTab bare text={t("pages.profile.emptyAdsShort")}>
                     {isOwn && (
                       <Button asChild className="mt-[16px]">
                         <Link to="/ads/new"><Plus size={14} /> {t("pages.profile.createListing")}</Link>
@@ -463,26 +477,14 @@ export function ProfileView({
                       </div>
                     )}
                     {filteredUserAds.length === 0 ? (
-                      <EmptyTab text={t("pages.profile.emptyAdsFiltered")} />
+                      <EmptyTab bare text={t("pages.profile.emptyAdsFiltered")} />
                     ) : (
                       <div className="grid grid-cols-2 gap-[10px] sm:gap-[16px] lg:grid-cols-3">
                         {filteredUserAds.map(({ ad, status }) => {
-                          const badge = adStatusBadge(t, status);
                           const cardState: "default" | "moderation" | "rejected" =
                             status === "moderation" ? "moderation" : status === "rejected" ? "rejected" : "default";
                           return (
                             <div key={ad.id} style={{ opacity: status === "archived" ? 0.65 : 1 }}>
-                              {/* Normal-flow badge above the card, not overlaid on the image:
-                                  AdCard's own top-left status pill (Продаю/Куплю/Обменяю) plus
-                                  an overlaid moderation badge don't both fit at 2-up mobile
-                                  width. AdCard's own bottom banner already covers moderation/
-                                  rejected ("На проверке"/"Отклонено"), so this only needs to
-                                  add information for active/archived. */}
-                              {cardState === "default" && (
-                                <Badge variant={badge.variant} withIcon={false} className="mb-[6px] rounded-full">
-                                  {badge.label}
-                                </Badge>
-                              )}
                               <AdCard ad={ad} state={cardState} compact />
                             </div>
                           );
@@ -564,8 +566,9 @@ export function ProfileView({
                 }
                 setEditOpen(false);
                 toast.success(t("pages.profile.profileUpdated"));
-              } catch {
-                toast.error(t("pages.profile.profileSaveFailed"));
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : t("pages.profile.profileSaveFailed");
+                toast.error(msg || t("pages.profile.profileSaveFailed"));
               }
             }}
           />
@@ -594,7 +597,7 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
       style={{ background: "var(--background)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)" }}
     >
       <div className="-mx-[16px] overflow-x-auto px-[16px] md:mx-0 md:overflow-visible md:px-0">
-        <div className="flex min-h-[48px] w-max min-w-full flex-nowrap items-stretch gap-[2px] md:min-h-[56px] md:gap-[6px]">
+        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-[2px] md:min-h-0 md:w-full md:flex-wrap md:gap-[4px]">
         {visibleTabs.map(({ key, Icon }) => {
           const active = tab === key;
           const label = t(TAB_LABEL_KEYS[key]);
@@ -603,15 +606,15 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className="inline-flex shrink-0 items-center gap-[6px] whitespace-nowrap rounded-[8px] px-[10px] py-[12px] font-display transition-colors duration-200 md:gap-[8px] md:px-[18px] md:py-[16px]"
+              className="inline-flex shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[8px] px-[8px] py-[10px] font-display transition-colors duration-200 md:gap-[6px] md:px-[14px] md:py-[12px]"
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--accent)" : "var(--foreground-50)",
                 boxShadow: active ? "inset 0 -3px 0 var(--accent)" : "inset 0 -3px 0 transparent",
               }}
             >
-              <Icon size={17} aria-hidden /> {label}
+              <Icon size={16} aria-hidden /> {label}
             </button>
           );
         })}
@@ -621,9 +624,9 @@ function Tabs({ tab, setTab, isOwn }: { tab: TabKey; setTab: (k: TabKey) => void
   );
 }
 
-function EmptyTab({ text, children }: { text: string; children?: React.ReactNode }) {
+function EmptyTab({ text, children, bare }: { text: string; children?: React.ReactNode; bare?: boolean }) {
   return (
-    <EmptyState variant="compact" title={text}>
+    <EmptyState variant={bare ? "bare" : "compact"} title={text}>
       {children}
     </EmptyState>
   );
@@ -672,8 +675,14 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
   }, [draft.cityId]);
 
   const addInterest = () => {
-    if (!newInterest.trim()) return;
-    setDraft({ ...draft, interests: [...interestList, newInterest.trim()].join(", ") });
+    const trimmed = newInterest.trim();
+    if (!trimmed) return;
+    if (interestList.length >= PROFILE_INTERESTS_MAX) {
+      toast.error(t("pages.profile.interestsLimitError", { max: PROFILE_INTERESTS_MAX }));
+      return;
+    }
+    if (interestList.includes(trimmed)) return;
+    setDraft({ ...draft, interests: [...interestList, trimmed].join(", ") });
     setNewInterest("");
   };
   const removeInterest = (i: string) => {
@@ -746,21 +755,31 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
         <h3 id="profile-edit-title" className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.profile.editProfileTitle")}</h3>
 
         <div className="mt-[20px] space-y-[20px]">
-          <Field label={t("pages.profile.fieldName")}>
-            <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="h-11" />
+          <Field label={t("pages.profile.fieldName")} hint={`${draft.name.length}/${PROFILE_NAME_MAX}`}>
+            <Input
+              value={draft.name}
+              maxLength={PROFILE_NAME_MAX}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next && !PROFILE_NAME_REGEX.test(next)) return;
+                setDraft({ ...draft, name: next });
+              }}
+              className="h-11"
+            />
           </Field>
           <Field label={t("pages.profile.fieldCity")}>
             <CitySelect value={draft.city} onChange={(name, id) => { setDraft({ ...draft, city: name }); setCityId(id); }} placeholder={t("pages.profile.cityPlaceholder")} />
           </Field>
-          <Field label={t("pages.profile.fieldBio")}>
+          <Field label={t("pages.profile.fieldBio")} hint={`${(draft.bio ?? "").length}/${PROFILE_BIO_MAX}`}>
             <Textarea
               value={draft.bio ?? ""}
+              maxLength={PROFILE_BIO_MAX}
               onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
               placeholder={t("pages.profile.bioPlaceholder")}
               rows={4}
             />
           </Field>
-          <Field label={t("pages.profile.fieldInterests")}>
+          <Field label={t("pages.profile.fieldInterests")} hint={`${interestList.length}/${PROFILE_INTERESTS_MAX}`}>
             <div className="flex flex-wrap gap-[8px]">
               {interestList.map((i) => (
                 <Badge
@@ -781,8 +800,9 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
                 placeholder={t("pages.profile.addInterest")}
                 className="h-11 flex-1"
+                disabled={interestList.length >= PROFILE_INTERESTS_MAX}
               />
-              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0">
+              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0" disabled={interestList.length >= PROFILE_INTERESTS_MAX}>
                 <Plus size={18} />
               </Button>
             </div>
@@ -803,10 +823,13 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <div>
-      <label className="mb-[8px] block font-mono text-[12px] uppercase tracking-[0.05em]" style={{ color: "var(--foreground-50)" }}>{label}</label>
+      <div className="mb-[8px] flex items-center justify-between gap-[8px]">
+        <label className="block font-mono text-[12px] uppercase tracking-[0.05em]" style={{ color: "var(--foreground-50)" }}>{label}</label>
+        {hint && <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{hint}</span>}
+      </div>
       {children}
     </div>
   );

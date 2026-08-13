@@ -192,7 +192,7 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
           <div className="relative inline-block shrink-0">
             <div
               className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden sm:h-[88px] sm:w-[88px]"
-              style={{ background: "var(--background)", border: "4px solid var(--background)", borderRadius: 18 }}
+              style={{ background: "transparent", border: "4px solid var(--background)", borderRadius: 18 }}
             >
               {showAvatar ? (
                 <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />

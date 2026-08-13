@@ -1,5 +1,5 @@
 /** How a saved image is displayed with `object-cover` in a viewport. */
-export type SafeZonePreset = "feed-banner" | "cover-wide";
+export type SafeZonePreset = "feed-banner" | "cover-wide" | "review-cover";
 
 export interface VisibleRect {
   /** Fractions relative to the cropped image (0–1). */
@@ -35,6 +35,11 @@ const PRESETS: Record<
   "cover-wide": {
     mobileAspect: 375 / 142.5,
     desktopAspect: 1200 / 220,
+  },
+  /** Review poster — card 16:9 + hero carousel 16:7 on desktop. */
+  "review-cover": {
+    mobileAspect: 16 / 9,
+    desktopAspect: 16 / 7,
   },
 };
 

@@ -71,7 +71,7 @@ function ChipSelect({
   );
 }
 
-export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
+export function CreatePostForm({ onCreate, onClose, selection, initialDraft, communityId }: {
   /** Fired once the post is actually created (and, outside demo mode,
    *  published) on the backend — the real Post the API returned, not a
    *  locally-fabricated stand-in. Only called for selection.source ===
@@ -80,6 +80,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
   onClose?: () => void;
   selection?: ComposerSelection;
   initialDraft?: ComposerDraft;
+  /** When set, the post is scoped to this community (numeric backend id). */
+  communityId?: number;
 }) {
   // selection is only briefly undefined during CreatePostModal's closing
   // CSS transition (content stays mounted while fading out) — this
@@ -271,6 +273,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft }: {
           title: title.trim(),
           body: text.trim(),
           categoryId: Number(cat!.id),
+          communityId,
           mediaIds,
         });
         if (!isDemoMode()) {

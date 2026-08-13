@@ -224,6 +224,7 @@ export interface CreatePostInput {
   title: string;
   body: string;
   categoryId?: number;
+  communityId?: number;
   /** Media UUIDs from uploadMedia() — the backend's StorePostRequest
    *  validates media_ids.* as uuid strings, not numeric ids. */
   mediaIds?: string[];
@@ -257,6 +258,7 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
       title: input.title,
       body: input.body,
       category_id: input.categoryId,
+      community_id: input.communityId,
       media_ids: input.mediaIds,
       hashtags: input.hashtags,
     },

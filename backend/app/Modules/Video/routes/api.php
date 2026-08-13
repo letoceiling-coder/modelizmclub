@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Video\Http\Controllers\Api\V1\CancelScheduledVideoController;
 use Modules\Video\Http\Controllers\Api\V1\DestroyVideoController;
 use Modules\Video\Http\Controllers\Api\V1\IndexVideoCategoriesController;
+use Modules\Video\Http\Controllers\Api\V1\IndexVideoTagsController;
 use Modules\Video\Http\Controllers\Api\V1\IndexVideosController;
 use Modules\Video\Http\Controllers\Api\V1\ScheduleVideoController;
 use Modules\Video\Http\Controllers\Api\V1\ShowVideoController;
@@ -15,6 +16,7 @@ use Modules\Video\Http\Controllers\Api\V1\VideoReactionController;
 use Modules\Video\Http\Controllers\Api\V1\VideoViewController;
 
 Route::get('videos/categories', IndexVideoCategoriesController::class);
+Route::get('videos/tags', IndexVideoTagsController::class);
 Route::get('videos', IndexVideosController::class);
 Route::get('videos/{uuid}', ShowVideoController::class)->where('uuid', '[0-9a-f-]{36}');
 Route::post('videos/{uuid}/view', VideoViewController::class)->where('uuid', '[0-9a-f-]{36}');

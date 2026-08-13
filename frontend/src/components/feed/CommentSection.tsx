@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Reply, Send, Paperclip, Camera, MoreHorizontal } from "lucide-react";
+import { Heart, Reply, Send, MoreHorizontal } from "lucide-react";
 import type { Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -276,24 +276,6 @@ export function CommentSection({
               className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
               style={{ color: "var(--foreground)" }}
             />
-            <button
-              type="button"
-              className="grid h-[28px] w-[28px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)]"
-              style={{ color: "var(--foreground-50)" }}
-              aria-label={t("components.commentSection.attachFile")}
-              onClick={() => toast.info(t("components.commentSection.attachSoon"))}
-            >
-              <Paperclip size={15} />
-            </button>
-            <button
-              type="button"
-              className="grid h-[28px] w-[28px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)]"
-              style={{ color: "var(--foreground-50)" }}
-              aria-label={t("components.commentSection.attachPhoto")}
-              onClick={() => toast.info(t("components.commentSection.attachSoon"))}
-            >
-              <Camera size={15} />
-            </button>
             <EmojiPicker onPick={(emoji) => setDraft((v) => v + emoji)} align="end" compact />
             <button
               type="button"

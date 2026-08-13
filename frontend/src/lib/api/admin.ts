@@ -904,9 +904,16 @@ export interface AdminVideoRow {
   publishedAt?: string;
 }
 
+export interface AdminVideoDetail extends AdminVideoRow {
+  description: string;
+  tags: string[];
+  categoryId?: string;
+}
+
 interface ApiAdminVideo {
   uuid: string;
   title?: string;
+  description?: string | null;
   status?: string;
   views_count?: number;
   video_url?: string | null;
@@ -917,7 +924,8 @@ interface ApiAdminVideo {
   likes_count?: number | null;
   comments_count?: number | null;
   is_featured?: boolean;
-  category?: { title?: string | null } | null;
+  tags?: string[];
+  category?: { id?: string; title?: string | null } | null;
   uploader?: { display_name?: string | null } | null;
 }
 
@@ -940,6 +948,20 @@ function mapAdminVideo(v: ApiAdminVideo): AdminVideoRow {
   };
 }
 
+function mapAdminVideoDetail(v: ApiAdminVideo): AdminVideoDetail {
+  return {
+    ...mapAdminVideo(v),
+    description: v.description ?? "",
+    tags: v.tags ?? [],
+    categoryId: v.category?.id,
+  };
+}
+
+export async function fetchAdminVideo(uuid: string): Promise<AdminVideoDetail> {
+  const res = await api<{ data: ApiAdminVideo }>(`/admin/videos/${uuid}`);
+  return mapAdminVideoDetail(res.data);
+}
+
 export async function fetchAdminVideos(params?: { status?: string; q?: string }): Promise<AdminVideoRow[]> {
   const res = await api<{ data: Paginated<ApiAdminVideo> | ApiAdminVideo[] }>("/admin/videos", {
     query: { status: params?.status || undefined, q: params?.q || undefined, per_page: 100 },
@@ -949,14 +971,33 @@ export async function fetchAdminVideos(params?: { status?: string; q?: string })
   return list.map(mapAdminVideo);
 }
 
-export async function updateAdminVideo(uuid: string, patch: { status?: string; isFeatured?: boolean }): Promise<void> {
-  await api(`/admin/videos/${uuid}`, {
+export async function updateAdminVideo(
+  uuid: string,
+  patch: {
+    status?: string;
+    isFeatured?: boolean;
+    title?: string;
+    description?: string;
+    categoryId?: string;
+    tags?: string[];
+    posterMediaId?: string | null;
+    videoMediaId?: string;
+  },
+): Promise<AdminVideoDetail> {
+  const res = await api<{ data: ApiAdminVideo }>(`/admin/videos/${uuid}`, {
     method: "PATCH",
     json: {
       status: patch.status,
       is_featured: patch.isFeatured,
+      title: patch.title,
+      description: patch.description,
+      category_id: patch.categoryId,
+      tags: patch.tags,
+      poster_media_id: patch.posterMediaId,
+      video_media_id: patch.videoMediaId,
     },
   });
+  return mapAdminVideoDetail(res.data);
 }
 
 export async function deleteAdminVideo(uuid: string): Promise<void> {
@@ -1097,9 +1138,13 @@ interface ApiAdminReport {
   resolved_at?: string | null;
 }
 
-export async function fetchAdminReports(status?: ReportStatus): Promise<AdminReportRow[]> {
+export async function fetchAdminReports(status?: ReportStatus, targetTypes?: string[]): Promise<AdminReportRow[]> {
   const res = await api<Paginated<ApiAdminReport>>("/admin/reports", {
-    query: { per_page: 50, ...(status ? { status } : {}) },
+    query: {
+      per_page: 50,
+      ...(status ? { status } : {}),
+      ...(targetTypes?.length ? { target_types: targetTypes.join(",") } : {}),
+    },
   });
   return (res.data ?? []).map((r) => ({
     id: r.id,

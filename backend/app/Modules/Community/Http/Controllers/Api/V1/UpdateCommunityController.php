@@ -22,8 +22,8 @@ class UpdateCommunityController extends Controller
         }
 
         $data = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:120'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'name' => ['sometimes', 'required', 'string', 'max:40'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'category_id' => ['sometimes', 'required', 'integer'],
         ]);
 

@@ -660,6 +660,42 @@ export function setDialogMessages(dialogId: ID, messages: Message[]): void {
   dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
 }
 
+/** Keep optimistic / in-flight media when a server refresh omits attachment URLs. */
+function preserveMessageMedia(prev: Message, next: Message): Message {
+  const merged: Message = { ...next };
+  if (!merged.image && prev.image) merged.image = prev.image;
+  if (!merged.file?.url && prev.file?.url) merged.file = prev.file;
+  if (!merged.voice?.src && prev.voice?.src) merged.voice = prev.voice;
+  if (!merged.imageSize && prev.imageSize) merged.imageSize = prev.imageSize;
+  return merged;
+}
+
+/** Merge fetched messages with local state instead of blind replace (chat video fix). */
+export function mergeDialogMessages(dialogId: ID, incoming: Message[]): void {
+  const d = state.dialogs[dialogId];
+  if (!d) {
+    setDialogMessages(dialogId, incoming);
+    return;
+  }
+
+  const incomingById = new Map(incoming.map((m) => [m.id, m]));
+  const existingById = new Map(d.messages.map((m) => [m.id, m]));
+
+  for (const m of d.messages) {
+    if (m.id.startsWith("tmp") && !incomingById.has(m.id)) {
+      incomingById.set(m.id, m);
+    }
+  }
+
+  const merged = [...incomingById.values()].map((m) => {
+    const prev = existingById.get(m.id);
+    return prev ? preserveMessageMedia(prev, m) : m;
+  });
+
+  merged.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages: merged });
+}
+
 /** Mark the sender's messages as read when the recipient opens the dialog. */
 export function markOwnMessagesRead(dialogId: ID): void {
   const d = state.dialogs[dialogId];
@@ -755,18 +791,20 @@ export function ingestIncomingMessage(
 export function replaceMessage(dialogId: ID, tempId: ID, message: Message): void {
   const d = state.dialogs[dialogId];
   if (!d) return;
-  const hasTemp = d.messages.some((m) => m.id === tempId);
+  const temp = d.messages.find((m) => m.id === tempId);
+  const normalized = temp ? preserveMessageMedia(temp, message) : message;
+  const hasTemp = Boolean(temp);
   const messages = hasTemp
     ? d.messages.map((m) =>
         m.id === tempId
           ? {
-              ...message,
+              ...normalized,
               clientKey: m.clientKey ?? tempId,
-              imageSize: message.imageSize ?? m.imageSize,
+              imageSize: normalized.imageSize ?? m.imageSize,
             }
           : m,
       )
-    : [...d.messages.filter((m) => m.id !== message.id), message];
+    : [...d.messages.filter((m) => m.id !== normalized.id), normalized];
   dispatch({ type: "SET_DIALOG_MESSAGES", dialogId, messages });
 }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Modules\Admin\Http\Requests\AdminUpdateVideoRequest;
 use Modules\Video\Http\Resources\VideoResource;
 use Modules\Video\Services\VideoService;
 
@@ -30,16 +31,10 @@ class AdminVideoController extends Controller
         return (new VideoResource($video))->response();
     }
 
-    public function update(Request $request, string $uuid, VideoService $videos): JsonResponse
+    public function update(AdminUpdateVideoRequest $request, string $uuid, VideoService $videos): JsonResponse
     {
         $video = $videos->adminShow($uuid);
-
-        $data = $request->validate([
-            'status' => ['nullable', Rule::in(['processing', 'published', 'rejected', 'scheduled'])],
-            'is_featured' => ['nullable', 'boolean'],
-        ]);
-
-        $video = $videos->adminUpdate($video, $data);
+        $video = $videos->adminUpdate($video, $request->validated(), $request->user());
 
         return (new VideoResource($video))->response();
     }

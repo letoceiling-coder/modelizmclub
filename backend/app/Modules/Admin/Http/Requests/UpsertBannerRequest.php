@@ -25,7 +25,7 @@ class UpsertBannerRequest extends FormRequest
             'text' => ['nullable', 'string', 'max:2000'],
             'cta_text' => ['nullable', 'string', 'max:100'],
             'kind' => ['nullable', 'string', 'max:16', Rule::in(['event', 'news', 'promo'])],
-            'until_label' => ['nullable', 'string', 'max:64'],
+            'until_label' => ['nullable', 'string', 'max:128'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
             'is_active' => ['nullable', 'boolean'],

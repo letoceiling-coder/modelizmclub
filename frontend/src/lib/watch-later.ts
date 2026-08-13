@@ -33,9 +33,18 @@ export function toggleWatchLater(item: Omit<WatchLaterItem, "addedAt">): boolean
   if (idx >= 0) {
     list.splice(idx, 1);
     window.localStorage.setItem(KEY, JSON.stringify(list));
+    window.dispatchEvent(new Event("watch-later-changed"));
     return false;
   }
   const next: WatchLaterItem[] = [{ ...item, addedAt: new Date().toISOString() }, ...list].slice(0, CAP);
   window.localStorage.setItem(KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("watch-later-changed"));
   return true;
+}
+
+/** Notify list views after external toggles (detail page). */
+export function notifyWatchLaterChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("watch-later-changed"));
+  }
 }

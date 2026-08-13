@@ -15,6 +15,7 @@ class IndexVideosController extends Controller
         $paginator = $videos->list([
             'q' => $request->query('q'),
             'category' => $request->query('category'),
+            'tag' => $request->query('tag'),
             'featured' => $request->query('featured'),
         ], $request->user(), min(100, max(1, (int) $request->query('per_page', 50))));
 

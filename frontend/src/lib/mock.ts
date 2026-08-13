@@ -198,6 +198,8 @@ export interface CommunityContacts {
 export interface Community {
   id: ID;
   uuid?: string;
+  /** Numeric backend id — required for community-scoped posts. */
+  backendId?: number;
   name: string;
   description: string;
   fullDescription?: string;

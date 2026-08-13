@@ -8,7 +8,7 @@ import { fetchCommunityCategories, type CommunityCategoryOption } from "@/lib/ap
 import { updateCommunity } from "@/lib/api/communities";
 import type { Community } from "@/lib/mock";
 import { toast } from "@/lib/toast";
-import { isDemoMode } from "@/lib/demo-mode";
+import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX } from "@/lib/community-limits";
 
 const inputStyle = {
   background: "var(--background-surface)",
@@ -105,24 +105,30 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
         </h3>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Название</span>
+          <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span>Название</span>
+            <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{name.length}/{COMMUNITY_NAME_MAX}</span>
+          </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            maxLength={120}
+            maxLength={COMMUNITY_NAME_MAX}
             className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
             style={inputStyle}
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Описание</span>
+          <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span>Описание</span>
+            <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{description.length}/{COMMUNITY_DESCRIPTION_MAX}</span>
+          </span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            maxLength={5000}
+            maxLength={COMMUNITY_DESCRIPTION_MAX}
             rows={5}
-            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[120px]"
+            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[120px] break-words"
             style={inputStyle}
           />
         </label>

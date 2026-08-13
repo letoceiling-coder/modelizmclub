@@ -91,6 +91,37 @@ class AdminVideoTest extends TestCase
         $this->assertDatabaseMissing('videos', ['id' => $video->id]);
     }
 
+    public function test_admin_can_update_content_fields(): void
+    {
+        $uploader = User::factory()->create();
+        $video = $this->makeVideo($uploader, 'published');
+        $newCategory = VideoCategory::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'title' => 'Самолёты',
+            'slug' => 'planes-'.uniqid(),
+            'sort_order' => 2,
+        ]);
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $token = $admin->createToken('api')->plainTextToken;
+        $headers = ['Authorization' => 'Bearer '.$token];
+
+        $this->patchJson('/api/v1/admin/videos/'.$video->uuid, [
+            'title' => 'Updated title',
+            'description' => 'New description',
+            'category_id' => $newCategory->uuid,
+            'tags' => ['tag1', 'tag2'],
+        ], $headers)->assertOk()
+            ->assertJsonPath('data.title', 'Updated title')
+            ->assertJsonPath('data.description', 'New description');
+
+        $video->refresh();
+        $this->assertSame('Updated title', $video->title);
+        $this->assertSame('New description', $video->description);
+        $this->assertSame($newCategory->id, $video->category_id);
+        $this->assertSame(['tag1', 'tag2'], $video->tags);
+    }
+
     public function test_moderator_cannot_access_admin_videos(): void
     {
         $moderator = User::factory()->create(['role' => UserRole::Moderator]);

@@ -146,7 +146,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
           <div className="mt-2 flex items-center gap-3">
             <div
               className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden"
-              style={{ background: "var(--background)", border: "2px solid var(--border)", borderRadius: 16 }}
+              style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 16 }}
             >
               {showAvatar ? (
                 <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />

@@ -48,6 +48,7 @@ import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminCard";
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
+import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
@@ -100,7 +101,6 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
   { id: "icons", labelKey: "pages.adminShell.nav.icons", icon: Image, roles: ["admin"] },
   { id: "categories", labelKey: "pages.adminShell.nav.categories", icon: FolderTree, roles: ["admin"] },
   { id: "reviews", labelKey: "pages.adminShell.nav.reviews", icon: Clapperboard, roles: ["admin"] },
-  { id: "reviewCategories", labelKey: "pages.adminShell.nav.reviewCategories", icon: FolderTree, roles: ["admin"] },
   { id: "notifications", labelKey: "pages.adminShell.nav.notifications", icon: Bell, roles: ["admin"] },
   { id: "analytics", labelKey: "pages.adminShell.nav.analytics", icon: BarChart3, roles: ["admin"] },
   { id: "feedback", labelKey: "pages.adminShell.nav.feedback", icon: Inbox, roles: ["admin", "moderator"] },
@@ -410,8 +410,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "landingBlocks") return <LandingBlocksSection />;
   if (section === "icons") return <IconManagerSection />;
   if (section === "categories") return <CategoriesSection />;
-  if (section === "reviews") return <ReviewsSection />;
-  if (section === "reviewCategories") return <ReviewCategoriesAdminSection />;
+  if (section === "reviews" || section === "reviewCategories") return <ReviewsSection initialSubTab={section === "reviewCategories" ? "categories" : "list"} />;
   if (section === "notifications") return <NotificationsSection />;
   if (section === "analytics") return <AnalyticsSection />;
   if (section === "feedback") return <FeedbackSection />;
@@ -1988,12 +1987,28 @@ type ReportFilterId = (typeof REPORT_FILTER_IDS)[number];
 
 const REPORT_STATUS_IDS: ReportStatus[] = ["pending", "reviewing", "resolved", "rejected", "dismissed"];
 
-const REPORT_TARGET_IDS = ["user", "message", "conversation", "post", "listing", "comment", "video"] as const;
+const REPORT_TARGET_IDS = ["user", "message", "conversation", "post", "listing", "comment", "video", "community"] as const;
+
+const REPORT_ENTITY_TAB_IDS = ["all", "posts", "listings", "videos", "communities", "users"] as const;
+type ReportEntityTabId = (typeof REPORT_ENTITY_TAB_IDS)[number];
+
+const REPORT_ENTITY_TYPES: Record<ReportEntityTabId, string[] | null> = {
+  all: null,
+  posts: ["post", "comment"],
+  listings: ["listing"],
+  videos: ["video"],
+  communities: ["community"],
+  users: ["user", "message", "conversation"],
+};
 
 function ReportsSection() {
   const { t } = useTranslation();
   const reportFilters = useMemo(
     () => REPORT_FILTER_IDS.map((id) => ({ id, label: t(`pages.adminModeration.filters.${id}`) })),
+    [t],
+  );
+  const entityTabs = useMemo(
+    () => REPORT_ENTITY_TAB_IDS.map((id) => ({ id, label: t(`pages.adminModeration.entityTabs.${id}`) })),
     [t],
   );
   const reportStatusMeta = useMemo(
@@ -2036,18 +2051,38 @@ function ReportsSection() {
     [t],
   );
   const [filter, setFilter] = useState<ReportStatus | "all">("pending");
+  const [entityTab, setEntityTab] = useState<ReportEntityTabId>("all");
   const [items, setItems] = useState<AdminReportRow[]>([]);
+  const [pendingCounts, setPendingCounts] = useState<Partial<Record<ReportEntityTabId, number>>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
+    fetchAdminReports("pending")
+      .then((rows) => {
+        if (!active) return;
+        const counts: Partial<Record<ReportEntityTabId, number>> = { all: rows.length };
+        for (const tab of REPORT_ENTITY_TAB_IDS) {
+          if (tab === "all") continue;
+          const types = REPORT_ENTITY_TYPES[tab] ?? [];
+          counts[tab] = rows.filter((r) => types.includes(r.targetType)).length;
+        }
+        setPendingCounts(counts);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    fetchAdminReports(filter === "all" ? undefined : filter)
+    const targetTypes = REPORT_ENTITY_TYPES[entityTab] ?? undefined;
+    fetchAdminReports(filter === "all" ? undefined : filter, targetTypes ?? undefined)
       .then((rows) => active && setItems(rows))
       .catch(() => active && toast.error(t("pages.adminModeration.reportsLoadFailed")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [filter]);
+  }, [filter, entityTab, t]);
 
   const setStatus = async (row: AdminReportRow, status: ReportStatus) => {
     const prev = row.status;
@@ -2066,6 +2101,38 @@ function ReportsSection() {
       <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
         {t("pages.adminModeration.reportsTitle")}
       </h4>
+      <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "10px" }}>
+        {entityTabs.map((tab) => {
+          const pending = pendingCounts[tab.id] ?? 0;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setEntityTab(tab.id)}
+              style={{
+                height: "34px",
+                padding: "0 12px",
+                fontSize: "12px",
+                fontWeight: 600,
+                borderRadius: "var(--r-button)",
+                border: "1px solid var(--border)",
+                background: entityTab === tab.id ? "var(--accent-soft)" : "transparent",
+                color: entityTab === tab.id ? "var(--accent)" : "var(--foreground-70)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              {tab.label}
+              {pending > 0 && (
+                <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "var(--r-pill)", background: "var(--accent)", color: "var(--accent-foreground)" }}>
+                  {pending}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "12px" }}>
         {reportFilters.map((f) => (
           <button
@@ -2872,8 +2939,9 @@ function AnalyticsSection() {
 }
 
 /* ============ REVIEWS (videos) ============ */
-function ReviewsSection() {
+function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "categories" }) {
   const { t } = useTranslation();
+  const [subTab, setSubTab] = useState<"list" | "categories">(initialSubTab);
   const statusMetaMap = useMemo(() => ({
     published: { label: t("pages.adminReviews.statusPublishedBadge"), variant: "success" as BadgeVariant },
     processing: { label: t("pages.adminReviews.statusProcessingBadge"), variant: "warning" as BadgeVariant },
@@ -3064,6 +3132,31 @@ function ReviewsSection() {
 
   return (
     <div>
+      <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
+        {(["list", "categories"] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setSubTab(id)}
+            style={{
+              height: "34px",
+              padding: "0 14px",
+              fontSize: "13px",
+              fontWeight: 600,
+              borderRadius: "var(--r-button)",
+              border: "1px solid var(--border)",
+              background: subTab === id ? "var(--accent)" : "transparent",
+              color: subTab === id ? "var(--accent-foreground)" : "var(--foreground-70)",
+            }}
+          >
+            {id === "list" ? t("pages.adminReviews.subTabList") : t("pages.adminReviews.subTabCategories")}
+          </button>
+        ))}
+      </div>
+      {subTab === "categories" ? (
+        <ReviewCategoriesAdminSection />
+      ) : (
+        <>
       <H action={<Link to="/reviews/upload" className="text-[13px]" style={{ color: "var(--accent)" }}>{t("pages.adminReviews.uploadLink")}</Link>}>{t("pages.adminReviews.title")}</H>
       <div className="flex flex-wrap" style={{ gap: "12px" }}>
         <input
@@ -3256,7 +3349,7 @@ function ReviewsSection() {
               {preview.status === "published" && (
                 <button type="button" style={inputStyle} onClick={() => { void changeStatus(preview.uuid, "rejected"); setPreview(null); }}>{t("pages.adminReviews.hideReview")}</button>
               )}
-              <Link to="/reviews/upload" className="inline-flex items-center" style={{ ...inputStyle, height: "36px", padding: "0 14px", textDecoration: "none", color: "var(--foreground)" }}>
+              <Link to="/reviews/upload" search={{ edit: preview.uuid }} className="inline-flex items-center" style={{ ...inputStyle, height: "36px", padding: "0 14px", textDecoration: "none", color: "var(--foreground)" }}>
                 {t("pages.adminReviews.replaceMedia")}
               </Link>
             </div>
@@ -3277,6 +3370,8 @@ function ReviewsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </>
+      )}
     </div>
   );
 }
@@ -4327,7 +4422,9 @@ function ApplicationsSection() {
                 {" · "}{r.category}{" · "}{new Date(r.createdAt).toLocaleDateString("ru-RU")}
               </div>
               {r.description && (
-                <p style={{ fontSize: "13px", color: "var(--foreground-70)", marginBottom: "12px" }}>{r.description}</p>
+                <div style={{ marginBottom: "12px", fontSize: "13px", color: "var(--foreground-70)", wordBreak: "break-word" }}>
+                  <CollapsibleText text={r.description} maxLines={3} />
+                </div>
               )}
               {status === "pending" && (
                 <div style={{ display: "flex", gap: "8px" }}>

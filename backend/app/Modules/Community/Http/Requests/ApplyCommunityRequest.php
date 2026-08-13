@@ -15,8 +15,8 @@ class ApplyCommunityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'proposed_name' => ['required', 'string', 'min:3', 'max:120'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            'proposed_name' => ['required', 'string', 'min:3', 'max:40'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'category_id' => ['required', 'integer', Rule::exists('community_categories', 'id')->where('is_active', true)],
         ];
     }
