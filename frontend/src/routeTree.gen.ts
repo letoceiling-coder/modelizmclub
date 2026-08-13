@@ -50,12 +50,12 @@ import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.pa
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
 import { Route as SettingsDashboardRouteImport } from './routes/settings.dashboard'
+import { Route as SettingsConsentsRouteImport } from './routes/settings.consents'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
 import { Route as SettingsAccountRouteImport } from './routes/settings.account'
 import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
 import { Route as ReviewsIdRouteImport } from './routes/reviews.$id'
-import { Route as LegalRulesRouteImport } from './routes/legal.rules'
-import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as InfoSlugRouteImport } from './routes/info.$slug'
 import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
@@ -273,6 +273,11 @@ const SettingsDashboardRoute = SettingsDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsConsentsRoute = SettingsConsentsRouteImport.update({
+  id: '/consents',
+  path: '/consents',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
   id: '/appearance',
   path: '/appearance',
@@ -293,14 +298,9 @@ const ReviewsIdRoute = ReviewsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ReviewsRoute,
 } as any)
-const LegalRulesRoute = LegalRulesRouteImport.update({
-  id: '/legal/rules',
-  path: '/legal/rules',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
-  id: '/legal/privacy',
-  path: '/legal/privacy',
+const LegalSlugRoute = LegalSlugRouteImport.update({
+  id: '/legal/$slug',
+  path: '/legal/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InfoSlugRoute = InfoSlugRouteImport.update({
@@ -392,12 +392,12 @@ export interface FileRoutesByFullPath {
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
   '/info/$slug': typeof InfoSlugRoute
-  '/legal/privacy': typeof LegalPrivacyRoute
-  '/legal/rules': typeof LegalRulesRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/reviews/$id': typeof ReviewsIdRoute
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/consents': typeof SettingsConsentsRoute
   '/settings/dashboard': typeof SettingsDashboardRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -446,12 +446,12 @@ export interface FileRoutesByTo {
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
   '/info/$slug': typeof InfoSlugRoute
-  '/legal/privacy': typeof LegalPrivacyRoute
-  '/legal/rules': typeof LegalRulesRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/reviews/$id': typeof ReviewsIdRoute
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/consents': typeof SettingsConsentsRoute
   '/settings/dashboard': typeof SettingsDashboardRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -507,12 +507,12 @@ export interface FileRoutesById {
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
   '/info/$slug': typeof InfoSlugRoute
-  '/legal/privacy': typeof LegalPrivacyRoute
-  '/legal/rules': typeof LegalRulesRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/reviews/$id': typeof ReviewsIdRoute
   '/reviews/upload': typeof ReviewsUploadRoute
   '/settings/account': typeof SettingsAccountRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/consents': typeof SettingsConsentsRoute
   '/settings/dashboard': typeof SettingsDashboardRoute
   '/settings/history': typeof SettingsHistoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -569,12 +569,12 @@ export interface FileRouteTypes {
     | '/channel/$id'
     | '/communities/$id'
     | '/info/$slug'
-    | '/legal/privacy'
-    | '/legal/rules'
+    | '/legal/$slug'
     | '/reviews/$id'
     | '/reviews/upload'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/consents'
     | '/settings/dashboard'
     | '/settings/history'
     | '/settings/notifications'
@@ -623,12 +623,12 @@ export interface FileRouteTypes {
     | '/channel/$id'
     | '/communities/$id'
     | '/info/$slug'
-    | '/legal/privacy'
-    | '/legal/rules'
+    | '/legal/$slug'
     | '/reviews/$id'
     | '/reviews/upload'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/consents'
     | '/settings/dashboard'
     | '/settings/history'
     | '/settings/notifications'
@@ -683,12 +683,12 @@ export interface FileRouteTypes {
     | '/channel/$id'
     | '/communities/$id'
     | '/info/$slug'
-    | '/legal/privacy'
-    | '/legal/rules'
+    | '/legal/$slug'
     | '/reviews/$id'
     | '/reviews/upload'
     | '/settings/account'
     | '/settings/appearance'
+    | '/settings/consents'
     | '/settings/dashboard'
     | '/settings/history'
     | '/settings/notifications'
@@ -739,8 +739,7 @@ export interface RootRouteChildren {
   VerifyEmailRoute: typeof VerifyEmailRoute
   ChannelIdRoute: typeof ChannelIdRoute
   InfoSlugRoute: typeof InfoSlugRoute
-  LegalPrivacyRoute: typeof LegalPrivacyRoute
-  LegalRulesRoute: typeof LegalRulesRoute
+  LegalSlugRoute: typeof LegalSlugRoute
   UserIdRoute: typeof UserIdRoute
   ChannelsIndexRoute: typeof ChannelsIndexRoute
   OauthVkCallbackRoute: typeof OauthVkCallbackRoute
@@ -1035,6 +1034,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsDashboardRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/consents': {
+      id: '/settings/consents'
+      path: '/consents'
+      fullPath: '/settings/consents'
+      preLoaderRoute: typeof SettingsConsentsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/appearance': {
       id: '/settings/appearance'
       path: '/appearance'
@@ -1063,18 +1069,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReviewsIdRouteImport
       parentRoute: typeof ReviewsRoute
     }
-    '/legal/rules': {
-      id: '/legal/rules'
-      path: '/legal/rules'
-      fullPath: '/legal/rules'
-      preLoaderRoute: typeof LegalRulesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legal/privacy': {
-      id: '/legal/privacy'
-      path: '/legal/privacy'
-      fullPath: '/legal/privacy'
-      preLoaderRoute: typeof LegalPrivacyRouteImport
+    '/legal/$slug': {
+      id: '/legal/$slug'
+      path: '/legal/$slug'
+      fullPath: '/legal/$slug'
+      preLoaderRoute: typeof LegalSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/info/$slug': {
@@ -1243,6 +1242,7 @@ const ReviewsRouteWithChildren =
 interface SettingsRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsConsentsRoute: typeof SettingsConsentsRoute
   SettingsDashboardRoute: typeof SettingsDashboardRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
@@ -1258,6 +1258,7 @@ interface SettingsRouteChildren {
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountRoute: SettingsAccountRoute,
   SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsConsentsRoute: SettingsConsentsRoute,
   SettingsDashboardRoute: SettingsDashboardRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
@@ -1302,8 +1303,7 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyEmailRoute: VerifyEmailRoute,
   ChannelIdRoute: ChannelIdRoute,
   InfoSlugRoute: InfoSlugRoute,
-  LegalPrivacyRoute: LegalPrivacyRoute,
-  LegalRulesRoute: LegalRulesRoute,
+  LegalSlugRoute: LegalSlugRoute,
   UserIdRoute: UserIdRoute,
   ChannelsIndexRoute: ChannelsIndexRoute,
   OauthVkCallbackRoute: OauthVkCallbackRoute,

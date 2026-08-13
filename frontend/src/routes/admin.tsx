@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image, FileText,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -53,6 +53,8 @@ import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
 import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
+import { AdminLegalPagesSection } from "@/components/admin/AdminLegalPagesSection";
+import { AdminFooterLinksSection } from "@/components/admin/AdminFooterLinksSection";
 import { MediaManagerCard } from "@/components/admin/MediaManagerCard";
 import {
   AlertDialog,
@@ -70,7 +72,7 @@ import i18n from "@/lib/i18n";
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
   | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "reviewCategories" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
-  | "auditLog" | "applications";
+  | "auditLog" | "applications" | "legalPages" | "footerLinks";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: i18n.t("pages.adminShell.metaTitle") }] }),
@@ -107,6 +109,8 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
   { id: "design", labelKey: "pages.adminShell.nav.design", icon: Palette, roles: ["admin"] },
   { id: "media", labelKey: "pages.adminShell.nav.media", icon: Image, roles: ["admin"] },
   { id: "settings", labelKey: "pages.adminShell.nav.settings", icon: Settings, roles: ["admin"] },
+  { id: "legalPages", labelKey: "pages.adminShell.nav.legalPages", icon: FileText, roles: ["admin"] },
+  { id: "footerLinks", labelKey: "pages.adminShell.nav.footerLinks", icon: FileText, roles: ["admin"] },
   { id: "auditLog", labelKey: "pages.adminShell.nav.auditLog", icon: Search, roles: ["admin"] },
 ];
 
@@ -417,6 +421,8 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "design") return <DesignSystemSection />;
   if (section === "media") return <MediaSection />;
   if (section === "auditLog") return <AuditLogSection />;
+  if (section === "legalPages") return <AdminLegalPagesSection />;
+  if (section === "footerLinks") return <AdminFooterLinksSection />;
   return <SettingsSection />;
 }
 
@@ -3288,6 +3294,24 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
                           <IconBtn success onClick={() => approve(v.uuid)} title={t("pages.adminReviews.approve")}><Check size={14} /></IconBtn>
                         )}
                         <IconBtn onClick={() => setPreview(v)} title={t("pages.adminReviews.preview")}><Eye size={14} /></IconBtn>
+                        <Link
+                          to="/reviews/upload"
+                          search={{ edit: v.uuid }}
+                          title={t("pages.adminReviews.edit")}
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "var(--r-card-sm)",
+                            border: "1px solid var(--border)",
+                            background: "transparent",
+                            color: "var(--foreground-70)",
+                            display: "grid",
+                            placeItems: "center",
+                            textDecoration: "none",
+                          }}
+                        >
+                          <Pencil size={14} />
+                        </Link>
                         <Link to="/reviews/$id" params={{ id: v.uuid }} className="text-[12px]" style={{ color: "var(--accent)" }}>{t("pages.adminReviews.onSite")}</Link>
                         <label className="flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-70)" }}>
                           <input type="checkbox" checked={v.isFeatured} onChange={(e) => toggleFeatured(v.uuid, e.target.checked)} style={{ accentColor: "var(--accent)" }} />
@@ -3350,7 +3374,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
                 <button type="button" style={inputStyle} onClick={() => { void changeStatus(preview.uuid, "rejected"); setPreview(null); }}>{t("pages.adminReviews.hideReview")}</button>
               )}
               <Link to="/reviews/upload" search={{ edit: preview.uuid }} className="inline-flex items-center" style={{ ...inputStyle, height: "36px", padding: "0 14px", textDecoration: "none", color: "var(--foreground)" }}>
-                {t("pages.adminReviews.replaceMedia")}
+                {t("pages.adminReviews.edit")}
               </Link>
             </div>
           </div>

@@ -42,6 +42,9 @@ class RegisterRequest extends FormRequest
             ],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'referral_code' => ['nullable', 'string', 'max:40'],
+            'accept_terms' => ['required', 'accepted'],
+            'accept_privacy' => ['required', 'accepted'],
+            'accept_ads' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -57,6 +60,8 @@ class RegisterRequest extends FormRequest
             'display_name.min' => 'Имя должно быть не короче 2 символов.',
             'display_name.max' => 'Имя не должно быть длиннее 120 символов.',
             'display_name.regex' => 'Имя может содержать только буквы, пробел, дефис и апостроф.',
+            'accept_terms.accepted' => 'Необходимо принять Пользовательское соглашение.',
+            'accept_privacy.accepted' => 'Необходимо дать согласие на обработку персональных данных.',
         ];
     }
 }

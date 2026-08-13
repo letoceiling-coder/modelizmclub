@@ -34,6 +34,10 @@ class RegisterController extends Controller
             displayName: $request->filled('display_name') ? $request->string('display_name')->toString() : null,
             referralCode: $request->filled('referral_code') ? $request->string('referral_code')->toString() : null,
             phone: $request->filled('phone') ? $request->string('phone')->toString() : null,
+            acceptTerms: $request->boolean('accept_terms'),
+            acceptPrivacy: $request->boolean('accept_privacy'),
+            acceptAds: $request->boolean('accept_ads'),
+            request: $request,
         );
 
         return response()->json([

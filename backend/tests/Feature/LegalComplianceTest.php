@@ -1,0 +1,84 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\ConsentLog;
+use App\Models\User;
+use Database\Seeders\LegalComplianceSeeder;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class LegalComplianceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RoleSeeder::class);
+        $this->seed(LegalComplianceSeeder::class);
+    }
+
+    public function test_public_legal_page_rules_is_published(): void
+    {
+        $this->getJson('/api/v1/legal/rules')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'rules')
+            ->assertJsonStructure(['data' => ['title', 'content_html', 'version']]);
+    }
+
+    public function test_footer_links_are_grouped(): void
+    {
+        $this->getJson('/api/v1/footer-links')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['legal']]);
+    }
+
+    public function test_register_requires_terms_and_privacy_consents(): void
+    {
+        $this->postJson('/api/v1/auth/register', [
+            'email' => 'legal-test@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'registration_track' => 'community',
+            'display_name' => 'Legal Test',
+            'accept_terms' => false,
+            'accept_privacy' => false,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['accept_terms', 'accept_privacy']);
+    }
+
+    public function test_register_logs_consents_when_accepted(): void
+    {
+        $this->postJson('/api/v1/auth/register', [
+            'email' => 'legal-ok@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'registration_track' => 'community',
+            'display_name' => 'Legal Ok',
+            'accept_terms' => true,
+            'accept_privacy' => true,
+            'accept_ads' => false,
+        ])->assertCreated();
+
+        $user = User::where('email', 'legal-ok@example.com')->first();
+        $this->assertNotNull($user);
+
+        $this->assertDatabaseHas('consent_logs', [
+            'user_id' => $user->id,
+            'consent_type' => 'terms',
+            'status' => 'granted',
+        ]);
+        $this->assertDatabaseHas('consent_logs', [
+            'user_id' => $user->id,
+            'consent_type' => 'privacy',
+            'status' => 'granted',
+        ]);
+        $this->assertDatabaseHas('consent_logs', [
+            'user_id' => $user->id,
+            'consent_type' => 'ads',
+            'status' => 'revoked',
+        ]);
+    }
+}

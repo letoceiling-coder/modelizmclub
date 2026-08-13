@@ -1,6 +1,11 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
 
 @custom-variant dark (&:where(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *));
 
@@ -603,4 +608,21 @@ html, body {
 .icon-box__inner > span[aria-hidden] svg {
   width: 100% !important;
   height: 100% !important;
+}
+
+.legal-document p {
+  margin-bottom: 0.85em;
+}
+
+.legal-document h1,
+.legal-document h2,
+.legal-document h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 1.25em 0 0.5em;
+}
+
+.legal-document ul,
+.legal-document ol {
+  margin: 0.5em 0 1em 1.25em;
 }

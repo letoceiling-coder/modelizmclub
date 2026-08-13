@@ -10,7 +10,7 @@ import {
 import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
 import { landingValueSlotKey } from "@/lib/icon-slots";
 import { Logo } from "@/components/Logo";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { LegalRequisites } from "@/components/legal/LegalRequisites";
 import { LanguageSwitcher, LANGS } from "@/components/messenger/LanguageSwitcher";
 import { setLocale } from "@/lib/i18n";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -970,7 +970,7 @@ const FOOTER_LINK_KEYS = {
 } as const;
 const FOOTER_LINK_TO: Record<string, string> = {
   about: "/info/about", company: "/info/company", partners: "/info/partners", advertising: "/info/advertising",
-  rules: "/legal/rules", privacy: "/legal/privacy", compliance: "/info/compliance", consent: "/info/consent",
+  rules: "/legal/rules", privacy: "/legal/privacy", compliance: "/legal/compliance", consent: "/legal/consent",
   faq: "/help", support: "/info/support", feedback: "/info/feedback", contact: "/info/feedback",
 };
 
@@ -1007,6 +1007,9 @@ function Footer() {
         ))}
 
         <FooterContactsBlock contacts={contacts} title={t("landing.footer.contacts")} />
+      </div>
+      <div className="mx-auto px-4 pb-10 md:px-8" style={{ maxWidth: 1240 }}>
+        <LegalRequisites />
       </div>
     </footer>
   );

@@ -117,6 +117,11 @@ class User extends Authenticatable
         return $this->hasMany(NotificationPreference::class);
     }
 
+    public function consentLogs(): HasMany
+    {
+        return $this->hasMany(ConsentLog::class);
+    }
+
     public function friends(): BelongsToMany
     {
         return $this->belongsToMany(self::class, 'user_friendships', 'user_id', 'friend_id')

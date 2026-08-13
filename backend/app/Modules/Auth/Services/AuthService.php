@@ -9,6 +9,8 @@ use App\Models\EmailVerificationCode;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Modules\Legal\Services\ConsentService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -18,6 +20,7 @@ class AuthService
 {
     public function __construct(
         private readonly EmailVerificationService $verificationService,
+        private readonly ConsentService $consentService,
     ) {}
 
     public function register(
@@ -27,6 +30,10 @@ class AuthService
         ?string $displayName = null,
         ?string $referralCode = null,
         ?string $phone = null,
+        bool $acceptTerms = false,
+        bool $acceptPrivacy = false,
+        bool $acceptAds = false,
+        ?Request $request = null,
     ): User {
         $email = Str::lower($email);
 
@@ -40,7 +47,7 @@ class AuthService
             ? User::query()->whereRaw('upper(referral_code) = ?', [Str::upper(trim($referralCode))])->first()
             : null;
 
-        return DB::transaction(function () use ($email, $password, $track, $displayName, $referrer, $phone): User {
+        return DB::transaction(function () use ($email, $password, $track, $displayName, $referrer, $phone, $acceptTerms, $acceptPrivacy, $acceptAds, $request): User {
             $user = User::create([
                 'name' => $displayName,
                 'email' => $email,
@@ -55,6 +62,14 @@ class AuthService
             $user->ensureReferralCode();
 
             $this->verificationService->issueCode($user);
+
+            if ($request !== null) {
+                $this->consentService->recordRegistrationConsents($user, [
+                    'terms' => $acceptTerms,
+                    'privacy' => $acceptPrivacy,
+                    'ads' => $acceptAds,
+                ], $request);
+            }
 
             return $user;
         });

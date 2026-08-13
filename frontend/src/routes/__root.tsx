@@ -19,7 +19,9 @@ import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog"
 import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider";
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
+import { CookieBanner } from "@/components/legal/CookieBanner";
 import { restoreSession } from "@/lib/auth/session";
+import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
 import { loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
@@ -76,7 +78,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
-    const { requireGuestRouteAccess } = await import("@/lib/auth/requireGuestRouteAccess");
     await requireGuestRouteAccess(location);
   },
   head: () => ({
@@ -96,9 +97,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" },
     ],
     scripts: [
       { children: THEME_INIT_SCRIPT },
@@ -184,6 +182,7 @@ function RootComponent() {
           <CallScreen />
           <GroupCallScreen />
           <GroupCallInviteDialog />
+          <CookieBanner />
           <Toaster
             position="bottom-right"
             closeButton

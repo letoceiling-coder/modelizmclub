@@ -16,7 +16,8 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFooterLinkController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminLegalPageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
@@ -127,5 +128,18 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
         Route::get('settings', [AdminSettingsController::class, 'index']);
         Route::patch('settings', [AdminSettingsController::class, 'update']);
+
+        Route::get('legal-pages', [AdminLegalPageController::class, 'index']);
+        Route::post('legal-pages', [AdminLegalPageController::class, 'store']);
+        Route::get('legal-pages/{id}', [AdminLegalPageController::class, 'show'])->whereNumber('id');
+        Route::put('legal-pages/{id}', [AdminLegalPageController::class, 'update'])->whereNumber('id');
+        Route::post('legal-pages/{id}/publish', [AdminLegalPageController::class, 'publish'])->whereNumber('id');
+        Route::post('legal-pages/{id}/archive', [AdminLegalPageController::class, 'archive'])->whereNumber('id');
+
+        Route::get('footer-links', [AdminFooterLinkController::class, 'index']);
+        Route::post('footer-links', [AdminFooterLinkController::class, 'store']);
+        Route::put('footer-links/{id}', [AdminFooterLinkController::class, 'update'])->whereNumber('id');
+        Route::delete('footer-links/{id}', [AdminFooterLinkController::class, 'destroy'])->whereNumber('id');
+        Route::post('footer-links/reorder', [AdminFooterLinkController::class, 'reorder']);
     });
 });

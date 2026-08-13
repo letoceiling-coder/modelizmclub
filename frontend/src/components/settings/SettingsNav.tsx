@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { UserCog, Bell, Wallet, CreditCard, ClipboardList, FileText, Star, History, ShieldCheck, Palette, BarChart3, ChevronRight, ExternalLink, Radio } from "lucide-react";
+import { UserCog, Bell, Wallet, CreditCard, ClipboardList, FileText, Star, History, ShieldCheck, Palette, BarChart3, ChevronRight, ExternalLink, Radio, Shield } from "lucide-react";
 
 type Row = { to: string; labelKey: string; icon: typeof UserCog };
 
@@ -8,6 +8,7 @@ const ROWS: Row[] = [
   { to: "/settings/dashboard", labelKey: "components.settingsNav.dashboard", icon: BarChart3 },
   { to: "/settings/account", labelKey: "components.settingsNav.account", icon: UserCog },
   { to: "/settings/security", labelKey: "components.settingsNav.security", icon: ShieldCheck },
+  { to: "/settings/consents", labelKey: "components.settingsNav.consents", icon: Shield },
   { to: "/settings/appearance", labelKey: "components.settingsNav.appearance", icon: Palette },
   { to: "/settings/notifications", labelKey: "components.settingsNav.notifications", icon: Bell },
   { to: "/settings/wallet", labelKey: "components.settingsNav.wallet", icon: Wallet },

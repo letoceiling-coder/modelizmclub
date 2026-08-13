@@ -116,6 +116,9 @@ export async function register(input: {
   track?: RegistrationTrack;
   referralCode?: string;
   phone?: string;
+  acceptTerms: boolean;
+  acceptPrivacy: boolean;
+  acceptAds?: boolean;
 }): Promise<void> {
   await api("/auth/register", {
     method: "POST",
@@ -128,6 +131,9 @@ export async function register(input: {
       registration_track: input.track ?? "community",
       referral_code: input.referralCode?.trim() || undefined,
       phone: input.phone?.trim() || undefined,
+      accept_terms: input.acceptTerms,
+      accept_privacy: input.acceptPrivacy,
+      accept_ads: input.acceptAds ?? false,
     },
   });
 }

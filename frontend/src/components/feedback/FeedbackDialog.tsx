@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { toast } from "@/lib/toast";
 import {
@@ -20,12 +21,14 @@ export function FeedbackDialog() {
   const [open, setOpen] = useState(false);
   const [direction, setDirection] = useState("");
   const [message, setMessage] = useState("");
+  const [consentPd, setConsentPd] = useState(false);
   const [sending, setSending] = useState(false);
   const categories = usePostCategories();
 
   function resetForm() {
     setDirection("");
     setMessage("");
+    setConsentPd(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -33,6 +36,10 @@ export function FeedbackDialog() {
     const text = message.trim();
     if (!text) {
       toast.error("Напишите сообщение");
+      return;
+    }
+    if (!consentPd) {
+      toast.error("Необходимо согласие на обработку персональных данных");
       return;
     }
     if (!getToken()) {
@@ -102,11 +109,26 @@ export function FeedbackDialog() {
             maxLength={4000}
             className="w-full resize-y rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
           />
+          <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={consentPd}
+              onChange={(e) => setConsentPd(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Согласен(на) на обработку персональных данных (
+              <Link to="/legal/consent" className="text-primary underline">
+                Согласие на обработку ПД
+              </Link>
+              )
+            </span>
+          </label>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">{message.length}/4000</span>
             <button
               type="submit"
-              disabled={sending}
+              disabled={sending || !consentPd}
               className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
               style={{ background: "var(--accent)" }}
             >

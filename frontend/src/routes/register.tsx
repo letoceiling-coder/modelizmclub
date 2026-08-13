@@ -27,7 +27,9 @@ function RegisterPage() {
   const { t } = useTranslation();
   const nav = useNavigate();
   const { ref } = useSearch({ from: "/register" });
-  const [agree, setAgree] = useState(true);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptAds, setAcceptAds] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [nameError, setNameError] = useState(false);
@@ -41,7 +43,7 @@ function RegisterPage() {
     setFieldError(false);
     setNameError(false);
     setEmailError(false);
-    if (!agree) return toast.error(t("pages.register.agreeError"));
+    if (!acceptTerms || !acceptPrivacy) return toast.error(t("pages.register.agreeError"));
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const email = String(form.get("email") ?? "").trim().toLowerCase();
@@ -61,7 +63,16 @@ function RegisterPage() {
     }
     setLoading(true);
     try {
-      await register({ name, email, password, passwordConfirmation, referralCode: ref });
+      await register({
+        name,
+        email,
+        password,
+        passwordConfirmation,
+        referralCode: ref,
+        acceptTerms,
+        acceptPrivacy,
+        acceptAds,
+      });
       toast.success(t("pages.register.registerSuccess"));
       nav({ to: "/verify-email", search: { email } });
     } catch (err) {
@@ -204,14 +215,29 @@ function RegisterPage() {
         <PasswordStrengthMeter password={password} />
         <PasswordInput required name="password_confirmation" placeholder={t("pages.register.passwordConfirmPlaceholder")} minLength={8} error={fieldError} />
         <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}>
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
+          <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
           <span>
-            {t("pages.register.agreePrefix")}{" "}
-            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>{t("pages.register.rulesLink")}</Link> {t("pages.register.andWord")}{" "}
-            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>{t("pages.register.policyLink")}</Link> {t("pages.register.dataProcessing")}
+            Принимаю{" "}
+            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>Пользовательское соглашение</Link>
           </span>
         </label>
-        <Button type="submit" disabled={loading} className="w-full" style={{ marginTop: 16 }}>
+        <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)" }}>
+          <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
+          <span>
+            Согласен(на) на обработку персональных данных (
+            <Link to="/legal/consent" style={{ color: "var(--accent)" }}>Согласие на обработку ПД</Link>
+            )
+          </span>
+        </label>
+        <label className="flex items-start gap-[10px]" style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)" }}>
+          <input type="checkbox" checked={acceptAds} onChange={(e) => setAcceptAds(e.target.checked)} style={{ marginTop: 3, accentColor: "var(--accent)" }} />
+          <span>
+            Согласен(на) на получение рекламных материалов (
+            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>Политика конфиденциальности</Link>
+            )
+          </span>
+        </label>
+        <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full" style={{ marginTop: 16 }}>
           {loading ? t("pages.register.creating") : t("pages.register.create")}
         </Button>
       </form>
