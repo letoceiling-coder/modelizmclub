@@ -198,14 +198,23 @@ export function CropSafeZoneOverlay({ cropper, container, preset, enabled, syncT
       )}
       <ZoneLabel
         text={t("components.photoEditor.safeZoneMobile")}
-        style={{ left: pct(zones.mobile.left + 0.02), top: pct(zones.mobile.top + 0.03), maxWidth: pct(zones.mobile.width - 0.04) }}
+        style={{
+          left: "50%",
+          top: pct(Math.max(zones.mobile.top + 0.02, 0.02)),
+          transform: "translateX(-50%)",
+          maxWidth: "92%",
+          textAlign: "center",
+        }}
       />
       <ZoneLabel
         text={t("components.photoEditor.safeZoneDesktop")}
         style={{
-          left: pct(zones.desktop.left + 0.02),
-          top: pct(Math.min(zones.desktop.top + zones.desktop.height - 0.14, 0.82)),
-          maxWidth: pct(zones.desktop.width - 0.04),
+          left: "50%",
+          bottom: pct(Math.max(1 - zones.desktop.top - zones.desktop.height + 0.02, 0.02)),
+          top: "auto",
+          transform: "translateX(-50%)",
+          maxWidth: "92%",
+          textAlign: "center",
         }}
       />
     </div>

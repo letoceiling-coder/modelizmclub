@@ -2044,6 +2044,7 @@ export const en: TranslationSchema = {
       scheduledAt: "Publish at: {{date}}",
       approve: "Approve",
       preview: "Preview",
+      edit: "Edit",
       onSite: "On site",
       promo: "Promo",
       delete: "Delete",

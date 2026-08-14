@@ -79,7 +79,13 @@ export const Route = createFileRoute("/reviews/$id")({
 
 type LoadState = "loading" | "ok" | "notFound" | "error";
 
+/** Remount on id change so recommended-video navigation never reuses stale player state. */
 function WatchPage() {
+  const { id } = Route.useParams();
+  return <WatchPageInner key={id} />;
+}
+
+function WatchPageInner() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
   const navigate = useNavigate();
