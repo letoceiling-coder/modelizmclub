@@ -23,11 +23,15 @@ class RevisionModerationController extends Controller
         string $id,
         ModerationService $moderation,
     ): JsonResponse {
+        $validated = $request->validate([
+            'comment' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
         $model = $moderation->requestRevision(
             $type,
             $id,
             $request->user(),
-            $request->input('comment') ?? $request->input('reason'),
+            $validated['comment'],
         );
 
         return response()->json([

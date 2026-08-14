@@ -22,7 +22,7 @@ import type { Tariff, PromoCode, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
   fetchDashboard, fetchModeratorDashboardStats, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser, deleteAdminUser,
-  fetchModerationQueue, approveModeration, rejectModeration,
+  approveModeration,
   fetchAdminPlans, fetchAdminPlansDetailed, updateAdminPlan,
   fetchAdminPromocodes, createPromocode, deletePromocode,
   fetchAdminCategories, createAdminCategory, updateAdminCategory, deleteAdminCategory,
@@ -34,17 +34,14 @@ import {
   bulkUpdateAdminListingStatus, bulkDeleteAdminListings,
   broadcastNotification,
   fetchAdminFeedback, updateAdminFeedbackStatus,
-  fetchAdminReports, updateAdminReportStatus,
   fetchAdminDeliveryStats, fetchAdminShipments, updateAdminShipment,
-  type AdminUserRow, type AuditEntry, type AuditLogDetailEntry, type ModerationItem,
+  type AdminUserRow, type AuditEntry, type AuditLogDetailEntry,
   type AdminCategory, type CategoryKind, type AdminSetting,
   type AdminPostRow, type AdminListingRow,
   type FeedbackRow, type FeedbackStatus,
-  type AdminReportRow, type ReportStatus,
   type AdminPlanRow,
 } from "@/lib/api/admin";
 import type { AdminVideoRow } from "@/lib/api/admin";
-import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminCard";
 import { SiteBrandingAdminCard } from "@/components/admin/SiteBrandingAdminCard";
@@ -53,10 +50,12 @@ import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategorie
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
+import { FaqAdminCard } from "@/components/admin/FaqAdminCard";
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
 import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
 import { AdminLegalPagesSection } from "@/components/admin/AdminLegalPagesSection";
 import { AdminFooterLinksSection } from "@/components/admin/AdminFooterLinksSection";
+import { ModerationAdminSection } from "@/components/admin/ModerationAdminSection";
 import { MediaManagerCard } from "@/components/admin/MediaManagerCard";
 import {
   AlertDialog,
@@ -408,7 +407,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
   if (section === "delivery") return <DeliverySection />;
-  if (section === "moderation") return <ModerationSection />;
+  if (section === "moderation") return <ModerationAdminSection />;
   if (section === "applications") return <ApplicationsSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "feedBanners") return <FeedBannersSection />;
@@ -1918,386 +1917,6 @@ function DeliverySection() {
   );
 }
 
-/* ============ MODERATION ============ */
-function ModerationSection() {
-  const { t } = useTranslation();
-  const [queue, setQueue] = useState<ModerationItem[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    fetchModerationQueue("pending").then((q) => active && setQueue(q)).catch(() => {});
-    return () => { active = false; };
-  }, []);
-
-  const postQueue = queue.filter((q) => q.type === "posts");
-  const channelPostQueue = queue.filter((q) => q.type === "channel_posts");
-  const communityQueue = queue.filter((q) => q.type === "communities");
-
-  const decide = async (item: ModerationItem, ok: boolean) => {
-    try {
-      if (ok) await approveModeration(item.type, item.targetId);
-      else await rejectModeration(item.type, item.targetId);
-      setQueue((q) => q.filter((x) => x.id !== item.id));
-      ok ? toast.success(t("pages.adminModeration.approved")) : toast.error(t("pages.adminModeration.rejected"));
-    } catch {
-      toast.error(t("pages.adminModeration.actionFailed"));
-    }
-  };
-
-  return (
-    <div>
-      <H>{t("pages.adminModeration.title")}</H>
-      <ReportsSection />
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px", marginTop: "24px" }}>
-        <div>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            {t("pages.adminModeration.postsTitle", { count: postQueue.length })}
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <AnimatePresence>
-              {postQueue.map((p) => (
-                <ModerationCard
-                  key={p.id}
-                  title={p.title}
-                  author={p.author}
-                  category={p.category}
-                  onApprove={() => decide(p, true)}
-                  onReject={() => decide(p, false)}
-                />
-              ))}
-            </AnimatePresence>
-            {postQueue.length === 0 && <EmptyQueue label={t("pages.adminModeration.emptyPosts")} />}
-          </div>
-        </div>
-        <div>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            {t("pages.adminModeration.channelPostsTitle", { count: channelPostQueue.length })}
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <AnimatePresence>
-              {channelPostQueue.map((p) => (
-                <ModerationCard
-                  key={p.id}
-                  title={p.title}
-                  author={p.author}
-                  category={p.category}
-                  onApprove={() => decide(p, true)}
-                  onReject={() => decide(p, false)}
-                />
-              ))}
-            </AnimatePresence>
-            {channelPostQueue.length === 0 && <EmptyQueue label={t("pages.adminModeration.emptyChannelPosts")} />}
-          </div>
-        </div>
-        <div>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-            {t("pages.adminModeration.communitiesTitle", { count: communityQueue.length })}
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <AnimatePresence>
-              {communityQueue.map((c) => (
-                <ModerationCard
-                  key={c.id}
-                  title={c.title}
-                  author={c.author}
-                  category={c.category}
-                  onApprove={() => decide(c, true)}
-                  onReject={() => decide(c, false)}
-                />
-              ))}
-            </AnimatePresence>
-            {communityQueue.length === 0 && <EmptyQueue label={t("pages.adminModeration.emptyCommunities")} />}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyQueue({ label }: { label: string }) {
-  return (
-    <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
-      <ShieldCheck size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
-      {label}
-    </div>
-  );
-}
-
-const REPORT_FILTER_IDS = ["all", "pending", "reviewing", "resolved", "rejected", "dismissed"] as const;
-type ReportFilterId = (typeof REPORT_FILTER_IDS)[number];
-
-const REPORT_STATUS_IDS: ReportStatus[] = ["pending", "reviewing", "resolved", "rejected", "dismissed"];
-
-const REPORT_TARGET_IDS = ["user", "message", "conversation", "post", "listing", "comment", "video", "community"] as const;
-
-const REPORT_ENTITY_TAB_IDS = ["all", "posts", "listings", "videos", "communities", "users"] as const;
-type ReportEntityTabId = (typeof REPORT_ENTITY_TAB_IDS)[number];
-
-const REPORT_ENTITY_TYPES: Record<ReportEntityTabId, string[] | null> = {
-  all: null,
-  posts: ["post", "comment"],
-  listings: ["listing"],
-  videos: ["video"],
-  communities: ["community"],
-  users: ["user", "message", "conversation"],
-};
-
-function ReportsSection() {
-  const { t } = useTranslation();
-  const reportFilters = useMemo(
-    () => REPORT_FILTER_IDS.map((id) => ({ id, label: t(`pages.adminModeration.filters.${id}`) })),
-    [t],
-  );
-  const entityTabs = useMemo(
-    () => REPORT_ENTITY_TAB_IDS.map((id) => ({ id, label: t(`pages.adminModeration.entityTabs.${id}`) })),
-    [t],
-  );
-  const reportStatusMeta = useMemo(
-    () =>
-      Object.fromEntries(
-        REPORT_STATUS_IDS.map((id) => [
-          id,
-          {
-            label: t(`pages.adminModeration.reportStatus.${id}`),
-            bg:
-              id === "pending"
-                ? "var(--accent-soft)"
-                : id === "reviewing"
-                  ? "var(--warning-soft)"
-                  : id === "resolved"
-                    ? "color-mix(in oklab, var(--success) 18%, transparent)"
-                    : id === "rejected"
-                      ? "color-mix(in oklab, var(--error) 15%, transparent)"
-                      : "var(--background-subtle)",
-            color:
-              id === "pending"
-                ? "var(--accent)"
-                : id === "reviewing"
-                  ? "var(--warning)"
-                  : id === "resolved"
-                    ? "var(--success)"
-                    : id === "rejected"
-                      ? "var(--error)"
-                      : "var(--foreground-50)",
-          },
-        ]),
-      ) as Record<ReportStatus, { label: string; bg: string; color: string }>,
-    [t],
-  );
-  const reportTargetLabels = useMemo(
-    () =>
-      Object.fromEntries(
-        REPORT_TARGET_IDS.map((id) => [id, t(`pages.adminModeration.reportTargets.${id}`)]),
-      ) as Record<string, string>,
-    [t],
-  );
-  const [filter, setFilter] = useState<ReportStatus | "all">("pending");
-  const [entityTab, setEntityTab] = useState<ReportEntityTabId>("all");
-  const [items, setItems] = useState<AdminReportRow[]>([]);
-  const [pendingCounts, setPendingCounts] = useState<Partial<Record<ReportEntityTabId, number>>>({});
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    fetchAdminReports("pending")
-      .then((rows) => {
-        if (!active) return;
-        const counts: Partial<Record<ReportEntityTabId, number>> = { all: rows.length };
-        for (const tab of REPORT_ENTITY_TAB_IDS) {
-          if (tab === "all") continue;
-          const types = REPORT_ENTITY_TYPES[tab] ?? [];
-          counts[tab] = rows.filter((r) => types.includes(r.targetType)).length;
-        }
-        setPendingCounts(counts);
-      })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    const targetTypes = REPORT_ENTITY_TYPES[entityTab] ?? undefined;
-    fetchAdminReports(filter === "all" ? undefined : filter, targetTypes ?? undefined)
-      .then((rows) => active && setItems(rows))
-      .catch(() => active && toast.error(t("pages.adminModeration.reportsLoadFailed")))
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, [filter, entityTab, t]);
-
-  const setStatus = async (row: AdminReportRow, status: ReportStatus) => {
-    const prev = row.status;
-    setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status } : x)));
-    try {
-      await updateAdminReportStatus(row.id, status);
-      toast.success(t("pages.adminModeration.reportStatusUpdated"));
-    } catch {
-      setItems((list) => list.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
-      toast.error(t("pages.adminModeration.reportStatusFailed"));
-    }
-  };
-
-  return (
-    <div>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "12px" }}>
-        {t("pages.adminModeration.reportsTitle")}
-      </h4>
-      <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "10px" }}>
-        {entityTabs.map((tab) => {
-          const pending = pendingCounts[tab.id] ?? 0;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setEntityTab(tab.id)}
-              style={{
-                height: "34px",
-                padding: "0 12px",
-                fontSize: "12px",
-                fontWeight: 600,
-                borderRadius: "var(--r-button)",
-                border: "1px solid var(--border)",
-                background: entityTab === tab.id ? "var(--accent-soft)" : "transparent",
-                color: entityTab === tab.id ? "var(--accent)" : "var(--foreground-70)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              {tab.label}
-              {pending > 0 && (
-                <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "var(--r-pill)", background: "var(--accent)", color: "var(--accent-foreground)" }}>
-                  {pending}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "12px" }}>
-        {reportFilters.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            style={{
-              height: "32px",
-              padding: "0 14px",
-              fontSize: "12px",
-              fontWeight: 600,
-              borderRadius: "var(--r-button)",
-              border: "1px solid var(--border)",
-              background: filter === f.id ? "var(--accent)" : "transparent",
-              color: filter === f.id ? "var(--accent-foreground)" : "var(--foreground-70)",
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
-          {t("pages.adminCommon.loading")}
-        </div>
-      ) : items.length === 0 ? (
-        <EmptyQueue label={t("pages.adminModeration.noReports")} />
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {items.map((row) => {
-            const meta = reportStatusMeta[row.status];
-            const reasonLabel = REPORT_REASON_LABELS[row.reason as ReportReason] ?? row.reason;
-            const targetLabel = reportTargetLabels[row.targetType] ?? row.targetType;
-            return (
-              <div key={row.id} style={{ ...card, padding: "16px" }}>
-                <div className="flex items-center justify-between flex-wrap gap-[8px]">
-                  <div className="flex items-center gap-[8px] flex-wrap">
-                    <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--foreground)" }}>
-                      {targetLabel}
-                      {row.targetUuid && row.targetType === "user" ? (
-                        <> · <Link to="/user/$id" params={{ id: row.targetUuid }} style={{ color: "var(--accent)" }}>{t("pages.adminModeration.openProfile")}</Link></>
-                      ) : null}
-                    </span>
-                    <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>
-                      {meta.label}
-                    </span>
-                    <span style={{ fontSize: "11px", fontWeight: 500, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--background-subtle)", color: "var(--foreground-70)" }}>
-                      {reasonLabel}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                    {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : ""}
-                  </span>
-                </div>
-                {row.description && (
-                  <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>
-                    {row.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between flex-wrap gap-[8px]" style={{ marginTop: "10px" }}>
-                  <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
-                    {t("pages.adminModeration.reportFrom", {
-                      name: row.reporterName,
-                      email: row.reporterEmail ? ` (${row.reporterEmail})` : "",
-                    })}
-                  </span>
-                  <div className="flex flex-wrap gap-[8px]">
-                    {row.status === "pending" && (
-                      <button onClick={() => setStatus(row, "reviewing")} style={feedbackBtn("var(--warning-soft)", "var(--warning)")}>
-                        {t("pages.adminModeration.takeReview")}
-                      </button>
-                    )}
-                    {row.status !== "resolved" && (
-                      <button onClick={() => setStatus(row, "resolved")} style={feedbackBtn("var(--success)", "#fff")}>
-                        {t("pages.adminModeration.markResolved")}
-                      </button>
-                    )}
-                    {row.status !== "dismissed" && (
-                      <button onClick={() => setStatus(row, "dismissed")} style={feedbackBtn("transparent", "var(--foreground-70)")}>
-                        {t("pages.adminModeration.markDismissed")}
-                      </button>
-                    )}
-                    {row.status !== "rejected" && (
-                      <button onClick={() => setStatus(row, "rejected")} style={feedbackBtn("var(--error)", "#fff")}>
-                        {t("pages.adminModeration.markRejected")}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ModerationCard({ title, author, category, onApprove, onReject }: { title: string; author: string; category: string; onApprove: () => void; onReject: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, height: 0, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
-      transition={{ duration: 0.3 }}
-      style={{ ...card, padding: "16px", overflow: "hidden" }}
-    >
-      <div style={{ fontWeight: 500, fontSize: "15px", color: "var(--foreground)" }}>{title}</div>
-      <div className="flex items-center gap-[8px] mt-[6px]">
-        <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>{author}</span>
-        <span style={{ fontSize: "11px", fontWeight: 500, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--accent-soft)", color: "var(--accent)" }}>
-          {category}
-        </span>
-      </div>
-      <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
-        <button onClick={onApprove} style={{ height: "36px", padding: "0 16px", background: "var(--success)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>{t("pages.adminModeration.cardApprove")}</button>
-        <button onClick={onReject} style={{ height: "36px", padding: "0 16px", background: "var(--error)", color: "#fff", fontWeight: 600, fontSize: "12px", borderRadius: "var(--r-button)" }}>{t("pages.adminModeration.cardReject")}</button>
-        <button style={{ height: "36px", padding: "0 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--foreground-70)", fontWeight: 500, fontSize: "12px", borderRadius: "var(--r-button)" }} onClick={() => toast.info(t("pages.adminModeration.cardOpenToast"))}>{t("pages.adminModeration.cardOpen")}</button>
-      </div>
-    </motion.div>
-  );
-}
-
 /* ============ FEEDBACK (Книга жалоб) ============ */
 const FEEDBACK_FILTER_IDS = ["all", "new", "read", "resolved"] as const;
 const FEEDBACK_STATUS_IDS: FeedbackStatus[] = ["new", "read", "resolved"];
@@ -2532,6 +2151,7 @@ function MonetizationSection() {
         },
       ]);
       toast.success(t("pages.adminMonetization.placementPriceSaved"));
+      setDefaultPlacementRub(registeredPlacementRub);
     } catch {
       toast.error(t("pages.adminMonetization.placementPriceSaveFailed"));
     } finally {
@@ -2571,7 +2191,7 @@ function MonetizationSection() {
           <button onClick={savePlacementPricing} disabled={savingPlacement} style={primaryBtn}>{savingPlacement ? "…" : t("pages.adminCommon.save")}</button>
         </div>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "10px" }}>
-          {t("pages.adminMonetization.placementLegacyNote", { price: defaultPlacementRub })}
+          {t("pages.adminMonetization.placementLegacyNote", { price: registeredPlacementRub })}
         </p>
       </div>
 
@@ -2633,6 +2253,7 @@ function LandingBlocksSection() {
         {t("pages.adminLanding.subtitle")}
       </p>
       <LandingBlocksAdminCard cardStyle={card} />
+      <FaqAdminCard cardStyle={card} />
     </div>
   );
 }

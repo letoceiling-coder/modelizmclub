@@ -607,7 +607,17 @@ export interface DemoFaqCategory {
 }
 
 export function demoFaq(): DemoFaqCategory[] {
-  return faqCategories
+  const landing: DemoFaqCategory = {
+    id: 0,
+    slug: "landing",
+    name: "Лендинг",
+    articles: [
+      { id: 1, question: "Нужно ли регистрироваться, чтобы смотреть?", answer: "Нет. Объявления, сообщества и каналы можно смотреть без регистрации." },
+      { id: 2, question: "Сколько стоит участие?", answer: "Базовое использование бесплатно. Подписка снимает ограничения." },
+    ],
+  };
+
+  const help = faqCategories
     .filter((c) => c.id !== "all")
     .map((cat, ci) => ({
       id: ci + 1,
@@ -617,6 +627,8 @@ export function demoFaq(): DemoFaqCategory[] {
         .filter((f) => f.category === cat.id)
         .map((f, i) => ({ id: ci * 100 + i, question: f.question, answer: f.answer })),
     }));
+
+  return [landing, ...help];
 }
 
 export function demoStats(): { firstHundred: { taken: number; total: number } } {

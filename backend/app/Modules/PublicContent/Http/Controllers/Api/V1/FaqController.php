@@ -5,13 +5,17 @@ namespace Modules\PublicContent\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\FaqCategory;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class FaqController extends Controller
 {
-    public function __invoke(): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
+        $categorySlug = $request->query('category');
+
         $categories = FaqCategory::query()
             ->where('is_active', true)
+            ->when($categorySlug, fn ($q) => $q->where('slug', $categorySlug))
             ->with(['articles' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')])
             ->orderBy('sort_order')
             ->get()

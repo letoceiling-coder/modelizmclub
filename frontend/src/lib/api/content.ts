@@ -21,6 +21,15 @@ export async function fetchFaq(): Promise<FaqCategory[]> {
   return res.data ?? [];
 }
 
+export async function fetchLandingFaq(): Promise<FaqArticle[]> {
+  if (isDemoMode()) {
+    const landing = demoFaq().find((c) => c.slug === "landing");
+    if (landing?.articles.length) return landing.articles;
+  }
+  const res = await api<{ data: FaqCategory[] }>("/public/faq?category=landing", { auth: false });
+  return res.data?.[0]?.articles ?? [];
+}
+
 export interface FirstHundredStats {
   taken: number;
   total: number;

@@ -23,7 +23,11 @@ class RejectModerationController extends Controller
         string $id,
         ModerationService $moderation,
     ): JsonResponse {
-        $model = $moderation->reject($type, $id, $request->user(), $request->input('reason'));
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
+        $model = $moderation->reject($type, $id, $request->user(), $validated['reason']);
 
         return response()->json([
             'data' => [

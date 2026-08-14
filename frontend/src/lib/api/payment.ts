@@ -70,14 +70,15 @@ function newIdempotencyKey(): string {
   return `pay-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** List active subscription plans (prices managed in admin). */
+export async function fetchPublicPlans(): Promise<SubscriptionPlanApi[]> {
+  const res = await api<{ data: SubscriptionPlanApi[] }>("/plans", { auth: false });
+  return res.data ?? [];
+}
+
 /**
  * Create a subscription checkout for the given plan slug.
- * NOTE ON slug: the frontend pricing config (src/lib/config/pricing.ts) uses
- * ids "month" | "half" | "year"; the backend expects a plan_slug that
- * exists in subscription_plans.slug. These MUST match — documented in
- * docs/backend-endpoints-needed.md. Only subscription is supported by the
- * current CreatePaymentController; paid listings / boosts (Stage 5) are a
- * separate payable type not wired here yet.
+ * planSlug must exist in subscription_plans.slug (month | half | year).
  */
 export async function createSubscriptionPayment(planSlug: string): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>("/payments", {

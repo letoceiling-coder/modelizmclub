@@ -12,6 +12,7 @@ use Modules\PublicContent\Http\Controllers\Api\V1\LandingBlocksController;
 use Modules\PublicContent\Http\Controllers\Api\V1\LandingStatsController;
 use Modules\PublicContent\Http\Controllers\Api\V1\StatsController;
 use Modules\PublicContent\Http\Controllers\Api\V1\IndexDeliveryMethodsController;
+use Modules\PublicContent\Http\Controllers\Api\V1\PlacementPricingController;
 use Modules\PublicContent\Http\Controllers\Api\V1\SiteBrandingController;
 
 Route::prefix('public')->group(function (): void {
@@ -26,6 +27,7 @@ Route::prefix('public')->group(function (): void {
     Route::get('footer-contacts', FooterContactsController::class);
     Route::get('branding', SiteBrandingController::class);
     Route::get('delivery-methods', IndexDeliveryMethodsController::class);
+    Route::get('placement-pricing', PlacementPricingController::class);
 });
 
 // Published icon slot overrides — public by design, mirrors feature-flags.

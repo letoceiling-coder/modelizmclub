@@ -20,6 +20,7 @@ import { getToken } from "@/lib/api/client";
 import { toast } from "@/lib/toast";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { fetchLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
+import { fetchLandingFaq, type FaqArticle } from "@/lib/api/content";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
@@ -900,8 +901,29 @@ function WhyChoose() {
 
 function FaqSection() {
   const { t } = useTranslation();
-  const items = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
+  const [items, setItems] = useState<FaqArticle[]>([]);
   const [open, setOpen] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchLandingFaq()
+      .then((articles) => {
+        if (!active) return;
+        if (articles.length > 0) {
+          setItems(articles);
+          return;
+        }
+        const fallback = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
+        setItems(fallback.map((item, i) => ({ id: i + 1, question: item.q, answer: item.a })));
+      })
+      .catch(() => {
+        if (!active) return;
+        const fallback = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
+        setItems(fallback.map((item, i) => ({ id: i + 1, question: item.q, answer: item.a })));
+      });
+    return () => { active = false; };
+  }, [t]);
+
   return (
     <Section bg="var(--background-surface)">
       <Eyebrow>{t("landing.faq.eyebrow")}</Eyebrow>
@@ -910,10 +932,10 @@ function FaqSection() {
         {items.map((item, i) => {
           const isOpen = open === i;
           return (
-            <div key={item.q} style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+            <div key={item.id} style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
               <button onClick={() => setOpen(isOpen ? null : i)} aria-expanded={isOpen}
                 className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left" style={{ color: "var(--foreground)" }}>
-                <span className="text-[15px] font-semibold">{item.q}</span>
+                <span className="text-[15px] font-semibold">{item.question}</span>
                 <span className="grid shrink-0 place-items-center transition-transform"
                   style={{ width: 28, height: 28, borderRadius: 8, background: "var(--background-surface)", border: "1px solid var(--border)", transform: isOpen ? "rotate(45deg)" : "none", color: "var(--foreground-70)" }}>
                   <SlotIcon slot="ui.faq.expand" size={14} inheritColor />
@@ -922,7 +944,7 @@ function FaqSection() {
               <AnimatePresence initial={false}>
                 {isOpen && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
-                    <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{item.a}</div>
+                    <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{item.answer}</div>
                   </motion.div>
                 )}
               </AnimatePresence>

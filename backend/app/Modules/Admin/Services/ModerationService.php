@@ -82,11 +82,24 @@ class ModerationService
             $model = $this->resolver->resolve($type, $id);
 
             if ($model instanceof Post) {
-                $model->update(['status' => ContentStatus::Rejected]);
+                $model->update([
+                    'status' => ContentStatus::Rejected,
+                    'rejection_reason' => $reason,
+                ]);
             } elseif ($model instanceof Listing) {
-                $model->update(['status' => ListingStatus::Rejected]);
+                $model->update([
+                    'status' => ListingStatus::Rejected,
+                    'rejection_reason' => $reason,
+                ]);
             } elseif ($model instanceof Community) {
-                $model->update(['status' => CommunityStatus::Blocked]);
+                $settings = $model->settings ?? [];
+                if ($reason) {
+                    $settings['moderation_rejection_reason'] = $reason;
+                }
+                $model->update([
+                    'status' => CommunityStatus::Blocked,
+                    'settings' => $settings,
+                ]);
             } elseif ($model instanceof Video) {
                 $model->update(['status' => 'rejected']);
             } elseif ($model instanceof ChannelPost) {
@@ -108,11 +121,23 @@ class ModerationService
             $model = $this->resolver->resolve($type, $id);
 
             if ($model instanceof Post) {
-                $model->update(['status' => ContentStatus::Revision]);
+                $model->update([
+                    'status' => ContentStatus::Revision,
+                    'rejection_reason' => $comment,
+                ]);
             } elseif ($model instanceof Listing) {
-                $model->update(['status' => ListingStatus::Revision]);
+                $model->update([
+                    'status' => ListingStatus::Revision,
+                    'rejection_reason' => $comment,
+                ]);
             } elseif ($model instanceof Video) {
                 $model->update(['status' => 'processing']);
+            } elseif ($model instanceof Community) {
+                $settings = $model->settings ?? [];
+                if ($comment) {
+                    $settings['moderation_revision_comment'] = $comment;
+                }
+                $model->update(['settings' => $settings]);
             }
 
             $this->updateQueue($model, 'revision');

@@ -193,7 +193,7 @@ export async function deleteAdminUser(uuid: string): Promise<void> {
   await api(`/admin/users/${uuid}`, { method: "DELETE" });
 }
 
-export type ModerationType = "posts" | "communities" | "videos" | "channel_posts";
+export type ModerationType = "posts" | "communities" | "videos" | "channel_posts" | "listings";
 
 export interface ModerationItem {
   id: number;
@@ -202,6 +202,12 @@ export interface ModerationItem {
   title: string;
   author: string;
   category: string;
+  body: string;
+  submittedAt: string | null;
+  media: { url: string; mime_type?: string | null }[];
+  channelSlug: string | null;
+  communitySlug: string | null;
+  priceRub: number | null;
 }
 
 interface ApiModerationItem {
@@ -212,10 +218,18 @@ interface ApiModerationItem {
   moderatable_id?: number;
   moderatable?: {
     uuid?: string;
+    slug?: string | null;
     title?: string | null;
     name?: string | null;
+    body?: string | null;
+    text?: string | null;
+    description?: string | null;
+    price_cents?: number | null;
+    submitted_at?: string | null;
     author?: { display_name?: string | null } | null;
     category?: { name?: string | null } | null;
+    channel?: { name?: string | null; slug?: string | null } | null;
+    media?: { url: string; mime_type?: string | null }[];
   } | null;
 }
 
@@ -223,22 +237,32 @@ function moderationTypeFromClass(cls?: string): ModerationType {
   if (cls === "Community") return "communities";
   if (cls === "Video") return "videos";
   if (cls === "ChannelPost") return "channel_posts";
+  if (cls === "Listing") return "listings";
   return "posts";
 }
 
 export async function fetchModerationQueue(status = "pending"): Promise<ModerationItem[]> {
   const res = await api<Paginated<ApiModerationItem>>("/admin/moderation/queue", {
-    query: { status, per_page: 50 },
+    query: { status, per_page: 100 },
   });
   return (res.data ?? [])
-    .map((m) => ({
-    id: m.id,
-    type: moderationTypeFromClass(m.moderatable_type),
-    targetId: m.moderatable?.uuid ?? "",
-    title: m.moderatable?.title ?? m.moderatable?.name ?? "Без названия",
-    author: m.moderatable?.author?.display_name ?? "",
-    category: m.moderatable?.category?.name ?? (m.queue ?? ""),
-  }))
+    .map((m) => {
+      const mod = m.moderatable;
+      return {
+        id: m.id,
+        type: moderationTypeFromClass(m.moderatable_type),
+        targetId: mod?.uuid ?? "",
+        title: mod?.title ?? mod?.name ?? "Без названия",
+        author: mod?.author?.display_name ?? "",
+        category: mod?.category?.name ?? mod?.channel?.name ?? (m.queue ?? ""),
+        body: mod?.body ?? mod?.text ?? mod?.description ?? "",
+        submittedAt: mod?.submitted_at ?? null,
+        media: mod?.media ?? [],
+        channelSlug: mod?.channel?.slug ?? null,
+        communitySlug: mod?.slug ?? null,
+        priceRub: mod?.price_cents != null ? Math.round(mod.price_cents / 100) : null,
+      };
+    })
     .filter((m) => m.targetId !== "");
 }
 
@@ -1067,11 +1091,11 @@ export async function approveModeration(type: ModerationType, id: string): Promi
   await api(`/admin/moderation/${type}/${id}/approve`, { method: "POST" });
 }
 
-export async function rejectModeration(type: ModerationType, id: string, reason?: string): Promise<void> {
+export async function rejectModeration(type: ModerationType, id: string, reason: string): Promise<void> {
   await api(`/admin/moderation/${type}/${id}/reject`, { method: "POST", json: { reason } });
 }
 
-export async function reviseModeration(type: ModerationType, id: string, comment?: string): Promise<void> {
+export async function reviseModeration(type: ModerationType, id: string, comment: string): Promise<void> {
   await api(`/admin/moderation/${type}/${id}/revision`, { method: "POST", json: { comment } });
 }
 

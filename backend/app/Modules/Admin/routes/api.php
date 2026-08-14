@@ -17,6 +17,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFaqController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFooterLinkController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLegalPageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
@@ -145,5 +146,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::put('footer-links/{id}', [AdminFooterLinkController::class, 'update'])->whereNumber('id');
         Route::delete('footer-links/{id}', [AdminFooterLinkController::class, 'destroy'])->whereNumber('id');
         Route::post('footer-links/reorder', [AdminFooterLinkController::class, 'reorder']);
+
+        Route::get('faq', [AdminFaqController::class, 'index']);
+        Route::post('faq/categories', [AdminFaqController::class, 'storeCategory']);
+        Route::patch('faq/categories/{id}', [AdminFaqController::class, 'updateCategory'])->whereNumber('id');
+        Route::delete('faq/categories/{id}', [AdminFaqController::class, 'destroyCategory'])->whereNumber('id');
+        Route::post('faq/articles', [AdminFaqController::class, 'storeArticle']);
+        Route::patch('faq/articles/{id}', [AdminFaqController::class, 'updateArticle'])->whereNumber('id');
+        Route::delete('faq/articles/{id}', [AdminFaqController::class, 'destroyArticle'])->whereNumber('id');
+        Route::post('faq/articles/reorder', [AdminFaqController::class, 'reorderArticles']);
     });
 });

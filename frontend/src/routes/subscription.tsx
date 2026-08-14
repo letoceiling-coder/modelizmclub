@@ -10,6 +10,7 @@ import { InviteBlock } from "@/components/referral/InviteBlock";
 import { ROUTES } from "@/lib/routes";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useMySubscription, formatSubscriptionEndDate, invalidateMySubscription } from "@/lib/subscription";
+import { usePublicPlacementPricing } from "@/lib/api/placement-pricing";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
@@ -80,12 +81,15 @@ async function startSubscriptionCheckout(
   }
 }
 
-async function startPlacementCheckout(navigate: ReturnType<typeof useNavigate>) {
+async function startPlacementCheckout(
+  navigate: ReturnType<typeof useNavigate>,
+  placementPrice: number,
+) {
   if (!requireAuthForCheckout(navigate)) return;
   if (!(await requireVerifiedForAction(navigate))) return;
   if (isDemoMode()) {
     toast(i18n.t("pages.subscription.paySoon"), {
-      description: i18n.t("pages.subscription.paySoonDesc"),
+      description: i18n.t("pages.subscription.paySoonDesc", { price: placementPrice }),
     });
     return;
   }
@@ -106,6 +110,7 @@ function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sub } = useMySubscription();
+  const { registeredRub: placementPrice } = usePublicPlacementPricing();
   const daysLeft = sub?.days_left ?? 0;
   const totalDays = sub?.plan?.period_days ?? 365;
   const planName = sub?.plan?.name ?? t("pages.subscription.defaultPlanName");
@@ -302,16 +307,16 @@ function SubscriptionPage() {
                   {t("pages.subscription.oneTimeTitle")}
                 </h4>
                 <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4, maxWidth: 460 }}>
-                  {t("pages.subscription.oneTimeDesc")}
+                  {t("pages.subscription.oneTimeDesc", { price: placementPrice })}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-[12px] sm:flex-col sm:items-end">
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--foreground)" }}>
-                99 ₽
+                {placementPrice} ₽
               </div>
               <button
-                onClick={() => void startPlacementCheckout(navigate)}
+                onClick={() => void startPlacementCheckout(navigate, placementPrice)}
                 className="transition-colors"
                 style={{
                   height: 40,

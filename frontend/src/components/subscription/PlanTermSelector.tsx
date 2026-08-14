@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { PRICING_PLANS, PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
+import { PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
+import { usePricingPlans } from "@/lib/hooks/usePricingPlans";
 
 interface PlanTermSelectorProps {
   /** CTA rendered under the price; receives the plan it belongs to. On
@@ -10,12 +11,13 @@ interface PlanTermSelectorProps {
   className?: string;
 }
 
-const DEFAULT_TERM_ID: PricingPlan["id"] =
-  PRICING_PLANS.find((p) => p.best)?.id ?? PRICING_PLANS[0].id;
+function defaultTermId(plans: PricingPlan[]): PricingPlan["id"] {
+  return plans.find((p) => p.best)?.id ?? plans[0]?.id ?? "month";
+}
 
 /**
  * Shared tariff picker used by both `/subscription` and the landing
- * `PricingSection`.
+ * `PricingSection`. Prices come from GET /api/v1/plans (admin-managed).
  *
  * Mobile (<768px): unchanged — a segmented term switcher (Месяц/Полгода/Год)
  * showing one selected term's price + CTA at a time, swipe/tap between them.
@@ -27,27 +29,28 @@ const DEFAULT_TERM_ID: PricingPlan["id"] =
  * below the cards — not duplicated per card.
  */
 export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps) {
-  const [termId, setTermId] = useState<PricingPlan["id"]>(DEFAULT_TERM_ID);
-  const selected = PRICING_PLANS.find((p) => p.id === termId) ?? PRICING_PLANS[0];
+  const { plans } = usePricingPlans();
+  const [termId, setTermId] = useState<PricingPlan["id"]>(() => defaultTermId(plans));
+
+  useEffect(() => {
+    setTermId((prev) => (plans.some((p) => p.id === prev) ? prev : defaultTermId(plans)));
+  }, [plans]);
+
+  if (plans.length === 0) return null;
+
+  const selected = plans.find((p) => p.id === termId) ?? plans[0];
 
   return (
     <div className={className}>
       {/* ===== Mobile: segmented switcher (untouched) ===== */}
       <div className="md:hidden">
-        {/* Segmented term switcher — names only, 3-up, fits 360px.
-            pt-[11px] reserves room above the pills for the "best plan" badge,
-            which used to sit half-clipped on the button's own top edge and
-            blend into the active (accent-filled) button — low contrast and
-            visually merged with the fill. It now floats fully above its own
-            button with an opaque background, legible regardless of which term
-            is selected. */}
         <div
           role="radiogroup"
           aria-label="Срок подписки"
           className="grid grid-cols-3 gap-[4px] rounded-[var(--r-pill)] p-[4px] pt-[15px]"
           style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
         >
-          {PRICING_PLANS.map((p) => {
+          {plans.map((p) => {
             const active = p.id === termId;
             return (
               <button
@@ -73,7 +76,6 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
           })}
         </div>
 
-        {/* Selected-term detail */}
         <div className="mt-[20px] text-center">
           <div className="flex items-baseline justify-center gap-[8px]">
             <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 40, letterSpacing: "-0.025em", color: "var(--foreground)" }}>
@@ -81,7 +83,6 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
             </span>
             <span className="text-[14px]" style={{ color: "var(--foreground-50)" }}>/ {selected.period}</span>
           </div>
-          {/* Fixed-height row so switching terms (savings present/absent) doesn't shift the CTA */}
           <div className="mt-[8px] flex min-h-[24px] items-center justify-center">
             {selected.savings && <SavingsBadge text={selected.savings} />}
           </div>
@@ -94,7 +95,7 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
       {/* ===== Desktop: all three plans open at once, no switcher ===== */}
       <div className="hidden md:block">
         <div className="grid grid-cols-3 gap-[16px]">
-          {PRICING_PLANS.map((p) => (
+          {plans.map((p) => (
             <div
               key={p.id}
               className="relative flex flex-col items-center rounded-[var(--r-card)] border p-[24px] pt-[28px] text-center"
@@ -129,12 +130,6 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
   );
 }
 
-/** "★ Выгодно" pill — same sticker-style tilt in both layouts (one design
- *  element, two render paths, not a second micro-accent). Purely
- *  presentational: the caller wraps it in whatever `absolute -top-… left-1/2`
- *  container fits its own layout, so this only owns the tilt/shadow, not
- *  its position. translateX(-50%) here centers the badge on that wrapper's
- *  left edge; rotate(-3deg) is the deliberate accent. */
 function BestBadge() {
   return (
     <span
