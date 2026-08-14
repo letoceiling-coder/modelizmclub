@@ -2342,7 +2342,11 @@ export const zh: TranslationSchema = {
       userUnblocked: "User unblocked",
       statusChangeFailed: "Could not change status",
       changeRoleTitle: "Change role",
-      previewToast: "Preview: {{name}}"
+      previewToast: "Preview: {{name}}",
+      deleteConfirm: "Delete user {{email}} and all related data? This cannot be undone.",
+      userDeleted: "User deleted",
+      deleteFailed: "Could not delete user",
+      cannotDeleteSelf: "You cannot delete your own account",
     },
     adminAds: {
       title: "Listings",

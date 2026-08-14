@@ -21,7 +21,7 @@ import { ensureSession } from "@/lib/auth/session";
 import type { Tariff, PromoCode, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
-  fetchDashboard, fetchModeratorDashboardStats, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser,
+  fetchDashboard, fetchModeratorDashboardStats, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser, deleteAdminUser,
   fetchModerationQueue, approveModeration, rejectModeration,
   fetchAdminPlans, fetchAdminPlansDetailed, updateAdminPlan,
   fetchAdminPromocodes, createPromocode, deletePromocode,
@@ -960,6 +960,7 @@ function UsersSection() {
   const [role, setRole] = useState<"all" | AdminUserRow["role"]>("all");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [savingRole, setSavingRole] = useState<string | null>(null);
+  const [deletingUuid, setDeletingUuid] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -1005,6 +1006,26 @@ function UsersSection() {
       toast.success(ns === "blocked" ? t("pages.adminUsers.userBlocked") : t("pages.adminUsers.userUnblocked"));
     } catch {
       toast.error(t("pages.adminUsers.statusChangeFailed"));
+    }
+  };
+
+  const remove = async (uuid: string) => {
+    const target = users.find((u) => u.uuid === uuid);
+    if (!target) return;
+    if (me.id === uuid) {
+      toast.error(t("pages.adminUsers.cannotDeleteSelf"));
+      return;
+    }
+    if (!window.confirm(t("pages.adminUsers.deleteConfirm", { email: target.email }))) return;
+    setDeletingUuid(uuid);
+    try {
+      await deleteAdminUser(uuid);
+      setUsers((prev) => prev.filter((u) => u.uuid !== uuid));
+      toast.success(t("pages.adminUsers.userDeleted"));
+    } catch {
+      toast.error(t("pages.adminUsers.deleteFailed"));
+    } finally {
+      setDeletingUuid(null);
     }
   };
 
@@ -1109,6 +1130,13 @@ function UsersSection() {
                     <div className="flex gap-[6px]">
                       <IconBtn onClick={() => toast.info(t("pages.adminUsers.previewToast", { name: u.name }))}><Eye size={14} /></IconBtn>
                       <IconBtn danger onClick={() => toggle(u.uuid)}><Ban size={14} /></IconBtn>
+                      <IconBtn
+                        danger
+                        onClick={() => remove(u.uuid)}
+                        title={me.id === u.uuid ? t("pages.adminUsers.cannotDeleteSelf") : t("pages.adminCommon.actionDelete")}
+                      >
+                        <Trash2 size={14} style={{ opacity: deletingUuid === u.uuid ? 0.4 : 1 }} />
+                      </IconBtn>
                     </div>
                   </td>
                 </tr>
@@ -1121,10 +1149,11 @@ function UsersSection() {
   );
 }
 
-function IconBtn({ children, onClick, danger, success }: { children: React.ReactNode; onClick: () => void; danger?: boolean; success?: boolean }) {
+function IconBtn({ children, onClick, danger, success, title }: { children: React.ReactNode; onClick: () => void; danger?: boolean; success?: boolean; title?: string }) {
   return (
     <button
       onClick={onClick}
+      title={title}
       style={{
         width: "32px", height: "32px",
         borderRadius: "var(--r-card-sm)",

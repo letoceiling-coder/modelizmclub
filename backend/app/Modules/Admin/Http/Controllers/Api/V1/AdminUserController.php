@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use Modules\Admin\Http\Requests\StoreAdminUserRequest;
 use Modules\Admin\Http\Requests\UpdateAdminUserRequest;
 use Modules\Admin\Services\AuditService;
+use Modules\Admin\Services\UserFullDeletionService;
 use Modules\Auth\Http\Resources\UserResource;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -94,22 +95,28 @@ class AdminUserController extends Controller
     }
 
     #[PathParameter('uuid', description: 'UUID пользователя (не удаляйте demo/admin — только для теста создайте staff@example.com)', example: SwaggerFixtures::DEMO_USER_UUID)]
-    public function destroy(string $uuid, AuditService $audit): JsonResponse
+    public function destroy(string $uuid, AuditService $audit, UserFullDeletionService $deletion): JsonResponse
     {
+        $actor = request()->user();
         $user = User::query()->where('uuid', $uuid)->first();
 
         if (! $user) {
             throw new NotFoundHttpException('Пользователь не найден.');
         }
 
+        if ($actor !== null && (int) $actor->id === (int) $user->id) {
+            abort(422, 'Нельзя удалить собственный аккаунт.');
+        }
+
         if ($user->role === UserRole::Admin && $this->otherActiveAdminsCount($user) === 0) {
             abort(422, 'Нельзя удалить последнего суперадмина.');
         }
 
-        $user->delete();
-        $audit->log(request()->user(), 'admin.users.delete', $user, $user->only(['email', 'uuid']), null, request());
+        $snapshot = $user->only(['email', 'uuid', 'name']);
+        $deletion->purge($user);
+        $audit->log($actor, 'admin.users.delete', null, $snapshot, null, request());
 
-        return response()->json(['data' => ['message' => 'Пользователь удалён.']]);
+        return response()->json(['data' => ['message' => 'Пользователь и все связанные данные удалены.']]);
     }
 
     /**

@@ -2043,6 +2043,10 @@ export const ru = {
       statusChangeFailed: "Не удалось изменить статус",
       changeRoleTitle: "Изменить роль",
       previewToast: "Просмотр: {{name}}",
+      deleteConfirm: "Удалить пользователя {{email}} и все связанные данные? Это действие нельзя отменить.",
+      userDeleted: "Пользователь удалён",
+      deleteFailed: "Не удалось удалить пользователя",
+      cannotDeleteSelf: "Нельзя удалить собственный аккаунт",
     },
     adminAds: {
       title: "Объявления",

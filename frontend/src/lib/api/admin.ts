@@ -189,6 +189,10 @@ export async function updateAdminUser(
   return mapAdminUser(res.data);
 }
 
+export async function deleteAdminUser(uuid: string): Promise<void> {
+  await api(`/admin/users/${uuid}`, { method: "DELETE" });
+}
+
 export type ModerationType = "posts" | "communities" | "videos" | "channel_posts";
 
 export interface ModerationItem {
