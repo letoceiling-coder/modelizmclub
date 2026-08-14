@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryMethodController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryStatsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
