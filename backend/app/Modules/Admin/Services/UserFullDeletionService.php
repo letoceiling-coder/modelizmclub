@@ -49,13 +49,12 @@ class UserFullDeletionService
 
             foreach ([
                 'feedback',
-                'reports',
                 'client_logs',
                 'audit_logs',
                 'banner_events',
                 'consent_logs',
             ] as $table) {
-                if (Schema::hasTable($table)) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, 'user_id')) {
                     DB::table($table)->where('user_id', $userId)->delete();
                 }
             }
