@@ -32,7 +32,10 @@ class ModerationService
 
     public function queue(?string $status = null, ?string $queue = null, int $perPage = 20): LengthAwarePaginator
     {
+        $this->cancelOrphanedEntries();
+
         return ModerationQueue::query()
+            ->whereHas('moderatable')
             ->with(['moderatable', 'assignee.profile'])
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($queue, fn ($q) => $q->where('queue', $queue))
@@ -136,5 +139,14 @@ class ModerationService
             'action' => $action,
             'reason' => $reason,
         ]);
+    }
+
+    /** Pending rows whose target was deleted must not block the admin queue. */
+    private function cancelOrphanedEntries(): void
+    {
+        ModerationQueue::query()
+            ->where('status', 'pending')
+            ->whereDoesntHave('moderatable')
+            ->update(['status' => 'cancelled']);
     }
 }

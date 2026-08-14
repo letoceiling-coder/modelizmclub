@@ -3,7 +3,11 @@
 namespace Modules\Admin\Http\Resources;
 
 use App\Models\ChannelPost;
+use App\Models\Community;
+use App\Models\Listing;
 use App\Models\ModerationQueue;
+use App\Models\Post;
+use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -30,9 +34,13 @@ class ModerationQueueResource extends JsonResource
         ];
     }
 
-    private function formatModeratable(): mixed
+    private function formatModeratable(): ?array
     {
         $model = $this->moderatable;
+
+        if ($model === null) {
+            return null;
+        }
 
         if ($model instanceof ChannelPost) {
             $model->loadMissing(['author.profile', 'channel']);
@@ -53,6 +61,70 @@ class ModerationQueueResource extends JsonResource
             ];
         }
 
-        return $model;
+        if ($model instanceof Community) {
+            $model->loadMissing(['category', 'creator.profile']);
+
+            return [
+                'uuid' => $model->uuid,
+                'name' => $model->name,
+                'title' => $model->name,
+                'author' => [
+                    'display_name' => $model->creator?->profile?->display_name ?? $model->creator?->name ?? '',
+                ],
+                'category' => [
+                    'name' => $model->category?->name ?? 'Сообщество',
+                ],
+            ];
+        }
+
+        if ($model instanceof Post) {
+            $model->loadMissing(['author.profile', 'category']);
+
+            return [
+                'uuid' => $model->uuid,
+                'title' => $model->title,
+                'author' => [
+                    'display_name' => $model->author?->profile?->display_name ?? $model->author?->name ?? '',
+                ],
+                'category' => [
+                    'name' => $model->category?->name ?? '',
+                ],
+            ];
+        }
+
+        if ($model instanceof Video) {
+            $model->loadMissing(['uploader.profile', 'category']);
+
+            return [
+                'uuid' => $model->uuid,
+                'title' => $model->title,
+                'author' => [
+                    'display_name' => $model->uploader?->profile?->display_name ?? $model->uploader?->name ?? '',
+                ],
+                'category' => [
+                    'name' => $model->category?->name ?? '',
+                ],
+            ];
+        }
+
+        if ($model instanceof Listing) {
+            $model->loadMissing(['author.profile', 'category']);
+
+            return [
+                'uuid' => $model->uuid,
+                'title' => $model->title,
+                'author' => [
+                    'display_name' => $model->author?->profile?->display_name ?? $model->author?->name ?? '',
+                ],
+                'category' => [
+                    'name' => $model->category?->name ?? '',
+                ],
+            ];
+        }
+
+        return [
+            'uuid' => $model->uuid ?? null,
+            'title' => $model->title ?? $model->name ?? null,
+        ];
     }
 }

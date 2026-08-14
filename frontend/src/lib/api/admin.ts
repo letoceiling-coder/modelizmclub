@@ -230,14 +230,16 @@ export async function fetchModerationQueue(status = "pending"): Promise<Moderati
   const res = await api<Paginated<ApiModerationItem>>("/admin/moderation/queue", {
     query: { status, per_page: 50 },
   });
-  return (res.data ?? []).map((m) => ({
+  return (res.data ?? [])
+    .map((m) => ({
     id: m.id,
     type: moderationTypeFromClass(m.moderatable_type),
     targetId: m.moderatable?.uuid ?? "",
     title: m.moderatable?.title ?? m.moderatable?.name ?? "Без названия",
     author: m.moderatable?.author?.display_name ?? "",
     category: m.moderatable?.category?.name ?? (m.queue ?? ""),
-  }));
+  }))
+    .filter((m) => m.targetId !== "");
 }
 
 // ---- Plans (tariffs) ----

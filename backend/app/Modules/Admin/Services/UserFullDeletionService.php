@@ -6,6 +6,7 @@ use App\Enums\CommunityMemberRole;
 use App\Models\Channel;
 use App\Models\Community;
 use App\Models\Media;
+use App\Models\ModerationQueue;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -39,7 +40,13 @@ class UserFullDeletionService
 
             Community::withTrashed()
                 ->whereIn('id', $ownedCommunityIds)
-                ->each(fn (Community $community) => $community->forceDelete());
+                ->each(function (Community $community): void {
+                    ModerationQueue::query()
+                        ->where('moderatable_type', Community::class)
+                        ->where('moderatable_id', $community->id)
+                        ->delete();
+                    $community->forceDelete();
+                });
 
             Media::query()->where('uploaded_by', $userId)->delete();
 
