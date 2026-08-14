@@ -110,7 +110,7 @@ function TopNav() {
     >
       <div className="mx-auto flex h-[64px] max-w-[1240px] items-center justify-between gap-4 px-4 md:px-8">
         <Link to="/" className="shrink-0">
-          <Logo size={40} />
+          <Logo variant="header" />
         </Link>
 
         {/* desktop nav — nowrap keeps header width stable across locales */}
@@ -955,7 +955,7 @@ function Footer() {
     <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
       <div className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8" style={{ maxWidth: 1240 }}>
         <div>
-          <Logo size={30} />
+          <Logo variant="footer" />
           <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t("landing.footer.tagline")}</p>
           <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {t("common.appName")}</p>
           <div className="mt-4 flex items-center gap-2">

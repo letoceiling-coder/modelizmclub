@@ -1,7 +1,7 @@
 import { api } from "./client";
 import type { MediaPurpose } from "./media";
 
-export type AdminMediaPurpose = Extract<MediaPurpose, "icon" | "banner" | "cover" | "post" | "listing" | "avatar">;
+export type AdminMediaPurpose = Extract<MediaPurpose, "icon" | "banner" | "cover" | "post" | "listing" | "avatar" | "logo">;
 
 export interface AdminMediaItem {
   uuid: string;
@@ -30,6 +30,7 @@ const PURPOSE_LABELS: Record<AdminMediaPurpose, string> = {
   post: "Посты",
   listing: "Объявления",
   avatar: "Аватары",
+  logo: "Логотип",
 };
 
 export function adminMediaPurposeLabel(purpose: string): string {

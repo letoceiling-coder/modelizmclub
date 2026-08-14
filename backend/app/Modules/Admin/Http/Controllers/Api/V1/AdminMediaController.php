@@ -15,7 +15,7 @@ use Modules\Media\Services\MediaUploadService;
 class AdminMediaController extends Controller
 {
     /** @var list<string> */
-    private const MANAGER_PURPOSES = ['icon', 'banner', 'cover', 'post', 'listing', 'avatar'];
+    private const MANAGER_PURPOSES = ['icon', 'banner', 'cover', 'post', 'listing', 'avatar', 'logo'];
 
     public function index(Request $request): JsonResponse
     {

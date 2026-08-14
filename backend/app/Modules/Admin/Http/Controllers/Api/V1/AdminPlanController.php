@@ -10,6 +10,7 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
+use Modules\Admin\Http\Requests\UpdatePlanRequest;
 use Modules\Admin\Http\Requests\UpsertPlanRequest;
 use Modules\Admin\Services\AuditService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -53,7 +54,7 @@ class AdminPlanController extends Controller
     #[PathParameter('slug', example: SwaggerFixtures::PLAN_BASIC_SLUG)]
     #[BodyParameter('name', example: 'Базовый (обновлён)')]
     #[BodyParameter('price_cents', example: 0)]
-    public function update(UpsertPlanRequest $request, string $slug, AuditService $audit): JsonResponse
+    public function update(UpdatePlanRequest $request, string $slug, AuditService $audit): JsonResponse
     {
         $plan = SubscriptionPlan::query()->where('slug', $slug)->first();
 

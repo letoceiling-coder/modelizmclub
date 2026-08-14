@@ -2,6 +2,9 @@
 
 namespace Modules\Listing\Support;
 
+use App\Models\DeliveryMethod;
+use Illuminate\Validation\Rule;
+
 final class ListingFormRules
 {
     /** 999 999 999 ₽ — safe for 64-bit price_cents storage. */
@@ -18,6 +21,7 @@ final class ListingFormRules
             'price_cents' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_PRICE_CENTS],
             'city_id' => ['nullable', 'integer'],
             'delivery_methods' => ['nullable', 'array'],
+            'delivery_methods.*' => ['string', 'max:120', Rule::in(DeliveryMethod::activeNames())],
             'media_ids' => ['nullable', 'array'],
             'media_ids.*' => ['string'],
             'publish' => ['nullable', 'boolean'],
@@ -37,6 +41,7 @@ final class ListingFormRules
             'price_cents' => ['sometimes', 'integer', 'min:0', 'max:'.self::MAX_PRICE_CENTS],
             'city_id' => ['nullable', 'integer'],
             'delivery_methods' => ['sometimes', 'array'],
+            'delivery_methods.*' => ['string', 'max:120', Rule::in(DeliveryMethod::activeNames())],
             'media_ids' => ['sometimes', 'array'],
             'media_ids.*' => ['string'],
         ];

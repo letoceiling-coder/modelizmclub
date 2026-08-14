@@ -1330,3 +1330,25 @@ export async function deleteAdminLandingCard(id: number): Promise<void> {
 export async function reorderAdminLandingCards(sectionSlug: string, ids: number[]): Promise<void> {
   await api("/admin/landing/cards/reorder", { method: "PATCH", json: { section_slug: sectionSlug, ids } });
 }
+
+export interface AdminDeliveryMethodRow {
+  id: number;
+  code: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  is_integrated: boolean;
+}
+
+export async function fetchAdminDeliveryMethods(): Promise<AdminDeliveryMethodRow[]> {
+  const res = await api<{ data: AdminDeliveryMethodRow[] }>("/admin/delivery/methods");
+  return res.data ?? [];
+}
+
+export async function updateAdminDeliveryMethod(
+  id: number,
+  patch: Partial<Pick<AdminDeliveryMethodRow, "name" | "sort_order" | "is_active">>,
+): Promise<AdminDeliveryMethodRow> {
+  const res = await api<{ data: AdminDeliveryMethodRow }>(`/admin/delivery/methods/${id}`, { method: "PATCH", json: patch });
+  return res.data;
+}

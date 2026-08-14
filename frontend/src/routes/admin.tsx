@@ -47,6 +47,8 @@ import type { AdminVideoRow } from "@/lib/api/admin";
 import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/api/reports";
 import { fetchEntityRequests, approveEntityRequest, rejectEntityRequest, type EntityRequest, type RequestStatus, type EntityKind } from "@/lib/api/entity-requests";
 import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminCard";
+import { SiteBrandingAdminCard } from "@/components/admin/SiteBrandingAdminCard";
+import { DeliveryMethodsAdminCard } from "@/components/admin/DeliveryMethodsAdminCard";
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
@@ -561,6 +563,8 @@ function DesignSystemSection() {
       </div>
 
       {/* Preview */}
+      <SiteBrandingAdminCard cardStyle={{ background: "var(--background-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }} />
+
       <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginTop: 8 }}>{t("pages.adminDesignSystem.previewTitle")}</h2>
       <PreviewArea />
 
@@ -1732,6 +1736,8 @@ function DeliverySection() {
     <div>
       <H>{t("pages.adminDelivery.title")}</H>
 
+      <DeliveryMethodsAdminCard cardStyle={card} />
+
       <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: "12px", marginBottom: "20px" }}>
         {statCards.map((s, i) => (
           <div key={i} style={{ ...card, padding: "16px" }}>
@@ -2422,7 +2428,10 @@ function MonetizationSection() {
   const [plans, setPlans] = useState<AdminPlanRow[]>([]);
   const [promos, setPromos] = useState<PromoCode[]>([]);
   const [defaultPlacementRub, setDefaultPlacementRub] = useState(30);
-  const [savingDefault, setSavingDefault] = useState(false);
+  const [registeredPlacementRub, setRegisteredPlacementRub] = useState(20);
+  const [guestPlacementRub, setGuestPlacementRub] = useState(30);
+  const [subscriberPlacementRub, setSubscriberPlacementRub] = useState<number | "">("");
+  const [savingPlacement, setSavingPlacement] = useState(false);
 
   const reloadPromos = () => fetchAdminPromocodes().then(setPromos).catch(() => {});
 
@@ -2432,9 +2441,17 @@ function MonetizationSection() {
     fetchAdminPromocodes().then((p) => active && setPromos(p)).catch(() => {});
     fetchAdminSettings().then((s) => {
       if (!active) return;
-      const row = s.find((x) => x.key === "listing.placement.default_price_cents");
-      const cents = (row?.value as { cents?: number } | undefined)?.cents;
-      if (typeof cents === "number") setDefaultPlacementRub(Math.round(cents / 100));
+      const readCents = (key: string, fallback: number) => {
+        const row = s.find((x) => x.key === key);
+        const cents = (row?.value as { cents?: number | null } | undefined)?.cents;
+        return typeof cents === "number" ? Math.round(cents / 100) : fallback;
+      };
+      setDefaultPlacementRub(readCents("listing.placement.default_price_cents", 30));
+      setRegisteredPlacementRub(readCents("listing.placement.registered_price_cents", 20));
+      setGuestPlacementRub(readCents("listing.placement.guest_price_cents", 30));
+      const subRow = s.find((x) => x.key === "listing.placement.subscriber_default_price_cents");
+      const subCents = (subRow?.value as { cents?: number | null } | undefined)?.cents;
+      setSubscriberPlacementRub(subCents == null ? "" : Math.round(subCents / 100));
     }).catch(() => {});
     return () => { active = false; };
   }, []);
@@ -2458,19 +2475,38 @@ function MonetizationSection() {
     }
   };
 
-  const saveDefaultPlacement = async () => {
-    setSavingDefault(true);
+  const savePlacementPricing = async () => {
+    setSavingPlacement(true);
     try {
-      await updateAdminSettings([{
-        key: "listing.placement.default_price_cents",
-        value: { cents: Math.max(0, Math.round(defaultPlacementRub * 100)) },
-        group: "billing",
-      }]);
+      await updateAdminSettings([
+        {
+          key: "listing.placement.registered_price_cents",
+          value: { cents: Math.max(0, Math.round(registeredPlacementRub * 100)) },
+          group: "billing",
+        },
+        {
+          key: "listing.placement.guest_price_cents",
+          value: { cents: Math.max(0, Math.round(guestPlacementRub * 100)) },
+          group: "billing",
+        },
+        {
+          key: "listing.placement.subscriber_default_price_cents",
+          value: {
+            cents: subscriberPlacementRub === "" ? null : Math.max(0, Math.round(subscriberPlacementRub * 100)),
+          },
+          group: "billing",
+        },
+        {
+          key: "listing.placement.default_price_cents",
+          value: { cents: Math.max(0, Math.round(registeredPlacementRub * 100)) },
+          group: "billing",
+        },
+      ]);
       toast.success(t("pages.adminMonetization.placementPriceSaved"));
     } catch {
       toast.error(t("pages.adminMonetization.placementPriceSaveFailed"));
     } finally {
-      setSavingDefault(false);
+      setSavingPlacement(false);
     }
   };
 
@@ -2485,11 +2521,29 @@ function MonetizationSection() {
         </p>
         <div className="flex flex-wrap items-end gap-[10px]" style={{ marginTop: "12px" }}>
           <label style={{ display: "grid", gap: "4px" }}>
-            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.basePriceLabel")}</span>
-            <input type="number" min={0} value={defaultPlacementRub} onChange={(e) => setDefaultPlacementRub(+e.target.value)} style={{ ...inputStyle, width: 140 }} />
+            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.registeredPriceLabel")}</span>
+            <input type="number" min={0} value={registeredPlacementRub} onChange={(e) => setRegisteredPlacementRub(+e.target.value)} style={{ ...inputStyle, width: 140 }} />
           </label>
-          <button onClick={saveDefaultPlacement} disabled={savingDefault} style={primaryBtn}>{savingDefault ? "…" : t("pages.adminCommon.save")}</button>
+          <label style={{ display: "grid", gap: "4px" }}>
+            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.guestPriceLabel")}</span>
+            <input type="number" min={0} value={guestPlacementRub} onChange={(e) => setGuestPlacementRub(+e.target.value)} style={{ ...inputStyle, width: 140 }} />
+          </label>
+          <label style={{ display: "grid", gap: "4px" }}>
+            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.subscriberPriceLabel")}</span>
+            <input
+              type="number"
+              min={0}
+              placeholder="—"
+              value={subscriberPlacementRub}
+              onChange={(e) => setSubscriberPlacementRub(e.target.value === "" ? "" : +e.target.value)}
+              style={{ ...inputStyle, width: 140 }}
+            />
+          </label>
+          <button onClick={savePlacementPricing} disabled={savingPlacement} style={primaryBtn}>{savingPlacement ? "…" : t("pages.adminCommon.save")}</button>
         </div>
+        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "10px" }}>
+          {t("pages.adminMonetization.placementLegacyNote", { price: defaultPlacementRub })}
+        </p>
       </div>
 
       {/* Tariffs */}

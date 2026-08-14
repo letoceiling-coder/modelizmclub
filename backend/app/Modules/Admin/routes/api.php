@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryStatsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryMethodController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
@@ -120,6 +120,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('media', [AdminMediaController::class, 'store']);
 
         Route::prefix('delivery')->group(function (): void {
+            Route::get('methods', [AdminDeliveryMethodController::class, 'index']);
+            Route::patch('methods/{deliveryMethod}', [AdminDeliveryMethodController::class, 'update']);
+            Route::post('methods/reorder', [AdminDeliveryMethodController::class, 'reorder']);
             Route::get('stats', AdminDeliveryStatsController::class);
             Route::get('shipments', AdminIndexShipmentsController::class);
             Route::get('shipments/{shipment}', AdminShowShipmentController::class);

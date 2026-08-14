@@ -43,6 +43,7 @@ class MediaUploadService
         // by libmagic, so it is accepted alongside the audio/* variants.
         'voice' => ['max_files' => 1, 'max_size' => 20_971_520, 'mimes' => ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'video/webm', 'video/mp4']],
         'icon' => ['max_files' => 50, 'max_size' => 2_097_152, 'mimes' => ['image/png', 'image/svg+xml']],
+        'logo' => ['max_files' => 1, 'max_size' => 5_242_880, 'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']],
     ];
 
     /** @return list<string> */

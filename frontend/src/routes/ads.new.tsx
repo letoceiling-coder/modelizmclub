@@ -27,7 +27,7 @@ import {
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
-import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
+import { useDeliveryMethods } from "@/lib/hooks/useDeliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -668,6 +668,7 @@ function StepData({
   touch: (name: string) => void;
 }) {
   const { t } = useTranslation();
+  const deliveryMethods = useDeliveryMethods();
   const titleErr = touched.has("title") && form.title.trim().length < 4;
   const conditionOptions = useMemo(
     () => CONDITIONS.map((c) => ({
@@ -805,7 +806,7 @@ function StepData({
         </div>
         <Field label={t("pages.adsNew.deliveryMethodsLabel")}>
           <div className="flex flex-wrap gap-[8px]">
-            {DELIVERY_METHODS.map((m) => (
+            {deliveryMethods.map((m) => (
               <Checkbox
                 key={m.id}
                 checked={form.deliveries.includes(m.label)}
