@@ -40,6 +40,8 @@ class User extends Authenticatable
         'registration_track',
         'referral_code',
         'referred_by',
+        'is_first_hundred',
+        'first_hundred_granted_at',
         'locale',
         'last_seen_at',
         'email_verified_at',
@@ -61,6 +63,8 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'status' => UserStatus::class,
             'registration_track' => RegistrationTrack::class,
+            'is_first_hundred' => 'boolean',
+            'first_hundred_granted_at' => 'datetime',
         ];
     }
 

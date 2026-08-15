@@ -3,21 +3,20 @@
 namespace Modules\User\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\ReferralProgramConfig;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Billing\Services\ReferralService;
 
 #[Group('Referrals', weight: 31)]
 class ReferralController extends Controller
 {
-    private const PER_INVITE = 1;
-
-    private const MAX_BONUS = 10;
-
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request, ReferralService $referrals): JsonResponse
     {
         $user = $request->user();
         $code = $user->ensureReferralCode();
+        $config = ReferralProgramConfig::get();
 
         $invited = $user->referrals()
             ->with('profile.avatar')
@@ -26,7 +25,7 @@ class ReferralController extends Controller
             ->get();
 
         $count = $invited->count();
-        $bonus = min($count * self::PER_INVITE, self::MAX_BONUS);
+        $bonusEarned = min($referrals->referralCreditsEarned($user->id), $config['max_bonus']);
 
         return response()->json([
             'data' => [
@@ -41,9 +40,11 @@ class ReferralController extends Controller
                     'joined_at' => $u->created_at?->toIso8601String(),
                 ])->all(),
                 'invited_count' => $count,
-                'bonus' => $bonus,
-                'max_bonus' => self::MAX_BONUS,
-                'per_invite' => self::PER_INVITE,
+                'bonus' => $bonusEarned,
+                'listing_credits' => (int) $user->listing_placement_credits,
+                'max_bonus' => $config['max_bonus'],
+                'per_invite' => $config['per_invite'],
+                'enabled' => $config['enabled'],
             ],
         ]);
     }

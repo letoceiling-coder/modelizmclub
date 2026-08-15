@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureFullyVerified;
 use App\Http\Middleware\EnsureUserRole;
 use Illuminate\Auth\AuthenticationException;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserRole::class,
             'verified' => EnsureFullyVerified::class,
+            'subscriber' => EnsureActiveSubscription::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

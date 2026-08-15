@@ -104,7 +104,7 @@ function RequisitesSection() {
               <InnInput value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" />
             </Field>
             <Field label={t("pages.settings.phone")}>
-              <PhoneInput defaultValue={form.phone} onValueChange={(formatted) => set({ phone: formatted })} />
+              <PhoneInput value={form.phone} onValueChange={(formatted) => set({ phone: formatted })} />
             </Field>
             {accountPhone && form.phone.replace(/\D/g, "") !== accountPhone.replace(/\D/g, "") && (
               <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>

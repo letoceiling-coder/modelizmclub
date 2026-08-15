@@ -27,6 +27,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
+import { ChannelsPageSkeleton } from "@/components/channels/ChannelCardSkeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -207,7 +208,7 @@ function ChannelsPage() {
 
   const { t } = useTranslation();
 
-  const { channels: all, reload } = useChannels();
+  const { channels: all, loading, reload } = useChannels();
 
   const me = useStore(selectors.currentUser);
 
@@ -329,7 +330,9 @@ function ChannelsPage() {
 
 
 
-        {nothing ? (
+        {loading ? (
+          <ChannelsPageSkeleton />
+        ) : nothing ? (
 
           <EmptyState
 

@@ -21,6 +21,7 @@ import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { fetchMe } from "@/lib/api/auth";
 import { getToken } from "@/lib/api/client";
+import { isPhoneVerified, isPhoneVerificationRequired } from "@/lib/auth/verification";
 import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchMyListings } from "@/lib/api/listings";
@@ -297,6 +298,18 @@ export function ProfileView({
                 >
                   {t("pages.profile.earlyMember100")}
                 </Badge>
+              )}
+              {isOwn && isPhoneVerificationRequired(user) && (
+                <Link to="/settings/account">
+                  <Badge
+                    variant={isPhoneVerified(user) ? "published" : "draft"}
+                    withIcon={false}
+                    className="rounded-full px-[8px] py-[2px] text-[10px]"
+                    title={isPhoneVerified(user) ? t("pages.profile.phoneVerifiedBadge") : t("pages.profile.phoneUnverifiedBadge")}
+                  >
+                    {isPhoneVerified(user) ? t("pages.profile.phoneVerifiedBadge") : t("pages.profile.phoneUnverifiedBadge")}
+                  </Badge>
+                </Link>
               )}
             </div>
             <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>

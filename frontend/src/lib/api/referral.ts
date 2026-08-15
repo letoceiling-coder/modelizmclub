@@ -21,8 +21,10 @@ export interface ReferralData {
   invited: ReferralInvite[];
   invitedCount: number;
   bonus: number;
+  listingCredits: number;
   maxBonus: number;
   perInvite: number;
+  enabled: boolean;
 }
 
 interface ApiReferral {
@@ -33,8 +35,10 @@ interface ApiReferral {
   }>;
   invited_count?: number;
   bonus?: number;
+  listing_credits?: number;
   max_bonus?: number;
   per_invite?: number;
+  enabled?: boolean;
 }
 
 export function referralLinkFor(code: string): string {
@@ -58,8 +62,10 @@ export async function fetchReferral(): Promise<ReferralData> {
     })),
     invitedCount: d.invited_count ?? 0,
     bonus: d.bonus ?? 0,
+    listingCredits: d.listing_credits ?? 0,
     maxBonus: d.max_bonus ?? 10,
     perInvite: d.per_invite ?? 1,
+    enabled: d.enabled ?? true,
   };
 }
 

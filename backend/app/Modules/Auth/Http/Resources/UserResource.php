@@ -27,6 +27,8 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'phone_verified_at' => $this->phone_verified_at?->toIso8601String(),
             'phone_verified' => $this->phone_verified_at !== null,
+            'is_first_hundred' => (bool) $this->is_first_hundred,
+            'listing_placement_credits' => (int) ($this->listing_placement_credits ?? 0),
             'last_seen_at' => $this->last_seen_at?->toIso8601String(),
             'profile' => $this->whenLoaded('profile', function () {
                 $profile = $this->profile;

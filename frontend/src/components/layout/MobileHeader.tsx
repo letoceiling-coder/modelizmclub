@@ -173,12 +173,14 @@ function MoreMenu() {
 
           <div className="my-1 h-px" style={{ background: "var(--border)" }} />
           {account.map(renderRow)}
-          <div onClick={() => setOpen(false)}>
-            <InviteFriendNavLink
-              className="flex min-h-[52px] w-full items-center gap-3 rounded-[var(--r-card-sm)] px-3 text-[15px] font-medium transition-colors hover:bg-[var(--background-surface)]"
-              onNavigate={() => setOpen(false)}
-            />
-          </div>
+          {!isGuest && (
+            <div onClick={() => setOpen(false)}>
+              <InviteFriendNavLink
+                className="flex min-h-[52px] w-full items-center gap-3 rounded-[var(--r-card-sm)] px-3 text-[15px] font-medium transition-colors hover:bg-[var(--background-surface)]"
+                onNavigate={() => setOpen(false)}
+              />
+            </div>
+          )}
           <div onClick={() => setOpen(false)}>
             <FeedbackMenuRow />
           </div>

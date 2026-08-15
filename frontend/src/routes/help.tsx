@@ -6,6 +6,9 @@ import { ChevronDown, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchFaq } from "@/lib/api/content";
+import { submitFeedback } from "@/lib/api/feedback";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { getToken } from "@/lib/api/client";
 
 interface FaqTab {
   id: string;
@@ -42,6 +45,7 @@ function HelpPage() {
   const [topic, setTopic] = useState("");
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
+  const [sending, setSending] = useState(false);
 
   const [faqCategories, setFaqCategories] = useState<FaqTab[]>([{ id: "all", label: t("pages.help.all") }]);
   const [faqItems, setFaqItems] = useState<FaqEntry[]>([]);
@@ -260,11 +264,30 @@ function HelpPage() {
             {t("pages.help.contactTitle")}
           </h3>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              if (!topic || !email || !msg) return toast.error(t("pages.help.fillAllFields"));
-              toast.success(t("pages.help.sent"));
-              setTopic(""); setEmail(""); setMsg("");
+              const trimmedMsg = msg.trim();
+              const trimmedEmail = email.trim();
+              if (!topic || !trimmedMsg) return toast.error(t("pages.help.fillAllFields"));
+              if (!getToken() && !trimmedEmail) return toast.error(t("pages.help.fillAllFields"));
+              const topicLabel = TOPIC_OPTIONS.find((o) => o.value === topic);
+              setSending(true);
+              try {
+                await submitFeedback({
+                  subject: topicLabel ? t(topicLabel.labelKey) : topic,
+                  message: trimmedMsg,
+                  page: "/help",
+                  guestEmail: getToken() ? undefined : trimmedEmail,
+                });
+                toast.success(t("pages.help.sent"));
+                setTopic("");
+                setEmail("");
+                setMsg("");
+              } catch (err) {
+                toast.error(formatApiErrorMessage(err, t("pages.help.sendFailed", "Не удалось отправить. Попробуйте позже")));
+              } finally {
+                setSending(false);
+              }
             }}
             style={{ maxWidth: "560px", marginTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}
           >
@@ -322,6 +345,7 @@ function HelpPage() {
             />
             <button
               type="submit"
+              disabled={sending}
               style={{
                 height: "48px",
                 padding: "0 32px",
@@ -337,7 +361,7 @@ function HelpPage() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
             >
-              {t("pages.help.send")}
+              {sending ? t("pages.help.sending", "Отправка…") : t("pages.help.send")}
             </button>
           </form>
         </div>

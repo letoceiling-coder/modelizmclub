@@ -236,7 +236,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       </Link>
 
       <div className="mt-2 space-y-0.5">
-        <InviteFriendNavLink />
+        {!isGuest && <InviteFriendNavLink />}
         <FeedbackDialog />
       </div>
     </div>

@@ -60,9 +60,7 @@ Route::prefix('users')->group(function (): void {
     Route::get('{slug}', ShowProfileController::class);
 });
 
-Route::middleware('auth:sanctum')->prefix('feedback')->group(function (): void {
-    Route::post('/', [FeedbackController::class, 'store']);
-});
+Route::post('feedback', [FeedbackController::class, 'store']);
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('friend-requests')->group(function (): void {
     Route::post('{id}/accept', [FriendController::class, 'accept'])->whereNumber('id');

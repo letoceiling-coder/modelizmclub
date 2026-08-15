@@ -113,7 +113,11 @@ class AdminVideoCategoryTest extends TestCase
             'is_active' => false,
         ]);
 
-        $res = $this->getJson('/api/v1/videos/categories')->assertOk();
+        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+
+        $res = $this->actingAs($moderator, 'sanctum')
+            ->getJson('/api/v1/videos/categories')
+            ->assertOk();
         $titles = collect($res->json('data'))->pluck('title')->all();
 
         $this->assertContains('Visible', $titles);

@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { fetchStats } from "@/lib/api/content";
 
 export function FirstHundredBanner() {
-  const [stats, setStats] = useState({ taken: 0, total: 100 });
+  const [stats, setStats] = useState({ taken: 0, total: 100, enabled: true });
 
   useEffect(() => {
     let active = true;
@@ -19,8 +19,11 @@ export function FirstHundredBanner() {
   const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
   const left = total - taken;
 
+  if (stats.enabled === false || left <= 0) {
+    return null;
+  }
   return (
-    <section style={{ padding: "32px 24px" }}>
+    <section style={{ padding: "32px 24px", minHeight: 280 }}>
       <div
         className="mx-auto"
         style={{

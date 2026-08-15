@@ -65,8 +65,7 @@ export function VideoActionsMenu({
       {reportOpen && (
         <ComplaintDialog
           target={author}
-          report={{ type: "video", targetId: videoId }}
-          descriptionOverride={`Жалоба на обзор${videoTitle ? ` «${videoTitle}»` : ""} — выберите причину и при необходимости опишите ситуацию.`}
+          descriptionOverride={`Обращение по обзору${videoTitle ? ` «${videoTitle}»` : ""} — опишите проблему, мы передадим сообщение в поддержку.`}
           page={`/reviews/${videoId}`}
           subjectSuffix=" (обзор)"
           onClose={() => setReportOpen(false)}

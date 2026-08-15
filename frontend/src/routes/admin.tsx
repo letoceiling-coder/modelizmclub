@@ -47,6 +47,8 @@ import { FooterContactsAdminCard } from "@/components/admin/FooterContactsAdminC
 import { SiteBrandingAdminCard } from "@/components/admin/SiteBrandingAdminCard";
 import { DeliveryMethodsAdminCard } from "@/components/admin/DeliveryMethodsAdminCard";
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
+import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
+import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
@@ -2230,6 +2232,10 @@ function MonetizationSection() {
 
       {/* Promocodes */}
       <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
+
+      <ReferralProgramAdminCard cardStyle={card} />
+
+      <AdminPaymentsAdminCard cardStyle={card} />
     </div>
   );
 }

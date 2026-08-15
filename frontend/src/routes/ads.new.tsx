@@ -796,7 +796,7 @@ function StepData({
           </Field>
           <Field label={t("pages.adsNew.contactLabel")} required error={contactErr ? t("pages.adsNew.contactError") : undefined}>
             <PhoneInput
-              defaultValue={form.contact}
+              value={form.contact}
               onValueChange={(v) => set("contact", v)}
               onBlur={() => touch("contact")}
               error={contactErr}

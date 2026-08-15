@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\MediaStatus;
 use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Models\Media;
 use App\Models\ModerationQueue;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Models\UserSubscription;
 use App\Models\Video;
 use App\Models\VideoCategory;
 use Database\Seeders\RoleSeeder;
@@ -154,10 +157,27 @@ class VideoUploadModerationTest extends TestCase
         ]);
     }
 
-    public function test_guest_can_view_published_video_detail_with_uploader(): void
+    public function test_subscriber_can_view_published_video_detail_with_uploader(): void
     {
         Storage::fake('s3');
         config(['filesystems.default' => 's3']);
+
+        $viewer = User::factory()->create(['status' => UserStatus::Active]);
+        $plan = SubscriptionPlan::query()->create([
+            'slug' => 'month-'.uniqid(),
+            'name' => 'Месяц',
+            'price_cents' => 9900,
+            'period_days' => 30,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        UserSubscription::query()->create([
+            'user_id' => $viewer->id,
+            'plan_id' => $plan->id,
+            'status' => 'active',
+            'starts_at' => now(),
+            'ends_at' => now()->addMonth(),
+        ]);
 
         $uploader = User::factory()->create();
         UserProfile::query()->create([
@@ -200,7 +220,8 @@ class VideoUploadModerationTest extends TestCase
             'views_count' => 3,
         ]);
 
-        $this->getJson('/api/v1/videos/'.$video->uuid)
+        $this->actingAs($viewer, 'sanctum')
+            ->getJson('/api/v1/videos/'.$video->uuid)
             ->assertOk()
             ->assertJsonPath('data.uuid', $video->uuid)
             ->assertJsonPath('data.status', 'published')

@@ -27,6 +27,7 @@ import { useFeatureFlag } from "@/lib/config/featureFlags";
 import type { Ad } from "@/lib/mock";
 import cover from "@/assets/cover-modelizm.jpg";
 import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
+import { FirstHundredBanner } from "@/components/FirstHundredBanner";
 import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
 import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 
@@ -60,6 +61,7 @@ function LandingPage() {
     <div style={{ background: "var(--background)", color: "var(--foreground)", fontFamily: "var(--font-sans)" }}>
       <TopNav />
       <Hero />
+      <FirstHundredBanner />
       <QuickSections />
       <PopularListings />
       <CategoriesSection />

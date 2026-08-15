@@ -15,12 +15,14 @@ use Modules\Video\Http\Controllers\Api\V1\VideoCommentsController;
 use Modules\Video\Http\Controllers\Api\V1\VideoReactionController;
 use Modules\Video\Http\Controllers\Api\V1\VideoViewController;
 
-Route::get('videos/categories', IndexVideoCategoriesController::class);
-Route::get('videos/tags', IndexVideoTagsController::class);
-Route::get('videos', IndexVideosController::class);
-Route::get('videos/{uuid}', ShowVideoController::class)->where('uuid', '[0-9a-f-]{36}');
-Route::post('videos/{uuid}/view', VideoViewController::class)->where('uuid', '[0-9a-f-]{36}');
-Route::get('videos/{uuid}/comments', VideoCommentsController::class)->where('uuid', '[0-9a-f-]{36}');
+Route::middleware('subscriber')->group(function (): void {
+    Route::get('videos/categories', IndexVideoCategoriesController::class);
+    Route::get('videos/tags', IndexVideoTagsController::class);
+    Route::get('videos', IndexVideosController::class);
+    Route::get('videos/{uuid}', ShowVideoController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::post('videos/{uuid}/view', VideoViewController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::get('videos/{uuid}/comments', VideoCommentsController::class)->where('uuid', '[0-9a-f-]{36}');
+});
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('videos', StoreVideoController::class);

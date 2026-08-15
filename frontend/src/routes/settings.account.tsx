@@ -13,7 +13,9 @@ import { useStore, selectors, setCurrentUser } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import { requestEmailChange, resendVerificationEmail, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
-import { displayEmail, isVkOAuthUser } from "@/lib/auth/verification";
+import { displayEmail, isFullyVerified, isVkOAuthUser } from "@/lib/auth/verification";
+import { verificationSummary } from "@/lib/access/accessTier";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/settings/account")({
   component: AccountSection,
@@ -166,6 +168,8 @@ function AccountSection() {
   };
 
   const vkOAuth = isVkOAuthUser(currentUser);
+  const summary = verificationSummary(currentUser);
+  const accountVerified = isFullyVerified(currentUser);
 
   if (loading) {
     return (
@@ -190,6 +194,30 @@ function AccountSection() {
         </div>
         <ChevronRight size={18} style={{ color: "var(--foreground-30)" }} />
       </Link>
+
+      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+        <h2 className="mb-[10px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {t("pages.settings.verificationSummaryTitle")}
+        </h2>
+        <div className="flex flex-wrap gap-[8px]">
+          <Badge variant={summary.emailOk ? "published" : "draft"} withIcon={false}>
+            {t("pages.settings.emailLabel")}: {summary.emailOk ? t("pages.settings.verified") : t("pages.settings.notVerified")}
+          </Badge>
+          {summary.phoneRequired && (
+            <Badge variant={summary.phoneOk ? "published" : "draft"} withIcon={false}>
+              {t("pages.settings.phone")}: {summary.phoneOk ? t("pages.settings.phoneVerifiedSms") : t("pages.settings.notVerified")}
+            </Badge>
+          )}
+          {accountVerified && (
+            <Badge variant="published" withIcon={false}>{t("pages.settings.accountReady")}</Badge>
+          )}
+        </div>
+        {!accountVerified && (
+          <p className="mt-[10px] text-[13px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+            {t("pages.settings.verificationSummaryHint")}
+          </p>
+        )}
+      </Card>
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.emailLabel")}</h2>
@@ -245,7 +273,7 @@ function AccountSection() {
           )}
         </div>
         <Field label={t("pages.settings.phoneNumber")}>
-          <PhoneInput defaultValue={phone} onValueChange={onPhoneChange} />
+          <PhoneInput value={phone} onValueChange={onPhoneChange} />
         </Field>
 
         {!phoneMatchesVerified && (

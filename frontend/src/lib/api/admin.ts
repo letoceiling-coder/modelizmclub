@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, API_BASE_URL, ApiError, getLocale, getToken } from "./client";
 
 interface Paginated<T> {
   data: T[];
@@ -1085,6 +1085,150 @@ export async function updateAdminSettings(settings: AdminSetting[]): Promise<Adm
     json: { settings: settings.map((s) => ({ key: s.key, value: s.value, group: s.group })) },
   });
   return (res.data ?? []).map((s) => ({ key: s.key, value: s.value, group: s.group ?? "general" }));
+}
+
+export interface AdminReferralRow {
+  invitee: { uuid: string; display_name: string; slug: string | null; email: string | null };
+  inviter: { uuid: string; display_name: string; slug: string | null; referral_code: string | null } | null;
+  joined_at: string | null;
+}
+
+export async function fetchAdminReferrals(): Promise<{
+  data: AdminReferralRow[];
+  settings: { enabled: boolean; per_invite: number; max_bonus: number };
+}> {
+  const res = await api<{
+    data: AdminReferralRow[];
+    settings: { enabled: boolean; per_invite: number; max_bonus: number };
+  }>("/admin/referrals");
+  return { data: res.data ?? [], settings: res.settings ?? { enabled: true, per_invite: 1, max_bonus: 10 } };
+}
+
+export type AdminPaymentType = "subscription" | "listing" | "listing_boost" | "escrow" | "other";
+export type AdminPaymentStatus = "pending" | "paid" | "failed" | "cancelled";
+
+export interface AdminPaymentRow {
+  id: number;
+  uuid: string;
+  user_uuid: string | null;
+  user_email: string | null;
+  amount_cents: number;
+  amount_rub: number;
+  currency: string;
+  status: AdminPaymentStatus;
+  type: AdminPaymentType;
+  type_label: string;
+  provider: string | null;
+  provider_payment_id: string | null;
+  paid_at: string | null;
+  created_at: string | null;
+  description: string;
+}
+
+export interface AdminPaymentsQuery {
+  type?: AdminPaymentType | string;
+  status?: AdminPaymentStatus | string;
+  from?: string;
+  to?: string;
+  page?: number;
+  per_page?: number;
+}
+
+interface ApiAdminPayment {
+  id: number;
+  uuid: string;
+  user_uuid?: string | null;
+  user_email?: string | null;
+  amount_cents: number;
+  amount_rub: number;
+  currency: string;
+  status: AdminPaymentStatus;
+  type: AdminPaymentType;
+  type_label: string;
+  provider?: string | null;
+  provider_payment_id?: string | null;
+  paid_at?: string | null;
+  created_at?: string | null;
+  description: string;
+}
+
+function mapAdminPayment(row: ApiAdminPayment): AdminPaymentRow {
+  return {
+    id: row.id,
+    uuid: row.uuid,
+    user_uuid: row.user_uuid ?? null,
+    user_email: row.user_email ?? null,
+    amount_cents: row.amount_cents,
+    amount_rub: row.amount_rub,
+    currency: row.currency,
+    status: row.status,
+    type: row.type,
+    type_label: row.type_label,
+    provider: row.provider ?? null,
+    provider_payment_id: row.provider_payment_id ?? null,
+    paid_at: row.paid_at ?? null,
+    created_at: row.created_at ?? null,
+    description: row.description,
+  };
+}
+
+export async function fetchAdminPayments(query: AdminPaymentsQuery = {}): Promise<{
+  data: AdminPaymentRow[];
+  meta: { current_page: number; last_page: number; total: number };
+  filters: { types: Record<string, string>; statuses: string[] };
+}> {
+  const res = await api<{
+    data: ApiAdminPayment[];
+    meta: { current_page: number; last_page: number; total: number };
+    filters: { types: Record<string, string>; statuses: string[] };
+  }>("/admin/payments", { query });
+  return {
+    data: (res.data ?? []).map(mapAdminPayment),
+    meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 },
+    filters: res.filters ?? { types: {}, statuses: [] },
+  };
+}
+
+export async function downloadAdminPaymentsExport(query: Omit<AdminPaymentsQuery, "page" | "per_page"> = {}): Promise<void> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  const url = `${API_BASE_URL}/admin/payments/export${qs ? `?${qs}` : ""}`;
+  const token = getToken();
+  const res = await fetch(url, {
+    headers: {
+      Accept: "text/csv",
+      "Accept-Language": getLocale(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    let message = "Не удалось выгрузить CSV";
+    try {
+      const payload = await res.json();
+      message = (payload as { message?: string }).message ?? message;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, message);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const filename = match?.[1] ?? `payments-${new Date().toISOString().slice(0, 10)}.csv`;
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 export async function approveModeration(type: ModerationType, id: string): Promise<void> {

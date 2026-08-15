@@ -20,10 +20,29 @@ class FeedbackModuleTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
-    public function test_feedback_requires_authentication(): void
+    public function test_guest_can_submit_feedback_with_email(): void
+    {
+        $this->postJson('/api/v1/feedback', [
+            'guest_email' => 'guest@example.com',
+            'subject' => 'Вопрос',
+            'message' => 'Нужна помощь',
+            'page' => '/help',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'new');
+
+        $this->assertDatabaseHas('feedback', [
+            'user_id' => null,
+            'subject' => 'Вопрос',
+            'status' => 'new',
+        ]);
+    }
+
+    public function test_guest_feedback_requires_email(): void
     {
         $this->postJson('/api/v1/feedback', ['message' => 'Hi'])
-            ->assertUnauthorized();
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('guest_email');
     }
 
     public function test_authenticated_user_can_submit_feedback(): void

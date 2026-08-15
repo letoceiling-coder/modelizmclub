@@ -13,7 +13,12 @@ class FaqSeeder extends Seeder
     {
         SystemSetting::query()->updateOrCreate(
             ['key' => 'first_hundred_stats'],
-            ['value' => ['taken' => 47, 'total' => 100], 'group' => 'marketing'],
+            ['value' => ['enabled' => true, 'taken' => 47, 'total' => 100, 'plan_slug' => 'year'], 'group' => 'marketing'],
+        );
+
+        SystemSetting::query()->updateOrCreate(
+            ['key' => 'referral_program'],
+            ['value' => ['enabled' => true, 'per_invite' => 1, 'max_bonus' => 10], 'group' => 'marketing'],
         );
 
         $landing = FaqCategory::query()->updateOrCreate(

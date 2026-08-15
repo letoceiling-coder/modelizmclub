@@ -577,8 +577,10 @@ function WatchPageInner() {
       {reportOpen && (
         <ComplaintDialog
           target={author}
-          report={{ type: "video", targetId: video.id }}
-          descriptionOverride={t("pages.reviews.reportDescription", { title: video.title ? ` «${video.title}»` : "" })}
+          descriptionOverride={t("pages.reviews.supportDescription", {
+            title: video.title ? ` «${video.title}»` : "",
+            defaultValue: `Обращение по обзору${video.title ? ` «${video.title}»` : ""} — опишите проблему, мы передадим сообщение в поддержку.`,
+          })}
           page={`/reviews/${video.id}`}
           subjectSuffix={t("pages.reviews.reportSuffix")}
           onClose={() => setReportOpen(false)}

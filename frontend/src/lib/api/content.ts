@@ -33,14 +33,21 @@ export async function fetchLandingFaq(): Promise<FaqArticle[]> {
 export interface FirstHundredStats {
   taken: number;
   total: number;
+  enabled?: boolean;
 }
 
 export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats }> {
   if (isDemoMode()) return demoStats();
-  const res = await api<{ data: { first_hundred?: { taken?: number; total?: number } } }>(
+  const res = await api<{ data: { first_hundred?: { taken?: number; total?: number; enabled?: boolean } } }>(
     "/public/stats",
     { auth: false },
   );
   const fh = res.data?.first_hundred ?? {};
-  return { firstHundred: { taken: fh.taken ?? 0, total: fh.total ?? 100 } };
+  return {
+    firstHundred: {
+      taken: fh.taken ?? 0,
+      total: fh.total ?? 100,
+      enabled: fh.enabled ?? true,
+    },
+  };
 }

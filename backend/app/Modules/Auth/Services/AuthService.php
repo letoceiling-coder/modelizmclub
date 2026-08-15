@@ -15,12 +15,16 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Billing\Services\FirstHundredService;
+use Modules\Billing\Services\ReferralService;
 
 class AuthService
 {
     public function __construct(
         private readonly EmailVerificationService $verificationService,
         private readonly ConsentService $consentService,
+        private readonly ReferralService $referrals,
+        private readonly FirstHundredService $firstHundred,
     ) {}
 
     public function register(
@@ -71,6 +75,8 @@ class AuthService
                 ], $request);
             }
 
+            $this->referrals->onUserRegistered($user);
+
             return $user;
         });
     }
@@ -120,6 +126,8 @@ class AuthService
             if (! $user->hasRole('user')) {
                 $user->assignRole('user');
             }
+
+            $this->firstHundred->tryGrant($user);
 
             return $this->tokenResponse($user);
         });

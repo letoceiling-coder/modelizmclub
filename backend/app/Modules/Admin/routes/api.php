@@ -27,6 +27,8 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPlanController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminReferralController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminPaymentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
@@ -96,6 +98,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::apiResource('communities', AdminCommunityController::class)->parameters(['communities' => 'slug']);
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
         Route::apiResource('promocodes', AdminPromocodeController::class)->parameters(['promocodes' => 'code']);
+        Route::get('referrals', [AdminReferralController::class, 'index']);
+        Route::get('payments', [AdminPaymentsController::class, 'index']);
+        Route::get('payments/export', [AdminPaymentsController::class, 'export']);
         Route::patch('banners/carousel/settings', [AdminBannerController::class, 'updateCarousel']);
         Route::apiResource('banners', AdminBannerController::class);
 

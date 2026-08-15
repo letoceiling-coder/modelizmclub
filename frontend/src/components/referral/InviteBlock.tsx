@@ -20,7 +20,7 @@ const sectionStyle = {
   padding: 20,
 } as const;
 
-function InviteHeader() {
+function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: number }) {
   return (
     <div className="flex items-start gap-[12px]">
       <div
@@ -41,7 +41,7 @@ function InviteHeader() {
           Пригласи друга
         </h3>
         <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-          +{REFERRAL_BONUS_PER_INVITE} бесплатное объявление за каждого друга, который зарегистрируется. Максимум — {REFERRAL_MAX_BONUS} объявлений.
+          +{perInvite} бесплатное объявление за каждого друга, который зарегистрируется. Максимум — {maxBonus} объявлений.
         </p>
       </div>
     </div>
@@ -51,7 +51,7 @@ function InviteHeader() {
 function InviteGuestCta() {
   return (
     <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
-      <InviteHeader />
+      <InviteHeader perInvite={REFERRAL_BONUS_PER_INVITE} maxBonus={REFERRAL_MAX_BONUS} />
       <p className="mt-[16px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
         Войдите или создайте аккаунт, чтобы получить персональную реферальную ссылку и бонусы за приглашённых друзей.
       </p>
@@ -93,7 +93,10 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
   const link = data?.link ?? getReferralLink(meId);
   const invitedCount = data?.invitedCount ?? 0;
   const bonus = data?.bonus ?? 0;
-  const remaining = Math.max(0, REFERRAL_MAX_BONUS - bonus);
+  const perInvite = data?.perInvite ?? REFERRAL_BONUS_PER_INVITE;
+  const maxBonus = data?.maxBonus ?? REFERRAL_MAX_BONUS;
+  const listingCredits = data?.listingCredits ?? 0;
+  const remaining = Math.max(0, maxBonus - bonus);
 
   const copy = async () => {
     try {
@@ -124,7 +127,7 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
 
   return (
     <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
-      <InviteHeader />
+      <InviteHeader perInvite={perInvite} maxBonus={maxBonus} />
 
       <div
         className="mt-[16px] flex items-center gap-[8px]"
@@ -168,6 +171,11 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
           <span style={{ color: "var(--foreground-50)" }}>
             Бонус: <b style={{ color: "var(--accent)" }}>+{bonus}</b> объявлений
           </span>
+          {listingCredits > 0 && (
+            <span style={{ color: "var(--foreground-50)" }}>
+              Доступно: <b style={{ color: "var(--foreground)" }}>{listingCredits}</b>
+            </span>
+          )}
           {remaining > 0 ? (
             <span style={{ color: "var(--foreground-50)" }}>Осталось: {remaining}</span>
           ) : (
