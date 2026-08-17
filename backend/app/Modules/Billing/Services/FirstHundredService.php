@@ -2,6 +2,7 @@
 
 namespace Modules\Billing\Services;
 
+use App\Enums\WalletTransactionType;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\FirstHundredPromo;
@@ -11,6 +12,7 @@ class FirstHundredService
 {
     public function __construct(
         private readonly PaymentFulfillmentService $payments,
+        private readonly WalletService $wallet,
     ) {}
 
     /** Grant a free year subscription to early registrants (once per user). */
@@ -54,6 +56,19 @@ class FirstHundredService
             }
 
             $this->payments->activateSubscription($locked, (int) $plan->id);
+
+            $bonusKopecks = (int) ($config['bonus_kopecks'] ?? 0);
+            if ($bonusKopecks > 0) {
+                $this->wallet->credit(
+                    $locked,
+                    $bonusKopecks,
+                    WalletTransactionType::PromoBonus,
+                    'Бонус «Первые 100»',
+                    'promo_first_hundred',
+                    $locked->id,
+                    'first-hundred:'.$locked->id,
+                );
+            }
 
             $locked->forceFill([
                 'is_first_hundred' => true,

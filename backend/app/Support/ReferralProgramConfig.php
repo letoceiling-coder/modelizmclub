@@ -8,7 +8,7 @@ final class ReferralProgramConfig
 {
     public const SETTING_KEY = 'referral_program';
 
-    /** @return array{enabled: bool, per_invite: int, max_bonus: int} */
+    /** @return array{enabled: bool, per_invite: int, max_bonus: int, reward_kopecks: int} */
     public static function get(): array
     {
         $raw = SystemSetting::query()->where('key', self::SETTING_KEY)->value('value');
@@ -21,16 +21,19 @@ final class ReferralProgramConfig
             'enabled' => (bool) ($raw['enabled'] ?? true),
             'per_invite' => max(1, (int) ($raw['per_invite'] ?? 1)),
             'max_bonus' => max(1, (int) ($raw['max_bonus'] ?? 10)),
+            // Wallet money reward (kopecks) credited per successful invite (spec v4.0 §T9).
+            'reward_kopecks' => max(0, (int) ($raw['reward_kopecks'] ?? 0)),
         ];
     }
 
-    /** @return array{enabled: bool, per_invite: int, max_bonus: int} */
+    /** @return array{enabled: bool, per_invite: int, max_bonus: int, reward_kopecks: int} */
     public static function defaults(): array
     {
         return [
             'enabled' => true,
             'per_invite' => 1,
             'max_bonus' => 10,
+            'reward_kopecks' => 0,
         ];
     }
 }

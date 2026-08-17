@@ -181,50 +181,7 @@ class BillingModuleTest extends TestCase
         $this->assertSame(1, UserSubscription::query()->where('user_id', $user->id)->count());
     }
 
-    public function test_yookassa_checkout_returns_confirmation_url(): void
-    {
-        config([
-            'billing.provider' => 'yookassa',
-            'billing.yookassa.enabled' => true,
-            'billing.yookassa.shop_id' => 'shop-id',
-            'billing.yookassa.secret_key' => 'secret',
-            'billing.yookassa.api_url' => 'https://yookassa.test/v3',
-        ]);
-
-        Http::fake([
-            'yookassa.test/*' => Http::response([
-                'id' => 'yk-payment-1',
-                'status' => 'pending',
-                'confirmation' => [
-                    'type' => 'redirect',
-                    'confirmation_url' => 'https://yookassa.test/pay/1',
-                ],
-            ]),
-        ]);
-
-        $this->seedPlan();
-        $user = $this->seedUser();
-
-        $this->actingAs($user, 'sanctum')
-            ->postJson('/api/v1/payments', ['plan_slug' => 'year'])
-            ->assertCreated()
-            ->assertJsonPath('data.provider', 'yookassa')
-            ->assertJsonPath('data.checkout_url', 'https://yookassa.test/pay/1');
-
-        // 54-ФЗ: the payment request must carry a fiscal receipt with a customer
-        // contact and at least one item, or the live shop rejects it.
-        Http::assertSent(function ($request): bool {
-            if (! str_contains($request->url(), '/payments')) {
-                return false;
-            }
-            $body = $request->data();
-            return isset($body['receipt']['customer'])
-                && ! empty($body['receipt']['items'])
-                && isset($body['receipt']['items'][0]['vat_code']);
-        });
-    }
-
-    public function test_auto_prefers_vtb_over_yookassa(): void
+    public function test_auto_prefers_vtb_when_configured(): void
     {
         config([
             'billing.provider' => 'auto',
@@ -232,9 +189,6 @@ class BillingModuleTest extends TestCase
             'billing.vtb.username' => 'vtb-user',
             'billing.vtb.password' => 'vtb-pass',
             'billing.vtb.api_url' => 'https://vtb.test/payment/rest/',
-            'billing.yookassa.enabled' => true,
-            'billing.yookassa.shop_id' => 'shop',
-            'billing.yookassa.secret_key' => 'secret',
         ]);
 
         Http::fake([

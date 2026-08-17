@@ -16,6 +16,7 @@ use App\Policies\PostPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Modules\Auth\Socialite\MaxProvider;
 use Modules\Auth\Socialite\VkIdProvider;
 use Modules\Auth\Socialite\YandexProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
@@ -23,13 +24,11 @@ use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbAcquiringClient;
 use Modules\Billing\Clients\YooKassaClient;
 use Modules\Billing\Contracts\PaymentGateway;
-use Modules\Billing\Services\EscrowService;
 use Modules\Billing\Services\PaymentFulfillmentService;
 use Modules\Billing\Services\PaymentGatewayManager;
 use Modules\Billing\Services\PaymentRecorder;
 use Modules\Billing\Services\StubPaymentGateway;
 use Modules\Billing\Services\VtbPaymentGateway;
-use Modules\Billing\Services\YooKassaPaymentGateway;
 use Modules\Delivery\Contracts\CdekGateway;
 use Modules\Delivery\Contracts\YandexGateway;
 use Modules\Delivery\Services\CdekApiExtension;
@@ -51,10 +50,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PaymentRecorder::class);
         $this->app->singleton(PaymentFulfillmentService::class);
         $this->app->singleton(VtbAcquiringClient::class);
+        // YooKassaClient is retained only for the (legacy) payout card-binding
+        // subsystem; the payment/escrow flow no longer uses YooKassa (spec v4.0).
         $this->app->singleton(YooKassaClient::class);
         $this->app->singleton(VtbPaymentGateway::class);
-        $this->app->singleton(YooKassaPaymentGateway::class);
-        $this->app->singleton(EscrowService::class);
         $this->app->singleton(StubPaymentGateway::class);
         $this->app->singleton(PaymentGatewayManager::class);
 
@@ -88,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('yandex', YandexProvider::class);
             $event->extendSocialite('vkid', VkIdProvider::class);
+            $event->extendSocialite('max', MaxProvider::class);
         });
 
         Broadcast::routes(['middleware' => ['auth:sanctum'], 'prefix' => 'api/v1']);

@@ -9,7 +9,7 @@ final class FirstHundredPromo
 {
     public const SETTING_KEY = 'first_hundred_stats';
 
-    /** @return array{enabled: bool, total: int, plan_slug: string} */
+    /** @return array{enabled: bool, total: int, plan_slug: string, bonus_kopecks: int} */
     public static function get(): array
     {
         $raw = SystemSetting::query()->where('key', self::SETTING_KEY)->value('value');
@@ -22,16 +22,19 @@ final class FirstHundredPromo
             'enabled' => (bool) ($raw['enabled'] ?? true),
             'total' => max(1, (int) ($raw['total'] ?? 100)),
             'plan_slug' => (string) ($raw['plan_slug'] ?? 'year'),
+            // Optional wallet bonus (kopecks) granted to each of the first N users (spec v4.0 §T10).
+            'bonus_kopecks' => max(0, (int) ($raw['bonus_kopecks'] ?? 0)),
         ];
     }
 
-    /** @return array{enabled: bool, total: int, plan_slug: string} */
+    /** @return array{enabled: bool, total: int, plan_slug: string, bonus_kopecks: int} */
     public static function defaults(): array
     {
         return [
             'enabled' => true,
             'total' => 100,
             'plan_slug' => 'year',
+            'bonus_kopecks' => 0,
         ];
     }
 

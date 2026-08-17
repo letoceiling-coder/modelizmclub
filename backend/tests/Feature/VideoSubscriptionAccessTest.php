@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
@@ -12,6 +11,10 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Access model per spec v4.0 §1.3: viewing reviews is open to everyone, while
+ * publishing content / interacting requires an active subscription.
+ */
 class VideoSubscriptionAccessTest extends TestCase
 {
     use RefreshDatabase;
@@ -24,7 +27,7 @@ class VideoSubscriptionAccessTest extends TestCase
 
     private function seedSubscriber(): User
     {
-        $user = User::factory()->create(['status' => UserStatus::Active]);
+        $user = User::factory()->create(['status' => UserStatus::Active, 'email_verified_at' => now(), 'phone_verified_at' => now()]);
         UserProfile::query()->create([
             'user_id' => $user->id,
             'display_name' => 'Subscriber',
@@ -49,41 +52,43 @@ class VideoSubscriptionAccessTest extends TestCase
         return $user;
     }
 
-    public function test_guest_cannot_list_videos(): void
+    public function test_guest_can_list_videos(): void
     {
-        $this->getJson('/api/v1/videos')
-            ->assertForbidden()
-            ->assertJsonPath('code', 'subscription_required');
+        $this->getJson('/api/v1/videos')->assertOk();
     }
 
-    public function test_user_without_subscription_cannot_list_videos(): void
+    public function test_user_without_subscription_can_list_videos(): void
     {
         $user = User::factory()->create(['status' => UserStatus::Active]);
 
         $this->actingAs($user, 'sanctum')
             ->getJson('/api/v1/videos')
+            ->assertOk();
+    }
+
+    public function test_user_without_subscription_cannot_publish_video(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active, 'email_verified_at' => now(), 'phone_verified_at' => now()]);
+        UserProfile::query()->create([
+            'user_id' => $user->id,
+            'display_name' => 'NoSub',
+            'slug' => 'nosub-'.uniqid(),
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/videos', [])
             ->assertForbidden()
             ->assertJsonPath('code', 'subscription_required');
     }
 
-    public function test_subscriber_can_list_videos(): void
+    public function test_subscriber_passes_publish_gate(): void
     {
         $user = $this->seedSubscriber();
 
+        // Passes the subscription gate; fails validation for the empty body
+        // (422) rather than being blocked by the middleware (403).
         $this->actingAs($user, 'sanctum')
-            ->getJson('/api/v1/videos')
-            ->assertOk();
-    }
-
-    public function test_moderator_can_list_videos_without_subscription(): void
-    {
-        $moderator = User::factory()->create([
-            'status' => UserStatus::Active,
-            'role' => UserRole::Moderator,
-        ]);
-
-        $this->actingAs($moderator, 'sanctum')
-            ->getJson('/api/v1/videos')
-            ->assertOk();
+            ->postJson('/api/v1/videos', [])
+            ->assertStatus(422);
     }
 }

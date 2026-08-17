@@ -3,6 +3,8 @@
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureFullyVerified;
 use App\Http\Middleware\EnsureUserRole;
+use App\Http\Middleware\RequiresSubscription;
+use App\Http\Middleware\ResolveOptionalUser;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureUserRole::class,
             'verified' => EnsureFullyVerified::class,
             'subscriber' => EnsureActiveSubscription::class,
+            'requiresSubscription' => RequiresSubscription::class,
+            'optionalAuth' => ResolveOptionalUser::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

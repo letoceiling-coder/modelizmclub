@@ -51,4 +51,13 @@ return [
         'redirect' => env('YANDEX_REDIRECT_URI'),
     ],
 
+    'max' => [
+        'client_id' => env('MAX_CLIENT_ID'),
+        'client_secret' => env('MAX_CLIENT_SECRET'),
+        'redirect' => env('MAX_REDIRECT_URI'),
+        'auth_url' => env('MAX_AUTH_URL', 'https://oauth.max.ru/authorize'),
+        'token_url' => env('MAX_TOKEN_URL', 'https://oauth.max.ru/token'),
+        'user_url' => env('MAX_USER_URL', 'https://api.max.ru/oauth/userinfo'),
+    ],
+
 ];

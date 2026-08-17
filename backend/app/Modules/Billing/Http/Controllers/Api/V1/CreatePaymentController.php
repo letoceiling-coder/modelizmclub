@@ -9,11 +9,13 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Billing\Exceptions\InsufficientFundsException;
+use Modules\Billing\Services\WalletPaymentService;
 use Modules\Listing\Services\ListingPlacementPricingService;
 
 class CreatePaymentController extends Controller
 {
-    public function __invoke(Request $request, PaymentGateway $gateway, ListingPlacementPricingService $pricing): JsonResponse
+    public function __invoke(Request $request, PaymentGateway $gateway, ListingPlacementPricingService $pricing, WalletPaymentService $walletPayment): JsonResponse
     {
         $data = $request->validate([
             'plan_slug' => ['required_without:payable_type', 'nullable', 'string', 'exists:subscription_plans,slug'],
@@ -22,9 +24,11 @@ class CreatePaymentController extends Controller
             'subcategory_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
             'promocode' => ['nullable', 'string', 'max:64'],
             'listing_uuid' => ['nullable', 'uuid'],
+            'pay_with' => ['sometimes', 'nullable', Rule::in(['gateway', 'wallet'])],
             'idempotency_key' => ['nullable', 'string', 'max:128'],
         ]);
 
+        $payWithWallet = ($data['pay_with'] ?? 'gateway') === 'wallet';
         $payableType = $data['payable_type'] ?? null;
 
         if ($payableType === 'listing_placement') {
@@ -48,20 +52,33 @@ class CreatePaymentController extends Controller
             }
 
             $categoryName = $quote['category_name'] ?? 'объявление';
+            $metadata = [
+                'payable_type' => 'listing_placement',
+                'category_id' => $data['category_id'] ?? null,
+                'subcategory_id' => $data['subcategory_id'] ?? null,
+                'promocode_id' => $quote['promocode']['id'] ?? null,
+                'listing_uuid' => $data['listing_uuid'] ?? null,
+                'quote' => $quote,
+                'idempotency_key' => $data['idempotency_key'] ?? null,
+            ];
+
+            if ($payWithWallet) {
+                return $this->payFromWallet(
+                    $walletPayment,
+                    $request,
+                    (int) $quote['final_cents'],
+                    \App\Enums\WalletTransactionType::ListingPlacement,
+                    "Размещение объявления: {$categoryName}",
+                    $metadata,
+                );
+            }
+
             $result = $gateway->createCheckout(
                 $request->user(),
                 (int) $quote['final_cents'],
                 config('billing.currency', 'RUB'),
                 "Размещение объявления: {$categoryName}",
-                [
-                    'payable_type' => 'listing_placement',
-                    'category_id' => $data['category_id'] ?? null,
-                    'subcategory_id' => $data['subcategory_id'] ?? null,
-                    'promocode_id' => $quote['promocode']['id'] ?? null,
-                    'listing_uuid' => $data['listing_uuid'] ?? null,
-                    'quote' => $quote,
-                    'idempotency_key' => $data['idempotency_key'] ?? null,
-                ],
+                $metadata,
             );
 
             return $this->checkoutResponse($result);
@@ -78,20 +95,63 @@ class CreatePaymentController extends Controller
             ]);
         }
 
+        $metadata = [
+            'plan_id' => $plan->id,
+            'plan_slug' => $plan->slug,
+            'payable_type' => 'subscription',
+            'idempotency_key' => $data['idempotency_key'] ?? null,
+        ];
+
+        if ($payWithWallet) {
+            return $this->payFromWallet(
+                $walletPayment,
+                $request,
+                (int) $plan->price_cents,
+                \App\Enums\WalletTransactionType::Subscription,
+                "Подписка «{$plan->name}»",
+                $metadata,
+            );
+        }
+
         $result = $gateway->createCheckout(
             $request->user(),
             $plan->price_cents,
             config('billing.currency', 'RUB'),
             "Подписка «{$plan->name}»",
-            [
-                'plan_id' => $plan->id,
-                'plan_slug' => $plan->slug,
-                'payable_type' => 'subscription',
-                'idempotency_key' => $data['idempotency_key'] ?? null,
-            ],
+            $metadata,
         );
 
         return $this->checkoutResponse($result);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function payFromWallet(
+        WalletPaymentService $walletPayment,
+        Request $request,
+        int $amountKopecks,
+        \App\Enums\WalletTransactionType $type,
+        string $description,
+        array $metadata,
+    ): JsonResponse {
+        try {
+            $payment = $walletPayment->pay($request->user(), $amountKopecks, $type, $description, $metadata);
+        } catch (InsufficientFundsException $e) {
+            throw ValidationException::withMessages([
+                'pay_with' => [$e->getMessage()],
+            ]);
+        }
+
+        return response()->json([
+            'data' => [
+                'payment_uuid' => $payment->uuid,
+                'checkout_url' => null,
+                'status' => 'paid',
+                'provider' => 'wallet',
+            ],
+            'message' => 'Оплачено с баланса.',
+        ], 201);
     }
 
     /** @param  array<string, mixed>  $result */
@@ -99,7 +159,7 @@ class CreatePaymentController extends Controller
     {
         $providerLabel = match ($result['provider']) {
             'vtb' => 'ВТБ Эквайринг',
-            'yookassa' => 'ЮKassa',
+            'wallet' => 'баланс',
             default => 'тестовый режим',
         };
 

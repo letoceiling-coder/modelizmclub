@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class OAuthController extends Controller
 {
-    private const PROVIDERS = ['vk', 'yandex'];
+    private const PROVIDERS = ['vk', 'yandex', 'max'];
 
     public function redirect(string $provider): RedirectResponse|JsonResponse
     {
@@ -29,7 +29,7 @@ class OAuthController extends Controller
 
         $driver = Socialite::driver($this->socialiteDriver($provider));
 
-        if ($provider === 'yandex') {
+        if (in_array($provider, ['yandex', 'max'], true)) {
             $driver = $driver->stateless();
         }
 
@@ -59,7 +59,7 @@ class OAuthController extends Controller
 
         try {
             $driver = Socialite::driver($this->socialiteDriver($provider));
-            if ($provider === 'yandex') {
+            if (in_array($provider, ['yandex', 'max'], true)) {
                 $driver = $driver->stateless();
             }
             $socialUser = $driver->user();
@@ -86,6 +86,7 @@ class OAuthController extends Controller
         return match ($provider) {
             'vk' => filled(config('services.vkontakte.client_id')),
             'yandex' => filled(config('services.yandex.client_id')),
+            'max' => filled(config('services.max.client_id')),
             default => false,
         };
     }

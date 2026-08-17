@@ -16,6 +16,11 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDisputeController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminWalletController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminWithdrawalController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFaqController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFooterLinkController;
@@ -135,6 +140,17 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             Route::get('shipments/{shipment}', AdminShowShipmentController::class);
             Route::patch('shipments/{shipment}', AdminUpdateShipmentController::class);
         });
+
+        // Wallets, safe deals and disputes (spec v4.0 §T12).
+        Route::get('wallets', [AdminWalletController::class, 'index']);
+        Route::get('wallets/{uuid}', [AdminWalletController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
+        Route::get('withdrawals', [AdminWithdrawalController::class, 'index']);
+        Route::patch('withdrawals/{uuid}', [AdminWithdrawalController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
+        Route::get('safe-deals', [AdminSafeDealController::class, 'index']);
+        Route::post('safe-deals/{uuid}/release', [AdminSafeDealController::class, 'release'])->where('uuid', '[0-9a-f-]{36}');
+        Route::post('safe-deals/{uuid}/refund', [AdminSafeDealController::class, 'refund'])->where('uuid', '[0-9a-f-]{36}');
+        Route::get('disputes', [AdminDisputeController::class, 'index']);
+        Route::post('disputes/{uuid}/resolve', [AdminDisputeController::class, 'resolve'])->where('uuid', '[0-9a-f-]{36}');
 
         Route::get('settings', [AdminSettingsController::class, 'index']);
         Route::patch('settings', [AdminSettingsController::class, 'update']);

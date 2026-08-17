@@ -7,7 +7,6 @@ use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Billing\Services\VtbPaymentGateway;
-use Modules\Billing\Services\YooKassaPaymentGateway;
 
 class SyncPaymentController extends Controller
 {
@@ -26,7 +25,6 @@ class SyncPaymentController extends Controller
 
         match ($payment->provider) {
             'vtb' => app(VtbPaymentGateway::class)->syncByProviderOrderId((string) $payment->provider_payment_id),
-            'yookassa' => app(YooKassaPaymentGateway::class)->syncSucceeded((string) $payment->provider_payment_id),
             default => null,
         };
 

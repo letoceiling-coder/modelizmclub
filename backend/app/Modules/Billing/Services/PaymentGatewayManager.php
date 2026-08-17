@@ -6,13 +6,15 @@ use App\Models\User;
 use Modules\Billing\Contracts\PaymentGateway;
 
 /**
- * Resolves payment provider: VTB (primary) → YooKassa (fallback) → stub (dev).
+ * Resolves payment provider: VTB (primary) → stub (dev).
+ *
+ * YooKassa was removed in spec v4.0 — all acquiring goes through VTB and all
+ * internal money movement goes through the wallet ledger.
  */
 class PaymentGatewayManager implements PaymentGateway
 {
     public function __construct(
         private readonly VtbPaymentGateway $vtb,
-        private readonly YooKassaPaymentGateway $yookassa,
         private readonly StubPaymentGateway $stub,
     ) {}
 
@@ -42,39 +44,15 @@ class PaymentGatewayManager implements PaymentGateway
 
         return match ($mode) {
             'stub' => $this->stub,
-            'vtb' => $this->vtb->isConfigured() ? $this->vtb : $this->fallbackAfterVtb(),
-            'yookassa' => $this->yookassa->isConfigured() ? $this->yookassa : $this->stub,
-            default => $this->resolveAuto(),
+            'vtb' => $this->vtb->isConfigured() ? $this->vtb : $this->stub,
+            default => $this->vtb->isConfigured() ? $this->vtb : $this->stub,
         };
-    }
-
-    private function resolveAuto(): PaymentGateway
-    {
-        if ($this->vtb->isConfigured()) {
-            return $this->vtb;
-        }
-
-        if ($this->yookassa->isConfigured()) {
-            return $this->yookassa;
-        }
-
-        return $this->stub;
-    }
-
-    private function fallbackAfterVtb(): PaymentGateway
-    {
-        if ($this->yookassa->isConfigured()) {
-            return $this->yookassa;
-        }
-
-        return $this->stub;
     }
 
     public function gatewayForProvider(string $provider): PaymentGateway
     {
         return match ($provider) {
             'vtb' => $this->vtb,
-            'yookassa' => $this->yookassa,
             default => $this->stub,
         };
     }

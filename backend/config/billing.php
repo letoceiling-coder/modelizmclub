@@ -4,12 +4,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Active payment provider
+    | Active payment provider (spec v4.0: VTB only)
     |--------------------------------------------------------------------------
     |
-    | auto  — VTB if configured, else YooKassa, else stub (dev)
+    | auto  — VTB if configured, else stub (dev)
     | vtb   — force VTB acquiring
-    | yookassa — force YooKassa
     | stub  — local prototype without external gateway
     |
     */
@@ -48,8 +47,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | YooKassa (fallback)
+    | YooKassa (payout card binding only — legacy)
     |--------------------------------------------------------------------------
+    |
+    | No longer used for acquiring or escrow (spec v4.0). Retained solely for
+    | the payout card-binding subsystem.
     |
     | https://yookassa.ru/developers/api
     |
@@ -81,19 +83,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | YooKassa Safe Deal (Безопасная сделка)
+    | Safe Deal (Безопасная сделка) — wallet-based escrow (spec v4.0 §T5)
     |--------------------------------------------------------------------------
     |
-    | @see https://yookassa.ru/developers/solutions-for-platforms/safe-deal/
+    | Funds are held on the buyer's internal wallet balance and released to the
+    | seller (minus the platform commission) on completion. No external escrow.
     |
     */
     'safe_deal' => [
-        'enabled' => env('YOOKASSA_SAFE_DEAL_ENABLED', true),
+        'enabled' => env('SAFE_DEAL_ENABLED', true),
         // Platform commission (% of listing price, remainder goes to seller).
-        'platform_fee_percent' => (float) env('YOOKASSA_PLATFORM_FEE_PERCENT', 5),
-        // When the platform fee is collected: deal_closed (recommended for marketplaces).
-        'fee_moment' => env('YOOKASSA_FEE_MOMENT', 'deal_closed'),
-        'return_url' => env('YOOKASSA_ESCROW_RETURN_URL', env('FRONTEND_URL', 'https://modelizmclub.ru').'/ads/{listing_uuid}?escrow=success'),
+        'platform_fee_percent' => (float) env('SAFE_DEAL_PLATFORM_FEE_PERCENT', 5),
+        // Days after delivery before funds auto-release to the seller.
+        'auto_release_days' => (int) env('SAFE_DEAL_AUTO_RELEASE_DAYS', 7),
     ],
 
 ];

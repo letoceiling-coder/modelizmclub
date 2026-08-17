@@ -1,24 +1,27 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Billing\Http\Controllers\Api\V1\ConfirmEscrowReceiptController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
-use Modules\Billing\Http\Controllers\Api\V1\CreateEscrowCheckoutController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
+use Modules\Billing\Http\Controllers\Api\V1\CreateSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
+use Modules\Billing\Http\Controllers\Api\V1\IndexSafeDealsController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
-use Modules\Billing\Http\Controllers\Api\V1\ShowEscrowDealController;
+use Modules\Billing\Http\Controllers\Api\V1\SafeDealActionsController;
+use Modules\Billing\Http\Controllers\Api\V1\SafeDealDeliveryWebhookController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
+use Modules\Billing\Http\Controllers\Api\V1\ShowSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\SyncPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\VtbWebhookController;
 use Modules\Billing\Http\Controllers\Api\V1\WalletBalanceController;
+use Modules\Billing\Http\Controllers\Api\V1\WalletTopupController;
 use Modules\Billing\Http\Controllers\Api\V1\WalletTransactionsController;
-use Modules\Billing\Http\Controllers\Api\V1\YooKassaWebhookController;
+use Modules\Billing\Http\Controllers\Api\V1\WalletWithdrawController;
 
 Route::get('plans', IndexPlansController::class);
 
 Route::match(['get', 'post'], 'payments/webhooks/vtb', VtbWebhookController::class);
-Route::post('payments/webhooks/yookassa', YooKassaWebhookController::class);
+Route::post('safe-deals/webhooks/delivery', SafeDealDeliveryWebhookController::class);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/subscription', MySubscriptionController::class);
@@ -29,8 +32,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('wallet', WalletBalanceController::class);
     Route::get('wallet/transactions', WalletTransactionsController::class);
+    Route::post('wallet/topup', WalletTopupController::class);
+    Route::post('wallet/withdraw', WalletWithdrawController::class);
 
-    Route::post('listings/{uuid}/escrow/checkout', CreateEscrowCheckoutController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::get('escrow/{uuid}', ShowEscrowDealController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::post('escrow/{uuid}/confirm-receipt', ConfirmEscrowReceiptController::class)->where('uuid', '[0-9a-f-]{36}');
+    // Wallet-based safe deals (spec v4.0 §T5).
+    Route::get('safe-deals', IndexSafeDealsController::class);
+    Route::post('listings/{uuid}/safe-deal', CreateSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::get('safe-deals/{uuid}', ShowSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::post('safe-deals/{uuid}/ship', [SafeDealActionsController::class, 'ship'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('safe-deals/{uuid}/delivered', [SafeDealActionsController::class, 'delivered'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('safe-deals/{uuid}/confirm', [SafeDealActionsController::class, 'confirm'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('safe-deals/{uuid}/cancel', [SafeDealActionsController::class, 'cancel'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('safe-deals/{uuid}/dispute', [SafeDealActionsController::class, 'dispute'])->where('uuid', '[0-9a-f-]{36}');
 });

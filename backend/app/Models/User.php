@@ -147,6 +147,28 @@ class User extends Authenticatable
         return $this->hasMany(UserOAuthAccount::class);
     }
 
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(UserSubscription::class);
+    }
+
+    /** True when the user currently holds an active, non-expired subscription. */
+    public function hasActiveSubscription(): bool
+    {
+        return UserSubscription::query()
+            ->where('user_id', $this->id)
+            ->where('status', 'active')
+            ->where(function ($q): void {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->exists();
+    }
+
     /** OAuth placeholder emails — not a real inbox, must not be shown or verified manually. */
     public static function isSyntheticOAuthEmail(?string $email): bool
     {

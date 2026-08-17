@@ -32,20 +32,50 @@ class PaymentFulfillmentService
 
             $locked->update($updates);
 
-            $planId = $locked->metadata['plan_id'] ?? null;
-
-            if ($planId) {
-                $this->activateSubscription($locked->user, (int) $planId);
-            }
-
-            if (($locked->metadata['payable_type'] ?? null) === 'listing_boost') {
-                $this->activateListingBoost($locked);
-            }
-
-            if (($locked->metadata['payable_type'] ?? null) === 'listing_placement') {
-                $this->fulfillListingPlacement($locked);
-            }
+            $this->dispatchFulfillment($locked);
         });
+    }
+
+    /**
+     * Runs the post-payment side effects for an already-paid payment. Used both
+     * by gateway webhooks and by wallet-balance payments (spec v4.0 §1.2).
+     */
+    public function dispatchFulfillment(Payment $payment): void
+    {
+        $payableType = $payment->metadata['payable_type'] ?? null;
+
+        if ($payableType === 'wallet_topup') {
+            $this->creditWalletTopup($payment);
+
+            return;
+        }
+
+        $planId = $payment->metadata['plan_id'] ?? null;
+
+        if ($planId) {
+            $this->activateSubscription($payment->user, (int) $planId);
+        }
+
+        if ($payableType === 'listing_boost') {
+            $this->activateListingBoost($payment);
+        }
+
+        if ($payableType === 'listing_placement') {
+            $this->fulfillListingPlacement($payment);
+        }
+    }
+
+    private function creditWalletTopup(Payment $payment): void
+    {
+        app(WalletService::class)->credit(
+            $payment->user,
+            (int) $payment->amount_cents,
+            \App\Enums\WalletTransactionType::Topup,
+            'Пополнение баланса',
+            'payment',
+            $payment->id,
+            'topup:'.$payment->id,
+        );
     }
 
     private function fulfillListingPlacement(Payment $payment): void

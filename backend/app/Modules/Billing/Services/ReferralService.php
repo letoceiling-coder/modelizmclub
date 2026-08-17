@@ -2,6 +2,7 @@
 
 namespace Modules\Billing\Services;
 
+use App\Enums\WalletTransactionType;
 use App\Models\BonusAccount;
 use App\Models\BonusTransaction;
 use App\Models\User;
@@ -62,6 +63,20 @@ class ReferralService
                 'description' => 'Бонус за приглашение друга',
                 'created_at' => now(),
             ]);
+
+            // Wallet money reward (spec v4.0 §T9): recorded as a wallet_transaction.
+            $rewardKopecks = (int) ($config['reward_kopecks'] ?? 0);
+            if ($rewardKopecks > 0) {
+                app(WalletService::class)->credit(
+                    $lockedReferrer,
+                    $rewardKopecks,
+                    WalletTransactionType::ReferralBonus,
+                    'Реферальный бонус за приглашение друга',
+                    'referral',
+                    $invitee->id,
+                    'referral:'.$lockedReferrer->id.':'.$invitee->id,
+                );
+            }
 
             $this->notifyReferrer($lockedReferrer, $invitee, $grant);
         });
