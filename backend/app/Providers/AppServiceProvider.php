@@ -154,6 +154,8 @@ class AppServiceProvider extends ServiceProvider
             return in_array(request()->getHost(), [
                 'dev.modelizmclub.ru',
                 'api.modelizmclub.ru',
+                'modelizmclub.ru',
+                'www.modelizmclub.ru',
             ], true);
         });
 
