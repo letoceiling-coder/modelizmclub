@@ -65,7 +65,7 @@ class AdminPaymentsTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString('text/csv', (string) $response->headers->get('content-type'));
-        $this->assertStringContainsString('Размещение объявления', $response->getContent());
+        $this->assertStringContainsString('Размещение объявления', $response->streamedContent());
     }
 
     public function test_moderator_cannot_access_payments(): void

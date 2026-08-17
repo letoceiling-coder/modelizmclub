@@ -30,6 +30,8 @@ class AuthFlowTest extends TestCase
             'password_confirmation' => 'password123',
             'registration_track' => 'community',
             'display_name' => 'Test User',
+            'accept_terms' => true,
+            'accept_privacy' => true,
         ]);
 
         $register->assertCreated()

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserStatus;
+use App\Models\BonusAccount;
 use App\Models\BonusTransaction;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
@@ -78,7 +79,7 @@ class ReferralProgramTest extends TestCase
 
         for ($i = 0; $i < 3; $i++) {
             $this->postJson('/api/v1/auth/register', [
-                'display_name' => 'Friend User '.$i,
+                'display_name' => 'Friend User',
                 'email' => 'friend-'.$i.'-'.uniqid().'@example.com',
                 'password' => 'Password1!',
                 'password_confirmation' => 'Password1!',
@@ -97,6 +98,7 @@ class ReferralProgramTest extends TestCase
     public function test_me_referrals_returns_bonus_totals(): void
     {
         $referrer = $this->seedUser('me');
+        BonusAccount::query()->firstOrCreate(['user_id' => $referrer->id]);
         BonusTransaction::query()->create([
             'account_user_id' => $referrer->id,
             'amount' => 2,

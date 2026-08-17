@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ListingStatus;
 use App\Enums\SafeDealStatus;
+use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\Listing;
@@ -157,7 +158,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $admin = $this->seedUser('admin');
-        $admin->assignRole('admin');
+        $admin->update(['role' => UserRole::Admin]);
         $listing = $this->seedListing($seller);
         $this->fund($buyer, 100000);
 

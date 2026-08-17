@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\SubscriptionPlan;
@@ -146,7 +147,7 @@ class WalletModuleTest extends TestCase
     public function test_admin_reject_withdrawal_refunds_balance(): void
     {
         $admin = $this->seedUser('admin');
-        $admin->syncRoles(['admin']);
+        $admin->update(['role' => UserRole::Admin]);
         $user = $this->seedUser('u');
         app(WalletService::class)->credit($user, 100000, WalletTransactionType::Topup, 'seed');
 

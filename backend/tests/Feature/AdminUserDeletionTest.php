@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ContentStatus;
+use App\Enums\ListingStatus;
 use App\Enums\UserRole;
 use App\Models\Channel;
 use App\Models\Listing;
@@ -67,7 +68,7 @@ class AdminUserDeletionTest extends TestCase
             'title' => 'Listing to purge',
             'slug' => 'listing-purge',
             'description' => 'Desc',
-            'status' => ContentStatus::Published,
+            'status' => ListingStatus::Published,
             'price_cents' => 1000,
             'currency' => 'RUB',
         ]);
