@@ -198,7 +198,7 @@ class DemoMediaSeeder extends Seeder
         ];
 
         foreach ($messages as $item) {
-            $message = Message::query()->firstOrNew(['uuid' => $item['uuid']]);
+            $message = Message::withTrashed()->firstOrNew(['uuid' => $item['uuid']]);
             if ($message->exists && MessageAttachment::query()->where('message_id', $message->id)->exists()) {
                 continue;
             }
@@ -220,6 +220,7 @@ class DemoMediaSeeder extends Seeder
                     'status' => 'sent',
                     'created_at' => now()->subMinutes(2),
                 ]);
+                $message->deleted_at = null;
                 $message->save();
             }
 

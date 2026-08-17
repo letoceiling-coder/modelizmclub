@@ -118,7 +118,7 @@ class DemoFeedSeeder extends Seeder
 
             $publishedAt = now()->subDays($item['days_ago'])->subHours($index);
 
-            $post = Post::query()->firstOrNew(['uuid' => $item['uuid']]);
+            $post = Post::withTrashed()->firstOrNew(['uuid' => $item['uuid']]);
             $post->fill([
                 'user_id' => $author->id,
                 'community_id' => $community?->id,
@@ -128,6 +128,7 @@ class DemoFeedSeeder extends Seeder
                 'status' => ContentStatus::Published,
                 'published_at' => $publishedAt,
             ]);
+            $post->deleted_at = null;
             $post->save();
 
             $tagIds = [];
