@@ -17,7 +17,7 @@ class MaxProvider extends AbstractProvider implements ProviderInterface
 {
     protected $scopeSeparator = ' ';
 
-    protected function getScopes(): array
+    public function getScopes(): array
     {
         $scopes = (array) config('services.max.scopes', ['profile', 'email', 'phone']);
 
