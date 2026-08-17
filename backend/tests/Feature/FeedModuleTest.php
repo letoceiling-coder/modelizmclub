@@ -98,6 +98,7 @@ class FeedModuleTest extends TestCase
             ->assertJsonPath('data.0.uuid', $uuid);
 
         // Guest (unauthenticated) must not see posts pending moderation.
+        $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/feed')
             ->assertOk()
             ->assertJsonCount(0, 'data');

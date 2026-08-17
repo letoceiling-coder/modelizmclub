@@ -106,7 +106,8 @@ class ReferralProgramTest extends TestCase
             'description' => 'test',
             'created_at' => now(),
         ]);
-        $referrer->update(['listing_placement_credits' => 2]);
+        $referrer->listing_placement_credits = 2;
+        $referrer->save();
 
         $this->actingAs($referrer, 'sanctum')
             ->getJson('/api/v1/users/me/referrals')
