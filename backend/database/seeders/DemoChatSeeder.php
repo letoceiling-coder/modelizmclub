@@ -53,17 +53,22 @@ class DemoChatSeeder extends Seeder
         ];
 
         foreach ($messages as $i => $msg) {
-            Message::query()->firstOrCreate(
+            $message = Message::withTrashed()->firstOrNew(
                 ['uuid' => sprintf('00000000-0000-4000-8000-00000000030%d', $i + 1)],
-                [
-                    'conversation_id' => $conversation->id,
-                    'user_id' => $msg['from']->id,
-                    'body' => $msg['body'],
-                    'type' => 'text',
-                    'status' => 'sent',
-                    'created_at' => now()->subMinutes(10 - $i),
-                ],
             );
+            if ($message->exists && $message->deleted_at === null) {
+                continue;
+            }
+            $message->fill([
+                'conversation_id' => $conversation->id,
+                'user_id' => $msg['from']->id,
+                'body' => $msg['body'],
+                'type' => 'text',
+                'status' => 'sent',
+                'created_at' => now()->subMinutes(10 - $i),
+            ]);
+            $message->deleted_at = null;
+            $message->save();
         }
 
         $conversation->update(['last_message_at' => now()]);

@@ -26,10 +26,10 @@ class ChannelSeeder extends Seeder
         ];
 
         foreach ($channels as $data) {
-            $channel = Channel::query()->updateOrCreate(
-                ['slug' => $data['slug']],
-                array_merge($data, ['is_active' => true]),
-            );
+            $channel = Channel::withTrashed()->firstOrNew(['slug' => $data['slug']]);
+            $channel->fill(array_merge($data, ['is_active' => true]));
+            $channel->deleted_at = null;
+            $channel->save();
 
             if ($channel->posts()->count() === 0) {
                 $this->seedPosts($channel);

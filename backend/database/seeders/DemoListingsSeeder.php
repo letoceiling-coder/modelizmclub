@@ -38,24 +38,26 @@ class DemoListingsSeeder extends Seeder
             $slug = Str::slug($item['title']);
             $city = City::query()->where('slug', $item['city'])->first();
 
-            Listing::query()->updateOrCreate(
+            $listing = Listing::withTrashed()->firstOrNew(
                 ['uuid' => sprintf('00000000-0000-4000-8000-0000000002%02d', $i + 1)],
-                [
-                    'user_id' => $author->id,
-                    'slug' => $slug,
-                    'category_id' => $category->id,
-                    'title' => $item['title'],
-                    'description' => 'Демо-объявление для production. '.$item['title'],
-                    'price_cents' => $item['price'],
-                    'city_id' => $city?->id,
-                    'status' => ListingStatus::Published,
-                    'delivery_methods' => ['СДЭК', 'Почта России'],
-                    'contact_via_messenger' => true,
-                    'published_at' => now()->subDays($i),
-                    'views_count' => 100 + $i * 50,
-                    'favorites_count' => $i % 3,
-                ],
             );
+            $listing->fill([
+                'user_id' => $author->id,
+                'slug' => $slug,
+                'category_id' => $category->id,
+                'title' => $item['title'],
+                'description' => 'Демо-объявление для production. '.$item['title'],
+                'price_cents' => $item['price'],
+                'city_id' => $city?->id,
+                'status' => ListingStatus::Published,
+                'delivery_methods' => ['СДЭК', 'Почта России'],
+                'contact_via_messenger' => true,
+                'published_at' => now()->subDays($i),
+                'views_count' => 100 + $i * 50,
+                'favorites_count' => $i % 3,
+            ]);
+            $listing->deleted_at = null;
+            $listing->save();
         }
     }
 }
