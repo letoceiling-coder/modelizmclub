@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Wallet as WalletIcon } from "lucide-react";
@@ -25,10 +25,17 @@ import {
   type WalletTransaction,
   type WithdrawMethod,
 } from "@/lib/api/wallet";
-import { confirmStubPayment } from "@/lib/api/payment";
+import { syncPayment } from "@/lib/api/payment";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 
+type WalletSearch = { payment?: "success" | "failed"; uuid?: string };
+
 export const Route = createFileRoute("/settings/wallet")({
+  validateSearch: (s: Record<string, unknown>): WalletSearch => ({
+    payment: s.payment === "success" || s.payment === "failed" ? s.payment : undefined,
+    uuid: typeof s.uuid === "string" ? s.uuid : undefined,
+  }),
   component: WalletSection,
 });
 
@@ -42,6 +49,8 @@ function formatRub(kopecks: number): string {
 function WalletSection() {
   const { t } = useTranslation();
   const demo = isDemoMode();
+  const navigate = useNavigate();
+  const { payment, uuid } = Route.useSearch();
   const [balanceKopecks, setBalanceKopecks] = useState(demo ? mockWalletBalance * 100 : 0);
   const [heldKopecks, setHeldKopecks] = useState(0);
   const [operations, setOperations] = useState<WalletTransaction[]>(demo ? mockWalletOperations : []);
@@ -63,6 +72,42 @@ function WalletSection() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
+
+  useEffect(() => {
+    if (demo || !payment) return;
+    let alive = true;
+    const finish = () => {
+      if (!alive) return;
+      void navigate({ to: "/settings/wallet", search: {}, replace: true });
+    };
+    if (payment === "failed") {
+      toast.error(t("pages.settings.walletTopupFailed"));
+      finish();
+      return () => { alive = false; };
+    }
+    if (!uuid) {
+      toast.success(t("pages.settings.walletTopupSuccess"));
+      load();
+      finish();
+      return () => { alive = false; };
+    }
+    void syncPayment(uuid)
+      .then((res) => {
+        if (!alive) return;
+        if (res.status === "paid") {
+          toast.success(t("pages.settings.walletTopupSuccess"));
+        } else {
+          toast.error(t("pages.settings.walletTopupFailed"));
+        }
+        load();
+      })
+      .catch(() => {
+        if (alive) toast.error(t("pages.settings.walletError"));
+      })
+      .finally(finish);
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, payment, uuid]);
 
   return (
     <SettingsSectionShell title={t("pages.settings.walletTitle")}>
@@ -115,13 +160,13 @@ function WalletSection() {
         ))}
       </Card>
 
-      <TopupDialog open={topupOpen} onOpenChange={setTopupOpen} onDone={load} />
+      <TopupDialog open={topupOpen} onOpenChange={setTopupOpen} />
       <WithdrawDialog open={withdrawOpen} onOpenChange={setWithdrawOpen} onDone={load} />
     </SettingsSectionShell>
   );
 }
 
-function TopupDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChange: (v: boolean) => void; onDone: () => void }) {
+function TopupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("500");
   const [busy, setBusy] = useState(false);
@@ -135,17 +180,13 @@ function TopupDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChan
     setBusy(true);
     try {
       const checkout = await topupWallet(rub);
-      if (checkout.checkout_url) {
-        window.location.href = checkout.checkout_url;
+      if (!checkout.checkout_url || checkout.provider !== "vtb") {
+        toast.error(t("pages.settings.walletTopupVtbMissing"));
         return;
       }
-      // Stub provider (test contour): no hosted page — confirm to credit the wallet.
-      await confirmStubPayment(checkout.payment_uuid);
-      toast.success(t("pages.settings.walletTopupSuccess"));
-      onOpenChange(false);
-      onDone();
-    } catch {
-      toast.error(t("pages.settings.walletError"));
+      window.location.href = checkout.checkout_url;
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, t("pages.settings.walletError")));
     } finally {
       setBusy(false);
     }
@@ -169,6 +210,9 @@ function TopupDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChan
             onChange={(e) => setAmount(e.target.value)}
             inputMode="numeric"
           />
+          <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.settings.walletTopupVtbHint")}
+          </p>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>{t("pages.settings.walletCancel")}</Button>

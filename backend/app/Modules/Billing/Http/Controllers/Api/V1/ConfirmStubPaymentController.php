@@ -19,6 +19,13 @@ class ConfirmStubPaymentController extends Controller
             ->where('provider', 'stub')
             ->firstOrFail();
 
+        if (($payment->metadata['payable_type'] ?? null) === 'wallet_topup') {
+            return response()->json([
+                'message' => 'Пополнение баланса подтверждается только через ВТБ Эквайринг.',
+                'code' => 'vtb_required',
+            ], 403);
+        }
+
         $gateway->handleWebhook(['payment_uuid' => $payment->uuid]);
 
         return response()->json(['message' => 'Stub payment confirmed.']);

@@ -50,12 +50,12 @@ class VtbPaymentGateway implements PaymentGateway
             return $this->toCheckoutResponse($payment, $payment->metadata['checkout_url'] ?? null);
         }
 
-        $returnUrl = $this->appendQuery(config('billing.return_url'), [
+        $returnUrl = $this->appendQuery((string) ($metadata['return_url'] ?? config('billing.return_url')), [
             'uuid' => $payment->uuid,
             'provider' => $this->provider(),
         ]);
 
-        $failUrl = $this->appendQuery(config('billing.fail_url'), [
+        $failUrl = $this->appendQuery((string) ($metadata['fail_url'] ?? config('billing.fail_url')), [
             'uuid' => $payment->uuid,
             'provider' => $this->provider(),
         ]);

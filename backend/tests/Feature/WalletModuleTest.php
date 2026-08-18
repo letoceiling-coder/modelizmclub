@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
+use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\WithdrawalRequest;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Modules\Billing\Services\WalletService;
 use Tests\TestCase;
 
@@ -60,25 +63,121 @@ class WalletModuleTest extends TestCase
             ->assertJsonPath('balance_kopecks', 0);
     }
 
-    public function test_topup_via_stub_credits_wallet_on_confirm(): void
+    public function test_topup_rejects_when_vtb_is_not_configured(): void
     {
+        config([
+            'billing.provider' => 'stub',
+            'billing.vtb.enabled' => false,
+        ]);
+
         $user = $this->seedUser();
 
-        $uuid = $this->actingAs($user, 'sanctum')
+        $this->actingAs($user, 'sanctum')
             ->postJson('/api/v1/wallet/topup', ['amount' => 500])
-            ->assertCreated()
-            ->json('data.payment_uuid');
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'vtb_required');
+
+        $this->assertSame(0, app(WalletService::class)->balanceKopecks($user->fresh()));
+    }
+
+    public function test_topup_via_vtb_registers_order_without_crediting(): void
+    {
+        config([
+            'billing.vtb.enabled' => true,
+            'billing.vtb.username' => 'test-user',
+            'billing.vtb.password' => 'test-pass',
+            'billing.vtb.api_url' => 'https://vtb.test/payment/rest/',
+        ]);
+
+        Http::fake([
+            'vtb.test/*' => Http::response([
+                'orderId' => 'vtb-wallet-1',
+                'formUrl' => 'https://vtb.test/pay/wallet',
+            ]),
+        ]);
+
+        $user = $this->seedUser();
 
         $this->actingAs($user, 'sanctum')
-            ->postJson("/api/v1/payments/{$uuid}/confirm-stub")
-            ->assertOk();
+            ->postJson('/api/v1/wallet/topup', ['amount' => 500])
+            ->assertCreated()
+            ->assertJsonPath('data.provider', 'vtb')
+            ->assertJsonPath('data.checkout_url', 'https://vtb.test/pay/wallet')
+            ->assertJsonPath('data.status', 'pending');
 
-        $this->assertSame(50000, app(WalletService::class)->balanceKopecks($user->fresh()));
+        $this->assertSame(0, app(WalletService::class)->balanceKopecks($user->fresh()));
+        $this->assertDatabaseHas('payments', [
+            'user_id' => $user->id,
+            'provider' => 'vtb',
+            'provider_payment_id' => 'vtb-wallet-1',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_wallet_transactions_list_after_credit(): void
+    {
+        $user = $this->seedUser();
+        app(WalletService::class)->credit($user, 50000, WalletTransactionType::Topup, 'Пополнение баланса');
 
         $this->actingAs($user, 'sanctum')
             ->getJson('/api/v1/wallet/transactions')
             ->assertOk()
             ->assertJsonPath('data.0.kind', WalletTransactionType::Topup->value);
+    }
+
+    public function test_vtb_webhook_credits_wallet_on_topup(): void
+    {
+        config([
+            'billing.vtb.enabled' => true,
+            'billing.vtb.username' => 'test-user',
+            'billing.vtb.password' => 'test-pass',
+            'billing.vtb.api_url' => 'https://vtb.test/payment/rest/',
+        ]);
+
+        Http::fake([
+            'vtb.test/*' => Http::response(['orderStatus' => 2]),
+        ]);
+
+        $user = $this->seedUser();
+        Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'amount_cents' => 50000,
+            'currency' => 'RUB',
+            'status' => 'pending',
+            'provider' => 'vtb',
+            'provider_payment_id' => 'vtb-wallet-paid',
+            'metadata' => ['payable_type' => 'wallet_topup'],
+        ]);
+
+        $this->postJson('/api/v1/payments/webhooks/vtb', [
+            'mdOrder' => 'vtb-wallet-paid',
+            'operation' => 'deposited',
+            'status' => 1,
+        ])->assertOk();
+
+        $this->assertSame(50000, app(WalletService::class)->balanceKopecks($user->fresh()));
+    }
+
+    public function test_confirm_stub_rejects_wallet_topup(): void
+    {
+        $user = $this->seedUser();
+        $payment = Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'amount_cents' => 50000,
+            'currency' => 'RUB',
+            'status' => 'pending',
+            'provider' => 'stub',
+            'metadata' => ['payable_type' => 'wallet_topup'],
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/payments/{$payment->uuid}/confirm-stub")
+            ->assertForbidden()
+            ->assertJsonPath('code', 'vtb_required');
+
+        $this->assertSame(0, app(WalletService::class)->balanceKopecks($user->fresh()));
     }
 
     public function test_pay_subscription_from_wallet_balance(): void

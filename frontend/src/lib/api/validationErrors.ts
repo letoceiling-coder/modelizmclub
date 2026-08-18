@@ -48,6 +48,9 @@ export function formatApiErrorMessage(err: unknown, fallback: string): string {
     if (code === "insufficient_funds") {
       return "Недостаточно средств на балансе. Пополните кошелёк.";
     }
+    if (code === "vtb_required") {
+      return err.message || "Пополнение баланса доступно только через ВТБ Эквайринг.";
+    }
     if (err.errors) {
       return firstFieldError(err.errors, err.message || fallback);
     }

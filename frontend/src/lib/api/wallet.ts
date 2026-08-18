@@ -30,12 +30,12 @@ interface WalletTransactionApi {
 
 export type WithdrawMethod = "card" | "sbp" | "account";
 
-/** Result of starting a top-up — mirrors the payment checkout shape. */
+/** Result of starting a top-up — always VTB hosted checkout. */
 export interface WalletTopupResult {
   payment_uuid: string;
-  checkout_url: string | null;
-  status: string; // "pending" | "paid" | ...
-  provider: string; // "vtb" | "stub"
+  checkout_url: string;
+  status: string; // "pending"
+  provider: "vtb";
 }
 
 export interface WithdrawalResult {
@@ -82,8 +82,8 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
 }
 
 /**
- * Start a wallet top-up. Returns the checkout: redirect to `checkout_url`
- * (vtb) or confirm the stub payment in the test contour. Amount is in rubles.
+ * Start a wallet top-up via VTB Acquiring. Redirect the browser to
+ * `checkout_url` — there is no stub confirm path for top-ups.
  */
 export async function topupWallet(amountRub: number): Promise<WalletTopupResult> {
   const res = await api<{ data: WalletTopupResult }>("/wallet/topup", {
