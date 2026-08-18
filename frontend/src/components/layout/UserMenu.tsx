@@ -103,6 +103,16 @@ export function UserMenu() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
+            <Link to={ROUTES.deals} className="flex items-center gap-2">
+              <SlotIcon slot="section.safe-deal" className="h-4 w-4" size={16} inheritColor /> {t("nav.deals")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/settings/wallet" className="flex items-center gap-2">
+              <SlotIcon slot="nav.settings" className="h-4 w-4" size={16} inheritColor /> {t("components.settingsNav.wallet")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link to={ROUTES.subscription} className="flex items-center gap-2">
               <SlotIcon slot="nav.subscription" className="h-4 w-4" size={16} inheritColor /> {t("nav.subscription")}
             </Link>

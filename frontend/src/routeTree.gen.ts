@@ -28,6 +28,7 @@ import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as DiagRouteImport } from './routes/diag'
+import { Route as DealsRouteImport } from './routes/deals'
 import { Route as CommunitiesRouteImport } from './routes/communities'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -57,6 +58,7 @@ import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
 import { Route as ReviewsIdRouteImport } from './routes/reviews.$id'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as InfoSlugRouteImport } from './routes/info.$slug'
+import { Route as DealsUuidRouteImport } from './routes/deals.$uuid'
 import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
@@ -161,6 +163,11 @@ const FavoritesRoute = FavoritesRouteImport.update({
 const DiagRoute = DiagRouteImport.update({
   id: '/diag',
   path: '/diag',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsRoute = DealsRouteImport.update({
+  id: '/deals',
+  path: '/deals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunitiesRoute = CommunitiesRouteImport.update({
@@ -308,6 +315,11 @@ const InfoSlugRoute = InfoSlugRouteImport.update({
   path: '/info/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DealsUuidRoute = DealsUuidRouteImport.update({
+  id: '/$uuid',
+  path: '/$uuid',
+  getParentRoute: () => DealsRoute,
+} as any)
 const CommunitiesIdRoute = CommunitiesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -366,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
+  '/deals': typeof DealsRouteWithChildren
   '/diag': typeof DiagRoute
   '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
@@ -391,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/reviews/$id': typeof ReviewsIdRoute
@@ -423,6 +437,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/deals': typeof DealsRouteWithChildren
   '/diag': typeof DiagRoute
   '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
@@ -445,6 +460,7 @@ export interface FileRoutesByTo {
   '/ads/new': typeof AdsNewRoute
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/reviews/$id': typeof ReviewsIdRoute
@@ -481,6 +497,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
+  '/deals': typeof DealsRouteWithChildren
   '/diag': typeof DiagRoute
   '/favorites': typeof FavoritesRoute
   '/feed': typeof FeedRoute
@@ -506,6 +523,7 @@ export interface FileRoutesById {
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/reviews/$id': typeof ReviewsIdRoute
@@ -543,6 +561,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/categories'
     | '/communities'
+    | '/deals'
     | '/diag'
     | '/favorites'
     | '/feed'
@@ -568,6 +587,7 @@ export interface FileRouteTypes {
     | '/categories/$id'
     | '/channel/$id'
     | '/communities/$id'
+    | '/deals/$uuid'
     | '/info/$slug'
     | '/legal/$slug'
     | '/reviews/$id'
@@ -600,6 +620,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/deals'
     | '/diag'
     | '/favorites'
     | '/feed'
@@ -622,6 +643,7 @@ export interface FileRouteTypes {
     | '/ads/new'
     | '/channel/$id'
     | '/communities/$id'
+    | '/deals/$uuid'
     | '/info/$slug'
     | '/legal/$slug'
     | '/reviews/$id'
@@ -657,6 +679,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/categories'
     | '/communities'
+    | '/deals'
     | '/diag'
     | '/favorites'
     | '/feed'
@@ -682,6 +705,7 @@ export interface FileRouteTypes {
     | '/categories/$id'
     | '/channel/$id'
     | '/communities/$id'
+    | '/deals/$uuid'
     | '/info/$slug'
     | '/legal/$slug'
     | '/reviews/$id'
@@ -718,6 +742,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CategoriesRoute: typeof CategoriesRouteWithChildren
   CommunitiesRoute: typeof CommunitiesRouteWithChildren
+  DealsRoute: typeof DealsRouteWithChildren
   DiagRoute: typeof DiagRoute
   FavoritesRoute: typeof FavoritesRoute
   FeedRoute: typeof FeedRoute
@@ -878,6 +903,13 @@ declare module '@tanstack/react-router' {
       path: '/diag'
       fullPath: '/diag'
       preLoaderRoute: typeof DiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals': {
+      id: '/deals'
+      path: '/deals'
+      fullPath: '/deals'
+      preLoaderRoute: typeof DealsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/communities': {
@@ -1083,6 +1115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InfoSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deals/$uuid': {
+      id: '/deals/$uuid'
+      path: '/$uuid'
+      fullPath: '/deals/$uuid'
+      preLoaderRoute: typeof DealsUuidRouteImport
+      parentRoute: typeof DealsRoute
+    }
     '/communities/$id': {
       id: '/communities/$id'
       path: '/$id'
@@ -1224,6 +1263,16 @@ const CommunitiesRouteWithChildren = CommunitiesRoute._addFileChildren(
   CommunitiesRouteChildren,
 )
 
+interface DealsRouteChildren {
+  DealsUuidRoute: typeof DealsUuidRoute
+}
+
+const DealsRouteChildren: DealsRouteChildren = {
+  DealsUuidRoute: DealsUuidRoute,
+}
+
+const DealsRouteWithChildren = DealsRoute._addFileChildren(DealsRouteChildren)
+
 interface ReviewsRouteChildren {
   ReviewsIdRoute: typeof ReviewsIdRoute
   ReviewsUploadRoute: typeof ReviewsUploadRoute
@@ -1282,6 +1331,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CategoriesRoute: CategoriesRouteWithChildren,
   CommunitiesRoute: CommunitiesRouteWithChildren,
+  DealsRoute: DealsRouteWithChildren,
   DiagRoute: DiagRoute,
   FavoritesRoute: FavoritesRoute,
   FeedRoute: FeedRoute,

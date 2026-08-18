@@ -1,0 +1,111 @@
+import { api } from "./client";
+
+/**
+ * Wallet-based safe deal (escrow) client. Mirrors the backend Billing module
+ * (spec v4.0 §T5). Money never leaves the internal wallet ledger: the buyer's
+ * balance is held on creation, released to the seller on confirmation, or
+ * refunded on cancel/dispute. All amounts are in kopecks.
+ *
+ *   POST /listings/{uuid}/safe-deal   create (buyer)
+ *   GET  /safe-deals?role=buyer|seller list
+ *   GET  /safe-deals/{uuid}           detail
+ *   POST /safe-deals/{uuid}/ship      seller marks shipped
+ *   POST /safe-deals/{uuid}/delivered mark delivered
+ *   POST /safe-deals/{uuid}/confirm   buyer confirms receipt → release
+ *   POST /safe-deals/{uuid}/cancel    cancel (refund buyer)
+ *   POST /safe-deals/{uuid}/dispute   open a dispute
+ */
+
+export type SafeDealStatus =
+  | "created"
+  | "paid"
+  | "shipped"
+  | "delivered"
+  | "completed"
+  | "disputed"
+  | "refunded"
+  | "cancelled";
+
+export interface SafeDeal {
+  uuid: string;
+  listing_uuid: string | null;
+  status: SafeDealStatus;
+  status_label: string;
+  amount_kopecks: number;
+  platform_fee_kopecks: number;
+  seller_payout_kopecks: number;
+  currency: string;
+  tracking_number: string | null;
+  delivery_method: string | null;
+  paid_at: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  completed_at: string | null;
+  auto_release_at: string | null;
+  dispute?: { uuid: string; status: string; reason: string } | null;
+}
+
+export type SafeDealRole = "buyer" | "seller";
+
+export function kopecksToRub(kopecks: number): string {
+  return (kopecks / 100).toLocaleString("ru-RU", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+export async function createSafeDeal(listingUuid: string): Promise<SafeDeal> {
+  const res = await api<{ data: SafeDeal }>(`/listings/${listingUuid}/safe-deal`, { method: "POST" });
+  return res.data;
+}
+
+export async function fetchSafeDeals(role?: SafeDealRole): Promise<SafeDeal[]> {
+  const res = await api<{ data: SafeDeal[] }>("/safe-deals", {
+    query: role ? { role, per_page: 50 } : { per_page: 50 },
+  });
+  return res.data ?? [];
+}
+
+export async function fetchSafeDeal(uuid: string): Promise<SafeDeal> {
+  const res = await api<{ data: SafeDeal }>(`/safe-deals/${uuid}`);
+  return res.data;
+}
+
+/** Resolve whether the current user is buyer or seller on a deal (used when a
+ *  detail page is opened directly, without a role hint from the list). */
+export async function resolveSafeDealRole(uuid: string): Promise<SafeDealRole | null> {
+  const [asBuyer, asSeller] = await Promise.all([
+    fetchSafeDeals("buyer").catch(() => [] as SafeDeal[]),
+    fetchSafeDeals("seller").catch(() => [] as SafeDeal[]),
+  ]);
+  if (asBuyer.some((d) => d.uuid === uuid)) return "buyer";
+  if (asSeller.some((d) => d.uuid === uuid)) return "seller";
+  return null;
+}
+
+export async function shipSafeDeal(uuid: string, input?: { trackingNumber?: string; deliveryMethod?: string }): Promise<SafeDeal> {
+  const res = await api<{ data: SafeDeal }>(`/safe-deals/${uuid}/ship`, {
+    method: "POST",
+    json: { tracking_number: input?.trackingNumber || undefined, delivery_method: input?.deliveryMethod || undefined },
+  });
+  return res.data;
+}
+
+export async function markSafeDealDelivered(uuid: string): Promise<SafeDeal> {
+  const res = await api<{ data: SafeDeal }>(`/safe-deals/${uuid}/delivered`, { method: "POST" });
+  return res.data;
+}
+
+export async function confirmSafeDeal(uuid: string): Promise<SafeDeal> {
+  const res = await api<{ data: SafeDeal }>(`/safe-deals/${uuid}/confirm`, { method: "POST" });
+  return res.data;
+}
+
+export async function cancelSafeDeal(uuid: string): Promise<SafeDeal> {
+  const res = await api<{ data: SafeDeal }>(`/safe-deals/${uuid}/cancel`, { method: "POST" });
+  return res.data;
+}
+
+export async function disputeSafeDeal(uuid: string, reason: string, description?: string): Promise<void> {
+  await api(`/safe-deals/${uuid}/dispute`, {
+    method: "POST",
+    json: { reason, description: description || undefined },
+  });
+}

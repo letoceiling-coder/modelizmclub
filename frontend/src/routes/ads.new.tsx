@@ -11,7 +11,8 @@ import { CitySelect } from "@/components/ads/CitySelect";
 import { uploadMedia } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
 import { fetchPlacementQuote, formatQuoteRub, type PlacementQuote } from "@/lib/api/listing-placement";
-import { confirmStubPayment, createListingPlacementPayment } from "@/lib/api/payment";
+import { confirmStubPayment, createListingPlacementPayment, type PayWith } from "@/lib/api/payment";
+import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import { ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
@@ -156,6 +157,18 @@ function NewAdPage() {
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
   const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [pendingPay, setPendingPay] = useState<{
+    mediaIds: string[];
+    categoryId: number;
+    subcategoryId?: number;
+    cityId?: number;
+    priceCents: number;
+    promocode?: string;
+    amountRub: number;
+    title: string;
+    description: string;
+    deliveries: string[];
+  } | null>(null);
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
   useEffect(() => {
@@ -342,30 +355,20 @@ function NewAdPage() {
         }
 
         if (needsPayment) {
-          const draft = await createListing({
-            title: form.title.trim(),
-            description: form.description.trim(),
-            priceCents,
+          setPendingPay({
+            mediaIds,
             categoryId,
             subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
             cityId: resolvedCityId,
-            deliveryMethods: form.deliveries,
-            mediaIds,
-            publish: false,
+            priceCents,
             promocode,
+            amountRub: (quote?.final_cents ?? 0) / 100,
+            title: form.title.trim(),
+            description: form.description.trim(),
+            deliveries: form.deliveries,
           });
-          const checkout = await createListingPlacementPayment({
-            categoryId,
-            subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
-            promocode,
-            listingUuid: draft.id,
-          });
-          if (checkout.checkout_url) {
-            window.location.href = checkout.checkout_url;
-            return;
-          }
-          await confirmStubPayment(checkout.payment_uuid);
-          toast.success(t("pages.adsNew.paySuccess"));
+          setSubmitting(false);
+          return;
         } else {
           const created = await createListing({
             title: form.title.trim(),
@@ -397,6 +400,48 @@ function NewAdPage() {
         message = err.message;
       }
       toast.error(message);
+      setSubmitting(false);
+    }
+  };
+
+  const completePaidListing = async (source: PayWith) => {
+    const job = pendingPay;
+    if (!job) return;
+    setPendingPay(null);
+    setSubmitting(true);
+    try {
+      const draft = await createListing({
+        title: job.title,
+        description: job.description,
+        priceCents: job.priceCents,
+        categoryId: job.categoryId,
+        subcategoryId: job.subcategoryId,
+        cityId: job.cityId,
+        deliveryMethods: job.deliveries,
+        mediaIds: job.mediaIds,
+        publish: false,
+        promocode: job.promocode,
+      });
+      const checkout = await createListingPlacementPayment({
+        categoryId: job.categoryId,
+        subcategoryId: job.subcategoryId,
+        promocode: job.promocode,
+        listingUuid: draft.id,
+        payWith: source,
+      });
+      if (checkout.checkout_url) {
+        window.location.href = checkout.checkout_url;
+        return;
+      }
+      if (checkout.provider !== "wallet") {
+        await confirmStubPayment(checkout.payment_uuid);
+      }
+      toast.success(source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"));
+      void navigate({ to: "/my-ads" });
+    } catch (err) {
+      setSubmitError(true);
+      const fallback = t("pages.adsNew.publishFailed");
+      toast.error(err instanceof ApiError ? firstFieldError(err.errors, err.message || fallback) : fallback);
       setSubmitting(false);
     }
   };
@@ -514,6 +559,13 @@ function NewAdPage() {
           )}
         </div>
       </div>
+
+      <PaymentSourceDialog
+        open={pendingPay !== null}
+        onOpenChange={(v) => { if (!v) setPendingPay(null); }}
+        amountRub={pendingPay?.amountRub ?? 0}
+        onSelect={(source) => void completePaidListing(source)}
+      />
 
     </AppLayout>
   );

@@ -22,6 +22,14 @@ export function isPublicGuestRoute(pathname: string): boolean {
   if (pathname === ROUTES.home || pathname === ROUTES.feed || pathname.startsWith("/feed/")) {
     return true;
   }
+  // Spec v4.0 §1.3: viewing reviews is public; publishing stays gated.
+  if (
+    (pathname === ROUTES.reviews || pathname.startsWith("/reviews/")) &&
+    pathname !== ROUTES.reviewUpload &&
+    !pathname.startsWith(`${ROUTES.reviewUpload}/`)
+  ) {
+    return true;
+  }
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
@@ -40,6 +48,7 @@ export function pathnameToRouteAction(pathname: string): string | null {
   if (pathname === ROUTES.adCreate || pathname.startsWith("/ads/new")) return "route.ads_new";
   if (pathname === ROUTES.ads || pathname.startsWith("/ads/")) return "route.ads";
   if (pathname === ROUTES.myAds || pathname.startsWith("/my-ads")) return "route.my_ads";
+  if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return "route.deals";
   if (pathname === ROUTES.favorites || pathname.startsWith("/favorites")) return "route.favorites";
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return "route.reviews";
   if (pathname === ROUTES.channels || pathname.startsWith("/channels") || pathname.startsWith("/channel/")) {
@@ -62,6 +71,7 @@ export const NAV_ROUTE_TO_ACTION: Record<string, string> = {
   [ROUTES.ads]: "layout.nav.ads",
   [ROUTES.adCreate]: "layout.nav.ad_create",
   [ROUTES.myAds]: "layout.nav.my_ads",
+  [ROUTES.deals]: "layout.nav.deals",
   [ROUTES.favorites]: "layout.nav.favorites",
   [ROUTES.communities]: "layout.nav.communities",
   [ROUTES.reviews]: "layout.nav.reviews",

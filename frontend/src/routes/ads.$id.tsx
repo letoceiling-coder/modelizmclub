@@ -26,6 +26,8 @@ import { openConversation } from "@/lib/api/chat";
 import { getToken, ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
+import { createSafeDeal } from "@/lib/api/safe-deals";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 
 import i18n from "@/lib/i18n";
 
@@ -125,6 +127,7 @@ function AdDetailPage() {
   const [deliveryPickerOpen, setDeliveryPickerOpen] = useState(false);
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);
+  const [safeDealBusy, setSafeDealBusy] = useState(false);
 
   const availableDeliveryMethods = useMemo(
     () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
@@ -190,6 +193,34 @@ function AdDetailPage() {
       return;
     }
     await proceedToConversation(buildSellerIntroMessage(ad, t));
+  };
+
+  const startSafeDeal = async () => {
+    if (!ad || !requireAuthAndNotOwnAd()) return;
+    if (isDemoMode()) {
+      toast.info("Безопасная сделка доступна на боевом контуре после входа.");
+      return;
+    }
+    if (!window.confirm(`Заморозить ${ad.price.toLocaleString("ru")} ₽ на балансе кошелька и открыть безопасную сделку?`)) {
+      return;
+    }
+    setSafeDealBusy(true);
+    try {
+      const deal = await createSafeDeal(ad.id);
+      toast.success("Сделка создана, средства заморожены на балансе.");
+      navigate({ to: "/deals/$uuid", params: { uuid: deal.uuid }, search: { role: "buyer" } });
+    } catch (err) {
+      const message = formatApiErrorMessage(err, "Не удалось создать сделку");
+      toast.error(message);
+      const insufficient = err instanceof ApiError && (
+        Boolean(err.errors?.balance) || (err.payload as { code?: string } | undefined)?.code === "insufficient_funds"
+      );
+      if (insufficient) {
+        navigate({ to: "/settings/wallet" });
+      }
+    } finally {
+      setSafeDealBusy(false);
+    }
   };
 
   const askSeller = async (question: string) => {
@@ -392,6 +423,8 @@ function AdDetailPage() {
                 onWrite={writeToSeller}
                 onToggleSave={toggleSave}
                 onShare={share}
+                onSafeDeal={() => void startSafeDeal()}
+                safeDealBusy={safeDealBusy}
                 phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
                 revealedPhone={revealedPhone}
                 onRevealPhone={() => void revealPhone()}

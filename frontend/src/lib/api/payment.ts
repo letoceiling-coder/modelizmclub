@@ -20,13 +20,18 @@ import { api } from "./client";
 
 /** Result of creating a checkout. `checkout_url` is the provider's hosted
  *  payment page for vtb/yookassa (redirect there); it's null for the stub
- *  provider (no hosted page — confirm via confirmStubPayment instead). */
+ *  provider (no hosted page — confirm via confirmStubPayment instead) and for
+ *  wallet payments (already `status: "paid"`, provider `"wallet"`). */
 export interface PaymentCheckout {
   payment_uuid: string;
   checkout_url: string | null;
   status: string; // "pending" | "paid" | ...
-  provider: string; // "vtb" | "yookassa" | "stub"
+  provider: string; // "vtb" | "wallet" | "stub"
 }
+
+/** Payment source: `gateway` = external acquiring (VTB/stub), `wallet` = debit
+ *  the internal balance immediately (backend returns status "paid"). */
+export type PayWith = "gateway" | "wallet";
 
 export interface PaymentStatus {
   payment_uuid: string;
@@ -80,10 +85,10 @@ export async function fetchPublicPlans(): Promise<SubscriptionPlanApi[]> {
  * Create a subscription checkout for the given plan slug.
  * planSlug must exist in subscription_plans.slug (month | half | year).
  */
-export async function createSubscriptionPayment(planSlug: string): Promise<PaymentCheckout> {
+export async function createSubscriptionPayment(planSlug: string, payWith: PayWith = "gateway"): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>("/payments", {
     method: "POST",
-    json: { plan_slug: planSlug, idempotency_key: newIdempotencyKey() },
+    json: { plan_slug: planSlug, pay_with: payWith, idempotency_key: newIdempotencyKey() },
   });
   return res.data;
 }
@@ -96,6 +101,7 @@ export async function createListingPlacementPayment(input?: {
   subcategoryId?: number;
   promocode?: string;
   listingUuid?: string;
+  payWith?: PayWith;
 }): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>("/payments", {
     method: "POST",
@@ -105,6 +111,7 @@ export async function createListingPlacementPayment(input?: {
       subcategory_id: input?.subcategoryId,
       promocode: input?.promocode?.trim() || undefined,
       listing_uuid: input?.listingUuid,
+      pay_with: input?.payWith ?? "gateway",
       idempotency_key: newIdempotencyKey(),
     },
   });

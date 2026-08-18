@@ -1,23 +1,59 @@
-import { api } from "./client";
+import { api, ApiError } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 
 export interface WalletBalance {
-  balance: number;
+  balance: number; // rubles (rounded down, legacy)
+  balance_kopecks: number;
+  held_kopecks: number;
   currency: string;
 }
 
 export interface WalletTransaction {
   id: string;
   type: "in" | "out";
-  amount: number;
+  amount: number; // rubles (for display)
   title: string;
   date: string;
+}
+
+/** Raw ledger row as returned by GET /wallet/transactions. */
+interface WalletTransactionApi {
+  id: string;
+  type: "in" | "out";
+  amount: number; // kopecks
+  amount_rub: number;
+  balance_after: number;
+  kind: string;
+  title: string;
+  date: string;
+}
+
+export type WithdrawMethod = "card" | "sbp" | "account";
+
+/** Result of starting a top-up — mirrors the payment checkout shape. */
+export interface WalletTopupResult {
+  payment_uuid: string;
+  checkout_url: string | null;
+  status: string; // "pending" | "paid" | ...
+  provider: string; // "vtb" | "stub"
+}
+
+export interface WithdrawalResult {
+  uuid: string;
+  amount_kopecks: number;
+  status: string; // "pending"
+}
+
+function newIdempotencyKey(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  return `wal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export async function fetchWalletBalance(): Promise<WalletBalance> {
   if (isDemoMode()) {
     const { mockWalletBalance } = await import("@/lib/mock");
-    return { balance: mockWalletBalance, currency: "RUB" };
+    return { balance: mockWalletBalance, balance_kopecks: mockWalletBalance * 100, held_kopecks: 0, currency: "RUB" };
   }
   return api<WalletBalance>("/wallet");
 }
@@ -33,8 +69,52 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
       date: op.date,
     }));
   }
-  const res = await api<{ data: WalletTransaction[] }>("/wallet/transactions", {
+  const res = await api<{ data: WalletTransactionApi[] }>("/wallet/transactions", {
     query: { per_page: perPage },
   });
-  return res.data ?? [];
+  return (res.data ?? []).map((tx) => ({
+    id: tx.id,
+    type: tx.type,
+    amount: tx.amount_rub,
+    title: tx.title,
+    date: tx.date,
+  }));
+}
+
+/**
+ * Start a wallet top-up. Returns the checkout: redirect to `checkout_url`
+ * (vtb) or confirm the stub payment in the test contour. Amount is in rubles.
+ */
+export async function topupWallet(amountRub: number): Promise<WalletTopupResult> {
+  const res = await api<{ data: WalletTopupResult }>("/wallet/topup", {
+    method: "POST",
+    json: { amount: amountRub, idempotency_key: newIdempotencyKey() },
+  });
+  return res.data;
+}
+
+/**
+ * Request a withdrawal from the wallet balance. Debits immediately and creates
+ * a pending withdrawal request for an admin to process. Amount is in rubles.
+ * Throws ApiError; on insufficient funds `payload.code === "insufficient_funds"`.
+ */
+export async function withdrawFromWallet(input: {
+  amount: number;
+  method: WithdrawMethod;
+  destination: string;
+}): Promise<WithdrawalResult> {
+  const res = await api<{ data: WithdrawalResult }>("/wallet/withdraw", {
+    method: "POST",
+    json: input,
+  });
+  return res.data;
+}
+
+/** True when the failure is a "not enough balance" business error. */
+export function isInsufficientFunds(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status === 422 &&
+    (error.payload as { code?: string } | undefined)?.code === "insufficient_funds"
+  );
 }

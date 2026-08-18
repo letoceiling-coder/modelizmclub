@@ -52,6 +52,7 @@ export const ICON_SLOTS: IconSlot[] = [
   { key: "nav.ads", label: "Каталог объявлений", group: "nav", page: "navigation", defaultLucide: "Megaphone", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.ad-create", label: "Разместить объявление", group: "nav", page: "navigation", defaultLucide: "Plus", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.my-ads", label: "Мои объявления", group: "nav", page: "navigation", defaultLucide: "ClipboardList", defaultToken: "foreground-70", previewKind: "nav" },
+  { key: "nav.deals", label: "Безопасные сделки", group: "nav", page: "navigation", defaultLucide: "ShieldCheck", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.favorites", label: "Избранное", group: "nav", page: "navigation", defaultLucide: "Heart", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.communities", label: "Сообщества", group: "nav", page: "navigation", defaultLucide: "Users2", defaultToken: "foreground-70", previewKind: "nav" },
   { key: "nav.reviews", label: "Обзоры", group: "nav", page: "navigation", defaultLucide: "Clapperboard", defaultToken: "foreground-70", previewKind: "nav" },

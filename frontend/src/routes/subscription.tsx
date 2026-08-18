@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
@@ -15,11 +15,13 @@ import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { requireVerifiedForAction } from "@/lib/auth/verification";
+import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import {
   createSubscriptionPayment,
   createListingPlacementPayment,
   confirmStubPayment,
   fetchMySubscription,
+  type PayWith,
 } from "@/lib/api/payment";
 
 import i18n from "@/lib/i18n";
@@ -52,65 +54,86 @@ function requireAuthForCheckout(navigate: ReturnType<typeof useNavigate>): boole
   return false;
 }
 
-async function startSubscriptionCheckout(
-  plan: { id: string; name: string },
-  navigate: ReturnType<typeof useNavigate>,
-) {
-  if (!requireAuthForCheckout(navigate)) return;
-  if (!(await requireVerifiedForAction(navigate))) return;
-  if (isDemoMode()) {
-    toast(i18n.t("pages.subscription.paySoon"), {
-      description: i18n.t("pages.subscription.paySoonPlan", { name: plan.name }),
-    });
-    return;
-  }
+async function startSubscriptionCheckout(plan: { id: string; name: string }, source: PayWith) {
   try {
-    const checkout = await createSubscriptionPayment(plan.id);
+    const checkout = await createSubscriptionPayment(plan.id, source);
     if (checkout.checkout_url) {
       window.location.href = checkout.checkout_url;
       return;
     }
-    await confirmStubPayment(checkout.payment_uuid);
+    // Wallet payments come back already "paid"; stub needs an explicit confirm.
+    if (checkout.provider !== "wallet") {
+      await confirmStubPayment(checkout.payment_uuid);
+    }
     invalidateMySubscription();
     const sub = await fetchMySubscription();
-    toast.success(
-      sub?.is_active ? i18n.t("pages.subscription.testActivated") : i18n.t("pages.subscription.testConfirmed"),
-    );
+    if (source === "wallet") {
+      toast.success(i18n.t("pages.subscription.payWalletPaid"));
+    } else {
+      toast.success(
+        sub?.is_active ? i18n.t("pages.subscription.testActivated") : i18n.t("pages.subscription.testConfirmed"),
+      );
+    }
   } catch {
     toast.error(i18n.t("pages.subscription.payCreateFailed"));
   }
 }
 
-async function startPlacementCheckout(
-  navigate: ReturnType<typeof useNavigate>,
-  placementPrice: number,
-) {
-  if (!requireAuthForCheckout(navigate)) return;
-  if (!(await requireVerifiedForAction(navigate))) return;
-  if (isDemoMode()) {
-    toast(i18n.t("pages.subscription.paySoon"), {
-      description: i18n.t("pages.subscription.paySoonDesc", { price: placementPrice }),
-    });
-    return;
-  }
+async function startPlacementCheckout(source: PayWith) {
   try {
-    const checkout = await createListingPlacementPayment();
+    const checkout = await createListingPlacementPayment({ payWith: source });
     if (checkout.checkout_url) {
       window.location.href = checkout.checkout_url;
       return;
     }
-    await confirmStubPayment(checkout.payment_uuid);
-    toast.success(i18n.t("pages.subscription.oneTimePaid"));
+    if (checkout.provider !== "wallet") {
+      await confirmStubPayment(checkout.payment_uuid);
+    }
+    toast.success(source === "wallet" ? i18n.t("pages.subscription.payWalletPaid") : i18n.t("pages.subscription.oneTimePaid"));
   } catch {
     toast.error(i18n.t("pages.subscription.payCreateFailed"));
   }
 }
+
+type PendingCheckout =
+  | { kind: "subscription"; plan: { id: string; name: string }; amount: number }
+  | { kind: "placement"; amount: number };
 
 function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sub } = useMySubscription();
   const { registeredRub: placementPrice } = usePublicPlacementPricing();
+  const [pending, setPending] = useState<PendingCheckout | null>(null);
+
+  const openSubscribe = async (plan: { id: string; name: string; priceRub: number }) => {
+    if (!requireAuthForCheckout(navigate)) return;
+    if (!(await requireVerifiedForAction(navigate))) return;
+    if (isDemoMode()) {
+      toast(t("pages.subscription.paySoon"), { description: t("pages.subscription.paySoonPlan", { name: plan.name }) });
+      return;
+    }
+    setPending({ kind: "subscription", plan: { id: plan.id, name: plan.name }, amount: plan.priceRub });
+  };
+
+  const openPlacement = async () => {
+    if (!requireAuthForCheckout(navigate)) return;
+    if (!(await requireVerifiedForAction(navigate))) return;
+    if (isDemoMode()) {
+      toast(t("pages.subscription.paySoon"), { description: t("pages.subscription.paySoonDesc", { price: placementPrice }) });
+      return;
+    }
+    setPending({ kind: "placement", amount: placementPrice });
+  };
+
+  const runCheckout = (source: PayWith) => {
+    if (!pending) return;
+    const job = pending;
+    setPending(null);
+    if (job.kind === "subscription") void startSubscriptionCheckout(job.plan, source);
+    else void startPlacementCheckout(source);
+  };
+
   const daysLeft = sub?.days_left ?? 0;
   const totalDays = sub?.plan?.period_days ?? 365;
   const planName = sub?.plan?.name ?? t("pages.subscription.defaultPlanName");
@@ -275,7 +298,7 @@ function SubscriptionPage() {
             renderCta={(plan) => (
               <button
                 type="button"
-                onClick={() => void startSubscriptionCheckout({ id: plan.id, name: plan.name }, navigate)}
+                onClick={() => void openSubscribe({ id: plan.id, name: plan.name, priceRub: plan.price })}
                 className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
@@ -316,7 +339,7 @@ function SubscriptionPage() {
                 {placementPrice} ₽
               </div>
               <button
-                onClick={() => void startPlacementCheckout(navigate, placementPrice)}
+                onClick={() => void openPlacement()}
                 className="transition-colors"
                 style={{
                   height: 40,
@@ -339,6 +362,12 @@ function SubscriptionPage() {
         <InviteBlock />
       </div>
 
+      <PaymentSourceDialog
+        open={pending !== null}
+        onOpenChange={(v) => { if (!v) setPending(null); }}
+        amountRub={pending?.amount ?? 0}
+        onSelect={runCheckout}
+      />
     </AppLayout>
   );
 }

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { oauthRedirectUrl, oauthProviderLabel, type OAuthProvider } from "@/lib/api/oauth";
 
-const PROVIDERS: OAuthProvider[] = ["vk", "yandex"];
+const PROVIDERS: OAuthProvider[] = ["vk", "yandex", "max"];
 
 const oauthLinkStyle: CSSProperties = {
   background: "var(--background-surface)",
@@ -19,7 +19,7 @@ const oauthLinkStyle: CSSProperties = {
 
 export function OAuthButtons({ className }: { className?: string }) {
   return (
-    <div className={className ?? "mt-[16px] grid grid-cols-2 gap-[8px]"}>
+    <div className={className ?? "mt-[16px] grid grid-cols-3 gap-[8px]"}>
       {PROVIDERS.map((provider) => (
         <a key={provider} href={oauthRedirectUrl(provider)} style={oauthLinkStyle}>
           {oauthProviderLabel(provider)}

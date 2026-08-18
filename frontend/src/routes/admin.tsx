@@ -49,6 +49,7 @@ import { DeliveryMethodsAdminCard } from "@/components/admin/DeliveryMethodsAdmi
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
+import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { BannersAdminCard } from "@/components/admin/BannersAdminCard";
 import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCard";
@@ -2236,6 +2237,8 @@ function MonetizationSection() {
       <ReferralProgramAdminCard cardStyle={card} />
 
       <AdminPaymentsAdminCard cardStyle={card} />
+
+      <AdminBillingOpsCard cardStyle={card} />
     </div>
   );
 }

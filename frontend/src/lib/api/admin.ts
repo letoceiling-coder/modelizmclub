@@ -1526,3 +1526,84 @@ export async function updateAdminDeliveryMethod(
   const res = await api<{ data: AdminDeliveryMethodRow }>(`/admin/delivery/methods/${id}`, { method: "PATCH", json: patch });
   return res.data;
 }
+
+/* ── Wallet / withdrawals / safe deals (spec v4.0 §T12) ── */
+
+interface AdminMeta {
+  current_page: number;
+  last_page: number;
+  total: number;
+}
+
+export interface AdminWalletRow {
+  user: { uuid: string | null; name: string | null; email: string | null };
+  balance_kopecks: number;
+  held_kopecks: number;
+}
+
+export async function fetchAdminWallets(query: { search?: string; page?: number } = {}): Promise<{ data: AdminWalletRow[]; meta: AdminMeta }> {
+  const res = await api<{ data: AdminWalletRow[]; meta: AdminMeta }>("/admin/wallets", { query });
+  return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
+}
+
+export interface AdminWithdrawalRow {
+  uuid: string;
+  user: { uuid: string | null; name: string | null };
+  amount_kopecks: number;
+  method: string;
+  destination: string;
+  status: string;
+  created_at: string | null;
+}
+
+export async function fetchAdminWithdrawals(query: { status?: string; page?: number } = {}): Promise<{ data: AdminWithdrawalRow[]; meta: AdminMeta }> {
+  const res = await api<{ data: AdminWithdrawalRow[]; meta: AdminMeta }>("/admin/withdrawals", { query });
+  return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
+}
+
+export async function updateAdminWithdrawal(uuid: string, status: "processing" | "paid" | "rejected", adminComment?: string): Promise<void> {
+  await api(`/admin/withdrawals/${uuid}`, { method: "PATCH", json: { status, admin_comment: adminComment } });
+}
+
+export interface AdminSafeDealRow {
+  uuid: string;
+  status: string;
+  status_label: string;
+  amount_kopecks: number;
+  listing_uuid: string | null;
+  buyer?: { uuid: string | null; name: string | null };
+  seller?: { uuid: string | null; name: string | null };
+}
+
+export async function fetchAdminSafeDeals(query: { status?: string; page?: number } = {}): Promise<{ data: AdminSafeDealRow[]; meta: AdminMeta }> {
+  const res = await api<{ data: AdminSafeDealRow[]; meta: AdminMeta }>("/admin/safe-deals", { query });
+  return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
+}
+
+export async function adminReleaseSafeDeal(uuid: string): Promise<void> {
+  await api(`/admin/safe-deals/${uuid}/release`, { method: "POST" });
+}
+
+export async function adminRefundSafeDeal(uuid: string): Promise<void> {
+  await api(`/admin/safe-deals/${uuid}/refund`, { method: "POST" });
+}
+
+export interface AdminDisputeRow {
+  uuid: string;
+  status: string;
+  reason: string;
+  description: string | null;
+  opened_by: { uuid: string | null; name: string | null };
+  deal: AdminSafeDealRow;
+  created_at: string | null;
+}
+
+export async function fetchAdminDisputes(query: { status?: string; page?: number } = {}): Promise<{ data: AdminDisputeRow[]; meta: AdminMeta }> {
+  const res = await api<{ data: AdminDisputeRow[]; meta: AdminMeta }>("/admin/disputes", { query });
+  return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
+}
+
+export async function resolveAdminDispute(uuid: string, inFavorOf: "buyer" | "seller"): Promise<void> {
+  await api(`/admin/disputes/${uuid}/resolve`, { method: "POST", json: { in_favor_of: inFavorOf } });
+}
+

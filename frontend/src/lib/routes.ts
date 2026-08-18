@@ -20,6 +20,7 @@ export const ROUTES = {
   category: (id: string) => `/categories/${id}` as const,
   subcategory: (id: string, subId: string) => `/categories/${id}/${subId}` as const,
   subscription: "/subscription",
+  deals: "/deals",
   help: "/help",
   admin: "/admin",
   channels: "/channels",
@@ -44,6 +45,7 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   // совпадение, поэтому /ads/new матчится как отдельная секция, а не как /ads.
   "ad-create": ["/ads/new"],
   ads: ["/ads"],
+  deals: ["/deals"],
   "review-upload": ["/reviews/upload"],
   reviews: ["/reviews"],
   "my-ads": ["/my-ads"],

@@ -1,10 +1,11 @@
 import { API_BASE_URL } from "./client";
 
-export type OAuthProvider = "vk" | "yandex";
+export type OAuthProvider = "vk" | "yandex" | "max";
 
 const LABELS: Record<OAuthProvider, string> = {
   vk: "VK",
   yandex: "Яндекс",
+  max: "MAX",
 };
 
 export function oauthProviderLabel(provider: OAuthProvider): string {

@@ -43,6 +43,15 @@ export function SettingsNav({ activePath }: { activePath: string }) {
         );
       })}
       <Link
+        to="/deals"
+        className="flex items-center gap-[12px] rounded-[12px] px-[14px] py-[12px] transition-colors"
+        style={{ color: "var(--foreground)" }}
+      >
+        <ShieldCheck size={20} style={{ color: "var(--foreground-70)" }} />
+        <span className="flex-1 text-[15px] font-medium">{t("nav.deals")}</span>
+        <ExternalLink size={15} className="lg:hidden" style={{ color: "var(--foreground-30)" }} />
+      </Link>
+      <Link
         to="/my-ads"
         className="flex items-center gap-[12px] rounded-[12px] px-[14px] py-[12px] transition-colors"
         style={{ color: "var(--foreground)" }}

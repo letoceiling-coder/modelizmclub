@@ -42,6 +42,12 @@ export function formatApiErrorMessage(err: unknown, fallback: string): string {
     if (code === "email_not_verified") {
       return "Подтвердите email в настройках аккаунта.";
     }
+    if (code === "subscription_required") {
+      return err.message || "Оформите подписку, чтобы публиковать контент и пользоваться этой функцией.";
+    }
+    if (code === "insufficient_funds") {
+      return "Недостаточно средств на балансе. Пополните кошелёк.";
+    }
     if (err.errors) {
       return firstFieldError(err.errors, err.message || fallback);
     }

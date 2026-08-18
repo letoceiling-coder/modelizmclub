@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ExternalLink, Heart, Clapperboard, Settings, Crown } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ExternalLink, Heart, Clapperboard, Settings, Crown, ShieldCheck } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { ROUTES, getActiveSection } from "@/lib/routes";
@@ -14,7 +14,7 @@ import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { useStore } from "@/lib/store";
 
 interface Item {
-  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
+  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/deals" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -39,6 +39,7 @@ const ADS_ITEMS: Item[] = [
   { to: ROUTES.ads,      labelKey: "nav.catalog",  icon: Megaphone,     section: "ads" },
   { to: ROUTES.adCreate, labelKey: "nav.adCreate", icon: Plus,          section: "ad-create" },
   { to: ROUTES.myAds,    labelKey: "nav.myAds",    icon: ClipboardList, section: "my-ads", authOnly: true },
+  { to: ROUTES.deals,    labelKey: "nav.deals",    icon: ShieldCheck,   section: "deals", authOnly: true },
 ];
 
 const TAIL_ITEMS: Item[] = [

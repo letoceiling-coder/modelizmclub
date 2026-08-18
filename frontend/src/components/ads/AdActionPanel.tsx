@@ -1,4 +1,4 @@
-import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, Tag, Phone } from "lucide-react";
+import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, Tag, Phone, ShieldCheck } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 /** Deal-type (Продаю/Куплю/Обменяю) → Badge variant. Stays within the
  *  blue accent family + neutral; never the commercial-orange palette. */
@@ -22,18 +21,28 @@ interface AdActionPanelProps {
   onWrite: () => void;
   onToggleSave: () => void;
   onShare: () => void;
+  onSafeDeal?: () => void;
+  safeDealBusy?: boolean;
   phoneRevealState: "idle" | "loading" | "revealed";
   revealedPhone: string | null;
   onRevealPhone: () => void;
   className?: string;
 }
 
-export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phoneRevealState, revealedPhone, onRevealPhone, className }: AdActionPanelProps) {
-  // «Безопасная сделка» (escrow) badge is gated behind a server feature flag
-  // (default off) — same pattern as the «Маркет» link — so it only appears
-  // once ЮKassa Безопасная сделка is actually live and an admin flips it on,
-  // never promising a payment guarantee that isn't wired up yet.
-  const escrowEnabled = useFeatureFlag("escrowEnabled");
+export function AdActionPanel({
+  ad,
+  saved,
+  onWrite,
+  onToggleSave,
+  onShare,
+  onSafeDeal,
+  safeDealBusy,
+  phoneRevealState,
+  revealedPhone,
+  onRevealPhone,
+  className,
+}: AdActionPanelProps) {
+  const showSafeDeal = Boolean(onSafeDeal) && ad.status === "Продаю" && ad.price > 0;
   return (
     <Card
       className={cn("flex flex-col gap-[16px] p-[20px]", className)}
@@ -106,7 +115,12 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
       )}
 
       <div className="flex flex-col gap-[8px]">
-        <Button onClick={onWrite} size="lg" className="w-full rounded-[var(--r-button)]">
+        {showSafeDeal && (
+          <Button onClick={onSafeDeal} loading={safeDealBusy} size="lg" className="w-full rounded-[var(--r-button)]">
+            <ShieldCheck size={16} /> Купить через безопасную сделку
+          </Button>
+        )}
+        <Button onClick={onWrite} size="lg" variant={showSafeDeal ? "outline" : "default"} className="w-full rounded-[var(--r-button)]">
           <MessageSquare size={16} /> Написать продавцу
         </Button>
         {phoneRevealState === "revealed" && revealedPhone ? (
@@ -149,13 +163,13 @@ export function AdActionPanel({ ad, saved, onWrite, onToggleSave, onShare, phone
         </div>
       </div>
 
-      {escrowEnabled && (
+      {showSafeDeal && (
         <div
           className="flex items-center gap-[8px] p-[10px] text-[11px]"
           style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}
         >
           <SlotIcon slot="section.safe-deal" size={14} className="shrink-0" />
-          Безопасная сделка: оплата при получении или через эскроу.
+          Сумма замораживается на вашем балансе и переводится продавцу после подтверждения получения.
         </div>
       )}
     </Card>
