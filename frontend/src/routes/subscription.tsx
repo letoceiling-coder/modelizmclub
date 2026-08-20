@@ -367,6 +367,10 @@ function SubscriptionPage() {
         onOpenChange={(v) => { if (!v) setPending(null); }}
         amountRub={pending?.amount ?? 0}
         onSelect={runCheckout}
+        onTopUp={() => {
+          setPending(null);
+          void navigate({ to: "/settings/wallet" });
+        }}
       />
     </AppLayout>
   );

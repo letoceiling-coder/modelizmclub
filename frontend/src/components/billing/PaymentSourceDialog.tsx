@@ -15,18 +15,20 @@ import type { PayWith } from "@/lib/api/payment";
 /**
  * Lets the user pick where a paid action is charged from — the internal wallet
  * balance or an external card/acquiring checkout. Shows the current balance and
- * disables the wallet option when it can't cover `amountRub`.
+ * offers a wallet top-up when the balance cannot cover `amountRub`.
  */
 export function PaymentSourceDialog({
   open,
   onOpenChange,
   amountRub,
   onSelect,
+  onTopUp,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   amountRub: number;
   onSelect: (source: PayWith) => void;
+  onTopUp?: () => void;
 }) {
   const { t } = useTranslation();
   const [balanceKopecks, setBalanceKopecks] = useState<number | null>(null);
@@ -41,7 +43,8 @@ export function PaymentSourceDialog({
       .catch(() => setBalanceKopecks(0));
   }, [open]);
 
-  const walletCovers = balanceKopecks !== null && balanceKopecks >= Math.round(amountRub * 100);
+  const balanceKnown = balanceKopecks !== null;
+  const walletCovers = balanceKnown && balanceKopecks >= Math.round(amountRub * 100);
   const balanceRub = (balanceKopecks ?? 0) / 100;
 
   const option = (value: PayWith, icon: React.ReactNode, label: string, hint?: string, disabled?: boolean) => (
@@ -78,12 +81,27 @@ export function PaymentSourceDialog({
             t("pages.subscription.payWithWallet"),
             walletCovers
               ? t("pages.subscription.payWalletBalance", { balance: balanceRub.toLocaleString("ru-RU") })
-              : t("pages.subscription.payInsufficientBalance"),
-            !walletCovers,
+              : balanceKnown
+                ? t("pages.subscription.payInsufficientBalance")
+                : undefined,
+            balanceKnown && !walletCovers,
           )}
           {option("gateway", <CreditCard size={18} />, t("pages.subscription.payWithCard"))}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-[8px] sm:flex-col">
+          {balanceKnown && !walletCovers && onTopUp && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                onOpenChange(false);
+                onTopUp();
+              }}
+            >
+              {t("pages.subscription.payWalletTopup")}
+            </Button>
+          )}
           <Button onClick={() => { onOpenChange(false); onSelect(source); }} className="w-full">
             {t("pages.subscription.payContinue")}
           </Button>

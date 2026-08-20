@@ -18,6 +18,9 @@ import { verificationSummary } from "@/lib/access/accessTier";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/settings/account")({
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof s.redirect === "string" && s.redirect.startsWith("/") ? s.redirect : undefined,
+  }),
   component: AccountSection,
 });
 
@@ -32,6 +35,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function AccountSection() {
   const { t } = useTranslation();
+  const { redirect: afterVerify } = Route.useSearch();
   const currentUser = useStore(selectors.currentUser);
   const [loading, setLoading] = useState(!isDemoMode());
   const [accountEmail, setAccountEmail] = useState("");
@@ -76,10 +80,20 @@ function AccountSection() {
     }).finally(() => setLoading(false));
   }, [currentUser?.email, currentUser?.phone, currentUser?.email_verified, currentUser?.phone_verified, t]);
 
+  useEffect(() => {
+    if (loading || serverPhoneVerified === true) return;
+    document.getElementById("sms-verify")?.scrollIntoView({ block: "start" });
+  }, [loading, serverPhoneVerified]);
+
   const phoneMatchesVerified =
     serverPhoneVerified === true &&
     verifiedPhone !== null &&
     phone.replace(/\D/g, "") === verifiedPhone.replace(/\D/g, "");
+
+  useEffect(() => {
+    if (loading || phoneMatchesVerified) return;
+    document.getElementById("sms-verify")?.scrollIntoView({ block: "start" });
+  }, [loading, phoneMatchesVerified]);
 
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +165,9 @@ function AccountSection() {
       setSmsCode("");
       setSmsSent(false);
       toast.success(t("pages.settings.phoneVerified"));
+      if (afterVerify && afterVerify.startsWith("/") && !afterVerify.startsWith("//")) {
+        window.location.assign(afterVerify);
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("pages.settings.wrongCode"));
     } finally {
@@ -263,7 +280,7 @@ function AccountSection() {
         </form>
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <Card id="sms-verify" className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <div className="mb-[14px] flex flex-wrap items-center gap-[8px]">
           <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.phone")}</h2>
           {phoneMatchesVerified ? (

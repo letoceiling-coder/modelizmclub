@@ -34,7 +34,7 @@ export function isPublicGuestRoute(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
-/** Logged-in users must verify email + phone before using these routes. */
+/** Logged-in users must confirm SMS before using these routes. */
 export function isVerifiedRequiredRoute(pathname: string): boolean {
   if (pathname === ROUTES.friends || pathname.startsWith("/friends/")) return true;
   if (pathname === ROUTES.messenger || pathname.startsWith("/messenger/")) return true;

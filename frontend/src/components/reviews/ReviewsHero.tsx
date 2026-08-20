@@ -1,9 +1,9 @@
 import Autoplay from "embla-carousel-autoplay";
-import { Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
 import type { Video } from "@/lib/mock";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { GuardedReviewLink } from "@/components/reviews/GuardedReviewLink";
 
 export function ReviewsHero({ videos }: { videos: Video[] }) {
   if (videos.length === 0) return null;
@@ -16,9 +16,8 @@ export function ReviewsHero({ videos }: { videos: Video[] }) {
       <CarouselContent>
         {videos.map((v) => (
           <CarouselItem key={v.id}>
-            <Link
-              to="/reviews/$id"
-              params={{ id: v.id }}
+            <GuardedReviewLink
+              id={v.id}
               className="group relative block overflow-hidden"
               style={{ aspectRatio: "16 / 7", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}
             >
@@ -37,7 +36,7 @@ export function ReviewsHero({ videos }: { videos: Video[] }) {
                   {v.title}
                 </h2>
               </div>
-            </Link>
+            </GuardedReviewLink>
           </CarouselItem>
         ))}
       </CarouselContent>

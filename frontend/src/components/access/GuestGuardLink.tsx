@@ -10,10 +10,11 @@ interface Props {
   style?: React.CSSProperties;
   title?: string;
   "aria-label"?: string;
+  onAttempt?: () => void;
 }
 
 /** Internal navigation link guarded for guest access. */
-export function GuestGuardLink({ actionKey, to, children, className, style, title, "aria-label": ariaLabel }: Props) {
+export function GuestGuardLink({ actionKey, to, children, className, style, title, "aria-label": ariaLabel, onAttempt }: Props) {
   const { guardAction } = useGuestAccess();
   const navigate = useNavigate();
 
@@ -26,9 +27,10 @@ export function GuestGuardLink({ actionKey, to, children, className, style, titl
       aria-label={ariaLabel}
       onClick={(e) => {
         e.preventDefault();
+        onAttempt?.();
         guardAction(actionKey, () => {
           void navigate({ to: to as "/feed" });
-        });
+        }, to);
       }}
     >
       {children}

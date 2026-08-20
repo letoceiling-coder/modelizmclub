@@ -6,9 +6,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, VideoCategory } from "@/lib/mock";
 import { fetchVideos, fetchVideoCategories } from "@/lib/api/reviews";
 import { getWatchLater, type WatchLaterItem } from "@/lib/watch-later";
-import { Link } from "@tanstack/react-router";
 import { VideoCard } from "@/components/reviews/VideoCard";
 import { ReviewsHero } from "@/components/reviews/ReviewsHero";
+import { GuardedReviewLink } from "@/components/reviews/GuardedReviewLink";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,11 +32,7 @@ const SKELETON_COUNT = 8;
 
 function WatchLaterCard({ item }: { item: WatchLaterItem }) {
   return (
-    <Link
-      to="/reviews/$id"
-      params={{ id: item.id }}
-      className="group flex flex-col"
-    >
+    <GuardedReviewLink id={item.id} className="group flex flex-col">
       <div
         className="relative w-full overflow-hidden rounded-[var(--r-card)]"
         style={{ aspectRatio: "16 / 9", background: "var(--background-surface)" }}
@@ -52,7 +48,7 @@ function WatchLaterCard({ item }: { item: WatchLaterItem }) {
       <div className="mt-[8px] line-clamp-2 text-[13px] font-semibold leading-[1.35]" style={{ color: "var(--foreground)" }}>
         {item.title}
       </div>
-    </Link>
+    </GuardedReviewLink>
   );
 }
 

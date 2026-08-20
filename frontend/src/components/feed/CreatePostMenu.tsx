@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Plus, Send, FileText, Video } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "@/lib/toast";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import { useChannels, type Channel } from "@/lib/channels";
-import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import type { User } from "@/lib/mock";
 
 export type ComposerKind = "photo" | "video";
@@ -473,17 +471,12 @@ function InlineComposerBar({
 */
 
 export function CreatePostMenu({ me, onCompose, draftClearToken = 0 }: Props) {
-  const navigate = useNavigate();
   const { channels } = useChannels();
   const myChannel = channels.find((c) => c.isOwner);
+  const { guardAction } = useGuestAccess();
 
   const compose = (selection: ComposerSelection) => {
-    if (!isFullyVerified(me)) {
-      toast.error(verificationMessage(me));
-      navigate({ to: "/settings/account" });
-      return;
-    }
-    onCompose(selection, { text: "", files: [] });
+    guardAction("feed.compose.open", () => onCompose(selection, { text: "", files: [] }));
   };
 
   const handleSelectKind = (kind: ComposerKind, source: ComposerSourceKind) => {

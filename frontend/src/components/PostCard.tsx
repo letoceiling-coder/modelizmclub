@@ -150,7 +150,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
   const toggleComments = () => {
     if (showAllComments) {
-      focusComments();
+      commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       return;
     }
     if (commentsCount > 3) {
@@ -159,7 +159,8 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
       return;
     }
     if (!canInteract && commentsCount === 0) return;
-    guardAction("feed.post.comment", focusComments);
+    // Viewing comments is open; SMS/login gate fires when focusing the composer.
+    focusComments();
   };
 
   const toggleLike = () => {

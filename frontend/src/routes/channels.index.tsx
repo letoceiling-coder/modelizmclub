@@ -19,6 +19,7 @@ import {
 import { useStore, selectors } from "@/lib/store";
 
 import { toast } from "@/lib/toast";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 import { Button } from "@/components/ui/button";
 
@@ -573,26 +574,26 @@ function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged:
 function ChannelCard({ channel: c, subscribed, onChanged }: { channel: Channel; subscribed: boolean; onChanged: () => void }) {
 
   const { t } = useTranslation();
+  const { requirePremium } = useGuestAccess();
 
   const KindIcon = KIND_ICON[c.kind];
 
-  const onToggle = async (e: React.MouseEvent) => {
+  const onToggle = (e: React.MouseEvent) => {
 
     e.preventDefault();
 
     e.stopPropagation();
 
-    try {
-
-      await setChannelSubscription(c.slug, !subscribed);
-
-      onChanged();
-
-    } catch {
-
-      toast.error(t("pages.channels.subscribeFailed"));
-
-    }
+    requirePremium(() => {
+      void (async () => {
+        try {
+          await setChannelSubscription(c.slug, !subscribed);
+          onChanged();
+        } catch {
+          toast.error(t("pages.channels.subscribeFailed"));
+        }
+      })();
+    });
 
   };
 

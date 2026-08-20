@@ -16,6 +16,7 @@ import {
   useStore,
 } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 export interface ShareLinkPayload {
   url: string;
@@ -39,6 +40,7 @@ function shareMessage(payload: ShareLinkPayload): string {
 
 export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
   const me = useStore(selectors.currentUser);
+  const { requirePremium } = useGuestAccess();
   const dialogs = useStore(selectors.dialogsList);
   const ref = useRef<HTMLDivElement>(null);
   const open = Boolean(payload);
@@ -81,6 +83,9 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
 
   const sendTo = async (partnerId: string) => {
     if (!payload || sending) return;
+    let allowed = false;
+    requirePremium(() => { allowed = true; });
+    if (!allowed) return;
     setSending(true);
     const partner = userById(partnerId);
     const text = shareMessage(payload);

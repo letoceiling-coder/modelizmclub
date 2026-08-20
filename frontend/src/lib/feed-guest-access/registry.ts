@@ -79,6 +79,53 @@ export const GUEST_PUBLIC_ACTIONS = new Set<string>([
   "route.user",
 ]);
 
+/** Logged-in users without SMS may browse public content, but not act. */
+export const VERIFIED_BROWSE_ACTIONS = new Set<string>([
+  ...GUEST_PUBLIC_ACTIONS,
+  "feed.filter.categories",
+  "feed.category.select",
+  "feed.rail.all_categories",
+  "feed.rail.category",
+  "feed.rail.subcategory",
+  "feed.find_people.open",
+  "feed.find_people.category",
+  "layout.nav.reviews",
+  "layout.nav.channels",
+  "layout.nav.communities",
+  "layout.nav.settings",
+  "layout.header.notifications",
+  "route.reviews",
+  "route.channels",
+  "route.communities",
+  "route.settings",
+  "route.profile",
+  "route.notifications",
+]);
+
+/**
+ * SMS-verified users without a subscription may browse and use listings,
+ * but not premium social actions (posts, reactions, DMs, calls, channels, communities).
+ */
+export const FREE_WITHOUT_SUBSCRIPTION_ACTIONS = new Set<string>([
+  ...VERIFIED_BROWSE_ACTIONS,
+  "feed.filter.following",
+  "feed.filter.saved",
+  "feed.filter.scheduled",
+  "feed.post.save",
+  "layout.nav.ad_create",
+  "layout.nav.my_ads",
+  "layout.nav.deals",
+  "layout.nav.favorites",
+  "layout.nav.friends",
+  "layout.nav.messenger",
+  "route.ads_new",
+  "route.my_ads",
+  "route.deals",
+  "route.favorites",
+  "route.friends",
+  "route.messenger",
+]);
+
 const POPUP_DEFAULTS = {
   title: "Войдите в аккаунт",
   description: "Чтобы пользоваться этой функцией, войдите или зарегистрируйтесь.",

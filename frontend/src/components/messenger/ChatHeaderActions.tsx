@@ -11,6 +11,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { ConfirmCallDialog } from "@/components/calls/ConfirmCallDialog";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { calls, useCalls } from "@/lib/calls";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { groupCalls, useGroupCall } from "@/lib/groupCall";
 import { actions, useStore, selectors, markDialogDeleted } from "@/lib/store";
 
@@ -27,6 +28,7 @@ interface Props {
 
 export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialogId, pinned, onSearch, onDeleted }: Props) {
   const { t } = useTranslation();
+  const { requirePremium } = useGuestAccess();
   const meta = useStore(dialogId ? selectors.dialogMeta(dialogId) : () => ({ archived: false, muted: false, blocked: false }));
   const blocked = useStore(selectors.isBlocked(partnerId));
   const [open, setOpen] = useState(false);
@@ -208,7 +210,7 @@ export function ChatHeaderActions({ partnerId, partnerName, partnerAvatar, dialo
             toast.error(t("components.chatHeader.userBlocked"), { description: t("components.chatHeader.unblockToCall") });
             return;
           }
-          setConfirmOpen(true);
+          requirePremium(() => setConfirmOpen(true));
         }}
         disabled={callBusy}
         className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-50"

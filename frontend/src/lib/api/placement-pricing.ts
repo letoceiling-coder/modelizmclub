@@ -4,7 +4,7 @@ import { api } from "./client";
 export interface PublicPlacementPricing {
   registered_price_cents: number;
   guest_price_cents: number;
-  subscriber_default_price_cents: number | null;
+  subscriber_default_price_cents: number;
   payment_enabled: boolean;
 }
 

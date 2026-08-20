@@ -130,7 +130,11 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   }
 
   if (!res.ok) {
-    const obj = (data ?? {}) as { message?: string; errors?: Record<string, string[]> };
+    const obj = (data ?? {}) as { message?: string; errors?: Record<string, string[]>; code?: string };
+    const code = obj.code;
+    if (typeof window !== "undefined" && (code === "subscription_required" || code === "phone_not_verified")) {
+      window.dispatchEvent(new CustomEvent("modelizm:access-gate", { detail: { code } }));
+    }
     throw new ApiError(res.status, obj.message || `HTTP ${res.status}`, obj.errors, data);
   }
 

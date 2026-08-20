@@ -7,17 +7,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPrimary: () => void;
+  onConfirm: () => void;
 }
 
-/** SMS-verified user without a subscription: never auth or phone copy. */
-export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary }: Props) {
+/** Logged-in user without SMS: never a subscription paywall. */
+export function PhoneVerifyDialog({ open, onOpenChange, onConfirm }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -28,17 +28,17 @@ export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary }: Pro
             className="mb-2 grid h-12 w-12 place-items-center rounded-full"
             style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
           >
-            <Crown size={22} />
+            <Smartphone size={22} />
           </div>
-          <DialogTitle>{t("subscriptionPaywall.title")}</DialogTitle>
-          <DialogDescription>{t("subscriptionPaywall.description")}</DialogDescription>
+          <DialogTitle>{t("phoneVerify.title")}</DialogTitle>
+          <DialogDescription>{t("phoneVerify.description")}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
-          <Button type="button" className="w-full" onClick={onPrimary}>
-            {t("subscriptionPaywall.confirm")}
+          <Button type="button" className="w-full" onClick={onConfirm}>
+            {t("phoneVerify.confirm")}
           </Button>
           <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
-            {t("subscriptionPaywall.later")}
+            {t("phoneVerify.later")}
           </Button>
         </DialogFooter>
       </DialogContent>

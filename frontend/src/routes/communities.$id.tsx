@@ -13,6 +13,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
 import { fetchCommunity, fetchCommunityPosts, joinCommunity, leaveCommunity, fetchOwnedCommunities, fetchCommunityMembers, type CommunityMember } from "@/lib/api/communities";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { recordView } from "@/lib/view-history";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
@@ -416,6 +417,7 @@ function EventSignupModal({ event, onClose }: { event: DemoCommunityEvent | null
 
 function CommunityDetailPage() {
   const { t } = useTranslation();
+  const { requirePremium } = useGuestAccess();
   const tabs = useMemo(() => communityTabs(t), [t]);
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -516,23 +518,25 @@ function CommunityDetailPage() {
   const isOwner = Boolean(community.isOwner);
   const canCreatePost = isOwner || community.role === "moderator";
 
-  const toggleJoin = async () => {
+  const toggleJoin = () => {
     if (busy || isOwner) return;
-    setBusy(true);
-    const next = !joined;
-    // optimistic
-    setJoined(next);
-    setMembers((m) => Math.max(0, m + (next ? 1 : -1)));
-    try {
-      if (next) await joinCommunity(community.id);
-      else await leaveCommunity(community.id);
-    } catch {
-      // revert on failure
-      setJoined(!next);
-      setMembers((m) => Math.max(0, m + (next ? -1 : 1)));
-    } finally {
-      setBusy(false);
-    }
+    requirePremium(() => {
+      void (async () => {
+        setBusy(true);
+        const next = !joined;
+        setJoined(next);
+        setMembers((m) => Math.max(0, m + (next ? 1 : -1)));
+        try {
+          if (next) await joinCommunity(community.id);
+          else await leaveCommunity(community.id);
+        } catch {
+          setJoined(!next);
+          setMembers((m) => Math.max(0, m + (next ? -1 : 1)));
+        } finally {
+          setBusy(false);
+        }
+      })();
+    });
   };
 
   const rail = demo ? (
@@ -680,7 +684,7 @@ function CommunityDetailPage() {
           <>
             {canCreatePost && (
               <div className="mb-[16px] flex justify-end">
-                <Button type="button" onClick={() => setCreatePostOpen(true)} className="gap-[6px]">
+                <Button type="button" onClick={() => requirePremium(() => setCreatePostOpen(true))} className="gap-[6px]">
                   <Plus size={16} />
                   {posts.length > 0 ? t("pages.communityDetail.createPost") : t("pages.communityDetail.createFirstPost")}
                 </Button>
@@ -698,7 +702,7 @@ function CommunityDetailPage() {
             ) : (
               <EmptyState icon={ImageOff} title={t("pages.communityDetail.emptyPosts")} description={t("pages.communityDetail.emptyPostsDesc")} variant="compact">
                 {canCreatePost && (
-                  <Button type="button" onClick={() => setCreatePostOpen(true)} className="mt-[12px] gap-[6px]">
+                  <Button type="button" onClick={() => requirePremium(() => setCreatePostOpen(true))} className="mt-[12px] gap-[6px]">
                     <Plus size={16} />
                     {t("pages.communityDetail.createFirstPost")}
                   </Button>

@@ -2,7 +2,7 @@ import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
-import { isFullyVerified } from "@/lib/auth/verification";
+import { isPhoneVerified, isPhoneVerificationRequired } from "@/lib/auth/verification";
 import { isPublicGuestRoute, isVerifiedRequiredRoute } from "@/lib/feed-guest-access/routes";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
@@ -60,8 +60,9 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
         user = me;
       }
     }
-    if (!isFullyVerified(user)) {
-      return { to: "/settings/account", replace: true };
+    if (isPhoneVerificationRequired(user) && !isPhoneVerified(user)) {
+      const from = pathname + (typeof window !== "undefined" ? window.location.search : "");
+      return { to: "/settings/account", search: { redirect: from }, replace: true };
     }
   }
 

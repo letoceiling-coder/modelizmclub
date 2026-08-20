@@ -28,6 +28,7 @@ import { fetchMyListings } from "@/lib/api/listings";
 import { fetchFriends, updateOwnProfile, syncOwnInterests, applyOwnProfilePatch } from "@/lib/api/social";
 import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import { openConversation } from "@/lib/api/chat";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { uploadMedia } from "@/lib/api/media";
 import { CitySelect } from "@/components/ads/CitySelect";
@@ -226,7 +227,7 @@ export function ProfileView({
   isFriendInitial, friendRequestStatusInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile, onDeletePost,
 }: ProfileViewProps) {
   const { t } = useTranslation();
-  const { requireAccount } = useGuestAccess();
+  const { requireAccount, requirePremium } = useGuestAccess();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -376,7 +377,7 @@ export function ProfileView({
                   title={t("pages.profile.writeMessage")}
                   aria-label={t("pages.profile.writeMessageAria")}
                   onClick={() => {
-                    requireAccount(() => {
+                    requirePremium(() => {
                       void (async () => {
                         if (onWrite) { await onWrite(); return; }
                         if (!user.numericId || !currentUser?.id) {
@@ -386,8 +387,9 @@ export function ProfileView({
                         try {
                           const dialog = await openConversation(user.numericId, currentUser.id, user.id);
                           navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
-                        } catch {
-                          toast.error(t("pages.profile.dialogOpenFailed"));
+                        } catch (err) {
+                          const message = formatApiErrorMessage(err, t("pages.profile.dialogOpenFailed"));
+                          if (message) toast.error(message);
                         }
                       })();
                     });

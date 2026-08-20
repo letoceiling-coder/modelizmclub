@@ -20,9 +20,11 @@ import {
   type IncomingRequest,
 } from "@/lib/api/social";
 import { ApiError } from "@/lib/api/client";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { openConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -147,6 +149,7 @@ function FriendCard({
 
 function FriendsPage() {
   const { t } = useTranslation();
+  const { requirePremium } = useGuestAccess();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const me = useStore(selectors.currentUser);
@@ -361,11 +364,15 @@ function FriendsPage() {
 
   const writeTo = async (u: User) => {
     if (!u.numericId || !me) return;
+    let allowed = false;
+    requirePremium(() => { allowed = true; });
+    if (!allowed) return;
     try {
       const dialog = await openConversation(u.numericId, me.id, u.id);
       navigateMessenger({ to: "/messenger", search: { chat: dialog.id } });
-    } catch {
-      toast.error(t("pages.friends.dialogOpenFailed"));
+    } catch (err) {
+      const message = formatApiErrorMessage(err, t("pages.friends.dialogOpenFailed"));
+      if (message) toast.error(message);
     }
   };
 

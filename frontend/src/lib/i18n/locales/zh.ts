@@ -66,6 +66,18 @@ export const zh: TranslationSchema = {
     register: "Create account",
     later: "Not now",
   },
+  phoneVerify: {
+    title: "请确认手机号码",
+    description: "请确认手机号码，以使用此功能",
+    confirm: "确认号码",
+    later: "稍后",
+  },
+  subscriptionPaywall: {
+    title: "需要订阅",
+    description: "请订阅后使用此功能。",
+    confirm: "去订阅",
+    later: "稍后",
+  },
   lang: {
     title: "语言",
     ru: "Русский",
@@ -1875,6 +1887,7 @@ export const zh: TranslationSchema = {
       payWithCard: "By bank card",
       payWalletBalance: "Balance: {{balance}} ₽",
       payInsufficientBalance: "Insufficient wallet balance",
+      payWalletTopup: "Top up wallet",
       payWalletPaid: "Paid from balance",
       payContinue: "Continue",
       oneTimePaid: "Listing paid (test mode) — available when creating a listing",

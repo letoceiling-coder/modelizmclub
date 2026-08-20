@@ -8,7 +8,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { uploadMedia, validatePostVideoFile } from "@/lib/api/media";
 import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
-import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
 import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
 import { createChannelPost, POST_KIND_LABEL, type PostKind } from "@/lib/channels";
@@ -91,6 +91,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   const { t } = useTranslation();
   const categories = usePostCategories();
   const me = useStore(selectors.currentUser);
+  const { requirePremium } = useGuestAccess();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [catId, setCatId] = useState("");
@@ -251,10 +252,12 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       const videoErr = validatePostVideoFile(videoFile);
       if (videoErr) { toast.error(videoErr); return; }
     }
-    if (sel.source === "profile" && !isFullyVerified(me)) {
-      toast.error(verificationMessage(me));
-      return;
-    }
+    requirePremium(() => {
+      void runPublish();
+    });
+  };
+
+  const runPublish = async () => {
     setPublishing(true);
     try {
       const mediaIds: string[] = [];
@@ -312,7 +315,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       clearPostDraft();
       onClose?.();
     } catch (err) {
-      toast.error(formatApiErrorMessage(err, t("components.createPostForm.publishFailed")));
+      const message = formatApiErrorMessage(err, t("components.createPostForm.publishFailed"));
+      if (message) toast.error(message);
     } finally {
       setPublishing(false);
     }

@@ -138,9 +138,13 @@ class CreatePaymentController extends Controller
         try {
             $payment = $walletPayment->pay($request->user(), $amountKopecks, $type, $description, $metadata);
         } catch (InsufficientFundsException $e) {
-            throw ValidationException::withMessages([
-                'pay_with' => [$e->getMessage()],
-            ]);
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'insufficient_funds',
+                'errors' => [
+                    'pay_with' => [$e->getMessage()],
+                ],
+            ], 422);
         }
 
         return response()->json([

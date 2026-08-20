@@ -66,6 +66,18 @@ export const en: TranslationSchema = {
     register: "Create account",
     later: "Not now",
   },
+  phoneVerify: {
+    title: "Confirm your phone number",
+    description: "Confirm your phone number to use this feature",
+    confirm: "Confirm number",
+    later: "Not now",
+  },
+  subscriptionPaywall: {
+    title: "Subscription required",
+    description: "Subscribe to use this feature.",
+    confirm: "Subscribe",
+    later: "Not now",
+  },
   lang: {
     title: "Language",
     ru: "Русский",
@@ -1883,6 +1895,7 @@ export const en: TranslationSchema = {
       payWithCard: "By bank card",
       payWalletBalance: "Balance: {{balance}} ₽",
       payInsufficientBalance: "Insufficient wallet balance",
+      payWalletTopup: "Top up wallet",
       payWalletPaid: "Paid from balance",
       payContinue: "Continue",
       oneTimePaid: "Listing paid (test mode) — available when creating a listing",
@@ -2596,7 +2609,7 @@ export const en: TranslationSchema = {
     adminMonetization: {
       title: "Monetization",
       placementTitle: "Listing placement",
-      placementHint: "Prices for registered users and subscribers. Per-category prices — Categories → Listings. Free listings and subscriber discounts — in plans below.",
+      placementHint: "Prices for registered users and subscribers. Subscriber default is 20 ₽ from this setting. Per-category prices — Categories → Listings. Optional free quota — in plans below.",
       basePriceLabel: "Base price, ₽",
       registeredPriceLabel: "Registered, ₽",
       guestPriceLabel: "Guest (one-time), ₽",

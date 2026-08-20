@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 import { useStore, selectors } from "@/lib/store";
-import { isFullyVerified, verificationMessage } from "@/lib/auth/verification";
+import { isPhoneVerified, isPhoneVerificationRequired } from "@/lib/auth/verification";
 import { isDemoMode } from "@/lib/demo-mode";
 
 export function VerificationBanner() {
@@ -11,9 +11,8 @@ export function VerificationBanner() {
   // Before the boot-time session probe resolves, `me` is only the neutral
   // GUEST_USER placeholder (looks "unverified"), not the real account — bail
   // out instead of flashing an incorrect verification prompt on every reload.
-  if (!sessionResolved || isDemoMode() || isFullyVerified(me)) return null;
-
-  const message = verificationMessage(me);
+  if (!sessionResolved || isDemoMode()) return null;
+  if (!isPhoneVerificationRequired(me) || isPhoneVerified(me)) return null;
 
   return (
     <div
@@ -26,17 +25,17 @@ export function VerificationBanner() {
       <ShieldAlert size={18} className="mt-[2px] shrink-0" style={{ color: "var(--accent)" }} />
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>
-          Подтвердите аккаунт
+          Подтвердите номер телефона
         </p>
         <p className="mt-[4px] text-[13px] leading-snug" style={{ color: "var(--foreground-70)" }}>
-          {message}
+          Подтвердите номер телефона, чтобы получить доступ к этой функции
         </p>
         <Link
           to="/settings/account"
           className="mt-[8px] inline-block text-[13px] font-semibold transition-opacity hover:opacity-80"
           style={{ color: "var(--accent)" }}
         >
-          Перейти в настройки →
+          Подтвердить номер →
         </Link>
       </div>
     </div>

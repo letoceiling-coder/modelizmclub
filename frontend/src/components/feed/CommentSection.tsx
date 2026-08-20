@@ -259,7 +259,6 @@ export function CommentSection({
   const guest = useGuestAccessOptional();
   const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
-  const isGuest = guest?.isGuest === true;
 
   const handleReply = (parentId: string, text: string) => onAdd(text, parentId);
 
@@ -271,8 +270,10 @@ export function CommentSection({
     });
   };
 
+  const commentBlocked = guest ? !guest.isAllowed("feed.post.comment") : false;
+
   const promptComposerAuth = (e: { preventDefault: () => void }) => {
-    if (!isGuest) return;
+    if (!commentBlocked) return;
     e.preventDefault();
     guest?.guardAction("feed.post.comment", () => {});
   };
@@ -298,7 +299,7 @@ export function CommentSection({
           >
             <input
               value={draft}
-              readOnly={isGuest}
+              readOnly={commentBlocked}
               onPointerDown={promptComposerAuth}
               onFocus={promptComposerAuth}
               onChange={(e) => setDraft(e.target.value)}
@@ -308,7 +309,7 @@ export function CommentSection({
               style={{ color: "var(--foreground)" }}
             />
             <EmojiPicker onPick={(emoji) => {
-              if (isGuest) {
+              if (commentBlocked) {
                 guest?.guardAction("feed.post.comment", () => {});
                 return;
               }

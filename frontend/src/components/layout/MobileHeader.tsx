@@ -9,6 +9,9 @@ import { useStore, selectors } from "@/lib/store";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
 import { MobileSearchOverlay } from "@/components/layout/MobileSearchOverlay";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { ROUTES } from "@/lib/routes";
+import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
@@ -60,17 +63,19 @@ export function MobileHeader() {
             <Search size={20} />
           </button>
 
-          <Link
-            to="/favorites"
+          <GuestGuardLink
+            actionKey="layout.nav.favorites"
+            to={ROUTES.favorites}
             aria-label={t("nav.favorites")}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
           >
             <Heart size={20} />
-          </Link>
+          </GuestGuardLink>
 
-          <Link
-            to="/notifications"
+          <GuestGuardLink
+            actionKey="layout.header.notifications"
+            to={ROUTES.notifications}
             aria-label={t("nav.notifications")}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
@@ -93,7 +98,7 @@ export function MobileHeader() {
                 </span>
               )}
             </span>
-          </Link>
+          </GuestGuardLink>
 
           <MoreMenu />
         </div>
@@ -142,6 +147,21 @@ function MoreMenu() {
         <a key={s.key} href={s.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={rowClass} style={{ color: "var(--foreground)" }}>
           {inner}
         </a>
+      );
+    }
+    const actionKey = s.to ? NAV_ROUTE_TO_ACTION[s.to] : undefined;
+    if (actionKey && s.to) {
+      return (
+        <GuestGuardLink
+          key={s.key}
+          actionKey={actionKey}
+          to={s.to}
+          onAttempt={() => setOpen(false)}
+          className={rowClass}
+          style={{ color: "var(--foreground)" }}
+        >
+          {inner}
+        </GuestGuardLink>
       );
     }
     return (

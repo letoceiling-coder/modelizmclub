@@ -31,18 +31,10 @@ final class ListingPlacementConfig
         return self::priceFromSetting('listing.placement.guest_price_cents', 3000);
     }
 
-    /** Null when admin has not set a global subscriber price. */
-    public static function subscriberDefaultPriceCents(): ?int
+    /** Preferential listing price for active subscribers. Falls back to 20 ₽. */
+    public static function subscriberDefaultPriceCents(): int
     {
-        $value = SystemSetting::query()
-            ->where('key', 'listing.placement.subscriber_default_price_cents')
-            ->value('value');
-
-        if (! is_array($value) || ! array_key_exists('cents', $value) || $value['cents'] === null) {
-            return null;
-        }
-
-        return max(0, (int) $value['cents']);
+        return self::priceFromSetting('listing.placement.subscriber_default_price_cents', 2000);
     }
 
     private static function priceFromSetting(string $key, int $fallback): int

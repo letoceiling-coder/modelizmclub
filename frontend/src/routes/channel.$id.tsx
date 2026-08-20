@@ -10,6 +10,7 @@ import {
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -97,6 +98,7 @@ function ChannelPage() {
   const { tab: tabSearch, section: sectionSearch, settings: settingsSearch } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
+  const { requirePremium } = useGuestAccess();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>(tabSearch === "about" ? "about" : "posts");
@@ -145,15 +147,18 @@ function ChannelPage() {
   const visiblePublic = posts.filter((p: ChannelPost) => p.status === "published");
   const list = isOwner && showOwnerView ? posts : visiblePublic;
 
-  const onToggle = async () => {
+  const onToggle = () => {
     if (isOwner) return;
-    try {
-      // Quiet inline toggle — button state flips, no intrusive top toast.
-      await setChannelSubscription(channel.slug, !subscribed);
-      reloadChannel();
-    } catch {
-      toast.error(t("pages.channelDetail.subscribeFailed"));
-    }
+    requirePremium(() => {
+      void (async () => {
+        try {
+          await setChannelSubscription(channel.slug, !subscribed);
+          reloadChannel();
+        } catch {
+          toast.error(t("pages.channelDetail.subscribeFailed"));
+        }
+      })();
+    });
   };
 
   return (
@@ -545,6 +550,7 @@ const MAX_PHOTOS = 10;
 
 function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: string; requiresModeration: boolean; onPosted: () => void }) {
   const { t } = useTranslation();
+  const { requirePremium } = useGuestAccess();
   const [expanded, setExpanded] = useState(false);
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
@@ -591,6 +597,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
 
   const submit = async () => {
     if (!canSend) return;
+    let allowed = false;
+    requirePremium(() => { allowed = true; });
+    if (!allowed) return;
     setSending(true);
     try {
       const mediaIds: string[] = [];

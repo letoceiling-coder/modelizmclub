@@ -97,7 +97,7 @@ function AdDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
-  const { requireAccount } = useGuestAccess();
+  const { requireAccount, requirePremium } = useGuestAccess();
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -140,15 +140,16 @@ function AdDetailPage() {
   const [phoneLoading, setPhoneLoading] = useState(false);
 
   const revealPhone = () => {
-    requireAccount(() => {
+    requirePremium(() => {
       void (async () => {
         if (revealedPhone || phoneLoading) return;
         setPhoneLoading(true);
         try {
           const phone = await revealSellerPhone(id);
           actions.setRevealedPhone(id, phone);
-        } catch {
-          toast.error(t("pages.adDetail.phoneFailed"));
+        } catch (err) {
+          const message = formatApiErrorMessage(err, t("pages.adDetail.phoneFailed"));
+          if (message) toast.error(message);
         } finally {
           setPhoneLoading(false);
         }
@@ -169,13 +170,14 @@ function AdDetailPage() {
         actions.queuePendingMessage(dialog.id, queuedMessage);
       }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
-    } catch {
-      toast.error(t("pages.adDetail.dialogOpenFailed"));
+    } catch (err) {
+      const message = formatApiErrorMessage(err, t("pages.adDetail.dialogOpenFailed"));
+      if (message) toast.error(message);
     }
   };
 
   const requireAuthAndNotOwnAd = (onAllowed: () => void): void => {
-    requireAccount(() => {
+    requirePremium(() => {
       if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
         toast.info(t("pages.adDetail.ownListing"));
         return;
@@ -215,7 +217,7 @@ function AdDetailPage() {
           navigate({ to: "/deals/$uuid", params: { uuid: deal.uuid }, search: { role: "buyer" } });
         } catch (err) {
           const message = formatApiErrorMessage(err, "Не удалось создать сделку");
-          toast.error(message);
+          if (message) toast.error(message);
           const insufficient = err instanceof ApiError && (
             Boolean(err.errors?.balance) || (err.payload as { code?: string } | undefined)?.code === "insufficient_funds"
           );

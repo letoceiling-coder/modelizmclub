@@ -31,6 +31,7 @@ import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
 import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -53,6 +54,7 @@ import { CallsList } from "@/components/calls/CallsList";
 import { useChannels, formatCount } from "@/lib/channels";
 import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
@@ -472,6 +474,7 @@ function MessageBubble({
 
 function MessengerPage() {
   const { t } = useTranslation();
+  const { requirePremium } = useGuestAccess();
   const dlgs = useStore(selectors.dialogsList);
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
@@ -833,6 +836,9 @@ function MessengerPage() {
 
   const send = async () => {
     if (!text.trim() || !active) return;
+    let allowed = false;
+    requirePremium(() => { allowed = true; });
+    if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
       toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
       return;
@@ -856,13 +862,17 @@ function MessengerPage() {
     try {
       const saved = await apiSendMessage(dialogId, body, replyId);
       replaceMessage(dialogId, tempId, saved);
-    } catch {
-      toast.error(t("pages.messenger.sendFailed"));
+    } catch (err) {
+      const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
+      if (message) toast.error(message);
     }
   };
 
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
+    let allowed = false;
+    requirePremium(() => { allowed = true; });
+    if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
       toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
       return;
@@ -896,8 +906,9 @@ function MessengerPage() {
       const saved = await apiSendVoiceMessage(dialogId, uuid, durationSec, replyId);
       replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(localUrl);
-    } catch {
-      toast.error(t("pages.messenger.voiceSendFailed"));
+    } catch (err) {
+      const message = formatApiErrorMessage(err, t("pages.messenger.voiceSendFailed"));
+      if (message) toast.error(message);
     }
   };
 

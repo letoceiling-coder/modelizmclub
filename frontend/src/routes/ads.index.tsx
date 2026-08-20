@@ -345,7 +345,7 @@ function CatalogPage() {
                       <RotateCcw size={14} className="mr-[6px]" /> {t("pages.ads.resetFilters")}
                     </Button>
                   ) : (
-                    <Button onClick={() => guardAction("layout.nav.ad_create", () => navigate({ to: ROUTES.adCreate }))}>
+                    <Button onClick={() => guardAction("layout.nav.ad_create", () => navigate({ to: ROUTES.adCreate }), ROUTES.adCreate)}>
                       <Plus size={14} className="mr-[6px]" /> {t("pages.ads.postListing")}
                     </Button>
                   )}

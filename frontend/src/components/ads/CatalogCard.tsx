@@ -66,8 +66,8 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
               }
               toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
             };
-            if (guest?.isGuest) {
-              guest.requireAccount(() => {});
+            if (guest) {
+              guest.requireAccount(() => { void run(); });
               return;
             }
             void run();

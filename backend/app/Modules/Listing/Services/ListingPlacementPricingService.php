@@ -44,18 +44,11 @@ class ListingPlacementPricingService
                 if ($priceAfterSubscription === 0) {
                     $freeReason = 'subscriber_price';
                 }
-            } elseif (($globalSubscriber = ListingPlacementConfig::subscriberDefaultPriceCents()) !== null) {
-                $priceAfterSubscription = $globalSubscriber;
+            } else {
+                $priceAfterSubscription = ListingPlacementConfig::subscriberDefaultPriceCents();
                 $subscriberAdjustment = $priceAfterSubscription - $baseCents;
                 if ($priceAfterSubscription === 0) {
                     $freeReason = 'subscriber_price';
-                }
-            } elseif ((int) ($plan->listing_discount_percent ?? 0) > 0) {
-                $discount = (int) round($baseCents * $plan->listing_discount_percent / 100);
-                $priceAfterSubscription = max(0, $baseCents - $discount);
-                $subscriberAdjustment = $priceAfterSubscription - $baseCents;
-                if ($priceAfterSubscription === 0) {
-                    $freeReason = 'subscriber_discount';
                 }
             }
         }

@@ -36,14 +36,11 @@ export function firstFieldError(
 export function formatApiErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError) {
     const code = (err.payload as { code?: string } | undefined)?.code;
-    if (code === "phone_not_verified") {
-      return "Подтвердите номер телефона по SMS в настройках аккаунта.";
+    if (code === "phone_not_verified" || code === "subscription_required") {
+      return "";
     }
     if (code === "email_not_verified") {
       return "Подтвердите email в настройках аккаунта.";
-    }
-    if (code === "subscription_required") {
-      return err.message || "Оформите подписку, чтобы публиковать контент и пользоваться этой функцией.";
     }
     if (code === "insufficient_funds") {
       return "Недостаточно средств на балансе. Пополните кошелёк.";

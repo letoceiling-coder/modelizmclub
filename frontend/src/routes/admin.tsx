@@ -2081,7 +2081,7 @@ function MonetizationSection() {
   const [defaultPlacementRub, setDefaultPlacementRub] = useState(30);
   const [registeredPlacementRub, setRegisteredPlacementRub] = useState(20);
   const [guestPlacementRub, setGuestPlacementRub] = useState(30);
-  const [subscriberPlacementRub, setSubscriberPlacementRub] = useState<number | "">("");
+  const [subscriberPlacementRub, setSubscriberPlacementRub] = useState(20);
   const [savingPlacement, setSavingPlacement] = useState(false);
 
   const reloadPromos = () => fetchAdminPromocodes().then(setPromos).catch(() => {});
@@ -2102,7 +2102,7 @@ function MonetizationSection() {
       setGuestPlacementRub(readCents("listing.placement.guest_price_cents", 30));
       const subRow = s.find((x) => x.key === "listing.placement.subscriber_default_price_cents");
       const subCents = (subRow?.value as { cents?: number | null } | undefined)?.cents;
-      setSubscriberPlacementRub(subCents == null ? "" : Math.round(subCents / 100));
+      setSubscriberPlacementRub(typeof subCents === "number" ? Math.round(subCents / 100) : 20);
     }).catch(() => {});
     return () => { active = false; };
   }, []);
@@ -2143,7 +2143,7 @@ function MonetizationSection() {
         {
           key: "listing.placement.subscriber_default_price_cents",
           value: {
-            cents: subscriberPlacementRub === "" ? null : Math.max(0, Math.round(subscriberPlacementRub * 100)),
+            cents: Math.max(0, Math.round(subscriberPlacementRub * 100)),
           },
           group: "billing",
         },
@@ -2185,9 +2185,8 @@ function MonetizationSection() {
             <input
               type="number"
               min={0}
-              placeholder="—"
               value={subscriberPlacementRub}
-              onChange={(e) => setSubscriberPlacementRub(e.target.value === "" ? "" : +e.target.value)}
+              onChange={(e) => setSubscriberPlacementRub(Math.max(0, +e.target.value))}
               style={{ ...inputStyle, width: 140 }}
             />
           </label>

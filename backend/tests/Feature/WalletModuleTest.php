@@ -208,6 +208,7 @@ class WalletModuleTest extends TestCase
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/v1/payments', ['plan_slug' => 'year', 'pay_with' => 'wallet'])
             ->assertStatus(422)
+            ->assertJsonPath('code', 'insufficient_funds')
             ->assertJsonValidationErrors(['pay_with']);
     }
 

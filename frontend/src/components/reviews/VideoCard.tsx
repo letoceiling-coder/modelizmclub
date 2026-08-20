@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { Play, Eye } from "lucide-react";
 import type { Video } from "@/lib/mock";
+import { userById } from "@/lib/mock";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatDuration } from "@/lib/format-duration";
 import { cn } from "@/lib/utils";
+import { GuardedReviewLink } from "@/components/reviews/GuardedReviewLink";
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -20,13 +21,10 @@ function shortViews(n: number): string {
 export function VideoCard({ video, className }: { video: Video; className?: string }) {
   const initial = video.posterUrl || categoryPlaceholder(video.id, "");
   const [src, setSrc] = useState(initial);
+  const author = video.uploaderId ? userById(video.uploaderId) : null;
 
   return (
-    <Link
-      to="/reviews/$id"
-      params={{ id: video.id }}
-      className={cn("group flex flex-col", className)}
-    >
+    <GuardedReviewLink id={video.id} className={cn("group flex flex-col", className)}>
       <div
         className="relative overflow-hidden"
         style={{ aspectRatio: "16 / 9", background: "var(--background-surface)", borderRadius: "var(--r-card)" }}
@@ -60,11 +58,16 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
         <h3 className="line-clamp-2 text-[13.5px] font-medium leading-[1.35]" style={{ color: "var(--foreground)" }}>
           {video.title}
         </h3>
+        {author?.name && (
+          <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
+            {author.name}
+          </div>
+        )}
         <div className="flex items-center gap-[8px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
           <span className="inline-flex items-center gap-[4px]"><Eye size={12} /> {shortViews(video.views)}</span>
           {video.publishedAt && <span>· {shortDate(video.publishedAt)}</span>}
         </div>
       </div>
-    </Link>
+    </GuardedReviewLink>
   );
 }

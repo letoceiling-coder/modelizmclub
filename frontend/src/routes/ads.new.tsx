@@ -16,6 +16,7 @@ import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import { ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
+import { isInsufficientFunds } from "@/lib/api/wallet";
 import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag } from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
@@ -440,8 +441,13 @@ function NewAdPage() {
       void navigate({ to: "/my-ads" });
     } catch (err) {
       setSubmitError(true);
-      const fallback = t("pages.adsNew.publishFailed");
-      toast.error(err instanceof ApiError ? firstFieldError(err.errors, err.message || fallback) : fallback);
+      if (isInsufficientFunds(err)) {
+        toast.error(t("pages.subscription.payInsufficientBalance"));
+        void navigate({ to: "/settings/wallet" });
+      } else {
+        const fallback = t("pages.adsNew.publishFailed");
+        toast.error(err instanceof ApiError ? firstFieldError(err.errors, err.message || fallback) : fallback);
+      }
       setSubmitting(false);
     }
   };
@@ -565,6 +571,10 @@ function NewAdPage() {
         onOpenChange={(v) => { if (!v) setPendingPay(null); }}
         amountRub={pendingPay?.amountRub ?? 0}
         onSelect={(source) => void completePaidListing(source)}
+        onTopUp={() => {
+          setPendingPay(null);
+          void navigate({ to: "/settings/wallet" });
+        }}
       />
 
     </AppLayout>

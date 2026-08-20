@@ -1,11 +1,9 @@
 import { redirect } from "@tanstack/react-router";
 import type { User } from "@/lib/mock";
-import { ensureSession } from "@/lib/auth/session";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { fetchMe } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { toast } from "@/lib/toast";
 import { isAuthenticated } from "@/lib/auth/session";
 
 export function isVkOAuthUser(user: User | null | undefined): boolean {
@@ -64,13 +62,13 @@ export function verificationMessage(user: User | null | undefined): string {
     return "Подтвердите email в настройках аккаунта, чтобы выполнять действия на сайте.";
   }
   if (missingPhone) {
-    return "Подтвердите номер телефона по SMS в настройках аккаунта, чтобы выполнять действия на сайте.";
+    return "Подтвердите номер телефона, чтобы получить доступ к этой функции";
   }
   return "";
 }
 
-/** Block an action (toast + redirect) unless email and phone are verified on the server. */
-export async function requireVerifiedForAction(navigate: (opts: { to: string }) => void): Promise<boolean> {
+/** Block an action unless email and phone are verified on the server. */
+export async function requireVerifiedForAction(navigate: (opts: { to: string; search?: Record<string, string> }) => void): Promise<boolean> {
   if (isDemoMode()) return true;
   if (!isAuthenticated()) return false;
 
@@ -78,8 +76,8 @@ export async function requireVerifiedForAction(navigate: (opts: { to: string }) 
   if (user) setCurrentUser(user);
 
   if (!isFullyVerified(user)) {
-    toast.error(verificationMessage(user));
-    navigate({ to: "/settings/account" });
+    const from = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/feed";
+    navigate({ to: "/settings/account", search: { redirect: from } });
     return false;
   }
   return true;
@@ -103,6 +101,16 @@ export async function requireVerified(location?: {
   if (user) setCurrentUser(user);
 
   if (!isFullyVerified(user)) {
-    throw redirect({ to: "/settings/account" });
+    const pathname = location?.pathname ?? (typeof window !== "undefined" ? window.location.pathname : "/feed");
+    const extra =
+      typeof location?.search === "string"
+        ? location.search
+        : typeof window !== "undefined"
+          ? window.location.search
+          : "";
+    throw redirect({
+      to: "/settings/account",
+      search: { redirect: pathname + extra },
+    });
   }
 }

@@ -16,11 +16,12 @@ import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatDuration } from "@/lib/format-duration";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getToken, ApiError } from "@/lib/api/client";
-import { isDemoMode } from "@/lib/demo-mode";
+import { ApiError } from "@/lib/api/client";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { recordView } from "@/lib/view-history";
 import { isWatchLater, toggleWatchLater, notifyWatchLaterChanged } from "@/lib/watch-later";
 import { useStore, selectors } from "@/lib/store";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 const actionCls =
   "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)]";
@@ -108,6 +109,7 @@ function WatchPageInner() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [reportOpen, setReportOpen] = useState(false);
   const currentUser = useStore(selectors.currentUser);
+  const { requireAccount, requirePremium } = useGuestAccess();
 
   useEffect(() => {
     // Reuse the landing's connection gate — only affects passive/ambient loading.
@@ -156,37 +158,26 @@ function WatchPageInner() {
       toast.info(t("pages.reviews.processing"));
       return;
     }
-    if (!getToken() && !isDemoMode()) {
-      toast.info(t("pages.reviews.loginRequired"));
-      navigate({ to: "/login" });
-      return;
-    }
-    setPlayError(null);
-    setPlaying(true);
-    // Attach src + play on the next tick (after the <video> renders with src).
-    requestAnimationFrame(() => {
-      const el = videoRef.current;
-      if (!el) return;
-      el.load();
-      void el.play().catch(() => {
-        setPlayError(t("pages.reviews.playbackFailed"));
+    requireAccount(() => {
+      setPlayError(null);
+      setPlaying(true);
+      requestAnimationFrame(() => {
+        const el = videoRef.current;
+        if (!el) return;
+        el.load();
+        void el.play().catch(() => {
+          setPlayError(t("pages.reviews.playbackFailed"));
+        });
       });
+      if (!viewedRef.current) {
+        viewedRef.current = true;
+        void incrementVideoView(id).catch(() => {});
+      }
     });
-    if (!viewedRef.current) {
-      viewedRef.current = true;
-      void incrementVideoView(id).catch(() => {});
-    }
-  };
-
-  const requireAuth = () => {
-    if (getToken() || isDemoMode()) return true;
-    toast.info(t("pages.reviews.loginRequired"));
-    navigate({ to: "/login" });
-    return false;
   };
 
   const toggleLike = () => {
-    if (!requireAuth()) return;
+    requirePremium(() => {
     if (liked) {
       setLiked(false);
       setLikeCount((n) => n - 1);
@@ -212,10 +203,11 @@ function WatchPageInner() {
       }
       toast.error(t("pages.reviews.likeFailed"));
     });
+    });
   };
 
   const toggleDislike = () => {
-    if (!requireAuth()) return;
+    requirePremium(() => {
     if (disliked) {
       setDisliked(false);
       setDislikeCount((n) => n - 1);
@@ -241,6 +233,7 @@ function WatchPageInner() {
       }
       toast.error(t("pages.reviews.dislikeFailed"));
     });
+    });
   };
 
   const shareReview = async () => {
@@ -255,23 +248,28 @@ function WatchPageInner() {
 
   const toggleWatchLaterState = () => {
     if (!video) return;
-    const next = toggleWatchLater({ id: video.id, title: video.title, posterUrl: video.posterUrl });
-    setWatchLater(next);
-    notifyWatchLaterChanged();
-    toast.success(next ? t("pages.reviews.watchLaterAdded") : t("pages.reviews.watchLaterRemoved"));
+    requireAccount(() => {
+      const next = toggleWatchLater({ id: video.id, title: video.title, posterUrl: video.posterUrl });
+      setWatchLater(next);
+      notifyWatchLaterChanged();
+      toast.success(next ? t("pages.reviews.watchLaterAdded") : t("pages.reviews.watchLaterRemoved"));
+    });
   };
 
   const addComment = (text: string, parentId?: string) => {
-    void createVideoComment(id, text, parentId).then((c) => {
-      if (parentId) {
-        setComments((prev) =>
-          prev.map((p) => (p.id === parentId ? { ...p, replies: [...(p.replies ?? []), c] } : p)),
-        );
-      } else {
-        setComments((prev) => [c, ...prev]);
-      }
-    }).catch(() => {
-      toast.error(t("pages.reviews.commentFailed"));
+    requirePremium(() => {
+      void createVideoComment(id, text, parentId).then((c) => {
+        if (parentId) {
+          setComments((prev) =>
+            prev.map((p) => (p.id === parentId ? { ...p, replies: [...(p.replies ?? []), c] } : p)),
+          );
+        } else {
+          setComments((prev) => [c, ...prev]);
+        }
+      }).catch((err) => {
+        const message = formatApiErrorMessage(err, t("pages.reviews.commentFailed"));
+        if (message) toast.error(message);
+      });
     });
   };
 
@@ -500,8 +498,7 @@ function WatchPageInner() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!requireAuth()) return;
-                  setReportOpen(true);
+                  requireAccount(() => setReportOpen(true));
                 }}
                 aria-label={t("pages.reviews.report")}
                 className={actionCls}

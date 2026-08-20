@@ -112,9 +112,8 @@ export async function withdrawFromWallet(input: {
 
 /** True when the failure is a "not enough balance" business error. */
 export function isInsufficientFunds(error: unknown): boolean {
-  return (
-    error instanceof ApiError &&
-    error.status === 422 &&
-    (error.payload as { code?: string } | undefined)?.code === "insufficient_funds"
-  );
+  if (!(error instanceof ApiError) || error.status !== 422) return false;
+  if ((error.payload as { code?: string } | undefined)?.code === "insufficient_funds") return true;
+  const payWith = error.errors?.pay_with?.[0] ?? "";
+  return /недостаточно средств|insufficient/i.test(payWith);
 }
