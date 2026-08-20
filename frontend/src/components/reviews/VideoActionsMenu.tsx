@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Flag, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
-import { getToken } from "@/lib/api/client";
+import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import type { User } from "@/lib/mock";
 
 const actionCls =
@@ -20,6 +20,7 @@ export function VideoActionsMenu({
   isOwn?: boolean;
 }) {
   const [reportOpen, setReportOpen] = useState(false);
+  const guest = useGuestAccessOptional();
 
   const share = async () => {
     const url = `${typeof window !== "undefined" ? window.location.origin : ""}/reviews/${videoId}`;
@@ -32,8 +33,8 @@ export function VideoActionsMenu({
   };
 
   const openReport = () => {
-    if (!getToken()) {
-      toast.info("Войдите, чтобы пожаловаться на обзор");
+    if (guest) {
+      guest.requireAccount(() => setReportOpen(true));
       return;
     }
     setReportOpen(true);

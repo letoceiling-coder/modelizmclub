@@ -17,19 +17,20 @@ const PUBLIC_PREFIXES = [
   "/onboarding",
 ] as const;
 
-/** Pages guests may open without checking admin route_guard (always public). */
+/** Pages guests may open without an account: feed + ads catalog (read-only), plus auth/legal. */
 export function isPublicGuestRoute(pathname: string): boolean {
   if (pathname === ROUTES.home || pathname === ROUTES.feed || pathname.startsWith("/feed/")) {
     return true;
   }
-  // Spec v4.0 §1.3: viewing reviews is public; publishing stays gated.
+  if (pathname === ROUTES.ads) return true;
   if (
-    (pathname === ROUTES.reviews || pathname.startsWith("/reviews/")) &&
-    pathname !== ROUTES.reviewUpload &&
-    !pathname.startsWith(`${ROUTES.reviewUpload}/`)
+    pathname.startsWith("/ads/") &&
+    pathname !== ROUTES.adCreate &&
+    !pathname.startsWith(`${ROUTES.adCreate}/`)
   ) {
     return true;
   }
+  if (pathname.startsWith("/user/")) return true;
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 

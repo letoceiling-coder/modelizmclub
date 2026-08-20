@@ -4,8 +4,8 @@ import { enforceClientRouteAccess } from "@/lib/auth/enforceClientRouteAccess";
 
 /**
  * Re-runs guest/auth route guards on the client after hydration and on every
- * navigation. TanStack `beforeLoad` on the root route skips during SSR, so
- * direct URL loads would otherwise bypass admin guest-access settings.
+ * navigation. Guests may only stay on public browse routes; everything else
+ * goes to /login — never to a subscription paywall.
  */
 export function RouteAccessEnforcer() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

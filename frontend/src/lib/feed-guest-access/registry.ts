@@ -30,8 +30,8 @@ export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = {
   "layout.nav.deals": false,
   "layout.nav.favorites": false,
   "layout.nav.communities": false,
-  "layout.nav.reviews": true,
-  "layout.nav.channels": true,
+  "layout.nav.reviews": false,
+  "layout.nav.channels": false,
   "layout.nav.messenger": false,
   "layout.nav.friends": false,
   "layout.nav.settings": false,
@@ -42,8 +42,8 @@ export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = {
   "route.my_ads": false,
   "route.deals": false,
   "route.favorites": false,
-  "route.reviews": true,
-  "route.channels": true,
+  "route.reviews": false,
+  "route.channels": false,
   "route.messenger": false,
   "route.friends": false,
   "route.communities": false,
@@ -64,10 +64,25 @@ export const FEED_FILTER_ACTIONS = {
 
 export type FeedFilterKey = keyof typeof FEED_FILTER_ACTIONS;
 
+/** Read-only browsing guests may do without an account. Everything else requires login. */
+export const GUEST_PUBLIC_ACTIONS = new Set<string>([
+  "feed.filter.all",
+  "feed.banner.navigate",
+  "feed.post.open",
+  "feed.post.author",
+  "feed.sponsored.click",
+  "feed.empty.action",
+  "layout.nav.feed",
+  "layout.nav.ads",
+  "layout.header.search",
+  "route.ads",
+  "route.user",
+]);
+
 const POPUP_DEFAULTS = {
-  title: "Нужна подписка",
-  description: "Войдите и оформите подписку, чтобы пользоваться этой функцией.",
-  primary_cta: "Оформить подписку",
+  title: "Войдите в аккаунт",
+  description: "Чтобы пользоваться этой функцией, войдите или зарегистрируйтесь.",
+  primary_cta: "Войти",
   secondary_cta: "Позже",
 };
 

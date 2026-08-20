@@ -5,12 +5,10 @@ import { selectors, useStore } from "@/lib/store";
 import {
   isGuestActionAllowed,
   loadFeedGuestAccess,
-  resolveDenyMode,
   subscribeFeedGuestAccess,
   type FeedGuestAccessConfig,
 } from "@/lib/feed-guest-access/store";
-import { SubscriptionPaywallDialog } from "@/components/access/SubscriptionPaywallDialog";
-import { ROUTES } from "@/lib/routes";
+import { GuestAuthDialog, guestReturnPath } from "@/components/access/GuestAuthDialog";
 
 interface GuestAccessContextValue {
   config: FeedGuestAccessConfig | null;
@@ -18,6 +16,8 @@ interface GuestAccessContextValue {
   isGuest: boolean;
   isAllowed: (actionKey: string) => boolean;
   guardAction: (actionKey: string, onAllowed: () => void) => void;
+  /** Any account-required click: show login/register, never a subscription paywall. */
+  requireAccount: (onAllowed: () => void) => void;
 }
 
 const GuestAccessContext = createContext<GuestAccessContextValue | null>(null);
@@ -28,8 +28,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   const isGuest = me.id === "guest" && !getToken();
   const [config, setConfig] = useState<FeedGuestAccessConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paywallOpen, setPaywallOpen] = useState(false);
-  const [blockedAction, setBlockedAction] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -50,39 +49,46 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     [isGuest, config],
   );
 
+  const requireAccount = useCallback(
+    (onAllowed: () => void) => {
+      if (!isGuest) {
+        onAllowed();
+        return;
+      }
+      setAuthOpen(true);
+    },
+    [isGuest],
+  );
+
   const guardAction = useCallback(
     (actionKey: string, onAllowed: () => void) => {
       if (!isGuest || isGuestActionAllowed(actionKey, config)) {
         onAllowed();
         return;
       }
-      const mode = resolveDenyMode(actionKey, config);
-      if (mode === "redirect") {
-        navigate({ to: ROUTES.subscription, search: { from: actionKey } });
-        return;
-      }
-      setBlockedAction(actionKey);
-      setPaywallOpen(true);
+      setAuthOpen(true);
     },
-    [isGuest, config, navigate],
+    [isGuest, config],
   );
 
   const value = useMemo(
-    () => ({ config, loading, isGuest, isAllowed, guardAction }),
-    [config, loading, isGuest, isAllowed, guardAction],
+    () => ({ config, loading, isGuest, isAllowed, guardAction, requireAccount }),
+    [config, loading, isGuest, isAllowed, guardAction, requireAccount],
   );
 
   return (
     <GuestAccessContext.Provider value={value}>
       {children}
-      <SubscriptionPaywallDialog
-        open={paywallOpen}
-        onOpenChange={setPaywallOpen}
-        config={config}
-        actionKey={blockedAction}
-        onPrimary={() => {
-          setPaywallOpen(false);
-          navigate({ to: ROUTES.subscription, search: blockedAction ? { from: blockedAction } : {} });
+      <GuestAuthDialog
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        onLogin={() => {
+          setAuthOpen(false);
+          navigate({ to: "/login", search: { redirect: guestReturnPath() } });
+        }}
+        onRegister={() => {
+          setAuthOpen(false);
+          navigate({ to: "/register" });
         }}
       />
     </GuestAccessContext.Provider>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
@@ -12,8 +12,8 @@ import { CatalogCardSkeleton } from "@/components/ads/CatalogCardSkeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
-import { getToken } from "@/lib/api/client";
-import { isDemoMode } from "@/lib/demo-mode";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import type { Ad } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ function CatalogPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const isAuthed = !!getToken() || isDemoMode();
+  const { guardAction } = useGuestAccess();
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -206,35 +206,20 @@ function CatalogPage() {
               {t("pages.ads.subtitle")}
             </p>
           </div>
-          {isAuthed ? (
-            <Link
-              to={ROUTES.adCreate}
-              className="inline-flex shrink-0 items-center gap-[6px] text-[13px] font-semibold"
-              style={{
-                height: 38,
-                padding: "0 14px",
-                borderRadius: "var(--r-button)",
-                background: "var(--accent)",
-                color: "var(--accent-foreground)",
-              }}
-            >
-              <Plus size={15} /> {t("pages.ads.create")}
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              className="inline-flex shrink-0 items-center gap-[6px] text-[13px] font-semibold"
-              style={{
-                height: 38,
-                padding: "0 14px",
-                borderRadius: "var(--r-button)",
-                background: "var(--accent)",
-                color: "var(--accent-foreground)",
-              }}
-            >
-              <Plus size={15} /> {t("pages.ads.create")}
-            </Link>
-          )}
+          <GuestGuardLink
+            actionKey="layout.nav.ad_create"
+            to={ROUTES.adCreate}
+            className="inline-flex shrink-0 items-center gap-[6px] text-[13px] font-semibold"
+            style={{
+              height: 38,
+              padding: "0 14px",
+              borderRadius: "var(--r-button)",
+              background: "var(--accent)",
+              color: "var(--accent-foreground)",
+            }}
+          >
+            <Plus size={15} /> {t("pages.ads.create")}
+          </GuestGuardLink>
         </div>
 
         {/* Content — persistent filter panel (xl+) + grid; drawer on <xl */}
@@ -359,13 +344,9 @@ function CatalogPage() {
                     <Button variant="outline" onClick={resetFilters}>
                       <RotateCcw size={14} className="mr-[6px]" /> {t("pages.ads.resetFilters")}
                     </Button>
-                  ) : isAuthed ? (
-                    <Button onClick={() => navigate({ to: ROUTES.adCreate })}>
-                      <Plus size={14} className="mr-[6px]" /> {t("pages.ads.postListing")}
-                    </Button>
                   ) : (
-                    <Button onClick={() => navigate({ to: "/login" })}>
-                      {t("pages.ads.loginToPost")}
+                    <Button onClick={() => guardAction("layout.nav.ad_create", () => navigate({ to: ROUTES.adCreate }))}>
+                      <Plus size={14} className="mr-[6px]" /> {t("pages.ads.postListing")}
                     </Button>
                   )}
                 </EmptyState>

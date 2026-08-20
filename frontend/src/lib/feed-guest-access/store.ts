@@ -1,5 +1,5 @@
 import { fetchFeedGuestAccess, type FeedGuestAccessConfig, type GuestAccessActionConfig } from "@/lib/api/feed-guest-access";
-import { buildDefaultFeedGuestAccessConfig, GUEST_ACCESS_DEFAULTS } from "@/lib/feed-guest-access/registry";
+import { buildDefaultFeedGuestAccessConfig, GUEST_ACCESS_DEFAULTS, GUEST_PUBLIC_ACTIONS } from "@/lib/feed-guest-access/registry";
 
 let cached: FeedGuestAccessConfig | null = null;
 let loadPromise: Promise<FeedGuestAccessConfig> | null = null;
@@ -49,8 +49,8 @@ function effectiveConfig(config?: FeedGuestAccessConfig | null): FeedGuestAccess
   return config ?? cached ?? buildDefaultFeedGuestAccessConfig();
 }
 
-export function isGuestActionAllowed(actionKey: string, config?: FeedGuestAccessConfig | null): boolean {
-  return resolveAction(effectiveConfig(config), actionKey).allowed;
+export function isGuestActionAllowed(actionKey: string, _config?: FeedGuestAccessConfig | null): boolean {
+  return GUEST_PUBLIC_ACTIONS.has(actionKey);
 }
 
 export function resolveDenyMode(actionKey: string, config?: FeedGuestAccessConfig | null): "popup" | "redirect" {

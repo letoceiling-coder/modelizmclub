@@ -20,7 +20,7 @@ export type AccessCapability =
 const CAPABILITIES: Record<AccessCapability, AccessTier[]> = {
   browseListings: ["guest", "registered", "verified", "subscriber"],
   browseFeed: ["guest", "registered", "verified", "subscriber"],
-  viewReviews: ["guest", "registered", "verified", "subscriber"],
+  viewReviews: ["registered", "verified", "subscriber"],
   createContent: ["verified", "subscriber"],
   paidListing: ["verified", "subscriber"],
 };

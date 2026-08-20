@@ -8,6 +8,7 @@ import { approveModeration } from "@/lib/api/admin";
 import { isDemoMode } from "@/lib/demo-mode";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import type { User } from "@/lib/mock";
 import {
   DropdownMenu,
@@ -67,6 +68,7 @@ export function PostActionMenu({
   onCancelSchedule,
 }: Props) {
   const { t } = useTranslation();
+  const guest = useGuestAccessOptional();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -83,21 +85,31 @@ export function PostActionMenu({
   const close = () => setOpen(false);
 
   const handleSave = () => {
-    if (onToggleSave) onToggleSave();
-    else actions.savePost(postId, !saved);
-    toast.success(saved ? t("components.postActionMenu.savedRemoved") : t("components.postActionMenu.savedAdded"));
     close();
+    const run = () => {
+      if (onToggleSave) onToggleSave();
+      else actions.savePost(postId, !saved);
+      toast.success(saved ? t("components.postActionMenu.savedRemoved") : t("components.postActionMenu.savedAdded"));
+    };
+    if (guest) guest.guardAction("feed.post.save", run);
+    else run();
   };
 
   const handleHide = () => {
     close();
-    onHide?.();
-    toast.success(t("components.postActionMenu.hidden"));
+    const run = () => {
+      onHide?.();
+      toast.success(t("components.postActionMenu.hidden"));
+    };
+    if (guest) guest.requireAccount(run);
+    else run();
   };
 
   const handleReport = () => {
     close();
-    setReportOpen(true);
+    const run = () => setReportOpen(true);
+    if (guest) guest.requireAccount(run);
+    else run();
   };
 
   const handleCopy = async () => {

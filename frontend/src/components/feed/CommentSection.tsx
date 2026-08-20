@@ -6,10 +6,10 @@ import type { Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { toast } from "@/lib/toast";
 import { reactToComment } from "@/lib/api/feed";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +67,15 @@ function CommentAvatar({ authorId, name }: { authorId: string; name: string }) {
   return <img src={src} alt={name} className="h-[32px] w-[32px] shrink-0 rounded-full object-cover" />;
 }
 
+function runGuarded(
+  guest: ReturnType<typeof useGuestAccessOptional>,
+  actionKey: string,
+  onAllowed: () => void,
+) {
+  if (guest) guest.guardAction(actionKey, onAllowed);
+  else onAllowed();
+}
+
 function CommentItem({
   comment,
   depth = 0,
@@ -79,6 +88,7 @@ function CommentItem({
   readOnly?: boolean;
 }) {
   const { t } = useTranslation();
+  const guest = useGuestAccessOptional();
   const me = useStore(selectors.currentUser);
   const author = userById(comment.authorId);
   const [liked, setLiked] = useState(false);
@@ -90,18 +100,22 @@ function CommentItem({
 
   const submit = () => {
     if (!draft.trim()) return;
-    onReply(comment.id, draft.trim());
-    setDraft("");
-    setReplying(false);
+    runGuarded(guest, "feed.post.comment", () => {
+      onReply(comment.id, draft.trim());
+      setDraft("");
+      setReplying(false);
+    });
   };
 
   const toggleLike = () => {
-    const next = !liked;
-    setLiked(next);
-    setLikes((n) => n + (next ? 1 : -1));
-    reactToComment(comment.id, next).catch(() => {
-      setLiked(!next);
-      setLikes((n) => n + (next ? -1 : 1));
+    runGuarded(guest, "feed.post.like", () => {
+      const next = !liked;
+      setLiked(next);
+      setLikes((n) => n + (next ? 1 : -1));
+      reactToComment(comment.id, next).catch(() => {
+        setLiked(!next);
+        setLikes((n) => n + (next ? -1 : 1));
+      });
     });
   };
 
@@ -141,7 +155,7 @@ function CommentItem({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setReportOpen(true)}>
+                    <DropdownMenuItem onClick={() => runGuarded(guest, "feed.post.comment", () => setReportOpen(true))}>
                       {t("components.commentSection.report")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -162,7 +176,11 @@ function CommentItem({
               {likes > 0 && <span>{likes}</span>}
             </button>
             {!readOnly && depth < 1 && (
-              <button type="button" onClick={() => setReplying((v) => !v)} className="flex items-center gap-[4px] hover:opacity-80">
+              <button
+                type="button"
+                onClick={() => runGuarded(guest, "feed.post.comment", () => setReplying((v) => !v))}
+                className="flex items-center gap-[4px] hover:opacity-80"
+              >
                 <Reply className="h-[12px] w-[12px]" /> {t("components.commentSection.reply")}
               </button>
             )}
@@ -238,15 +256,25 @@ export function CommentSection({
   totalCount,
 }: Props) {
   const { t } = useTranslation();
+  const guest = useGuestAccessOptional();
   const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
+  const isGuest = guest?.isGuest === true;
 
   const handleReply = (parentId: string, text: string) => onAdd(text, parentId);
 
   const submit = () => {
-    if (!draft.trim()) return;
-    onAdd(draft.trim());
-    setDraft("");
+    runGuarded(guest, "feed.post.comment", () => {
+      if (!draft.trim()) return;
+      onAdd(draft.trim());
+      setDraft("");
+    });
+  };
+
+  const promptComposerAuth = (e: { preventDefault: () => void }) => {
+    if (!isGuest) return;
+    e.preventDefault();
+    guest?.guardAction("feed.post.comment", () => {});
   };
 
   const visibleComments = useMemo(() => {
@@ -270,13 +298,22 @@ export function CommentSection({
           >
             <input
               value={draft}
+              readOnly={isGuest}
+              onPointerDown={promptComposerAuth}
+              onFocus={promptComposerAuth}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
               placeholder={t("components.commentSection.placeholder")}
               className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
               style={{ color: "var(--foreground)" }}
             />
-            <EmojiPicker onPick={(emoji) => setDraft((v) => v + emoji)} align="end" compact />
+            <EmojiPicker onPick={(emoji) => {
+              if (isGuest) {
+                guest?.guardAction("feed.post.comment", () => {});
+                return;
+              }
+              setDraft((v) => v + emoji);
+            }} align="end" compact />
             <button
               type="button"
               onClick={submit}

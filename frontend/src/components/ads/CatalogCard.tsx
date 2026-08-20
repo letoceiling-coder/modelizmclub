@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { toast } from "@/lib/toast";
 import type { Ad } from "@/lib/mock";
@@ -10,12 +10,13 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { getToken } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useStore, actions, selectors } from "@/lib/store";
+import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 
 export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
   const initial = ad.gallery?.[0] ?? ad.image ?? "";
   const [src, setSrc] = useState(initial);
-  const navigate = useNavigate();
+  const guest = useGuestAccessOptional();
 
   return (
     <Card
@@ -47,28 +48,29 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
         <button
           type="button"
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
-          onClick={async (e) => {
+          onClick={(e) => {
             e.preventDefault();
-            if (!getToken() && !isDemoMode()) {
-              toast.info("Войдите, чтобы добавить в избранное");
-              navigate({ to: "/login" });
+            const run = async () => {
+              if (!getToken() && !isDemoMode()) return;
+              const next = !fav;
+              actions.toggleFavoriteAd(ad.id);
+              if (!isDemoMode()) {
+                try {
+                  if (next) await addFavoriteListing(ad.id);
+                  else await removeFavoriteListing(ad.id);
+                } catch {
+                  actions.toggleFavoriteAd(ad.id);
+                  toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
+                  return;
+                }
+              }
+              toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
+            };
+            if (guest?.isGuest) {
+              guest.requireAccount(() => {});
               return;
             }
-            const next = !fav;
-            actions.toggleFavoriteAd(ad.id);
-            if (!isDemoMode()) {
-              try {
-                if (next) await addFavoriteListing(ad.id);
-                else await removeFavoriteListing(ad.id);
-              } catch {
-                actions.toggleFavoriteAd(ad.id);
-                toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
-                return;
-              }
-            }
-            // Fixed id: rapid taps (small icon, easy to double-tap) replace
-            // the previous toast instead of stacking a pile of duplicates.
-            toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
+            void run();
           }}
           className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
           style={{

@@ -3,8 +3,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
 import { isFullyVerified } from "@/lib/auth/verification";
-import { isPublicGuestRoute, isVerifiedRequiredRoute, pathnameToRouteAction } from "@/lib/feed-guest-access/routes";
-import { isGuestActionAllowed, loadFeedGuestAccess, resolveDenyMode } from "@/lib/feed-guest-access/store";
+import { isPublicGuestRoute, isVerifiedRequiredRoute } from "@/lib/feed-guest-access/routes";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { getState, selectors, setCurrentUser } from "@/lib/store";
@@ -44,18 +43,8 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
 
   if (!getToken()) {
     if (isPublicGuestRoute(pathname)) return null;
-
-    const config = await loadFeedGuestAccess();
-    const actionKey = pathnameToRouteAction(pathname) ?? "route.unknown";
-    if (actionKey !== "route.unknown" && isGuestActionAllowed(actionKey, config)) {
-      return null;
-    }
-
-    const mode = actionKey === "route.unknown" ? "popup" : resolveDenyMode(actionKey, config);
-    if (mode === "redirect") {
-      return { to: ROUTES.subscription, search: { from: actionKey }, replace: true };
-    }
-    return { to: ROUTES.subscription, search: { from: actionKey, paywall: "1" }, replace: true };
+    const from = pathname + (typeof window !== "undefined" ? window.location.search : "");
+    return { to: "/login", search: { redirect: from }, replace: true };
   }
 
   if (isVerifiedRequiredRoute(pathname)) {

@@ -28,6 +28,7 @@ import { fetchMyListings } from "@/lib/api/listings";
 import { fetchFriends, updateOwnProfile, syncOwnInterests, applyOwnProfilePatch } from "@/lib/api/social";
 import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import { openConversation } from "@/lib/api/chat";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { uploadMedia } from "@/lib/api/media";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -225,6 +226,7 @@ export function ProfileView({
   isFriendInitial, friendRequestStatusInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile, onDeletePost,
 }: ProfileViewProps) {
   const { t } = useTranslation();
+  const { requireAccount } = useGuestAccess();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -350,13 +352,17 @@ export function ProfileView({
                   </Button>
                 ) : (
                   <Button
-                    onClick={async () => {
-                      try {
-                        await onToggleFriend?.();
-                        toast.success(t("pages.profile.requestSent"));
-                      } catch {
-                        toast.error(t("pages.profile.requestFailed"));
-                      }
+                    onClick={() => {
+                      requireAccount(() => {
+                        void (async () => {
+                          try {
+                            await onToggleFriend?.();
+                            toast.success(t("pages.profile.requestSent"));
+                          } catch {
+                            toast.error(t("pages.profile.requestFailed"));
+                          }
+                        })();
+                      });
                     }}
                     className="h-[40px] flex-1 rounded-[10px] md:flex-none"
                   >
@@ -369,18 +375,22 @@ export function ProfileView({
                   size="icon"
                   title={t("pages.profile.writeMessage")}
                   aria-label={t("pages.profile.writeMessageAria")}
-                  onClick={async () => {
-                    if (onWrite) { await onWrite(); return; }
-                    if (!user.numericId || !currentUser?.id) {
-                      toast.error(t("pages.profile.dialogOpenFailed"));
-                      return;
-                    }
-                    try {
-                      const dialog = await openConversation(user.numericId, currentUser.id, user.id);
-                      navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
-                    } catch {
-                      toast.error(t("pages.profile.dialogOpenFailed"));
-                    }
+                  onClick={() => {
+                    requireAccount(() => {
+                      void (async () => {
+                        if (onWrite) { await onWrite(); return; }
+                        if (!user.numericId || !currentUser?.id) {
+                          toast.error(t("pages.profile.dialogOpenFailed"));
+                          return;
+                        }
+                        try {
+                          const dialog = await openConversation(user.numericId, currentUser.id, user.id);
+                          navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
+                        } catch {
+                          toast.error(t("pages.profile.dialogOpenFailed"));
+                        }
+                      })();
+                    });
                   }}
                   className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
                 >
@@ -390,16 +400,20 @@ export function ProfileView({
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={async () => {
-                    const next = !subscribed;
-                    setSubscribed(next);
-                    try {
-                      await onToggleFollow?.(next);
-                      toast.success(next ? t("pages.profile.followed") : t("pages.profile.unfollowed"));
-                    } catch {
-                      setSubscribed(!next);
-                      toast.error(t("pages.profile.followFailed"));
-                    }
+                  onClick={() => {
+                    requireAccount(() => {
+                      void (async () => {
+                        const next = !subscribed;
+                        setSubscribed(next);
+                        try {
+                          await onToggleFollow?.(next);
+                          toast.success(next ? t("pages.profile.followed") : t("pages.profile.unfollowed"));
+                        } catch {
+                          setSubscribed(!next);
+                          toast.error(t("pages.profile.followFailed"));
+                        }
+                      })();
+                    });
                   }}
                   className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
                   style={{ color: subscribed ? "var(--accent)" : "var(--foreground-70)" }}

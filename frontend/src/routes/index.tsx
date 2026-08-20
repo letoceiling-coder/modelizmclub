@@ -16,12 +16,13 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
 import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
-import { getToken } from "@/lib/api/client";
 import { toast } from "@/lib/toast";
 import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
 import { fetchLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
 import { fetchLandingFaq, type FaqArticle } from "@/lib/api/content";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import type { Ad } from "@/lib/mock";
@@ -603,7 +604,8 @@ function PopularListings() {
  *  action, not a fake listing. */
 function ListingCtaPlaceholder({ label }: { label: string }) {
   return (
-    <Link
+    <GuestGuardLink
+      actionKey="layout.nav.ad_create"
       to="/ads/new"
       className="group landing-tap-card landing-tap-card--lift flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col items-center justify-center gap-2 overflow-hidden p-6 text-center sm:w-auto sm:max-w-none"
       style={{ ...cardStyle, borderStyle: "dashed" }}
@@ -612,12 +614,13 @@ function ListingCtaPlaceholder({ label }: { label: string }) {
         <Plus size={22} />
       </div>
       <span className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>{label}</span>
-    </Link>
+    </GuestGuardLink>
   );
 }
 
 function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }) {
   const { t } = useTranslation();
+  const { requireAccount } = useGuestAccess();
   const fav = useStore(selectors.isAdFavorite(ad.id));
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(0);
@@ -675,25 +678,24 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
       {/* favorite */}
       <button
         aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
-        onClick={async () => {
-          if (!getToken() && !isDemoMode()) {
-            toast.info(t("pages.adDetail.loginForFavorite"));
-            navigate({ to: "/login" });
-            return;
-          }
-          const next = !fav;
-          actions.toggleFavoriteAd(ad.id);
-          if (!isDemoMode()) {
-            try {
-              if (next) await addFavoriteListing(ad.id);
-              else await removeFavoriteListing(ad.id);
-            } catch {
+        onClick={() => {
+          requireAccount(() => {
+            void (async () => {
+              const next = !fav;
               actions.toggleFavoriteAd(ad.id);
-              toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
-              return;
-            }
-          }
-          toast.success(next ? t("landing.card.favAdd") : t("landing.card.favRemove"), { id: "favorite-toggle" });
+              if (!isDemoMode()) {
+                try {
+                  if (next) await addFavoriteListing(ad.id);
+                  else await removeFavoriteListing(ad.id);
+                } catch {
+                  actions.toggleFavoriteAd(ad.id);
+                  toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
+                  return;
+                }
+              }
+              toast.success(next ? t("landing.card.favAdd") : t("landing.card.favRemove"), { id: "favorite-toggle" });
+            })();
+          });
         }}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
@@ -718,12 +720,9 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
             {[t("landing.card.hide"), t("landing.card.notInterested"), t("landing.card.report")].map((label) => (
               <button key={label} onClick={() => {
                 setMenuOpen(false);
-                if (!getToken() && !isDemoMode()) {
-                  toast.info(t("pages.adDetail.loginRequiredAction"));
-                  navigate({ to: "/login" });
-                  return;
-                }
-                toast(t("pages.adDetail.featureSoon", { label }));
+                requireAccount(() => {
+                  toast(t("pages.adDetail.featureSoon", { label }));
+                });
               }}
                 className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}

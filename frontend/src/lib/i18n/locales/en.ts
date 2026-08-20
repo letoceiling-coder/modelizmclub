@@ -59,6 +59,13 @@ export const en: TranslationSchema = {
     forgot: "Forgot password?",
     verifyEmail: "Email verification"
   },
+  guestAuth: {
+    title: "Sign in",
+    description: "Sign in or create an account to use this feature.",
+    login: "Sign in",
+    register: "Create account",
+    later: "Not now",
+  },
   lang: {
     title: "Language",
     ru: "Русский",
@@ -2965,7 +2972,7 @@ export const en: TranslationSchema = {
       saved: "Access rules saved",
       saveFailed: "Could not save",
       title: "Guest access on /feed",
-      subtitle: "Control access for signed-out users: feed clicks, menu, and URL navigation.",
+      subtitle: "Guests can browse the feed and ads catalog. Any account action opens sign-in or registration — never a subscription paywall.",
       denyBehaviorTitle: "Поведение при запрете",
       showPopup: "Show popup",
       redirectSubscription: "Redirect to /subscription",

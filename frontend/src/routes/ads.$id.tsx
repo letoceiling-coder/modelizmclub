@@ -23,11 +23,12 @@ import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
 import { openConversation } from "@/lib/api/chat";
-import { getToken, ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
 import { createSafeDeal } from "@/lib/api/safe-deals";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 import i18n from "@/lib/i18n";
 
@@ -96,6 +97,7 @@ function AdDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
+  const { requireAccount } = useGuestAccess();
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -137,22 +139,21 @@ function AdDetailPage() {
   const revealedPhone = useStore((s) => s.revealedPhones[id]) ?? null;
   const [phoneLoading, setPhoneLoading] = useState(false);
 
-  const revealPhone = async () => {
-    if (!getToken() && !isDemoMode()) {
-      toast.info(t("pages.adDetail.loginForPhone"));
-      navigate({ to: "/login" });
-      return;
-    }
-    if (revealedPhone || phoneLoading) return;
-    setPhoneLoading(true);
-    try {
-      const phone = await revealSellerPhone(id);
-      actions.setRevealedPhone(id, phone);
-    } catch {
-      toast.error(t("pages.adDetail.phoneFailed"));
-    } finally {
-      setPhoneLoading(false);
-    }
+  const revealPhone = () => {
+    requireAccount(() => {
+      void (async () => {
+        if (revealedPhone || phoneLoading) return;
+        setPhoneLoading(true);
+        try {
+          const phone = await revealSellerPhone(id);
+          actions.setRevealedPhone(id, phone);
+        } catch {
+          toast.error(t("pages.adDetail.phoneFailed"));
+        } finally {
+          setPhoneLoading(false);
+        }
+      })();
+    });
   };
 
   const proceedToConversation = async (queuedMessage: string | null) => {
@@ -173,59 +174,65 @@ function AdDetailPage() {
     }
   };
 
-  const requireAuthAndNotOwnAd = (): boolean => {
-    if (!getToken() && !isDemoMode()) {
-      toast.info(t("pages.adDetail.loginToMessage"));
-      navigate({ to: "/login" });
-      return false;
-    }
-    if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
-      toast.info(t("pages.adDetail.ownListing"));
-      return false;
-    }
-    return true;
-  };
-
-  const writeToSeller = async () => {
-    if (!ad || !requireAuthAndNotOwnAd()) return;
-    if (availableDeliveryMethods.length > 0) {
-      setDeliveryPickerOpen(true);
-      return;
-    }
-    await proceedToConversation(buildSellerIntroMessage(ad, t));
-  };
-
-  const startSafeDeal = async () => {
-    if (!ad || !requireAuthAndNotOwnAd()) return;
-    if (isDemoMode()) {
-      toast.info("Безопасная сделка доступна на боевом контуре после входа.");
-      return;
-    }
-    if (!window.confirm(`Заморозить ${ad.price.toLocaleString("ru")} ₽ на балансе кошелька и открыть безопасную сделку?`)) {
-      return;
-    }
-    setSafeDealBusy(true);
-    try {
-      const deal = await createSafeDeal(ad.id);
-      toast.success("Сделка создана, средства заморожены на балансе.");
-      navigate({ to: "/deals/$uuid", params: { uuid: deal.uuid }, search: { role: "buyer" } });
-    } catch (err) {
-      const message = formatApiErrorMessage(err, "Не удалось создать сделку");
-      toast.error(message);
-      const insufficient = err instanceof ApiError && (
-        Boolean(err.errors?.balance) || (err.payload as { code?: string } | undefined)?.code === "insufficient_funds"
-      );
-      if (insufficient) {
-        navigate({ to: "/settings/wallet" });
+  const requireAuthAndNotOwnAd = (onAllowed: () => void): void => {
+    requireAccount(() => {
+      if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
+        toast.info(t("pages.adDetail.ownListing"));
+        return;
       }
-    } finally {
-      setSafeDealBusy(false);
-    }
+      onAllowed();
+    });
   };
 
-  const askSeller = async (question: string) => {
-    if (!requireAuthAndNotOwnAd()) return;
-    await proceedToConversation(question);
+  const writeToSeller = () => {
+    if (!ad) return;
+    requireAuthAndNotOwnAd(() => {
+      void (async () => {
+        if (availableDeliveryMethods.length > 0) {
+          setDeliveryPickerOpen(true);
+          return;
+        }
+        await proceedToConversation(buildSellerIntroMessage(ad, t));
+      })();
+    });
+  };
+
+  const startSafeDeal = () => {
+    if (!ad) return;
+    requireAuthAndNotOwnAd(() => {
+      void (async () => {
+        if (isDemoMode()) {
+          toast.info("Безопасная сделка доступна на боевом контуре после входа.");
+          return;
+        }
+        if (!window.confirm(`Заморозить ${ad.price.toLocaleString("ru")} ₽ на балансе кошелька и открыть безопасную сделку?`)) {
+          return;
+        }
+        setSafeDealBusy(true);
+        try {
+          const deal = await createSafeDeal(ad.id);
+          toast.success("Сделка создана, средства заморожены на балансе.");
+          navigate({ to: "/deals/$uuid", params: { uuid: deal.uuid }, search: { role: "buyer" } });
+        } catch (err) {
+          const message = formatApiErrorMessage(err, "Не удалось создать сделку");
+          toast.error(message);
+          const insufficient = err instanceof ApiError && (
+            Boolean(err.errors?.balance) || (err.payload as { code?: string } | undefined)?.code === "insufficient_funds"
+          );
+          if (insufficient) {
+            navigate({ to: "/settings/wallet" });
+          }
+        } finally {
+          setSafeDealBusy(false);
+        }
+      })();
+    });
+  };
+
+  const askSeller = (question: string) => {
+    requireAuthAndNotOwnAd(() => {
+      void proceedToConversation(question);
+    });
   };
 
   if (state === "loading") {
@@ -296,30 +303,28 @@ function AdDetailPage() {
     toast.info(t("pages.adDetail.copyFromBar"));
   };
 
-  const toggleSave = async () => {
-    if (!getToken() && !isDemoMode()) {
-      toast.info(t("pages.adDetail.loginForFavorite"));
-      navigate({ to: "/login" });
-      return;
-    }
-    actions.toggleFavoriteAd(id);
-    if (!isDemoMode()) {
-      try {
-        let favoritesCount = ad.likes ?? 0;
-        if (saved) {
-          favoritesCount = await removeFavoriteListing(id);
-        } else {
-          favoritesCount = await addFavoriteListing(id);
-        }
-        setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
-      } catch {
+  const toggleSave = () => {
+    requireAccount(() => {
+      void (async () => {
         actions.toggleFavoriteAd(id);
-        toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
-        return;
-      }
-    }
-    // Fixed id: rapid taps replace the previous toast instead of stacking.
-    toast.success(saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"), { id: "favorite-toggle" });
+        if (!isDemoMode()) {
+          try {
+            let favoritesCount = ad.likes ?? 0;
+            if (saved) {
+              favoritesCount = await removeFavoriteListing(id);
+            } else {
+              favoritesCount = await addFavoriteListing(id);
+            }
+            setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
+          } catch {
+            actions.toggleFavoriteAd(id);
+            toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
+            return;
+          }
+        }
+        toast.success(saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"), { id: "favorite-toggle" });
+      })();
+    });
   };
 
   const hasDelivery = ad.delivery.length > 0;
