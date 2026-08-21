@@ -31,6 +31,7 @@ class OAuthService
             $this->ensureActiveUser($user);
             $this->syncProfileFromOAuth($user, $socialUser);
             $this->applyProviderVerification($user, $provider, $email);
+            app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($user->fresh());
 
             return $this->tokenResponse($user);
         }
@@ -42,6 +43,7 @@ class OAuthService
                 $this->ensureActiveUser($existing);
                 $this->syncProfileFromOAuth($existing, $socialUser);
                 $this->applyProviderVerification($existing, $provider, $email);
+                app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($existing->fresh());
 
                 return $this->tokenResponse($existing);
             }
@@ -68,6 +70,7 @@ class OAuthService
             $this->linkAccount($user, $provider, $providerUserId, $socialUser);
             $this->syncProfileFromOAuth($user, $socialUser);
             $this->applyProviderVerification($user, $provider, $email);
+            app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($user->fresh());
 
             return $this->tokenResponse($user);
         });

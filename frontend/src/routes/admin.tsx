@@ -48,6 +48,7 @@ import { SiteBrandingAdminCard } from "@/components/admin/SiteBrandingAdminCard"
 import { DeliveryMethodsAdminCard } from "@/components/admin/DeliveryMethodsAdminCard";
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
+import { FirstHundredAdminCard } from "@/components/admin/FirstHundredAdminCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
@@ -2233,6 +2234,8 @@ function MonetizationSection() {
       {/* Promocodes */}
       <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
 
+      <FirstHundredAdminCard cardStyle={card} />
+
       <ReferralProgramAdminCard cardStyle={card} />
 
       <AdminPaymentsAdminCard cardStyle={card} />
@@ -3155,6 +3158,7 @@ function useSettingMeta() {
         },
         first_hundred_stats: {
           label: t("pages.adminSettings.settingMeta.first_hundred_stats.label"),
+          hidden: true,
           fieldLabels: {
             taken: t("pages.adminSettings.settingMeta.first_hundred_stats.fields.taken"),
             total: t("pages.adminSettings.settingMeta.first_hundred_stats.fields.total"),
@@ -3203,6 +3207,7 @@ const CARD_MANAGED_SETTING_KEYS = new Set([
   "feature.escrow_enabled",
   "feature.feed_auto_publish",
   "feature.listing_payment_enabled",
+  "first_hundred_stats",
 ]);
 
 function SettingsSection() {

@@ -206,6 +206,10 @@ class ListingPlacementPricingService
 
     private function activeSubscription(User $user): ?UserSubscription
     {
+        if (! $user->hasActiveSubscription()) {
+            return null;
+        }
+
         return UserSubscription::query()
             ->with('plan')
             ->where('user_id', $user->id)

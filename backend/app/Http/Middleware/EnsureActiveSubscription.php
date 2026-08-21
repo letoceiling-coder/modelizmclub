@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\UserSubscription;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,15 +24,7 @@ class EnsureActiveSubscription
             return $next($request);
         }
 
-        $active = UserSubscription::query()
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->where(function ($q): void {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
-            })
-            ->exists();
-
-        if (! $active) {
+        if (! $user->hasActiveSubscription()) {
             return response()->json([
                 'message' => 'Оформите подписку, чтобы смотреть обзоры.',
                 'code' => 'subscription_required',

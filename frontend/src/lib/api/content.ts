@@ -47,7 +47,7 @@ export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats }>
     firstHundred: {
       taken: fh.taken ?? 0,
       total: fh.total ?? 100,
-      enabled: fh.enabled ?? true,
+      enabled: fh.enabled ?? false,
     },
   };
 }

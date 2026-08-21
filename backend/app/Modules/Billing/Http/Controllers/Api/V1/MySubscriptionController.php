@@ -18,9 +18,19 @@ class MySubscriptionController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if ($user->is_first_hundred) {
+            app(\Modules\Billing\Services\FirstHundredService::class)->syncUser($user);
+            $user->refresh();
+        }
+
+        if (! $user->hasActiveSubscription()) {
+            return response()->json(['data' => null]);
+        }
+
         $subscription = UserSubscription::query()
             ->with('plan')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->where('status', 'active')
             ->where(function ($q): void {
                 $q->whereNull('ends_at')->orWhere('ends_at', '>', now());

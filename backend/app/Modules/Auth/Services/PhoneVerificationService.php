@@ -140,10 +140,16 @@ class PhoneVerificationService
 
         $record->update(['used_at' => now()]);
 
+        $firstPhoneVerify = $user->phone_verified_at === null;
+
         $user->forceFill([
             'phone' => $phone,
             'phone_verified_at' => now(),
         ])->save();
+
+        if ($firstPhoneVerify) {
+            app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($user->fresh());
+        }
 
         return $user->fresh(['profile']);
     }

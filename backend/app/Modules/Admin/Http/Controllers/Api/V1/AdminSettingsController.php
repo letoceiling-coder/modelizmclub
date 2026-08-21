@@ -4,6 +4,7 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use App\Support\FirstHundredPromo;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -16,7 +17,16 @@ class AdminSettingsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $settings = SystemSetting::query()->orderBy('group')->orderBy('key')->get();
+        $settings = SystemSetting::query()->orderBy('group')->orderBy('key')->get()
+            ->map(function (SystemSetting $setting): SystemSetting {
+                if ($setting->key === FirstHundredPromo::SETTING_KEY) {
+                    $setting->value = array_merge(FirstHundredPromo::get(), [
+                        'taken' => FirstHundredPromo::takenCount(),
+                    ]);
+                }
+
+                return $setting;
+            });
 
         return response()->json(['data' => $settings]);
     }
@@ -27,8 +37,15 @@ class AdminSettingsController extends Controller
     {
         $updated = [];
         $oldValues = [];
+        $promoChanged = false;
 
         foreach ($request->validated('settings') as $row) {
+            $value = $row['value'];
+            if ($row['key'] === FirstHundredPromo::SETTING_KEY) {
+                $value = FirstHundredPromo::normalize($value);
+                $promoChanged = true;
+            }
+
             // Previous value is kept in the audit log so publications like
             // icon_overrides can be rolled back from /admin (see §26).
             $oldValues[$row['key']] = SystemSetting::query()->where('key', $row['key'])->first()?->value;
@@ -36,7 +53,7 @@ class AdminSettingsController extends Controller
             $setting = SystemSetting::query()->updateOrCreate(
                 ['key' => $row['key']],
                 [
-                    'value' => $row['value'],
+                    'value' => $value,
                     'group' => $row['group'] ?? 'general',
                 ],
             );
@@ -45,6 +62,20 @@ class AdminSettingsController extends Controller
 
         $audit->log($request->user(), 'admin.settings.update', null, $oldValues, ['keys' => collect($updated)->pluck('key')], $request);
 
-        return response()->json(['data' => $updated]);
+        if ($promoChanged) {
+            app(\Modules\Billing\Services\FirstHundredService::class)->reconcileAll();
+        }
+
+        $payload = collect($updated)->map(function (SystemSetting $setting): SystemSetting {
+            if ($setting->key === FirstHundredPromo::SETTING_KEY) {
+                $setting->value = array_merge(FirstHundredPromo::get(), [
+                    'taken' => FirstHundredPromo::takenCount(),
+                ]);
+            }
+
+            return $setting;
+        });
+
+        return response()->json(['data' => $payload]);
     }
 }

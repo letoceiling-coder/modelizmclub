@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { fetchStats } from "@/lib/api/content";
 
 export function FirstHundredBanner() {
-  const [stats, setStats] = useState({ taken: 0, total: 100, enabled: true });
+  const [stats, setStats] = useState({ taken: 0, total: 100, enabled: false });
 
   useEffect(() => {
     let active = true;
@@ -76,7 +76,7 @@ export function FirstHundredBanner() {
                 fontWeight: 700,
               }}
             >
-              <Crown size={12} /> Первые 100
+              <Crown size={12} /> Первые {total}
             </span>
           </div>
 
@@ -90,7 +90,7 @@ export function FirstHundredBanner() {
               maxWidth: "720px",
             }}
           >
-            Первые 100 участников получают год бесплатно
+            Первые {total} участников получают год бесплатно
           </h2>
           <p style={{ fontSize: "15px", maxWidth: "640px", opacity: 0.85, lineHeight: 1.5 }}>
             Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели клуба и получить

@@ -11,9 +11,9 @@ class FaqSeeder extends Seeder
 {
     public function run(): void
     {
-        SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->firstOrCreate(
             ['key' => 'first_hundred_stats'],
-            ['value' => ['enabled' => true, 'taken' => 47, 'total' => 100, 'plan_slug' => 'year'], 'group' => 'marketing'],
+            ['value' => ['enabled' => false, 'total' => 100, 'plan_slug' => 'year'], 'group' => 'marketing'],
         );
 
         SystemSetting::query()->updateOrCreate(

@@ -6,6 +6,7 @@ use App\Enums\RegistrationTrack;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Concerns\HasPublicUuid;
+use App\Support\FirstHundredPromo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -160,11 +161,41 @@ class User extends Authenticatable
     /** True when the user currently holds an active, non-expired subscription. */
     public function hasActiveSubscription(): bool
     {
+        if (! $this->hasUnexpiredSubscriptionRow()) {
+            return false;
+        }
+
+        if ($this->hasPaidSubscriptionPayment()) {
+            return true;
+        }
+
+        if ($this->is_first_hundred) {
+            return FirstHundredPromo::coversUser($this);
+        }
+
+        return true;
+    }
+
+    public function hasUnexpiredSubscriptionRow(): bool
+    {
         return UserSubscription::query()
             ->where('user_id', $this->id)
             ->where('status', 'active')
             ->where(function ($q): void {
                 $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->exists();
+    }
+
+    /** Paid gateway/wallet checkout for a subscription plan. */
+    public function hasPaidSubscriptionPayment(): bool
+    {
+        return Payment::query()
+            ->where('user_id', $this->id)
+            ->where('status', 'paid')
+            ->where(function ($q): void {
+                $q->whereNotNull('metadata->plan_id')
+                    ->orWhere('metadata->payable_type', 'subscription');
             })
             ->exists();
     }
