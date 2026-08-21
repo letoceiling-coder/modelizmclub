@@ -108,6 +108,26 @@ class BillingModuleTest extends TestCase
             'plan_id' => $plan->id,
             'status' => 'active',
         ]);
+
+        $payload = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/users/me/subscription')
+            ->assertOk()
+            ->assertJsonPath('data.is_active', true)
+            ->json('data');
+
+        $this->assertIsInt($payload['days_left']);
+        $this->assertSame($payload['days_left'], (int) $payload['days_left']);
+        $this->assertGreaterThan(360, $payload['days_left']);
+    }
+
+    public function test_new_user_has_no_active_subscription(): void
+    {
+        $user = $this->seedUser();
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/users/me/subscription')
+            ->assertOk()
+            ->assertJsonPath('data', null);
     }
 
     public function test_vtb_checkout_returns_form_url(): void

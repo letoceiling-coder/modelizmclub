@@ -19,10 +19,20 @@ class SubscriptionResource extends JsonResource
             'auto_renew' => (bool) $this->auto_renew,
             'is_active' => $this->status === 'active'
                 && ($this->ends_at === null || $this->ends_at->isFuture()),
-            'days_left' => $this->ends_at ? max(0, now()->diffInDays($this->ends_at, false)) : null,
+            'days_left' => $this->daysLeft(),
             'plan' => $this->whenLoaded('plan', fn () => $this->plan
                 ? new SubscriptionPlanResource($this->plan)
                 : null),
         ];
+    }
+
+    private function daysLeft(): ?int
+    {
+        if (! $this->ends_at) {
+            return null;
+        }
+
+        // Carbon 3 returns a float (e.g. 358.128); the UI must show whole days.
+        return (int) max(0, floor((float) now()->diffInDays($this->ends_at, false)));
     }
 }

@@ -3,7 +3,6 @@
 namespace Modules\Billing\Services;
 
 use App\Enums\WalletTransactionType;
-use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\FirstHundredPromo;
 use Illuminate\Support\Facades\DB;
@@ -11,11 +10,13 @@ use Illuminate\Support\Facades\DB;
 class FirstHundredService
 {
     public function __construct(
-        private readonly PaymentFulfillmentService $payments,
         private readonly WalletService $wallet,
     ) {}
 
-    /** Grant a free year subscription to early registrants (once per user). */
+    /**
+     * Mark an early registrant for the first-hundred promo (once per user).
+     * Does not activate a subscription — that happens only after a paid payment.
+     */
     public function tryGrant(User $user): bool
     {
         if ($user->is_first_hundred) {
@@ -38,24 +39,6 @@ class FirstHundredService
             if (FirstHundredPromo::takenCount() >= $config['total']) {
                 return false;
             }
-
-            $plan = SubscriptionPlan::query()
-                ->where('slug', $config['plan_slug'])
-                ->where('is_active', true)
-                ->first();
-
-            if (! $plan) {
-                $plan = SubscriptionPlan::query()
-                    ->where('is_active', true)
-                    ->orderByDesc('period_days')
-                    ->first();
-            }
-
-            if (! $plan) {
-                return false;
-            }
-
-            $this->payments->activateSubscription($locked, (int) $plan->id);
 
             $bonusKopecks = (int) ($config['bonus_kopecks'] ?? 0);
             if ($bonusKopecks > 0) {

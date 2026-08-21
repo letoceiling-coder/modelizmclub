@@ -8,7 +8,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
-use App\Models\UserSubscription;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -37,7 +36,7 @@ class FirstHundredPromoTest extends TestCase
         );
     }
 
-    public function test_email_verification_grants_first_hundred_subscription(): void
+    public function test_email_verification_marks_first_hundred_without_subscription(): void
     {
         $user = User::factory()->create([
             'status' => UserStatus::PendingVerification,
@@ -61,7 +60,7 @@ class FirstHundredPromoTest extends TestCase
 
         $user->refresh();
         $this->assertTrue($user->is_first_hundred);
-        $this->assertDatabaseHas('user_subscriptions', [
+        $this->assertDatabaseMissing('user_subscriptions', [
             'user_id' => $user->id,
             'status' => 'active',
         ]);

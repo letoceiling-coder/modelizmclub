@@ -40,8 +40,9 @@ const FREE_LIMIT = 5;
 const FREE_LEFT = 3;
 
 function daysWord(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
+  const days = Math.max(0, Math.floor(n));
+  const mod10 = days % 10;
+  const mod100 = days % 100;
   if (mod10 === 1 && mod100 !== 11) return i18n.t("pages.subscription.day");
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return i18n.t("pages.subscription.days2");
   return i18n.t("pages.subscription.days5");
@@ -134,7 +135,7 @@ function SubscriptionPage() {
     else void startPlacementCheckout(source);
   };
 
-  const daysLeft = sub?.days_left ?? 0;
+  const daysLeft = Math.max(0, Math.floor(Number(sub?.days_left ?? 0)));
   const totalDays = sub?.plan?.period_days ?? 365;
   const planName = sub?.plan?.name ?? t("pages.subscription.defaultPlanName");
 

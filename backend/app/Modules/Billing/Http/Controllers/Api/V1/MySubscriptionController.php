@@ -21,7 +21,10 @@ class MySubscriptionController extends Controller
         $subscription = UserSubscription::query()
             ->with('plan')
             ->where('user_id', $request->user()->id)
-            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->where('status', 'active')
+            ->where(function ($q): void {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
             ->orderByDesc('ends_at')
             ->orderByDesc('id')
             ->first();
