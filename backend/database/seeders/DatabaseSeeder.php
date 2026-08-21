@@ -26,5 +26,6 @@ class DatabaseSeeder extends Seeder
         $this->call(LegalComplianceSeeder::class);
         $this->call(DeliveryMethodsSeeder::class);
         $this->call(FaqSeeder::class);
+        $this->call(LandingPageSeeder::class);
     }
 }

@@ -160,14 +160,11 @@ function SectionBlock({
   const { t } = useTranslation();
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savingSection, setSavingSection] = useState(false);
-  const showDescription = section.slug === "ecosystem";
+  const showDescription = section.slug === "ecosystem" || section.slug === "steps" || section.slug === "why";
+  const showMedia = section.slug === "hero";
   const orderedIds = useMemo(() => cards.map((c) => c.id), [cards]);
 
-  const sectionLabel = section.slug === "ecosystem"
-    ? t("pages.adminLandingBlocks.sectionEcosystem")
-    : section.slug === "directions"
-      ? t("pages.adminLandingBlocks.sectionDirections")
-      : section.slug;
+  const sectionLabel = t(`pages.adminLandingBlocks.sectionLabels.${section.slug}`, { defaultValue: section.slug });
 
   const patchCard = (id: number, patch: Partial<AdminLandingCard>) => {
     onCardsChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -249,10 +246,14 @@ function SectionBlock({
           <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.blockTitleLabel")}</span>
           <input value={section.title} onChange={(e) => onSectionChange({ title: e.target.value })} style={inputStyle} />
         </label>
-        {showDescription && (
+        <label className="md:col-span-2" style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.subtitleLabel")}</span>
+          <textarea value={section.subtitle ?? ""} onChange={(e) => onSectionChange({ subtitle: e.target.value })} style={textareaStyle} />
+        </label>
+        {showMedia && (
           <label className="md:col-span-2" style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.subtitleLabel")}</span>
-            <textarea value={section.subtitle ?? ""} onChange={(e) => onSectionChange({ subtitle: e.target.value })} style={textareaStyle} />
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.mediaUrlLabel")}</span>
+            <input value={section.media_url ?? ""} onChange={(e) => onSectionChange({ media_url: e.target.value })} placeholder="/videos/herovideo.mp4" style={inputStyle} />
           </label>
         )}
         <label className="flex items-center gap-[8px]" style={{ height: 40 }}>
@@ -347,6 +348,7 @@ export function LandingBlocksAdminCard({ cardStyle }: { cardStyle: CSSProperties
                 eyebrow: section.eyebrow,
                 title: section.title,
                 subtitle: section.subtitle,
+                media_url: section.media_url,
                 is_enabled: section.is_enabled,
               })
             }

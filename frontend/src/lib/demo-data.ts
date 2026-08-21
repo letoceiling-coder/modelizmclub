@@ -631,8 +631,11 @@ export function demoFaq(): DemoFaqCategory[] {
   return [landing, ...help];
 }
 
-export function demoStats(): { firstHundred: { taken: number; total: number } } {
-  return { firstHundred: firstHundredStats };
+export function demoStats(): { firstHundred: { taken: number; total: number }; referral: { enabled: boolean; perInvite: number; maxBonus: number } } {
+  return {
+    firstHundred: firstHundredStats,
+    referral: { enabled: true, perInvite: 1, maxBonus: 10 },
+  };
 }
 
 // ── reviews / videos ─────────────────────────────────────────────────────────

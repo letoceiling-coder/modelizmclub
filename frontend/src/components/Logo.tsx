@@ -22,7 +22,7 @@ export function Logo({
       <span className="logo-plate inline-flex min-w-0 items-center justify-center">
         <img
           src={src}
-          alt="МоДелизМ"
+          alt={branding.site_name ?? "МоДелизМ"}
           height={height}
           className="object-contain block"
           style={{ height, width: "auto", maxWidth: "100%" }}

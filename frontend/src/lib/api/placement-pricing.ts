@@ -17,9 +17,11 @@ export async function fetchPublicPlacementPricing(): Promise<PublicPlacementPric
 
 export function usePublicPlacementPricing(): {
   registeredRub: number;
+  paymentEnabled: boolean;
   loading: boolean;
 } {
-  const [registeredRub, setRegisteredRub] = useState(99);
+  const [registeredRub, setRegisteredRub] = useState(20);
+  const [paymentEnabled, setPaymentEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export function usePublicPlacementPricing(): {
       .then((data) => {
         if (!active) return;
         setRegisteredRub(Math.round(data.registered_price_cents / 100));
+        setPaymentEnabled(Boolean(data.payment_enabled));
       })
       .catch(() => {})
       .finally(() => {
@@ -38,5 +41,5 @@ export function usePublicPlacementPricing(): {
     };
   }, []);
 
-  return { registeredRub, loading };
+  return { registeredRub, paymentEnabled, loading };
 }

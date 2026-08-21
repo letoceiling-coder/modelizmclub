@@ -1447,6 +1447,7 @@ export interface AdminLandingSection {
   eyebrow: string | null;
   title: string;
   subtitle: string | null;
+  media_url?: string | null;
   is_enabled: boolean;
 }
 
@@ -1473,7 +1474,7 @@ export async function fetchAdminLandingBlocks(): Promise<{
 
 export async function updateAdminLandingSection(
   slug: string,
-  patch: Partial<Pick<AdminLandingSection, "eyebrow" | "title" | "subtitle" | "is_enabled">>,
+  patch: Partial<Pick<AdminLandingSection, "eyebrow" | "title" | "subtitle" | "media_url" | "is_enabled">>,
 ): Promise<void> {
   await api(`/admin/landing/sections/${slug}`, { method: "PATCH", json: patch });
 }

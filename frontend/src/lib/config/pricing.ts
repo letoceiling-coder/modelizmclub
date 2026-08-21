@@ -1,6 +1,5 @@
 /**
  * Subscription plan display — loaded from GET /api/v1/plans (admin-managed).
- * PRICING_PLANS_FALLBACK is used only when the API is unreachable (demo/offline).
  */
 
 import type { SubscriptionPlanApi } from "@/lib/api/payment";
@@ -13,32 +12,14 @@ export interface PricingPlan {
   periodDays: number;
   savings?: string;
   best?: boolean;
+  features?: string[];
 }
-
-/** Slugs shown on /subscription and landing pricing (checkout-enabled). */
-export const SUBSCRIPTION_CHECKOUT_SLUGS = ["month", "half", "year"] as const;
 
 const PLAN_MONTHS: Record<string, number> = {
   month: 1,
   half: 6,
   year: 12,
 };
-
-export const PRICING_PLANS_FALLBACK: PricingPlan[] = markBestPlan([
-  { id: "month", name: "Месяц", price: 99, period: "месяц", periodDays: 30 },
-  { id: "half", name: "Полгода", price: 499, period: "6 месяцев", periodDays: 180 },
-  { id: "year", name: "Год", price: 799, period: "12 месяцев", periodDays: 365 },
-]);
-
-/** Same benefits apply to every tier — only price/duration differ. */
-export const PRICING_FEATURES: string[] = [
-  "Доступ ко всем каналам и сообществам",
-  "Размещение объявлений без ограничений",
-  "Сообщения и звонки внутри платформы",
-  "Публикации постов в ленте",
-  "Голосовые сообщения с транскрибацией",
-  "Поддержка приоритетом",
-];
 
 function periodLabel(slug: string, periodDays: number): string {
   if (slug === "month" || periodDays === 30) return "месяц";
@@ -84,7 +65,7 @@ export function mapApiPlansToPricingPlans(apiPlans: SubscriptionPlanApi[]): Pric
   );
 
   if (checkout.length === 0) {
-    return PRICING_PLANS_FALLBACK;
+    return [];
   }
 
   const mapped = checkout.map((p) => ({
@@ -93,6 +74,7 @@ export function mapApiPlansToPricingPlans(apiPlans: SubscriptionPlanApi[]): Pric
     price: Math.round(p.price_cents / 100),
     period: periodLabel(p.slug, p.period_days),
     periodDays: p.period_days,
+    features: (p.features ?? []).map((f) => f.trim()).filter(Boolean),
   }));
 
   return markBestPlan(mapped);

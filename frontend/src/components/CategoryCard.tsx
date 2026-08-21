@@ -1,12 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import * as Icons from "lucide-react";
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Category } from "@/lib/mock";
+import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 
 export function CategoryCard({ c }: { c: Category }) {
   const { t } = useTranslation();
-  const Icon = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[c.icon] ?? Icons.Box;
   return (
     <Link
       to="/categories/$id"
@@ -15,9 +14,13 @@ export function CategoryCard({ c }: { c: Category }) {
       aria-label={t("pages.categories.openCategory", { name: c.name })}
     >
       <div className="flex items-center gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-lg bg-accent text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
+        <IconBox
+          size="md"
+          variant="elevated"
+          className="h-11 w-11 shrink-0"
+        >
+          <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
+        </IconBox>
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold">{c.name}</h3>
           <p className="text-xs text-muted-foreground">{t("pages.categories.members", { count: c.members.toLocaleString(), rooms: c.subcategories.length })}</p>

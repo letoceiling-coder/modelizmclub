@@ -55,12 +55,13 @@ function HelpPage() {
     fetchFaq()
       .then((cats) => {
         if (!active) return;
+        const helpCats = cats.filter((c) => c.slug !== "landing");
         setFaqCategories([
           { id: "all", label: t("pages.help.all") },
-          ...cats.map((c) => ({ id: c.slug, label: c.name })),
+          ...helpCats.map((c) => ({ id: c.slug, label: c.name })),
         ]);
         setFaqItems(
-          cats.flatMap((c) =>
+          helpCats.flatMap((c) =>
             c.articles.map((a) => ({
               id: String(a.id),
               question: a.question,

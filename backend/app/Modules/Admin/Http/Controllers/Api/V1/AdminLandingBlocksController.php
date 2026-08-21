@@ -8,7 +8,6 @@ use App\Models\LandingSection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Modules\Admin\Services\AuditService;
 use Modules\PublicContent\Services\LandingBlocksService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -31,12 +30,13 @@ class AdminLandingBlocksController extends Controller
             'eyebrow' => ['nullable', 'string', 'max:120'],
             'title' => ['sometimes', 'string', 'max:200'],
             'subtitle' => ['nullable', 'string', 'max:2000'],
+            'media_url' => ['nullable', 'string', 'max:500'],
             'is_enabled' => ['sometimes', 'boolean'],
         ]);
 
-        $old = $section->only(['eyebrow', 'title', 'subtitle', 'is_enabled']);
+        $old = $section->only(['eyebrow', 'title', 'subtitle', 'media_url', 'is_enabled']);
         $section->update($data);
-        $audit->log($request->user(), 'admin.landing.section.update', $section, $old, $section->fresh()->only(['eyebrow', 'title', 'subtitle', 'is_enabled']), $request);
+        $audit->log($request->user(), 'admin.landing.section.update', $section, $old, $section->fresh()->only(['eyebrow', 'title', 'subtitle', 'media_url', 'is_enabled']), $request);
 
         return response()->json(['data' => $section->fresh()]);
     }
@@ -90,7 +90,7 @@ class AdminLandingBlocksController extends Controller
     public function reorderCards(Request $request, AuditService $audit): JsonResponse
     {
         $data = $request->validate([
-            'section_slug' => ['required', 'string', Rule::in(['ecosystem', 'directions'])],
+            'section_slug' => ['required', 'string', 'exists:landing_sections,slug'],
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'distinct'],
         ]);
@@ -115,7 +115,7 @@ class AdminLandingBlocksController extends Controller
         $required = $partial ? 'sometimes' : 'required';
 
         return $request->validate([
-            'section_slug' => [$required, 'string', Rule::in(['ecosystem', 'directions'])],
+            'section_slug' => [$required, 'string', 'exists:landing_sections,slug'],
             'title' => [$required, 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:64'],

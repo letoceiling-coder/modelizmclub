@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -12,6 +12,7 @@ import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER, useStore, selectors } from "@/lib/store";
 import { ROUTES } from "@/lib/routes";
+import { fetchStats } from "@/lib/api/content";
 
 const sectionStyle = {
   background: "var(--background-elevated)",
@@ -49,9 +50,39 @@ function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: nu
 }
 
 function InviteGuestCta() {
+  const [cfg, setCfg] = useState({
+    enabled: true,
+    perInvite: REFERRAL_BONUS_PER_INVITE,
+    maxBonus: REFERRAL_MAX_BONUS,
+  });
+  const [ready, setReady] = useState(isDemoMode());
+
+  useEffect(() => {
+    if (isDemoMode()) return;
+    let active = true;
+    fetchStats()
+      .then((s) => {
+        if (!active) return;
+        setCfg({
+          enabled: s.referral?.enabled ?? true,
+          perInvite: s.referral?.perInvite ?? REFERRAL_BONUS_PER_INVITE,
+          maxBonus: s.referral?.maxBonus ?? REFERRAL_MAX_BONUS,
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!ready || !cfg.enabled) return null;
+
   return (
     <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
-      <InviteHeader perInvite={REFERRAL_BONUS_PER_INVITE} maxBonus={REFERRAL_MAX_BONUS} />
+      <InviteHeader perInvite={cfg.perInvite} maxBonus={cfg.maxBonus} />
       <p className="mt-[16px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
         Войдите или создайте аккаунт, чтобы получить персональную реферальную ссылку и бонусы за приглашённых друзей.
       </p>
@@ -89,7 +120,8 @@ export function InviteBlock() {
 
 function InviteBlockAuthenticated({ meId }: { meId: string }) {
   const [copied, setCopied] = useState(false);
-  const { data } = useReferral();
+  const { data, loading } = useReferral();
+  if (!loading && data && data.enabled === false) return null;
   const link = data?.link ?? getReferralLink(meId);
   const invitedCount = data?.invitedCount ?? 0;
   const bonus = data?.bonus ?? 0;

@@ -3,7 +3,9 @@
 namespace Tests;
 
 use App\Models\Payment;
+use App\Models\SystemSetting;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 abstract class TestCase extends BaseTestCase
@@ -26,6 +28,13 @@ abstract class TestCase extends BaseTestCase
             $this->fail(
                 'Tests must use isolated database '.self::TEST_DATABASE.', got: '.$database.'. '
                 .'Run deploy/scripts/setup-test-db.sh and php artisan config:clear before testing.'
+            );
+        }
+
+        if (Schema::hasTable('system_settings')) {
+            SystemSetting::query()->firstOrCreate(
+                ['key' => 'feature.communities_enabled'],
+                ['value' => ['enabled' => true], 'group' => 'features'],
             );
         }
     }

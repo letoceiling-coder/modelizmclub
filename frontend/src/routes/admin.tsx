@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Newspaper, Megaphone, ShieldCheck, DollarSign, FolderTree,
   Bell, BarChart3, Settings, Home, Eye, Ban, Check, X, Plus, Trash2, Pencil, Send,
-  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image, FileText,
+  Upload, UserPlus, Palette, Sun, Moon, CheckCircle2, AlertCircle, Info, Inbox, Truck, Clapperboard, Image, FileText, EyeOff,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -15,7 +15,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, selectors, getState } from "@/lib/store";
-import { useFeatureFlag, setFeatureFlag, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
+import { setFeatureFlag, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import type { Tariff, PromoCode, Video } from "@/lib/mock";
@@ -2382,6 +2382,23 @@ function CategoriesSection() {
     } catch { toast.error(t("pages.adminCategories.updateFailed")); }
   };
 
+  const toggleActive = async (c: AdminCategory) => {
+    try {
+      const updated = await updateAdminCategory(kind, c.id, {
+        name: c.name,
+        slug: c.slug,
+        parentId: c.parentId,
+        icon: c.icon,
+        sortOrder: c.sortOrder,
+        isActive: !c.isActive,
+        listingPriceCents: c.listingPriceCents,
+        subscriberListingPriceCents: c.subscriberListingPriceCents,
+      });
+      setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
+      toast.success(t("pages.adminCommon.saved"));
+    } catch { toast.error(t("pages.adminCategories.updateFailed")); }
+  };
+
   const patchCategoryPrices = async (c: AdminCategory) => {
     try {
       const updated = await updateAdminCategory(kind, c.id, {
@@ -2509,6 +2526,7 @@ function CategoriesSection() {
                   </button>
                   <div className="flex gap-[4px]">
                     <IconBtn onClick={() => addSub(c)}><Plus size={14} /></IconBtn>
+                    <IconBtn onClick={() => void toggleActive(c)}>{c.isActive ? <Eye size={14} /> : <EyeOff size={14} />}</IconBtn>
                     <IconBtn onClick={() => edit(c)}><Pencil size={14} /></IconBtn>
                     <IconBtn danger onClick={() => remove(c)}><Trash2 size={14} /></IconBtn>
                   </div>
@@ -2526,8 +2544,12 @@ function CategoriesSection() {
                       {subs.map((s) => (
                         <div key={s.id}>
                           <div className="flex items-center justify-between" style={{ padding: "6px 0" }}>
-                            <span style={{ fontSize: "14px", color: "var(--foreground-70)" }}>{s.name}</span>
+                            <span className="flex items-center gap-[8px]" style={{ fontSize: "14px", color: "var(--foreground-70)" }}>
+                              {s.name}
+                              {!s.isActive && <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminCategories.hidden")}</span>}
+                            </span>
                             <div className="flex gap-[4px]">
+                              <IconBtn onClick={() => void toggleActive(s)}>{s.isActive ? <Eye size={14} /> : <EyeOff size={14} />}</IconBtn>
                               <IconBtn onClick={() => edit(s)}><Pencil size={14} /></IconBtn>
                               <IconBtn danger onClick={() => remove(s)}><Trash2 size={14} /></IconBtn>
                             </div>
@@ -3140,9 +3162,9 @@ function useSettingMeta() {
   return useMemo(
     () =>
       ({
-        "feature.communities_enabled": {
-          label: t("pages.adminSettings.settingMeta.feature_communities_enabled.label"),
-          hint: t("pages.adminSettings.settingMeta.feature_communities_enabled.hint"),
+        "feature.reviews_enabled": {
+          label: t("pages.adminSettings.settingMeta.feature_reviews_enabled.label"),
+          hint: t("pages.adminSettings.settingMeta.feature_reviews_enabled.hint"),
           hidden: true,
         },
         "feature.market_enabled": {
@@ -3217,6 +3239,7 @@ function draftsFromSettings(rows: AdminSetting[]): Record<string, unknown> {
 /** Saved immediately by dedicated cards — must not be overwritten by the bulk «Сохранить» drafts. */
 const CARD_MANAGED_SETTING_KEYS = new Set([
   "feature.communities_enabled",
+  "feature.reviews_enabled",
   "feature.market_enabled",
   "feature.escrow_enabled",
   "feature.feed_auto_publish",
@@ -3415,12 +3438,13 @@ function SettingsSection() {
     );
   };
 
-  const reviewsEnabled = useFeatureFlag("reviewsEnabled");
+  const reviewsEnabledSetting = readEnabledSetting(settings, "feature.reviews_enabled", true);
   const communitiesEnabled = readEnabledSetting(settings, "feature.communities_enabled", false);
   const marketEnabled = readEnabledSetting(settings, "feature.market_enabled", false);
   const escrowEnabled = readEnabledSetting(settings, "feature.escrow_enabled", false);
-  const listingPaymentEnabled = readEnabledSetting(settings, "feature.listing_payment_enabled", true);
+  const listingPaymentEnabled = readEnabledSetting(settings, "feature.listing_payment_enabled", false);
   const [savingCommunities, setSavingCommunities] = useState(false);
+  const [savingReviews, setSavingReviews] = useState(false);
   const [savingMarket, setSavingMarket] = useState(false);
   const [savingEscrow, setSavingEscrow] = useState(false);
   const [savingListingPayment, setSavingListingPayment] = useState(false);
@@ -3449,6 +3473,27 @@ function SettingsSection() {
       toast.error(t("pages.adminSettings.saveSettingFailed"));
     } finally {
       setSavingFeedAutoPublish(false);
+    }
+  };
+
+  const toggleReviews = async (checked: boolean) => {
+    if (isDemoMode()) {
+      toast(t("pages.adminSettings.demoModeToast"));
+      return;
+    }
+    setSavingReviews(true);
+    try {
+      const [updated] = await updateAdminSettings([
+        { key: "feature.reviews_enabled", value: { enabled: checked }, group: "features" },
+      ]);
+      setSettings((prev) => mergeAdminSettings(prev, updated ? [updated] : []));
+      setDrafts((prev) => ({ ...prev, "feature.reviews_enabled": { enabled: checked } }));
+      await loadFeatureFlagsFromServer();
+      toast.success(checked ? t("pages.adminSettings.featureCards.reviews.enabled") : t("pages.adminSettings.featureCards.reviews.disabled"));
+    } catch {
+      toast.error(t("pages.adminSettings.saveSettingFailed"));
+    } finally {
+      setSavingReviews(false);
     }
   };
 
@@ -3537,22 +3582,23 @@ function SettingsSection() {
     <div>
       <H>{t("pages.adminSettings.title")}</H>
 
-      {/* Client-only feature flags — reviews preview for this browser only. */}
+      {/* Server-persisted (SystemSetting: feature.reviews_enabled). */}
       <div style={{ ...card, padding: "24px", maxWidth: "640px", marginBottom: "20px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "4px" }}>
-          {t("pages.adminSettings.featureCards.demoFlags.title")}
+          {t("pages.adminSettings.featureCards.reviews.title")}
         </h4>
         <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
-          {t("pages.adminSettings.featureCards.demoFlags.subtitle")}
+          {t("pages.adminSettings.featureCards.reviews.subtitle")}
         </p>
-        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
+        <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36, opacity: savingReviews ? 0.6 : 1 }}>
           <input
             type="checkbox"
-            checked={reviewsEnabled}
-            onChange={(e) => setFeatureFlag("reviewsEnabled", e.target.checked)}
+            checked={reviewsEnabledSetting}
+            disabled={savingReviews}
+            onChange={(e) => void toggleReviews(e.target.checked)}
             style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.demoFlags.reviews")}</span>
+          <span style={{ fontSize: "13px", color: "var(--foreground-70)", fontWeight: 500 }}>{t("pages.adminSettings.featureCards.reviews.toggle")}</span>
         </label>
       </div>
 

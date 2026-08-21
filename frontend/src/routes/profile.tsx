@@ -299,7 +299,7 @@ export function ProfileView({
                   style={{ background: "linear-gradient(135deg, var(--gold-1, #FBBF24), var(--gold-2, #B45309))", color: "#1F1300" }}
                   title={t("pages.profile.earlyMemberBadge")}
                 >
-                  {t("pages.profile.earlyMember100")}
+                  {t("pages.profile.earlyMember100", { count: 100 })}
                 </Badge>
               )}
               {isOwn && isPhoneVerificationRequired(user) && (

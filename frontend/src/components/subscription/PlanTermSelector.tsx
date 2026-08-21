@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { PRICING_FEATURES, type PricingPlan } from "@/lib/config/pricing";
+import { type PricingPlan } from "@/lib/config/pricing";
 import { usePricingPlans } from "@/lib/hooks/usePricingPlans";
 
 interface PlanTermSelectorProps {
@@ -39,6 +39,9 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
   if (plans.length === 0) return null;
 
   const selected = plans.find((p) => p.id === termId) ?? plans[0];
+  const featuresShared = plans.every(
+    (p) => featuresFor(p).join("\n") === featuresFor(plans[0]).join("\n"),
+  );
 
   return (
     <div className={className}>
@@ -89,10 +92,10 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
           <div className="mt-[16px]">{renderCta(selected)}</div>
         </div>
 
-        <FeatureList className="mt-[24px]" />
+        <FeatureList className="mt-[24px]" items={featuresFor(selected)} />
       </div>
 
-      {/* ===== Desktop: all three plans open at once, no switcher ===== */}
+      {/* ===== Desktop: all plans open at once ===== */}
       <div className="hidden md:block">
         <div className={`grid gap-[16px] ${plans.length <= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"}`}>
           {plans.map((p) => (
@@ -120,11 +123,16 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
                 {p.savings && <SavingsBadge text={p.savings} />}
               </div>
               <div className="mt-[16px] w-full">{renderCta(p)}</div>
+              {!featuresShared && (
+                <FeatureList className="mt-[20px] w-full text-left" items={featuresFor(p)} />
+              )}
             </div>
           ))}
         </div>
 
-        <FeatureList className="mt-[28px] max-w-[420px]" center />
+        {featuresShared && (
+          <FeatureList className="mt-[28px] max-w-[420px]" center items={featuresFor(plans[0])} />
+        )}
       </div>
     </div>
   );
@@ -155,10 +163,23 @@ function SavingsBadge({ text }: { text: string }) {
   );
 }
 
-function FeatureList({ className, center }: { className?: string; center?: boolean }) {
+function featuresFor(plan: PricingPlan): string[] {
+  return plan.features?.length ? plan.features : [];
+}
+
+function FeatureList({
+  items,
+  className,
+  center,
+}: {
+  items: string[];
+  className?: string;
+  center?: boolean;
+}) {
+  if (items.length === 0) return null;
   return (
     <ul className={`space-y-[10px] ${center ? "mx-auto" : ""} ${className ?? ""}`}>
-      {PRICING_FEATURES.map((f) => (
+      {items.map((f) => (
         <li key={f} className="flex items-start gap-[10px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
           <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
           <span>{f}</span>

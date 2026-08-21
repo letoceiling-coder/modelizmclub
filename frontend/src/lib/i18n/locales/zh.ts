@@ -1237,7 +1237,7 @@ export const zh: TranslationSchema = {
       adBadgeModeration: "Under moderation",
       adBadgeRejected: "Rejected",
       adBadgeArchived: "Archived",
-      earlyMember100: "★ First 100",
+      earlyMember100: "★ First {{count}}",
       createListing: "Create listing",
       emptyAbout: "This user has not filled in their About section yet",
       editProfileTitle: "Edit profile",
@@ -2302,6 +2302,13 @@ export const zh: TranslationSchema = {
           enabled: "Communities section enabled for everyone",
           disabled: "Communities section disabled for everyone"
         },
+        reviews: {
+          title: "Reviews section",
+          subtitle: "Saved on the server and immediately shows or hides Reviews in the menu and /reviews routes for all users.",
+          toggle: "Show Reviews section to all users",
+          enabled: "Reviews section enabled for everyone",
+          disabled: "Reviews section disabled for everyone"
+        },
         market: {
           title: "Market button",
           subtitle: "Saved on the server — enables/disables the button for all users immediately, without a frontend deploy.",
@@ -2334,6 +2341,10 @@ export const zh: TranslationSchema = {
       settingMeta: {
         feature_communities_enabled: {
           label: "Show Communities section to all users",
+          hint: "The only section toggle — managed by the card above, not localStorage"
+        },
+        feature_reviews_enabled: {
+          label: "Show Reviews section to all users",
           hint: "The only section toggle — managed by the card above, not localStorage"
         },
         feature_market_enabled: {
@@ -2704,8 +2715,8 @@ export const zh: TranslationSchema = {
       title: "Ad block"
     },
     adminLanding: {
-      title: "Home page",
-      subtitle: "Blocks «What's in MoDelizM» and «Everything that moves and flies»: titles, cards, icons and links. Drag cards to reorder."
+      title: "首页",
+      subtitle: "首页全部区块（首屏、生态、广告、方向、步骤、套餐、FAQ）在此编辑。空字段不会显示在网站上。"
     },
     adminCategories: {
       title: "Categories",
@@ -2872,8 +2883,19 @@ export const zh: TranslationSchema = {
       }
     },
     adminLandingBlocks: {
-      sectionEcosystem: "Что есть в МоДелизМ",
-      sectionDirections: "Всё, что движется и летает",
+      sectionEcosystem: "МоДелизМ 里有什么",
+      sectionDirections: "会动会飞的一切",
+      sectionLabels: {
+        hero: "首屏",
+        ecosystem: "МоДелизМ 里有什么",
+        listings: "热门广告",
+        directions: "方向",
+        steps: "如何使用",
+        why: "为什么选择我们",
+        pricing: "套餐",
+        faq: "首页 FAQ",
+      },
+      mediaUrlLabel: "首屏视频 URL",
       dragAria: "Перетащить",
       titlePlaceholder: "Заголовок",
       descriptionPlaceholder: "Описание",
@@ -2990,12 +3012,18 @@ export const zh: TranslationSchema = {
       loadFailed: "Could not load footer contacts",
       saved: "Footer contacts saved",
       saveFailed: "Could not save contacts",
-      title: "Footer contacts",
-      hint: "Empty fields are hidden on the site. Social links appear only when a URL is set.",
-      phone: "Телефон",
-      hours: "Режим работы",
-      hoursPlaceholder: "Пн–Вс, 10:00–20:00 МСК",
-      social: "Соцсети",
+      title: "页脚联系方式与公司信息",
+      hint: "空字段不会显示。社交链接仅在填写 URL 后出现。公司信息显示在页脚下方。",
+      phone: "电话",
+      hours: "工作时间",
+      hoursPlaceholder: "周一至周日 10:00–20:00",
+      tagline: "Logo 下方短文案",
+      requisites: "公司信息",
+      legalName: "公司名称",
+      inn: "INN",
+      ogrn: "OGRN",
+      address: "地址",
+      social: "社交网络",
       saving: "Saving…",
       saveButton: "Сохранить контакты",
       save: "Save contacts",

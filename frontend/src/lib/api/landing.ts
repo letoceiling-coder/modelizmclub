@@ -1,6 +1,4 @@
 import { api } from "./client";
-import { isDemoMode } from "@/lib/demo-mode";
-import { categories } from "@/lib/mock";
 
 export interface LandingStats {
   users: number;
@@ -8,18 +6,11 @@ export interface LandingStats {
   listing_categories: number;
 }
 
-/** listing_categories is derived from the categories list — a hardcoded
- *  count here previously drifted (stuck at 8 after the list grew to 20). */
-function demoStats(): LandingStats {
-  return { users: 1200, communities: 45, listing_categories: categories.length };
-}
-
 /** Empty fallback when API has no data — never use mock stats on production. */
 const EMPTY_LANDING_STATS: LandingStats = { users: 0, communities: 0, listing_categories: 0 };
 
 export async function fetchLandingStats(): Promise<LandingStats> {
-  if (isDemoMode()) return demoStats();
-  const res = await api<{ data: LandingStats }>("/public/landing-stats");
+  const res = await api<{ data: LandingStats }>("/public/landing-stats", { auth: false });
   return res.data ?? EMPTY_LANDING_STATS;
 }
 

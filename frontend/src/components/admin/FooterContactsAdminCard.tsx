@@ -37,8 +37,10 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
       .finally(() => setLoading(false));
   }, [t]);
 
-  const setField = (field: "email" | "phone" | "hours", value: string) =>
-    setDraft((p) => ({ ...p, [field]: value }));
+  const setField = (
+    field: "email" | "phone" | "hours" | "tagline" | "legal_name" | "inn" | "ogrn" | "address",
+    value: string,
+  ) => setDraft((p) => ({ ...p, [field]: value }));
 
   const setSocialUrl = (label: string, url: string) =>
     setDraft((p) => ({
@@ -79,6 +81,10 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
       ) : (
         <div style={{ display: "grid", gap: "12px" }}>
           <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.tagline")}</span>
+            <input type="text" value={draft.tagline} onChange={(e) => setField("tagline", e.target.value)} className="outline-none" style={inputStyle} />
+          </label>
+          <label style={{ display: "grid", gap: "6px" }}>
             <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminCommon.colEmail")}</span>
             <input type="email" value={draft.email} onChange={(e) => setField("email", e.target.value)} className="outline-none" style={inputStyle} placeholder="support@modelizmclub.ru" />
           </label>
@@ -89,6 +95,26 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
           <label style={{ display: "grid", gap: "6px" }}>
             <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.hours")}</span>
             <input type="text" value={draft.hours} onChange={(e) => setField("hours", e.target.value)} className="outline-none" style={inputStyle} placeholder={t("pages.adminFooterContacts.hoursPlaceholder")} />
+          </label>
+
+          <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)", marginTop: "8px" }}>
+            {t("pages.adminFooterContacts.requisites")}
+          </div>
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.legalName")}</span>
+            <input type="text" value={draft.legal_name} onChange={(e) => setField("legal_name", e.target.value)} className="outline-none" style={inputStyle} />
+          </label>
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.inn")}</span>
+            <input type="text" value={draft.inn} onChange={(e) => setField("inn", e.target.value)} className="outline-none" style={inputStyle} />
+          </label>
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.ogrn")}</span>
+            <input type="text" value={draft.ogrn} onChange={(e) => setField("ogrn", e.target.value)} className="outline-none" style={inputStyle} />
+          </label>
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.address")}</span>
+            <input type="text" value={draft.address} onChange={(e) => setField("address", e.target.value)} className="outline-none" style={inputStyle} />
           </label>
 
           <div style={{ display: "grid", gap: "10px", marginTop: "4px" }}>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureActiveSubscription;
+use App\Http\Middleware\EnsureCommunitiesEnabled;
 use App\Http\Middleware\EnsureFullyVerified;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\RequiresSubscription;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscriber' => EnsureActiveSubscription::class,
             'requiresSubscription' => RequiresSubscription::class,
             'optionalAuth' => ResolveOptionalUser::class,
+            'communities' => EnsureCommunitiesEnabled::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

@@ -12,7 +12,7 @@ use Modules\Community\Http\Controllers\Api\V1\ShowCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityBrandingController;
 use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityController;
 
-Route::prefix('communities')->group(function (): void {
+Route::prefix('communities')->middleware('communities')->group(function (): void {
     Route::get('/', IndexCommunityController::class);
     Route::get('{slug}', ShowCommunityController::class);
     Route::get('{slug}/members', CommunityMembersController::class);

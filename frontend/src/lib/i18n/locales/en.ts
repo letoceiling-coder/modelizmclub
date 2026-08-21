@@ -1245,7 +1245,7 @@ export const en: TranslationSchema = {
       adBadgeModeration: "Under moderation",
       adBadgeRejected: "Rejected",
       adBadgeArchived: "Archived",
-      earlyMember100: "★ First 100",
+      earlyMember100: "★ First {{count}}",
       createListing: "Create listing",
       emptyAbout: "This user has not filled in their About section yet",
       editProfileTitle: "Edit profile",
@@ -2311,6 +2311,13 @@ export const en: TranslationSchema = {
           enabled: "Communities section enabled for everyone",
           disabled: "Communities section disabled for everyone"
         },
+        reviews: {
+          title: "Reviews section",
+          subtitle: "Saved on the server and immediately shows or hides Reviews in the menu and /reviews routes for all users.",
+          toggle: "Show Reviews section to all users",
+          enabled: "Reviews section enabled for everyone",
+          disabled: "Reviews section disabled for everyone"
+        },
         market: {
           title: "Market button",
           subtitle: "Saved on the server — enables/disables the button for all users immediately, without a frontend deploy.",
@@ -2343,6 +2350,10 @@ export const en: TranslationSchema = {
       settingMeta: {
         feature_communities_enabled: {
           label: "Show Communities section to all users",
+          hint: "The only section toggle — managed by the card above, not localStorage"
+        },
+        feature_reviews_enabled: {
+          label: "Show Reviews section to all users",
           hint: "The only section toggle — managed by the card above, not localStorage"
         },
         feature_market_enabled: {
@@ -2714,7 +2725,7 @@ export const en: TranslationSchema = {
     },
     adminLanding: {
       title: "Home page",
-      subtitle: "Home page blocks and the «FAQ» section: titles, cards, questions and answers."
+      subtitle: "All homepage blocks (hero, ecosystem, listings, directions, steps, pricing, FAQ) are edited here. Empty fields are hidden on the site."
     },
     adminCategories: {
       title: "Categories",
@@ -2911,8 +2922,19 @@ export const en: TranslationSchema = {
       }
     },
     adminLandingBlocks: {
-      sectionEcosystem: "Что есть в МоДелизМ",
-      sectionDirections: "Всё, что движется и летает",
+      sectionEcosystem: "What's in MoDelizM",
+      sectionDirections: "Everything that moves and flies",
+      sectionLabels: {
+        hero: "Hero (first screen)",
+        ecosystem: "What's in MoDelizM",
+        listings: "Popular listings",
+        directions: "Directions",
+        steps: "How it works",
+        why: "Why choose us",
+        pricing: "Plans",
+        faq: "Homepage FAQ",
+      },
+      mediaUrlLabel: "Hero video URL",
       dragAria: "Перетащить",
       titlePlaceholder: "Заголовок",
       descriptionPlaceholder: "Описание",
@@ -3029,12 +3051,18 @@ export const en: TranslationSchema = {
       loadFailed: "Could not load footer contacts",
       saved: "Footer contacts saved",
       saveFailed: "Could not save contacts",
-      title: "Footer contacts",
-      hint: "Empty fields are hidden on the site. Social links appear only when a URL is set.",
-      phone: "Телефон",
-      hours: "Режим работы",
-      hoursPlaceholder: "Пн–Вс, 10:00–20:00 МСК",
-      social: "Соцсети",
+      title: "Footer contacts and legal details",
+      hint: "Empty fields are hidden on the site. Social links appear only when a URL is set. Legal details appear in small type under the footer.",
+      phone: "Phone",
+      hours: "Business hours",
+      hoursPlaceholder: "Mon–Sun, 10:00–20:00 MSK",
+      tagline: "Short text under the logo",
+      requisites: "Legal details",
+      legalName: "Legal name",
+      inn: "INN",
+      ogrn: "OGRN",
+      address: "Address",
+      social: "Social networks",
       saving: "Saving…",
       saveButton: "Сохранить контакты",
       save: "Save contacts",

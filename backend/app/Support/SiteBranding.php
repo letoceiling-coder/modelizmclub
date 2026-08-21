@@ -3,10 +3,12 @@
 namespace App\Support;
 
 use App\Models\Media;
+use App\Models\SystemSetting;
 
 class SiteBranding
 {
     public const SETTING_KEY = 'branding.logo';
+    public const SITE_NAME_KEY = 'site_name';
 
     /**
      * @param  array<string, mixed>|null  $raw
@@ -24,6 +26,11 @@ class SiteBranding
             'footer_size' => $footerSize,
         ];
 
+        $siteName = self::resolvedSiteName();
+        if ($siteName !== null) {
+            $payload['site_name'] = $siteName;
+        }
+
         $headerUrl = self::mediaUrl($headerUuid);
         if ($headerUrl !== null) {
             $payload['logo_url'] = $headerUrl;
@@ -35,6 +42,30 @@ class SiteBranding
         }
 
         return $payload;
+    }
+
+    public static function resolvedSiteName(): ?string
+    {
+        $raw = SystemSetting::query()->where('key', self::SITE_NAME_KEY)->value('value');
+
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+
+            return $trimmed === '' ? null : $trimmed;
+        }
+
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        foreach (['ru', 'en', 'zh'] as $locale) {
+            $value = $raw[$locale] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
     }
 
     /**

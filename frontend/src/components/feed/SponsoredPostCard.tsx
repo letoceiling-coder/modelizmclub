@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { recordBannerEvent } from "@/lib/api/banners";
 import type { Banner } from "@/lib/mock";
 
 interface Props {
@@ -18,6 +19,12 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
   if (hidden) return null;
 
   const handleCta = () => {
+    const href = banner.link?.trim();
+    if (href) {
+      void recordBannerEvent(banner.id, "click");
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
     toast(`«${banner.title}» — подробности будут доступны позже`);
   };
 
@@ -70,7 +77,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
             </span>
           </div>
           <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Промо · {banner.until}
+            Промо{banner.until ? ` · ${banner.until}` : ""}
           </div>
         </div>
         <button
@@ -87,11 +94,13 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
       </div>
 
       {/* Body */}
-      <div className="px-[16px] pt-[10px]">
-        <p className="text-[14px]" style={{ color: "var(--foreground-70)", lineHeight: 1.55 }}>
-          {banner.text}
-        </p>
-      </div>
+      {banner.text ? (
+        <div className="px-[16px] pt-[10px]">
+          <p className="text-[14px]" style={{ color: "var(--foreground-70)", lineHeight: 1.55 }}>
+            {banner.text}
+          </p>
+        </div>
+      ) : null}
 
       {/* Visual */}
       <div
@@ -99,31 +108,39 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{
           borderRadius: 12,
           aspectRatio: "16 / 7",
-          background: `linear-gradient(135deg, ${gradientStops(banner.color)})`,
+          background: banner.image ? "var(--background-surface)" : `linear-gradient(135deg, ${gradientStops(banner.color)})`,
           border: "1px solid var(--border)",
         }}
       >
-        <div
-          className="grid h-full w-full place-items-center px-[20px] text-center"
-          style={{
-            background:
-              "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.12), transparent 60%)",
-          }}
-        >
-          <span
-            className="font-display"
+        {banner.image ? (
+          <img
+            src={banner.image}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="grid h-full w-full place-items-center px-[20px] text-center"
             style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 800,
-              fontSize: "clamp(20px, 3.5vw, 30px)",
-              letterSpacing: "-0.02em",
-              color: "#fff",
-              textShadow: "0 2px 12px rgba(0,0,0,0.35)",
+              background:
+                "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.12), transparent 60%)",
             }}
           >
-            {banner.title}
-          </span>
-        </div>
+            <span
+              className="font-display"
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: "clamp(20px, 3.5vw, 30px)",
+                letterSpacing: "-0.02em",
+                color: "#fff",
+                textShadow: "0 2px 12px rgba(0,0,0,0.35)",
+              }}
+            >
+              {banner.title}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* CTA */}
@@ -132,7 +149,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Рекламодатель · MODELIZM
+          Реклама
         </span>
         <button
           type="button"

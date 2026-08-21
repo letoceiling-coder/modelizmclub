@@ -2,22 +2,23 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
 import { LegalRequisites } from "@/components/legal/LegalRequisites";
-import { FOOTER_COLUMNS } from "@/lib/footer-links";
 import { footerLinkLabel, groupTitle, resolveFooterHref, useFooterLinksApi } from "@/lib/hooks/useFooterLinks";
 import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
+import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 
 export function AppFooter() {
   const { t } = useTranslation();
   const contacts = useFooterContacts();
+  const branding = useSiteBranding();
   const { data: apiGroups } = useFooterLinksApi();
 
-  const apiEntries = apiGroups ? Object.entries(apiGroups).filter(([, links]) => links.length > 0) : null;
+  const apiEntries = apiGroups ? Object.entries(apiGroups).filter(([, links]) => links.length > 0) : [];
+  const siteName = branding.site_name ?? t("common.appName");
 
   return (
     <footer className="mt-[32px] w-full" style={{ borderTop: "1px solid var(--border)" }}>
       <div className="grid gap-[24px] py-[24px] sm:grid-cols-2 lg:grid-cols-4">
-        {apiEntries && apiEntries.length > 0
-          ? apiEntries.map(([group, links]) => (
+        {apiEntries.map(([group, links]) => (
               <div key={group}>
                 <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
                   {groupTitle(group, t)}
@@ -52,22 +53,6 @@ export function AppFooter() {
                   })}
                 </ul>
               </div>
-            ))
-          : FOOTER_COLUMNS.map((col) => (
-              <div key={col.titleKey}>
-                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
-                  {t(col.titleKey)}
-                </div>
-                <ul className="mt-[10px] flex flex-col gap-[8px]">
-                  {col.links.map((l) => (
-                    <li key={l.labelKey}>
-                      <Link to={l.to} className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                        {t(l.labelKey)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             ))}
 
         <FooterContactsBlock
@@ -80,7 +65,7 @@ export function AppFooter() {
       <LegalRequisites />
 
       <div className="pb-[24px] pt-2 text-[11px]" style={{ color: "var(--foreground-30)" }}>
-        © {new Date().getFullYear()} {t("common.appName")}
+        © {new Date().getFullYear()} {siteName}
       </div>
     </footer>
   );

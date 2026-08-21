@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 
 /** Deal-type (Продаю/Куплю/Обменяю) → Badge variant. Stays within the
  *  blue accent family + neutral; never the commercial-orange palette. */
@@ -43,6 +44,7 @@ export function AdActionPanel({
   className,
 }: AdActionPanelProps) {
   const showSafeDeal = Boolean(onSafeDeal) && ad.status === "Продаю" && ad.price > 0;
+  const escrowBadge = useFeatureFlag("escrowEnabled");
   return (
     <Card
       className={cn("flex flex-col gap-[16px] p-[20px]", className)}
@@ -163,7 +165,7 @@ export function AdActionPanel({
         </div>
       </div>
 
-      {showSafeDeal && (
+      {showSafeDeal && escrowBadge && (
         <div
           className="flex items-center gap-[8px] p-[10px] text-[11px]"
           style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}

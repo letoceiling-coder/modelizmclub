@@ -70,4 +70,26 @@ class FooterContactsTest extends TestCase
             ->assertJsonPath('data.phone', '8 800 111-22-33')
             ->assertJsonPath('data.social.0.url', 'https://t.me/modelizm');
     }
+
+    public function test_public_footer_contacts_include_legal_requisites(): void
+    {
+        SystemSetting::query()->create([
+            'key' => 'footer.contacts',
+            'group' => 'footer',
+            'value' => [
+                'legal_name' => 'ООО «МОДЕЛИЗМ»',
+                'inn' => '2312341754',
+                'ogrn' => '1262300020751',
+                'address' => 'г. Краснодар',
+                'email' => 'support@modelizmclub.ru',
+            ],
+        ]);
+
+        $this->getJson('/api/v1/public/footer-contacts')
+            ->assertOk()
+            ->assertJsonPath('data.legal_name', 'ООО «МОДЕЛИЗМ»')
+            ->assertJsonPath('data.inn', '2312341754')
+            ->assertJsonPath('data.ogrn', '1262300020751')
+            ->assertJsonPath('data.address', 'г. Краснодар');
+    }
 }

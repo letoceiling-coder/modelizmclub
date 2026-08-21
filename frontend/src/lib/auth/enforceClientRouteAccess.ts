@@ -34,6 +34,13 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
     }
   }
 
+  if (pathname === ROUTES.reviews || pathname.startsWith("/reviews/")) {
+    await loadFeatureFlagsFromServer();
+    if (!getFeatureFlags().reviewsEnabled) {
+      return { to: ROUTES.feed, replace: true };
+    }
+  }
+
   if (isAdminRoute(pathname)) {
     if (!getToken()) {
       return { to: "/login", search: { redirect: pathname }, replace: true };

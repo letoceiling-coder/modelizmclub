@@ -18,5 +18,10 @@ class FeatureFlagsSeeder extends Seeder
             ['key' => 'feature.listing_payment_enabled'],
             ['value' => ['enabled' => true], 'group' => 'feature'],
         );
+
+        SystemSetting::query()->firstOrCreate(
+            ['key' => 'feature.reviews_enabled'],
+            ['value' => ['enabled' => true], 'group' => 'features'],
+        );
     }
 }

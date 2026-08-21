@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, MessageCircle, Search, Tag, Users } from "lucide-react";
-import * as Icons from "lucide-react";
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
   membersForSubcategory,
   onlineForSubcategory,
@@ -60,10 +60,6 @@ function CategoryRoomsPage() {
     );
   }
 
-  const Icon =
-    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[c.icon] ??
-    Icons.Hash;
-
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[14px]">
@@ -84,7 +80,9 @@ function CategoryRoomsPage() {
               className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px]"
               style={{ background: "var(--background-surface)", color: "var(--accent)" }}
             >
-              <Icon className="h-[20px] w-[20px]" />
+              <IconBox size="md" variant="none" className="h-[42px] w-[42px]">
+                <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
+              </IconBox>
             </span>
             <div className="min-w-0 flex-1">
               <h1

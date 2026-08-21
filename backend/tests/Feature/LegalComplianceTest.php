@@ -35,6 +35,14 @@ class LegalComplianceTest extends TestCase
             ->assertJsonStructure(['data' => ['legal']]);
     }
 
+    public function test_public_info_page_about_is_published(): void
+    {
+        $this->getJson('/api/v1/legal/about')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'about')
+            ->assertJsonStructure(['data' => ['title', 'content_html', 'version']]);
+    }
+
     public function test_register_requires_terms_and_privacy_consents(): void
     {
         $this->postJson('/api/v1/auth/register', [

@@ -1,6 +1,4 @@
 import { api } from "./client";
-import { isDemoMode } from "@/lib/demo-mode";
-import { demoFaq, demoStats } from "@/lib/demo-data";
 
 export interface FaqArticle {
   id: number;
@@ -16,18 +14,14 @@ export interface FaqCategory {
 }
 
 export async function fetchFaq(): Promise<FaqCategory[]> {
-  if (isDemoMode()) return demoFaq();
   const res = await api<{ data: FaqCategory[] }>("/public/faq", { auth: false });
   return res.data ?? [];
 }
 
-export async function fetchLandingFaq(): Promise<FaqArticle[]> {
-  if (isDemoMode()) {
-    const landing = demoFaq().find((c) => c.slug === "landing");
-    if (landing?.articles.length) return landing.articles;
-  }
+export async function fetchLandingFaq(): Promise<{ name: string | null; articles: FaqArticle[] }> {
   const res = await api<{ data: FaqCategory[] }>("/public/faq?category=landing", { auth: false });
-  return res.data?.[0]?.articles ?? [];
+  const cat = res.data?.[0];
+  return { name: cat?.name ?? null, articles: cat?.articles ?? [] };
 }
 
 export interface FirstHundredStats {
@@ -36,18 +30,34 @@ export interface FirstHundredStats {
   enabled?: boolean;
 }
 
-export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats }> {
-  if (isDemoMode()) return demoStats();
-  const res = await api<{ data: { first_hundred?: { taken?: number; total?: number; enabled?: boolean } } }>(
+export interface ReferralProgramStats {
+  enabled: boolean;
+  perInvite: number;
+  maxBonus: number;
+}
+
+export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats; referral?: ReferralProgramStats }> {
+  const res = await api<{
+    data: {
+      first_hundred?: { taken?: number; total?: number; enabled?: boolean };
+      referral?: { enabled?: boolean; per_invite?: number; max_bonus?: number };
+    };
+  }>(
     "/public/stats",
     { auth: false },
   );
   const fh = res.data?.first_hundred ?? {};
+  const ref = res.data?.referral ?? {};
   return {
     firstHundred: {
       taken: fh.taken ?? 0,
-      total: fh.total ?? 100,
+      total: fh.total ?? 0,
       enabled: fh.enabled ?? false,
+    },
+    referral: {
+      enabled: ref.enabled ?? false,
+      perInvite: ref.per_invite ?? 0,
+      maxBonus: ref.max_bonus ?? 0,
     },
   };
 }

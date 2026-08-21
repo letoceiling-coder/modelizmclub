@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\LegalPageStatus;
 use App\Models\FooterLink;
 use App\Models\LegalPage;
+use App\Models\SystemSetting;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 
@@ -26,7 +27,7 @@ class LegalComplianceSeeder extends Seeder
             $htmlPath = $dataDir.DIRECTORY_SEPARATOR.$slug.'.html';
             $content = File::exists($htmlPath) ? File::get($htmlPath) : '<p>Документ готовится.</p>';
 
-            LegalPage::query()->updateOrCreate(
+            LegalPage::query()->firstOrCreate(
                 ['slug' => $slug],
                 [
                     'title' => $title,
@@ -38,6 +39,9 @@ class LegalComplianceSeeder extends Seeder
             );
         }
 
+        $this->seedInfoPages();
+        $this->seedLegalRequisites();
+
         $links = [
             ['group' => 'legal', 'label' => 'Пользовательское соглашение', 'target_type' => 'internal', 'target_value' => '/legal/rules', 'sort' => 10],
             ['group' => 'legal', 'label' => 'Политика конфиденциальности', 'target_type' => 'internal', 'target_value' => '/legal/privacy', 'sort' => 20],
@@ -48,7 +52,7 @@ class LegalComplianceSeeder extends Seeder
         ];
 
         foreach ($links as $link) {
-            FooterLink::query()->updateOrCreate(
+            FooterLink::query()->firstOrCreate(
                 [
                     'group' => $link['group'],
                     'target_value' => $link['target_value'],
@@ -60,6 +64,66 @@ class LegalComplianceSeeder extends Seeder
                     'is_visible' => true,
                 ],
             );
+        }
+    }
+
+    private function seedInfoPages(): void
+    {
+        $pages = [
+            'about' => ['О нас', 'МоДелизМ — маркетплейс, лента и сообщество для моделистов России. Мы объединяем тех, кто строит, летает и гоняет.'],
+            'company' => ['О компании', 'Юридическая и организационная информация о проекте МоДелизМ.'],
+            'partners' => ['Партнёрам', 'Сотрудничество с магазинами, брендами и клубами. Совместные акции, витрины и каналы для брендов моделизма.'],
+            'advertising' => ['Размещение рекламы', 'Форматы продвижения на платформе: баннеры, продвинутые объявления и брендовые каналы.'],
+            'support' => ['Служба поддержки', 'Мы на связи каждый день с 10:00 до 20:00 МСК. Напишите нам — поможем с аккаунтом, объявлением или сделкой.'],
+            'feedback' => ['Обратная связь', 'Ваши идеи и замечания делают платформу лучше. Оставьте отзыв или сообщите о проблеме.'],
+            'contacts' => ['Контакты', 'Свяжитесь с нами через форму обратной связи или контакты в подвале сайта.'],
+            'security' => ['Безопасность', 'Принципы безопасной сделки, модерация объявлений и защита персональных данных на платформе МоДелизМ.'],
+        ];
+
+        foreach ($pages as $slug => [$title, $text]) {
+            LegalPage::query()->firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'title' => $title,
+                    'content_html' => '<p>'.e($text).'</p>',
+                    'status' => LegalPageStatus::Published,
+                    'version' => 1,
+                    'published_at' => now(),
+                ],
+            );
+        }
+    }
+
+    private function seedLegalRequisites(): void
+    {
+        $defaults = [
+            'legal_name' => 'ООО «МОДЕЛИЗМ»',
+            'inn' => '2312341754',
+            'ogrn' => '1262300020751',
+            'address' => '350000 г. Краснодар, ул. Симферопольская 56-112',
+        ];
+
+        $setting = SystemSetting::query()->where('key', 'footer.contacts')->first();
+        if ($setting === null) {
+            SystemSetting::query()->create([
+                'key' => 'footer.contacts',
+                'group' => 'footer',
+                'value' => $defaults,
+            ]);
+
+            return;
+        }
+
+        $value = is_array($setting->value) ? $setting->value : [];
+        $changed = false;
+        foreach ($defaults as $key => $default) {
+            if (! isset($value[$key]) || ! is_string($value[$key]) || trim($value[$key]) === '') {
+                $value[$key] = $default;
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            $setting->update(['value' => $value]);
         }
     }
 }

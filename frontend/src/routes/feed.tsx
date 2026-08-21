@@ -98,7 +98,7 @@ function FeedPage() {
 
   useEffect(() => {
     fetchPostCategories().then(setCategories).catch(() => {});
-    fetchBanners().then(setBanners).catch(() => {});
+    fetchBanners("feed").then(setBanners).catch(() => {});
   }, []);
 
   useEffect(() => {

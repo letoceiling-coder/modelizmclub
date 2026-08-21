@@ -13,6 +13,7 @@ class LandingSection extends Model
         'eyebrow',
         'title',
         'subtitle',
+        'media_url',
         'is_enabled',
     ];
 

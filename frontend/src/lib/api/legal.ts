@@ -76,6 +76,11 @@ export async function adminFetchLegalPages(): Promise<AdminLegalPage[]> {
   return res.data;
 }
 
+export async function adminCreateLegalPage(payload: { slug: string; title: string; content_html: string }): Promise<AdminLegalPage> {
+  const res = await api<{ data: AdminLegalPage }>("/admin/legal-pages", { method: "POST", json: payload });
+  return res.data;
+}
+
 export async function adminUpdateLegalPage(id: number, payload: { slug: string; title: string; content_html: string }): Promise<AdminLegalPage> {
   const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}`, { method: "PUT", json: payload });
   return res.data;

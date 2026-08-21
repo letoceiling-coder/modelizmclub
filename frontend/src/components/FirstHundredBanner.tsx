@@ -94,7 +94,7 @@ export function FirstHundredBanner() {
           </h2>
           <p style={{ fontSize: "15px", maxWidth: "640px", opacity: 0.85, lineHeight: 1.5 }}>
             Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели клуба и получить
-            бейдж «Первые 100» в профиле навсегда.
+            бейдж «Первые {total}» в профиле навсегда.
           </p>
 
           <div className="grid" style={{ gap: "10px", maxWidth: "520px" }}>

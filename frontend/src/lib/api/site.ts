@@ -4,6 +4,7 @@ import type { FooterContacts } from "@/lib/footer-contacts";
 export interface SiteBranding {
   logo_url?: string;
   footer_logo_url?: string;
+  site_name?: string;
   header_size: number;
   footer_size: number;
 }

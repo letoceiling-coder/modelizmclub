@@ -1,7 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { ROUTES } from "@/lib/routes";
+import { fetchStats } from "@/lib/api/content";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const INVITE_FRIEND_SECTION_ID = ROUTES.subscriptionInviteHash;
 
@@ -20,6 +23,22 @@ export function InviteFriendNavLink({ className, onNavigate }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hash = useRouterState({ select: (s) => s.location.hash });
   const active = pathname === ROUTES.subscription && hash === INVITE_FRIEND_SECTION_ID;
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    if (isDemoMode()) return;
+    let activeReq = true;
+    fetchStats()
+      .then((s) => {
+        if (activeReq) setEnabled(s.referral?.enabled ?? true);
+      })
+      .catch(() => {});
+    return () => {
+      activeReq = false;
+    };
+  }, []);
+
+  if (!enabled) return null;
 
   const handleClick = () => {
     onNavigate?.();

@@ -116,6 +116,14 @@ export function AdminFooterLinksSection() {
           <Input value={form.target_value ?? ""} onChange={(e) => setForm({ ...form, target_value: e.target.value })} placeholder="/legal/rules" />
           <select
             className="rounded border px-2 py-2 text-sm"
+            value={form.target_type ?? "internal"}
+            onChange={(e) => setForm({ ...form, target_type: e.target.value as AdminFooterLink["target_type"] })}
+          >
+            <option value="internal">Внутренняя ссылка</option>
+            <option value="external">Внешняя ссылка</option>
+          </select>
+          <select
+            className="rounded border px-2 py-2 text-sm"
             value={form.group ?? "legal"}
             onChange={(e) => setForm({ ...form, group: e.target.value })}
           >

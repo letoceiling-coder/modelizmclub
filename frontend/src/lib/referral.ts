@@ -22,11 +22,20 @@ export function getReferralCode(userId: string): string {
 // Canonical public origin. Used on the server and during initial client
 // render so SSR hydration matches; swap to window.location.origin only after
 // mount (see InviteBlock).
-export const PUBLIC_ORIGIN = "https://modelizm.club";
+export function publicOrigin(): string {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+  return "https://modelizmclub.ru";
+}
+
+/** Fallback origin for SSR. Prefer `publicOrigin()` at call time. */
+export const PUBLIC_ORIGIN = "https://modelizmclub.ru";
 
 export function getReferralLink(userId: string): string {
   const code = getReferralCode(userId);
-  return code ? `${PUBLIC_ORIGIN}/register?ref=${code}` : PUBLIC_ORIGIN;
+  const origin = publicOrigin();
+  return code ? `${origin}/register?ref=${code}` : origin;
 }
 
 export function getReferralBonus(): number {

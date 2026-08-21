@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
-import { Gift, Zap, CalendarClock } from "lucide-react";
+import { Zap, CalendarClock } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
@@ -34,9 +34,6 @@ const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
-
-const FREE_LIMIT = 5;
-const FREE_LEFT = 3;
 
 function daysWord(n: number): string {
   const days = Math.max(0, Math.floor(n));
@@ -105,7 +102,7 @@ function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sub } = useMySubscription();
-  const { registeredRub: placementPrice } = usePublicPlacementPricing();
+  const { registeredRub: placementPrice, paymentEnabled } = usePublicPlacementPricing();
   const [pending, setPending] = useState<PendingCheckout | null>(null);
 
   const openSubscribe = async (plan: { id: string; name: string; priceRub: number }) => {
@@ -266,35 +263,6 @@ function SubscriptionPage() {
         </motion.div>
         )}
 
-        {isDemoMode() && (
-        <div
-          className="mt-[16px] flex items-center gap-[14px]"
-          style={{
-            background: "var(--accent-soft)",
-            borderRadius: "var(--r-card)",
-            padding: "16px 18px",
-          }}
-        >
-          <Gift size={22} style={{ color: "var(--accent)", flexShrink: 0 }} />
-          <div className="flex-1">
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
-              {t("pages.subscription.freeListings", { left: FREE_LEFT, limit: FREE_LIMIT })}
-            </div>
-            <div className="mt-[8px]" style={{ height: 6, background: "var(--background-surface)", borderRadius: 3, overflow: "hidden" }}>
-              <div
-                style={{
-                  height: "100%",
-                  width: `${(FREE_LEFT / FREE_LIMIT) * 100}%`,
-                  background: "var(--accent)",
-                  borderRadius: 3,
-                  transition: "width 0.3s",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-        )}
-
         <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[960px]">
           <PlanTermSelector
             renderCta={(plan) => (
@@ -314,6 +282,7 @@ function SubscriptionPage() {
           />
         </div>
 
+        {paymentEnabled && (
         <div className="mt-[32px]">
           <div
             className="flex flex-col gap-[16px] sm:flex-row sm:items-center sm:justify-between"
@@ -364,6 +333,7 @@ function SubscriptionPage() {
             </div>
           </div>
         </div>
+        )}
 
         <InviteBlock />
       </div>

@@ -4,11 +4,10 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight, ChevronDown, Plus,
-  Users2, Heart, MoreVertical,
-  MapPin, Search, Compass, ImageOff,
+  Heart, MoreVertical,
+  MapPin, Search, ImageOff,
 } from "lucide-react";
 import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
-import { landingValueSlotKey } from "@/lib/icon-slots";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LegalRequisites } from "@/components/legal/LegalRequisites";
@@ -30,9 +29,9 @@ import cover from "@/assets/cover-modelizm.jpg";
 import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
 import { FirstHundredBanner } from "@/components/FirstHundredBanner";
 import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
+import { footerLinkLabel, groupTitle, resolveFooterHref, useFooterLinksApi } from "@/lib/hooks/useFooterLinks";
 import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
-
-const HERO_VIDEO = "/videos/herovideo.mp4";
+import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 
 import i18n from "@/lib/i18n";
 
@@ -254,19 +253,16 @@ const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
 
 function Hero() {
   const { t } = useTranslation();
-  const enter = useEnter();
-  const navigate = useNavigate();
+  const { section } = useLandingSection("hero");
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
-  // Respect "reduce motion": the hero entrance runs on mount, and under
-  // reduced motion the variant never reaches "visible" — leaving the whole
-  // above-the-fold hero (title/CTA/stats) invisible. Start it visible instead.
   const reduce = useReducedMotion();
   const [stats, setStats] = useState({ users: 0, communities: 0, listing_categories: 0 });
-  // Weak-network guard: the hero video is ~6 MB. On small screens, Save-Data,
-  // or slow connections we skip it entirely and show the lightweight poster —
-  // critical for regional mobile users. Only load video on capable connections.
   const [allowVideo, setAllowVideo] = useState(false);
+  const videoSrc = section?.media_url?.trim() || "";
+  const brand = section?.eyebrow || section?.title || "";
+  const tagline = section?.eyebrow ? section.title : "";
+  const subtitle = section?.subtitle || "";
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
@@ -300,8 +296,8 @@ function Hero() {
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
       {/* background media */}
       <div className="absolute inset-0 z-0">
-        {videoError || !allowVideo ? (
-          <img src={cover} alt={t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
+        {videoError || !allowVideo || !videoSrc ? (
+          <img src={cover} alt={brand || t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
         ) : (
           <video
             poster={cover}
@@ -313,7 +309,7 @@ function Hero() {
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
-            <source src={HERO_VIDEO} type="video/mp4" />
+            <source src={videoSrc} type="video/mp4" />
           </video>
         )}
         {/* dark overlay — fixed dark color at the bottom, independent of theme
@@ -347,34 +343,43 @@ function Hero() {
                   textShadow: "0 4px 30px rgba(0,0,0,0.45)",
                 }}
               >
-                {t("landing.hero.brand")}
+                {brand}
               </motion.h1>
 
+              {tagline ? (
               <motion.p
                 variants={fadeUp}
                 className="landing-hero-tagline mt-4"
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.4vw, 26px)", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}
               >
-                {t("landing.hero.tagline")}
+                {tagline}
               </motion.p>
+              ) : null}
 
+              {subtitle ? (
               <motion.p
                 variants={fadeUp}
                 className="landing-hero-subtitle mt-4"
                 style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "rgba(235,238,248,0.86)", maxWidth: 560, lineHeight: 1.55 }}
               >
-                {t("landing.hero.subtitle")}
+                {subtitle}
               </motion.p>
+              ) : null}
 
+              {(section?.cards.length ?? 0) > 0 && (
               <motion.div variants={fadeUp} className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button onClick={() => navigate({ to: "/ads" })} style={ctaPrimary}
-                  className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover, #4f6ae6)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
-                >
-                  <Search size={18} /> {t("landing.hero.ctaBrowse")}
-                </button>
+                {section!.cards.map((card, i) => (
+                  <LandingBlockLink
+                    key={card.id}
+                    card={card}
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={i === 0 ? ctaPrimary : ctaText}
+                  >
+                    {i === 0 ? <Search size={18} /> : null} {card.title}
+                  </LandingBlockLink>
+                ))}
               </motion.div>
+              )}
 
               <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
                 {[
@@ -496,11 +501,13 @@ function QuickSections() {
 
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{section?.eyebrow ?? t("landing.quick.eyebrow")}</Eyebrow>
-      <Title>{section?.title ?? t("landing.quick.title")}</Title>
+      <Eyebrow>{section?.eyebrow}</Eyebrow>
+      <Title>{section?.title}</Title>
+      {section?.subtitle ? (
       <p className="landing-section-lead mt-3 max-w-[560px]" style={mutedP}>
-        {section?.subtitle ?? t("landing.quick.subtitle")}
+        {section.subtitle}
       </p>
+      ) : null}
       {loading ? (
         <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.loading")}</p>
       ) : (
@@ -545,6 +552,7 @@ const POPULAR_SLOTS = 12;
 
 function PopularListings() {
   const { t, i18n } = useTranslation();
+  const { section, loading: sectionLoading } = useLandingSection("listings");
   const [items, setItems] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -558,15 +566,16 @@ function PopularListings() {
     return () => { alive = false; };
   }, []);
 
+  if (!sectionLoading && !section) return null;
+
   const priceLocale = i18n.language === "ru" ? "ru-RU" : i18n.language === "zh" ? "zh-CN" : "en-US";
-  const placeholderCount = Math.max(0, POPULAR_SLOTS - items.length);
 
   return (
     <Section bg="var(--background)">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <Eyebrow>{t("landing.listings.eyebrow")}</Eyebrow>
-          <Title>{t("landing.listings.title")}</Title>
+          <Eyebrow>{section?.eyebrow}</Eyebrow>
+          <Title>{section?.title}</Title>
         </div>
         <Link to="/ads" className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
@@ -582,7 +591,7 @@ function PopularListings() {
             {items.map((ad) => (
               <LandingListingCard key={ad.id} ad={ad} priceLocale={priceLocale} />
             ))}
-            {Array.from({ length: placeholderCount }).map((_, i) => (
+            {Array.from({ length: items.length === 0 && !loading ? 1 : 0 }).map((_, i) => (
               <ListingCtaPlaceholder key={`listing-cta-${i}`} label={t("landing.listings.postCta")} />
             ))}
           </>
@@ -751,9 +760,6 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
 
 /* ===================== Categories ===================== */
 
-const STEP_KEYS = ["direction", "find", "share"] as const;
-const STEP_ICONS = [Compass, Search, Users2] as const;
-
 function CategoriesSection() {
   const { t } = useTranslation();
   const { section, loading } = useLandingSection("directions");
@@ -763,8 +769,8 @@ function CategoriesSection() {
 
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{section?.eyebrow ?? t("landing.categories.eyebrow")}</Eyebrow>
-      <Title>{section?.title ?? t("landing.categories.title")}</Title>
+      <Eyebrow>{section?.eyebrow}</Eyebrow>
+      <Title>{section?.title}</Title>
       {loading ? (
         <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.loading")}</p>
       ) : (
@@ -807,35 +813,31 @@ function CategoriesSection() {
 /* ===================== 3 steps timeline ===================== */
 
 function StepsTimeline() {
-  const { t } = useTranslation();
-  // Same reduced-motion issue as the hero: framer-motion doesn't reliably
-  // resolve a whileInView transition to its end state under reduced motion
-  // (observed stuck mid-fade, e.g. opacity ~0.26). Start at the "visible"
-  // variant directly so the content is correct even if the scroll-triggered
-  // animation never completes.
+  const { section, loading } = useLandingSection("steps");
   const reduce = useReducedMotion();
+  const cards = section?.cards ?? [];
+
+  if (!loading && (!section || cards.length === 0)) return null;
+
   return (
     <Section bg="var(--background)" id="how">
-      <Eyebrow>{t("landing.steps.eyebrow")}</Eyebrow>
-      <Title>{t("landing.steps.title")}</Title>
+      <Eyebrow>{section?.eyebrow}</Eyebrow>
+      <Title>{section?.title}</Title>
       <div className="relative mt-12">
         <div aria-hidden className="absolute left-0 right-0 top-[26px] hidden md:block" style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)" }} />
         <motion.ol variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }} initial={reduce ? "visible" : "hidden"} whileInView="visible" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3 md:gap-6">
-          {STEP_KEYS.map((key, i) => {
-            const Icon = STEP_ICONS[i];
-            return (
-              <motion.li key={key} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }} className="relative flex flex-col">
+          {cards.map((card, i) => (
+              <motion.li key={card.id} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }} className="relative flex flex-col">
                 <div className="mb-5 flex items-center gap-3 md:flex-col md:items-start">
                   <div className="relative grid place-items-center" style={{ width: 54, height: 54, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-button)", zIndex: 1 }}>
-                    <Icon size={24} />
+                    <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={24} />
                     <span className="absolute -right-1 -top-1 grid place-items-center rounded-full text-[11px] font-bold" style={{ width: 22, height: 22, background: "var(--background)", color: "var(--accent)", border: "2px solid var(--accent)" }}>{i + 1}</span>
                   </div>
                 </div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--foreground)", letterSpacing: "-0.01em" }}>{t(`landing.steps.items.${key}.title`)}</h3>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)", maxWidth: 320 }}>{t(`landing.steps.items.${key}.desc`)}</p>
+                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--foreground)", letterSpacing: "-0.01em" }}>{card.title}</h3>
+                {card.description ? <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)", maxWidth: 320 }}>{card.description}</p> : null}
               </motion.li>
-            );
-          })}
+          ))}
         </motion.ol>
       </div>
     </Section>
@@ -844,11 +846,13 @@ function StepsTimeline() {
 
 function PricingSection() {
   const { t } = useTranslation();
+  const { section, loading } = useLandingSection("pricing");
+  if (!loading && !section) return null;
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.pricing.eyebrow")}</Eyebrow>
-      <Title>{t("landing.pricing.title")}</Title>
-      <p className="mt-3 max-w-[540px]" style={mutedP}>{t("landing.pricing.subtitle")}</p>
+      <Eyebrow>{section?.eyebrow}</Eyebrow>
+      <Title>{section?.title}</Title>
+      {section?.subtitle ? <p className="mt-3 max-w-[540px]" style={mutedP}>{section.subtitle}</p> : null}
       {/* Mobile keeps the narrow single-card width (max-w-[420px]); desktop
           widens to fit PlanTermSelector's 3-column open-cards layout
           (~230px card x3 + 16px gaps x2). */}
@@ -869,28 +873,28 @@ function PricingSection() {
   );
 }
 
-const VALUE_KEYS = ["focus", "community", "allInOne", "direct"] as const;
-
 function WhyChoose() {
-  const { t } = useTranslation();
+  const { section, loading } = useLandingSection("why");
+  const cards = section?.cards ?? [];
+  if (!loading && (!section || cards.length === 0)) return null;
   return (
     <Section bg="var(--background)">
-      <Eyebrow>{t("landing.values.eyebrow")}</Eyebrow>
-      <Title>{t("landing.values.title")}</Title>
+      <Eyebrow>{section?.eyebrow}</Eyebrow>
+      <Title>{section?.title}</Title>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {VALUE_KEYS.map((key, i) => (
+        {cards.map((card, i) => (
             <div
-              key={key}
+              key={card.id}
               className="flex flex-col p-6"
               style={
                 i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle
               }
             >
               <IconBox size="lg" variant="accent-soft">
-                <SlotIcon slot={landingValueSlotKey(key)} fill />
+                <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
               </IconBox>
-              <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{t(`landing.values.items.${key}.title`)}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(`landing.values.items.${key}.desc`)}</p>
+              <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{card.title}</h3>
+              {card.description ? <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{card.description}</p> : null}
             </div>
         ))}
       </div>
@@ -901,34 +905,36 @@ function WhyChoose() {
 /* ===================== FAQ ===================== */
 
 function FaqSection() {
-  const { t } = useTranslation();
+  const { section } = useLandingSection("faq");
   const [items, setItems] = useState<FaqArticle[]>([]);
+  const [heading, setHeading] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     fetchLandingFaq()
-      .then((articles) => {
+      .then(({ name, articles }) => {
         if (!active) return;
-        if (articles.length > 0) {
-          setItems(articles);
-          return;
-        }
-        const fallback = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
-        setItems(fallback.map((item, i) => ({ id: i + 1, question: item.q, answer: item.a })));
+        setItems(articles);
+        setHeading(name);
       })
       .catch(() => {
         if (!active) return;
-        const fallback = t("landing.faq.items", { returnObjects: true }) as { q: string; a: string }[];
-        setItems(fallback.map((item, i) => ({ id: i + 1, question: item.q, answer: item.a })));
+        setItems([]);
+      })
+      .finally(() => {
+        if (active) setLoaded(true);
       });
     return () => { active = false; };
-  }, [t]);
+  }, []);
+
+  if (loaded && items.length === 0) return null;
 
   return (
     <Section bg="var(--background-surface)">
-      <Eyebrow>{t("landing.faq.eyebrow")}</Eyebrow>
-      <Title>{t("landing.faq.title")}</Title>
+      <Eyebrow>{section?.eyebrow}</Eyebrow>
+      <Title>{section?.title || heading}</Title>
       <div className="mx-auto mt-9 max-w-[820px] space-y-2.5">
         {items.map((item, i) => {
           const isOpen = open === i;
@@ -959,49 +965,64 @@ function FaqSection() {
 
 /* ===================== Footer ===================== */
 
-const FOOTER_COL_KEYS = ["brand", "docs", "support"] as const;
-const FOOTER_LINK_KEYS = {
-  brand: ["about", "company", "partners", "advertising"],
-  docs: ["rules", "privacy", "compliance", "consent"],
-  support: ["faq", "support", "feedback", "contact"],
-} as const;
-const FOOTER_LINK_TO: Record<string, string> = {
-  about: "/info/about", company: "/info/company", partners: "/info/partners", advertising: "/info/advertising",
-  rules: "/legal/rules", privacy: "/legal/privacy", compliance: "/legal/compliance", consent: "/legal/consent",
-  faq: "/help", support: "/info/support", feedback: "/info/feedback", contact: "/info/feedback",
-};
-
 function Footer() {
   const { t } = useTranslation();
   const contacts = useFooterContacts();
+  const branding = useSiteBranding();
+  const { data: apiGroups } = useFooterLinksApi();
+  const apiEntries = apiGroups
+    ? Object.entries(apiGroups).filter(([group, links]) => group !== "contacts" && links.length > 0)
+    : [];
+  const siteName = branding.site_name ?? t("common.appName");
+  const tagline = contacts?.tagline;
+
   return (
     <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
       <div className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8" style={{ maxWidth: 1240 }}>
         <div>
           <Logo variant="footer" />
-          <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t("landing.footer.tagline")}</p>
-          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {t("common.appName")}</p>
+          {tagline ? <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{tagline}</p> : null}
+          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {siteName}</p>
           <div className="mt-4 flex items-center gap-2">
             <span className="text-xs" style={{ color: "var(--foreground-50)" }}>{t("landing.footer.theme")}</span>
             <ThemeToggle size={32} alwaysVisible />
           </div>
         </div>
 
-        {FOOTER_COL_KEYS.map((colKey) => (
-          <div key={colKey}>
-            <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{t(`landing.footer.cols.${colKey}.title`)}</div>
-            <ul className="mt-4 flex flex-col gap-2.5">
-              {FOOTER_LINK_KEYS[colKey].map((linkKey) => (
-                <li key={linkKey}>
-                  <Link to={FOOTER_LINK_TO[linkKey]} className="text-sm transition-colors" style={{ color: "var(--foreground-50)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--neutral-700)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-50)")}
-                  >{t(`landing.footer.cols.${colKey}.links.${linkKey}`)}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {apiEntries.map(([group, links]) => (
+              <div key={group}>
+                <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{groupTitle(group, t)}</div>
+                <ul className="mt-4 flex flex-col gap-2.5">
+                  {links.map((l) => {
+                    const href = resolveFooterHref(l);
+                    const label = footerLinkLabel(l.label, t);
+                    return (
+                      <li key={`${group}-${l.id}`}>
+                        {l.target_type === "external" ? (
+                          <a
+                            href={href}
+                            className="text-sm transition-colors"
+                            style={{ color: "var(--foreground-50)" }}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {label}
+                          </a>
+                        ) : (
+                          <Link
+                            to={href}
+                            className="text-sm transition-colors"
+                            style={{ color: "var(--foreground-50)" }}
+                          >
+                            {label}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
 
         <FooterContactsBlock contacts={contacts} title={t("landing.footer.contacts")} />
       </div>

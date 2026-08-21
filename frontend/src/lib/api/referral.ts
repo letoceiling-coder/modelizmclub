@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { PUBLIC_ORIGIN } from "@/lib/referral";
+import { publicOrigin } from "@/lib/referral";
 
 export interface ReferralInvitedUser {
   uuid: string;
@@ -42,7 +42,8 @@ interface ApiReferral {
 }
 
 export function referralLinkFor(code: string): string {
-  return code ? `${PUBLIC_ORIGIN}/register?ref=${code}` : PUBLIC_ORIGIN;
+  const origin = publicOrigin();
+  return code ? `${origin}/register?ref=${code}` : origin;
 }
 
 export async function fetchReferral(): Promise<ReferralData> {
