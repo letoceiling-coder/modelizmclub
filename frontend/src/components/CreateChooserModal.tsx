@@ -1,8 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Newspaper, Megaphone } from "lucide-react";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 export function CreateChooserModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
+  const { guardAction } = useGuestAccess();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center" onClick={() => onOpenChange(false)}>
@@ -17,7 +19,10 @@ export function CreateChooserModal({ open, onOpenChange }: { open: boolean; onOp
             <span className="text-sm font-medium">Публикация</span>
           </button>
           <button
-            onClick={() => { onOpenChange(false); navigate({ to: "/ads/new" }); }}
+            onClick={() => {
+              onOpenChange(false);
+              guardAction("layout.nav.ad_create", () => { void navigate({ to: "/ads/new" }); }, "/ads/new");
+            }}
             className="flex flex-col items-center gap-2 rounded-xl border p-4 hover:bg-muted"
           >
             <Megaphone className="h-6 w-6 text-primary" />

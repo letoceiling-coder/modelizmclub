@@ -460,8 +460,11 @@ export function ProfileView({
                 userAds.length === 0 ? (
                   <EmptyTab bare text={t("pages.profile.emptyAdsShort")}>
                     {isOwn && (
-                      <Button asChild className="mt-[16px]">
-                        <Link to="/ads/new"><Plus size={14} /> {t("pages.profile.createListing")}</Link>
+                      <Button
+                        className="mt-[16px]"
+                        onClick={() => requireAccount(() => { void navigateToMessenger({ to: "/ads/new" }); })}
+                      >
+                        <Plus size={14} /> {t("pages.profile.createListing")}
                       </Button>
                     )}
                   </EmptyTab>

@@ -8,7 +8,6 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { useStore } from "@/lib/store";
-import { getToken } from "@/lib/api/client";
 import { ROUTES } from "@/lib/routes";
 
 export function DesktopTopBar() {
@@ -18,20 +17,14 @@ export function DesktopTopBar() {
     Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
   );
   const { t } = useTranslation();
-  const isGuest = !getToken();
 
   const iconClass = "relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]";
   const iconStyle = { color: "var(--foreground-70)" };
 
-  const NavIcon = ({ actionKey, to, label, children }: { actionKey: string; to: string; label: string; children: ReactNode }) =>
-    isGuest ? (
+  const NavIcon = ({ actionKey, to, label, children }: { actionKey: string; to: string; label: string; children: ReactNode }) => (
       <GuestGuardLink actionKey={actionKey} to={to} aria-label={label} className={iconClass} style={iconStyle}>
         {children}
       </GuestGuardLink>
-    ) : (
-      <Link to={to as "/feed"} aria-label={label} className={iconClass} style={iconStyle}>
-        {children}
-      </Link>
     );
 
   return (

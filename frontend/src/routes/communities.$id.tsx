@@ -641,7 +641,7 @@ function CommunityDetailPage() {
                 <Share2 size={16} /> {t("pages.communityDetail.share")}
               </Button>
               {!hasOwnCommunity && !isOwner && (
-                <Button variant="outline" onClick={() => setRequestOpen(true)} size="lg" className="gap-[8px] rounded-[12px]">
+                <Button variant="outline" onClick={() => requirePremium(() => setRequestOpen(true))} size="lg" className="gap-[8px] rounded-[12px]">
                   <Plus size={16} /> {t("pages.communityDetail.wantOwnCommunity")}
                 </Button>
               )}

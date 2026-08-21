@@ -31,6 +31,11 @@ export function isPhoneVerified(user: User | null | undefined): boolean {
   return user?.phone_verified === true;
 }
 
+/** Placeholder store user before login — not an account, so no SMS/email gates. */
+export function isAnonymousUser(user: User | null | undefined): boolean {
+  return !user || user.id === "guest";
+}
+
 export function isAdminUser(user: User | null | undefined): boolean {
   return user?.role === "admin" || user?.isAdmin === true;
 }
@@ -40,8 +45,9 @@ export function isStaffUser(user: User | null | undefined): boolean {
   return isAdminUser(user) || user?.role === "moderator";
 }
 
-/** Admins and moderators skip SMS phone verification for site actions (publish, chat, etc.). */
+/** Admins and moderators skip SMS. Guests are not accounts — login comes first. */
 export function isPhoneVerificationRequired(user: User | null | undefined): boolean {
+  if (isAnonymousUser(user)) return false;
   return !isStaffUser(user);
 }
 
@@ -53,6 +59,7 @@ export function isFullyVerified(user: User | null | undefined): boolean {
 }
 
 export function verificationMessage(user: User | null | undefined): string {
+  if (isAnonymousUser(user)) return "";
   const missingEmail = !isEmailVerified(user);
   const missingPhone = isPhoneVerificationRequired(user) && !isPhoneVerified(user);
   if (missingEmail && missingPhone) {
@@ -70,22 +77,41 @@ export function verificationMessage(user: User | null | undefined): string {
 /** Block an action unless email and phone are verified on the server. */
 export async function requireVerifiedForAction(navigate: (opts: { to: string; search?: Record<string, string> }) => void): Promise<boolean> {
   if (isDemoMode()) return true;
-  if (!isAuthenticated()) return false;
+  const from = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/feed";
+  if (!isAuthenticated()) {
+    navigate({ to: "/login", search: { redirect: from } });
+    return false;
+  }
 
   const user = await fetchMe();
   if (user) setCurrentUser(user);
 
+  if (isAnonymousUser(user) || !isAuthenticated()) {
+    navigate({ to: "/login", search: { redirect: from } });
+    return false;
+  }
+
+  if (isPhoneVerificationRequired(user) && !isPhoneVerified(user)) {
+    requestPhoneVerificationModal();
+    return false;
+  }
+
   if (!isFullyVerified(user)) {
-    const from = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/feed";
     navigate({ to: "/settings/account", search: { redirect: from } });
     return false;
   }
   return true;
 }
 
+/** Ask the root access provider to show the standard SMS modal. */
+export function requestPhoneVerificationModal(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("modelizm:access-gate", { detail: { code: "phone_not_verified" } }));
+}
+
 /**
- * Route guard: requires login + verified email and phone.
- * Unverified users are redirected to account settings.
+ * Route guard: login + SMS. Missing phone shows the standard modal and
+ * returns to the feed — never a silent jump to settings.
  */
 export async function requireVerified(location?: {
   pathname: string;
@@ -99,6 +125,18 @@ export async function requireVerified(location?: {
 
   let user = await fetchMe();
   if (user) setCurrentUser(user);
+
+  if (isAnonymousUser(user)) {
+    throw redirect({
+      to: "/login",
+      search: { redirect: (location?.pathname ?? "/feed") },
+    });
+  }
+
+  if (isPhoneVerificationRequired(user) && !isPhoneVerified(user)) {
+    requestPhoneVerificationModal();
+    throw redirect({ to: "/feed", replace: true });
+  }
 
   if (!isFullyVerified(user)) {
     const pathname = location?.pathname ?? (typeof window !== "undefined" ? window.location.pathname : "/feed");

@@ -246,7 +246,7 @@ function ChannelPage() {
               {!isOwner && (
                 <button
                   type="button"
-                  onClick={() => setRequestOpen(true)}
+                  onClick={() => requirePremium(() => setRequestOpen(true))}
                   className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-[12px] border text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface)]"
                   style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
                 >

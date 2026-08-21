@@ -12,6 +12,7 @@ import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 import { Button } from "@/components/ui/button";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 import i18n from "@/lib/i18n";
 
@@ -78,6 +79,7 @@ const QUICK_CHIP_KEYS: { key: QuickChip; labelKey: string }[] = [
 function MyAdsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { guardAction } = useGuestAccess();
   const tabs = useMemo(() => TAB_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
   const quickChips = useMemo(() => QUICK_CHIP_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
   const [tab, setTab] = useState<TabKey>("active");
@@ -235,7 +237,7 @@ function MyAdsPage() {
     return { count: active.length, views, likes, activeValue };
   }, [decorated]);
 
-  const handleCreate = () => navigate({ to: "/ads/new" });
+  const handleCreate = () => guardAction("layout.nav.ad_create", () => { void navigate({ to: "/ads/new" }); }, "/ads/new");
   const handleSelect = (id: string, checked: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);

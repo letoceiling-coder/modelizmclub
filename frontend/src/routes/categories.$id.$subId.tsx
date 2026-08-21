@@ -20,6 +20,7 @@ import * as Icons from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { userById } from "@/lib/mock";
 import type { Category, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -1147,13 +1148,14 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
         <p className="text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
           {t("pages.subcategoryDetail.noAdsDesc")}
         </p>
-        <Link
+        <GuestGuardLink
+          actionKey="layout.nav.ad_create"
           to="/ads/new"
           className="mt-[6px] inline-flex items-center rounded-[10px] px-[14px] py-[8px] text-[13px] font-semibold"
           style={{ background: "var(--accent)", color: "#fff" }}
         >
           {t("pages.subcategoryDetail.postAd")}
-        </Link>
+        </GuestGuardLink>
       </div>
     );
   }

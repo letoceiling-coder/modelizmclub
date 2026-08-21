@@ -8,7 +8,6 @@ import { useStore, selectors } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
-import { getToken } from "@/lib/api/client";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
@@ -67,7 +66,6 @@ export function BottomNav() {
 }
 
 function NavTab({ item, label, active, badge }: { item: Item; label: string; active: boolean; badge: number }) {
-  const isGuest = !getToken();
   const actionKey = NAV_ROUTE_TO_ACTION[item.to];
   const content = (
     <>
@@ -100,7 +98,7 @@ function NavTab({ item, label, active, badge }: { item: Item; label: string; act
 
   return (
     <li className="flex">
-      {isGuest && actionKey ? (
+      {actionKey ? (
         <GuestGuardLink
           actionKey={actionKey}
           to={item.to}

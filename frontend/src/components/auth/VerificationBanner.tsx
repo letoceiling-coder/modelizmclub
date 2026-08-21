@@ -1,17 +1,22 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 import { useStore, selectors } from "@/lib/store";
-import { isPhoneVerified, isPhoneVerificationRequired } from "@/lib/auth/verification";
+import {
+  isAnonymousUser,
+  isPhoneVerified,
+  isPhoneVerificationRequired,
+} from "@/lib/auth/verification";
+import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 
 export function VerificationBanner() {
   const me = useStore(selectors.currentUser);
   const sessionResolved = useStore(selectors.sessionResolved);
 
-  // Before the boot-time session probe resolves, `me` is only the neutral
-  // GUEST_USER placeholder (looks "unverified"), not the real account — bail
-  // out instead of flashing an incorrect verification prompt on every reload.
+  // Guests must see login, not SMS. Also wait for the boot-time session probe
+  // so GUEST_USER is not treated as an unverified account on reload.
   if (!sessionResolved || isDemoMode()) return null;
+  if (!isAuthenticated() || isAnonymousUser(me)) return null;
   if (!isPhoneVerificationRequired(me) || isPhoneVerified(me)) return null;
 
   return (

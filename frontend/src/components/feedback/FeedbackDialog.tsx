@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { toast } from "@/lib/toast";
@@ -8,22 +8,38 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { submitFeedback } from "@/lib/api/feedback";
 import { getToken } from "@/lib/api/client";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 const OTHER_DIRECTION = "Другое";
+const OPEN_AFTER_LOGIN_KEY = "mc_open_feedback";
 
 export function FeedbackDialog() {
+  const { isGuest, requireLogin } = useGuestAccess();
   const [open, setOpen] = useState(false);
   const [direction, setDirection] = useState("");
   const [message, setMessage] = useState("");
   const [consentPd, setConsentPd] = useState(false);
   const [sending, setSending] = useState(false);
   const categories = usePostCategories();
+
+  useEffect(() => {
+    if (isGuest || typeof window === "undefined") return;
+    if (sessionStorage.getItem(OPEN_AFTER_LOGIN_KEY) !== "1") return;
+    sessionStorage.removeItem(OPEN_AFTER_LOGIN_KEY);
+    setOpen(true);
+  }, [isGuest]);
+
+  function requestOpen() {
+    if (isGuest && typeof window !== "undefined") {
+      sessionStorage.setItem(OPEN_AFTER_LOGIN_KEY, "1");
+    }
+    requireLogin(() => setOpen(true));
+  }
 
   function resetForm() {
     setDirection("");
@@ -64,23 +80,23 @@ export function FeedbackDialog() {
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) resetForm();
-      }}
-    >
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-        >
-          <SlotIcon slot="nav.feedback" className="h-4 w-4" size={16} inheritColor />
-          Обратная связь
-        </button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
+    <>
+      <button
+        type="button"
+        onClick={requestOpen}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+      >
+        <SlotIcon slot="nav.feedback" className="h-4 w-4" size={16} inheritColor />
+        Обратная связь
+      </button>
+      <Dialog
+        open={open && !isGuest}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) resetForm();
+        }}
+      >
+        <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Книга замечаний и предложений</DialogTitle>
           <DialogDescription>
@@ -138,5 +154,6 @@ export function FeedbackDialog() {
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

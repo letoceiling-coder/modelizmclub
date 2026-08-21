@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 const QUICK_QUESTIONS = [
   "Где и когда можно посмотреть?",
@@ -13,13 +14,21 @@ const QUICK_QUESTIONS = [
 /** Compact "ask a quick question" widget — sends straight into the existing
  *  messenger/dialog with the seller (via onAsk), not a separate Q&A system. */
 export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
+  const { isGuest, needsPhone, needsSubscription, requirePremium } = useGuestAccess();
+  const locked = isGuest || needsPhone || needsSubscription;
   const [text, setText] = useState("");
 
+  const withAccess = (then: () => void) => {
+    requirePremium(then);
+  };
+
   const send = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    onAsk(trimmed);
-    setText("");
+    withAccess(() => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      onAsk(trimmed);
+      setText("");
+    });
   };
 
   return (
@@ -40,7 +49,7 @@ export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
           <button
             key={q}
             type="button"
-            onClick={() => setText(q)}
+            onClick={() => withAccess(() => setText(q))}
             className="text-[11.5px] font-medium transition-colors"
             style={{
               padding: "6px 10px",
@@ -57,8 +66,27 @@ export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
       <div className="flex gap-[8px]">
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+          readOnly={locked}
+          onChange={(e) => {
+            if (locked) return;
+            setText(e.target.value);
+          }}
+          onMouseDown={(e) => {
+            if (!locked) return;
+            e.preventDefault();
+            withAccess(() => {});
+          }}
+          onFocus={(e) => {
+            if (!locked) return;
+            e.currentTarget.blur();
+            withAccess(() => {});
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              send();
+            }
+          }}
           placeholder="Ваш вопрос…"
           className="h-[36px] flex-1 min-w-0 text-[13px] outline-none"
           style={{
@@ -67,9 +95,10 @@ export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
             border: "1px solid var(--border)",
             borderRadius: "var(--r-input)",
             padding: "0 10px",
+            cursor: locked ? "pointer" : "text",
           }}
         />
-        <Button size="sm" onClick={send} disabled={!text.trim()} className="h-[36px] shrink-0 rounded-[var(--r-button)] px-[12px]" aria-label="Отправить вопрос">
+        <Button size="sm" onClick={send} disabled={!locked && !text.trim()} className="h-[36px] shrink-0 rounded-[var(--r-button)] px-[12px]" aria-label="Отправить вопрос">
           <Send size={14} />
         </Button>
       </div>

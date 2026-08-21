@@ -118,7 +118,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       </span>
     ) : null;
 
-    if (isGuest && actionKey) {
+    if (actionKey) {
       return (
         <GuestGuardLink key={to} actionKey={actionKey} to={to} className={className} style={style} title={compact ? t(labelKey) : undefined} aria-label={t(labelKey)}>
           {compact ? (
