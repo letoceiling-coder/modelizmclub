@@ -13,6 +13,12 @@ class ConfirmStubPaymentController extends Controller
 {
     public function __invoke(Request $request, string $uuid, StubPaymentGateway $gateway): JsonResponse
     {
+        if (app()->environment('production')) {
+            return response()->json([
+                'message' => 'Оплата подтверждается только через платёжный шлюз.',
+                'code' => 'vtb_required',
+            ], 403);
+        }
         $payment = Payment::query()
             ->where('uuid', $uuid)
             ->where('user_id', $request->user()->id)

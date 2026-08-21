@@ -130,6 +130,45 @@ class BillingModuleTest extends TestCase
             ->assertJsonPath('data', null);
     }
 
+    public function test_unpaid_subscription_row_is_not_exposed(): void
+    {
+        $plan = $this->seedPlan();
+        $user = $this->seedUser();
+        UserSubscription::query()->create([
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+            'status' => 'active',
+            'starts_at' => now(),
+            'ends_at' => now()->addYear(),
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/users/me/subscription')
+            ->assertOk()
+            ->assertJsonPath('data', null);
+    }
+
+    public function test_public_plans_list_returns_every_active_plan(): void
+    {
+        SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => 'basic'],
+            ['name' => 'Базовый', 'price_cents' => 0, 'period_days' => 30, 'is_active' => true, 'sort_order' => 0],
+        );
+        $this->seedPlan();
+        SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => 'pro'],
+            ['name' => 'Pro', 'price_cents' => 49900, 'period_days' => 30, 'is_active' => true, 'sort_order' => 15],
+        );
+
+        $slugs = $this->getJson('/api/v1/plans')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertContains('basic', array_column($slugs, 'slug'));
+        $this->assertContains('year', array_column($slugs, 'slug'));
+        $this->assertContains('pro', array_column($slugs, 'slug'));
+    }
+
     public function test_vtb_checkout_returns_form_url(): void
     {
         config([

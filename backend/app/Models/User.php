@@ -173,7 +173,7 @@ class User extends Authenticatable
             return FirstHundredPromo::coversUser($this);
         }
 
-        return true;
+        return false;
     }
 
     public function hasUnexpiredSubscriptionRow(): bool
@@ -190,14 +190,19 @@ class User extends Authenticatable
     /** Paid gateway/wallet checkout for a subscription plan. */
     public function hasPaidSubscriptionPayment(): bool
     {
-        return Payment::query()
+        $query = Payment::query()
             ->where('user_id', $this->id)
             ->where('status', 'paid')
             ->where(function ($q): void {
                 $q->whereNotNull('metadata->plan_id')
                     ->orWhere('metadata->payable_type', 'subscription');
-            })
-            ->exists();
+            });
+
+        if (app()->environment('production')) {
+            $query->where('provider', '!=', 'stub');
+        }
+
+        return $query->exists();
     }
 
     /** OAuth placeholder emails — not a real inbox, must not be shown or verified manually. */

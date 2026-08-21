@@ -68,6 +68,7 @@ class ListingPlacementQuoteTest extends TestCase
             'starts_at' => now(),
             'ends_at' => now()->addMonth(),
         ]);
+        $this->recordPaidPlanPayment($user, (int) $plan->id, (int) $plan->price_cents);
     }
 
     public function test_subscriber_quote_uses_system_subscriber_price_not_registered(): void

@@ -2,7 +2,9 @@
 
 namespace Tests;
 
+use App\Models\Payment;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Str;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -26,5 +28,19 @@ abstract class TestCase extends BaseTestCase
                 .'Run deploy/scripts/setup-test-db.sh and php artisan config:clear before testing.'
             );
         }
+    }
+
+    protected function recordPaidPlanPayment(\App\Models\User $user, int $planId, int $amountCents = 9900): void
+    {
+        Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'amount_cents' => $amountCents,
+            'currency' => 'RUB',
+            'status' => 'paid',
+            'provider' => 'vtb',
+            'paid_at' => now(),
+            'metadata' => ['plan_id' => $planId, 'payable_type' => 'subscription'],
+        ]);
     }
 }

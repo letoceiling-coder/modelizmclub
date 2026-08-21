@@ -95,6 +95,12 @@ class CreatePaymentController extends Controller
             ]);
         }
 
+        if ((int) $plan->price_cents <= 0) {
+            throw ValidationException::withMessages([
+                'plan_slug' => ['Этот тариф бесплатный и не требует оплаты.'],
+            ]);
+        }
+
         $metadata = [
             'plan_id' => $plan->id,
             'plan_slug' => $plan->slug,

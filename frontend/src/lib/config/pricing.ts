@@ -79,10 +79,9 @@ function markBestPlan(plans: Omit<PricingPlan, "best">[]): PricingPlan[] {
 }
 
 export function mapApiPlansToPricingPlans(apiPlans: SubscriptionPlanApi[]): PricingPlan[] {
-  const checkout = apiPlans
-    .filter((p) => SUBSCRIPTION_CHECKOUT_SLUGS.includes(p.slug as (typeof SUBSCRIPTION_CHECKOUT_SLUGS)[number]))
-    .filter((p) => p.price_cents > 0)
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.price_cents - b.price_cents);
+  const checkout = [...apiPlans].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.price_cents - b.price_cents,
+  );
 
   if (checkout.length === 0) {
     return PRICING_PLANS_FALLBACK;

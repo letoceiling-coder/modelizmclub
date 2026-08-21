@@ -4,7 +4,7 @@ import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
 import { BOOST_PACKAGES } from "@/lib/config/boost";
 import { fetchBoostPackages } from "@/lib/api/listings";
-import { createListingBoostPayment, confirmStubPayment } from "@/lib/api/payment";
+import { createListingBoostPayment } from "@/lib/api/payment";
 import { ApiError } from "@/lib/api/client";
 
 /**
@@ -60,8 +60,11 @@ export function BoostSheet({
         window.location.href = checkout.checkout_url;
         return;
       }
-      await confirmStubPayment(checkout.payment_uuid);
-      toast.success("Продвижение активировано (тестовый режим)");
+      if (checkout.provider === "stub") {
+        toast.error("Оплата доступна после подключения эквайринга");
+        return;
+      }
+      toast.success("Продвижение активировано");
       onClose();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Не удалось оформить продвижение";

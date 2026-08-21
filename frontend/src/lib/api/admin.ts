@@ -290,6 +290,7 @@ export interface AdminPlanRow {
   periodDays: number;
   freeListingsPerMonth: number;
   listingDiscountPercent: number;
+  isActive: boolean;
 }
 
 export async function fetchAdminPlansDetailed(): Promise<AdminPlanRow[]> {
@@ -302,6 +303,7 @@ export async function fetchAdminPlansDetailed(): Promise<AdminPlanRow[]> {
     periodDays: p.period_days ?? 30,
     freeListingsPerMonth: p.free_listings_per_month ?? 0,
     listingDiscountPercent: p.listing_discount_percent ?? 0,
+    isActive: p.is_active !== false,
   }));
 }
 
@@ -324,6 +326,7 @@ export async function updateAdminPlan(
     period_days?: number;
     free_listings_per_month?: number;
     listing_discount_percent?: number;
+    is_active?: boolean;
   },
 ): Promise<void> {
   await api(`/admin/plans/${slug}`, { method: "PATCH", json: patch });

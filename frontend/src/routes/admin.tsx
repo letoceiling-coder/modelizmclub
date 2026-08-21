@@ -2118,6 +2118,7 @@ function MonetizationSection() {
             period_days: plan.periodDays,
             free_listings_per_month: plan.freeListingsPerMonth,
             listing_discount_percent: plan.listingDiscountPercent,
+            is_active: plan.isActive,
           }),
         ),
       );
@@ -2166,6 +2167,8 @@ function MonetizationSection() {
   return (
     <div>
       <H>{t("pages.adminMonetization.title")}</H>
+
+      <FirstHundredAdminCard cardStyle={card} />
 
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
         <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>{t("pages.adminMonetization.placementTitle")}</h4>
@@ -2217,6 +2220,19 @@ function MonetizationSection() {
                 className="w-full outline-none"
                 style={{ fontSize: "20px", fontWeight: 700, color: "var(--accent)", background: "transparent", border: "none", padding: "4px 0", fontFamily: "var(--font-display)" }}
               />
+              <label className="flex items-center gap-2" style={{ marginTop: "8px", fontSize: "12px", color: "var(--foreground-70)" }}>
+                <input
+                  type="checkbox"
+                  checked={plan.isActive}
+                  onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, isActive: e.target.checked } : x))}
+                  style={{ accentColor: "var(--accent)" }}
+                />
+                {t("pages.adminMonetization.planActiveLabel")}
+              </label>
+              <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
+                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.periodDaysLabel")}</span>
+                <input type="number" min={1} value={plan.periodDays} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, periodDays: Math.max(1, +e.target.value) } : x))} style={inputStyle} />
+              </label>
               <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
                 <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminMonetization.freeListingsLabel")}</span>
                 <input type="number" min={0} value={plan.freeListingsPerMonth} onChange={(e) => setPlans((p) => p.map((x, j) => j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x))} style={inputStyle} />
@@ -2233,8 +2249,6 @@ function MonetizationSection() {
 
       {/* Promocodes */}
       <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
-
-      <FirstHundredAdminCard cardStyle={card} />
 
       <ReferralProgramAdminCard cardStyle={card} />
 

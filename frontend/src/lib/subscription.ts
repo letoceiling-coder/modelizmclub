@@ -43,8 +43,8 @@ export async function getMySubscription(force = false): Promise<MySubscription |
   if (!inflight || force) {
     inflight = fetchMySubscription()
       .then((sub) => {
-        cache = sub;
-        return sub;
+        cache = sub?.is_active ? sub : null;
+        return cache;
       })
       .catch(() => {
         inflight = null; // let the next call retry after a transient failure

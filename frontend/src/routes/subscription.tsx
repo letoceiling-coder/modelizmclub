@@ -19,7 +19,6 @@ import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import {
   createSubscriptionPayment,
   createListingPlacementPayment,
-  confirmStubPayment,
   fetchMySubscription,
   type PayWith,
 } from "@/lib/api/payment";
@@ -62,10 +61,11 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }, sou
       window.location.href = checkout.checkout_url;
       return;
     }
-    // Wallet payments come back already "paid"; stub needs an explicit confirm.
-    if (checkout.provider !== "wallet") {
-      await confirmStubPayment(checkout.payment_uuid);
+    if (checkout.provider === "stub") {
+      toast.error(i18n.t("pages.subscription.payCreateFailed"));
+      return;
     }
+    // Wallet payments come back already "paid".
     invalidateMySubscription();
     const sub = await fetchMySubscription();
     if (source === "wallet") {
@@ -87,8 +87,9 @@ async function startPlacementCheckout(source: PayWith) {
       window.location.href = checkout.checkout_url;
       return;
     }
-    if (checkout.provider !== "wallet") {
-      await confirmStubPayment(checkout.payment_uuid);
+    if (checkout.provider === "stub") {
+      toast.error(i18n.t("pages.subscription.payCreateFailed"));
+      return;
     }
     toast.success(source === "wallet" ? i18n.t("pages.subscription.payWalletPaid") : i18n.t("pages.subscription.oneTimePaid"));
   } catch {
@@ -294,16 +295,20 @@ function SubscriptionPage() {
         </div>
         )}
 
-        <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[760px]">
+        <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[960px]">
           <PlanTermSelector
             renderCta={(plan) => (
               <button
                 type="button"
-                onClick={() => void openSubscribe({ id: plan.id, name: plan.name, priceRub: plan.price })}
-                className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90"
+                onClick={() => {
+                  if (plan.price <= 0) return;
+                  void openSubscribe({ id: plan.id, name: plan.name, priceRub: plan.price });
+                }}
+                disabled={plan.price <= 0}
+                className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               >
-                {t("pages.subscription.subscribe")}
+                {plan.price <= 0 ? t("pages.subscription.freePlan") : t("pages.subscription.subscribe")}
               </button>
             )}
           />

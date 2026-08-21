@@ -178,6 +178,7 @@ class VideoUploadModerationTest extends TestCase
             'starts_at' => now(),
             'ends_at' => now()->addMonth(),
         ]);
+        $this->recordPaidPlanPayment($viewer, (int) $plan->id, (int) $plan->price_cents);
 
         $uploader = User::factory()->create();
         UserProfile::query()->create([

@@ -47,7 +47,7 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
         <div
           role="radiogroup"
           aria-label="Срок подписки"
-          className="grid grid-cols-3 gap-[4px] rounded-[var(--r-pill)] p-[4px] pt-[15px]"
+          className="flex flex-wrap justify-center gap-[4px] rounded-[var(--r-pill)] p-[4px] pt-[15px]"
           style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
         >
           {plans.map((p) => {
@@ -94,7 +94,7 @@ export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps
 
       {/* ===== Desktop: all three plans open at once, no switcher ===== */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-3 gap-[16px]">
+        <div className={`grid gap-[16px] ${plans.length <= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"}`}>
           {plans.map((p) => (
             <div
               key={p.id}

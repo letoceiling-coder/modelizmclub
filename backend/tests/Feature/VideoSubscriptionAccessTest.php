@@ -48,6 +48,7 @@ class VideoSubscriptionAccessTest extends TestCase
             'starts_at' => now(),
             'ends_at' => now()->addMonth(),
         ]);
+        $this->recordPaidPlanPayment($user, (int) $plan->id, (int) $plan->price_cents);
 
         return $user;
     }
