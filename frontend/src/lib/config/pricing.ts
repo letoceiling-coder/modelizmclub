@@ -15,6 +15,12 @@ export interface PricingPlan {
   features?: string[];
 }
 
+/** Public API stores either a list of copy strings or capability flags like `{posts: "unlimited"}`. */
+export function normalizePlanFeatures(features: unknown): string[] {
+  if (!Array.isArray(features)) return [];
+  return features.map((item) => String(item ?? "").trim()).filter(Boolean);
+}
+
 const PLAN_MONTHS: Record<string, number> = {
   month: 1,
   half: 6,
@@ -74,7 +80,7 @@ export function mapApiPlansToPricingPlans(apiPlans: SubscriptionPlanApi[]): Pric
     price: Math.round(p.price_cents / 100),
     period: periodLabel(p.slug, p.period_days),
     periodDays: p.period_days,
-    features: (p.features ?? []).map((f) => f.trim()).filter(Boolean),
+    features: normalizePlanFeatures(p.features),
   }));
 
   return markBestPlan(mapped);

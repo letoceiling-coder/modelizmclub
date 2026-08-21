@@ -51,7 +51,7 @@ export interface SubscriptionPlanApi {
   price_cents: number;
   price_rub: number;
   period_days: number;
-  features: string[];
+  features: string[] | Record<string, unknown>;
   badge_label: string | null;
   sort_order: number;
 }

@@ -8,6 +8,8 @@ interface PlanTermSelectorProps {
    *  mobile that's always the currently selected term; on desktop it's
    *  called once per plan since all three render open at once. */
   renderCta: (plan: PricingPlan) => React.ReactNode;
+  /** Shown when the public plans API returns no active tariffs. */
+  emptyFallback?: React.ReactNode;
   className?: string;
 }
 
@@ -28,15 +30,23 @@ function defaultTermId(plans: PricingPlan[]): PricingPlan["id"] {
  * price/term differ), so the feature checklist is shown once, shared,
  * below the cards — not duplicated per card.
  */
-export function PlanTermSelector({ renderCta, className }: PlanTermSelectorProps) {
-  const { plans } = usePricingPlans();
+export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTermSelectorProps) {
+  const { plans, loading } = usePricingPlans();
   const [termId, setTermId] = useState<PricingPlan["id"]>(() => defaultTermId(plans));
 
   useEffect(() => {
     setTermId((prev) => (plans.some((p) => p.id === prev) ? prev : defaultTermId(plans)));
   }, [plans]);
 
-  if (plans.length === 0) return null;
+  if (loading) {
+    return (
+      <p className="py-[40px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>
+        Загрузка тарифов…
+      </p>
+    );
+  }
+
+  if (plans.length === 0) return emptyFallback ?? null;
 
   const selected = plans.find((p) => p.id === termId) ?? plans[0];
   const featuresShared = plans.every(

@@ -63,6 +63,27 @@ class BillingModuleTest extends TestCase
             ->assertJsonPath('data.0.slug', 'month');
     }
 
+    public function test_public_plans_normalize_capability_features_to_list(): void
+    {
+        SubscriptionPlan::query()->updateOrCreate(
+            ['slug' => 'month'],
+            [
+                'name' => 'Месяц',
+                'description' => 'Test',
+                'price_cents' => 9900,
+                'period_days' => 30,
+                'is_active' => true,
+                'sort_order' => 1,
+                'features' => ['posts' => 'unlimited', 'listings' => 'unlimited'],
+            ],
+        );
+
+        $this->getJson('/api/v1/plans')
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', 'month')
+            ->assertJsonPath('data.0.features', []);
+    }
+
     public function test_authenticated_user_can_create_stub_payment(): void
     {
         config(['billing.provider' => 'stub']);

@@ -19,9 +19,38 @@ class SubscriptionPlanResource extends JsonResource
             'price_cents' => $this->price_cents,
             'price_rub' => round($this->price_cents / 100, 2),
             'period_days' => $this->period_days,
-            'features' => $this->features ?? [],
+            'features' => self::publicFeatureList($this->features),
             'badge_label' => $this->badge_label,
             'sort_order' => $this->sort_order,
         ];
+    }
+
+    /**
+     * Capability flags (`posts => unlimited`) are not user-facing copy.
+     *
+     * @return list<string>
+     */
+    private static function publicFeatureList(mixed $features): array
+    {
+        if (! is_array($features)) {
+            return [];
+        }
+
+        if (! array_is_list($features)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($features as $item) {
+            if (! is_string($item)) {
+                continue;
+            }
+            $text = trim($item);
+            if ($text !== '') {
+                $out[] = $text;
+            }
+        }
+
+        return $out;
     }
 }

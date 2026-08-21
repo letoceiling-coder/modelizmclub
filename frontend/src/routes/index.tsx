@@ -867,6 +867,17 @@ function PricingSection() {
               {t("landing.pricing.more")} <ArrowRight size={15} />
             </Link>
           )}
+          emptyFallback={
+            <div className="mt-2 flex justify-center">
+              <Link
+                to="/subscription"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] px-6 text-sm font-semibold transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              >
+                {t("landing.pricing.more")} <ArrowRight size={15} />
+              </Link>
+            </div>
+          }
         />
       </div>
     </Section>
