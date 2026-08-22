@@ -250,6 +250,64 @@ class BillingModuleTest extends TestCase
             ->assertJsonPath('data', null);
     }
 
+    public function test_stub_paid_subscription_is_visible_in_production_stub_mode(): void
+    {
+        $this->app['env'] = 'production';
+        config(['billing.provider' => 'stub']);
+        $plan = $this->seedPlan();
+        $user = $this->seedUser();
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/payments', ['plan_slug' => 'year'])
+            ->assertCreated()
+            ->json('data.payment_uuid');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/payments/{$uuid}/confirm-stub")
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/users/me/subscription')
+            ->assertOk()
+            ->assertJsonPath('data.is_active', true)
+            ->assertJsonPath('data.plan.id', $plan->id);
+    }
+
+    public function test_stub_paid_subscription_is_hidden_when_vtb_is_live(): void
+    {
+        $this->app['env'] = 'production';
+        config([
+            'billing.provider' => 'vtb',
+            'billing.vtb.enabled' => true,
+            'billing.vtb.username' => 'test-user',
+            'billing.vtb.password' => 'test-pass',
+        ]);
+        $plan = $this->seedPlan();
+        $user = $this->seedUser();
+        UserSubscription::query()->create([
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+            'status' => 'active',
+            'starts_at' => now(),
+            'ends_at' => now()->addMonth(),
+        ]);
+        Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'amount_cents' => 9900,
+            'currency' => 'RUB',
+            'status' => 'paid',
+            'provider' => 'stub',
+            'paid_at' => now(),
+            'metadata' => ['plan_id' => $plan->id, 'payable_type' => 'subscription'],
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/users/me/subscription')
+            ->assertOk()
+            ->assertJsonPath('data', null);
+    }
+
     public function test_public_plans_list_returns_every_active_plan(): void
     {
         SubscriptionPlan::query()->updateOrCreate(

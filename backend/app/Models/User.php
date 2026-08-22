@@ -17,6 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Auth\Notifications\ResetPasswordNotification;
+use Modules\Billing\Services\PaymentGatewayManager;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -198,7 +199,8 @@ class User extends Authenticatable
                     ->orWhere('metadata->payable_type', 'subscription');
             });
 
-        if (app()->environment('production')) {
+        // Live VTB ignores leftover stub checkouts. Test acquiring (stub) is a real paid path.
+        if (app(PaymentGatewayManager::class)->provider() !== 'stub') {
             $query->where('provider', '!=', 'stub');
         }
 

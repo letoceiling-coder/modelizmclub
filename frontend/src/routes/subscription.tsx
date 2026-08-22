@@ -134,8 +134,12 @@ function SubscriptionPage() {
     const params = new URLSearchParams(window.location.search);
     const p = params.get("payment");
     if (!p) return;
-    if (p === "success") toast.success(t("pages.subscription.paySuccess"));
-    else if (p === "failed") toast.error(paymentFailureCopy(params.get("reason") ?? undefined, t));
+    if (p === "success") {
+      invalidateMySubscription();
+      toast.success(t("pages.subscription.paySuccess"));
+    } else if (p === "failed") {
+      toast.error(paymentFailureCopy(params.get("reason") ?? undefined, t));
+    }
     params.delete("payment");
     params.delete("reason");
     params.delete("uuid");
