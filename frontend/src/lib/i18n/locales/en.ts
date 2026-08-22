@@ -566,6 +566,9 @@ export const en: TranslationSchema = {
       advertising: "Advertising",
       contacts: "Contacts",
       rules: "Terms",
+      howItWorks: "How it works",
+      payment: "Payment",
+      refund: "Refunds",
       security: "Security"
     },
     themeToggle: {

@@ -17,6 +17,9 @@ class LegalComplianceSeeder extends Seeder
         'privacy' => 'Политика конфиденциальности',
         'consent' => 'Согласие на обработку персональных данных',
         'compliance' => 'Кодекс этики и правила сообщества',
+        'payment' => 'Оплата',
+        'refund' => 'Возврат денежных средств',
+        'how-it-works' => 'Как работает платформа',
     ];
 
     public function run(): void
@@ -47,8 +50,11 @@ class LegalComplianceSeeder extends Seeder
             ['group' => 'legal', 'label' => 'Политика конфиденциальности', 'target_type' => 'internal', 'target_value' => '/legal/privacy', 'sort' => 20],
             ['group' => 'legal', 'label' => 'Согласие на обработку ПД', 'target_type' => 'internal', 'target_value' => '/legal/consent', 'sort' => 30],
             ['group' => 'legal', 'label' => 'Кодекс этики', 'target_type' => 'internal', 'target_value' => '/legal/compliance', 'sort' => 40],
+            ['group' => 'legal', 'label' => 'Оплата', 'target_type' => 'internal', 'target_value' => '/payment', 'sort' => 50],
+            ['group' => 'legal', 'label' => 'Возврат', 'target_type' => 'internal', 'target_value' => '/refund', 'sort' => 60],
             ['group' => 'info', 'label' => 'Обратная связь', 'target_type' => 'internal', 'target_value' => '/info/feedback', 'sort' => 10],
             ['group' => 'info', 'label' => 'Безопасность', 'target_type' => 'internal', 'target_value' => '/info/security', 'sort' => 20],
+            ['group' => 'info', 'label' => 'Как это работает', 'target_type' => 'internal', 'target_value' => '/how-it-works', 'sort' => 30],
         ];
 
         foreach ($links as $link) {

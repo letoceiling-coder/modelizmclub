@@ -51,9 +51,6 @@ function NotFoundComponent() {
           >
             {t("errors.goBack")}
           </button>
-          <a href="/diag" className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted">
-            {t("errors.routeMap")}
-          </a>
         </div>
       </div>
     </div>

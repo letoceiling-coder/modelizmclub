@@ -5,12 +5,12 @@ import {
   loadPublishedLegalPage,
 } from "@/components/legal/LegalDocumentPage";
 
-export const Route = createFileRoute("/info/$slug")({
-  loader: ({ params }) => loadPublishedLegalPage(params.slug),
+export const Route = createFileRoute("/how-it-works")({
+  loader: () => loadPublishedLegalPage("how-it-works"),
   head: ({ loaderData }) => legalDocumentHead(loaderData, "pages.info.metaTitle"),
-  component: InfoPage,
+  component: HowItWorksPage,
 });
 
-function InfoPage() {
+function HowItWorksPage() {
   return <LegalDocumentPage page={Route.useLoaderData()} />;
 }

@@ -459,6 +459,9 @@ export const ru = {
       advertising: "Реклама",
       contacts: "Контакты",
       rules: "Правила",
+      howItWorks: "Как это работает",
+      payment: "Оплата",
+      refund: "Возврат",
       security: "Безопасность",
     },
     themeToggle: {

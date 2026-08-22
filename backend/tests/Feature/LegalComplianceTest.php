@@ -43,6 +43,18 @@ class LegalComplianceTest extends TestCase
             ->assertJsonStructure(['data' => ['title', 'content_html', 'version']]);
     }
 
+    public function test_vtb_and_how_it_works_pages_are_published(): void
+    {
+        foreach (['payment', 'refund', 'how-it-works'] as $slug) {
+            $response = $this->getJson('/api/v1/legal/'.$slug)
+                ->assertOk()
+                ->assertJsonPath('data.slug', $slug);
+
+            $html = (string) $response->json('data.content_html');
+            $this->assertNotSame('', trim($html));
+        }
+    }
+
     public function test_register_requires_terms_and_privacy_consents(): void
     {
         $this->postJson('/api/v1/auth/register', [

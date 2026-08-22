@@ -559,6 +559,9 @@ export const zh: TranslationSchema = {
       advertising: "广告",
       contacts: "联系方式",
       rules: "规则",
+      howItWorks: "平台如何运作",
+      payment: "支付",
+      refund: "退款",
       security: "安全"
     },
     themeToggle: {
