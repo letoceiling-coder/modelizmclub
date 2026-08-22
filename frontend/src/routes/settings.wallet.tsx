@@ -25,16 +25,17 @@ import {
   type WalletTransaction,
   type WithdrawMethod,
 } from "@/lib/api/wallet";
-import { syncPayment } from "@/lib/api/payment";
+import { paymentFailureCopy, syncPayment } from "@/lib/api/payment";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 
-type WalletSearch = { payment?: "success" | "failed"; uuid?: string };
+type WalletSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
 export const Route = createFileRoute("/settings/wallet")({
   validateSearch: (s: Record<string, unknown>): WalletSearch => ({
     payment: s.payment === "success" || s.payment === "failed" ? s.payment : undefined,
     uuid: typeof s.uuid === "string" ? s.uuid : undefined,
+    reason: typeof s.reason === "string" ? s.reason : undefined,
   }),
   component: WalletSection,
 });
@@ -50,7 +51,7 @@ function WalletSection() {
   const { t } = useTranslation();
   const demo = isDemoMode();
   const navigate = useNavigate();
-  const { payment, uuid } = Route.useSearch();
+  const { payment, uuid, reason } = Route.useSearch();
   const [balanceKopecks, setBalanceKopecks] = useState(demo ? mockWalletBalance * 100 : 0);
   const [heldKopecks, setHeldKopecks] = useState(0);
   const [operations, setOperations] = useState<WalletTransaction[]>(demo ? mockWalletOperations : []);
@@ -81,7 +82,13 @@ function WalletSection() {
       void navigate({ to: "/settings/wallet", search: {}, replace: true });
     };
     if (payment === "failed") {
-      toast.error(t("pages.settings.walletTopupFailed"));
+      toast.error(
+        reason === "insufficient_funds"
+          ? t("pages.settings.walletTopupFailedNoFunds")
+          : reason === "declined"
+            ? t("pages.settings.walletTopupFailedBadCard")
+            : t("pages.settings.walletTopupFailed"),
+      );
       finish();
       return () => { alive = false; };
     }
@@ -107,7 +114,7 @@ function WalletSection() {
       .finally(finish);
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, payment, uuid]);
+  }, [demo, payment, uuid, reason]);
 
   return (
     <SettingsSectionShell title={t("pages.settings.walletTitle")}>
@@ -180,7 +187,7 @@ function TopupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: 
     setBusy(true);
     try {
       const checkout = await topupWallet(rub);
-      if (!checkout.checkout_url || checkout.provider !== "vtb") {
+      if (!checkout.checkout_url) {
         toast.error(t("pages.settings.walletTopupVtbMissing"));
         return;
       }

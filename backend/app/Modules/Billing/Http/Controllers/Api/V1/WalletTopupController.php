@@ -5,13 +5,16 @@ namespace Modules\Billing\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Billing\Contracts\PaymentGateway;
 use Modules\Billing\Services\VtbPaymentGateway;
 
 class WalletTopupController extends Controller
 {
-    public function __invoke(Request $request, VtbPaymentGateway $vtb): JsonResponse
+    public function __invoke(Request $request, PaymentGateway $gateway, VtbPaymentGateway $vtb): JsonResponse
     {
-        if (! $vtb->isConfigured()) {
+        $mode = (string) config('billing.provider', 'auto');
+
+        if ($mode === 'vtb' && ! $vtb->isConfigured()) {
             return response()->json([
                 'message' => 'Пополнение баланса доступно только через ВТБ Эквайринг. Платёжный шлюз не настроен.',
                 'code' => 'vtb_required',
@@ -26,7 +29,7 @@ class WalletTopupController extends Controller
         $amountKopecks = (int) round(((float) $data['amount']) * 100);
         $frontend = rtrim((string) config('billing.frontend_url'), '/');
 
-        $result = $vtb->createCheckout(
+        $result = $gateway->createCheckout(
             $request->user(),
             $amountKopecks,
             config('billing.currency', 'RUB'),
@@ -39,16 +42,18 @@ class WalletTopupController extends Controller
             ],
         );
 
-        if (($result['provider'] ?? null) !== 'vtb' || empty($result['checkout_url'])) {
+        if (empty($result['checkout_url'])) {
             return response()->json([
-                'message' => 'Не удалось открыть оплату через ВТБ. Попробуйте позже.',
-                'code' => 'vtb_required',
+                'message' => 'Не удалось открыть оплату. Попробуйте позже.',
+                'code' => 'checkout_unavailable',
             ], 502);
         }
 
+        $providerLabel = ($result['provider'] ?? null) === 'vtb' ? 'ВТБ Эквайринг' : 'тестовый контур';
+
         return response()->json([
             'data' => $result,
-            'message' => 'Платёж создан. Перенаправление на оплату ВТБ.',
+            'message' => "Платёж создан. Перенаправление на оплату ({$providerLabel}).",
         ], 201);
     }
 }

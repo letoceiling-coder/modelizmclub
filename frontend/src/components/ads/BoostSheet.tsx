@@ -60,10 +60,6 @@ export function BoostSheet({
         window.location.href = checkout.checkout_url;
         return;
       }
-      if (checkout.provider === "stub") {
-        toast.error("Оплата доступна после подключения эквайринга");
-        return;
-      }
       toast.success("Продвижение активировано");
       onClose();
     } catch (err) {

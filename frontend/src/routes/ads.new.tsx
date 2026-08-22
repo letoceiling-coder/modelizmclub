@@ -434,10 +434,6 @@ function NewAdPage() {
         window.location.href = checkout.checkout_url;
         return;
       }
-      if (checkout.provider === "stub") {
-        toast.error("Оплата доступна после подключения эквайринга");
-        return;
-      }
       toast.success(source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"));
       void navigate({ to: "/my-ads" });
     } catch (err) {

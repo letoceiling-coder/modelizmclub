@@ -7,9 +7,9 @@ return [
     | Active payment provider (spec v4.0: VTB only)
     |--------------------------------------------------------------------------
     |
-    | auto  — VTB if configured, else stub (dev)
-    | vtb   — force VTB acquiring
-    | stub  — local prototype without external gateway
+    | auto  — VTB if configured, else stub (test acquiring page)
+    | vtb   — live VTB acquiring (register.do / formUrl)
+    | stub  — in-app /pay/stub/{uuid} simulator: pay / no funds / bad card
     |
     */
     'provider' => env('BILLING_PROVIDER', 'auto'),

@@ -187,12 +187,15 @@ class SellerCabinetTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $this->postJson("/api/v1/listings/{$listing->uuid}/promote", [
+        $payload = $this->postJson("/api/v1/listings/{$listing->uuid}/promote", [
             'package' => 'boost-7',
             'idempotency_key' => 'boost-'.uniqid(),
         ])
             ->assertCreated()
-            ->assertJsonPath('data.provider', 'stub');
+            ->assertJsonPath('data.provider', 'stub')
+            ->json('data');
+
+        $this->assertStringContainsString('/pay/stub/', (string) ($payload['checkout_url'] ?? ''));
     }
 
     public function test_listing_resource_includes_promotion_flags(): void

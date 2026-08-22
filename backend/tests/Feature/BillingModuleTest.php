@@ -90,11 +90,14 @@ class BillingModuleTest extends TestCase
         $this->seedPlan();
         $user = $this->seedUser();
 
-        $this->actingAs($user, 'sanctum')
+        $url = (string) $this->actingAs($user, 'sanctum')
             ->postJson('/api/v1/payments', ['plan_slug' => 'year'])
             ->assertCreated()
             ->assertJsonPath('data.provider', 'stub')
-            ->assertJsonPath('data.status', 'pending');
+            ->assertJsonPath('data.status', 'pending')
+            ->json('data.checkout_url');
+
+        $this->assertStringContainsString('/pay/stub/', $url);
 
         $this->assertDatabaseHas('payments', [
             'user_id' => $user->id,
@@ -117,7 +120,8 @@ class BillingModuleTest extends TestCase
 
         $this->actingAs($user, 'sanctum')
             ->postJson("/api/v1/payments/{$uuid}/confirm-stub")
-            ->assertOk();
+            ->assertOk()
+            ->assertJsonPath('data.status', 'paid');
 
         $this->assertDatabaseHas('payments', [
             'uuid' => $uuid,
@@ -139,6 +143,83 @@ class BillingModuleTest extends TestCase
         $this->assertIsInt($payload['days_left']);
         $this->assertSame($payload['days_left'], (int) $payload['days_left']);
         $this->assertGreaterThan(360, $payload['days_left']);
+    }
+
+    public function test_stub_insufficient_funds_does_not_activate_subscription(): void
+    {
+        config(['billing.provider' => 'stub']);
+        $this->seedPlan();
+        $user = $this->seedUser();
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/payments', ['plan_slug' => 'year'])
+            ->assertCreated()
+            ->json('data.payment_uuid');
+
+        $redirect = (string) $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/payments/{$uuid}/confirm-stub", ['outcome' => 'insufficient_funds'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'failed')
+            ->json('data.redirect_url');
+
+        $this->assertStringContainsString('payment=failed', $redirect);
+        $this->assertStringContainsString('reason=insufficient_funds', $redirect);
+
+        $this->assertDatabaseHas('payments', [
+            'uuid' => $uuid,
+            'status' => 'failed',
+        ]);
+        $this->assertSame(0, UserSubscription::query()->where('user_id', $user->id)->count());
+    }
+
+    public function test_stub_declined_card_does_not_activate_subscription(): void
+    {
+        config(['billing.provider' => 'stub']);
+        $this->seedPlan();
+        $user = $this->seedUser();
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/payments', ['plan_slug' => 'year'])
+            ->assertCreated()
+            ->json('data.payment_uuid');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/payments/{$uuid}/confirm-stub", ['outcome' => 'declined'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'failed');
+
+        $this->assertDatabaseHas('payments', [
+            'uuid' => $uuid,
+            'status' => 'failed',
+        ]);
+        $this->assertSame(0, UserSubscription::query()->where('user_id', $user->id)->count());
+    }
+
+    public function test_confirm_stub_rejected_in_vtb_mode(): void
+    {
+        config([
+            'billing.provider' => 'vtb',
+            'billing.vtb.enabled' => true,
+            'billing.vtb.username' => 'test-user',
+            'billing.vtb.password' => 'test-pass',
+        ]);
+        $this->seedPlan();
+        $user = $this->seedUser();
+
+        $payment = Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'amount_cents' => 99000,
+            'currency' => 'RUB',
+            'status' => 'pending',
+            'provider' => 'stub',
+            'metadata' => ['payable_type' => 'subscription'],
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/payments/{$payment->uuid}/confirm-stub", ['outcome' => 'paid'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'vtb_required');
     }
 
     public function test_new_user_has_no_active_subscription(): void

@@ -77,6 +77,8 @@ class ListingBoostService
 
         $package = $this->findPackage($packageId);
 
+        $frontend = rtrim((string) config('billing.frontend_url'), '/');
+
         return $this->gateway->createCheckout(
             $user,
             $package->base_price_cents,
@@ -89,6 +91,8 @@ class ListingBoostService
                 'package_id' => $packageId,
                 'duration_days' => $package->duration_days,
                 'idempotency_key' => $idempotencyKey,
+                'return_url' => $frontend.'/my-ads?payment=success',
+                'fail_url' => $frontend.'/my-ads?payment=failed',
             ],
         );
     }

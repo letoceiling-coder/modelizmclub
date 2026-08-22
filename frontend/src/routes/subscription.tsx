@@ -20,6 +20,7 @@ import {
   createSubscriptionPayment,
   createListingPlacementPayment,
   fetchMySubscription,
+  paymentFailureCopy,
   type PayWith,
 } from "@/lib/api/payment";
 
@@ -58,10 +59,6 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }, sou
       window.location.href = checkout.checkout_url;
       return;
     }
-    if (checkout.provider === "stub") {
-      toast.error(i18n.t("pages.subscription.payCreateFailed"));
-      return;
-    }
     // Wallet payments come back already "paid".
     invalidateMySubscription();
     const sub = await fetchMySubscription();
@@ -82,10 +79,6 @@ async function startPlacementCheckout(source: PayWith) {
     const checkout = await createListingPlacementPayment({ payWith: source });
     if (checkout.checkout_url) {
       window.location.href = checkout.checkout_url;
-      return;
-    }
-    if (checkout.provider === "stub") {
-      toast.error(i18n.t("pages.subscription.payCreateFailed"));
       return;
     }
     toast.success(source === "wallet" ? i18n.t("pages.subscription.payWalletPaid") : i18n.t("pages.subscription.oneTimePaid"));
@@ -142,8 +135,10 @@ function SubscriptionPage() {
     const p = params.get("payment");
     if (!p) return;
     if (p === "success") toast.success(t("pages.subscription.paySuccess"));
-    else if (p === "failed") toast.error(t("pages.subscription.payFailed"));
+    else if (p === "failed") toast.error(paymentFailureCopy(params.get("reason") ?? undefined, t));
     params.delete("payment");
+    params.delete("reason");
+    params.delete("uuid");
     const qs = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
   }, [t]);

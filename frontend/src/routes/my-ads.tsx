@@ -13,11 +13,20 @@ import { Button } from "@/components/ui/button";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { toast } from "@/lib/toast";
+import { paymentFailureCopy } from "@/lib/api/payment";
 
 import i18n from "@/lib/i18n";
 
+type MyAdsSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
+
 export const Route = createFileRoute("/my-ads")({
   head: () => ({ meta: [{ title: i18n.t("pages.myAds.metaTitle") }] }),
+  validateSearch: (s: Record<string, unknown>): MyAdsSearch => ({
+    payment: s.payment === "success" || s.payment === "failed" ? s.payment : undefined,
+    uuid: typeof s.uuid === "string" ? s.uuid : undefined,
+    reason: typeof s.reason === "string" ? s.reason : undefined,
+  }),
   component: MyAdsPage,
 });
 
@@ -79,6 +88,7 @@ const QUICK_CHIP_KEYS: { key: QuickChip; labelKey: string }[] = [
 function MyAdsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { payment, reason } = Route.useSearch();
   const { guardAction } = useGuestAccess();
   const tabs = useMemo(() => TAB_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
   const quickChips = useMemo(() => QUICK_CHIP_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
@@ -123,6 +133,13 @@ function MyAdsPage() {
       .then(setItems)
       .catch(() => setItems([]));
   }, []);
+
+  useEffect(() => {
+    if (!payment) return;
+    if (payment === "success") toast.success(t("pages.myAds.paySuccess"));
+    else toast.error(paymentFailureCopy(reason, t));
+    void navigate({ to: "/my-ads", search: {}, replace: true });
+  }, [navigate, payment, reason, t]);
 
   const setLocalStatus = (id: string, status: AdStatusKey) =>
     setItems((prev) => prev.map((x) => (x.ad.id === id ? { ...x, status } : x)));

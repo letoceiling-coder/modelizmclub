@@ -13,20 +13,27 @@ import { api } from "./client";
  *   POST   /payments                      CreatePaymentController   { plan_slug, idempotency_key? }
  *   GET    /payments/{uuid}               ShowPaymentController
  *   POST   /payments/{uuid}/sync          SyncPaymentController
- *   POST   /payments/{uuid}/confirm-stub  ConfirmStubPaymentController  (dev/stub only)
+ *   POST   /payments/{uuid}/confirm-stub  ConfirmStubPaymentController  (test acquiring outcomes)
  *   GET    /users/me/subscription         MySubscriptionController
  *   GET    /plans                         IndexPlansController
  */
 
-/** Result of creating a checkout. `checkout_url` is the provider's hosted
- *  payment page for vtb/yookassa (redirect there); it's null for the stub
- *  provider (no hosted page — confirm via confirmStubPayment instead) and for
- *  wallet payments (already `status: "paid"`, provider `"wallet"`). */
+/** Result of creating a checkout. `checkout_url` is the hosted page:
+ *  VTB formUrl in battle mode, `/pay/stub/{uuid}` in test mode.
+ *  Null for wallet payments (already `status: "paid"`, provider `"wallet"`). */
 export interface PaymentCheckout {
   payment_uuid: string;
   checkout_url: string | null;
   status: string; // "pending" | "paid" | ...
   provider: string; // "vtb" | "wallet" | "stub"
+}
+
+export type StubPayOutcome = "paid" | "insufficient_funds" | "declined";
+
+export interface StubPayResult {
+  payment_uuid: string;
+  status: "paid" | "failed" | string;
+  redirect_url: string;
 }
 
 /** Payment source: `gateway` = external acquiring (VTB/stub), `wallet` = debit
@@ -130,10 +137,25 @@ export async function syncPayment(uuid: string): Promise<{ status: string; payme
   return res.data;
 }
 
-/** Dev/test-contour only: confirm a stub payment (no hosted page). Backend
- *  rejects this unless the payment's provider is "stub". */
+/** Test acquiring only: resolve a stub payment with a simulated bank outcome.
+ *  Backend rejects this while BILLING_PROVIDER=vtb (live VTB). */
+export async function resolveStubPayment(uuid: string, outcome: StubPayOutcome = "paid"): Promise<StubPayResult> {
+  const res = await api<{ data: StubPayResult }>(`/payments/${uuid}/confirm-stub`, {
+    method: "POST",
+    json: { outcome },
+  });
+  return res.data;
+}
+
+/** @deprecated Use resolveStubPayment — kept for callers that only need a paid outcome. */
 export async function confirmStubPayment(uuid: string): Promise<void> {
-  await api(`/payments/${uuid}/confirm-stub`, { method: "POST" });
+  await resolveStubPayment(uuid, "paid");
+}
+
+export function paymentFailureCopy(reason: string | undefined, t: (key: string) => string): string {
+  if (reason === "insufficient_funds") return t("pages.subscription.payFailedNoFunds");
+  if (reason === "declined") return t("pages.subscription.payFailedBadCard");
+  return t("pages.subscription.payFailed");
 }
 
 /** Current subscription, or null when the user is on the free tier. */

@@ -29,6 +29,7 @@ import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PaymentRouteImport } from './routes/payment'
+import { Route as PayStubUuidRouteImport } from './routes/pay.stub.$uuid'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as RefundRouteImport } from './routes/refund'
@@ -171,6 +172,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const PaymentRoute = PaymentRouteImport.update({
   id: '/payment',
   path: '/payment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PayStubUuidRoute = PayStubUuidRouteImport.update({
+  id: '/pay/stub/$uuid',
+  path: '/pay/stub/$uuid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -410,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment': typeof PaymentRoute
+  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/refund': typeof RefundRoute
@@ -472,6 +479,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment': typeof PaymentRoute
+  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/refund': typeof RefundRoute
@@ -535,6 +543,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment': typeof PaymentRoute
+  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/refund': typeof RefundRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/payment'
+    | '/pay/stub/$uuid'
     | '/profile'
     | '/recover'
     | '/refund'
@@ -664,6 +674,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/payment'
+    | '/pay/stub/$uuid'
     | '/profile'
     | '/recover'
     | '/refund'
@@ -726,6 +737,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/payment'
+    | '/pay/stub/$uuid'
     | '/profile'
     | '/recover'
     | '/refund'
@@ -792,6 +804,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   PaymentRoute: typeof PaymentRoute
+  PayStubUuidRoute: typeof PayStubUuidRoute
   ProfileRoute: typeof ProfileRoute
   RecoverRoute: typeof RecoverRoute
   RefundRoute: typeof RefundRoute
@@ -949,6 +962,13 @@ declare module '@tanstack/react-router' {
       path: '/payment'
       fullPath: '/payment'
       preLoaderRoute: typeof PaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pay/stub/$uuid': {
+      id: '/pay/stub/$uuid'
+      path: '/pay/stub/$uuid'
+      fullPath: '/pay/stub/$uuid'
+      preLoaderRoute: typeof PayStubUuidRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -1405,6 +1425,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   PaymentRoute: PaymentRoute,
+  PayStubUuidRoute: PayStubUuidRoute,
   ProfileRoute: ProfileRoute,
   RecoverRoute: RecoverRoute,
   RefundRoute: RefundRoute,

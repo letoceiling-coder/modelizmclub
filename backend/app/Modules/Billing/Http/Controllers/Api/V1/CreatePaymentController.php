@@ -52,6 +52,7 @@ class CreatePaymentController extends Controller
             }
 
             $categoryName = $quote['category_name'] ?? 'объявление';
+            $frontend = rtrim((string) config('billing.frontend_url'), '/');
             $metadata = [
                 'payable_type' => 'listing_placement',
                 'category_id' => $data['category_id'] ?? null,
@@ -60,6 +61,8 @@ class CreatePaymentController extends Controller
                 'listing_uuid' => $data['listing_uuid'] ?? null,
                 'quote' => $quote,
                 'idempotency_key' => $data['idempotency_key'] ?? null,
+                'return_url' => $frontend.'/my-ads?payment=success',
+                'fail_url' => $frontend.'/my-ads?payment=failed',
             ];
 
             if ($payWithWallet) {
