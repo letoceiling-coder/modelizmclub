@@ -9,7 +9,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { ROUTES } from "@/lib/routes";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
-import { useMySubscription, formatSubscriptionEndDate, invalidateMySubscription } from "@/lib/subscription";
+import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription";
+import { notifyBillingChanged } from "@/lib/billing-events";
 import { usePublicPlacementPricing } from "@/lib/api/placement-pricing";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -60,7 +61,7 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }, sou
       return;
     }
     // Wallet payments come back already "paid".
-    invalidateMySubscription();
+    notifyBillingChanged();
     const sub = await fetchMySubscription();
     if (source === "wallet") {
       toast.success(i18n.t("pages.subscription.payWalletPaid"));
@@ -81,6 +82,7 @@ async function startPlacementCheckout(source: PayWith) {
       window.location.href = checkout.checkout_url;
       return;
     }
+    notifyBillingChanged();
     toast.success(source === "wallet" ? i18n.t("pages.subscription.payWalletPaid") : i18n.t("pages.subscription.oneTimePaid"));
   } catch {
     toast.error(i18n.t("pages.subscription.payCreateFailed"));
@@ -135,7 +137,7 @@ function SubscriptionPage() {
     const p = params.get("payment");
     if (!p) return;
     if (p === "success") {
-      invalidateMySubscription();
+      notifyBillingChanged();
       toast.success(t("pages.subscription.paySuccess"));
     } else if (p === "failed") {
       toast.error(paymentFailureCopy(params.get("reason") ?? undefined, t));

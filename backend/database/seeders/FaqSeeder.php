@@ -16,12 +16,12 @@ class FaqSeeder extends Seeder
             ['value' => ['enabled' => false, 'total' => 100, 'plan_slug' => 'year'], 'group' => 'marketing'],
         );
 
-        SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->firstOrCreate(
             ['key' => 'referral_program'],
             ['value' => ['enabled' => true, 'per_invite' => 1, 'max_bonus' => 10], 'group' => 'marketing'],
         );
 
-        $landing = FaqCategory::query()->updateOrCreate(
+        $landing = FaqCategory::query()->firstOrCreate(
             ['slug' => 'landing'],
             ['name' => 'Лендинг', 'sort_order' => 5, 'is_active' => true],
         );
@@ -55,7 +55,7 @@ class FaqSeeder extends Seeder
         ];
 
         foreach ($landingItems as $item) {
-            FaqArticle::query()->updateOrCreate(
+            FaqArticle::query()->firstOrCreate(
                 ['category_id' => $landing->id, 'question' => $item['question']],
                 [
                     'answer' => $item['answer'],
@@ -65,17 +65,17 @@ class FaqSeeder extends Seeder
             );
         }
 
-        $general = FaqCategory::query()->updateOrCreate(
+        $general = FaqCategory::query()->firstOrCreate(
             ['slug' => 'general'],
             ['name' => 'Общие вопросы', 'sort_order' => 10, 'is_active' => true],
         );
 
-        $account = FaqCategory::query()->updateOrCreate(
+        $account = FaqCategory::query()->firstOrCreate(
             ['slug' => 'account'],
             ['name' => 'Аккаунт', 'sort_order' => 20, 'is_active' => true],
         );
 
-        FaqArticle::query()->updateOrCreate(
+        FaqArticle::query()->firstOrCreate(
             ['category_id' => $general->id, 'question' => 'Что такое ModelizmClub?'],
             [
                 'answer' => 'ModelizmClub — сообщество моделистов: лента, объявления, чаты и тематические сообщества.',
@@ -84,7 +84,7 @@ class FaqSeeder extends Seeder
             ],
         );
 
-        FaqArticle::query()->updateOrCreate(
+        FaqArticle::query()->firstOrCreate(
             ['category_id' => $general->id, 'question' => 'Как опубликовать пост?'],
             [
                 'answer' => 'Откройте ленту, нажмите «Создать пост», заполните форму и отправьте на модерацию.',
@@ -93,7 +93,7 @@ class FaqSeeder extends Seeder
             ],
         );
 
-        FaqArticle::query()->updateOrCreate(
+        FaqArticle::query()->firstOrCreate(
             ['category_id' => $account->id, 'question' => 'Как восстановить пароль?'],
             [
                 'answer' => 'На странице входа нажмите «Забыли пароль?» и следуйте инструкции из письма.',

@@ -42,7 +42,7 @@ class SubscriptionPlansSeeder extends Seeder
         ];
 
         foreach ($plans as $plan) {
-            SubscriptionPlan::query()->updateOrCreate(
+            SubscriptionPlan::query()->firstOrCreate(
                 ['slug' => $plan['slug']],
                 array_merge($plan, [
                     'features' => ['posts' => 'unlimited', 'listings' => 'unlimited'],

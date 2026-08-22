@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, Heart, Clapperboard, Radio, Plus, Settings, Crown, ShoppingBag, ShieldCheck } from "lucide-react";
+import { ClipboardList, Heart, Clapperboard, Radio, Plus, Settings, Crown, ShoppingBag, ShieldCheck, Wallet } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 
 export type FeatureFlagKey = "communitiesEnabled" | "reviewsEnabled" | "marketEnabled";
@@ -40,6 +40,7 @@ export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
   { key: "ad-create", to: ROUTES.adCreate, labelKey: "nav.adCreate", icon: Plus, group: "content" },
   // — Аккаунт —
   { key: "settings", to: ROUTES.settings, labelKey: "nav.settings", icon: Settings, group: "account", authOnly: true },
+  { key: "wallet", to: ROUTES.wallet, labelKey: "nav.wallet", icon: Wallet, group: "account", authOnly: true },
   { key: "subscription", to: ROUTES.subscription, labelKey: "nav.subscription", icon: Crown, group: "account" },
   { key: "market", href: "https://modelizm23.ru", labelKey: "nav.market", icon: ShoppingBag, group: "account", flag: "marketEnabled" },
 ];
@@ -76,7 +77,7 @@ export function assertMobileNavCoverage(): void {
   const required: string[] = [
     ROUTES.feed, ROUTES.ads, ROUTES.adCreate, ROUTES.myAds, ROUTES.deals, ROUTES.favorites,
     ROUTES.reviews, ROUTES.channels, ROUTES.messenger, ROUTES.friends,
-    ROUTES.profile, ROUTES.settings, ROUTES.subscription, ROUTES.notifications,
+    ROUTES.profile, ROUTES.settings, ROUTES.wallet, ROUTES.subscription, ROUTES.notifications,
   ];
   const missing = required.filter((r) => !covered.has(r));
   if (missing.length) {

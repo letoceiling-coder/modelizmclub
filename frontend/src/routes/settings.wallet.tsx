@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Wallet as WalletIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
 import { paymentFailureCopy, syncPayment } from "@/lib/api/payment";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
+import { notifyBillingChanged } from "@/lib/billing-events";
 
 type WalletSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
@@ -45,6 +47,35 @@ function formatRub(kopecks: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
+}
+
+const WALLET_KIND_KEYS: Record<string, string> = {
+  topup: "pages.settings.walletKindTopup",
+  subscription: "pages.settings.walletKindSubscription",
+  listing_placement: "pages.settings.walletKindListingPlacement",
+  safe_deal_hold: "pages.settings.walletKindSafeDealHold",
+  safe_deal_release: "pages.settings.walletKindSafeDealRelease",
+  safe_deal_commission: "pages.settings.walletKindSafeDealCommission",
+  safe_deal_refund: "pages.settings.walletKindSafeDealRefund",
+  safe_deal_payout: "pages.settings.walletKindSafeDealPayout",
+  referral_bonus: "pages.settings.walletKindReferralBonus",
+  promo_bonus: "pages.settings.walletKindPromoBonus",
+  withdrawal: "pages.settings.walletKindWithdrawal",
+  withdrawal_refund: "pages.settings.walletKindWithdrawalRefund",
+};
+
+function walletKindLabel(t: (key: string) => string, kind: string, fallback: string): string {
+  const key = WALLET_KIND_KEYS[kind];
+  return key ? t(key) : fallback;
+}
+
+function walletStatusMeta(status: WalletTransaction["status"]): {
+  labelKey: string;
+  variant: "published" | "moderation" | "error";
+} {
+  if (status === "pending") return { labelKey: "pages.settings.walletStatusPending", variant: "moderation" };
+  if (status === "failed") return { labelKey: "pages.settings.walletStatusFailed", variant: "error" };
+  return { labelKey: "pages.settings.walletStatusCompleted", variant: "published" };
 }
 
 function WalletSection() {
@@ -71,6 +102,18 @@ function WalletSection() {
   useEffect(() => {
     if (demo) return;
     load();
+    const onBilling = () => load();
+    window.addEventListener("modelizm:billing-changed", onBilling);
+    const onFocus = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("modelizm:billing-changed", onBilling);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
 
@@ -94,6 +137,7 @@ function WalletSection() {
     }
     if (!uuid) {
       toast.success(t("pages.settings.walletTopupSuccess"));
+      notifyBillingChanged();
       load();
       finish();
       return () => { alive = false; };
@@ -103,6 +147,7 @@ function WalletSection() {
         if (!alive) return;
         if (res.status === "paid") {
           toast.success(t("pages.settings.walletTopupSuccess"));
+          notifyBillingChanged();
         } else {
           toast.error(t("pages.settings.walletTopupFailed"));
         }
@@ -149,22 +194,35 @@ function WalletSection() {
         {operations.length === 0 && (
           <div className="px-[16px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.walletEmpty")}</div>
         )}
-        {operations.map((op) => (
-          <div key={op.id} className="flex items-center gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
-            <span className="grid h-[36px] w-[36px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: op.type === "in" ? "var(--success)" : "var(--foreground-50)" }}>
-              {op.type === "in" ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{op.title}</div>
-              <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                {new Date(op.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+        {operations.map((op) => {
+          const status = walletStatusMeta(op.status);
+          const service = walletKindLabel(t, op.kind, op.service || op.title);
+          return (
+            <div key={op.id} className="flex items-start gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
+              <span className="grid h-[36px] w-[36px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: op.type === "in" ? "var(--success)" : "var(--foreground-50)" }}>
+                {op.type === "in" ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{op.title}</div>
+                <div className="mt-[4px] flex flex-wrap items-center gap-[6px]">
+                  <Badge variant={op.type === "in" ? "published" : "draft"} withIcon={false}>
+                    {op.type === "in" ? t("pages.settings.walletDirectionIn") : t("pages.settings.walletDirectionOut")}
+                  </Badge>
+                  <Badge variant="info" withIcon={false}>{service}</Badge>
+                  <Badge variant={status.variant} withIcon={false}>{t(status.labelKey)}</Badge>
+                </div>
+                <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                  {new Date(op.date).toLocaleString("ru-RU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-[14px] font-semibold" style={{ color: op.type === "in" ? "var(--success)" : "var(--foreground)" }}>
+                  {op.type === "in" ? "+" : "−"}{op.amount.toLocaleString("ru-RU")} ₽
+                </div>
               </div>
             </div>
-            <div className="shrink-0 text-[14px] font-semibold" style={{ color: op.type === "in" ? "var(--success)" : "var(--foreground)" }}>
-              {op.type === "in" ? "+" : "−"}{op.amount.toLocaleString("ru-RU")} ₽
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </Card>
 
       <TopupDialog open={topupOpen} onOpenChange={setTopupOpen} />

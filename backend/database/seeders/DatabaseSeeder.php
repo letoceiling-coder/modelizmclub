@@ -9,6 +9,10 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
+     *
+     * Production deploys must not call this class: several seeders used to
+     * overwrite admin-edited settings, tariffs and listing prices. Deploy
+     * only runs RoleSeeder. Local/dev first-time setup is still this file.
      */
     public function run(): void
     {

@@ -52,20 +52,21 @@ class ReferenceDataSeeder extends Seeder
 
         if (! $user->exists) {
             $user->uuid = SwaggerFixtures::DEMO_USER_UUID;
+            $user->forceFill([
+                'name' => 'Demo User',
+                'password' => 'password123',
+                'role' => UserRole::User,
+                'status' => UserStatus::Active,
+                'registration_track' => RegistrationTrack::Community,
+                'locale' => 'ru',
+                'email_verified_at' => now(),
+                'uuid' => SwaggerFixtures::DEMO_USER_UUID,
+            ])->save();
+        } else {
+            $user->save();
         }
 
-        $user->forceFill([
-            'name' => 'Demo User',
-            'password' => 'password123',
-            'role' => UserRole::User,
-            'status' => UserStatus::Active,
-            'registration_track' => RegistrationTrack::Community,
-            'locale' => 'ru',
-            'email_verified_at' => now(),
-            'uuid' => SwaggerFixtures::DEMO_USER_UUID,
-        ])->save();
-
-        UserProfile::query()->updateOrCreate(
+        UserProfile::query()->firstOrCreate(
             ['user_id' => $user->id],
             [
                 'display_name' => 'Demo User',
@@ -103,26 +104,21 @@ class ReferenceDataSeeder extends Seeder
                 UserRole::Moderator => SwaggerFixtures::MODERATOR_USER_UUID,
                 default => (string) Str::uuid(),
             };
+            $user->forceFill([
+                'name' => $name,
+                'password' => 'password123',
+                'role' => $role,
+                'status' => UserStatus::Active,
+                'registration_track' => RegistrationTrack::Community,
+                'locale' => 'ru',
+                'email_verified_at' => now(),
+                'uuid' => $user->uuid,
+            ])->save();
+        } else {
+            $user->save();
         }
 
-        $fixtureUuid = match ($role) {
-            UserRole::Admin => SwaggerFixtures::ADMIN_USER_UUID,
-            UserRole::Moderator => SwaggerFixtures::MODERATOR_USER_UUID,
-            default => $user->uuid,
-        };
-
-        $user->forceFill([
-            'name' => $name,
-            'password' => 'password123',
-            'role' => $role,
-            'status' => UserStatus::Active,
-            'registration_track' => RegistrationTrack::Community,
-            'locale' => 'ru',
-            'email_verified_at' => now(),
-            'uuid' => $fixtureUuid,
-        ])->save();
-
-        UserProfile::query()->updateOrCreate(
+        UserProfile::query()->firstOrCreate(
             ['user_id' => $user->id],
             [
                 'display_name' => $name,
@@ -276,7 +272,7 @@ class ReferenceDataSeeder extends Seeder
 
     private function seedSwaggerFixtures(): void
     {
-        SubscriptionPlan::query()->updateOrCreate(
+        SubscriptionPlan::query()->firstOrCreate(
             ['slug' => SwaggerFixtures::PLAN_BASIC_SLUG],
             [
                 'name' => 'Базовый',
@@ -289,7 +285,7 @@ class ReferenceDataSeeder extends Seeder
             ],
         );
 
-        SubscriptionPlan::query()->updateOrCreate(
+        SubscriptionPlan::query()->firstOrCreate(
             ['slug' => SwaggerFixtures::PLAN_PRO_SLUG],
             [
                 'name' => 'Pro',
@@ -327,12 +323,12 @@ class ReferenceDataSeeder extends Seeder
             ],
         );
 
-        SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->firstOrCreate(
             ['key' => 'site_name'],
             ['value' => ['ru' => 'ModelizmClub Dev'], 'group' => 'general'],
         );
 
-        SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->firstOrCreate(
             ['key' => 'moderation_auto_publish'],
             ['value' => ['enabled' => true], 'group' => 'moderation'],
         );
@@ -397,7 +393,7 @@ class ReferenceDataSeeder extends Seeder
             }
 
             /** @var Model $record */
-            $record = $modelClass::updateOrCreate(
+            $record = $modelClass::query()->firstOrCreate(
                 ['parent_id' => $parentId, 'slug' => $slug],
                 $attributes,
             );

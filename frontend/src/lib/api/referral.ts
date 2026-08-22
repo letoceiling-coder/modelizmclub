@@ -70,9 +70,33 @@ export async function fetchReferral(): Promise<ReferralData> {
   };
 }
 
+const listeners = new Set<() => void>();
+
+/** Drop cached referral stats so «Доступно» and invite counts refetch. */
+export function invalidateReferral(): void {
+  listeners.forEach((fn) => fn());
+}
+
 export function useReferral(): { data: ReferralData | null; loading: boolean } {
   const [data, setData] = useState<ReferralData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const onInvalidate = () => setTick((n) => n + 1);
+    listeners.add(onInvalidate);
+    const onFocus = () => {
+      if (document.visibilityState === "visible") onInvalidate();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      listeners.delete(onInvalidate);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, []);
+
   useEffect(() => {
     if (!getToken() && !isDemoMode()) {
       setLoading(false);
@@ -86,6 +110,6 @@ export function useReferral(): { data: ReferralData | null; loading: boolean } {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tick]);
   return { data, loading };
 }

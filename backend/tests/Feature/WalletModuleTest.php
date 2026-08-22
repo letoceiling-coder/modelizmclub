@@ -143,7 +143,9 @@ class WalletModuleTest extends TestCase
         $this->actingAs($user, 'sanctum')
             ->getJson('/api/v1/wallet/transactions')
             ->assertOk()
-            ->assertJsonPath('data.0.kind', WalletTransactionType::Topup->value);
+            ->assertJsonPath('data.0.kind', WalletTransactionType::Topup->value)
+            ->assertJsonPath('data.0.status', 'completed')
+            ->assertJsonPath('data.0.service', 'Пополнение баланса');
     }
 
     public function test_vtb_webhook_credits_wallet_on_topup(): void

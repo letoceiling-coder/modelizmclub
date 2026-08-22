@@ -26,9 +26,10 @@ class RevealPhoneController extends Controller
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        $phone = $listing->author?->phone;
+        $author = $listing->author;
+        $phone = $author?->phone;
 
-        if (! $phone) {
+        if (! $phone || ! $author?->phone_verified_at) {
             return response()->json(['message' => 'Номер недоступен.'], 404);
         }
 

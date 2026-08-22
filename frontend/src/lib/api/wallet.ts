@@ -14,6 +14,9 @@ export interface WalletTransaction {
   amount: number; // rubles (for display)
   title: string;
   date: string;
+  kind: string;
+  service: string;
+  status: "completed" | "pending" | "failed";
 }
 
 /** Raw ledger row as returned by GET /wallet/transactions. */
@@ -24,6 +27,8 @@ interface WalletTransactionApi {
   amount_rub: number;
   balance_after: number;
   kind: string;
+  service?: string;
+  status?: string;
   title: string;
   date: string;
 }
@@ -67,6 +72,9 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
       amount: op.amount,
       title: op.title,
       date: op.date,
+      kind: op.type === "in" ? "topup" : "listing_placement",
+      service: op.title,
+      status: "completed" as const,
     }));
   }
   const res = await api<{ data: WalletTransactionApi[] }>("/wallet/transactions", {
@@ -78,6 +86,9 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
     amount: tx.amount_rub,
     title: tx.title,
     date: tx.date,
+    kind: tx.kind,
+    service: tx.service ?? tx.title,
+    status: tx.status === "pending" || tx.status === "failed" ? tx.status : "completed",
   }));
 }
 

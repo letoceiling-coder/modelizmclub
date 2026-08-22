@@ -16,8 +16,9 @@ cd backend
 composer install --optimize-autoloader --no-interaction
 php artisan config:clear
 php artisan migrate --force
-php artisan db:seed --force
-bash ../deploy/scripts/reset-demo-user.sh
+# Never re-run DatabaseSeeder on production: updateOrCreate seeders
+# overwrite admin CMS, tariffs, feature flags and listing prices.
+php artisan db:seed --class=RoleSeeder --force --no-interaction
 
 if grep -q '^FEED_AUTO_PUBLISH=' .env 2>/dev/null; then
   sed -i 's/^FEED_AUTO_PUBLISH=.*/FEED_AUTO_PUBLISH=true/' .env

@@ -203,7 +203,7 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
           <span style={{ color: "var(--foreground-50)" }}>
             Бонус: <b style={{ color: "var(--accent)" }}>+{bonus}</b> объявлений
           </span>
-          {listingCredits > 0 && (
+          {!loading && (
             <span style={{ color: "var(--foreground-50)" }}>
               Доступно: <b style={{ color: "var(--foreground)" }}>{listingCredits}</b>
             </span>

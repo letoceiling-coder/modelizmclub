@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ExternalLink, Heart, Clapperboard, Settings, Crown, ShieldCheck } from "lucide-react";
+import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ExternalLink, Heart, Clapperboard, Settings, ShieldCheck, Wallet } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { ROUTES, getActiveSection } from "@/lib/routes";
@@ -14,7 +14,7 @@ import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { useStore } from "@/lib/store";
 
 interface Item {
-  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/deals" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings";
+  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/deals" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings" | "/settings/wallet";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -45,6 +45,7 @@ const ADS_ITEMS: Item[] = [
 const TAIL_ITEMS: Item[] = [
   { to: ROUTES.favorites, labelKey: "nav.favorites", icon: Heart,    section: "favorites", authOnly: true },
   { to: ROUTES.settings,  labelKey: "nav.settings",  icon: Settings, section: "settings", authOnly: true },
+  { to: ROUTES.wallet,    labelKey: "nav.wallet",    icon: Wallet,   section: "wallet", authOnly: true },
 ];
 
 const NAV_GROUPS: NavGroup[] = [

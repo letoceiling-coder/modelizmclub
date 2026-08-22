@@ -33,6 +33,7 @@ export const ROUTES = {
   review: (id: string) => `/reviews/${id}` as const,
   reviewUpload: "/reviews/upload",
   settings: "/settings",
+  wallet: "/settings/wallet",
   /** Scroll target on /subscription for the referral block. */
   subscriptionInviteHash: "invite-friend",
 } as const;
@@ -57,6 +58,7 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   profile: ["/profile", "/user"],
   friends: ["/friends"],
   subscription: ["/subscription"],
+  wallet: ["/settings/wallet"],
   help: ["/help"],
   admin: ["/admin"],
   notifications: ["/notifications"],

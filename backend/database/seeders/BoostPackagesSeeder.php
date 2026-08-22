@@ -19,7 +19,7 @@ class BoostPackagesSeeder extends Seeder
         ];
 
         foreach ($packages as $package) {
-            ListingPricingRule::query()->updateOrCreate(
+            ListingPricingRule::query()->firstOrCreate(
                 [
                     'category_id' => null,
                     'duration_days' => $package['days'],

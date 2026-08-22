@@ -82,6 +82,7 @@ export const NAV_ROUTE_TO_ACTION: Record<string, string> = {
   [ROUTES.messenger]: "layout.nav.messenger",
   [ROUTES.friends]: "layout.nav.friends",
   [ROUTES.settings]: "layout.nav.settings",
+  [ROUTES.wallet]: "layout.nav.settings",
   [ROUTES.profile]: "route.profile",
 };
 

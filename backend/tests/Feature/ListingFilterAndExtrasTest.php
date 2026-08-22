@@ -147,4 +147,38 @@ class ListingFilterAndExtrasTest extends TestCase
         $this->assertNotEmpty($response->json('data.description'));
         $this->assertSame('dvigateli', $response->json('data.category.slug'));
     }
+
+    public function test_reveal_phone_returns_verified_author_number(): void
+    {
+        $category = $this->category('reveal-ok');
+        $seller = User::factory()->create([
+            'status' => UserStatus::Active,
+            'phone' => '+79996371182',
+            'phone_verified_at' => now(),
+        ]);
+        $buyer = User::factory()->create(['status' => UserStatus::Active]);
+        $listing = $this->listing($seller, $category, 'Пропеллер с телефоном', 120_00);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson('/api/v1/listings/'.$listing->uuid.'/reveal-phone')
+            ->assertOk()
+            ->assertJsonPath('data.phone', '+79996371182');
+    }
+
+    public function test_reveal_phone_hides_unverified_author_number(): void
+    {
+        $category = $this->category('reveal-hidden');
+        $seller = User::factory()->create([
+            'status' => UserStatus::Active,
+            'phone' => '+79996371182',
+            'phone_verified_at' => null,
+        ]);
+        $buyer = User::factory()->create(['status' => UserStatus::Active]);
+        $listing = $this->listing($seller, $category, 'Пропеллер без SMS', 120_00);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson('/api/v1/listings/'.$listing->uuid.'/reveal-phone')
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Номер недоступен.');
+    }
 }

@@ -17,6 +17,7 @@ import { ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
 import { isInsufficientFunds } from "@/lib/api/wallet";
+import { notifyBillingChanged } from "@/lib/billing-events";
 import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag } from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
@@ -32,15 +33,20 @@ import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { useDeliveryMethods } from "@/lib/hooks/useDeliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PhoneInput } from "@/components/ui/phone-input";
+import { PhoneInput, formatRuPhone } from "@/components/ui/phone-input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ChevronLeft, ChevronRight, Tag, ShoppingCart,
-  ArrowLeftRight, MapPin, Truck,
+  ArrowLeftRight, MapPin, Truck, Loader2, Phone,
 } from "lucide-react";
+import { fetchMe } from "@/lib/api/auth";
+import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
+import { selectors, setCurrentUser, useStore } from "@/lib/store";
+import { isPhoneVerified } from "@/lib/auth/verification";
 
 type NewAdSearch = { edit?: string; promo?: string };
 
@@ -127,6 +133,19 @@ function resolvePublishCtaLabel(
   return t("pages.adsNew.payAndPublish", { price: priceLabel });
 }
 
+function phoneDigits(value: string): string {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("8") && digits.length === 11) digits = `7${digits.slice(1)}`;
+  else if (digits.length === 10) digits = `7${digits}`;
+  return digits.slice(0, 11);
+}
+
+function phonesMatch(a: string, b: string): boolean {
+  const left = phoneDigits(a);
+  const right = phoneDigits(b);
+  return left.length === 11 && left === right;
+}
+
 const initial: Form = {
   photoItems: [],
   status: "Продаю",
@@ -149,6 +168,8 @@ function NewAdPage() {
   const steps = useMemo(() => STEPS_KEYS.map((k) => t(k)), [t]);
   const { edit: editId, promo: promoFromUrl } = Route.useSearch();
   const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
+  const currentUser = useStore(selectors.currentUser);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>({ ...initial, promocode: promoFromUrl?.toUpperCase() ?? "" });
   const [cats, setCats] = useState<Category[]>([]);
@@ -192,7 +213,7 @@ function NewAdPage() {
     fetchListing(editId)
       .then((ad) => {
         if (!alive) return;
-        setForm({
+        setForm((f) => ({
           photoItems: (ad.gallery ?? (ad.image ? [ad.image] : [])).map((url, i) => ({
             id: `existing-${i}-${url}`,
             preview: url,
@@ -207,14 +228,50 @@ function NewAdPage() {
           condition: ad.condition ?? "Б/у",
           city: ad.city,
           cityId: ad.cityId,
-          contact: ad.contact,
+          contact: f.contact,
           deliveries: ad.delivery.length ? ad.delivery : ["СДЭК"],
-        });
+          promocode: f.promocode,
+        }));
       })
       .catch(() => toast.error(t("pages.adsNew.loadFailed")))
       .finally(() => { if (alive) setLoadingEdit(false); });
     return () => { alive = false; };
-  }, [editId]);
+  }, [editId, t]);
+
+  useEffect(() => {
+    const applyPhone = (phone: string | null | undefined, verified: boolean) => {
+      if (!phone || (!verified && !isDemoMode())) return;
+      const formatted = formatRuPhone(phone);
+      setVerifiedPhone(formatted);
+      setForm((f) => {
+        if (!f.contact.trim() || phonesMatch(f.contact, formatted)) {
+          return { ...f, contact: formatted };
+        }
+        return f;
+      });
+    };
+
+    if (isDemoMode()) {
+      applyPhone(currentUser?.phone, true);
+      return;
+    }
+    if (currentUser?.phone && isPhoneVerified(currentUser)) {
+      applyPhone(currentUser.phone, true);
+    }
+    let alive = true;
+    fetchMe()
+      .then((u) => {
+        if (!alive || !u) return;
+        setCurrentUser(u);
+        applyPhone(u.phone, isPhoneVerified(u));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // Prefill once from the signed-in profile.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cat = useMemo(() => cats.find((c) => c.id === form.categoryId) ?? cats[0], [cats, form.categoryId]);
   const subcategories = cat?.subcategories ?? [];
@@ -247,11 +304,11 @@ function NewAdPage() {
         && form.price
         && form.city.trim().length >= 2
         && (form.cityId != null || form.city.trim().length >= 3)
-        && form.contact.trim()
+        && phonesMatch(form.contact, verifiedPhone)
       );
     }
     return photosOk;
-  }, [step, form]);
+  }, [step, form, verifiedPhone]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -260,6 +317,12 @@ function NewAdPage() {
 
     if (!hasListingPhotos(form)) {
       notifyPhotosRequired(setStep, t);
+      return;
+    }
+
+    if (!phonesMatch(form.contact, verifiedPhone)) {
+      toast.error(t("pages.adsNew.contactError"));
+      setStep(2);
       return;
     }
 
@@ -434,6 +497,7 @@ function NewAdPage() {
         window.location.href = checkout.checkout_url;
         return;
       }
+      notifyBillingChanged();
       toast.success(source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"));
       void navigate({ to: "/my-ads" });
     } catch (err) {
@@ -495,7 +559,22 @@ function NewAdPage() {
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
           {step === 1 && <StepPhotos form={form} set={set} />}
-          {step === 2 && <StepData form={form} set={set} cat={cat} cats={cats} subcategories={subcategories} touched={touched} touch={touch} />}
+          {step === 2 && (
+            <StepData
+              form={form}
+              set={set}
+              cat={cat}
+              cats={cats}
+              subcategories={subcategories}
+              touched={touched}
+              touch={touch}
+              verifiedPhone={verifiedPhone}
+              onVerifiedPhone={(phone) => {
+                setVerifiedPhone(phone);
+                set("contact", phone);
+              }}
+            />
+          )}
           {step === 3 && (
             <StepPreview
               form={form}
@@ -716,7 +795,7 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 
 /* ────────── STEP 2: Data ────────── */
 function StepData({
-  form, set, cat, cats, subcategories, touched, touch,
+  form, set, cat, cats, subcategories, touched, touch, verifiedPhone, onVerifiedPhone,
 }: {
   form: Form;
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
@@ -725,6 +804,8 @@ function StepData({
   subcategories: { id: string; name: string }[];
   touched: Set<string>;
   touch: (name: string) => void;
+  verifiedPhone: string;
+  onVerifiedPhone: (phone: string) => void;
 }) {
   const { t } = useTranslation();
   const deliveryMethods = useDeliveryMethods();
@@ -739,7 +820,8 @@ function StepData({
   const descErr = touched.has("description") && form.description.trim().length < 20;
   const priceErr = touched.has("price") && !form.price;
   const cityErr = touched.has("city") && (form.city.trim().length < 2 || (!form.cityId && form.city.trim().length < 3));
-  const contactErr = touched.has("contact") && !form.contact.trim();
+  const contactVerified = phonesMatch(form.contact, verifiedPhone);
+  const contactErr = touched.has("contact") && !contactVerified;
 
   // Keep the focused field clear of the mobile soft keyboard + the fixed
   // wizard footer: on focus, centre the field in the viewport. Delayed so the
@@ -853,15 +935,24 @@ function StepData({
               placeholder={t("pages.adsNew.cityPlaceholder")}
             />
           </Field>
-          <Field label={t("pages.adsNew.contactLabel")} required error={contactErr ? t("pages.adsNew.contactError") : undefined}>
-            <PhoneInput
+          <div className="block space-y-[6px]">
+            <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("pages.adsNew.contactLabel")}<span style={{ color: "var(--accent)" }}> *</span>
+            </span>
+            <ListingContactPhoneField
               value={form.contact}
-              onValueChange={(v) => set("contact", v)}
-              onBlur={() => touch("contact")}
+              verifiedPhone={verifiedPhone}
               error={contactErr}
-              className="h-11"
+              onChange={(v) => set("contact", v)}
+              onBlur={() => touch("contact")}
+              onVerified={onVerifiedPhone}
             />
-          </Field>
+            {contactErr && (
+              <span className="block text-[11px] font-medium" style={{ color: "var(--danger)" }}>
+                {t("pages.adsNew.contactError")}
+              </span>
+            )}
+          </div>
         </div>
         <Field label={t("pages.adsNew.deliveryMethodsLabel")}>
           <div className="flex flex-wrap gap-[8px]">
@@ -938,6 +1029,7 @@ function StepPreview({
           </p>
           <div className="grid gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
             <div className="inline-flex items-center gap-[6px]"><MapPin size={14} /> {form.city || "—"}</div>
+            <div className="inline-flex items-center gap-[6px]"><Phone size={14} /> {form.contact || "—"}</div>
             <div className="inline-flex items-center gap-[6px]"><Truck size={14} /> {form.deliveries.join(", ") || "—"}</div>
             <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {form.condition}</div>
           </div>
@@ -993,6 +1085,170 @@ function StepHeading({ title, description }: { title: string; description: strin
         {title}
       </h2>
       <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>{description}</p>
+    </div>
+  );
+}
+
+function ListingContactPhoneField({
+  value,
+  verifiedPhone,
+  error,
+  onChange,
+  onBlur,
+  onVerified,
+}: {
+  value: string;
+  verifiedPhone: string;
+  error?: boolean;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+  onVerified: (phone: string) => void;
+}) {
+  const { t } = useTranslation();
+  const verified = phonesMatch(value, verifiedPhone);
+  const hasVerifiedProfilePhone = phoneDigits(verifiedPhone).length === 11;
+  const [editing, setEditing] = useState(false);
+  const [smsCode, setSmsCode] = useState("");
+  const [smsSent, setSmsSent] = useState(false);
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsVerifying, setSmsVerifying] = useState(false);
+  const [smsCooldown, setSmsCooldown] = useState(0);
+  const locked = hasVerifiedProfilePhone && verified && !editing;
+
+  useEffect(() => {
+    if (!verified) return;
+    setSmsSent(false);
+    setSmsCode("");
+  }, [verified]);
+
+  useEffect(() => {
+    if (smsCooldown <= 0) return;
+    const timer = window.setInterval(() => setSmsCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [smsCooldown]);
+
+  const cancelChange = () => {
+    onChange(verifiedPhone);
+    setEditing(false);
+    setSmsSent(false);
+    setSmsCode("");
+  };
+
+  const sendSms = async () => {
+    if (phoneDigits(value).length !== 11) {
+      toast.error(t("pages.settings.invalidPhone"));
+      return;
+    }
+    setSmsSending(true);
+    try {
+      await sendPhoneVerificationCode(value);
+      setSmsSent(true);
+      setSmsCooldown(60);
+      toast.success(t("pages.settings.smsSent"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.smsSendFailed"));
+    } finally {
+      setSmsSending(false);
+    }
+  };
+
+  const confirmSms = async () => {
+    if (!/^\d{6}$/.test(smsCode.trim())) {
+      toast.error(t("pages.settings.invalidSmsCode"));
+      return;
+    }
+    setSmsVerifying(true);
+    try {
+      const user = await verifyPhoneCode(value, smsCode.trim());
+      setCurrentUser(user);
+      const formatted = formatRuPhone(user.phone ?? value);
+      onVerified(formatted);
+      setSmsCode("");
+      setSmsSent(false);
+      setEditing(false);
+      toast.success(t("pages.settings.phoneVerified"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.wrongCode"));
+    } finally {
+      setSmsVerifying(false);
+    }
+  };
+
+  return (
+    <div className="space-y-[8px]">
+      <PhoneInput
+        value={value}
+        onValueChange={(next) => {
+          if (!locked) onChange(next);
+        }}
+        onBlur={onBlur}
+        error={error}
+        readOnly={locked}
+        className={locked ? "h-11 cursor-default bg-[var(--background-surface)]" : "h-11"}
+      />
+      {locked ? (
+        <div className="flex flex-wrap items-center gap-[8px]">
+          <Badge variant="published" withIcon={false}>{t("pages.adsNew.contactVerifiedBadge")}</Badge>
+          <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.adsNew.contactFromProfile")}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 px-[8px] text-[12px]"
+            onClick={() => setEditing(true)}
+          >
+            {t("pages.adsNew.contactChange")}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-[8px]">
+          <p className="text-[12px]" style={{ color: "var(--foreground-70)" }}>
+            {t("pages.adsNew.contactChangeHint")}
+          </p>
+          <div className="flex flex-wrap gap-[8px]">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10"
+              disabled={smsSending || smsCooldown > 0 || phoneDigits(value).length !== 11 || verified}
+              onClick={() => void sendSms()}
+            >
+              {smsSending && <Loader2 size={14} className="mr-[6px] animate-spin" />}
+              {smsCooldown > 0
+                ? t("pages.settings.resendIn", { sec: smsCooldown })
+                : t("pages.adsNew.contactSendCode")}
+            </Button>
+            {hasVerifiedProfilePhone && (
+              <Button type="button" variant="ghost" className="h-10" onClick={cancelChange}>
+                {t("common.cancel")}
+              </Button>
+            )}
+          </div>
+          {smsSent && (
+            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
+              <Input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={smsCode}
+                onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder={t("pages.settings.smsCode")}
+                className="h-11 sm:max-w-[160px]"
+              />
+              <Button
+                type="button"
+                className="h-11"
+                disabled={smsVerifying || smsCode.length !== 6}
+                onClick={() => void confirmSms()}
+              >
+                {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
+                {t("pages.adsNew.contactConfirmCode")}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

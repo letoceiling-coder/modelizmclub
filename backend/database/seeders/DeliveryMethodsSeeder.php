@@ -17,7 +17,7 @@ class DeliveryMethodsSeeder extends Seeder
         ];
 
         foreach ($methods as $row) {
-            DeliveryMethod::query()->updateOrCreate(
+            DeliveryMethod::query()->firstOrCreate(
                 ['code' => $row['code']],
                 array_merge($row, ['is_active' => true]),
             );

@@ -6,6 +6,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Models\WithdrawalRequest;
 use Illuminate\Support\Facades\DB;
 use Modules\Billing\Exceptions\InsufficientFundsException;
 
@@ -216,17 +217,36 @@ class WalletService
             ->orderByDesc('id')
             ->paginate($perPage);
 
+        $items = collect($paginator->items());
+        $withdrawalByTx = WithdrawalRequest::query()
+            ->whereIn('wallet_transaction_id', $items->pluck('id')->all())
+            ->get()
+            ->keyBy('wallet_transaction_id');
+
         return [
-            'data' => collect($paginator->items())->map(fn (WalletTransaction $tx) => [
-                'id' => (string) $tx->id,
-                'type' => $tx->amount_kopecks >= 0 ? 'in' : 'out',
-                'amount' => abs((int) $tx->amount_kopecks),
-                'amount_rub' => round(abs((int) $tx->amount_kopecks) / 100, 2),
-                'balance_after' => (int) $tx->balance_after,
-                'kind' => $tx->type->value,
-                'title' => $tx->description ?? $tx->type->label(),
-                'date' => $tx->created_at?->toIso8601String(),
-            ])->all(),
+            'data' => $items->map(function (WalletTransaction $tx) use ($withdrawalByTx) {
+                $status = 'completed';
+                if ($tx->type === WalletTransactionType::Withdrawal) {
+                    $status = match ($withdrawalByTx->get($tx->id)?->status) {
+                        'paid' => 'completed',
+                        'rejected' => 'failed',
+                        default => 'pending',
+                    };
+                }
+
+                return [
+                    'id' => (string) $tx->id,
+                    'type' => $tx->amount_kopecks >= 0 ? 'in' : 'out',
+                    'amount' => abs((int) $tx->amount_kopecks),
+                    'amount_rub' => round(abs((int) $tx->amount_kopecks) / 100, 2),
+                    'balance_after' => (int) $tx->balance_after,
+                    'kind' => $tx->type->value,
+                    'service' => $tx->type->label(),
+                    'status' => $status,
+                    'title' => $tx->description ?? $tx->type->label(),
+                    'date' => $tx->created_at?->toIso8601String(),
+                ];
+            })->all(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
