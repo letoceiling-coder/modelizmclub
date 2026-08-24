@@ -14,10 +14,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPrimary: () => void;
+  title?: string;
+  description?: string;
+  primaryCta?: string;
 }
 
-/** SMS-verified user without a subscription: never auth or phone copy. */
-export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary }: Props) {
+/** Signed-in user without a subscription: never auth or phone copy. */
+export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary, title, description, primaryCta }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -30,12 +33,12 @@ export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary }: Pro
           >
             <Crown size={22} />
           </div>
-          <DialogTitle>{t("subscriptionPaywall.title")}</DialogTitle>
-          <DialogDescription>{t("subscriptionPaywall.description")}</DialogDescription>
+          <DialogTitle>{title?.trim() || t("subscriptionPaywall.title")}</DialogTitle>
+          <DialogDescription>{description?.trim() || t("subscriptionPaywall.description")}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
           <Button type="button" className="w-full" onClick={onPrimary}>
-            {t("subscriptionPaywall.confirm")}
+            {primaryCta?.trim() || t("subscriptionPaywall.confirm")}
           </Button>
           <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
             {t("subscriptionPaywall.later")}

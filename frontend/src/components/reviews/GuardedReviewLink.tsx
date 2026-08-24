@@ -9,9 +9,9 @@ interface Props {
   style?: CSSProperties;
 }
 
-/** List/cover stays visible; opening playback requires login, then SMS. */
+/** List/cover stays visible; opening the review page follows admin access rules. */
 export function GuardedReviewLink({ id, children, className, style }: Props) {
-  const { requireAccount } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const navigate = useNavigate();
   const href = `/reviews/${id}`;
 
@@ -22,7 +22,7 @@ export function GuardedReviewLink({ id, children, className, style }: Props) {
       style={style}
       onClick={(e) => {
         e.preventDefault();
-        requireAccount(() => {
+        guardAction("route.reviews", () => {
           void navigate({ to: "/reviews/$id", params: { id } });
         }, href);
       }}

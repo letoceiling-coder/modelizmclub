@@ -1,9 +1,11 @@
 import { api } from "./client";
 
 export type DenyMode = "inherit" | "popup" | "redirect";
+export type AccessTier = "guest" | "auth" | "subscription";
 
 export interface GuestAccessActionConfig {
   allowed: boolean;
+  min_tier: AccessTier;
   deny_mode: DenyMode;
 }
 
@@ -25,6 +27,7 @@ export interface FeedGuestAccessRegistryItem {
   label: string;
   hint: string;
   default_allowed: boolean;
+  default_min_tier: AccessTier;
 }
 
 export interface AdminFeedGuestAccessPayload {

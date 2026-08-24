@@ -22,7 +22,7 @@ import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import { FeedRightRail } from "@/components/feed/FeedRightRail";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { FEED_FILTER_ACTIONS } from "@/lib/feed-guest-access/registry";
+import { FEED_FILTER_ACTIONS, firstAllowedFeedFilter } from "@/lib/feed-guest-access/registry";
 
 import i18n from "@/lib/i18n";
 
@@ -61,17 +61,26 @@ function FeedPage() {
   const [draftClearToken, setDraftClearToken] = useState(0);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => getHiddenPostIds());
-  const { guardAction, isGuest, isAllowed, loading: guestAccessLoading } = useGuestAccess();
+  const { guardAction, isAllowed, ready: guestAccessReady } = useGuestAccess();
 
   // Direct URL /feed?category=… must not bypass admin filter settings.
   useEffect(() => {
-    if (!isGuest || guestAccessLoading) return;
+    if (!guestAccessReady) return;
     if (categoryFromUrl && !isAllowed("feed.category.select")) {
       setFilter("all");
       setActiveCategory(null);
       navigate({ to: "/feed", search: {}, replace: true });
     }
-  }, [isGuest, guestAccessLoading, categoryFromUrl, isAllowed, navigate]);
+  }, [guestAccessReady, categoryFromUrl, isAllowed, navigate]);
+
+  useEffect(() => {
+    if (!guestAccessReady) return;
+    if (!isAllowed(FEED_FILTER_ACTIONS[filter])) {
+      const next = firstAllowedFeedFilter(isAllowed);
+      setFilter(next);
+      if (next !== "categories") setActiveCategory(null);
+    }
+  }, [guestAccessReady, isAllowed, filter]);
 
   useEffect(() => {
     if (composer === "open") {
@@ -103,7 +112,8 @@ function FeedPage() {
 
   useEffect(() => {
     let alive = true;
-    if (isGuest && !guestAccessLoading && !isAllowed(FEED_FILTER_ACTIONS[filter])) {
+    if (!guestAccessReady) return;
+    if (!isAllowed(FEED_FILTER_ACTIONS[filter])) {
       setPosts([]);
       setInitialLoading(false);
       return;
@@ -141,7 +151,7 @@ function FeedPage() {
     return () => {
       alive = false;
     };
-  }, [filter, activeCategory, isGuest, guestAccessLoading, isAllowed]);
+  }, [filter, activeCategory, guestAccessReady, isAllowed]);
 
   const filtered = useMemo(() => {
     const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));

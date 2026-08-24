@@ -1,5 +1,10 @@
-import { fetchFeedGuestAccess, type FeedGuestAccessConfig, type GuestAccessActionConfig } from "@/lib/api/feed-guest-access";
-import { buildDefaultFeedGuestAccessConfig, GUEST_ACCESS_DEFAULTS } from "@/lib/feed-guest-access/registry";
+import { fetchFeedGuestAccess, type AccessTier, type FeedGuestAccessConfig, type GuestAccessActionConfig } from "@/lib/api/feed-guest-access";
+import {
+  buildDefaultFeedGuestAccessConfig,
+  GUEST_ACCESS_DEFAULT_TIERS,
+  isTierAtLeast,
+  normalizeActionConfig,
+} from "@/lib/feed-guest-access/registry";
 
 let cached: FeedGuestAccessConfig | null = null;
 let loadPromise: Promise<FeedGuestAccessConfig> | null = null;
@@ -20,8 +25,8 @@ export async function loadFeedGuestAccess(force = false): Promise<FeedGuestAcces
   if (!loadPromise) {
     loadPromise = fetchFeedGuestAccess()
       .then((config) => {
-        cached = config;
-        return config;
+        cached = hydrateConfig(config);
+        return cached;
       })
       .catch(() => {
         loadPromise = null;
@@ -37,20 +42,42 @@ export function getFeedGuestAccessSync(): FeedGuestAccessConfig | null {
   return cached;
 }
 
+function hydrateConfig(config: FeedGuestAccessConfig): FeedGuestAccessConfig {
+  const actions: FeedGuestAccessConfig["actions"] = {};
+  for (const [key, fallback] of Object.entries(GUEST_ACCESS_DEFAULT_TIERS)) {
+    actions[key] = normalizeActionConfig(config.actions?.[key], fallback);
+  }
+  for (const [key, patch] of Object.entries(config.actions ?? {})) {
+    if (!actions[key]) actions[key] = normalizeActionConfig(patch, "auth");
+  }
+  return { ...config, version: 2, actions };
+}
+
 function resolveAction(config: FeedGuestAccessConfig, actionKey: string): GuestAccessActionConfig {
   const fromConfig = config.actions[actionKey];
-  if (fromConfig) return fromConfig;
-  const defaultAllowed = GUEST_ACCESS_DEFAULTS[actionKey];
-  if (defaultAllowed !== undefined) return { allowed: defaultAllowed, deny_mode: "inherit" };
-  return { allowed: false, deny_mode: "inherit" };
+  if (fromConfig) return normalizeActionConfig(fromConfig, GUEST_ACCESS_DEFAULT_TIERS[actionKey] ?? "auth");
+  const fallback = GUEST_ACCESS_DEFAULT_TIERS[actionKey] ?? "auth";
+  return normalizeActionConfig(undefined, fallback);
 }
 
 function effectiveConfig(config?: FeedGuestAccessConfig | null): FeedGuestAccessConfig {
   return config ?? cached ?? buildDefaultFeedGuestAccessConfig();
 }
 
+export function resolveMinTier(actionKey: string, config?: FeedGuestAccessConfig | null): AccessTier {
+  return resolveAction(effectiveConfig(config), actionKey).min_tier;
+}
+
 export function isGuestActionAllowed(actionKey: string, config?: FeedGuestAccessConfig | null): boolean {
-  return resolveAction(effectiveConfig(config), actionKey).allowed;
+  return resolveMinTier(actionKey, config) === "guest";
+}
+
+export function isActionAllowedForTier(
+  actionKey: string,
+  userTier: AccessTier,
+  config?: FeedGuestAccessConfig | null,
+): boolean {
+  return isTierAtLeast(userTier, resolveMinTier(actionKey, config));
 }
 
 export function resolveDenyMode(actionKey: string, config?: FeedGuestAccessConfig | null): "popup" | "redirect" {

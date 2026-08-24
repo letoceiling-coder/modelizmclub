@@ -12,15 +12,14 @@ import {
 import { useMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import {
-  isGuestActionAllowed,
+  isActionAllowedForTier,
   loadFeedGuestAccess,
+  resolveDenyMode,
+  resolveMinTier,
   subscribeFeedGuestAccess,
   type FeedGuestAccessConfig,
 } from "@/lib/feed-guest-access/store";
-import {
-  FREE_WITHOUT_SUBSCRIPTION_ACTIONS,
-  VERIFIED_BROWSE_ACTIONS,
-} from "@/lib/feed-guest-access/registry";
+import type { AccessTier } from "@/lib/api/feed-guest-access";
 import { GuestAuthDialog, guestReturnPath } from "@/components/access/GuestAuthDialog";
 import { PhoneVerifyDialog } from "@/components/access/PhoneVerifyDialog";
 import { SubscriptionPaywallDialog } from "@/components/access/SubscriptionPaywallDialog";
@@ -30,6 +29,8 @@ export const ACCESS_GATE_EVENT = "modelizm:access-gate";
 interface GuestAccessContextValue {
   config: FeedGuestAccessConfig | null;
   loading: boolean;
+  /** False until guest-access config and (for signed-in users) subscription status are known. */
+  ready: boolean;
   isGuest: boolean;
   needsPhone: boolean;
   needsSubscription: boolean;
@@ -110,14 +111,21 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
 
   const isAllowed = useCallback(
     (actionKey: string) => {
-      if (isGuest) return isGuestActionAllowed(actionKey, config);
-      if (needsPhone) return VERIFIED_BROWSE_ACTIONS.has(actionKey);
-      if (subLoading) return true;
-      if (needsSubscription) return FREE_WITHOUT_SUBSCRIPTION_ACTIONS.has(actionKey);
-      return true;
+      if (isDemoMode() || isStaffUser(me)) return true;
+      if (isGuest) return isActionAllowedForTier(actionKey, "guest", config);
+      if (subLoading) return isActionAllowedForTier(actionKey, "auth", config);
+      const userTier: AccessTier = sub?.is_active === true ? "subscription" : "auth";
+      return isActionAllowedForTier(actionKey, userTier, config);
     },
-    [isGuest, needsPhone, needsSubscription, subLoading, config],
+    [isGuest, subLoading, sub?.is_active, config, me],
   );
+
+  const userTier = useCallback((): AccessTier => {
+    if (isDemoMode() || isStaffUser(me)) return "subscription";
+    if (isGuest) return "guest";
+    if (sub?.is_active === true) return "subscription";
+    return "auth";
+  }, [isGuest, sub?.is_active, me]);
 
   const openPhoneGate = useCallback((returnTo?: string) => {
     const path = returnTo?.startsWith("/") ? returnTo : guestReturnPath();
@@ -128,6 +136,28 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   const openPaywall = useCallback(() => {
     setPaywallOpen(true);
   }, []);
+
+  const denyGuest = useCallback(
+    (actionKey: string) => {
+      if (resolveDenyMode(actionKey, config) === "redirect") {
+        navigate({ to: "/login", search: { redirect: guestReturnPath() } });
+        return;
+      }
+      setAuthOpen(true);
+    },
+    [config, navigate],
+  );
+
+  const denySubscription = useCallback(
+    (actionKey: string) => {
+      if (resolveDenyMode(actionKey, config) === "redirect") {
+        navigate({ to: ROUTES.subscription });
+        return;
+      }
+      openPaywall();
+    },
+    [config, navigate, openPaywall],
+  );
 
   const requireLogin = useCallback(
     (onAllowed: () => void) => {
@@ -180,27 +210,30 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
 
   const guardAction = useCallback(
     (actionKey: string, onAllowed: () => void, returnTo?: string) => {
-      if (isGuest) {
-        if (isAllowed(actionKey)) onAllowed();
-        else setAuthOpen(true);
+      if (isAllowed(actionKey)) {
+        onAllowed();
         return;
       }
-      if (needsPhone) {
-        if (isAllowed(actionKey)) onAllowed();
-        else openPhoneGate(returnTo);
+      if (isGuest) {
+        denyGuest(actionKey);
         return;
       }
       if (subLoading) {
         pendingAfterSub.current = { onAllowed, actionKey };
         return;
       }
-      if (isAllowed(actionKey)) {
-        onAllowed();
+      const required = resolveMinTier(actionKey, config);
+      if (required === "subscription" && userTier() !== "subscription") {
+        denySubscription(actionKey);
         return;
       }
-      openPaywall();
+      if (needsPhone) {
+        openPhoneGate(returnTo);
+        return;
+      }
+      denySubscription(actionKey);
     },
-    [isAllowed, isGuest, needsPhone, subLoading, openPhoneGate, openPaywall],
+    [isAllowed, isGuest, needsPhone, subLoading, config, openPhoneGate, userTier, denyGuest, denySubscription],
   );
 
   useEffect(() => {
@@ -208,32 +241,31 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     const pending = pendingAfterSub.current;
     pendingAfterSub.current = null;
     if (pending) {
-      if (needsPhone) {
-        if (pending.actionKey && VERIFIED_BROWSE_ACTIONS.has(pending.actionKey)) {
-          pending.onAllowed();
-        } else {
-          openPhoneGate();
-        }
-      } else if (needsSubscription) {
-        if (pending.actionKey && FREE_WITHOUT_SUBSCRIPTION_ACTIONS.has(pending.actionKey)) {
-          pending.onAllowed();
-        } else {
-          openPaywall();
-        }
-      } else {
+      if (pending.actionKey && isAllowed(pending.actionKey)) {
         pending.onAllowed();
+      } else if (isGuest) {
+        denyGuest(pending.actionKey ?? "");
+      } else if (pending.actionKey && resolveMinTier(pending.actionKey, config) === "subscription") {
+        denySubscription(pending.actionKey);
+      } else if (needsPhone) {
+        openPhoneGate();
+      } else {
+        denySubscription(pending.actionKey ?? "");
       }
     }
     if (pendingPaywallEvent.current) {
       pendingPaywallEvent.current = false;
       if (needsSubscription) openPaywall();
     }
-  }, [subLoading, needsPhone, needsSubscription, openPaywall, openPhoneGate]);
+  }, [subLoading, needsPhone, needsSubscription, openPaywall, openPhoneGate, isAllowed, isGuest, config, denyGuest, denySubscription]);
+
+  const ready = !loading && (isGuest || isDemoMode() || isStaffUser(me) || !subLoading);
 
   const value = useMemo(
     () => ({
       config,
       loading,
+      ready,
       isGuest,
       needsPhone,
       needsSubscription,
@@ -243,7 +275,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       requireLogin,
       requirePremium,
     }),
-    [config, loading, isGuest, needsPhone, needsSubscription, isAllowed, guardAction, requireAccount, requireLogin, requirePremium],
+    [config, loading, ready, isGuest, needsPhone, needsSubscription, isAllowed, guardAction, requireAccount, requireLogin, requirePremium],
   );
 
   return (
@@ -275,6 +307,9 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       <SubscriptionPaywallDialog
         open={paywallOpen}
         onOpenChange={setPaywallOpen}
+        title={config?.popup.title}
+        description={config?.popup.description}
+        primaryCta={config?.popup.primary_cta}
         onPrimary={() => {
           setPaywallOpen(false);
           navigate({ to: ROUTES.subscription });

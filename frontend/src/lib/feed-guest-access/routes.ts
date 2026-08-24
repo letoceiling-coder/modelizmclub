@@ -19,11 +19,16 @@ const PUBLIC_PREFIXES = [
   "/onboarding",
 ] as const;
 
-/** Pages guests may open without an account: feed + ads catalog (read-only), plus auth/legal. */
+/** Auth, legal and marketing pages — never gated by admin access rules. */
+export function isAlwaysPublicRoute(pathname: string): boolean {
+  if (pathname === ROUTES.home) return true;
+  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
+/** @deprecated Use pathnameToRouteAction + min_tier. Kept for callers that only need a boolean. */
 export function isPublicGuestRoute(pathname: string): boolean {
-  if (pathname === ROUTES.home || pathname === ROUTES.feed || pathname.startsWith("/feed/")) {
-    return true;
-  }
+  if (isAlwaysPublicRoute(pathname)) return true;
+  if (pathname === ROUTES.feed || pathname.startsWith("/feed/")) return true;
   if (pathname === ROUTES.ads) return true;
   if (
     pathname.startsWith("/ads/") &&
@@ -33,7 +38,7 @@ export function isPublicGuestRoute(pathname: string): boolean {
     return true;
   }
   if (pathname.startsWith("/user/")) return true;
-  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+  return false;
 }
 
 /** Logged-in users must confirm SMS before using these routes. */
@@ -44,10 +49,11 @@ export function isVerifiedRequiredRoute(pathname: string): boolean {
   return false;
 }
 
-/** Maps app routes to guest-access action keys (admin → «Защита страниц» / nav keys). */
+/** Maps app routes to guest-access action keys (admin → «Защита страниц»). */
 export function pathnameToRouteAction(pathname: string): string | null {
-  if (isPublicGuestRoute(pathname)) return null;
+  if (isAlwaysPublicRoute(pathname)) return null;
 
+  if (pathname === ROUTES.feed || pathname.startsWith("/feed/")) return "route.feed";
   if (pathname === ROUTES.adCreate || pathname.startsWith("/ads/new")) return "route.ads_new";
   if (pathname === ROUTES.ads || pathname.startsWith("/ads/")) return "route.ads";
   if (pathname === ROUTES.myAds || pathname.startsWith("/my-ads")) return "route.my_ads";

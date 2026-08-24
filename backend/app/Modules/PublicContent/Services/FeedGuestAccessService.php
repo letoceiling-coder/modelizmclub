@@ -35,18 +35,14 @@ class FeedGuestAccessService
         foreach (FeedGuestAccessRegistry::actions() as $row) {
             $key = $row['key'];
             $patch = is_array($incomingActions[$key] ?? null) ? $incomingActions[$key] : [];
-            $actions[$key] = [
-                'allowed' => array_key_exists('allowed', $patch)
-                    ? (bool) $patch['allowed']
-                    : ($defaults['actions'][$key]['allowed'] ?? true),
-                'deny_mode' => in_array($patch['deny_mode'] ?? 'inherit', ['inherit', 'popup', 'redirect'], true)
-                    ? ($patch['deny_mode'] ?? 'inherit')
-                    : 'inherit',
-            ];
+            $actions[$key] = FeedGuestAccessRegistry::normalizeAction(
+                $patch,
+                (string) $row['default_min_tier'],
+            );
         }
 
         $stored = [
-            'version' => 1,
+            'version' => 2,
             'default_deny_mode' => in_array($payload['default_deny_mode'] ?? 'popup', ['popup', 'redirect'], true)
                 ? ($payload['default_deny_mode'] ?? 'popup')
                 : 'popup',
@@ -78,18 +74,14 @@ class FeedGuestAccessService
         foreach (FeedGuestAccessRegistry::actions() as $meta) {
             $key = $meta['key'];
             $patch = is_array($stored['actions'][$key] ?? null) ? $stored['actions'][$key] : [];
-            $actions[$key] = [
-                'allowed' => array_key_exists('allowed', $patch)
-                    ? (bool) $patch['allowed']
-                    : ($defaults['actions'][$key]['allowed'] ?? true),
-                'deny_mode' => in_array($patch['deny_mode'] ?? 'inherit', ['inherit', 'popup', 'redirect'], true)
-                    ? ($patch['deny_mode'] ?? 'inherit')
-                    : 'inherit',
-            ];
+            $actions[$key] = FeedGuestAccessRegistry::normalizeAction(
+                $patch,
+                (string) $meta['default_min_tier'],
+            );
         }
 
         return [
-            'version' => 1,
+            'version' => 2,
             'default_deny_mode' => in_array($stored['default_deny_mode'] ?? 'popup', ['popup', 'redirect'], true)
                 ? ($stored['default_deny_mode'] ?? 'popup')
                 : 'popup',

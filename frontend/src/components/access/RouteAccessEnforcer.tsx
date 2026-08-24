@@ -1,20 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { enforceClientRouteAccess } from "@/lib/auth/enforceClientRouteAccess";
+import { subscribeFeedGuestAccess } from "@/lib/feed-guest-access/store";
+import { selectors, useStore } from "@/lib/store";
 
 /**
- * Re-runs guest/auth route guards on the client after hydration and on every
- * navigation. Guests may only stay on public browse routes; everything else
- * goes to /login — never to a subscription paywall.
+ * Re-runs guest / auth / subscription route guards after hydration,
+ * after the session probe finishes, and whenever admin access rules change.
  */
 export function RouteAccessEnforcer() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const lastPath = useRef<string | null>(null);
+  const sessionResolved = useStore(selectors.sessionResolved);
+  const [accessTick, setAccessTick] = useState(0);
+
+  useEffect(() => subscribeFeedGuestAccess(() => setAccessTick((n) => n + 1)), []);
 
   useEffect(() => {
-    if (pathname === lastPath.current) return;
-    lastPath.current = pathname;
+    if (!sessionResolved) return;
 
     let alive = true;
     void enforceClientRouteAccess(pathname).then((redirect) => {
@@ -29,7 +32,7 @@ export function RouteAccessEnforcer() {
     return () => {
       alive = false;
     };
-  }, [pathname, navigate]);
+  }, [pathname, navigate, sessionResolved, accessTick]);
 
   return null;
 }

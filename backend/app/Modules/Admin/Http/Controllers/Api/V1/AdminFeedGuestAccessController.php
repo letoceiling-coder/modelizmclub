@@ -26,6 +26,7 @@ class AdminFeedGuestAccessController extends Controller
             'popup.secondary_cta' => ['sometimes', 'string', 'max:60'],
             'actions' => ['sometimes', 'array'],
             'actions.*.allowed' => ['sometimes', 'boolean'],
+            'actions.*.min_tier' => ['sometimes', 'in:guest,auth,subscription'],
             'actions.*.deny_mode' => ['sometimes', 'in:inherit,popup,redirect'],
         ]);
 

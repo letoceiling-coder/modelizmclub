@@ -3,8 +3,9 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { enforceClientRouteAccess } from "@/lib/auth/enforceClientRouteAccess";
 
 /**
- * Root route guard: blocks guests from pages the admin marked as restricted.
- * Also runs on client navigations; SSR is handled by RouteAccessEnforcer.
+ * Root route guard: blocks guests, signed-in users and non-subscribers
+ * according to admin «Права доступа /feed» min_tier settings.
+ * SSR is skipped; RouteAccessEnforcer re-runs after hydration.
  */
 export async function requireGuestRouteAccess(location: { pathname: string }): Promise<void> {
   if (typeof window === "undefined") return;

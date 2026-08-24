@@ -4,6 +4,7 @@ import { toast } from "@/lib/toast";
 import {
   fetchAdminFeedGuestAccess,
   updateAdminFeedGuestAccess,
+  type AccessTier,
   type FeedGuestAccessConfig,
   type FeedGuestAccessRegistryItem,
 } from "@/lib/api/feed-guest-access";
@@ -47,10 +48,16 @@ function ActionRow({
 }: {
   item: FeedGuestAccessRegistryItem;
   config: FeedGuestAccessConfig;
-  onChange: (patch: Partial<{ allowed: boolean; deny_mode: "inherit" | "popup" | "redirect" }>) => void;
+  onChange: (patch: Partial<{ min_tier: AccessTier; deny_mode: "inherit" | "popup" | "redirect" }>) => void;
 }) {
   const { t } = useTranslation();
-  const current = config.actions[item.key] ?? { allowed: item.default_allowed, deny_mode: "inherit" as const };
+  const fallbackTier = item.default_min_tier ?? (item.default_allowed ? "guest" : "auth");
+  const current = config.actions[item.key] ?? {
+    min_tier: fallbackTier,
+    allowed: fallbackTier === "guest",
+    deny_mode: "inherit" as const,
+  };
+  const minTier = current.min_tier ?? fallbackTier;
 
   return (
     <div
@@ -62,19 +69,21 @@ function ActionRow({
         <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{item.hint}</div>
         <code className="mt-1 block text-[11px]" style={{ color: "var(--foreground-30)" }}>{item.key}</code>
       </div>
-      <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
-        <input
-          type="checkbox"
-          checked={current.allowed}
-          onChange={(e) => onChange({ allowed: e.target.checked })}
-        />
-        {t("pages.adminFeedGuestAccess.guestAllowed")}
-      </label>
+      <select
+        value={minTier}
+        onChange={(e) => onChange({ min_tier: e.target.value as AccessTier })}
+        style={{ ...inputStyle, width: 220 }}
+        aria-label={t("pages.adminFeedGuestAccess.minTierLabel")}
+      >
+        <option value="guest">{t("pages.adminFeedGuestAccess.tierGuest")}</option>
+        <option value="auth">{t("pages.adminFeedGuestAccess.tierAuth")}</option>
+        <option value="subscription">{t("pages.adminFeedGuestAccess.tierSubscription")}</option>
+      </select>
       <select
         value={current.deny_mode}
         onChange={(e) => onChange({ deny_mode: e.target.value as "inherit" | "popup" | "redirect" })}
-        disabled={current.allowed}
-        style={{ ...inputStyle, width: 160, opacity: current.allowed ? 0.5 : 1 }}
+        disabled={minTier === "guest"}
+        style={{ ...inputStyle, width: 160, opacity: minTier === "guest" ? 0.5 : 1 }}
       >
         <option value="inherit">{t("pages.adminFeedGuestAccess.denyInherit")}</option>
         <option value="popup">{t("pages.adminFeedGuestAccess.denyPopup")}</option>
@@ -113,15 +122,17 @@ export function FeedGuestAccessAdminCard() {
     return map;
   }, [registry]);
 
-  const patchAction = (key: string, patch: Partial<{ allowed: boolean; deny_mode: "inherit" | "popup" | "redirect" }>) => {
+  const patchAction = (key: string, patch: Partial<{ min_tier: AccessTier; deny_mode: "inherit" | "popup" | "redirect" }>) => {
     setConfig((prev) => {
       if (!prev) return prev;
-      const current = prev.actions[key] ?? { allowed: true, deny_mode: "inherit" as const };
+      const current = prev.actions[key] ?? { min_tier: "auth" as const, allowed: false, deny_mode: "inherit" as const };
+      const next = { ...current, ...patch };
+      if (patch.min_tier) next.allowed = patch.min_tier === "guest";
       return {
         ...prev,
         actions: {
           ...prev.actions,
-          [key]: { ...current, ...patch },
+          [key]: next,
         },
       };
     });
@@ -209,6 +220,14 @@ export function FeedGuestAccessAdminCard() {
       {[...grouped.entries()].map(([group, items]) => (
         <div key={group} className="rounded-[var(--r-card)] border p-4" style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}>
           <h3 className="mb-2 text-sm font-semibold">{groupLabels[group] ?? group}</h3>
+          <div
+            className="mb-1 hidden gap-3 text-[11px] font-medium uppercase tracking-wide lg:grid lg:grid-cols-[1fr_auto_auto]"
+            style={{ color: "var(--foreground-40)" }}
+          >
+            <span />
+            <span className="w-[220px]">{t("pages.adminFeedGuestAccess.minTierLabel")}</span>
+            <span className="w-[160px]">{t("pages.adminFeedGuestAccess.denyModeLabel")}</span>
+          </div>
           {items.map((item) => (
             <ActionRow
               key={item.key}

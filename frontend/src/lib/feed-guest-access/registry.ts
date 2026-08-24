@@ -1,58 +1,97 @@
-import type { FeedGuestAccessConfig } from "@/lib/api/feed-guest-access";
+import type { AccessTier, FeedGuestAccessConfig, GuestAccessActionConfig } from "@/lib/api/feed-guest-access";
 
-/** Mirrors backend FeedGuestAccessRegistry default_allowed values. */
-export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = {
-  "feed.filter.all": true,
-  "feed.filter.following": false,
-  "feed.filter.categories": false,
-  "feed.filter.saved": false,
-  "feed.filter.scheduled": false,
-  "feed.category.select": false,
-  "feed.compose.open": false,
-  "feed.banner.navigate": true,
-  "feed.post.open": true,
-  "feed.post.like": false,
-  "feed.post.comment": false,
-  "feed.post.save": false,
-  "feed.post.repost": false,
-  "feed.post.author": true,
-  "feed.sponsored.click": true,
-  "feed.empty.action": true,
-  "feed.rail.all_categories": false,
-  "feed.rail.category": false,
-  "feed.rail.subcategory": false,
-  "feed.find_people.open": false,
-  "feed.find_people.category": false,
-  "layout.nav.feed": true,
-  "layout.nav.ads": true,
-  "layout.nav.ad_create": false,
-  "layout.nav.my_ads": false,
-  "layout.nav.deals": false,
-  "layout.nav.favorites": false,
-  "layout.nav.communities": false,
-  "layout.nav.reviews": false,
-  "layout.nav.channels": false,
-  "layout.nav.messenger": false,
-  "layout.nav.friends": false,
-  "layout.nav.settings": false,
-  "layout.header.notifications": false,
-  "layout.header.search": true,
-  "route.ads": true,
-  "route.ads_new": false,
-  "route.my_ads": false,
-  "route.deals": false,
-  "route.favorites": false,
-  "route.reviews": false,
-  "route.channels": false,
-  "route.messenger": false,
-  "route.friends": false,
-  "route.communities": false,
-  "route.categories": false,
-  "route.notifications": false,
-  "route.settings": false,
-  "route.profile": false,
-  "route.user": true,
+export type { AccessTier };
+
+export const ACCESS_TIERS: AccessTier[] = ["guest", "auth", "subscription"];
+
+export const TIER_RANK: Record<AccessTier, number> = {
+  guest: 0,
+  auth: 1,
+  subscription: 2,
 };
+
+export function isValidAccessTier(value: unknown): value is AccessTier {
+  return value === "guest" || value === "auth" || value === "subscription";
+}
+
+export function isTierAtLeast(userTier: AccessTier, required: AccessTier): boolean {
+  return TIER_RANK[userTier] >= TIER_RANK[required];
+}
+
+/** Mirrors backend FeedGuestAccessRegistry default_min_tier values. */
+export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
+  "feed.filter.all": "guest",
+  "feed.filter.following": "auth",
+  "feed.filter.categories": "auth",
+  "feed.filter.saved": "auth",
+  "feed.filter.scheduled": "auth",
+  "feed.category.select": "auth",
+  "feed.compose.open": "subscription",
+  "feed.banner.navigate": "guest",
+  "feed.post.open": "guest",
+  "feed.post.like": "subscription",
+  "feed.post.comment": "subscription",
+  "feed.post.save": "auth",
+  "feed.post.repost": "subscription",
+  "feed.post.author": "guest",
+  "feed.sponsored.click": "guest",
+  "feed.empty.action": "guest",
+  "feed.rail.all_categories": "auth",
+  "feed.rail.category": "auth",
+  "feed.rail.subcategory": "auth",
+  "feed.find_people.open": "auth",
+  "feed.find_people.category": "auth",
+  "layout.nav.feed": "guest",
+  "layout.nav.ads": "guest",
+  "layout.nav.ad_create": "auth",
+  "layout.nav.my_ads": "auth",
+  "layout.nav.deals": "auth",
+  "layout.nav.favorites": "auth",
+  "layout.nav.communities": "auth",
+  "layout.nav.reviews": "auth",
+  "layout.nav.channels": "auth",
+  "layout.nav.messenger": "auth",
+  "layout.nav.friends": "auth",
+  "layout.nav.settings": "auth",
+  "layout.header.notifications": "auth",
+  "layout.header.search": "guest",
+  "route.feed": "guest",
+  "route.ads": "guest",
+  "route.ads_new": "auth",
+  "route.my_ads": "auth",
+  "route.deals": "auth",
+  "route.favorites": "auth",
+  "route.reviews": "auth",
+  "route.channels": "auth",
+  "route.messenger": "auth",
+  "route.friends": "auth",
+  "route.communities": "auth",
+  "route.categories": "auth",
+  "route.notifications": "auth",
+  "route.settings": "auth",
+  "route.profile": "auth",
+  "route.user": "guest",
+};
+
+export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = Object.fromEntries(
+  Object.entries(GUEST_ACCESS_DEFAULT_TIERS).map(([key, tier]) => [key, tier === "guest"]),
+);
+
+export function normalizeActionConfig(
+  patch: Partial<GuestAccessActionConfig> | undefined,
+  fallbackTier: AccessTier = "auth",
+): GuestAccessActionConfig {
+  let minTier: AccessTier = fallbackTier;
+  if (patch && isValidAccessTier(patch.min_tier)) {
+    minTier = patch.min_tier;
+  } else if (patch && typeof patch.allowed === "boolean") {
+    minTier = patch.allowed ? "guest" : fallbackTier === "guest" ? "auth" : fallbackTier;
+  }
+  const denyMode = patch?.deny_mode === "popup" || patch?.deny_mode === "redirect" || patch?.deny_mode === "inherit"
+    ? patch.deny_mode
+    : "inherit";
+  return { min_tier: minTier, allowed: minTier === "guest", deny_mode: denyMode };
+}
 
 export const FEED_FILTER_ACTIONS = {
   all: "feed.filter.all",
@@ -64,68 +103,6 @@ export const FEED_FILTER_ACTIONS = {
 
 export type FeedFilterKey = keyof typeof FEED_FILTER_ACTIONS;
 
-/** Read-only browsing guests may do without an account. Everything else requires login. */
-export const GUEST_PUBLIC_ACTIONS = new Set<string>([
-  "feed.filter.all",
-  "feed.banner.navigate",
-  "feed.post.open",
-  "feed.post.author",
-  "feed.sponsored.click",
-  "feed.empty.action",
-  "layout.nav.feed",
-  "layout.nav.ads",
-  "layout.header.search",
-  "route.ads",
-  "route.user",
-]);
-
-/** Logged-in users without SMS may browse public content, but not act. */
-export const VERIFIED_BROWSE_ACTIONS = new Set<string>([
-  ...GUEST_PUBLIC_ACTIONS,
-  "feed.filter.categories",
-  "feed.category.select",
-  "feed.rail.all_categories",
-  "feed.rail.category",
-  "feed.rail.subcategory",
-  "feed.find_people.open",
-  "feed.find_people.category",
-  "layout.nav.reviews",
-  "layout.nav.channels",
-  "layout.nav.communities",
-  "layout.nav.settings",
-  "layout.header.notifications",
-  "route.reviews",
-  "route.channels",
-  "route.communities",
-  "route.settings",
-  "route.profile",
-  "route.notifications",
-]);
-
-/**
- * SMS-verified users without a subscription may browse and use listings,
- * but not premium social actions (posts, reactions, DMs, calls, channels, communities).
- */
-export const FREE_WITHOUT_SUBSCRIPTION_ACTIONS = new Set<string>([
-  ...VERIFIED_BROWSE_ACTIONS,
-  "feed.filter.following",
-  "feed.filter.saved",
-  "feed.filter.scheduled",
-  "feed.post.save",
-  "layout.nav.ad_create",
-  "layout.nav.my_ads",
-  "layout.nav.deals",
-  "layout.nav.favorites",
-  "layout.nav.friends",
-  "layout.nav.messenger",
-  "route.ads_new",
-  "route.my_ads",
-  "route.deals",
-  "route.favorites",
-  "route.friends",
-  "route.messenger",
-]);
-
 const POPUP_DEFAULTS = {
   title: "Войдите в аккаунт",
   description: "Чтобы пользоваться этой функцией, войдите или зарегистрируйтесь.",
@@ -135,11 +112,11 @@ const POPUP_DEFAULTS = {
 
 export function buildDefaultFeedGuestAccessConfig(): FeedGuestAccessConfig {
   const actions: FeedGuestAccessConfig["actions"] = {};
-  for (const [key, allowed] of Object.entries(GUEST_ACCESS_DEFAULTS)) {
-    actions[key] = { allowed, deny_mode: "inherit" };
+  for (const [key, minTier] of Object.entries(GUEST_ACCESS_DEFAULT_TIERS)) {
+    actions[key] = { min_tier: minTier, allowed: minTier === "guest", deny_mode: "inherit" };
   }
   return {
-    version: 1,
+    version: 2,
     default_deny_mode: "popup",
     popup: POPUP_DEFAULTS,
     actions,

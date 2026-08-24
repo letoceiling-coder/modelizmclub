@@ -2,8 +2,10 @@ import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
-import { isPhoneVerified, isPhoneVerificationRequired, requestPhoneVerificationModal } from "@/lib/auth/verification";
-import { isPublicGuestRoute, isVerifiedRequiredRoute } from "@/lib/feed-guest-access/routes";
+import { isPhoneVerified, isPhoneVerificationRequired, isStaffUser, requestPhoneVerificationModal } from "@/lib/auth/verification";
+import { isAlwaysPublicRoute, isVerifiedRequiredRoute, pathnameToRouteAction } from "@/lib/feed-guest-access/routes";
+import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/store";
+import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { getState, selectors, setCurrentUser } from "@/lib/store";
@@ -48,9 +50,15 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
     return null;
   }
 
+  if (isAlwaysPublicRoute(pathname)) return null;
+
+  await loadFeedGuestAccess();
+  const action = pathnameToRouteAction(pathname);
+  const minTier = action ? resolveMinTier(action) : "auth";
+
   if (!getToken()) {
-    if (isPublicGuestRoute(pathname)) return null;
-    const from = pathname + (typeof window !== "undefined" ? window.location.search : "");
+    if (minTier === "guest") return null;
+    const from = pathname + window.location.search;
     return { to: "/login", search: { redirect: from }, replace: true };
   }
 
@@ -75,6 +83,14 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
       if (pathname === ROUTES.feed || pathname.startsWith("/feed/")) return null;
       return { to: ROUTES.feed, replace: true };
     }
+  }
+
+  if (minTier === "subscription") {
+    const user = selectors.currentUser(getState());
+    if (isStaffUser(user)) return null;
+    const sub = await getMySubscription();
+    if (sub?.is_active === true) return null;
+    return { to: ROUTES.subscription, replace: true };
   }
 
   return null;
