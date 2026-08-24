@@ -23,15 +23,17 @@ class FeedGuestAccessTest extends TestCase
 
     public function test_public_payload_exposes_min_tier_and_version_two(): void
     {
-        $this->getJson('/api/v1/public/feed-guest-access')
+        $data = $this->getJson('/api/v1/public/feed-guest-access')
             ->assertOk()
-            ->assertJsonPath('data.version', 2)
-            ->assertJsonPath('data.actions.feed.filter.all.min_tier', 'guest')
-            ->assertJsonPath('data.actions.feed.filter.all.allowed', true)
-            ->assertJsonPath('data.actions.feed.filter.following.min_tier', 'auth')
-            ->assertJsonPath('data.actions.feed.compose.open.min_tier', 'subscription')
-            ->assertJsonPath('data.actions.route.feed.min_tier', 'guest')
-            ->assertJsonPath('data.actions.route.reviews.min_tier', 'auth');
+            ->json('data');
+
+        $this->assertSame(2, $data['version']);
+        $this->assertSame('guest', $this->action($data, 'feed.filter.all')['min_tier']);
+        $this->assertTrue($this->action($data, 'feed.filter.all')['allowed']);
+        $this->assertSame('auth', $this->action($data, 'feed.filter.following')['min_tier']);
+        $this->assertSame('subscription', $this->action($data, 'feed.compose.open')['min_tier']);
+        $this->assertSame('guest', $this->action($data, 'route.feed')['min_tier']);
+        $this->assertSame('auth', $this->action($data, 'route.reviews')['min_tier']);
     }
 
     public function test_legacy_allowed_true_is_merged_as_guest(): void
@@ -57,13 +59,15 @@ class FeedGuestAccessTest extends TestCase
             ],
         );
 
-        $this->getJson('/api/v1/public/feed-guest-access')
+        $data = $this->getJson('/api/v1/public/feed-guest-access')
             ->assertOk()
-            ->assertJsonPath('data.version', 2)
-            ->assertJsonPath('data.actions.feed.filter.following.min_tier', 'guest')
-            ->assertJsonPath('data.actions.feed.filter.following.allowed', true)
-            ->assertJsonPath('data.actions.feed.compose.open.min_tier', 'subscription')
-            ->assertJsonPath('data.popup.title', 'Нужна подписка');
+            ->json('data');
+
+        $this->assertSame(2, $data['version']);
+        $this->assertSame('guest', $this->action($data, 'feed.filter.following')['min_tier']);
+        $this->assertTrue($this->action($data, 'feed.filter.following')['allowed']);
+        $this->assertSame('subscription', $this->action($data, 'feed.compose.open')['min_tier']);
+        $this->assertSame('Нужна подписка', $data['popup']['title']);
     }
 
     public function test_admin_can_persist_min_tier_for_pages_and_filters(): void
@@ -81,18 +85,48 @@ class FeedGuestAccessTest extends TestCase
         $payload['actions']['route.feed']['min_tier'] = 'auth';
         $payload['actions']['route.feed']['allowed'] = false;
 
-        $this->actingAs($admin, 'sanctum')
+        $adminPayload = $this->actingAs($admin, 'sanctum')
             ->putJson('/api/v1/admin/feed/guest-access', $payload)
             ->assertOk()
-            ->assertJsonPath('data.config.actions.route.reviews.min_tier', 'guest')
-            ->assertJsonPath('data.config.actions.feed.filter.following.min_tier', 'subscription')
-            ->assertJsonPath('data.config.actions.route.feed.min_tier', 'auth')
-            ->assertJsonPath('data.registry.0.default_min_tier', 'guest');
+            ->json('data');
 
-        $this->getJson('/api/v1/public/feed-guest-access')
+        $this->assertSame('guest', $this->action($adminPayload['config'], 'route.reviews')['min_tier']);
+        $this->assertSame('subscription', $this->action($adminPayload['config'], 'feed.filter.following')['min_tier']);
+        $this->assertSame('auth', $this->action($adminPayload['config'], 'route.feed')['min_tier']);
+        $this->assertSame('guest', $adminPayload['registry'][0]['default_min_tier']);
+
+        $this->app['auth']->forgetGuards();
+
+        $public = $this->getJson('/api/v1/public/feed-guest-access')
             ->assertOk()
-            ->assertJsonPath('data.actions.route.reviews.min_tier', 'guest')
-            ->assertJsonPath('data.actions.feed.filter.following.min_tier', 'subscription')
-            ->assertJsonPath('data.actions.route.feed.min_tier', 'auth');
+            ->json('data');
+
+        $this->assertSame('guest', $this->action($public, 'route.reviews')['min_tier']);
+        $this->assertSame('subscription', $this->action($public, 'feed.filter.following')['min_tier']);
+        $this->assertSame('auth', $this->action($public, 'route.feed')['min_tier']);
+    }
+
+    public function test_admin_rejects_invalid_min_tier(): void
+    {
+        $admin = User::factory()->create([
+            'role' => UserRole::Admin,
+            'status' => UserStatus::Active,
+        ]);
+
+        $payload = FeedGuestAccessRegistry::defaultConfig();
+        $payload['actions']['route.feed']['min_tier'] = 'vip';
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/admin/feed/guest-access', $payload)
+            ->assertStatus(422);
+    }
+
+    /** @return array{min_tier: string, allowed: bool, deny_mode: string} */
+    private function action(array $payload, string $key): array
+    {
+        $this->assertArrayHasKey('actions', $payload);
+        $this->assertArrayHasKey($key, $payload['actions'], "Missing guest-access action {$key}");
+
+        return $payload['actions'][$key];
     }
 }
