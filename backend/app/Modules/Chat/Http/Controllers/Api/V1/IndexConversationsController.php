@@ -15,6 +15,7 @@ class IndexConversationsController extends Controller
         $paginator = $chat->listConversations(
             $request->user(),
             $request->integer('per_page', 30),
+            $request->string('space')->toString() === 'communities' ? 'communities' : 'chats',
         );
 
         return ConversationResource::collection($paginator)->response();

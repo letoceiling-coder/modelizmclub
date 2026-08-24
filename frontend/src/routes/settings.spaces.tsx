@@ -1,13 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
 import { useChannels, isChannelOwner } from "@/lib/channels";
 import { useOwnedCommunities } from "@/lib/api/communities";
-import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useStore, selectors } from "@/lib/store";
-import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import type { EntityKind } from "@/lib/api/entity-requests";
 
 import i18n from "@/lib/i18n";
@@ -21,19 +18,17 @@ function SettingsSpacesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
-  const { requirePremium } = useGuestAccess();
   const { channels } = useChannels();
   const myChannel = channels.find((c) => isChannelOwner(c, me.id));
   const { communities: ownedCommunities } = useOwnedCommunities();
   const myCommunity = ownedCommunities[0];
-  const [requestKind, setRequestKind] = useState<EntityKind | null>(null);
 
   const openRequest = (kind: EntityKind) => {
     if (kind === "channel") {
       void navigate({ to: "/channels/new" });
       return;
     }
-    requirePremium(() => setRequestKind(kind), "/settings/spaces");
+    void navigate({ to: "/communities/new" });
   };
 
   return (
@@ -96,14 +91,6 @@ function SettingsSpacesPage() {
           )
         }
       />
-
-      {requestKind && (
-        <EntityRequestForm
-          kind={requestKind}
-          onClose={() => setRequestKind(null)}
-          onSubmitted={() => setRequestKind(null)}
-        />
-      )}
     </div>
   );
 }

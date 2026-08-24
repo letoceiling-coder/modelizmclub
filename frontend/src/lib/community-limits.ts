@@ -1,2 +1,3 @@
 export const COMMUNITY_NAME_MAX = 40;
 export const COMMUNITY_DESCRIPTION_MAX = 2000;
+export const COMMUNITY_RULES_MAX = 8000;

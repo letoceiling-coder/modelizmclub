@@ -30,7 +30,7 @@ class ChatService
         private MediaUploadService $mediaUploads,
     ) {}
 
-    public function listConversations(User $user, int $perPage = 30): LengthAwarePaginator
+    public function listConversations(User $user, int $perPage = 30, string $space = 'chats'): LengthAwarePaginator
     {
         $conversationIds = ConversationParticipant::query()
             ->where('user_id', $user->id)
@@ -39,7 +39,12 @@ class ChatService
 
         $paginator = Conversation::query()
             ->whereIn('conversations.id', $conversationIds)
-            ->where('conversations.type', '!=', ConversationType::Room)
+            ->when($space === 'communities', function ($q): void {
+                $q->where('conversations.type', ConversationType::Community);
+            }, function ($q): void {
+                $q->where('conversations.type', '!=', ConversationType::Room)
+                    ->where('conversations.type', '!=', ConversationType::Community);
+            })
             ->join('conversation_participants as cp', function ($join) use ($user): void {
                 $join->on('cp.conversation_id', '=', 'conversations.id')
                     ->where('cp.user_id', $user->id)
@@ -69,6 +74,7 @@ class ChatService
                 'latestMessage.attachments.media',
                 'latestMessage.post.mediaItems.media',
                 'pinnedMessage.author.profile.avatar',
+                'community.avatar',
             ])
             ->orderByRaw('cp.pinned_at IS NULL')
             ->orderByDesc('cp.pinned_at')
@@ -90,6 +96,7 @@ class ChatService
                 'latestMessage.author.profile.avatar',
                 'latestMessage.attachments.media',
                 'latestMessage.post.mediaItems.media',
+                'community.avatar',
             ])
             ->first();
 

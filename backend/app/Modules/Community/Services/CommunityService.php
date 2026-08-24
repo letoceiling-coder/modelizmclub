@@ -23,7 +23,7 @@ class CommunityService
         $query = Community::query()
             ->active()
             ->withCount(['members as live_members_count'])
-            ->with(['category', 'avatar', 'cover'])
+            ->with(['category', 'avatar', 'cover', 'city', 'topicCategories'])
             ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
             ->when($filters['q'] ?? null, function ($q, $term): void {
                 $q->where(function ($q) use ($term): void {
@@ -67,6 +67,7 @@ class CommunityService
                 $c->setAttribute('is_member', $role !== null);
                 $c->setAttribute('viewer_role', $role);
             });
+            app(CommunityHubService::class)->attachActivity($paginator->getCollection(), $viewer);
         }
 
         return $paginator;
@@ -76,7 +77,7 @@ class CommunityService
     {
         $community = Community::query()
             ->withCount(['members as live_members_count'])
-            ->with(['category', 'avatar', 'cover', 'subcategories'])
+            ->with(['category', 'avatar', 'cover', 'subcategories', 'city', 'topicCategories'])
             ->where('slug', $slug)
             ->first();
 
@@ -92,18 +93,15 @@ class CommunityService
             }
             $community->setAttribute('is_member', $member !== null || $role !== null);
             $community->setAttribute('viewer_role', $role);
+            app(CommunityHubService::class)->attachActivity(collect([$community]), $viewer);
         }
 
         return $community;
     }
 
-    public function apply(User $user, string $proposedName, ?string $description, int $categoryId): CommunityApplication
+    public function apply(User $user, string $proposedName, ?string $description, int $categoryId, array $payload = []): CommunityApplication
     {
-        if (! CommunityCategory::query()->whereKey($categoryId)->where('is_active', true)->exists()) {
-            throw ValidationException::withMessages([
-                'category_id' => ['Категория не найдена.'],
-            ]);
-        }
+        $categoryId = $this->resolveCategoryId($categoryId);
 
         $hasPending = CommunityApplication::query()
             ->where('user_id', $user->id)
@@ -121,6 +119,7 @@ class CommunityService
             'proposed_name' => $proposedName,
             'description' => $description,
             'category_id' => $categoryId,
+            'payload' => $payload !== [] ? $payload : null,
             'status' => CommunityApplicationStatus::Pending,
         ]);
     }
@@ -145,10 +144,20 @@ class CommunityService
                 'members_count' => 1,
             ]);
 
+            $payload = is_array($application->payload) ? $application->payload : [];
+            if ($payload !== []) {
+                app(CommunityHubService::class)->hydrateCommunityFromPayload($community, $payload);
+            }
+
             $community->members()->attach($application->user_id, [
                 'role' => CommunityMemberRole::Owner->value,
                 'joined_at' => now(),
             ]);
+
+            $owner = User::query()->find($application->user_id);
+            if ($owner) {
+                app(CommunityHubService::class)->addToChat($community, $owner);
+            }
 
             $application->update([
                 'status' => CommunityApplicationStatus::Approved,
@@ -183,31 +192,29 @@ class CommunityService
         }
     }
 
-    public function join(User $user, Community $community): void
+    public function join(User $user, Community $community, ?string $message = null): array
     {
         $this->assertActiveCommunity($community);
 
-        if ($community->members()->where('users.id', $user->id)->exists()) {
-            return;
-        }
-
-        $community->members()->attach($user->id, [
-            'role' => CommunityMemberRole::Member->value,
-            'joined_at' => now(),
-        ]);
-
-        $community->increment('members_count');
+        return app(CommunityHubService::class)->requestOrJoin($community, $user, $message);
     }
 
     public function leave(User $user, Community $community): void
     {
         $this->assertActiveCommunity($community);
 
+        if ($community->isOwnedBy($user)) {
+            throw ValidationException::withMessages([
+                'community' => ['Владелец не может покинуть сообщество. Удалите его или передайте права.'],
+            ]);
+        }
+
         $detached = $community->members()->detach($user->id);
 
         if ($detached > 0 && $community->members_count > 0) {
             $community->decrement('members_count');
         }
+        app(CommunityHubService::class)->removeFromChat($community, $user);
     }
 
     public function members(Community $community, int $perPage = 30): LengthAwarePaginator
@@ -215,7 +222,8 @@ class CommunityService
         $this->assertActiveCommunity($community);
 
         return $community->members()
-            ->with('profile')
+            ->with(['profile.avatar', 'profile.city'])
+            ->orderByRaw("case community_members.role when 'owner' then 0 when 'moderator' then 1 else 2 end")
             ->orderByDesc('community_members.joined_at')
             ->paginate($perPage);
     }
@@ -302,6 +310,7 @@ class CommunityService
 
         $updates = array_intersect_key($pending, array_flip([
             'name', 'description', 'category_id', 'avatar_media_id', 'cover_media_id',
+            'city_id', 'rules', 'access_type', 'custom_category', 'contacts',
         ]));
 
         if ($updates !== []) {
@@ -310,5 +319,27 @@ class CommunityService
 
         unset($settings['pending_revision']);
         $community->update(['settings' => $settings]);
+    }
+
+    public function resolveCategoryId(?int $categoryId): int
+    {
+        if ($categoryId && CommunityCategory::query()->whereKey($categoryId)->where('is_active', true)->exists()) {
+            return $categoryId;
+        }
+
+        $fallback = CommunityCategory::query()->where('is_active', true)->orderBy('id')->value('id');
+        if ($fallback) {
+            return (int) $fallback;
+        }
+
+        $created = CommunityCategory::query()->create([
+            'name' => 'Другое',
+            'slug' => 'other',
+            'sort_order' => 999,
+            'depth' => 0,
+            'is_active' => true,
+        ]);
+
+        return (int) $created->id;
     }
 }

@@ -19,16 +19,21 @@ class Community extends Model
     protected $fillable = [
         'uuid',
         'category_id',
+        'city_id',
         'name',
         'slug',
         'description',
+        'rules',
         'cover_media_id',
         'avatar_media_id',
         'status',
         'is_official',
+        'access_type',
+        'custom_category',
         'members_count',
         'posts_count',
         'settings',
+        'contacts',
         'created_by',
         'approved_at',
     ];
@@ -39,6 +44,7 @@ class Community extends Model
             'status' => CommunityStatus::class,
             'is_official' => 'boolean',
             'settings' => 'array',
+            'contacts' => 'array',
             'approved_at' => 'datetime',
         ];
     }
@@ -51,6 +57,37 @@ class Community extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(CommunityCategory::class, 'category_id');
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function topicCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(PostCategory::class, 'community_topic_categories')
+            ->withTimestamps();
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(CommunityEvent::class);
+    }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(CommunityJoinRequest::class);
+    }
+
+    public function conversation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Conversation::class)->where('type', 'community');
+    }
+
+    public function isOpen(): bool
+    {
+        return ($this->access_type ?? 'open') !== 'request';
     }
 
     public function creator(): BelongsTo
@@ -71,7 +108,7 @@ class Community extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'community_members')
-            ->withPivot(['role', 'joined_at']);
+            ->withPivot(['role', 'joined_at', 'last_read_post_id']);
     }
 
     public function subcategories(): HasMany
@@ -104,6 +141,24 @@ class Community extends Model
         return $this->members()
             ->where('users.id', $user->id)
             ->where('community_members.role', CommunityMemberRole::Owner->value)
+            ->exists();
+    }
+
+    public function canManage(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+        if ($this->isOwnedBy($user)) {
+            return true;
+        }
+        if (method_exists($user, 'isModerator') && $user->isModerator()) {
+            return true;
+        }
+
+        return $this->members()
+            ->where('users.id', $user->id)
+            ->where('community_members.role', CommunityMemberRole::Moderator->value)
             ->exists();
     }
 }

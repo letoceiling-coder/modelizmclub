@@ -50,6 +50,7 @@ import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
 import { Route as ChannelsNewRouteImport } from './routes/channels.new'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
+import { Route as CommunitiesNewRouteImport } from './routes/communities.new'
 import { Route as DealsUuidRouteImport } from './routes/deals.$uuid'
 import { Route as InfoSlugRouteImport } from './routes/info.$slug'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
@@ -280,6 +281,11 @@ const CommunitiesIdRoute = CommunitiesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => CommunitiesRoute,
 } as any)
+const CommunitiesNewRoute = CommunitiesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CommunitiesRoute,
+} as any)
 const DealsUuidRoute = DealsUuidRouteImport.update({
   id: '/$uuid',
   path: '/$uuid',
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/channel/$id': typeof ChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/communities/new': typeof CommunitiesNewRoute
   '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
@@ -501,6 +508,7 @@ export interface FileRoutesByTo {
   '/channel/$id': typeof ChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/communities/new': typeof CommunitiesNewRoute
   '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
@@ -570,6 +578,7 @@ export interface FileRoutesById {
   '/channel/$id': typeof ChannelIdRoute
   '/channels/new': typeof ChannelsNewRoute
   '/communities/$id': typeof CommunitiesIdRoute
+  '/communities/new': typeof CommunitiesNewRoute
   '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
@@ -640,6 +649,7 @@ export interface FileRouteTypes {
     | '/channel/$id'
     | '/channels/new'
     | '/communities/$id'
+    | '/communities/new'
     | '/deals/$uuid'
     | '/info/$slug'
     | '/legal/$slug'
@@ -701,6 +711,7 @@ export interface FileRouteTypes {
     | '/channel/$id'
     | '/channels/new'
     | '/communities/$id'
+    | '/communities/new'
     | '/deals/$uuid'
     | '/info/$slug'
     | '/legal/$slug'
@@ -768,6 +779,7 @@ export interface FileRouteTypes {
     | '/channel/$id'
     | '/channels/new'
     | '/communities/$id'
+    | '/communities/new'
     | '/deals/$uuid'
     | '/info/$slug'
     | '/legal/$slug'
@@ -1127,6 +1139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunitiesIdRouteImport
       parentRoute: typeof CommunitiesRoute
     }
+    '/communities/new': {
+      id: '/communities/new'
+      path: '/new'
+      fullPath: '/communities/new'
+      preLoaderRoute: typeof CommunitiesNewRouteImport
+      parentRoute: typeof CommunitiesRoute
+    }
     '/deals/$uuid': {
       id: '/deals/$uuid'
       path: '/$uuid'
@@ -1354,11 +1373,13 @@ const CategoriesRouteWithChildren = CategoriesRoute._addFileChildren(
 
 interface CommunitiesRouteChildren {
   CommunitiesIdRoute: typeof CommunitiesIdRoute
+  CommunitiesNewRoute: typeof CommunitiesNewRoute
   CommunitiesIndexRoute: typeof CommunitiesIndexRoute
 }
 
 const CommunitiesRouteChildren: CommunitiesRouteChildren = {
   CommunitiesIdRoute: CommunitiesIdRoute,
+  CommunitiesNewRoute: CommunitiesNewRoute,
   CommunitiesIndexRoute: CommunitiesIndexRoute,
 }
 

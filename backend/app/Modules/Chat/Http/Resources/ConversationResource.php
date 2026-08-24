@@ -70,6 +70,14 @@ class ConversationResource extends JsonResource
                     $myParticipant?->last_read_message_id,
                 ))
                 : 0,
+            'community' => $this->when(
+                $this->type === ConversationType::Community && $this->relationLoaded('community'),
+                fn () => $this->community ? [
+                    'slug' => $this->community->slug,
+                    'name' => $this->community->name,
+                    'avatar' => $this->community->avatar?->url,
+                ] : null,
+            ),
         ];
     }
 }

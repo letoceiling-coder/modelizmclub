@@ -12,8 +12,16 @@ class JoinCommunityController extends Controller
     public function __invoke(string $slug, Request $request, CommunityService $communities): JsonResponse
     {
         $community = $communities->findActiveBySlug($slug);
-        $communities->join($request->user(), $community);
+        $result = $communities->join($request->user(), $community, $request->string('message')->toString() ?: null);
 
-        return response()->json(['message' => 'Вы вступили в сообщество.']);
+        $messages = [
+            'member' => 'Вы вступили в сообщество.',
+            'pending' => 'Заявка на вступление отправлена. Дождитесь решения администратора.',
+        ];
+
+        return response()->json([
+            'message' => $messages[$result['status']] ?? $messages['member'],
+            'status' => $result['status'],
+        ]);
     }
 }

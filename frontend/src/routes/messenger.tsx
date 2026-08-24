@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
-import type { Message } from "@/lib/mock";
+import type { Dialog, Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
   setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage,
@@ -77,6 +77,14 @@ export const Route = createFileRoute("/messenger")({
   }),
   component: MessengerPage,
 });
+
+function dialogIdentity(d: Dialog): { name: string; avatar?: string; communitySlug?: string } {
+  if (d.type === "community") {
+    return { name: d.title || "Сообщество", avatar: d.avatar, communitySlug: d.communitySlug };
+  }
+  const u = userById(d.userId);
+  return { name: u.name, avatar: u.avatar };
+}
 
 
 function DialogListSkeleton() {
@@ -540,6 +548,7 @@ function MessengerPage() {
     const byConversation = dlgs.find((d) => d.id === chat);
     if (byConversation) {
       selectDialog(chat, byConversation);
+      if (byConversation.type === "community") setListTab("channels");
       return;
     }
 
@@ -691,7 +700,8 @@ function MessengerPage() {
   }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
-  const partner = active ? userById(active.userId) : null;
+  const partner = active && active.type !== "community" ? userById(active.userId) : null;
+  const activeIdentity = active ? dialogIdentity(active) : null;
 
   // Upgrade sent → delivered when partner is online (realtime, before next API poll).
   useEffect(() => {
@@ -750,6 +760,7 @@ function MessengerPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = dlgs.filter((d) => {
+      if (d.type === "community") return false;
       const m = getMeta(d.id);
       if (m.deletedLocally) return false;
       return showArchived ? m.archived : !m.archived;
@@ -757,8 +768,8 @@ function MessengerPage() {
     const searched = !q
       ? base
       : base.filter((d) => {
-          const u = userById(d.userId);
-          return u.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
+          const identity = dialogIdentity(d);
+          return identity.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
         });
     if (showArchived) return searched;
     return [...searched].sort((a, b) => {
@@ -767,6 +778,11 @@ function MessengerPage() {
       return pb - pa;
     });
   }, [dlgs, query, dialogMetaMap, showArchived]);
+
+  const communityDialogs = useMemo(
+    () => dlgs.filter((d) => d.type === "community" && !getMeta(d.id).deletedLocally),
+    [dlgs, dialogMetaMap],
+  );
 
   const archivedCount = useMemo(
     () => dlgs.filter((d) => { const m = getMeta(d.id); return m.archived && !m.deletedLocally; }).length,
@@ -1156,7 +1172,7 @@ function MessengerPage() {
                 }}
               />
             ) : listTab === "channels" ? (
-              <ChannelsList query={query} />
+              <ChannelsList query={query} communityDialogs={communityDialogs} onSelect={handleSelect} activeId={activeId} />
             ) : loading ? (
               <DialogListSkeleton />
 
@@ -1280,14 +1296,22 @@ function MessengerPage() {
                 >
                   <ArrowLeft size={20} />
                 </Button>
-                <Link to="/user/$id" params={{ id: partner!.slug ?? partner!.id }} className="flex min-w-0 items-center gap-[12px]">
-                  <ChatAvatar src={partner!.avatar} name={partner!.name} size={40} />
+                <Link
+                  to={active.type === "community" && activeIdentity?.communitySlug ? "/communities/$id" : "/user/$id"}
+                  params={active.type === "community" && activeIdentity?.communitySlug
+                    ? { id: activeIdentity.communitySlug }
+                    : { id: partner?.slug ?? partner?.id ?? active.userId }}
+                  className="flex min-w-0 items-center gap-[12px]"
+                >
+                  <ChatAvatar src={activeIdentity?.avatar ?? partner?.avatar} name={activeIdentity?.name ?? partner?.name ?? ""} size={40} />
                     <div className="min-w-0 flex-1">
-                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={partner!.name}>{partner!.name}</div>
+                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={activeIdentity?.name}>{activeIdentity?.name ?? partner?.name}</div>
                     <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
-                      {(() => {
+                      {active.type === "community" ? (
+                        <span style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.tabChat")}</span>
+                      ) : partner ? (() => {
                         void presenceTick;
-                        const { online, text, title } = presenceLabel(partner!.id, onlineSet, partner!, { compact: true });
+                        const { online, text, title } = presenceLabel(partner.id, onlineSet, partner, { compact: true });
                         return online ? (
                           <>
                             <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ background: "var(--success)" }} />
@@ -1296,20 +1320,22 @@ function MessengerPage() {
                         ) : (
                           <span title={title} style={{ color: "var(--foreground-50)" }}>{text}</span>
                         );
-                      })()}
+                      })() : null}
                     </div>
                   </div>
                 </Link>
                 <div className="ml-auto flex items-center gap-[4px]">
-                  <ChatHeaderActions
-                    partnerId={partner!.id}
-                    partnerName={partner!.name}
-                    partnerAvatar={partner!.avatar}
-                    dialogId={active.id}
-                    pinned={Boolean(active.pinned)}
-                    onSearch={() => setChatSearchOpen(true)}
-                    onDeleted={() => deselectDialog(active.id)}
-                  />
+                  {partner && (
+                    <ChatHeaderActions
+                      partnerId={partner.id}
+                      partnerName={partner.name}
+                      partnerAvatar={partner.avatar}
+                      dialogId={active.id}
+                      pinned={Boolean(active.pinned)}
+                      onSearch={() => setChatSearchOpen(true)}
+                      onDeleted={() => deselectDialog(active.id)}
+                    />
+                  )}
                 </div>
 
 
@@ -1614,10 +1640,18 @@ function EmptyDialogs() {
   );
 }
 
-function ChannelsList({ query }: { query: string }) {
+function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
+  query: string;
+  communityDialogs: Dialog[];
+  onSelect: (id: string) => void;
+  activeId: string | null;
+}) {
   const { t } = useTranslation();
   const { channels: all } = useChannels();
   const q = query.trim().toLowerCase();
+  const chats = q
+    ? communityDialogs.filter((d) => dialogIdentity(d).name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q))
+    : communityDialogs;
   const list = (q
     ? all.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
     : all
@@ -1628,12 +1662,37 @@ function ChannelsList({ query }: { query: string }) {
     return b.subscribers - a.subscribers;
   });
 
-  if (list.length === 0) {
+  if (list.length === 0 && chats.length === 0) {
     return <EmptyState icon={Radio} title={t("pages.messenger.channelsNotFound")} variant="bare" />;
   }
 
   return (
     <ul>
+      {chats.map((d) => {
+        const identity = dialogIdentity(d);
+        const isActive = d.id === activeId;
+        return (
+          <li key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
+            <button
+              type="button"
+              onClick={() => onSelect(d.id)}
+              className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left"
+              style={{ background: isActive ? "var(--accent-soft)" : "transparent" }}
+            >
+              <ChatAvatar src={identity.avatar} name={identity.name} size={48} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-[6px]">
+                  <span className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{identity.name}</span>
+                  {d.unread ? (
+                    <span className="rounded-full px-[6px] py-[1px] text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>{d.unread}</span>
+                  ) : null}
+                </div>
+                <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage || t("pages.communityDetail.tabChat")}</div>
+              </div>
+            </button>
+          </li>
+        );
+      })}
       {list.map((c) => {
         const subscribed = Boolean(c.isSubscribed);
         return (

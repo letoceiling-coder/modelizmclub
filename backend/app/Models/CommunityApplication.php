@@ -13,6 +13,7 @@ class CommunityApplication extends Model
         'proposed_name',
         'description',
         'category_id',
+        'payload',
         'status',
         'moderator_comment',
         'reviewed_by',
@@ -23,6 +24,7 @@ class CommunityApplication extends Model
     {
         return [
             'status' => CommunityApplicationStatus::class,
+            'payload' => 'array',
             'reviewed_at' => 'datetime',
         ];
     }

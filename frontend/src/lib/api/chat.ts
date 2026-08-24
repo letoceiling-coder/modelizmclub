@@ -64,6 +64,7 @@ interface ApiConversation {
   participants?: Array<{ user?: ApiCompactUser | null; role?: string; pinned_at?: string | null }>;
   last_message?: ApiMessage | null;
   unread_count?: number;
+  community?: { slug?: string; name?: string; avatar?: string | null } | null;
 }
 
 interface Paginated<T> {
@@ -215,15 +216,20 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
     .map((p) => p.user)
     .find((u) => u && u.uuid !== meUuid);
   const partner = registerCompact(other);
+  const isCommunity = c.type === "community";
   const dialog: Dialog = {
     id: c.uuid,
-    userId: partner?.id ?? "",
+    userId: isCommunity ? "" : partner?.id ?? "",
     lastMessage: c.last_message?.body ?? "",
     time: c.last_message_at ?? c.last_message?.created_at ?? "",
     unread: Math.max(0, c.unread_count ?? 0),
     messages: [],
     pinned: Boolean(c.is_pinned),
     listing: c.listing ? mapListingCompact(c.listing) : undefined,
+    type: (c.type as Dialog["type"]) ?? "direct",
+    title: isCommunity ? (c.community?.name ?? c.title ?? "Сообщество") : undefined,
+    avatar: isCommunity ? (c.community?.avatar ?? undefined) : undefined,
+    communitySlug: c.community?.slug,
   };
   return dialog;
 }
@@ -251,11 +257,15 @@ export async function markConversationRead(conversationUuid: string): Promise<vo
 
 export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
   if (isDemoMode()) return demoConversations();
-  const res = await api<Paginated<ApiConversation>>("/conversations", {
-    query: { per_page: 50 },
-  });
+  const [chats, communities] = await Promise.all([
+    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50 } }),
+    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50, space: "communities" } }).catch(
+      () => ({ data: [] as ApiConversation[] }),
+    ),
+  ]);
+  const merged = [...(chats.data ?? []), ...(communities.data ?? [])];
   return dedupeDialogsByPartner(
-    (res.data ?? [])
+    merged
       .filter((c) => c.type !== "room")
       .map((c) => mapConversation(c, meUuid)),
   );

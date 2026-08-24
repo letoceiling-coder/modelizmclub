@@ -13,7 +13,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
-import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 
 import i18n from "@/lib/i18n";
 
@@ -107,6 +106,20 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
             </div>
           )}
         </div>
+        {(c.unreadPosts || c.unreadMessages) ? (
+          <div className="absolute bottom-[8px] right-[10px] flex gap-[4px]">
+            {c.unreadPosts ? (
+              <span className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>
+                {c.unreadPosts}
+              </span>
+            ) : null}
+            {c.unreadMessages ? (
+              <span className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white" style={{ background: "#2563eb" }}>
+                {c.unreadMessages}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </Link>
 
       <div className="flex flex-1 flex-col gap-[10px] px-[16px] pt-[32px] pb-[16px]">
@@ -135,7 +148,15 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
                 : t("pages.shared.membersNew")}
             </span>
             <span className="inline-flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
+              {(c.onlineAvatars?.length ?? 0) > 0 ? (
+                <span className="flex -space-x-2">
+                  {c.onlineAvatars!.slice(0, 3).map((a) => (
+                    <img key={a.uuid} src={a.url ?? ""} alt="" className="h-[18px] w-[18px] rounded-full object-cover" style={{ border: "2px solid var(--background)" }} />
+                  ))}
+                </span>
+              ) : (
+                <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
+              )}
               {t("pages.shared.activeToday")}
             </span>
           </div>
@@ -246,7 +267,6 @@ function CommunitySection({
 function CommunitiesPage() {
   const { t } = useTranslation();
   const [all, setAll] = useState<Community[]>([]);
-  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     fetchCommunities().then(setAll).catch(() => {});
@@ -303,8 +323,10 @@ function CommunitiesPage() {
             {t("pages.communities.subtitle")}
           </p>
           </div>
-          <Button onClick={() => setCreateOpen(true)} className="shrink-0 gap-[6px]">
-            <Plus size={16} /> {t("pages.communities.createCommunity")}
+          <Button asChild className="shrink-0 gap-[6px]">
+            <Link to="/communities/new">
+              <Plus size={16} /> {t("pages.communities.createCommunity")}
+            </Link>
           </Button>
         </header>
 
@@ -341,13 +363,6 @@ function CommunitiesPage() {
           </div>
         )}
       </div>
-      {createOpen && (
-        <EntityRequestForm
-          kind="community"
-          onClose={() => setCreateOpen(false)}
-          onSubmitted={() => { setCreateOpen(false); reloadCommunities(); }}
-        />
-      )}
     </AppLayout>
   );
 }

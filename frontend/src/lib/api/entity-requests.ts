@@ -38,14 +38,36 @@ export async function fetchCommunityCategories(): Promise<CommunityCategoryOptio
   return (res.data ?? []).map((c) => ({ id: c.id, name: c.name, slug: c.slug }));
 }
 
-export async function applyCommunity(input: { proposedName: string; description?: string; categoryId: number }): Promise<void> {
+export interface ApplyCommunityInput {
+  proposedName: string;
+  description?: string;
+  categoryId?: number;
+  cityId?: number | null;
+  postCategoryIds?: number[];
+  customCategory?: string;
+  rules?: string;
+  accessType?: "open" | "request";
+  contacts?: { telegram?: string; website?: string; phone?: string };
+  avatarMediaUuid?: string | null;
+  coverMediaUuid?: string | null;
+}
+
+export async function applyCommunity(input: ApplyCommunityInput): Promise<void> {
   if (isDemoMode()) return;
   await api("/communities/apply", {
     method: "POST",
     json: {
       proposed_name: input.proposedName,
       description: input.description || null,
-      category_id: input.categoryId,
+      category_id: input.categoryId || null,
+      city_id: input.cityId ?? null,
+      post_category_ids: input.postCategoryIds ?? [],
+      custom_category: input.customCategory || null,
+      rules: input.rules || null,
+      access_type: input.accessType ?? "open",
+      contacts: input.contacts ?? null,
+      avatar_media_uuid: input.avatarMediaUuid ?? null,
+      cover_media_uuid: input.coverMediaUuid ?? null,
     },
   });
 }

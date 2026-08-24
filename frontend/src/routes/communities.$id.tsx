@@ -12,7 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
-import { fetchCommunity, fetchCommunityPosts, joinCommunity, leaveCommunity, fetchOwnedCommunities, fetchCommunityMembers, type CommunityMember } from "@/lib/api/communities";
+import { fetchCommunity, fetchCommunityPosts, joinCommunity, leaveCommunity, fetchOwnedCommunities, fetchCommunityMembers, fetchCommunityEvents, attendCommunityEvent, createCommunityEvent, fetchCommunityChat, banCommunityMember, type CommunityMember, type CommunityEvent } from "@/lib/api/communities";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { recordView } from "@/lib/view-history";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -27,13 +27,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
+import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";
 
@@ -55,16 +56,18 @@ function initials(name: string): string {
   return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
-type TabKey = "posts" | "discussions" | "events" | "members" | "about";
+type TabKey = "posts" | "chat" | "events" | "members" | "about" | "settings";
 
-function communityTabs(t: (key: string) => string): { key: TabKey; label: string }[] {
-  return [
+function communityTabs(t: (key: string) => string, canManage: boolean): { key: TabKey; label: string }[] {
+  const tabs: { key: TabKey; label: string }[] = [
     { key: "posts", label: t("pages.communityDetail.tabPosts") },
-    { key: "discussions", label: t("pages.communityDetail.tabDiscussions") },
+    { key: "chat", label: t("pages.communityDetail.tabChat") },
     { key: "events", label: t("pages.communityDetail.tabEvents") },
     { key: "members", label: t("pages.communityDetail.tabMembers") },
     { key: "about", label: t("pages.communityDetail.tabAbout") },
   ];
+  if (canManage) tabs.push({ key: "settings", label: t("pages.communityDetail.tabSettings") });
+  return tabs;
 }
 
 /* ============================ Contacts block ============================ */
@@ -73,6 +76,8 @@ function ContactsBlock({ contacts, compact }: { contacts?: CommunityContacts; co
   const { t } = useTranslation();
   if (!contacts) return null;
   const rows: { icon: typeof Globe; label: string; value: string; href: string; external?: boolean }[] = [];
+  if (contacts.telegram)
+    rows.push({ icon: SendIcon, label: t("pages.shared.telegram"), value: contacts.telegram.replace(/^https?:\/\/(t\.me\/)?/, "@"), href: contacts.telegram.startsWith("http") ? contacts.telegram : `https://t.me/${contacts.telegram.replace(/^@/, "")}`, external: true });
   if (contacts.website)
     rows.push({ icon: Globe, label: t("pages.shared.website"), value: siteLabel(contacts.website), href: contacts.website, external: true });
   if (contacts.phone)
@@ -202,34 +207,37 @@ function DiscussionRow({ d }: { d: DemoDiscussion }) {
   );
 }
 
-function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoCommunityEvent) => void }) {
+function HubEventCard({ e, onToggle, busy }: { e: CommunityEvent; onToggle: (e: CommunityEvent) => void; busy?: boolean }) {
   const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
+  const when = e.startsAt ? new Date(e.startsAt).toLocaleString("ru") : "";
   return (
     <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="relative h-[140px] w-full overflow-hidden" style={{ background: "var(--background-surface)" }}>
-        {!broken ? (
-          <img src={e.cover} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+        {e.coverUrl && !broken ? (
+          <img src={e.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
         ) : (
           <div className="grid h-full w-full place-items-center" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))", color: "#fff" }}>
             <CalendarDays size={30} />
           </div>
         )}
         <span className="absolute left-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[12px] font-semibold text-white" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
-          <CalendarDays size={13} /> {e.date}
+          <CalendarDays size={13} /> {when}
         </span>
       </div>
       <div className="p-[16px]">
         <h3 className="font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{e.title}</h3>
-        <div className="mt-[6px] flex items-center gap-[6px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          <MapPin size={13} /> {e.place}
-        </div>
+        {e.locationName && (
+          <div className="mt-[6px] flex items-center gap-[6px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            <MapPin size={13} /> {e.mapUrl ? <a href={e.mapUrl} target="_blank" rel="noreferrer" className="underline">{e.locationName}</a> : e.locationName}
+          </div>
+        )}
         <div className="mt-[12px] flex items-center justify-between gap-[8px]">
           <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-            {t("pages.communityDetail.attendeesGoing", { count: e.attendees })}
+            {t("pages.communityDetail.attendeesGoing", { count: e.attendeesCount })}
           </span>
-          <Button onClick={() => onSignup(e)} size="sm" className="gap-[6px]">
-            <CalendarDays size={14} /> {t("pages.communityDetail.signUp")}
+          <Button onClick={() => onToggle(e)} size="sm" disabled={busy} variant={e.going ? "outline" : "default"} className="gap-[6px]">
+            <CalendarDays size={14} /> {e.going ? t("pages.communityDetail.going") : t("pages.communityDetail.signUp")}
           </Button>
         </div>
       </div>
@@ -237,33 +245,56 @@ function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoC
   );
 }
 
-function MemberRow({ m }: { m: CommunityMember | DemoCommunityMember }) {
+function EventCard({ e, onSignup }: { e: DemoCommunityEvent; onSignup: (e: DemoCommunityEvent) => void }) {
+  return <HubEventCard e={{
+    uuid: e.id,
+    title: e.title,
+    startsAt: e.date,
+    locationName: e.place,
+    coverUrl: e.cover,
+    attendeesCount: e.attendees,
+    going: false,
+  }} onToggle={() => onSignup(e)} />;
+}
+
+function MemberRow({ m, onBan }: { m: CommunityMember | DemoCommunityMember; onBan?: (uuid: string) => void }) {
   const { t } = useTranslation();
   const { user, role } = m;
-  const isAdmin = role === "Администратор" || role === t("pages.communityDetail.roleAdmin");
-  const roleLabel = role === "Администратор" ? t("pages.communityDetail.roleAdmin") : role;
+  const roleKey = "roleKey" in m ? m.roleKey : undefined;
+  const isAdmin = roleKey === "owner" || role === "Администратор" || role === t("pages.communityDetail.roleAdmin") || role === t("pages.communityDetail.roleCreator");
+  const roleLabel = roleKey === "owner" ? t("pages.communityDetail.roleCreator")
+    : roleKey === "moderator" ? t("pages.communityDetail.roleModerator")
+    : role === "Администратор" ? t("pages.communityDetail.roleAdmin") : role;
+  const uuid = "uuid" in user ? user.uuid : undefined;
   return (
-    <Link to="/user/$id" params={{ id: user.id }} className="flex items-center gap-[12px] px-[16px] py-[10px] transition-colors hover:bg-[var(--background-surface)]" style={{ borderTop: "1px solid var(--border)" }}>
-      <div className="relative">
-        <Avatar className="h-[42px] w-[42px]">
-          <AvatarImage src={user.avatar} alt="" />
-          <AvatarFallback className="text-[13px] font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-            {initials(user.name)}
-          </AvatarFallback>
-        </Avatar>
-        {user.online && (
-          <span className="absolute -bottom-[1px] -right-[1px] h-[12px] w-[12px] rounded-full" style={{ background: "#22c55e", border: "2px solid var(--background)" }} />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{user.name}</div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{user.city}</div>
-      </div>
+    <div className="flex items-center gap-[12px] px-[16px] py-[10px]" style={{ borderTop: "1px solid var(--border)" }}>
+      <Link to="/user/$id" params={{ id: user.id }} className="flex min-w-0 flex-1 items-center gap-[12px] transition-colors hover:opacity-80">
+        <div className="relative">
+          <Avatar className="h-[42px] w-[42px]">
+            <AvatarImage src={user.avatar} alt="" />
+            <AvatarFallback className="text-[13px] font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+              {initials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          {user.online && (
+            <span className="absolute -bottom-[1px] -right-[1px] h-[12px] w-[12px] rounded-full" style={{ background: "#22c55e", border: "2px solid var(--background)" }} />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{user.name}</div>
+          <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{user.city}</div>
+        </div>
+      </Link>
       <span className="shrink-0 rounded-full px-[10px] py-[3px] text-[11px] font-semibold" style={{
         background: isAdmin ? "var(--accent-soft)" : "var(--background-surface)",
         color: isAdmin ? "var(--accent)" : "var(--foreground-50)",
       }}>{roleLabel}</span>
-    </Link>
+      {onBan && uuid && roleKey !== "owner" && (
+        <button type="button" onClick={() => onBan(uuid)} className="text-[12px] font-medium" style={{ color: "var(--error, #dc2626)" }}>
+          {t("pages.communityDetail.banMember")}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -418,16 +449,16 @@ function EventSignupModal({ event, onClose }: { event: DemoCommunityEvent | null
 function CommunityDetailPage() {
   const { t } = useTranslation();
   const { requirePremium } = useGuestAccess();
-  const tabs = useMemo(() => communityTabs(t), [t]);
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [community, setCommunity] = useState<Community | null>(null);
+  const tabs = useMemo(() => communityTabs(t, Boolean(community?.canManage || community?.isOwner)), [t, community]);
   const [loading, setLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
-  const [requestOpen, setRequestOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>("posts");
   const [joined, setJoined] = useState(false);
+  const [joinPending, setJoinPending] = useState(false);
   const [members, setMembers] = useState<number>(0);
   const [busy, setBusy] = useState(false);
   const [signupEvent, setSignupEvent] = useState<DemoCommunityEvent | null>(null);
@@ -438,7 +469,13 @@ function CommunityDetailPage() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [hubEvents, setHubEvents] = useState<CommunityEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventWhen, setEventWhen] = useState("");
+  const [eventPlace, setEventPlace] = useState("");
   const [composerSelection] = useState<ComposerSelection>({ kind: "photo", source: "profile" });
 
   useEffect(() => {
@@ -456,6 +493,7 @@ function CommunityDetailPage() {
         if (!alive) return;
         setCommunity(c);
         setJoined(Boolean(c.joined));
+        setJoinPending(Boolean(c.joinRequestPending));
         setMembers(c.members);
         recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
       })
@@ -486,7 +524,7 @@ function CommunityDetailPage() {
   useEffect(() => {
     if (!community || tab !== "members") return;
     if (demo) {
-      setMemberList(demoMemberList.map((m) => ({ user: m.user, role: m.role })));
+      setMemberList(demoMemberList.map((m) => ({ user: m.user, role: m.role, roleKey: m.role === "Администратор" ? "owner" : "member" })));
       return;
     }
     setMembersLoading(true);
@@ -495,6 +533,15 @@ function CommunityDetailPage() {
       .catch(() => setMemberList([]))
       .finally(() => setMembersLoading(false));
   }, [community, tab, demo, demoMemberList]);
+
+  useEffect(() => {
+    if (!community || tab !== "events" || demo) return;
+    setEventsLoading(true);
+    fetchCommunityEvents(community.id)
+      .then(setHubEvents)
+      .catch(() => setHubEvents([]))
+      .finally(() => setEventsLoading(false));
+  }, [community, tab, demo]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -516,27 +563,90 @@ function CommunityDetailPage() {
   const admin = community.adminId ? userById(community.adminId) : null;
   const url = typeof window !== "undefined" ? window.location.href : "";
   const isOwner = Boolean(community.isOwner);
-  const canCreatePost = isOwner || community.role === "moderator";
+  const canManage = Boolean(community.canManage || isOwner);
+  const canCreatePost = isOwner || community.role === "moderator" || joined;
 
   const toggleJoin = () => {
-    if (busy || isOwner) return;
+    if (busy || isOwner || joinPending) return;
     requirePremium(() => {
       void (async () => {
         setBusy(true);
-        const next = !joined;
-        setJoined(next);
-        setMembers((m) => Math.max(0, m + (next ? 1 : -1)));
         try {
-          if (next) await joinCommunity(community.id);
-          else await leaveCommunity(community.id);
+          if (joined) {
+            await leaveCommunity(community.id);
+            setJoined(false);
+            setMembers((m) => Math.max(0, m - 1));
+          } else {
+            const result = await joinCommunity(community.id);
+            if (result.status === "pending") {
+              setJoinPending(true);
+              toast.success(t("pages.communityDetail.requestPending"));
+            } else {
+              setJoined(true);
+              setMembers((m) => m + 1);
+            }
+          }
         } catch {
-          setJoined(!next);
-          setMembers((m) => Math.max(0, m + (next ? -1 : 1)));
+          toast.error(t("pages.shared.retry"));
         } finally {
           setBusy(false);
         }
       })();
     });
+  };
+
+  const openChat = () => {
+    requirePremium(() => {
+      void (async () => {
+        try {
+          const { conversationUuid } = await fetchCommunityChat(community.id);
+          void navigate({ to: "/messenger", search: { chat: conversationUuid } });
+        } catch {
+          toast.error(t("pages.communityDetail.chatOpenFailed"));
+        }
+      })();
+    });
+  };
+
+  const toggleEvent = (event: CommunityEvent) => {
+    if (!joined && !isOwner) {
+      toast.error(t("pages.communityDetail.chatMembersOnly"));
+      return;
+    }
+    void attendCommunityEvent(community.id, event.uuid)
+      .then((updated) => setHubEvents((prev) => prev.map((item) => item.uuid === updated.uuid ? updated : item)))
+      .catch(() => toast.error(t("pages.communityDetail.eventFailed")));
+  };
+
+  const submitEvent = () => {
+    if (eventTitle.trim().length < 3 || !eventWhen) {
+      toast.error(t("pages.communityDetail.eventFailed"));
+      return;
+    }
+    void createCommunityEvent(community.id, {
+      title: eventTitle.trim(),
+      startsAt: new Date(eventWhen).toISOString(),
+      locationName: eventPlace.trim() || undefined,
+    })
+      .then((created) => {
+        setHubEvents((prev) => [...prev, created]);
+        setEventFormOpen(false);
+        setEventTitle("");
+        setEventWhen("");
+        setEventPlace("");
+        toast.success(t("pages.communityDetail.eventCreated"));
+      })
+      .catch(() => toast.error(t("pages.communityDetail.eventFailed")));
+  };
+
+  const handleBan = (uuid: string) => {
+    if (!window.confirm(t("pages.communityDetail.banMember"))) return;
+    void banCommunityMember(community.id, uuid)
+      .then(() => {
+        setMemberList((prev) => prev.filter((m) => m.user.uuid !== uuid));
+        toast.success(t("pages.communityDetail.banned"));
+      })
+      .catch(() => toast.error(t("pages.communityDetail.banFailed")));
   };
 
   const rail = demo ? (
@@ -558,12 +668,24 @@ function CommunityDetailPage() {
           <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-[6px]">
                 <span
                   className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold uppercase tracking-wider"
                   style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                 >
                   {community.category}
                 </span>
+                {(community.topics ?? []).slice(0, 4).map((topic) => (
+                  <span key={topic.id} className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold" style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}>
+                    {topic.name}
+                  </span>
+                ))}
+                {community.customCategory && (
+                  <span className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold" style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}>
+                    {community.customCategory}
+                  </span>
+                )}
+              </div>
                 <h1 className="mt-[10px] font-display text-[20px] font-bold leading-tight sm:text-[26px]" style={{ color: "var(--foreground)" }}>
                   {community.name}
                 </h1>
@@ -580,7 +702,7 @@ function CommunityDetailPage() {
                     <Flag size={16} />
                   </button>
                 )}
-                {isOwner && (
+                {canManage && (
                   <EntitySettingsButton onClick={() => setSettingsOpen(true)} title={t("pages.communityDetail.manageTitle")} />
                 )}
               </div>
@@ -591,6 +713,12 @@ function CommunityDetailPage() {
                 <Users size={14} />
                 <span>{t("pages.communityDetail.members", { count: members })}</span>
               </span>
+              {community.city?.name && (
+                <span className="inline-flex items-center gap-[6px]">
+                  <MapPin size={14} />
+                  <span>{community.city.name}</span>
+                </span>
+              )}
               {isOwner && (
                 <span
                   className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold"
@@ -615,21 +743,32 @@ function CommunityDetailPage() {
               {!isOwner && (
                 <Button
                   onClick={toggleJoin}
-                  disabled={busy}
-                  variant={joined ? "outline" : "default"}
+                  disabled={busy || joinPending}
+                  variant={joined || joinPending ? "outline" : "default"}
                   size="lg"
                   className="gap-[8px] rounded-[12px]"
                 >
-                  {joined ? <><Check size={16} /> {t("pages.communityDetail.youSubscribed")}</> : <><Plus size={16} /> {t("pages.communityDetail.subscribe")}</>}
+                  {joined
+                    ? <><Check size={16} /> {t("pages.communityDetail.youSubscribed")}</>
+                    : joinPending
+                      ? <><Check size={16} /> {t("pages.communityDetail.requestPending")}</>
+                      : community.accessType === "request"
+                        ? <><Plus size={16} /> {t("pages.communityDetail.requestJoin")}</>
+                        : <><Plus size={16} /> {t("pages.communityDetail.subscribe")}</>}
                 </Button>
               )}
-              {isOwner && (
+              {canManage && (
                 <Button
                   onClick={() => setSettingsOpen(true)}
                   size="lg"
                   className="gap-[8px] rounded-[12px]"
                 >
                   <Settings2 size={16} /> {t("pages.communityDetail.manageTitle")}
+                </Button>
+              )}
+              {(joined || isOwner) && (
+                <Button onClick={openChat} variant="outline" size="lg" className="gap-[8px] rounded-[12px]">
+                  <MessagesSquare size={16} /> {t("pages.communityDetail.openChat")}
                 </Button>
               )}
               {community.allowSubmitPost && (
@@ -641,8 +780,10 @@ function CommunityDetailPage() {
                 <Share2 size={16} /> {t("pages.communityDetail.share")}
               </Button>
               {!hasOwnCommunity && !isOwner && (
-                <Button variant="outline" onClick={() => requirePremium(() => setRequestOpen(true))} size="lg" className="gap-[8px] rounded-[12px]">
-                  <Plus size={16} /> {t("pages.communityDetail.wantOwnCommunity")}
+                <Button asChild variant="outline" size="lg" className="gap-[8px] rounded-[12px]">
+                  <Link to="/communities/new">
+                    <Plus size={16} /> {t("pages.communityDetail.wantOwnCommunity")}
+                  </Link>
                 </Button>
               )}
             </div>
@@ -655,8 +796,7 @@ function CommunityDetailPage() {
             const active = tab === tabItem.key;
             const count =
               tabItem.key === "posts" ? posts.length :
-              tabItem.key === "discussions" ? discussions.length :
-              tabItem.key === "events" ? events.length :
+              tabItem.key === "events" ? (demo ? events.length : hubEvents.length) :
               tabItem.key === "members" ? memberList.length : 0;
             return (
               <button
@@ -712,25 +852,53 @@ function CommunityDetailPage() {
           </>
         )}
 
-        {tab === "discussions" && (
-          discussions.length > 0 ? (
-            <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-              <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.discussionsHeading")}</h2>
-              <div className="mt-[8px]">{discussions.map((d) => <DiscussionRow key={d.id} d={d} />)}</div>
-            </Card>
+        {tab === "chat" && (
+          (joined || isOwner) ? (
+            <EmptyState icon={MessagesSquare} title={t("pages.communityDetail.tabChat")} description={t("pages.communityDetail.openChat")} variant="compact">
+              <Button type="button" onClick={openChat} className="mt-[12px] gap-[6px]">
+                <MessagesSquare size={16} /> {t("pages.communityDetail.openChat")}
+              </Button>
+            </EmptyState>
           ) : (
-            <EmptyState icon={MessagesSquare} title={t("pages.communityDetail.emptyDiscussions")} description={t("pages.communityDetail.emptyDiscussionsDesc")} variant="compact" />
+            <EmptyState icon={MessagesSquare} title={t("pages.communityDetail.chatMembersOnly")} description={t("pages.communityDetail.chatMembersOnlyDesc")} variant="compact" />
           )
         )}
 
         {tab === "events" && (
-          events.length > 0 ? (
-            <div className="grid gap-[16px] sm:grid-cols-2">
-              {events.map((e) => <EventCard key={e.id} e={e} onSignup={setSignupEvent} />)}
-            </div>
-          ) : (
-            <EmptyState icon={CalendarDays} title={t("pages.communityDetail.emptyEvents")} description={t("pages.communityDetail.emptyEventsDesc")} variant="compact" />
-          )
+          <>
+            {canManage && !demo && (
+              <div className="mb-[16px] flex justify-end">
+                <Button type="button" onClick={() => setEventFormOpen((v) => !v)} className="gap-[6px]">
+                  <Plus size={16} /> {t("pages.communityDetail.createEvent")}
+                </Button>
+              </div>
+            )}
+            {eventFormOpen && (
+              <Card className="mb-[16px] space-y-[10px] p-[16px] shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+                <input value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} placeholder={t("pages.communityDetail.eventTitle")} className="h-11 w-full rounded-[10px] border px-3 text-[14px]" style={{ background: "var(--background-surface)", borderColor: "var(--border)", color: "var(--foreground)" }} />
+                <input type="datetime-local" value={eventWhen} onChange={(e) => setEventWhen(e.target.value)} className="h-11 w-full rounded-[10px] border px-3 text-[14px]" style={{ background: "var(--background-surface)", borderColor: "var(--border)", color: "var(--foreground)" }} />
+                <input value={eventPlace} onChange={(e) => setEventPlace(e.target.value)} placeholder={t("pages.communityDetail.eventPlace")} className="h-11 w-full rounded-[10px] border px-3 text-[14px]" style={{ background: "var(--background-surface)", borderColor: "var(--border)", color: "var(--foreground)" }} />
+                <Button type="button" onClick={submitEvent}>{t("pages.communityDetail.eventCreate")}</Button>
+              </Card>
+            )}
+            {demo ? (
+              events.length > 0 ? (
+                <div className="grid gap-[16px] sm:grid-cols-2">
+                  {events.map((e) => <EventCard key={e.id} e={e} onSignup={setSignupEvent} />)}
+                </div>
+              ) : (
+                <EmptyState icon={CalendarDays} title={t("pages.communityDetail.emptyEvents")} description={t("pages.communityDetail.emptyEventsDesc")} variant="compact" />
+              )
+            ) : eventsLoading ? (
+              <Skeleton className="h-[160px] w-full rounded-[var(--r-card)]" />
+            ) : hubEvents.length > 0 ? (
+              <div className="grid gap-[16px] sm:grid-cols-2">
+                {hubEvents.map((e) => <HubEventCard key={e.uuid} e={e} onToggle={toggleEvent} />)}
+              </div>
+            ) : (
+              <EmptyState icon={CalendarDays} title={t("pages.communityDetail.emptyEvents")} description={t("pages.communityDetail.emptyEventsDesc")} variant="compact" />
+            )}
+          </>
         )}
 
         {tab === "members" && (
@@ -742,11 +910,22 @@ function CommunityDetailPage() {
           ) : memberList.length > 0 ? (
             <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
               <h2 className="px-[16px] pt-[16px] font-display text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.membersHeading")}</h2>
-              <div className="mt-[8px]">{memberList.map((m) => <MemberRow key={m.user.id} m={m} />)}</div>
+              <div className="mt-[8px]">{memberList.map((m) => <MemberRow key={m.user.id} m={m} onBan={canManage ? handleBan : undefined} />)}</div>
             </Card>
           ) : (
             <EmptyState icon={Users} title={t("pages.communityDetail.membersUnavailable")} variant="compact" />
           )
+        )}
+
+        {tab === "settings" && canManage && (
+          <Card className="p-[16px] shadow-none sm:p-[24px]" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+            <CommunityManagePanel
+              community={community}
+              Icon={Icon}
+              onUpdated={setCommunity}
+              onDeleted={() => navigate({ to: "/communities" })}
+            />
+          </Card>
         )}
 
         {tab === "about" && (
@@ -756,6 +935,12 @@ function CommunityDetailPage() {
               <p className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.65]" style={{ color: "var(--foreground-70)" }}>
                 {community.fullDescription || community.description}
               </p>
+              {community.rules && (
+                <div className="mt-[16px]">
+                  <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.communityWizard.rules")}</h3>
+                  <p className="mt-[6px] whitespace-pre-line text-[14px]" style={{ color: "var(--foreground-70)" }}>{community.rules}</p>
+                </div>
+              )}
               {admin && (
                 <Link to="/user/$id" params={{ id: admin.id }} className="mt-[16px] inline-flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
                   <Avatar className="h-[28px] w-[28px]">
@@ -785,7 +970,7 @@ function CommunityDetailPage() {
 
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} />
       <SubmitPostSheet open={submitOpen} onOpenChange={setSubmitOpen} communityName={community.name} />
-      {isOwner && (
+      {canManage && (
         <CommunitySettingsSheet
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
@@ -793,13 +978,6 @@ function CommunityDetailPage() {
           Icon={Icon}
           onUpdated={setCommunity}
           onDeleted={() => navigate({ to: "/communities" })}
-        />
-      )}
-      {requestOpen && (
-        <EntityRequestForm
-          kind="community"
-          onClose={() => setRequestOpen(false)}
-          onSubmitted={() => setRequestOpen(false)}
         />
       )}
       <EventSignupModal event={signupEvent} onClose={() => setSignupEvent(null)} />

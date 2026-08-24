@@ -201,6 +201,13 @@ export interface Category {
 export interface CommunityContacts {
   website?: string;
   phone?: string;
+  telegram?: string;
+}
+
+export interface CommunityTopic {
+  id: number;
+  name: string;
+  slug?: string;
 }
 
 export interface Community {
@@ -223,8 +230,18 @@ export interface Community {
   contacts?: CommunityContacts;
   allowSubmitPost?: boolean;
   isOwner?: boolean;
+  canManage?: boolean;
   /** Viewer's role in this community, from the backend `viewer_role`. */
   role?: "owner" | "moderator" | "member";
+  accessType?: "open" | "request";
+  rules?: string | null;
+  customCategory?: string | null;
+  city?: { id: number; name: string } | null;
+  topics?: CommunityTopic[];
+  unreadPosts?: number;
+  unreadMessages?: number;
+  onlineAvatars?: Array<{ uuid: string; name: string; url?: string | null }>;
+  joinRequestPending?: boolean;
 }
 
 export interface Banner {
@@ -330,6 +347,10 @@ export interface Dialog {
   messages: Message[];
   pinned?: boolean;
   listing?: DialogAdRef;
+  type?: "direct" | "group" | "community" | "room";
+  title?: string;
+  avatar?: string;
+  communitySlug?: string;
 }
 
 export interface DialogAdRef {
