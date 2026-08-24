@@ -96,6 +96,8 @@ class ChannelBroadcastTest extends TestCase
             ->assertJsonPath('data.counted', false)
             ->assertJsonPath('data.views', 1);
 
+        $this->app['auth']->forgetGuards();
+
         $this->postJson("/api/v1/channels/{$channel->slug}/posts/{$post->uuid}/view", [], [
             'X-Guest-Viewer' => 'guest-session-abc12345',
         ])
