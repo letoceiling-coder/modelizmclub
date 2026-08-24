@@ -64,8 +64,8 @@ class ChannelSeeder extends Seeder
                 'text' => $text,
                 'kind' => $kind,
                 'status' => 'published',
-                'likes_count' => random_int(40, 540),
-                'views_count' => random_int(800, 8000),
+                'likes_count' => 0,
+                'views_count' => 0,
                 'published_at' => now()->subDays($i + 1),
             ]);
         }

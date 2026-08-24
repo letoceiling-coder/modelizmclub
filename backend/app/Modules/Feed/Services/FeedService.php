@@ -2,6 +2,7 @@
 
 namespace Modules\Feed\Services;
 
+use App\Models\Channel;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -31,6 +32,17 @@ class FeedService
         // only duplicate originals and flood the timeline, so hide them there.
         if ($filter !== 'following') {
             $query->whereNull('repost_of_id');
+        }
+
+        // Author/expert channel posts stay on the channel page; only official
+        // and verified (brand/shop) channels are mirrored into the public feed.
+        if (in_array($filter, ['all', 'category'], true) && empty($filters['author_id'])) {
+            $query->where(function ($q): void {
+                $q->whereDoesntHave('channelPost')
+                    ->orWhereHas('channelPost.channel', function ($channel): void {
+                        $channel->whereIn('kind', Channel::FEED_KINDS);
+                    });
+            });
         }
 
         if ($filter === 'following') {

@@ -54,6 +54,9 @@ export async function applyChannel(input: {
   name: string;
   description?: string;
   category: string;
+  slug?: string;
+  kind?: string;
+  comments_enabled?: boolean;
   avatar_media_uuid?: string | null;
   banner_media_uuid?: string | null;
 }): Promise<void> {
@@ -64,6 +67,9 @@ export async function applyChannel(input: {
       name: input.name,
       description: input.description || null,
       category: input.category,
+      slug: input.slug || null,
+      kind: input.kind || null,
+      comments_enabled: input.comments_enabled ?? true,
       avatar_media_uuid: input.avatar_media_uuid ?? null,
       banner_media_uuid: input.banner_media_uuid ?? null,
     },

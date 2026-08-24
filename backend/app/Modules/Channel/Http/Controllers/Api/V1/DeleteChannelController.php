@@ -22,7 +22,7 @@ class DeleteChannelController extends Controller
         }
 
         $data = $request->validate([
-            'confirm_name' => ['required', 'string', 'max:120'],
+            'confirm_name' => ['required', 'string', 'max:60'],
         ]);
 
         if (trim($data['confirm_name']) !== $channel->name) {

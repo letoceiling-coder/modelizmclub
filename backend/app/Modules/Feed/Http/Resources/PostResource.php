@@ -29,6 +29,23 @@ class PostResource extends JsonResource
                 'slug' => $this->community->slug,
                 'name' => $this->community->name,
             ] : null),
+            'channel' => $this->when(
+                $this->relationLoaded('channelPost') && $this->channelPost?->relationLoaded('channel') && $this->channelPost->channel,
+                fn () => [
+                    'id' => $this->channelPost->channel->uuid,
+                    'slug' => $this->channelPost->channel->slug,
+                    'name' => $this->channelPost->channel->name,
+                    'kind' => $this->channelPost->channel->kind,
+                    'avatar' => $this->channelPost->channel->relationLoaded('avatar') && $this->channelPost->channel->avatar
+                        ? [
+                            'uuid' => $this->channelPost->channel->avatar->uuid,
+                            'url' => $this->channelPost->channel->avatar->url,
+                        ]
+                        : null,
+                    'is_subscribed' => (bool) $this->channelPost->channel->is_subscribed,
+                    'comments_enabled' => (bool) $this->channelPost->channel->comments_enabled,
+                ],
+            ),
             'media' => PostMediaResource::collection($this->whenLoaded('mediaItems')),
             'hashtags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')),
             'repost_of' => $this->whenLoaded('repostOf', fn () => $this->repostOf ? [

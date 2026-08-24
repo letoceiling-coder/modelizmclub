@@ -27,6 +27,9 @@ class ChannelPostResource extends JsonResource
             ),
             'likes' => $this->likes_count,
             'views' => $this->views_count,
+            'liked' => (bool) $this->viewer_liked,
+            'pinned' => $this->pinned_at !== null,
+            'feed_post_uuid' => $this->whenLoaded('feedPost', fn () => $this->feedPost?->uuid),
             'media' => ChannelPostMediaResource::collection($this->whenLoaded('media')),
             'created_at' => ($this->published_at ?? $this->created_at)?->toIso8601String(),
         ];

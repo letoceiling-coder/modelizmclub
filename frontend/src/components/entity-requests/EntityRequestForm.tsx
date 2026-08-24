@@ -9,8 +9,19 @@ import { uploadMedia } from "@/lib/api/media";
 import { prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX } from "@/lib/community-limits";
+import { CHANNEL_NAME_MAX, CHANNEL_SLUG_MAX, kindLabel, type ChannelKind } from "@/lib/channels";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 const OTHER_DIRECTION = "Другое";
+const CHANNEL_KINDS: ChannelKind[] = ["brand", "shop", "author", "expert"];
+
+function suggestSlug(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, CHANNEL_SLUG_MAX);
+}
 
 interface Props {
   kind: EntityKind;
@@ -31,6 +42,10 @@ const inputStyle = {
 
 export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [channelKind, setChannelKind] = useState<ChannelKind>("author");
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");            // channel: direction name
   const [customCategory, setCustomCategory] = useState(""); // channel: when «Другое»
@@ -85,6 +100,9 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
           name: name.trim(),
           description: description.trim() || undefined,
           category: resolvedCategory,
+          slug: slug.trim() || undefined,
+          kind: channelKind,
+          comments_enabled: commentsEnabled,
           avatar_media_uuid: avatarUuid,
           banner_media_uuid: bannerUuid,
         });
@@ -125,14 +143,18 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
           <label className="flex flex-col gap-1">
             <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
               <span>Название</span>
-              {kind === "community" && (
-                <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{name.length}/{COMMUNITY_NAME_MAX}</span>
-              )}
+              <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>
+                {name.length}/{kind === "community" ? COMMUNITY_NAME_MAX : CHANNEL_NAME_MAX}
+              </span>
             </span>
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={kind === "community" ? COMMUNITY_NAME_MAX : 120}
+              onChange={(e) => {
+                const next = e.target.value;
+                setName(next);
+                if (kind === "channel" && !slugTouched) setSlug(suggestSlug(next));
+              }}
+              maxLength={kind === "community" ? COMMUNITY_NAME_MAX : CHANNEL_NAME_MAX}
               placeholder={kind === "channel" ? "Название канала" : "Название сообщества"}
               className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle}
             />
@@ -195,6 +217,49 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                   />
                 </label>
               )}
+            </>
+          )}
+
+          {kind === "channel" && (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Адрес канала</span>
+                <div className="flex items-center gap-1 rounded-[10px] border px-3" style={inputStyle}>
+                  <span className="shrink-0 text-[13px]" style={{ color: "var(--foreground-50)" }}>modelizmclub.ru/channel/</span>
+                  <input
+                    value={slug}
+                    onChange={(e) => {
+                      setSlugTouched(true);
+                      setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, CHANNEL_SLUG_MAX));
+                    }}
+                    maxLength={CHANNEL_SLUG_MAX}
+                    placeholder="my-channel"
+                    className="h-11 min-w-0 flex-1 bg-transparent text-[14px] outline-none"
+                    style={{ color: "var(--foreground)" }}
+                  />
+                </div>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Тип канала</span>
+                <select
+                  value={channelKind}
+                  onChange={(e) => setChannelKind(e.target.value as ChannelKind)}
+                  className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                  style={inputStyle}
+                >
+                  {CHANNEL_KINDS.map((k) => (
+                    <option key={k} value={k}>{kindLabel(k)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-3" style={{ borderColor: "var(--border)" }}>
+                <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Разрешить комментарии</span>
+                <input
+                  type="checkbox"
+                  checked={commentsEnabled}
+                  onChange={(e) => setCommentsEnabled(e.target.checked)}
+                />
+              </label>
             </>
           )}
 

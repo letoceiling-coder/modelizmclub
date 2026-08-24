@@ -243,6 +243,11 @@ function ChannelsPage() {
 
   );
 
+  const hasOwnChannel = useMemo(
+    () => all.some((c) => isChannelOwner(c, me.id)),
+    [all, me.id],
+  );
+
   const subscriptions = useMemo(
 
     () => filtered.filter((c) => c.isSubscribed && !isChannelOwner(c, me.id)),
@@ -307,10 +312,19 @@ function ChannelsPage() {
 
           </div>
 
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "var(--accent-soft)" }}>
-
-            <Radio size={20} style={{ color: "var(--accent)" }} />
-
+          <div className="flex shrink-0 items-center gap-2">
+            {(!loading && !hasOwnChannel) && (
+              <Button
+                type="button"
+                className="rounded-[12px]"
+                onClick={() => navigate({ to: "/channels/new" })}
+              >
+                {t("pages.channels.createChannel")}
+              </Button>
+            )}
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "var(--accent-soft)" }}>
+              <Radio size={20} style={{ color: "var(--accent)" }} />
+            </div>
           </div>
 
         </header>
@@ -343,7 +357,7 @@ function ChannelsPage() {
 
             description={hasQuery ? t("pages.channels.emptySearchDesc") : t("pages.channels.emptyDesc")}
 
-            action={!hasQuery ? { label: t("pages.channels.createChannel"), onClick: () => navigate({ to: "/settings/spaces" }) } : undefined}
+            action={!hasQuery ? { label: t("pages.channels.createChannel"), onClick: () => navigate({ to: "/channels/new" }) } : undefined}
 
             variant="compact"
 

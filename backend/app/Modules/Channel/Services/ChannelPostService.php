@@ -106,9 +106,9 @@ class ChannelPostService
 
     public function delete(Channel $channel, ChannelPost $channelPost, User $user): void
     {
-        if (! $channel->isOwnedBy($user)) {
+        if (! $channel->canManage($user)) {
             throw ValidationException::withMessages([
-                'post' => ['Удалить пост может только владелец канала.'],
+                'post' => ['Удалить пост может только владелец или администратор канала.'],
             ]);
         }
 

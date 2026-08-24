@@ -24,10 +24,22 @@ class UpdateChannelController extends Controller
         }
 
         $data = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:120'],
+            'name' => ['sometimes', 'required', 'string', 'min:3', 'max:60'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'category' => ['sometimes', 'nullable', 'string', 'max:120'],
             'kind' => ['sometimes', Rule::in(['brand', 'shop', 'author', 'expert'])],
+            'comments_enabled' => ['sometimes', 'boolean'],
+            'rules' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'contacts' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'slug' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:3',
+                'max:80',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique('channels', 'slug')->ignore($channel->id),
+            ],
         ]);
 
         if ($channel->kind === 'official' && array_key_exists('kind', $data)) {
@@ -46,6 +58,18 @@ class UpdateChannelController extends Controller
         }
         if (array_key_exists('kind', $data)) {
             $updates['kind'] = $data['kind'];
+        }
+        if (array_key_exists('comments_enabled', $data)) {
+            $updates['comments_enabled'] = (bool) $data['comments_enabled'];
+        }
+        if (array_key_exists('rules', $data)) {
+            $updates['rules'] = $data['rules'] !== null ? trim($data['rules']) : null;
+        }
+        if (array_key_exists('contacts', $data)) {
+            $updates['contacts'] = $data['contacts'] !== null ? trim($data['contacts']) : null;
+        }
+        if (array_key_exists('slug', $data)) {
+            $updates['slug'] = $data['slug'];
         }
 
         if ($updates !== []) {

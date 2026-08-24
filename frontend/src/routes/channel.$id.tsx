@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Trash2, Pin, Pencil, MessageCircle } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner,
-  formatCount, formatDate,
+  useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner, isChannelManager,
+  formatCount, formatDate, setChannelPostLiked, recordChannelPostView, setChannelPostPinned,
   type Channel, type ChannelPost, type PostStatus, type PostKind, type ChannelKind,
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
@@ -26,6 +26,9 @@ import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
 import { useStore, selectors } from "@/lib/store";
+import { PostActionMenu } from "@/components/post/PostActionMenu";
+import { openConversation } from "@/lib/api/chat";
+import type { User } from "@/lib/mock";
 
 
 import i18n from "@/lib/i18n";
@@ -105,6 +108,7 @@ function ChannelPage() {
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [messaging, setMessaging] = useState(false);
 
   useEffect(() => {
     if (tabSearch === "about") {
@@ -143,9 +147,10 @@ function ChannelPage() {
   if (notFound || !channel) return <NotFoundView />;
 
   const isOwner = isChannelOwner(channel, me.id);
+  const canManage = isChannelManager(channel, me.id);
   const subscribed = Boolean(channel.isSubscribed);
   const visiblePublic = posts.filter((p: ChannelPost) => p.status === "published");
-  const list = isOwner && showOwnerView ? posts : visiblePublic;
+  const list = canManage && showOwnerView ? posts : visiblePublic;
 
   const onToggle = () => {
     if (isOwner) return;
@@ -156,6 +161,26 @@ function ChannelPage() {
           reloadChannel();
         } catch {
           toast.error(t("pages.channelDetail.subscribeFailed"));
+        }
+      })();
+    });
+  };
+
+  const messageOwner = () => {
+    if (!channel.ownerNumericId || !channel.ownerId) {
+      toast.error(t("pages.channelDetail.dialogOpenFailed"));
+      return;
+    }
+    requirePremium(() => {
+      void (async () => {
+        setMessaging(true);
+        try {
+          const dialog = await openConversation(channel.ownerNumericId!, me.id, channel.ownerId!);
+          await navigate({ to: "/messenger", search: { chat: dialog.id } });
+        } catch {
+          toast.error(t("pages.channelDetail.dialogOpenFailed"));
+        } finally {
+          setMessaging(false);
         }
       })();
     });
@@ -180,7 +205,7 @@ function ChannelPage() {
         >
           <ChannelBrandingHeader
             channel={channel}
-            editable={false}
+            editable={isOwner}
             onUpdated={() => reloadChannel()}
           />
 
@@ -206,7 +231,18 @@ function ChannelPage() {
                 </div>
               </div>
               {isOwner && (
-                <EntitySettingsButton onClick={() => setSettingsOpen(true)} title={t("pages.channelDetail.settingsTitle")} />
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-[10px] gap-1.5"
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    <Pencil size={14} /> {t("pages.channelDetail.editChannel")}
+                  </Button>
+                  <EntitySettingsButton onClick={() => setSettingsOpen(true)} title={t("pages.channelDetail.settingsTitle")} />
+                </div>
               )}
             </div>
               <p className="mt-3 text-[14px]" style={{ color: "var(--foreground-70)" }}>
@@ -231,6 +267,18 @@ function ChannelPage() {
                     size="lg"
                   >
                     {subscribed ? (<><Check size={16} /> {t("pages.shared.youSubscribed")}</>) : t("pages.shared.subscribe")}
+                  </Button>
+                )}
+                {!isOwner && channel.ownerNumericId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={messageOwner}
+                    disabled={messaging}
+                    className="flex-1 rounded-[12px] gap-2"
+                    size="lg"
+                  >
+                    <MessageCircle size={16} /> {t("pages.channelDetail.messageOwner")}
                   </Button>
                 )}
                 {isOwner && (
@@ -302,7 +350,7 @@ function ChannelPage() {
         {tab === "posts" ? (
           <>
             {/* owner toggle */}
-            {isOwner && (
+            {canManage && (
               <div
                 className="flex items-center justify-between gap-3 p-3"
                 style={{ background: "var(--background-surface)", borderRadius: 12 }}
@@ -323,7 +371,7 @@ function ChannelPage() {
             )}
 
             {/* composer (owner only) */}
-            {isOwner && (
+            {canManage && (
               <Composer
                 channelSlug={channel.slug}
                 requiresModeration={Boolean(channel.postsRequireModeration)}
@@ -341,7 +389,15 @@ function ChannelPage() {
             ) : (
               <ul className="space-y-3">
                 {list.map((p: ChannelPost) => (
-                  <PostItem key={p.id} post={p} isOwner={isOwner} channelSlug={channel.slug} onDeleted={reloadPosts} />
+                  <PostItem
+                    key={p.id}
+                    post={p}
+                    isOwner={isOwner}
+                    canManage={canManage}
+                    channel={channel}
+                    onDeleted={reloadPosts}
+                    onUpdated={reloadPosts}
+                  />
                 ))}
               </ul>
             )}
@@ -428,29 +484,88 @@ function ChannelPostMedia({ post }: { post: ChannelPost }) {
 function PostItem({
   post,
   isOwner,
-  channelSlug,
+  canManage,
+  channel,
   onDeleted,
+  onUpdated,
 }: {
   post: ChannelPost;
   isOwner: boolean;
-  channelSlug: string;
+  canManage: boolean;
+  channel: Channel;
   onDeleted: () => void;
+  onUpdated: () => void;
 }) {
   const { t } = useTranslation();
+  const { requireAccount } = useGuestAccess();
   const s = postStatusMeta(t)[post.status];
   const [deleting, setDeleting] = useState(false);
+  const [liked, setLiked] = useState(Boolean(post.liked));
+  const [likes, setLikes] = useState(post.likes);
+  const [views, setViews] = useState(post.views);
+  const [pinning, setPinning] = useState(false);
+  const reportAuthor: User = {
+    id: channel.ownerId ?? channel.slug,
+    name: channel.ownerName,
+    avatar: channel.ownerAvatar ?? "",
+    city: "",
+    interests: "",
+  };
+
+  useEffect(() => {
+    setLiked(Boolean(post.liked));
+    setLikes(post.likes);
+    setViews(post.views);
+  }, [post.liked, post.likes, post.views]);
+
+  useEffect(() => {
+    if (post.status !== "published") return;
+    let cancelled = false;
+    void recordChannelPostView(channel.slug, post.id).then((next) => {
+      if (!cancelled && typeof next === "number") setViews(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [channel.slug, post.id, post.status]);
 
   const handleDelete = async () => {
     if (!window.confirm(t("pages.channelDetail.deletePostConfirm"))) return;
     setDeleting(true);
     try {
-      await deleteChannelPost(channelSlug, post.id);
+      await deleteChannelPost(channel.slug, post.id);
       toast.success(t("pages.channelDetail.deletePostSuccess"));
       onDeleted();
     } catch (err) {
       toast.error(formatApiErrorMessage(err, t("pages.channelDetail.deletePostFailed")));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const toggleLike = () => {
+    if (post.status !== "published") return;
+    requireAccount(() => {
+      const next = !liked;
+      setLiked(next);
+      setLikes((n) => n + (next ? 1 : -1));
+      void setChannelPostLiked(channel.slug, post.id, next).catch(() => {
+        setLiked(!next);
+        setLikes((n) => n + (next ? -1 : 1));
+        toast.error(t("pages.channelDetail.likeFailed"));
+      });
+    });
+  };
+
+  const togglePin = async () => {
+    setPinning(true);
+    try {
+      await setChannelPostPinned(channel.slug, post.id, !post.pinned);
+      onUpdated();
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, t("pages.channelDetail.pinFailed")));
+    } finally {
+      setPinning(false);
     }
   };
 
@@ -466,15 +581,41 @@ function PostItem({
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
-          <div className="text-[13px] font-semibold truncate" style={{ color: "var(--foreground)" }}>
-            {post.authorName}
+          <div className="flex items-center gap-1.5">
+            <div className="text-[13px] font-semibold truncate" style={{ color: "var(--foreground)" }}>
+              {post.authorName}
+            </div>
+            {post.pinned && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-semibold"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
+              >
+                <Pin size={11} /> {t("pages.channelDetail.pinned")}
+              </span>
+            )}
           </div>
           <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
             {formatDate(post.createdAt)}
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-          {isOwner && (
+          {canManage && post.status === "published" && (
+            <button
+              type="button"
+              onClick={() => void togglePin()}
+              disabled={pinning}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity disabled:opacity-50"
+              style={{
+                background: post.pinned ? "var(--accent-soft)" : "var(--background-surface)",
+                color: post.pinned ? "var(--accent)" : "var(--foreground-70)",
+                padding: "4px 8px",
+                borderRadius: 6,
+              }}
+            >
+              <Pin size={11} /> {post.pinned ? t("pages.channelDetail.unpin") : t("pages.channelDetail.pin")}
+            </button>
+          )}
+          {canManage && (
             <button
               type="button"
               onClick={handleDelete}
@@ -500,13 +641,24 @@ function PostItem({
               <KindIcon kind={post.kind} /> {postKindLabel(t, post.kind)}
             </span>
           )}
-          {(isOwner || post.status !== "published") && (
+          {(canManage || post.status !== "published") && (
             <span
               className="inline-flex items-center gap-1 text-[11px] font-semibold"
               style={{ background: s.bg, color: s.color, padding: "4px 8px", borderRadius: 6 }}
             >
               <s.Icon size={11} /> {s.label}
             </span>
+          )}
+          {post.feedPostId && !isOwner && (
+            <PostActionMenu
+              postId={post.feedPostId}
+              saved={false}
+              title={post.text.slice(0, 80)}
+              text={post.text}
+              status={post.status === "published" ? "published" : "moderation"}
+              author={reportAuthor}
+              isOwn={isOwner}
+            />
           )}
         </div>
       </div>
@@ -526,8 +678,16 @@ function PostItem({
       )}
       {post.status === "published" && (
         <div className="mt-4 flex items-center gap-4 border-t pt-3 text-[12px]" style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}>
-          <span className="inline-flex items-center gap-1"><Heart size={13} /> {post.likes}</span>
-          <span className="inline-flex items-center gap-1"><Eye size={13} /> {post.views}</span>
+          <button
+            type="button"
+            onClick={toggleLike}
+            className="inline-flex items-center gap-1 rounded-[8px] px-1 py-0.5 transition-colors hover:bg-[var(--background-surface)]"
+            style={{ color: liked ? "var(--accent)" : "var(--foreground-50)" }}
+            aria-label={t("pages.channelDetail.likeAria")}
+          >
+            <Heart size={13} fill={liked ? "currentColor" : "none"} /> {likes}
+          </button>
+          <span className="inline-flex items-center gap-1"><Eye size={13} /> {views}</span>
         </div>
       )}
     </li>
@@ -876,9 +1036,19 @@ function AboutPanel({
           {t("pages.channelDetail.aboutTitle")}
         </h3>
         <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          {channel.description}
-          {"\n\n"}{t("pages.channelDetail.aboutExtra", { kind: channelKindLabel(channel.kind, t).toLowerCase() })}
+          {channel.description || t("pages.channelDetail.aboutExtra", { kind: channelKindLabel(channel.kind, t).toLowerCase() })}
         </p>
+
+        {channel.contacts && (
+          <div className="mt-4">
+            <h4 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {t("pages.channelDetail.contactsTitle")}
+            </h4>
+            <p className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+              {channel.contacts}
+            </p>
+          </div>
+        )}
 
         {/* stats grid */}
         <div id="channel-stats" className="mt-4 grid grid-cols-3 gap-2">
@@ -933,6 +1103,11 @@ function AboutPanel({
         <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
           {t("pages.channelDetail.publicationRules")}
         </h3>
+        {channel.rules ? (
+          <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+            {channel.rules}
+          </p>
+        ) : (
         <ul className="mt-3 space-y-2.5">
           {rules.map(({ Icon, titleKey, textKey }) => (
             <li key={titleKey} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
@@ -949,6 +1124,7 @@ function AboutPanel({
             </li>
           ))}
         </ul>
+        )}
       </section>
     </div>
   );

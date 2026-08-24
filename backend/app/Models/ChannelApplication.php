@@ -11,6 +11,9 @@ class ChannelApplication extends Model
     protected $fillable = [
         'user_id',
         'proposed_name',
+        'proposed_slug',
+        'proposed_kind',
+        'comments_enabled',
         'description',
         'category',
         'avatar_media_id',
@@ -24,6 +27,7 @@ class ChannelApplication extends Model
     protected function casts(): array
     {
         return [
+            'comments_enabled' => 'boolean',
             'status' => ChannelApplicationStatus::class,
             'reviewed_at' => 'datetime',
         ];

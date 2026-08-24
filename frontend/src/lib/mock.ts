@@ -128,6 +128,14 @@ export interface Post {
   repostComment?: string;
   commentList?: Comment[];
   repostedBy?: ID;
+  channel?: {
+    slug: string;
+    name: string;
+    kind?: string;
+    avatar?: string;
+    isSubscribed?: boolean;
+    commentsEnabled?: boolean;
+  };
 }
 
 export type AdCondition = "Новое" | "Б/у";

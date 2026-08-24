@@ -47,6 +47,7 @@ import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
 import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
+import { Route as ChannelsNewRouteImport } from './routes/channels.new'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
 import { Route as DealsUuidRouteImport } from './routes/deals.$uuid'
@@ -264,6 +265,11 @@ const ChannelsIndexRoute = ChannelsIndexRouteImport.update({
   path: '/channels/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChannelsNewRoute = ChannelsNewRouteImport.update({
+  id: '/channels/new',
+  path: '/channels/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -431,6 +437,7 @@ export interface FileRoutesByFullPath {
   '/ads/new': typeof AdsNewRoute
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/communities/$id': typeof CommunitiesIdRoute
   '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
@@ -453,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -491,6 +499,7 @@ export interface FileRoutesByTo {
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
   '/channel/$id': typeof ChannelIdRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/communities/$id': typeof CommunitiesIdRoute
   '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
@@ -513,6 +522,7 @@ export interface FileRoutesByTo {
   '/ads': typeof AdsIndexRoute
   '/categories': typeof CategoriesIndexRoute
   '/channels': typeof ChannelsIndexRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/communities': typeof CommunitiesIndexRoute
   '/reviews': typeof ReviewsIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -558,6 +568,7 @@ export interface FileRoutesById {
   '/ads/new': typeof AdsNewRoute
   '/categories/$id': typeof CategoriesIdRouteWithChildren
   '/channel/$id': typeof ChannelIdRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/communities/$id': typeof CommunitiesIdRoute
   '/deals/$uuid': typeof DealsUuidRoute
   '/info/$slug': typeof InfoSlugRoute
@@ -580,6 +591,7 @@ export interface FileRoutesById {
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
+  '/channels/new': typeof ChannelsNewRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -626,6 +638,7 @@ export interface FileRouteTypes {
     | '/ads/new'
     | '/categories/$id'
     | '/channel/$id'
+    | '/channels/new'
     | '/communities/$id'
     | '/deals/$uuid'
     | '/info/$slug'
@@ -686,6 +699,7 @@ export interface FileRouteTypes {
     | '/ads/$id'
     | '/ads/new'
     | '/channel/$id'
+    | '/channels/new'
     | '/communities/$id'
     | '/deals/$uuid'
     | '/info/$slug'
@@ -752,6 +766,7 @@ export interface FileRouteTypes {
     | '/ads/new'
     | '/categories/$id'
     | '/channel/$id'
+    | '/channels/new'
     | '/communities/$id'
     | '/deals/$uuid'
     | '/info/$slug'
@@ -819,6 +834,7 @@ export interface RootRouteChildren {
   LegalSlugRoute: typeof LegalSlugRoute
   UserIdRoute: typeof UserIdRoute
   ChannelsIndexRoute: typeof ChannelsIndexRoute
+  ChannelsNewRoute: typeof ChannelsNewRoute
   OauthVkCallbackRoute: typeof OauthVkCallbackRoute
 }
 
@@ -1088,6 +1104,13 @@ declare module '@tanstack/react-router' {
       path: '/channels'
       fullPath: '/channels/'
       preLoaderRoute: typeof ChannelsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channels/new': {
+      id: '/channels/new'
+      path: '/channels/new'
+      fullPath: '/channels/new'
+      preLoaderRoute: typeof ChannelsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/communities/': {
@@ -1440,6 +1463,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalSlugRoute: LegalSlugRoute,
   UserIdRoute: UserIdRoute,
   ChannelsIndexRoute: ChannelsIndexRoute,
+  ChannelsNewRoute: ChannelsNewRoute,
   OauthVkCallbackRoute: OauthVkCallbackRoute,
 }
 export const routeTree = rootRouteImport

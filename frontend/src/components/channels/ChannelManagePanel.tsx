@@ -7,6 +7,7 @@ import { ChannelBrandingForm } from "@/components/channels/ChannelBrandingForm";
 import {
   updateChannel,
   kindLabel,
+  CHANNEL_NAME_MAX,
   type Channel,
   type ChannelKind,
 } from "@/lib/channels";
@@ -37,6 +38,9 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
   const [name, setName] = useState(channel.name);
   const [description, setDescription] = useState(channel.description);
   const [kind, setKind] = useState<ChannelKind>(channel.kind);
+  const [commentsEnabled, setCommentsEnabled] = useState(channel.commentsEnabled !== false);
+  const [rules, setRules] = useState(channel.rules ?? "");
+  const [contacts, setContacts] = useState(channel.contacts ?? "");
   const [category, setCategory] = useState(
     channel.category && !directionNames.includes(channel.category) ? otherDirection : channel.category,
   );
@@ -49,6 +53,9 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
     setName(channel.name);
     setDescription(channel.description);
     setKind(channel.kind);
+    setCommentsEnabled(channel.commentsEnabled !== false);
+    setRules(channel.rules ?? "");
+    setContacts(channel.contacts ?? "");
     const inList = directionNames.includes(channel.category);
     setCategory(inList ? channel.category : channel.category ? otherDirection : "");
     setCustomCategory(inList ? "" : channel.category);
@@ -60,7 +67,10 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
     name.trim() !== channel.name
     || description.trim() !== channel.description
     || resolvedCategory !== (channel.category ?? "")
-    || (channel.kind !== "official" && kind !== channel.kind);
+    || (channel.kind !== "official" && kind !== channel.kind)
+    || commentsEnabled !== (channel.commentsEnabled !== false)
+    || rules.trim() !== (channel.rules ?? "")
+    || contacts.trim() !== (channel.contacts ?? "");
 
   const save = async () => {
     if (!name.trim()) {
@@ -90,6 +100,9 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
         name: name.trim(),
         description: description.trim(),
         category: resolvedCategory || undefined,
+        comments_enabled: commentsEnabled,
+        rules: rules.trim(),
+        contacts: contacts.trim(),
         ...(channel.kind !== "official" ? { kind } : {}),
       });
       onUpdated(updated);
@@ -119,10 +132,13 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={120}
+              maxLength={CHANNEL_NAME_MAX}
               className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
               style={inputStyle}
             />
+            <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+              {name.length}/{CHANNEL_NAME_MAX}
+            </span>
           </label>
 
           <label className="flex flex-col gap-1.5">
@@ -186,6 +202,41 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
               {t("components.channelManage.officialTypeLocked", { type: kindLabel(channel.kind) })}
             </p>
           )}
+
+          <label className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-3" style={{ borderColor: "var(--border)" }}>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("components.channelManage.commentsLabel")}
+            </span>
+            <input
+              type="checkbox"
+              checked={commentsEnabled}
+              onChange={(e) => setCommentsEnabled(e.target.checked)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.contactsLabel")}</span>
+            <textarea
+              value={contacts}
+              onChange={(e) => setContacts(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[80px]"
+              style={inputStyle}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.rulesLabel")}</span>
+            <textarea
+              value={rules}
+              onChange={(e) => setRules(e.target.value)}
+              maxLength={5000}
+              rows={4}
+              className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[100px]"
+              style={inputStyle}
+            />
+          </label>
 
           <div
             className="rounded-[10px] border p-3 text-[13px]"

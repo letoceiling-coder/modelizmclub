@@ -25,16 +25,20 @@ class ChannelPost extends Model
         'likes_count',
         'views_count',
         'published_at',
+        'pinned_at',
     ];
 
     protected function casts(): array
     {
         return [
             'published_at' => 'datetime',
+            'pinned_at' => 'datetime',
             'likes_count' => 'integer',
             'views_count' => 'integer',
         ];
     }
+
+    public bool $viewer_liked = false;
 
     public function channel(): BelongsTo
     {
@@ -54,5 +58,15 @@ class ChannelPost extends Model
     public function media(): HasMany
     {
         return $this->hasMany(ChannelPostMedia::class)->orderBy('sort_order');
+    }
+
+    public function likes(): HasMany
+    {
+        return $this->hasMany(ChannelPostLike::class);
+    }
+
+    public function uniqueViews(): HasMany
+    {
+        return $this->hasMany(ChannelPostView::class);
     }
 }

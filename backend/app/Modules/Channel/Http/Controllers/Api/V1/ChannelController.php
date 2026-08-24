@@ -7,6 +7,7 @@ use App\Models\Channel;
 use App\Models\ChannelPost;
 use App\Models\Media;
 use App\Models\User;
+use App\Support\ViewerKey;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Channel\Http\Resources\ChannelPostResource;
 use Modules\Channel\Http\Resources\ChannelResource;
+use Modules\Channel\Services\ChannelPostInteractionService;
 use Modules\Channel\Services\ChannelPostService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -25,6 +27,7 @@ class ChannelController extends Controller
 {
     public function __construct(
         private readonly ChannelPostService $channelPosts,
+        private readonly ChannelPostInteractionService $interactions,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -65,14 +68,18 @@ class ChannelController extends Controller
     {
         $channel = $this->findChannel($slug);
         $viewer = $request->user('sanctum');
-        $isOwner = $channel->isOwnedBy($viewer);
+        $canManage = $channel->canManage($viewer);
 
         $items = ChannelPost::query()
-            ->with(['author.profile', 'channel', 'media.media'])
+            ->with(['author.profile', 'channel', 'media.media', 'feedPost'])
             ->where('channel_id', $channel->id)
-            ->when(! $isOwner, fn ($q) => $q->where('status', 'published'))
+            ->when(! $canManage, fn ($q) => $q->where('status', 'published'))
+            ->orderByRaw('pinned_at IS NULL')
+            ->orderByDesc('pinned_at')
             ->orderByDesc('created_at')
             ->paginate((int) $request->integer('per_page', 30));
+
+        $this->interactions->attachViewerState($items->getCollection(), $viewer);
 
         return ChannelPostResource::collection($items);
     }
@@ -112,8 +119,8 @@ class ChannelController extends Controller
         $channel = $this->findChannel($slug);
         $user = $request->user();
 
-        if (! $channel->isOwnedBy($user)) {
-            return response()->json(['message' => 'Публиковать может только владелец канала.'], 403);
+        if (! $channel->canManage($user)) {
+            return response()->json(['message' => 'Публиковать могут владелец и администраторы канала.'], 403);
         }
 
         $data = $request->validate([
@@ -128,7 +135,8 @@ class ChannelController extends Controller
             return $this->channelPosts->create($channel, $user, $data, $mediaIds);
         });
 
-        $post->load(['author.profile', 'channel', 'media.media']);
+        $post->load(['author.profile', 'channel', 'media.media', 'feedPost']);
+        $post->viewer_liked = false;
 
         return (new ChannelPostResource($post))
             ->response()
@@ -174,6 +182,88 @@ class ChannelController extends Controller
         return (new ChannelResource($channel))->response();
     }
 
+    public function like(Request $request, string $slug, string $postUuid): JsonResponse
+    {
+        $channel = $this->findChannel($slug);
+        $post = $this->findChannelPost($channel, $postUuid);
+        $user = $request->user('sanctum');
+
+        $post = $this->interactions->like($post, $user);
+        $post->load(['author.profile', 'channel', 'media.media', 'feedPost']);
+        $post->viewer_liked = true;
+
+        return (new ChannelPostResource($post))->response();
+    }
+
+    public function unlike(Request $request, string $slug, string $postUuid): JsonResponse
+    {
+        $channel = $this->findChannel($slug);
+        $post = $this->findChannelPost($channel, $postUuid);
+        $user = $request->user('sanctum');
+
+        $post = $this->interactions->unlike($post, $user);
+        $post->load(['author.profile', 'channel', 'media.media', 'feedPost']);
+        $post->viewer_liked = false;
+
+        return (new ChannelPostResource($post))->response();
+    }
+
+    public function view(Request $request, string $slug, string $postUuid): JsonResponse
+    {
+        $channel = $this->findChannel($slug);
+        $post = $this->findChannelPost($channel, $postUuid);
+        $viewer = $request->user('sanctum');
+
+        $counted = $this->interactions->recordView($post, $viewer, $request);
+        $post->refresh();
+
+        $response = response()->json([
+            'data' => [
+                'views' => (int) $post->views_count,
+                'counted' => $counted,
+            ],
+        ]);
+
+        if ($viewer === null && ! $request->cookie(ViewerKey::COOKIE)) {
+            $vid = ViewerKey::ensureCookie($request);
+            $response->cookie(ViewerKey::COOKIE, $vid, 60 * 24 * 365, '/', null, true, true, false, 'lax');
+        }
+
+        return $response;
+    }
+
+    public function pin(Request $request, string $slug, string $postUuid): JsonResponse
+    {
+        $channel = $this->findChannel($slug);
+        $user = $request->user('sanctum');
+        if (! $channel->canManage($user)) {
+            return response()->json(['message' => 'Закреплять посты могут владелец и администраторы канала.'], 403);
+        }
+
+        $post = $this->findChannelPost($channel, $postUuid);
+        $post = $this->interactions->pin($post);
+        $post->load(['author.profile', 'channel', 'media.media', 'feedPost']);
+        $this->interactions->attachViewerState(collect([$post]), $user);
+
+        return (new ChannelPostResource($post))->response();
+    }
+
+    public function unpin(Request $request, string $slug, string $postUuid): JsonResponse
+    {
+        $channel = $this->findChannel($slug);
+        $user = $request->user('sanctum');
+        if (! $channel->canManage($user)) {
+            return response()->json(['message' => 'Открепить пост могут владелец и администраторы канала.'], 403);
+        }
+
+        $post = $this->findChannelPost($channel, $postUuid);
+        $post = $this->interactions->unpin($post);
+        $post->load(['author.profile', 'channel', 'media.media', 'feedPost']);
+        $this->interactions->attachViewerState(collect([$post]), $user);
+
+        return (new ChannelPostResource($post))->response();
+    }
+
     private function findChannel(string $slug): Channel
     {
         $channel = Channel::query()->where('slug', $slug)->first();
@@ -187,6 +277,20 @@ class ChannelController extends Controller
         }
 
         return $channel;
+    }
+
+    private function findChannelPost(Channel $channel, string $postUuid): ChannelPost
+    {
+        $post = ChannelPost::query()
+            ->where('uuid', $postUuid)
+            ->where('channel_id', $channel->id)
+            ->first();
+
+        if (! $post) {
+            throw new NotFoundHttpException('Пост не найден.');
+        }
+
+        return $post;
     }
 
     private function resolveOwnedMediaId(User $user, ?string $uuid, string $field): ?int

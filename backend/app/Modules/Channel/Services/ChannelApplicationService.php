@@ -19,6 +19,9 @@ class ChannelApplicationService
         ?string $category,
         ?int $avatarMediaId = null,
         ?int $bannerMediaId = null,
+        ?string $slug = null,
+        ?string $kind = null,
+        bool $commentsEnabled = true,
     ): ChannelApplication {
         $hasPending = ChannelApplication::query()
             ->where('user_id', $user->id)
@@ -34,6 +37,9 @@ class ChannelApplicationService
         return ChannelApplication::create([
             'user_id' => $user->id,
             'proposed_name' => $name,
+            'proposed_slug' => $slug !== null && $slug !== '' ? self::normalizeSlug($slug) : null,
+            'proposed_kind' => $kind,
+            'comments_enabled' => $commentsEnabled,
             'description' => $description,
             'category' => $category,
             'avatar_media_id' => $avatarMediaId,
@@ -51,13 +57,19 @@ class ChannelApplicationService
         $this->assertPending($application);
 
         return DB::transaction(function () use ($application, $reviewer): Channel {
+            $kind = in_array($application->proposed_kind, ['brand', 'shop', 'author', 'expert'], true)
+                ? $application->proposed_kind
+                : 'author';
+            $slugSource = $application->proposed_slug ?: $application->proposed_name;
+
             $channel = Channel::create([
                 'owner_id' => $application->user_id,
                 'name' => $application->proposed_name,
-                'slug' => self::uniqueSlug($application->proposed_name),
+                'slug' => self::uniqueSlug($slugSource),
                 'description' => $application->description,
                 'category' => $application->category,
-                'kind' => 'author',
+                'kind' => $kind,
+                'comments_enabled' => (bool) $application->comments_enabled,
                 'avatar_media_id' => $application->avatar_media_id,
                 'banner_media_id' => $application->banner_media_id,
                 'is_active' => true,
@@ -89,7 +101,7 @@ class ChannelApplicationService
 
     public static function uniqueSlug(string $name): string
     {
-        $slug = Str::slug($name) ?: 'channel';
+        $slug = self::normalizeSlug($name) ?: 'channel';
         $original = $slug;
         $suffix = 1;
 
@@ -99,6 +111,13 @@ class ChannelApplicationService
         }
 
         return $slug;
+    }
+
+    public static function normalizeSlug(string $value): string
+    {
+        $slug = Str::slug($value);
+
+        return $slug !== '' ? Str::limit($slug, 80, '') : '';
     }
 
     private function assertPending(ChannelApplication $application): void

@@ -33,6 +33,15 @@ export interface ApiPost {
   published_at?: string | null;
   scheduled_at?: string | null;
   created_at?: string;
+  channel?: {
+    id?: string;
+    slug?: string;
+    name?: string;
+    kind?: string;
+    avatar?: { url?: string | null } | null;
+    is_subscribed?: boolean;
+    comments_enabled?: boolean;
+  } | null;
 }
 
 interface Paginated<T> {
@@ -104,6 +113,16 @@ export function mapPost(p: ApiPost): Post {
     canPublish: p.permissions?.can_publish ?? false,
     canCancelSchedule: p.permissions?.can_cancel_schedule ?? false,
     canInteract: p.permissions?.can_interact ?? p.status === "published",
+    channel: p.channel?.slug
+      ? {
+          slug: p.channel.slug,
+          name: p.channel.name ?? "",
+          kind: p.channel.kind,
+          avatar: p.channel.avatar?.url ?? undefined,
+          isSubscribed: Boolean(p.channel.is_subscribed),
+          commentsEnabled: p.channel.comments_enabled !== false,
+        }
+      : undefined,
   };
 }
 

@@ -33,7 +33,7 @@ class ChannelPostMediaTest extends TestCase
             'owner_id' => $owner->id,
             'name' => 'Aviation Channel',
             'slug' => 'aviation-channel',
-            'kind' => 'author',
+            'kind' => 'brand',
         ]);
 
         $media = Media::create([

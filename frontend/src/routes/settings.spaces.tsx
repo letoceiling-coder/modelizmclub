@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/settings/spaces")({
 
 function SettingsSpacesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const { requirePremium } = useGuestAccess();
   const { channels } = useChannels();
@@ -28,6 +29,10 @@ function SettingsSpacesPage() {
   const [requestKind, setRequestKind] = useState<EntityKind | null>(null);
 
   const openRequest = (kind: EntityKind) => {
+    if (kind === "channel") {
+      void navigate({ to: "/channels/new" });
+      return;
+    }
     requirePremium(() => setRequestKind(kind), "/settings/spaces");
   };
 

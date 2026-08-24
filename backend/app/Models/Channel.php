@@ -28,15 +28,22 @@ class Channel extends Model
         'banner_media_id',
         'subscribers_count',
         'is_active',
+        'comments_enabled',
+        'rules',
+        'contacts',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'comments_enabled' => 'boolean',
             'subscribers_count' => 'integer',
         ];
     }
+
+    /** Kinds whose posts are mirrored into the public /feed. */
+    public const FEED_KINDS = ['official', 'brand', 'shop'];
 
     public function owner(): BelongsTo
     {
@@ -64,6 +71,12 @@ class Channel extends Model
             ->withTimestamps();
     }
 
+    public function admins(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'channel_admins', 'channel_id', 'user_id')
+            ->withTimestamps();
+    }
+
     /** Runtime-only flag for API responses (not persisted). */
     public bool $is_subscribed = false;
 
@@ -72,5 +85,25 @@ class Channel extends Model
         return $user !== null
             && $this->owner_id !== null
             && (int) $this->owner_id === (int) $user->id;
+    }
+
+    public function canManage(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+        if ($this->isOwnedBy($user)) {
+            return true;
+        }
+        if (method_exists($user, 'isModerator') && $user->isModerator()) {
+            return true;
+        }
+
+        return $this->admins()->whereKey($user->id)->exists();
+    }
+
+    public function appearsInPublicFeed(): bool
+    {
+        return in_array($this->kind, self::FEED_KINDS, true);
     }
 }

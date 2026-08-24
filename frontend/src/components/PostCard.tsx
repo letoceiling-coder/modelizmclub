@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Heart, MessageCircle, Bookmark, Eye, Repeat2, Clock } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Eye, Repeat2, Clock, Check, Radio } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -27,6 +27,9 @@ import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { SchedulePostDialog } from "@/components/feed/SchedulePostDialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { Link } from "@tanstack/react-router";
+import { setChannelSubscription } from "@/lib/channels";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   post: Post;
@@ -117,7 +120,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const [commentsFetchStarted, setCommentsFetchStarted] = useState((post.commentList?.length ?? 0) > 0);
   const [commentsFetched, setCommentsFetched] = useState((post.commentList?.length ?? 0) > 0);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const { guardAction } = useGuestAccess();
+  const { guardAction, requirePremium } = useGuestAccess();
+  const commentsEnabled = post.channel?.commentsEnabled !== false;
+  const [channelSubscribed, setChannelSubscribed] = useState(Boolean(post.channel?.isSubscribed));
   const isScheduled = post.status === "scheduled";
   const canInteract = post.canInteract ?? post.status === "published";
   const hasCommentsHint = (post.comments ?? 0) > 0 || (post.commentList?.length ?? 0) > 0;
@@ -335,6 +340,66 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           />
         </header>
 
+        {post.channel && (
+          <div
+            className="mx-[16px] mt-[12px] flex items-center gap-[10px] rounded-[12px] border px-[12px] py-[8px]"
+            style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+          >
+            <Link
+              to="/channel/$id"
+              params={{ id: post.channel.slug }}
+              className="flex min-w-0 flex-1 items-center gap-[10px]"
+            >
+              {post.channel.avatar ? (
+                <img
+                  src={post.channel.avatar}
+                  alt=""
+                  className="h-8 w-8 shrink-0 rounded-[8px] object-cover"
+                />
+              ) : (
+                <div
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px]"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  <Radio size={14} />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  {post.channel.name}
+                </div>
+                <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                  {t("components.postCard.channelPlaque")}
+                </div>
+              </div>
+            </Link>
+            <Button
+              type="button"
+              size="sm"
+              variant={channelSubscribed ? "outline" : "default"}
+              className="shrink-0 rounded-[10px] gap-1"
+              onClick={() => {
+                requirePremium(() => {
+                  const next = !channelSubscribed;
+                  setChannelSubscribed(next);
+                  void setChannelSubscription(post.channel!.slug, next).catch(() => {
+                    setChannelSubscribed(!next);
+                    toast.error(t("pages.channelDetail.subscribeFailed"));
+                  });
+                });
+              }}
+            >
+              {channelSubscribed ? (
+                <>
+                  <Check size={14} /> {t("pages.shared.youSubscribed")}
+                </>
+              ) : (
+                t("pages.shared.subscribe")
+              )}
+            </Button>
+          </div>
+        )}
+
         {isScheduled && post.scheduledAt && (
           <div
             className="mx-[16px] mt-[12px] flex items-center gap-[8px] rounded-[10px] border px-[12px] py-[10px] text-[13px]"
@@ -440,11 +505,11 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
           <button
             onClick={toggleComments}
-            disabled={!canInteract && commentsCount === 0}
+            disabled={(!canInteract && commentsCount === 0) || !commentsEnabled}
             className={actionCls}
             style={{ color: "var(--foreground-70)" }}
             aria-label={t("components.postCard.commentsAria")}
-            aria-disabled={!canInteract && commentsCount === 0}
+            aria-disabled={(!canInteract && commentsCount === 0) || !commentsEnabled}
           >
             <MessageCircle className="h-[16px] w-[16px]" />
             <span className="tabular-nums">{commentsCount}</span>
@@ -479,6 +544,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           </div>
         </footer>
 
+        {commentsEnabled && (
         <div ref={commentsRef}>
           <CommentSection
             comments={commentList}
@@ -494,6 +560,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             totalCount={commentsCount}
           />
         </div>
+        )}
       </Card>
 
       <SchedulePostDialog

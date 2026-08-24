@@ -37,7 +37,11 @@ class ChannelResource extends JsonResource
             'owner_name' => $this->owner?->profile?->display_name ?? $this->owner?->name ?? '',
             'owner' => $this->whenLoaded('owner', fn () => new UserCompactResource($this->owner)),
             'is_owner' => $this->isOwnedBy($viewer),
+            'can_manage' => $this->canManage($viewer),
             'is_subscribed' => $this->is_subscribed,
+            'comments_enabled' => (bool) $this->comments_enabled,
+            'rules' => $this->rules ?? '',
+            'contacts' => $this->contacts ?? '',
             'posts_require_moderation' => app(PostService::class)->autoPublishEnabled() === false,
         ];
     }

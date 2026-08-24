@@ -2,6 +2,7 @@
 
 namespace Modules\Feed\Services;
 
+use App\Models\ChannelPost;
 use App\Models\Post;
 use App\Models\PostReaction;
 use App\Models\User;
@@ -25,7 +26,10 @@ class PostInteractionService
             $created->update(['type' => $type]);
         }
 
-        return $post->fresh();
+        $fresh = $post->fresh() ?? $post;
+        $this->syncLinkedChannelPostLikes($fresh);
+
+        return $fresh;
     }
 
     public function removeReaction(Post $post, User $user): Post
@@ -41,7 +45,10 @@ class PostInteractionService
             $post->decrement('reactions_count');
         }
 
-        return $post->fresh();
+        $fresh = $post->fresh() ?? $post;
+        $this->syncLinkedChannelPostLikes($fresh);
+
+        return $fresh;
     }
 
     public function bookmark(Post $post, User $user): void
@@ -126,5 +133,12 @@ class PostInteractionService
                 Post::query()->whereIn('id', $repostIds)->delete();
             }
         });
+    }
+
+    private function syncLinkedChannelPostLikes(Post $post): void
+    {
+        ChannelPost::query()
+            ->where('feed_post_id', $post->id)
+            ->update(['likes_count' => (int) $post->reactions_count]);
     }
 }

@@ -1,7 +1,7 @@
 // API-backed module for the "Каналы" (Channels) section.
 // Channels are one-way publishing surfaces: only owners post, users subscribe.
 import { useCallback, useEffect, useState } from "react";
-import { api, getToken } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoChannels, demoChannel, demoChannelPosts, setDemoChannelSubscription } from "@/lib/demo-data";
 
@@ -23,6 +23,9 @@ export interface ChannelPostMediaItem {
   height?: number;
 }
 
+export const CHANNEL_NAME_MAX = 60;
+export const CHANNEL_SLUG_MAX = 80;
+
 export interface ChannelPost {
   id: string;
   channelId: string;
@@ -32,6 +35,9 @@ export interface ChannelPost {
   status: PostStatus;
   likes: number;
   views: number;
+  liked?: boolean;
+  pinned?: boolean;
+  feedPostId?: string;
   kind?: PostKind;
   media: ChannelPostMediaItem[];
   images: string[];
@@ -57,7 +63,12 @@ export interface Channel {
   avatarImage?: string;
   bannerImage?: string;
   isOwner?: boolean;
+  canManage?: boolean;
   isSubscribed?: boolean;
+  commentsEnabled?: boolean;
+  rules?: string;
+  contacts?: string;
+  ownerNumericId?: number;
   postsRequireModeration?: boolean;
 }
 
@@ -73,11 +84,17 @@ export function kindLabel(k: ChannelKind) {
   return KIND_LABEL[k] ?? "Канал";
 }
 
-/** True when the viewer owns the channel (API flag or owner uuid fallback). */
+/** True when the viewer can edit channel settings (owner only). */
 export function isChannelOwner(channel: Channel, viewerId?: string | null): boolean {
   if (!viewerId || viewerId === "guest") return false;
   if (channel.isOwner) return true;
   return Boolean(channel.ownerId && channel.ownerId === viewerId);
+}
+
+/** Owner or assigned channel admin — can publish/pin/delete posts. */
+export function isChannelManager(channel: Channel, viewerId?: string | null): boolean {
+  if (channel.canManage) return true;
+  return isChannelOwner(channel, viewerId);
 }
 
 // ---- API mapping ----
@@ -96,13 +113,18 @@ interface ApiChannel {
   created_at?: string;
   owner_name?: string;
   owner?: {
+    id?: number;
     uuid?: string;
     display_name?: string | null;
     slug?: string | null;
     avatar?: { url?: string | null } | null;
   } | null;
   is_owner?: boolean;
+  can_manage?: boolean;
   is_subscribed?: boolean;
+  comments_enabled?: boolean;
+  rules?: string | null;
+  contacts?: string | null;
   posts_require_moderation?: boolean;
 }
 
@@ -126,6 +148,9 @@ interface ApiChannelPost {
   status?: string;
   likes?: number;
   views?: number;
+  liked?: boolean;
+  pinned?: boolean;
+  feed_post_uuid?: string | null;
   created_at?: string;
   media?: ApiChannelPostMedia[];
   rejection_reason?: string | null;
@@ -149,8 +174,13 @@ function mapChannel(c: ApiChannel): Channel {
     ownerAvatar: c.owner?.avatar?.url ?? undefined,
     ownerSlug: c.owner?.slug ?? undefined,
     ownerId: c.owner?.uuid ?? undefined,
+    ownerNumericId: c.owner?.id,
     isOwner: Boolean(c.is_owner),
+    canManage: Boolean(c.can_manage ?? c.is_owner),
     isSubscribed: Boolean(c.is_subscribed),
+    commentsEnabled: c.comments_enabled !== false,
+    rules: c.rules ?? "",
+    contacts: c.contacts ?? "",
     postsRequireModeration: Boolean(c.posts_require_moderation),
   };
 }
@@ -190,6 +220,9 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
     status: mapStatus(p.status),
     likes: p.likes ?? 0,
     views: p.views ?? 0,
+    liked: Boolean(p.liked),
+    pinned: Boolean(p.pinned),
+    feedPostId: p.feed_post_uuid ?? undefined,
     kind: (p.kind as PostKind) ?? undefined,
     media,
     images: media.filter((item) => item.type === "image").map((item) => item.url),
@@ -251,6 +284,10 @@ export async function updateChannel(
     description?: string;
     category?: string;
     kind?: ChannelKind;
+    comments_enabled?: boolean;
+    rules?: string;
+    contacts?: string;
+    slug?: string;
   },
 ): Promise<Channel> {
   if (isDemoMode()) {
@@ -288,6 +325,75 @@ export async function deleteChannelPost(channelSlug: string, postId: string): Pr
     return;
   }
   await api(`/channels/${channelSlug}/posts/${postId}`, { method: "DELETE" });
+}
+
+const GUEST_VIEWER_KEY = "mc_vid";
+
+export function getGuestViewerId(): string {
+  if (typeof window === "undefined") return "guest-ssr-fallback";
+  try {
+    let id = window.localStorage.getItem(GUEST_VIEWER_KEY);
+    if (!id || !/^[A-Za-z0-9._:-]{8,80}$/.test(id)) {
+      id = crypto.randomUUID();
+      window.localStorage.setItem(GUEST_VIEWER_KEY, id);
+    }
+    return id;
+  } catch {
+    return `guest-${Date.now()}`;
+  }
+}
+
+export async function setChannelPostLiked(
+  channelSlug: string,
+  postId: string,
+  liked: boolean,
+): Promise<ChannelPost> {
+  if (isDemoMode()) {
+    return {
+      id: postId,
+      channelId: channelSlug,
+      authorName: "",
+      createdAt: new Date().toISOString(),
+      text: "",
+      status: "published",
+      likes: liked ? 1 : 0,
+      views: 0,
+      liked,
+      media: [],
+      images: [],
+    };
+  }
+  const res = await api<{ data: ApiChannelPost }>(`/channels/${channelSlug}/posts/${postId}/like`, {
+    method: liked ? "POST" : "DELETE",
+  });
+  return mapPost(res.data, channelSlug);
+}
+
+export async function recordChannelPostView(channelSlug: string, postId: string): Promise<number | null> {
+  if (isDemoMode()) return null;
+  try {
+    const res = await api<{ data: { views?: number } }>(`/channels/${channelSlug}/posts/${postId}/view`, {
+      method: "POST",
+      headers: { "X-Guest-Viewer": getGuestViewerId() },
+    });
+    return res.data?.views ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setChannelPostPinned(
+  channelSlug: string,
+  postId: string,
+  pinned: boolean,
+): Promise<ChannelPost> {
+  if (isDemoMode()) {
+    throw new Error("demo");
+  }
+  const res = await api<{ data: ApiChannelPost }>(`/channels/${channelSlug}/posts/${postId}/pin`, {
+    method: pinned ? "POST" : "DELETE",
+  });
+  return mapPost(res.data, channelSlug);
 }
 
 export async function createChannelPost(input: {
@@ -333,11 +439,6 @@ export function useChannels(): { channels: Channel[]; loading: boolean; reload: 
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(() => {
-    if (!isDemoMode() && !getToken()) {
-      setChannels([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     fetchChannels()
       .then(setChannels)

@@ -319,6 +319,7 @@ class PostService
             'author.profile.avatar',
             'category',
             'community',
+            'channelPost.channel.avatar',
             'mediaItems.media',
             'tags',
             'repostOf.author.profile',
@@ -359,6 +360,9 @@ class PostService
             $post->viewer_reacted = false;
             $post->viewer_bookmarked = false;
             $post->viewer_reposted = false;
+            if ($post->channelPost?->channel) {
+                $post->channelPost->channel->is_subscribed = false;
+            }
 
             return;
         }
@@ -376,6 +380,13 @@ class PostService
             ->where('original_post_id', $post->id)
             ->where('user_id', $viewer->id)
             ->exists();
+
+        if ($post->channelPost?->channel) {
+            $post->channelPost->channel->is_subscribed = $post->channelPost->channel
+                ->subscribers()
+                ->whereKey($viewer->id)
+                ->exists();
+        }
     }
 
     /**
@@ -405,6 +416,9 @@ class PostService
                 $post->viewer_bookmarked = false;
                 $post->viewer_reposted = false;
                 $post->reposts_total = (int) ($repostTotals[$post->id] ?? 0);
+                if ($post->channelPost?->channel) {
+                    $post->channelPost->channel->is_subscribed = false;
+                }
             });
 
             return;
@@ -434,11 +448,30 @@ class PostService
                 ->all(),
         );
 
-        $posts->each(function (Post $post) use ($reacted, $bookmarked, $reposted, $repostTotals): void {
+        $channelIds = $posts
+            ->map(fn (Post $post) => $post->channelPost?->channel?->id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $subscribedChannels = $channelIds === []
+            ? []
+            : array_flip(
+                DB::table('channel_subscriptions')
+                    ->where('user_id', $viewer->id)
+                    ->whereIn('channel_id', $channelIds)
+                    ->pluck('channel_id')
+                    ->all(),
+            );
+
+        $posts->each(function (Post $post) use ($reacted, $bookmarked, $reposted, $repostTotals, $subscribedChannels): void {
             $post->viewer_reacted = isset($reacted[$post->id]);
             $post->viewer_bookmarked = isset($bookmarked[$post->id]);
             $post->viewer_reposted = isset($reposted[$post->id]);
             $post->reposts_total = (int) ($repostTotals[$post->id] ?? 0);
+            if ($post->channelPost?->channel) {
+                $post->channelPost->channel->is_subscribed = isset($subscribedChannels[$post->channelPost->channel->id]);
+            }
         });
     }
 
