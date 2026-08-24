@@ -6,6 +6,7 @@ use App\Models\LandingCard;
 use App\Models\LandingSection;
 use App\Models\PostCategory;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class LandingPageSeeder extends Seeder
 {
@@ -95,6 +96,10 @@ class LandingPageSeeder extends Seeder
      */
     private function seedSection(string $slug, array $attrs, array $cards = []): void
     {
+        if (! Schema::hasColumn('landing_sections', 'media_url')) {
+            unset($attrs['media_url']);
+        }
+
         LandingSection::query()->firstOrCreate(['slug' => $slug], $attrs);
 
         foreach ($cards as $row) {
