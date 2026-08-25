@@ -25,6 +25,7 @@ Route::prefix('users')->group(function (): void {
         Route::get('me/stats', MyStatsController::class);
         Route::get('search', IndexUsersController::class);
         Route::get('me/settings', [SettingsController::class, 'show']);
+        Route::patch('me/settings', [SettingsController::class, 'update']);
         Route::get('me/interests', [InterestsController::class, 'show']);
         Route::get('me/referrals', ReferralController::class);
 
@@ -40,7 +41,6 @@ Route::prefix('users')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
         Route::patch('me', UpdateProfileController::class);
-        Route::patch('me/settings', [SettingsController::class, 'update']);
         Route::patch('me/privacy', PrivacyController::class);
         Route::put('me/interests', [InterestsController::class, 'sync']);
         Route::post('me/notifications/read-all', [NotificationController::class, 'markAllRead']);

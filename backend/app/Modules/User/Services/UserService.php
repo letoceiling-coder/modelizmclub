@@ -13,6 +13,9 @@ use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\UserProfile;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
+use App\Support\UserLabel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -273,6 +276,16 @@ class UserService
             UserProfile::where('user_id', $follower->id)->increment('following_count');
             UserProfile::where('user_id', $target->id)->increment('followers_count');
         });
+
+        InAppNotify::sendQuiet(
+            $target,
+            new InAppNotification(
+                'followers',
+                UserLabel::display($follower).' подписался(ась) на вас',
+                '',
+                '/friends',
+            ),
+        );
     }
 
     public function unfollow(User $follower, User $target): void

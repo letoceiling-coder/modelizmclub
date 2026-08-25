@@ -3,6 +3,7 @@
 namespace Modules\Chat\Services;
 
 use App\Enums\ConversationType;
+use App\Events\UserRealtimeEvent;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Listing;
@@ -10,7 +11,9 @@ use App\Models\Media;
 use App\Models\Message;
 use App\Models\PostCategory;
 use App\Models\User;
-use App\Events\UserRealtimeEvent;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
+use App\Support\UserLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -609,6 +612,7 @@ class ChatService
             ->whereNull('left_at')
             ->update(['last_read_message_id' => $latestId]);
 
+        $this->markConversationNotificationsRead($user, $conversation);
         $this->notifyConversationRead($conversation, $user);
     }
 
@@ -744,7 +748,65 @@ class ChatService
             } catch (\Throwable) {
                 // Reverb may be unavailable during tests or maintenance
             }
+
+            $this->upsertAggregatedMessageNotification($recipient, $author, $conversation, $body, $type);
         }
+    }
+
+    private function conversationNotificationLink(Conversation $conversation): string
+    {
+        return '/messenger?chat='.$conversation->uuid;
+    }
+
+    private function upsertAggregatedMessageNotification(
+        User $recipient,
+        User $author,
+        Conversation $conversation,
+        ?string $body,
+        string $type,
+    ): void {
+        $link = $this->conversationNotificationLink($conversation);
+        $preview = mb_substr(trim((string) $body), 0, 140);
+        if ($preview === '') {
+            $preview = $type === 'post' ? 'Поделился публикацией' : 'Новое сообщение';
+        }
+        $title = UserLabel::display($author).' написал(а) вам';
+
+        $existing = $recipient->unreadNotifications()
+            ->where('data->link', $link)
+            ->where(function ($q): void {
+                $q->where('data->type', 'messages')
+                    ->orWhere('data->type', 'message');
+            })
+            ->first();
+
+        if ($existing) {
+            $data = is_array($existing->data) ? $existing->data : [];
+            $data['type'] = 'messages';
+            $data['title'] = $title;
+            $data['body'] = $preview;
+            $data['link'] = $link;
+            $existing->forceFill(['data' => $data])->save();
+
+            return;
+        }
+
+        InAppNotify::sendQuiet(
+            $recipient,
+            new InAppNotification('messages', $title, $preview, $link),
+        );
+    }
+
+    private function markConversationNotificationsRead(User $user, Conversation $conversation): void
+    {
+        $link = $this->conversationNotificationLink($conversation);
+
+        $user->unreadNotifications()
+            ->where('data->link', $link)
+            ->get()
+            ->each(function ($notification): void {
+                $notification->markAsRead();
+            });
     }
 
     private function notifyConversationRead(Conversation $conversation, User $reader): void

@@ -687,13 +687,32 @@ class ChatFrontendIntegrationTest extends TestCase
         $messageUuid = $created->json('data.uuid');
 
         $this->assertSame(
-            0,
-            $recipient->fresh()->notifications()->where('data->type', 'message')->count(),
+            1,
+            $recipient->fresh()->notifications()->where('data->type', 'messages')->count(),
+        );
+
+        $this->actingAs($sender, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conv->uuid}/messages", [
+                'body' => 'Ещё одно',
+            ])
+            ->assertCreated();
+
+        $this->assertSame(
+            1,
+            $recipient->fresh()->notifications()->where('data->type', 'messages')->count(),
+        );
+        $this->assertSame(
+            'Ещё одно',
+            $recipient->fresh()->notifications()->where('data->type', 'messages')->first()?->data['body'] ?? null,
         );
 
         $this->actingAs($recipient, 'sanctum')
             ->postJson("/api/v1/conversations/{$conv->uuid}/read")
             ->assertOk();
+
+        $this->assertNotNull(
+            $recipient->fresh()->notifications()->where('data->type', 'messages')->first()?->read_at,
+        );
 
         $this->actingAs($sender, 'sanctum')
             ->getJson("/api/v1/conversations/{$conv->uuid}/messages")

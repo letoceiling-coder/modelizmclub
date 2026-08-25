@@ -10,6 +10,8 @@ use App\Models\ModerationQueue;
 use App\Models\CommunityApplication;
 use App\Models\CommunityCategory;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -142,7 +144,7 @@ class CommunityService
     {
         $this->assertPendingApplication($application);
 
-        return DB::transaction(function () use ($application, $reviewer): Community {
+        $community = DB::transaction(function () use ($application, $reviewer): Community {
             $community = Community::create([
                 'category_id' => $application->category_id,
                 'name' => $application->proposed_name,
@@ -177,6 +179,21 @@ class CommunityService
 
             return $community;
         });
+
+        $applicant = User::query()->find($application->user_id);
+        if ($applicant) {
+            InAppNotify::sendQuiet(
+                $applicant,
+                new InAppNotification(
+                    'moderation',
+                    'Заявка на сообщество одобрена',
+                    $community->name,
+                    '/communities/'.$community->slug,
+                ),
+            );
+        }
+
+        return $community;
     }
 
     public function rejectApplication(CommunityApplication $application, User $reviewer, ?string $reason = null): CommunityApplication
@@ -189,6 +206,19 @@ class CommunityService
             'reviewed_by' => $reviewer->id,
             'reviewed_at' => now(),
         ]);
+
+        $applicant = User::query()->find($application->user_id);
+        if ($applicant) {
+            InAppNotify::sendQuiet(
+                $applicant,
+                new InAppNotification(
+                    'moderation',
+                    'Заявка на сообщество отклонена',
+                    (string) ($reason ?? ''),
+                    '/communities',
+                ),
+            );
+        }
 
         return $application->fresh();
     }

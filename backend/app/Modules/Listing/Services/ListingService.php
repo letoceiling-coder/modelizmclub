@@ -12,6 +12,8 @@ use App\Models\Payment;
 use App\Models\Promocode;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -406,6 +408,8 @@ class ListingService
 
     public function markPublished(Listing $listing): void
     {
+        $already = $listing->status === ListingStatus::Published;
+
         $listing->update([
             'status' => ListingStatus::Published,
             'published_at' => $listing->published_at ?? now(),
@@ -415,6 +419,21 @@ class ListingService
             ->where('moderatable_type', Listing::class)
             ->where('moderatable_id', $listing->id)
             ->update(['status' => 'approved']);
+
+        if (! $already) {
+            $owner = $listing->author ?? User::query()->find($listing->user_id);
+            if ($owner) {
+                InAppNotify::sendQuiet(
+                    $owner,
+                    new InAppNotification(
+                        'listings',
+                        'Объявление опубликовано',
+                        (string) $listing->title,
+                        '/ads/'.$listing->uuid,
+                    ),
+                );
+            }
+        }
     }
 
     /** Apply moderation gate after placement/payment is resolved. */

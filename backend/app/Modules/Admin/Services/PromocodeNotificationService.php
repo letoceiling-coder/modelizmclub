@@ -6,7 +6,8 @@ use App\Enums\UserStatus;
 use App\Models\Promocode;
 use App\Models\User;
 use App\Notifications\InAppNotification;
-use Illuminate\Support\Facades\Notification;
+use App\Services\InAppNotify;
+use App\Services\NotificationPolicy;
 
 class PromocodeNotificationService
 {
@@ -32,8 +33,7 @@ class PromocodeNotificationService
                 ->whereIn('id', $ids)
                 ->where('status', UserStatus::Active)
                 ->chunkById(200, function ($users) use ($title, $body, $link, &$sent): void {
-                    Notification::send($users, new InAppNotification('promo', $title, $body, $link));
-                    $sent += $users->count();
+                    $sent += $this->sendPromoChunk($users, $title, $body, $link);
                 });
 
             return $sent;
@@ -42,9 +42,26 @@ class PromocodeNotificationService
         User::query()
             ->where('status', UserStatus::Active)
             ->chunkById(500, function ($users) use ($title, $body, $link, &$sent): void {
-                Notification::send($users, new InAppNotification('promo', $title, $body, $link));
-                $sent += $users->count();
+                $sent += $this->sendPromoChunk($users, $title, $body, $link);
             });
+
+        return $sent;
+    }
+
+    /** @param  \Illuminate\Support\Collection<int, User>|\Illuminate\Database\Eloquent\Collection<int, User>  $users */
+    private function sendPromoChunk($users, string $title, string $body, string $link): int
+    {
+        $sent = 0;
+        foreach ($users as $user) {
+            if (! NotificationPolicy::allows($user, 'promo', 'in_app')) {
+                continue;
+            }
+            InAppNotify::sendQuiet(
+                $user,
+                new InAppNotification('promo', $title, $body, $link),
+            );
+            $sent++;
+        }
 
         return $sent;
     }

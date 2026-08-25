@@ -29,6 +29,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationPolicyController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPlanController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
@@ -118,6 +119,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
         Route::get('feed/guest-access', [AdminFeedGuestAccessController::class, 'show']);
         Route::put('feed/guest-access', [AdminFeedGuestAccessController::class, 'update']);
+
+        Route::get('notifications/policy', [AdminNotificationPolicyController::class, 'show']);
+        Route::put('notifications/policy', [AdminNotificationPolicyController::class, 'update']);
 
         Route::post('notifications', AdminNotificationController::class);
 

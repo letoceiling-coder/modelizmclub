@@ -6,6 +6,9 @@ use App\Models\ChannelPost;
 use App\Models\Post;
 use App\Models\PostReaction;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
+use App\Support\UserLabel;
 use Illuminate\Support\Facades\DB;
 use Modules\Feed\Support\PostInteractionRules;
 
@@ -22,6 +25,7 @@ class PostInteractionService
 
         if ($created->wasRecentlyCreated) {
             $post->increment('reactions_count');
+            $this->notifyLike($post, $user);
         } elseif ($created->type !== $type) {
             $created->update(['type' => $type]);
         }
@@ -140,5 +144,23 @@ class PostInteractionService
         ChannelPost::query()
             ->where('feed_post_id', $post->id)
             ->update(['likes_count' => (int) $post->reactions_count]);
+    }
+
+    private function notifyLike(Post $post, User $actor): void
+    {
+        $author = $post->author ?? User::query()->find($post->user_id);
+        if (! $author || (int) $author->id === (int) $actor->id) {
+            return;
+        }
+
+        InAppNotify::sendQuiet(
+            $author,
+            new InAppNotification(
+                'likes',
+                UserLabel::display($actor).' лайкнул(а) ваш пост',
+                (string) ($post->title ?? ''),
+                '/feed',
+            ),
+        );
     }
 }

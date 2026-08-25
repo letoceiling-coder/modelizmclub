@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
+use App\Services\NotificationPolicy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -25,6 +27,10 @@ class InAppNotification extends Notification
     /** @return array<int, string> */
     public function via(object $notifiable): array
     {
+        if ($notifiable instanceof User && ! NotificationPolicy::allows($notifiable, $this->type, 'in_app')) {
+            return [];
+        }
+
         return ['database'];
     }
 

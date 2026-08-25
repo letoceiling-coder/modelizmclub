@@ -22,8 +22,7 @@ interface ApiNotification {
   created_at?: string;
 }
 
-function mapNotification(n: ApiNotification): AppNotification | null {
-  if (n.type === "message") return null;
+function mapNotification(n: ApiNotification): AppNotification {
   return {
     id: n.id,
     type: n.type ?? "system",
@@ -42,7 +41,7 @@ export async function fetchNotifications(): Promise<{ items: AppNotification[]; 
     { query: { per_page: 30 } },
   );
   return {
-    items: (res.data ?? []).map(mapNotification).filter((n): n is AppNotification => n !== null),
+    items: (res.data ?? []).map(mapNotification),
     unread: res.meta?.unread ?? 0,
   };
 }

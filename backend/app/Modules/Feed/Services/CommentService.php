@@ -6,6 +6,9 @@ use App\Models\Comment;
 use App\Models\CommentReaction;
 use App\Models\Post;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
+use App\Support\UserLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -74,7 +77,34 @@ class CommentService
 
         $post->increment('comments_count');
 
+        $this->notifyComment($post, $comment, $user, $parent);
+
         return $comment->load(['author.profile.avatar']);
+    }
+
+    private function notifyComment(Post $post, Comment $comment, User $author, ?Comment $parent): void
+    {
+        $preview = mb_substr(trim($comment->body), 0, 140);
+        $from = UserLabel::display($author);
+        $link = '/feed';
+        $notified = [];
+
+        $postAuthor = $post->author ?? User::query()->find($post->user_id);
+        if ($postAuthor && (int) $postAuthor->id !== (int) $author->id) {
+            InAppNotify::sendQuiet(
+                $postAuthor,
+                new InAppNotification('comments', $from.' прокомментировал(а) ваш пост', $preview, $link),
+            );
+            $notified[$postAuthor->id] = true;
+        }
+
+        $parentAuthor = $parent?->author ?? ($parent ? User::query()->find($parent->user_id) : null);
+        if ($parentAuthor && (int) $parentAuthor->id !== (int) $author->id && ! isset($notified[$parentAuthor->id])) {
+            InAppNotify::sendQuiet(
+                $parentAuthor,
+                new InAppNotification('comments', $from.' ответил(а) на ваш комментарий', $preview, $link),
+            );
+        }
     }
 
     public function findByUuid(string $uuid): Comment

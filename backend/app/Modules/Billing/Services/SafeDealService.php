@@ -12,6 +12,8 @@ use App\Models\Listing;
 use App\Models\SafeDeal;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -101,7 +103,10 @@ class SafeDealService
                 $deal->update(['hold_transaction_id' => $hold->id]);
                 $this->log($deal, $buyer, 'paid', $amount, $hold->id, 'Средства заблокированы на балансе покупателя.');
 
-                return $deal->fresh();
+                $fresh = $deal->fresh();
+                $this->notifyDeal($fresh, $fresh?->seller_id, 'Новая безопасная сделка', 'Покупатель оплатил объявление.');
+
+                return $fresh;
             });
         } catch (InsufficientFundsException $e) {
             throw ValidationException::withMessages(['balance' => [$e->getMessage()]]);
@@ -125,7 +130,10 @@ class SafeDealService
 
         $this->log($deal, $seller, 'shipped', null, null, 'Продавец отметил отправку.');
 
-        return $deal->fresh();
+        $fresh = $deal->fresh();
+        $this->notifyDeal($fresh, $fresh?->buyer_id, 'Заказ отправлен', $trackingNumber ? 'Трек-номер: '.$trackingNumber : '');
+
+        return $fresh;
     }
 
     public function markDelivered(SafeDeal $deal, ?User $actor = null, string $note = 'Отмечено доставленным.'): SafeDeal
@@ -142,7 +150,11 @@ class SafeDealService
 
         $this->log($deal, $actor, 'delivered', null, null, $note);
 
-        return $deal->fresh();
+        $fresh = $deal->fresh();
+        $this->notifyDeal($fresh, $fresh?->buyer_id, 'Заказ доставлен', 'Подтвердите получение, чтобы продавец получил оплату.');
+        $this->notifyDeal($fresh, $fresh?->seller_id, 'Заказ отмечен доставленным', '');
+
+        return $fresh;
     }
 
     /** Buyer confirms receipt → release held funds to the seller. */
@@ -192,7 +204,7 @@ class SafeDealService
             throw ValidationException::withMessages(['deal' => ['Спор по этой сделке уже открыт.']]);
         }
 
-        return DB::transaction(function () use ($user, $deal, $reason, $description): Dispute {
+        $dispute = DB::transaction(function () use ($user, $deal, $reason, $description): Dispute {
             $previousStatus = $deal->status->value;
 
             $deal->update([
@@ -213,6 +225,12 @@ class SafeDealService
 
             return $dispute;
         });
+
+        $fresh = $deal->fresh() ?? $deal;
+        $otherId = (int) $user->id === (int) $fresh->buyer_id ? $fresh->seller_id : $fresh->buyer_id;
+        $this->notifyDeal($fresh, $otherId, 'Открыт спор по сделке', $reason);
+
+        return $dispute;
     }
 
     public function resolveDispute(User $admin, Dispute $dispute, string $inFavorOf, ?string $resolution): Dispute
@@ -271,7 +289,11 @@ class SafeDealService
                 $this->log($deal, null, 'commission', (int) $deal->platform_fee_kopecks, null, 'Комиссия платформы удержана.');
             }
 
-            return $deal->fresh();
+            $fresh = $deal->fresh();
+            $this->notifyDeal($fresh, $fresh?->seller_id, 'Сделка завершена', 'Средства переведены на ваш баланс.');
+            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка завершена', '');
+
+            return $fresh;
         });
     }
 
@@ -296,8 +318,30 @@ class SafeDealService
 
             $this->log($deal, $actor, $finalStatus->value, (int) $deal->amount_kopecks, $refund->id, $note);
 
-            return $deal->fresh();
+            $fresh = $deal->fresh();
+            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка отменена', 'Средства возвращены на баланс.');
+            $this->notifyDeal($fresh, $fresh?->seller_id, 'Сделка отменена', $note);
+
+            return $fresh;
         });
+    }
+
+    private function notifyDeal(?SafeDeal $deal, mixed $userId, string $title, string $body): void
+    {
+        $id = is_numeric($userId) ? (int) $userId : 0;
+        if ($id <= 0 || $deal === null) {
+            return;
+        }
+
+        $user = User::query()->find($id);
+        if (! $user) {
+            return;
+        }
+
+        InAppNotify::sendQuiet(
+            $user,
+            new InAppNotification('deals', $title, $body, "/deals/{$deal->uuid}"),
+        );
     }
 
     private function assertParticipant(SafeDeal $deal, User $user, string $role): void

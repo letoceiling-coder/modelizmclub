@@ -6,12 +6,13 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
+use App\Services\NotificationPolicy;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
 use Modules\Admin\Services\AuditService;
 
 #[Group('Admin — Notifications', weight: 70)]
@@ -33,13 +34,21 @@ class AdminNotificationController extends Controller
         User::query()
             ->where('status', UserStatus::Active)
             ->chunkById(500, function ($users) use ($data, &$sent): void {
-                Notification::send($users, new InAppNotification(
-                    type: 'system',
-                    title: $data['title'],
-                    body: $data['body'] ?? '',
-                    link: $data['link'] ?? null,
-                ));
-                $sent += $users->count();
+                foreach ($users as $user) {
+                    if (! NotificationPolicy::allows($user, 'promo', 'in_app')) {
+                        continue;
+                    }
+                    InAppNotify::sendQuiet(
+                        $user,
+                        new InAppNotification(
+                            type: 'promo',
+                            title: $data['title'],
+                            body: $data['body'] ?? '',
+                            link: $data['link'] ?? null,
+                        ),
+                    );
+                    $sent++;
+                }
             });
 
         $audit->log($request->user(), 'admin.notifications.broadcast', null, null, [

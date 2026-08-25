@@ -57,6 +57,7 @@ import { LandingBlocksAdminCard } from "@/components/admin/LandingBlocksAdminCar
 import { FaqAdminCard } from "@/components/admin/FaqAdminCard";
 import { IconManagerSection } from "@/components/admin/IconManagerSection";
 import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
+import { NotificationPolicyAdminCard } from "@/components/admin/NotificationPolicyAdminCard";
 import { AdminLegalPagesSection } from "@/components/admin/AdminLegalPagesSection";
 import { AdminFooterLinksSection } from "@/components/admin/AdminFooterLinksSection";
 import { ModerationAdminSection } from "@/components/admin/ModerationAdminSection";
@@ -76,7 +77,7 @@ import i18n from "@/lib/i18n";
 
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
-  | "monetization" | "feedBanners" | "feedGuestAccess" | "landingBlocks" | "categories" | "reviews" | "reviewCategories" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
+  | "monetization" | "feedBanners" | "feedGuestAccess" | "notificationPolicy" | "landingBlocks" | "categories" | "reviews" | "reviewCategories" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
   | "auditLog" | "applications" | "legalPages" | "footerLinks";
 
 export const Route = createFileRoute("/admin")({
@@ -104,6 +105,7 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
   { id: "monetization", labelKey: "pages.adminShell.nav.monetization", icon: DollarSign, roles: ["admin"] },
   { id: "feedBanners", labelKey: "pages.adminShell.nav.feedBanners", icon: Megaphone, roles: ["admin"] },
   { id: "feedGuestAccess", labelKey: "pages.adminShell.nav.feedGuestAccess", icon: ShieldCheck, roles: ["admin"] },
+  { id: "notificationPolicy", labelKey: "pages.adminShell.nav.notificationPolicy", icon: Bell, roles: ["admin"] },
   { id: "landingBlocks", labelKey: "pages.adminShell.nav.landingBlocks", icon: Home, roles: ["admin"] },
   { id: "icons", labelKey: "pages.adminShell.nav.icons", icon: Image, roles: ["admin"] },
   { id: "categories", labelKey: "pages.adminShell.nav.categories", icon: FolderTree, roles: ["admin"] },
@@ -416,6 +418,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "monetization") return <MonetizationSection />;
   if (section === "feedBanners") return <FeedBannersSection />;
   if (section === "feedGuestAccess") return <FeedGuestAccessSection />;
+  if (section === "notificationPolicy") return <NotificationPolicySection />;
   if (section === "landingBlocks") return <LandingBlocksSection />;
   if (section === "icons") return <IconManagerSection />;
   if (section === "categories") return <CategoriesSection />;
@@ -2291,6 +2294,14 @@ function FeedGuestAccessSection() {
   );
 }
 
+function NotificationPolicySection() {
+  return (
+    <div>
+      <NotificationPolicyAdminCard />
+    </div>
+  );
+}
+
 /* ============ CATEGORIES ============ */
 const CATEGORY_KIND_IDS: CategoryKind[] = ["post", "community", "listing", "video"];
 
@@ -3314,6 +3325,7 @@ const CARD_MANAGED_SETTING_KEYS = new Set([
   "feature.feed_auto_publish",
   "feature.listing_payment_enabled",
   "first_hundred_stats",
+  "notifications.policy",
 ]);
 
 function SettingsSection() {

@@ -10,6 +10,9 @@ use App\Models\PostCategory;
 use App\Models\SystemSetting;
 use App\Models\Tag;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
+use App\Support\UserLabel;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -203,6 +206,8 @@ class PostService
 
     public function markPublished(Post $post): void
     {
+        $already = $post->status === ContentStatus::Published;
+
         $post->update([
             'status' => ContentStatus::Published,
             'published_at' => $post->published_at ?? now(),
@@ -218,6 +223,33 @@ class PostService
         if ($post->community_id) {
             Community::query()->whereKey($post->community_id)->increment('posts_count');
         }
+
+        if (! $already) {
+            $this->notifyFollowers($post);
+        }
+    }
+
+    private function notifyFollowers(Post $post): void
+    {
+        $author = $post->author ?? User::query()->with('profile')->find($post->user_id);
+        if (! $author) {
+            return;
+        }
+
+        $title = UserLabel::display($author).' опубликовал(а) пост';
+        $body = (string) ($post->title ?? '');
+
+        User::query()
+            ->whereIn('id', $author->followers()->select('users.id'))
+            ->with('profile')
+            ->chunkById(100, function ($followers) use ($title, $body): void {
+                foreach ($followers as $follower) {
+                    InAppNotify::sendQuiet(
+                        $follower,
+                        new InAppNotification('subscription_posts', $title, $body, '/feed'),
+                    );
+                }
+            });
     }
 
     public function schedule(Post $post, User $user, \DateTimeInterface $scheduledAt): Post

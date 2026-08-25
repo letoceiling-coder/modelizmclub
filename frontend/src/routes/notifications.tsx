@@ -35,10 +35,10 @@ export const Route = createFileRoute("/notifications")({
 });
 
 function iconFor(type: string) {
-  if (type === "friend_request" || type === "friend_accept") return UserPlus;
-  if (type === "message") return MessageSquare;
-  if (type === "call") return Phone;
-  if (type === "system" || type === "moderation") return Megaphone;
+  if (type === "friend_request" || type === "friend_accept" || type === "friend_requests" || type === "followers") return UserPlus;
+  if (type === "message" || type === "messages" || type === "comments") return MessageSquare;
+  if (type === "call" || type === "calls") return Phone;
+  if (type === "system" || type === "moderation" || type === "promo" || type === "listings" || type === "deals") return Megaphone;
   return Bell;
 }
 

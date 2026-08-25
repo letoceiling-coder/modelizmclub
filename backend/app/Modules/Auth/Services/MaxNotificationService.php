@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserOAuthAccount;
 use App\Models\NotificationPreference;
 use App\Notifications\InAppNotification;
+use App\Services\NotificationPolicy;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
@@ -23,19 +24,6 @@ class MaxNotificationService
     public const MASTER_TYPE = 'all';
 
     private const TEXT_LIMIT = 3900;
-
-    /** @var array<string, string> */
-    private const IN_APP_PREF = [
-        'friend_request' => 'friend_requests',
-        'comment' => 'comments',
-        'comments' => 'comments',
-        'like' => 'likes',
-        'likes' => 'likes',
-        'message' => 'messages',
-        'messages' => 'messages',
-        'subscription_posts' => 'subscription_posts',
-        'subscription_post' => 'subscription_posts',
-    ];
 
     public function __construct(
         private readonly MaxBotClient $bot,
@@ -118,18 +106,7 @@ class MaxNotificationService
             return true;
         }
 
-        $prefType = self::IN_APP_PREF[$notification->type] ?? null;
-        if ($prefType === null) {
-            return true;
-        }
-
-        $row = NotificationPreference::query()
-            ->where('user_id', $user->id)
-            ->where('channel', 'in_app')
-            ->where('type', $prefType)
-            ->first();
-
-        return $row === null || $row->enabled;
+        return NotificationPolicy::allows($user, $notification->type, self::CHANNEL);
     }
 
     private function maxUserId(User $user): ?string

@@ -4,7 +4,6 @@ namespace Modules\User\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Dedoc\Scramble\Attributes\Group;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,22 +77,13 @@ class NotificationController extends Controller
     /** @param  \App\Models\User  $user */
     private function visibleNotifications($user): MorphMany
     {
-        return $user->notifications()->where(function (Builder $query): void {
-            $this->excludeChatMessages($query);
-        });
+        return $user->notifications();
     }
 
     /** @param  \App\Models\User  $user */
     private function visibleUnreadCount($user): int
     {
-        return $user->unreadNotifications()->where(function (Builder $query): void {
-            $this->excludeChatMessages($query);
-        })->count();
-    }
-
-    private function excludeChatMessages(Builder $query): void
-    {
-        $query->whereRaw("COALESCE(data::jsonb->>'type', '') <> 'message'");
+        return $user->unreadNotifications()->count();
     }
 
     /** @return array<string, mixed> */

@@ -13,6 +13,8 @@ use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\Video;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +74,7 @@ class ModerationService
 
             $this->logAction($model, $actor, 'approve');
 
-            return $model->fresh();
+            return $this->notifyDecision($model->fresh() ?? $model, 'approved');
         });
     }
 
@@ -111,7 +113,7 @@ class ModerationService
             }
             $this->logAction($model, $actor, 'reject', $reason);
 
-            return $model->fresh();
+            return $this->notifyDecision($model->fresh() ?? $model, 'rejected', $reason);
         });
     }
 
@@ -143,8 +145,56 @@ class ModerationService
             $this->updateQueue($model, 'revision');
             $this->logAction($model, $actor, 'revision', $comment);
 
-            return $model->fresh();
+            return $this->notifyDecision($model->fresh() ?? $model, 'revision', $comment);
         });
+    }
+
+    private function notifyDecision(Model $model, string $decision, ?string $reason = null): Model
+    {
+        [$owner, $type, $title, $link] = $this->decisionTarget($model, $decision);
+        if ($owner instanceof User) {
+            InAppNotify::sendQuiet(
+                $owner,
+                new InAppNotification($type, $title, (string) ($reason ?? ''), $link),
+            );
+        }
+
+        return $model;
+    }
+
+    /** @return array{0: ?User, 1: string, 2: string, 3: string} */
+    private function decisionTarget(Model $model, string $decision): array
+    {
+        $verb = match ($decision) {
+            'approved' => 'одобрено',
+            'rejected' => 'отклонено',
+            default => 'нуждается в доработке',
+        };
+
+        if ($model instanceof Post) {
+            return [$model->author ?? User::query()->find($model->user_id), 'moderation', 'Публикация '.$verb, '/feed'];
+        }
+        if ($model instanceof Listing) {
+            if ($decision === 'approved') {
+                return [null, 'listings', '', ''];
+            }
+
+            return [$model->author ?? User::query()->find($model->user_id), 'listings', 'Объявление '.$verb, '/ads/'.$model->uuid];
+        }
+        if ($model instanceof Community) {
+            return [$model->creator ?? User::query()->find($model->created_by), 'moderation', 'Сообщество '.$verb, '/communities'];
+        }
+        if ($model instanceof Video) {
+            return [User::query()->find($model->uploader_id), 'moderation', 'Обзор '.$verb, '/reviews'];
+        }
+        if ($model instanceof ChannelPost) {
+            $model->loadMissing('channel.owner');
+            $owner = $model->channel?->owner ?? User::query()->find($model->channel?->owner_id);
+
+            return [$owner, 'moderation', 'Пост канала '.$verb, '/channels'];
+        }
+
+        return [null, 'moderation', '', '/feed'];
     }
 
     private function updateQueue(Model $model, string $status): void

@@ -105,10 +105,14 @@ class ConsentService
         $log = $this->log($user, $type, $this->docVersionForSlug($slug), ConsentStatus::Revoked, $request);
 
         if ($type === ConsentType::Ads) {
-            NotificationPreference::query()
-                ->where('user_id', $user->id)
-                ->where('type', 'promo')
-                ->update(['enabled' => false]);
+            NotificationPreference::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'channel' => 'in_app',
+                    'type' => 'promo',
+                ],
+                ['enabled' => false],
+            );
         }
 
         return $log;

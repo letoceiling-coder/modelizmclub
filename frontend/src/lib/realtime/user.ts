@@ -88,10 +88,18 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     return;
   }
 
-  if (type === "notification") {
+    if (type === "notification") {
     const p = data as { notification?: ApiNotificationPayload };
     if (!p.notification) return;
-    if (p.notification.type === "message") return;
+    const notifType = p.notification.type ?? "";
+    const link = p.notification.link ?? "";
+    if (
+      (notifType === "message" || notifType === "messages")
+      && watchingDialogId
+      && link.includes(watchingDialogId)
+    ) {
+      return;
+    }
     const n = mapRealtimeNotification(p.notification);
     notificationListeners.forEach((cb) => cb(n));
     unreadBumpListeners.forEach((cb) => cb());

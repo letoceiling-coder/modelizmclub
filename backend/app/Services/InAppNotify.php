@@ -31,10 +31,15 @@ class InAppNotify
         ?string $realtimeType = 'notification',
         ?array $realtimePayload = null,
     ): void {
+        if (! NotificationPolicy::allows($user, $notification->type, 'in_app')) {
+            return;
+        }
+
+        $latestBefore = $user->notifications()->latest('created_at')->value('id');
         $user->notify($notification);
 
         $dbn = $user->notifications()->latest('created_at')->first();
-        if ($dbn instanceof DatabaseNotification) {
+        if ($dbn instanceof DatabaseNotification && $dbn->id !== $latestBefore) {
             self::broadcastSafely(new UserRealtimeEvent($user->uuid, 'notification', [
                 'notification' => self::present($dbn),
             ]));
@@ -42,6 +47,15 @@ class InAppNotify
 
         if ($realtimeType !== null && $realtimePayload !== null && $realtimeType !== 'notification') {
             self::broadcastSafely(new UserRealtimeEvent($user->uuid, $realtimeType, $realtimePayload));
+        }
+    }
+
+    public static function sendQuiet(User $user, InAppNotification $notification): void
+    {
+        try {
+            self::send($user, $notification);
+        } catch (Throwable) {
+            // Domain action already succeeded.
         }
     }
 
