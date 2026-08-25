@@ -14,6 +14,17 @@ export function isYandexOAuthUser(user: User | null | undefined): boolean {
   return user?.oauth_providers?.includes("yandex") ?? false;
 }
 
+export function isMaxOAuthUser(user: User | null | undefined): boolean {
+  return user?.oauth_providers?.includes("max") ?? false;
+}
+
+/** MAX can be unlinked only if another login method exists. */
+export function canUnlinkMax(user: User | null | undefined): boolean {
+  if (!isMaxOAuthUser(user)) return false;
+  if (isVkOAuthUser(user) || isYandexOAuthUser(user)) return true;
+  return Boolean(displayEmail(user));
+}
+
 /** Hide synthetic OAuth placeholder emails from UI. */
 export function displayEmail(user: User | null | undefined): string | undefined {
   const email = user?.email?.trim();
@@ -23,7 +34,7 @@ export function displayEmail(user: User | null | undefined): string | undefined 
 
 export function isEmailVerified(user: User | null | undefined): boolean {
   if (isDemoMode()) return true;
-  if (isVkOAuthUser(user)) return true;
+  if (isVkOAuthUser(user) || isMaxOAuthUser(user)) return true;
   return user?.email_verified === true;
 }
 

@@ -4,6 +4,7 @@ namespace Modules\Auth\Services;
 
 use App\Models\User;
 use App\Models\UserOAuthAccount;
+use App\Models\NotificationPreference;
 use App\Notifications\InAppNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -17,7 +18,24 @@ use Throwable;
  */
 class MaxNotificationService
 {
+    public const CHANNEL = 'max';
+
+    public const MASTER_TYPE = 'all';
+
     private const TEXT_LIMIT = 3900;
+
+    /** @var array<string, string> */
+    private const IN_APP_PREF = [
+        'friend_request' => 'friend_requests',
+        'comment' => 'comments',
+        'comments' => 'comments',
+        'like' => 'likes',
+        'likes' => 'likes',
+        'message' => 'messages',
+        'messages' => 'messages',
+        'subscription_posts' => 'subscription_posts',
+        'subscription_post' => 'subscription_posts',
+    ];
 
     public function __construct(
         private readonly MaxBotClient $bot,
@@ -30,7 +48,7 @@ class MaxNotificationService
         }
 
         $maxUserId = $this->maxUserId($notifiable);
-        if ($maxUserId === null) {
+        if ($maxUserId === null || ! $this->isEnabled($notifiable) || ! $this->allowsNotification($notifiable, $notification)) {
             return;
         }
 
@@ -45,6 +63,73 @@ class MaxNotificationService
         }
 
         $this->sendSafely((int) $maxUserId, $text, $url);
+    }
+
+    public function enable(User $user): void
+    {
+        NotificationPreference::query()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'channel' => self::CHANNEL,
+                'type' => self::MASTER_TYPE,
+            ],
+            ['enabled' => true],
+        );
+    }
+
+    public function enableIfMissing(User $user): void
+    {
+        NotificationPreference::query()->firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'channel' => self::CHANNEL,
+                'type' => self::MASTER_TYPE,
+            ],
+            ['enabled' => true],
+        );
+    }
+
+    public function disable(User $user): void
+    {
+        NotificationPreference::query()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'channel' => self::CHANNEL,
+                'type' => self::MASTER_TYPE,
+            ],
+            ['enabled' => false],
+        );
+    }
+
+    public function isEnabled(User $user): bool
+    {
+        $row = NotificationPreference::query()
+            ->where('user_id', $user->id)
+            ->where('channel', self::CHANNEL)
+            ->where('type', self::MASTER_TYPE)
+            ->first();
+
+        return $row === null || $row->enabled;
+    }
+
+    private function allowsNotification(User $user, Notification $notification): bool
+    {
+        if (! $notification instanceof InAppNotification) {
+            return true;
+        }
+
+        $prefType = self::IN_APP_PREF[$notification->type] ?? null;
+        if ($prefType === null) {
+            return true;
+        }
+
+        $row = NotificationPreference::query()
+            ->where('user_id', $user->id)
+            ->where('channel', 'in_app')
+            ->where('type', $prefType)
+            ->first();
+
+        return $row === null || $row->enabled;
     }
 
     private function maxUserId(User $user): ?string

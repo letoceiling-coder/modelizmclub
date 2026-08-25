@@ -11,6 +11,7 @@ use App\Models\UserProfile;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Auth\Services\MaxNotificationService;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class OAuthService
@@ -32,6 +33,9 @@ class OAuthService
             $this->ensureActiveUser($user);
             $this->syncProfileFromOAuth($user, $socialUser);
             $this->applyProviderVerification($user, $provider, $email);
+            if ($provider === 'max') {
+                app(MaxNotificationService::class)->enableIfMissing($user);
+            }
             app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($user->fresh());
 
             return $this->tokenResponse($user);
@@ -120,6 +124,10 @@ class OAuthService
             ['provider' => $provider, 'provider_user_id' => $providerUserId],
             ['user_id' => $user->id, 'token' => $this->tokenPayload($socialUser)],
         );
+
+        if ($provider === 'max') {
+            app(MaxNotificationService::class)->enableIfMissing($user);
+        }
     }
 
     private function ensureActiveUser(User $user): void

@@ -33,6 +33,10 @@ Route::prefix('auth')->group(function (): void {
         Route::post('logout-others', LogoutOthersController::class);
         Route::post('consent', ConsentController::class);
         Route::get('me', MeController::class);
+        Route::middleware('throttle:auth-max-start')->group(function (): void {
+            Route::post('oauth/max/link', [MaxAuthController::class, 'link']);
+            Route::delete('oauth/max', [MaxAuthController::class, 'unlink']);
+        });
     });
 });
 

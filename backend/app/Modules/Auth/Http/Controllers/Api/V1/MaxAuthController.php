@@ -41,4 +41,29 @@ class MaxAuthController extends Controller
 
         return response()->json(['data' => $max->status($session)]);
     }
+
+    public function link(Request $request, MaxAuthService $max): JsonResponse
+    {
+        if (! $max->isConfigured()) {
+            return response()->json([
+                'message' => 'Вход через MAX не настроен.',
+                'provider' => 'max',
+            ], 503);
+        }
+
+        return response()->json(['data' => $max->startLink($request->user())]);
+    }
+
+    public function unlink(Request $request, MaxAuthService $max): JsonResponse
+    {
+        $user = $request->user();
+        $max->unlink($user);
+        $user->unsetRelation('oauthAccounts');
+
+        return response()->json([
+            'data' => [
+                'oauth_providers' => $user->oauthProviderNames(),
+            ],
+        ]);
+    }
 }

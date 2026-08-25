@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
+import { MaxAccountCard } from "@/components/settings/MaxAccountCard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { useStore, selectors, setCurrentUser } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import { requestEmailChange, resendVerificationEmail, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
-import { displayEmail, isFullyVerified, isVkOAuthUser } from "@/lib/auth/verification";
+import { displayEmail, isFullyVerified, isMaxOAuthUser, isVkOAuthUser } from "@/lib/auth/verification";
 import { verificationSummary } from "@/lib/access/accessTier";
 import { ApiError } from "@/lib/api/client";
 
@@ -185,6 +186,7 @@ function AccountSection() {
   };
 
   const vkOAuth = isVkOAuthUser(currentUser);
+  const maxOAuth = isMaxOAuthUser(currentUser);
   const summary = verificationSummary(currentUser);
   const accountVerified = isFullyVerified(currentUser);
 
@@ -238,9 +240,11 @@ function AccountSection() {
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.emailLabel")}</h2>
-        {vkOAuth && !accountEmail ? (
+        {(vkOAuth || maxOAuth) && !accountEmail ? (
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
-            Вы вошли через VK ID. Подтверждение email не требуется — при необходимости добавьте почту в блоке ниже.
+            {maxOAuth
+              ? "Вы вошли через MAX. Подтверждение email не требуется — при необходимости добавьте почту в блоке ниже."
+              : "Вы вошли через VK ID. Подтверждение email не требуется — при необходимости добавьте почту в блоке ниже."}
           </p>
         ) : accountEmail ? (
           <>
@@ -334,6 +338,8 @@ function AccountSection() {
           {t("pages.settings.phoneConfirmNote")}
         </p>
       </Card>
+
+      <MaxAccountCard />
     </SettingsSectionShell>
   );
 }

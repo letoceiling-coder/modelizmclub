@@ -9,17 +9,10 @@ import {
   type NotifKey,
 } from "@/lib/settings-prefs";
 
-/**
- * Notification preferences persistence (Stage 4 — off localStorage onto the
- * real backend). The frontend UI is a flat 5-toggle list; the backend stores
- * per-(channel, type) rows { channel, type, enabled } via GET/PATCH
- * /users/me/settings. We namespace all of these toggles under a single
- * channel and map type ⇄ NotifKey 1:1. See docs/backend-endpoints-needed.md.
- *
- * Demo hosts (neeklo/local) have no backend — they fall back to localStorage
- * so the section still persists across refresh in demo.
- */
 const CHANNEL = "in_app";
+const MAX_CHANNEL = "max";
+const MAX_MASTER_TYPE = "all";
+const DEMO_MAX_KEY = "modelizm_max_channel";
 
 interface ApiPref {
   channel: string;
@@ -27,18 +20,39 @@ interface ApiPref {
   enabled: boolean;
 }
 
-export async function fetchNotifPrefs(): Promise<NotificationPrefs> {
-  if (isDemoMode()) return getLocalNotifPrefs();
+export type NotifPrefsState = {
+  prefs: NotificationPrefs;
+  maxEnabled: boolean;
+};
+
+function getDemoMaxEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = window.localStorage.getItem(DEMO_MAX_KEY);
+    if (raw === "0") return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export async function fetchNotifPrefs(): Promise<NotifPrefsState> {
+  if (isDemoMode()) {
+    return { prefs: getLocalNotifPrefs(), maxEnabled: getDemoMaxEnabled() };
+  }
 
   const res = await api<{ data: ApiPref[] }>("/users/me/settings");
   const prefs: NotificationPrefs = { ...NOTIF_DEFAULTS };
+  let maxEnabled = true;
   for (const row of res.data ?? []) {
-    if (row.channel !== CHANNEL) continue;
-    if ((NOTIF_KEYS as string[]).includes(row.type)) {
+    if (row.channel === CHANNEL && (NOTIF_KEYS as string[]).includes(row.type)) {
       prefs[row.type as NotifKey] = row.enabled;
     }
+    if (row.channel === MAX_CHANNEL && row.type === MAX_MASTER_TYPE) {
+      maxEnabled = row.enabled;
+    }
   }
-  return prefs;
+  return { prefs, maxEnabled };
 }
 
 export async function saveNotifPrefs(prefs: NotificationPrefs): Promise<void> {
@@ -50,6 +64,23 @@ export async function saveNotifPrefs(prefs: NotificationPrefs): Promise<void> {
     method: "PATCH",
     json: {
       preferences: NOTIF_KEYS.map((key) => ({ channel: CHANNEL, type: key, enabled: prefs[key] })),
+    },
+  });
+}
+
+export async function saveMaxChannelPref(enabled: boolean): Promise<void> {
+  if (isDemoMode()) {
+    try {
+      window.localStorage.setItem(DEMO_MAX_KEY, enabled ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+  await api("/users/me/settings", {
+    method: "PATCH",
+    json: {
+      preferences: [{ channel: MAX_CHANNEL, type: MAX_MASTER_TYPE, enabled }],
     },
   });
 }

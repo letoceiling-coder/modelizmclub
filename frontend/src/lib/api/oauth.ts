@@ -29,8 +29,9 @@ export type MaxAuthStart = {
 };
 
 export type MaxAuthStatus = {
-  status: "pending" | "awaiting_confirm" | "ready" | "consumed" | "denied" | "expired" | string;
+  status: "pending" | "awaiting_confirm" | "ready" | "consumed" | "denied" | "expired" | "conflict" | string;
   token?: string;
+  message?: string;
 };
 
 export async function startMaxAuth(): Promise<MaxAuthStart> {
@@ -48,4 +49,18 @@ export async function pollMaxAuth(session: string): Promise<MaxAuthStatus> {
     query: { session },
   });
   return res.data;
+}
+
+export async function startMaxLink(): Promise<MaxAuthStart> {
+  const res = await api<{ data: MaxAuthStart }>("/auth/oauth/max/link", {
+    method: "POST",
+  });
+  return res.data;
+}
+
+export async function unlinkMax(): Promise<string[]> {
+  const res = await api<{ data: { oauth_providers: string[] } }>("/auth/oauth/max", {
+    method: "DELETE",
+  });
+  return res.data.oauth_providers ?? [];
 }

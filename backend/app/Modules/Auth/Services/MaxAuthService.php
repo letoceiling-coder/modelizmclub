@@ -43,8 +43,55 @@ class MaxAuthService
         ];
     }
 
+    /** @return array{session: string, bot_url: string, expires_in: int} */
+    public function startLink(User $user): array
+    {
+        $session = Str::lower(Str::random(22));
+
+        Cache::put($this->sessionKey($session), [
+            'status' => 'pending',
+            'purpose' => 'link',
+            'site_user_id' => $user->id,
+            'created_at' => now()->getTimestamp(),
+            'return_url' => $this->settingsUrl(),
+        ], self::SESSION_TTL_SECONDS);
+
+        return [
+            'session' => $session,
+            'bot_url' => $this->botUrl($session),
+            'expires_in' => self::SESSION_TTL_SECONDS,
+        ];
+    }
+
+    public function canUnlink(User $user): bool
+    {
+        if ($user->oauthAccounts()->where('provider', '!=', 'max')->exists()) {
+            return true;
+        }
+
+        return filled($user->email) && ! User::isSyntheticOAuthEmail($user->email);
+    }
+
+    public function unlink(User $user): void
+    {
+        if (! $user->hasOAuthProvider('max')) {
+            return;
+        }
+
+        if (! $this->canUnlink($user)) {
+            abort(422, 'Сначала добавьте почту и пароль — иначе не войдёте на сайт.');
+        }
+
+        UserOAuthAccount::query()
+            ->where('user_id', $user->id)
+            ->where('provider', 'max')
+            ->delete();
+
+        app(MaxNotificationService::class)->disable($user);
+    }
+
     /**
-     * @return array{status: string, token?: string}
+     * @return array{status: string, token?: string, message?: string}
      */
     public function status(string $session): array
     {
@@ -55,6 +102,10 @@ class MaxAuthService
 
         $status = (string) ($data['status'] ?? 'pending');
         $result = ['status' => $status];
+
+        if ($status === 'conflict' && is_string($data['message'] ?? null) && $data['message'] !== '') {
+            $result['message'] = $data['message'];
+        }
 
         if ($status === 'ready' && is_string($data['token'] ?? null) && $data['token'] !== '') {
             $result['token'] = $data['token'];
@@ -154,33 +205,60 @@ class MaxAuthService
         if ($action === 'no') {
             $data['status'] = 'denied';
             Cache::put($this->sessionKey($session), $data, self::SESSION_TTL_SECONDS);
+            $isLink = $this->isLinkSession($data);
             $this->safeAnswer(
                 $callbackId,
-                'Вход отменён.',
-                'Вход на modelizmclub.ru отменён. Можно вернуться на сайт и выбрать другой способ входа.',
-                $this->siteUrl(),
+                $isLink ? 'Привязка отменена.' : 'Вход отменён.',
+                $isLink
+                    ? 'Привязка MAX отменена. Можно вернуться в настройки аккаунта.'
+                    : 'Вход на modelizmclub.ru отменён. Можно вернуться на сайт и выбрать другой способ входа.',
+                $isLink ? $this->settingsUrl() : $this->siteUrl(),
             );
 
             return;
         }
 
         if (in_array($data['status'] ?? '', ['ready', 'consumed'], true) && is_string($data['login_url'] ?? null)) {
-            $this->safeAnswer($callbackId, 'Вы уже вошли.', 'Вы уже вошли на modelizmclub.ru.', $data['login_url']);
+            $isLink = $this->isLinkSession($data);
+            $this->safeAnswer(
+                $callbackId,
+                $isLink ? 'Уже связано.' : 'Вы уже вошли.',
+                $isLink ? 'MAX уже привязан к аккаунту.' : 'Вы уже вошли на modelizmclub.ru.',
+                $data['login_url'],
+            );
 
             return;
         }
 
         try {
-            $this->completeLogin($session, $user, null, false);
+            if ($this->isLinkSession($data)) {
+                $this->completeLink($session, $user, null);
+            } else {
+                $this->completeLogin($session, $user, null, false);
+            }
             $data = Cache::get($this->sessionKey($session));
             $loginUrl = is_array($data) ? ($data['login_url'] ?? null) : null;
+            $isLink = is_array($data) && $this->isLinkSession($data);
             $this->safeAnswer(
                 $callbackId,
-                'Вход подтверждён.',
-                "Готово. Нажмите «Вернуться на сайт» — или откройте вкладку modelizmclub.ru, вход завершится сам.\nТелефон можно подтвердить по SMS на сайте.",
-                is_string($loginUrl) ? $loginUrl : $this->siteUrl(),
+                $isLink ? 'Аккаунт связан.' : 'Вход подтверждён.',
+                $isLink
+                    ? 'Аккаунт МоДелизМ связан. Уведомления будут приходить сюда. Вернитесь в настройки.'
+                    : "Готово. Нажмите «Вернуться на сайт» — или откройте вкладку modelizmclub.ru, вход завершится сам.\nТелефон можно подтвердить по SMS на сайте.",
+                is_string($loginUrl) ? $loginUrl : ($isLink ? $this->settingsUrl() : $this->siteUrl()),
             );
         } catch (\Throwable $e) {
+            $fresh = Cache::get($this->sessionKey($session));
+            if (is_array($fresh) && ($fresh['status'] ?? '') === 'conflict') {
+                $this->safeAnswer(
+                    $callbackId,
+                    'Не удалось связать.',
+                    (string) ($fresh['message'] ?? 'Этот MAX уже связан с другим аккаунтом.'),
+                    $this->settingsUrl(),
+                );
+
+                return;
+            }
             report($e);
             Log::warning('MAX login confirm failed', ['session' => $session, 'error' => $e->getMessage()]);
             $this->safeAnswer($callbackId, 'Не удалось войти. Попробуйте ещё раз с сайта.');
@@ -228,7 +306,8 @@ class MaxAuthService
 
         if (in_array($data['status'] ?? '', ['ready', 'consumed'], true) && is_string($data['login_url'] ?? null)) {
             if ($userId !== '') {
-                $this->safeSend($userId, 'Вы уже подтвердили вход. Откройте сайт:', $data['login_url']);
+                $done = $this->isLinkSession($data) ? 'MAX уже привязан. Откройте настройки:' : 'Вы уже подтвердили вход. Откройте сайт:';
+                $this->safeSend($userId, $done, $data['login_url']);
             }
 
             return;
@@ -241,21 +320,27 @@ class MaxAuthService
             Cache::put($this->userSessionKey($userId), $session, self::SESSION_TTL_SECONDS);
         }
 
+        $isLink = $this->isLinkSession($data);
+        $returnUrl = $isLink ? $this->settingsUrl() : $this->siteUrl();
+        $text = $isLink
+            ? "Привязка MAX к аккаунту modelizmclub.ru\n\n1. Нажмите «Подтвердить привязку» — или поделитесь номером.\n2. Вернитесь во вкладку настроек — статус обновится сам."
+            : "Вход на modelizmclub.ru\n\n1. Нажмите «Поделиться номером и войти» — или «Войти без номера».\n2. Нажмите «Вернуться на сайт». Вкладку modelizmclub.ru не закрывайте: вход завершится сам.";
+
         try {
             $this->bot->sendMessage([
-                'text' => "Вход на modelizmclub.ru\n\n1. Нажмите «Поделиться номером и войти» — или «Войти без номера».\n2. Нажмите «Вернуться на сайт». Вкладку modelizmclub.ru не закрывайте: вход завершится сам.",
+                'text' => $text,
                 'attachments' => [[
                     'type' => 'inline_keyboard',
                     'payload' => [
                         'buttons' => [
                             [[
                                 'type' => 'request_contact',
-                                'text' => 'Поделиться номером и войти',
+                                'text' => $isLink ? 'Поделиться номером' : 'Поделиться номером и войти',
                             ]],
                             [
                                 [
                                     'type' => 'callback',
-                                    'text' => 'Войти без номера',
+                                    'text' => $isLink ? 'Подтвердить привязку' : 'Войти без номера',
                                     'payload' => 'ok:'.$session,
                                 ],
                                 [
@@ -267,8 +352,8 @@ class MaxAuthService
                             ],
                             [[
                                 'type' => 'link',
-                                'text' => 'Вернуться на сайт',
-                                'url' => $this->siteUrl(),
+                                'text' => $isLink ? 'Вернуться в настройки' : 'Вернуться на сайт',
+                                'url' => $returnUrl,
                             ]],
                         ],
                     ],
@@ -295,6 +380,82 @@ class MaxAuthService
     private function frontendLoginUrl(string $token): string
     {
         return $this->siteUrl($token);
+    }
+
+    private function settingsUrl(): string
+    {
+        return rtrim((string) config('app.frontend_url'), '/').'/settings/account';
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function isLinkSession(array $data): bool
+    {
+        return ($data['purpose'] ?? '') === 'link';
+    }
+
+    /** @param  array<string, mixed>  $user */
+    private function completeLink(string $session, array $user, ?string $phone): void
+    {
+        $data = Cache::get($this->sessionKey($session));
+        if (! is_array($data) || ! $this->isLinkSession($data)) {
+            throw new \RuntimeException('Not a MAX link session.');
+        }
+
+        $siteUser = User::query()->find((int) ($data['site_user_id'] ?? 0));
+        if ($siteUser === null) {
+            throw new \RuntimeException('Site user is missing.');
+        }
+
+        $social = new MaxSocialUser($user);
+        $maxId = $social->getId();
+        if ($maxId === '') {
+            throw new \RuntimeException('MAX user id is missing.');
+        }
+
+        $existing = UserOAuthAccount::query()
+            ->where('provider', 'max')
+            ->where('provider_user_id', $maxId)
+            ->first();
+
+        if ($existing !== null && (int) $existing->user_id !== (int) $siteUser->id) {
+            $data['status'] = 'conflict';
+            $data['message'] = 'Этот MAX уже связан с другим аккаунтом. Войдите в него или напишите в поддержку.';
+            Cache::put($this->sessionKey($session), $data, self::SESSION_TTL_SECONDS);
+
+            throw new \RuntimeException('MAX already linked to another account.');
+        }
+
+        UserOAuthAccount::query()
+            ->where('user_id', $siteUser->id)
+            ->where('provider', 'max')
+            ->where('provider_user_id', '!=', $maxId)
+            ->delete();
+
+        UserOAuthAccount::query()->updateOrCreate(
+            ['provider' => 'max', 'provider_user_id' => $maxId],
+            ['user_id' => $siteUser->id, 'token' => []],
+        );
+
+        if ($phone !== null && ($siteUser->phone === null || $siteUser->phone === $phone)) {
+            try {
+                $siteUser->forceFill([
+                    'phone' => $phone,
+                    'phone_verified_at' => $siteUser->phone_verified_at ?? now(),
+                ])->save();
+            } catch (UniqueConstraintViolationException) {
+                $siteUser->refresh();
+            }
+        }
+
+        app(MaxNotificationService::class)->enable($siteUser);
+
+        Cache::put($this->sessionKey($session), [
+            'status' => 'ready',
+            'purpose' => 'link',
+            'site_user_id' => $siteUser->id,
+            'login_url' => $this->settingsUrl(),
+            'created_at' => $data['created_at'] ?? now()->getTimestamp(),
+        ], self::SESSION_TTL_SECONDS);
     }
 
     /** @return array<int, array<int, array<string, mixed>>> */
@@ -449,8 +610,18 @@ class MaxAuthService
             if (is_array($data) && ! in_array($data['status'] ?? '', ['ready', 'consumed', 'denied'], true)) {
                 $merged = array_merge(is_array($data['user'] ?? null) ? $data['user'] : [], $user, ['phone' => $phone]);
                 try {
-                    $this->completeLogin($session, $merged, $phone, true);
+                    if ($this->isLinkSession($data)) {
+                        $this->completeLink($session, $merged, $phone);
+                    } else {
+                        $this->completeLogin($session, $merged, $phone, true);
+                    }
                 } catch (\Throwable $e) {
+                    $fresh = Cache::get($this->sessionKey($session));
+                    if (is_array($fresh) && ($fresh['status'] ?? '') === 'conflict') {
+                        $this->safeSend($userId, (string) ($fresh['message'] ?? 'Этот MAX уже связан с другим аккаунтом.'), $this->settingsUrl());
+
+                        return;
+                    }
                     report($e);
                     Log::warning('MAX contact login failed', ['session' => $session, 'error' => $e->getMessage()]);
                     $this->safeSend($userId, 'Не удалось войти. Попробуйте ещё раз с сайта.');
@@ -460,7 +631,10 @@ class MaxAuthService
                 $fresh = Cache::get($this->sessionKey($session));
                 $loginUrl = is_array($fresh) && is_string($fresh['login_url'] ?? null) ? $fresh['login_url'] : null;
                 $note = is_array($fresh) && is_string($fresh['note'] ?? null) ? $fresh['note'].' ' : 'Номер сохранён. ';
-                $this->safeSend($userId, $note.'Нажмите «Вернуться на сайт».', $loginUrl);
+                $hint = is_array($fresh) && $this->isLinkSession($fresh)
+                    ? 'Вернитесь в настройки.'
+                    : 'Нажмите «Вернуться на сайт».';
+                $this->safeSend($userId, $note.$hint, $loginUrl);
 
                 return;
             }
