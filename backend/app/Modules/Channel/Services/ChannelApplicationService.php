@@ -6,9 +6,12 @@ use App\Enums\ChannelApplicationStatus;
 use App\Models\Channel;
 use App\Models\ChannelApplication;
 use App\Models\User;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ChannelApplicationService
 {
@@ -56,7 +59,7 @@ class ChannelApplicationService
     {
         $this->assertPending($application);
 
-        return DB::transaction(function () use ($application, $reviewer): Channel {
+        $channel = DB::transaction(function () use ($application, $reviewer): Channel {
             $kind = in_array($application->proposed_kind, ['brand', 'shop', 'author', 'expert'], true)
                 ? $application->proposed_kind
                 : 'author';
@@ -83,6 +86,15 @@ class ChannelApplicationService
 
             return $channel;
         });
+
+        $this->notifyApplicant(
+            $application,
+            title: 'Ваш канал успешно прошёл модерацию',
+            body: 'Канал «'.$channel->name.'» опубликован.',
+            link: '/channel/'.$channel->slug,
+        );
+
+        return $channel;
     }
 
     public function reject(ChannelApplication $application, User $reviewer, ?string $reason = null): ChannelApplication
@@ -95,6 +107,18 @@ class ChannelApplicationService
             'reviewed_by' => $reviewer->id,
             'reviewed_at' => now(),
         ]);
+
+        $name = $application->proposed_name;
+        $body = $reason
+            ? 'Заявка на канал «'.$name.'» отклонена. '.$reason
+            : 'Заявка на канал «'.$name.'» отклонена.';
+
+        $this->notifyApplicant(
+            $application,
+            title: 'Ваш канал не прошёл модерацию',
+            body: $body,
+            link: '/channels',
+        );
 
         return $application->fresh();
     }
@@ -126,6 +150,27 @@ class ChannelApplicationService
             throw ValidationException::withMessages([
                 'application' => ['Заявка уже рассмотрена.'],
             ]);
+        }
+    }
+
+    private function notifyApplicant(
+        ChannelApplication $application,
+        string $title,
+        string $body,
+        string $link,
+    ): void {
+        $applicant = $application->user ?? User::query()->find($application->user_id);
+        if (! $applicant) {
+            return;
+        }
+
+        try {
+            InAppNotify::send(
+                $applicant,
+                new InAppNotification('moderation', $title, $body, $link),
+            );
+        } catch (Throwable) {
+            // Решение модерации уже сохранено — сбой уведомления не должен ломать ответ API.
         }
     }
 }

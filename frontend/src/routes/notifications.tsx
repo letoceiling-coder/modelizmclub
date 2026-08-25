@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -38,7 +38,7 @@ function iconFor(type: string) {
   if (type === "friend_request" || type === "friend_accept") return UserPlus;
   if (type === "message") return MessageSquare;
   if (type === "call") return Phone;
-  if (type === "system") return Megaphone;
+  if (type === "system" || type === "moderation") return Megaphone;
   return Bell;
 }
 
@@ -117,7 +117,7 @@ function NotificationItem({
 
 function NotificationsPage() {
   const { t } = useTranslation();
-  const nav = useNavigate();
+  const router = useRouter();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const pendingDeletes = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -172,7 +172,10 @@ function NotificationsPage() {
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       markNotificationRead(n.id).catch(() => {});
     }
-    if (n.link) nav({ to: n.link });
+    if (n.link) {
+      const url = n.link.startsWith("/") ? n.link : `/${n.link}`;
+      router.history.push(url);
+    }
   };
 
   const markAll = async () => {

@@ -6,7 +6,7 @@ import {
   type EntityKind, type CommunityCategoryOption,
 } from "@/lib/api/entity-requests";
 import { uploadMedia } from "@/lib/api/media";
-import { prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
+import { blobToImageFile, prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX } from "@/lib/community-limits";
 import { CHANNEL_NAME_MAX, CHANNEL_SLUG_MAX, kindLabel, type ChannelKind } from "@/lib/channels";
@@ -52,6 +52,8 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
   const [categoryId, setCategoryId] = useState<number | "">(""); // community
   const [cats, setCats] = useState<CommunityCategoryOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [avatarEditorFile, setAvatarEditorFile] = useState<File | null>(null);
+  const [bannerEditorFile, setBannerEditorFile] = useState<File | null>(null);
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const [pendingBanner, setPendingBanner] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -72,6 +74,26 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  useEffect(() => () => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+  }, [avatarPreview]);
+  useEffect(() => () => {
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+  }, [bannerPreview]);
+
+  const applyCropped = (
+    blob: Blob,
+    baseName: string,
+    setFile: (file: File) => void,
+    setPreview: (url: string) => void,
+    closeEditor: () => void,
+  ) => {
+    const file = blobToImageFile(blob, baseName);
+    closeEditor();
+    setFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
 
   const submit = async () => {
     if (name.trim().length < 3) { toast.error("Название — минимум 3 символа"); return; }
@@ -116,13 +138,16 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
     }
   };
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
       style={{ background: "rgba(0,0,0,0.55)" }}
-      onClick={onClose}
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         className="flex w-full flex-col overflow-hidden rounded-t-[20px] sm:max-w-[520px] sm:rounded-[16px]"
         style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", maxHeight: "90dvh" }}
       >
@@ -271,7 +296,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
               <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
                 Аватар 480×480 · обложка 1400×400 · JPG, PNG, WEBP
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
@@ -280,6 +305,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 >
                   {avatarPreview ? "Изменить аватар" : "Загрузить аватар"}
                 </button>
+                {avatarPreview && <img src={avatarPreview} alt="" className="h-12 w-12 rounded-full object-cover" />}
                 <button
                   type="button"
                   onClick={() => bannerInputRef.current?.click()}
@@ -288,13 +314,14 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 >
                   {bannerPreview ? "Изменить обложку" : "Загрузить обложку"}
                 </button>
+                {bannerPreview && <img src={bannerPreview} alt="" className="h-10 w-[80px] rounded-[6px] object-cover" />}
               </div>
               <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 if (!file) return;
                 try {
-                  setPendingAvatar(await prepareProfileImageFile(file));
+                  setAvatarEditorFile(await prepareProfileImageFile(file));
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
                 }
@@ -304,7 +331,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 e.target.value = "";
                 if (!file) return;
                 try {
-                  setPendingBanner(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
+                  setBannerEditorFile(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Не удалось обработать файл");
                 }
@@ -323,40 +350,36 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
           </button>
         </div>
       </div>
-
-      <PhotoEditorDialog
-        file={pendingAvatar}
-        aspect={1}
-        lockAspect
-        shape="circle"
-        lockShape
-        outputWidth={480}
-        outputHeight={480}
-        title="Аватар канала"
-        onCancel={() => setPendingAvatar(null)}
-        onCropped={(blob) => {
-          const file = new File([blob], "channel-avatar.jpg", { type: "image/jpeg" });
-          setPendingAvatar(file);
-          setAvatarPreview(URL.createObjectURL(file));
-        }}
-      />
-      <PhotoEditorDialog
-        file={pendingBanner}
-        aspect={3.5}
-        lockAspect
-        shape="rect"
-        lockShape
-        outputWidth={1400}
-        outputHeight={400}
-        title="Обложка канала"
-        safeZonePreset="cover-wide"
-        onCancel={() => setPendingBanner(null)}
-        onCropped={(blob) => {
-          const file = new File([blob], "channel-banner.jpg", { type: "image/jpeg" });
-          setPendingBanner(file);
-          setBannerPreview(URL.createObjectURL(file));
-        }}
-      />
     </div>
+    <PhotoEditorDialog
+      file={avatarEditorFile}
+      aspect={1}
+      lockAspect
+      shape="circle"
+      lockShape
+      outputWidth={480}
+      outputHeight={480}
+      title="Аватар канала"
+      onCancel={() => setAvatarEditorFile(null)}
+      onCropped={(blob) => {
+        applyCropped(blob, "channel-avatar", setPendingAvatar, setAvatarPreview, () => setAvatarEditorFile(null));
+      }}
+    />
+    <PhotoEditorDialog
+      file={bannerEditorFile}
+      aspect={3.5}
+      lockAspect
+      shape="rect"
+      lockShape
+      outputWidth={1400}
+      outputHeight={400}
+      title="Обложка канала"
+      safeZonePreset="cover-wide"
+      onCancel={() => setBannerEditorFile(null)}
+      onCropped={(blob) => {
+        applyCropped(blob, "channel-banner", setPendingBanner, setBannerPreview, () => setBannerEditorFile(null));
+      }}
+    />
+    </>
   );
 }

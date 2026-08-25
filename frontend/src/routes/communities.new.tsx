@@ -15,7 +15,7 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { applyCommunity } from "@/lib/api/entity-requests";
 import { uploadMedia } from "@/lib/api/media";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
+import { blobToImageFile, prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
 import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX, COMMUNITY_RULES_MAX } from "@/lib/community-limits";
 import { toast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
@@ -96,6 +96,8 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
   const [description, setDescription] = useState("");
   const [cityName, setCityName] = useState("");
   const [cityId, setCityId] = useState<number | undefined>();
+  const [avatarEditorFile, setAvatarEditorFile] = useState<File | null>(null);
+  const [coverEditorFile, setCoverEditorFile] = useState<File | null>(null);
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const [pendingCover, setPendingCover] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -264,14 +266,14 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 if (!file) return;
-                try { setPendingAvatar(await prepareProfileImageFile(file)); }
+                try { setAvatarEditorFile(await prepareProfileImageFile(file)); }
                 catch (err) { toast.error(err instanceof Error ? err.message : t("pages.communityWizard.fileFailed")); }
               }} />
               <input ref={coverInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 if (!file) return;
-                try { setPendingCover(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES)); }
+                try { setCoverEditorFile(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES)); }
                 catch (err) { toast.error(err instanceof Error ? err.message : t("pages.communityWizard.fileFailed")); }
               }} />
             </div>
@@ -403,7 +405,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
       </p>
 
       <PhotoEditorDialog
-        file={pendingAvatar}
+        file={avatarEditorFile}
         aspect={1}
         lockAspect
         shape="circle"
@@ -411,15 +413,19 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
         outputWidth={480}
         outputHeight={480}
         title={t("pages.communityWizard.avatarTitle")}
-        onCancel={() => setPendingAvatar(null)}
+        onCancel={() => setAvatarEditorFile(null)}
         onCropped={(blob) => {
-          const file = new File([blob], "community-avatar.jpg", { type: "image/jpeg" });
+          const file = blobToImageFile(blob, "community-avatar");
+          setAvatarEditorFile(null);
           setPendingAvatar(file);
-          setAvatarPreview(URL.createObjectURL(file));
+          setAvatarPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(file);
+          });
         }}
       />
       <PhotoEditorDialog
-        file={pendingCover}
+        file={coverEditorFile}
         aspect={3.5}
         lockAspect
         shape="rect"
@@ -428,11 +434,15 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
         outputHeight={400}
         title={t("pages.communityWizard.coverTitle")}
         safeZonePreset="cover-wide"
-        onCancel={() => setPendingCover(null)}
+        onCancel={() => setCoverEditorFile(null)}
         onCropped={(blob) => {
-          const file = new File([blob], "community-cover.jpg", { type: "image/jpeg" });
+          const file = blobToImageFile(blob, "community-cover");
+          setCoverEditorFile(null);
           setPendingCover(file);
-          setCoverPreview(URL.createObjectURL(file));
+          setCoverPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(file);
+          });
         }}
       />
     </div>

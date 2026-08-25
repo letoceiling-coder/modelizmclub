@@ -103,6 +103,12 @@ class EntityRequestsAndIconsTest extends TestCase
             'reviewed_by' => $admin->id,
         ]);
 
+        $applicant->refresh();
+        $approvedNote = $applicant->notifications()->latest('created_at')->first();
+        $this->assertNotNull($approvedNote);
+        $this->assertSame('Ваш канал успешно прошёл модерацию', $approvedNote->data['title'] ?? null);
+        $this->assertSame('/channel/'.$channel->slug, $approvedNote->data['link'] ?? null);
+
         // Повторное решение по уже рассмотренной заявке — 422.
         $this->postJson("/api/v1/admin/channels/applications/{$application->id}/reject", ['reason' => 'x'], $headers)
             ->assertStatus(422);
@@ -124,6 +130,12 @@ class EntityRequestsAndIconsTest extends TestCase
             'status' => 'rejected',
             'moderator_comment' => 'Недостаточно описания',
         ]);
+
+        $rejectedNote = $applicant->notifications()->latest('created_at')->first();
+        $this->assertNotNull($rejectedNote);
+        $this->assertSame('Ваш канал не прошёл модерацию', $rejectedNote->data['title'] ?? null);
+        $this->assertSame('/channels', $rejectedNote->data['link'] ?? null);
+        $this->assertStringContainsString('Недостаточно описания', (string) ($rejectedNote->data['body'] ?? ''));
     }
 
     // --- §27: community applications ---

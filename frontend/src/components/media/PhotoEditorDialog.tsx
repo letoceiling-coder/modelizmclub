@@ -360,6 +360,8 @@ export function PhotoEditorDialog({
     <Dialog open={isOpen} onOpenChange={(v) => { if (!v) handleCancel(); }}>
       <DialogContent
         className="!flex h-[90vh] w-[90vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-[var(--r-card)]"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader className="shrink-0 border-b px-[20px] py-[14px]" style={{ borderColor: "var(--border)" }}>
           <DialogTitle>{title}</DialogTitle>
