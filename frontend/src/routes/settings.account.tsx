@@ -81,20 +81,22 @@ function AccountSection() {
     }).finally(() => setLoading(false));
   }, [currentUser?.email, currentUser?.phone, currentUser?.email_verified, currentUser?.phone_verified, t]);
 
-  useEffect(() => {
-    if (loading || serverPhoneVerified === true) return;
-    document.getElementById("sms-verify")?.scrollIntoView({ block: "start" });
-  }, [loading, serverPhoneVerified]);
-
   const phoneMatchesVerified =
     serverPhoneVerified === true &&
     verifiedPhone !== null &&
     phone.replace(/\D/g, "") === verifiedPhone.replace(/\D/g, "");
 
   useEffect(() => {
-    if (loading || phoneMatchesVerified) return;
-    document.getElementById("sms-verify")?.scrollIntoView({ block: "start" });
-  }, [loading, phoneMatchesVerified]);
+    if (loading) return;
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    if (hash === "#max-account") {
+      document.getElementById("max-account")?.scrollIntoView({ block: "start" });
+      return;
+    }
+    if (hash === "#sms-verify" || afterVerify) {
+      document.getElementById("sms-verify")?.scrollIntoView({ block: "start" });
+    }
+  }, [loading, afterVerify]);
 
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,6 +232,9 @@ function AccountSection() {
           {accountVerified && (
             <Badge variant="published" withIcon={false}>{t("pages.settings.accountReady")}</Badge>
           )}
+          <Badge variant={maxOAuth ? "published" : "draft"} withIcon={false}>
+            MAX: {maxOAuth ? t("pages.settings.maxConnected") : t("pages.settings.maxDisconnected")}
+          </Badge>
         </div>
         {!accountVerified && (
           <p className="mt-[10px] text-[13px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
@@ -237,6 +242,8 @@ function AccountSection() {
           </p>
         )}
       </Card>
+
+      <MaxAccountCard />
 
       <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
         <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.emailLabel")}</h2>
@@ -338,8 +345,6 @@ function AccountSection() {
           {t("pages.settings.phoneConfirmNote")}
         </p>
       </Card>
-
-      <MaxAccountCard />
     </SettingsSectionShell>
   );
 }

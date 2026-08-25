@@ -89,7 +89,7 @@ function NotificationsSettings() {
             />
           ) : (
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link to="/settings/account">{t("pages.settings.maxConnect")}</Link>
+              <Link to="/settings/account" hash="max-account">{t("pages.settings.maxConnect")}</Link>
             </Button>
           )}
         </div>

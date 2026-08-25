@@ -218,7 +218,7 @@ export function MaxAccountCard() {
   };
 
   return (
-    <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+    <Card id="max-account" className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="mb-[10px] flex flex-wrap items-center gap-[8px]">
         <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
           {t("pages.settings.maxTitle")}
