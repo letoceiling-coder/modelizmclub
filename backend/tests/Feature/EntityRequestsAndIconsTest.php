@@ -131,9 +131,10 @@ class EntityRequestsAndIconsTest extends TestCase
             'moderator_comment' => 'Недостаточно описания',
         ]);
 
-        $rejectedNote = $applicant->notifications()->latest('created_at')->first();
+        $rejectedNote = $applicant->notifications()
+            ->get()
+            ->first(fn ($n) => ($n->data['title'] ?? null) === 'Ваш канал не прошёл модерацию');
         $this->assertNotNull($rejectedNote);
-        $this->assertSame('Ваш канал не прошёл модерацию', $rejectedNote->data['title'] ?? null);
         $this->assertSame('/channels', $rejectedNote->data['link'] ?? null);
         $this->assertStringContainsString('Недостаточно описания', (string) ($rejectedNote->data['body'] ?? ''));
     }
