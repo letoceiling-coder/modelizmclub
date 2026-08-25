@@ -43,8 +43,8 @@ class MaxNotificationTest extends TestCase
         );
 
         Http::assertSent(fn ($request): bool => $this->isMaxMessage($request, '9001', 'Новая заявка в друзья')
-            && str_contains((string) $request->body(), 'Иван хочет добавить вас')
-            && str_contains((string) $request->body(), 'https://modelizmclub.ru/friends'));
+            && str_contains($this->payload($request), 'Иван хочет добавить вас')
+            && str_contains($this->payload($request), 'https://modelizmclub.ru/friends'));
     }
 
     public function test_user_without_max_does_not_trigger_max_send(): void
@@ -63,7 +63,7 @@ class MaxNotificationTest extends TestCase
         $user->notify(new VerificationCodeNotification('654321'));
 
         Http::assertSent(fn ($request): bool => $this->isMaxMessage($request, '77', '654321')
-            && str_contains((string) $request->body(), 'Код подтверждения'));
+            && str_contains($this->payload($request), 'Код подтверждения'));
     }
 
     public function test_password_reset_is_sent_to_max_with_link(): void
@@ -76,10 +76,10 @@ class MaxNotificationTest extends TestCase
             if (! $this->isMaxMessage($request, '55', 'Сброс пароля')) {
                 return false;
             }
-            $body = (string) $request->body();
+            $payload = $this->payload($request);
 
-            return str_contains($body, 'reset-password')
-                && str_contains($body, urlencode($user->email));
+            return str_contains($payload, 'reset-password')
+                && str_contains($payload, urlencode($user->email));
         });
     }
 
@@ -108,10 +108,16 @@ class MaxNotificationTest extends TestCase
 
     private function isMaxMessage(object $request, string $maxUserId, string $needle): bool
     {
-        $url = $request->url();
+        $haystack = $this->payload($request);
 
-        return str_contains($url, 'platform-api2.max.ru/messages')
-            && str_contains($url, 'user_id='.$maxUserId)
-            && str_contains((string) $request->body(), $needle);
+        return str_contains($haystack, 'platform-api2.max.ru')
+            && str_contains($haystack, 'messages')
+            && str_contains($haystack, 'user_id='.$maxUserId)
+            && str_contains($haystack, $needle);
+    }
+
+    private function payload(object $request): string
+    {
+        return $request->url().' '.json_encode($request->data(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
