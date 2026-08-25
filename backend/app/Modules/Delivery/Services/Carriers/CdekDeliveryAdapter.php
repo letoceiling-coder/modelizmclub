@@ -5,6 +5,7 @@ namespace Modules\Delivery\Services\Carriers;
 use App\Enums\DeliveryCarrier;
 use App\Enums\ShipmentStatus;
 use App\Models\Shipment;
+use App\Support\DeliveryQuoteRounding;
 use Modules\Delivery\Contracts\DeliveryCarrierContract;
 use Modules\Delivery\Services\CdekApiExtension;
 use RuntimeException;
@@ -85,7 +86,7 @@ class CdekDeliveryAdapter implements DeliveryCarrierContract
         $price = (float) ($best['delivery_sum'] ?? $best['total_sum'] ?? 0);
 
         return [
-            'price_cents' => (int) round($price * 100),
+            'price_cents' => DeliveryQuoteRounding::roundKopecks((int) round($price * 100)),
             'tariff_code' => isset($best['tariff_code']) ? (string) $best['tariff_code'] : null,
             'currency' => 'RUB',
             'raw' => $raw,

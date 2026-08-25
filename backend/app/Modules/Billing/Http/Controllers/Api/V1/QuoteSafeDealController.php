@@ -8,14 +8,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Billing\Services\SafeDealService;
 
-class CreateSafeDealController extends Controller
+class QuoteSafeDealController extends Controller
 {
     public function __invoke(Request $request, string $uuid, SafeDealService $deals): JsonResponse
     {
         $listing = Listing::query()->with(['city', 'author'])->where('uuid', $uuid)->firstOrFail();
 
         $data = $request->validate([
-            'accept_terms' => ['sometimes', 'boolean'],
             'destination_point' => ['nullable', 'array'],
             'destination_point.city_code' => ['required_with:destination_point', 'integer', 'min:1'],
             'destination_point.external_point_id' => ['nullable', 'string', 'max:64'],
@@ -25,11 +24,8 @@ class CreateSafeDealController extends Controller
             'destination_point.longitude' => ['nullable', 'numeric'],
         ]);
 
-        $deal = $deals->create($request->user(), $listing, $data);
-
         return response()->json([
-            'data' => $deals->toArray($deal, $request->user()),
-            'message' => 'Безопасная сделка создана, средства заблокированы на балансе.',
-        ], 201);
+            'data' => $deals->quoteForListing($listing, $data['destination_point'] ?? []),
+        ]);
     }
 }

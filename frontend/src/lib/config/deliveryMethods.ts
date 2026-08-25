@@ -13,8 +13,20 @@ export const DELIVERY_METHODS_FALLBACK: DeliveryMethodOption[] = [
   { id: "cdek", label: "СДЭК", isIntegrated: true },
   { id: "yandex", label: "Яндекс Доставка", isIntegrated: true },
   { id: "pochta", label: "Почта России", isIntegrated: false },
+  { id: "boxberry", label: "Боксберри", isIntegrated: false },
   { id: "ozon", label: "Ozon", isIntegrated: false },
+  { id: "pickup", label: "Самовывоз", isIntegrated: false },
 ];
+
+export function isCdekDelivery(label: string): boolean {
+  const value = label.toLowerCase();
+  return value.includes("сдэк") || value.includes("cdek");
+}
+
+export function isPickupDelivery(label: string): boolean {
+  const value = label.toLowerCase();
+  return value.includes("самовывоз") || value === "pickup";
+}
 
 /** @deprecated use useDeliveryMethods() */
 export const DELIVERY_METHODS: DeliveryMethodOption[] = DELIVERY_METHODS_FALLBACK;

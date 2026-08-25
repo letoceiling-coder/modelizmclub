@@ -12,14 +12,14 @@ class ShowSafeDealController extends Controller
 {
     public function __invoke(Request $request, string $uuid, SafeDealService $deals): JsonResponse
     {
-        $deal = SafeDeal::query()->with(['listing', 'dispute'])->where('uuid', $uuid)->firstOrFail();
+        $deal = SafeDeal::query()->with(['listing', 'dispute', 'shipment', 'reviews'])->where('uuid', $uuid)->firstOrFail();
         $user = $request->user();
 
         if (! $deal->involves($user) && ! $user->isModerator()) {
             abort(403);
         }
 
-        $payload = $deals->toArray($deal);
+        $payload = $deals->toArray($deal, $user);
         if ($deal->dispute) {
             $payload['dispute'] = [
                 'uuid' => $deal->dispute->uuid,

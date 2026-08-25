@@ -16,6 +16,7 @@ class Shipment extends Model
     protected $fillable = [
         'uuid',
         'listing_id',
+        'safe_deal_id',
         'conversation_id',
         'seller_id',
         'buyer_id',
@@ -60,6 +61,11 @@ class Shipment extends Model
     public function listing(): BelongsTo
     {
         return $this->belongsTo(Listing::class);
+    }
+
+    public function safeDeal(): BelongsTo
+    {
+        return $this->belongsTo(SafeDeal::class);
     }
 
     public function conversation(): BelongsTo

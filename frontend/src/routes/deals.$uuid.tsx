@@ -17,6 +17,7 @@ import {
   confirmSafeDeal,
   cancelSafeDeal,
   disputeSafeDeal,
+  reviewSafeDeal,
   kopecksToRub,
   type SafeDeal,
   type SafeDealRole,
@@ -140,9 +141,13 @@ function DealDetailPage() {
           <div className="mt-[16px] font-display text-[32px] font-bold" style={{ color: "var(--foreground)" }}>
             {kopecksToRub(deal.amount_kopecks)} ₽
           </div>
+          {deal.listing_title && (
+            <div className="mt-[6px] text-[15px] font-medium" style={{ color: "var(--foreground)" }}>{deal.listing_title}</div>
+          )}
 
           <div className="mt-[12px] grid gap-[8px] text-[13px]">
             <Row label="Комиссия платформы" value={`${kopecksToRub(deal.platform_fee_kopecks)} ₽`} />
+            <Row label="Доставка СДЭК" value={`${kopecksToRub(deal.delivery_cost_kopecks ?? 0)} ₽`} />
             <Row label="Выплата продавцу" value={`${kopecksToRub(deal.seller_payout_kopecks)} ₽`} />
             {deal.tracking_number && <Row label="Трек-номер" value={deal.tracking_number} />}
             {deal.delivery_method && <Row label="Способ доставки" value={deal.delivery_method} />}
@@ -167,22 +172,22 @@ function DealDetailPage() {
 
         {/* Timeline */}
         <Card className="mt-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-          <h2 className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>Хронология</h2>
-          <div className="mt-[12px] grid gap-[8px] text-[13px]">
-            <Row label="Оплачено (холд)" value={fmt(deal.paid_at)} />
-            <Row label="Отправлено" value={fmt(deal.shipped_at)} />
-            <Row label="Доставлено" value={fmt(deal.delivered_at)} />
-            {deal.auto_release_at && s === "delivered" && <Row label="Автоподтверждение" value={fmt(deal.auto_release_at)} />}
-            <Row label="Завершено" value={fmt(deal.completed_at)} />
-          </div>
+          <h2 className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>Статус заказа</h2>
+          <DealTimeline deal={deal} />
         </Card>
 
         {/* Actions */}
         {(canShip || canMarkDelivered || canConfirm || canCancel || canDispute) && (
           <div className="mt-[16px] flex flex-wrap gap-[10px]">
             {canShip && (
-              <Button onClick={() => setShipOpen(true)} disabled={busy} className="gap-[8px]">
-                <Truck size={16} /> Отметить отправку
+              <Button onClick={() => {
+                if (deal.destination_point || deal.delivery_method === "СДЭК") {
+                  void runAction(() => shipSafeDeal(uuid), "Заказ передан в СДЭК");
+                } else {
+                  setShipOpen(true);
+                }
+              }} disabled={busy} className="gap-[8px]">
+                <Truck size={16} /> {deal.destination_point || deal.delivery_method === "СДЭК" ? "Передать в СДЭК" : "Отметить отправку"}
               </Button>
             )}
             {canMarkDelivered && (
@@ -201,11 +206,11 @@ function DealDetailPage() {
             )}
             {canCancel && (
               <Button variant="outline" disabled={busy} className="gap-[8px]" onClick={() => {
-                if (window.confirm("Отменить сделку и вернуть средства покупателю?")) {
-                  void runAction(() => cancelSafeDeal(uuid), "Сделка отменена");
+                if (window.confirm("Запросить возврат? Средства будут возвращены покупателю, сделка отменится.")) {
+                  void runAction(() => cancelSafeDeal(uuid), "Возврат запрошен, средства возвращены покупателю");
                 }
               }}>
-                <XCircle size={16} /> Отменить сделку
+                <XCircle size={16} /> Запросить возврат
               </Button>
             )}
             {canDispute && (
@@ -214,6 +219,19 @@ function DealDetailPage() {
               </Button>
             )}
           </div>
+        )}
+
+        {(deal.can_review || deal.my_review) && (
+          <Card className="mt-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+            <h2 className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>Оценка по сделке</h2>
+            {deal.my_review ? (
+              <p className="mt-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                Ваша оценка: {deal.my_review.rating} / 5{deal.my_review.text ? ` — ${deal.my_review.text}` : ""}
+              </p>
+            ) : (
+              <RatingForm busy={busy} onSubmit={(rating, text) => void runAction(() => reviewSafeDeal(uuid, rating, text), "Оценка сохранена")} />
+            )}
+          </Card>
         )}
       </div>
 
@@ -226,6 +244,60 @@ function DealDetailPage() {
         void runAction(() => disputeSafeDeal(uuid, reason, description), "Спор открыт");
       }} />
     </AppLayout>
+  );
+}
+
+function DealTimeline({ deal }: { deal: SafeDeal }) {
+  const steps = [
+    { key: "created", label: "Создан", done: Boolean(deal.paid_at) },
+    { key: "paid", label: "Оплачен (Средства захолдированы)", done: Boolean(deal.paid_at) },
+    { key: "handed", label: "Передан в СДЭК (Трек-номер)", done: Boolean(deal.shipped_at) || deal.delivery_status === "handed_to_cdek" || Boolean(deal.tracking_number) },
+    { key: "transit", label: "В пути", done: deal.delivery_status === "in_transit" || deal.delivery_status === "at_pickup" || deal.delivery_status === "received" || deal.status === "delivered" || deal.status === "completed" },
+    { key: "pvz", label: "Прибыл в ПВЗ", done: deal.delivery_status === "at_pickup" || deal.delivery_status === "received" || deal.status === "delivered" || deal.status === "completed" },
+    { key: "received", label: "Получен покупателем", done: deal.delivery_status === "received" || deal.status === "delivered" || deal.status === "completed" },
+    { key: "done", label: "Завершен (Деньги переведены продавцу)", done: deal.status === "completed" },
+  ];
+  return (
+    <div className="mt-[12px] grid gap-[8px] text-[13px]">
+      {steps.map((step) => (
+        <div key={step.key} className="flex items-center justify-between gap-[12px]">
+          <span style={{ color: step.done ? "var(--foreground)" : "var(--foreground-50)" }}>{step.label}</span>
+          <span style={{ color: step.done ? "var(--success)" : "var(--foreground-50)" }}>{step.done ? "●" : "○"}</span>
+        </div>
+      ))}
+      {deal.tracking_number && <Row label="Трек-номер" value={deal.tracking_number} />}
+      {deal.auto_release_at && deal.status === "delivered" && <Row label="Автоподтверждение" value={fmt(deal.auto_release_at)} />}
+    </div>
+  );
+}
+
+function RatingForm({ busy, onSubmit }: { busy: boolean; onSubmit: (rating: number, text: string) => void }) {
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState("");
+  return (
+    <div className="mt-[12px] space-y-[10px]">
+      <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+        Рейтинг считается только по завершённым безопасным сделкам.
+      </p>
+      <div className="flex gap-[6px]">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            className="h-[36px] w-[36px] rounded-full text-[14px] font-bold"
+            style={{
+              background: rating >= n ? "var(--accent)" : "var(--background-surface)",
+              color: rating >= n ? "var(--accent-foreground)" : "var(--foreground-50)",
+            }}
+            onClick={() => setRating(n)}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={2000} placeholder="Комментарий (необязательно)" />
+      <Button disabled={busy} onClick={() => onSubmit(rating, text.trim())}>Отправить оценку</Button>
+    </div>
   );
 }
 

@@ -64,7 +64,7 @@ function DealsPage() {
                 color: role === r ? "var(--accent-foreground)" : "var(--foreground-70)",
               }}
             >
-              {r === "buyer" ? "Покупки" : "Продажи"}
+              {r === "buyer" ? "Мои покупки" : "Мои продажи"}
             </button>
           ))}
         </div>
@@ -88,10 +88,10 @@ function DealsPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-                      {kopecksToRub(deal.amount_kopecks)} ₽
+                      {deal.listing_title || `${kopecksToRub(deal.amount_kopecks)} ₽`}
                     </div>
                     <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                      {deal.paid_at ? new Date(deal.paid_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+                      {kopecksToRub(deal.amount_kopecks)} ₽ · {deal.paid_at ? new Date(deal.paid_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : "—"}
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full px-[10px] py-[4px] text-[12px] font-semibold" style={{ background: "var(--background-surface)", color: STATUS_COLORS[deal.status] ?? "var(--foreground-70)" }}>

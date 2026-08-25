@@ -96,10 +96,10 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
  * Start a wallet top-up. Redirect the browser to `checkout_url`
  * (VTB hosted form, or `/pay/stub/{uuid}` in test mode).
  */
-export async function topupWallet(amountRub: number): Promise<WalletTopupResult> {
+export async function topupWallet(amountRub: number, returnUrl?: string): Promise<WalletTopupResult> {
   const res = await api<{ data: WalletTopupResult }>("/wallet/topup", {
     method: "POST",
-    json: { amount: amountRub, idempotency_key: newIdempotencyKey() },
+    json: { amount: amountRub, idempotency_key: newIdempotencyKey(), return_url: returnUrl },
   });
   return res.data;
 }

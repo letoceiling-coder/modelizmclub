@@ -24,10 +24,10 @@ import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
 import { openConversation } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
-import { createSafeDeal } from "@/lib/api/safe-deals";
-import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { SafeDealCheckoutWizard } from "@/components/deals/SafeDealCheckoutWizard";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 import i18n from "@/lib/i18n";
@@ -129,7 +129,8 @@ function AdDetailPage() {
   const [deliveryPickerOpen, setDeliveryPickerOpen] = useState(false);
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);
-  const [safeDealBusy, setSafeDealBusy] = useState(false);
+  const [safeDealBusy] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const availableDeliveryMethods = useMemo(
     () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
@@ -202,32 +203,11 @@ function AdDetailPage() {
   const startSafeDeal = () => {
     if (!ad) return;
     requireAuthAndNotOwnAd(() => {
-      void (async () => {
-        if (isDemoMode()) {
-          toast.info("Безопасная сделка доступна на боевом контуре после входа.");
-          return;
-        }
-        if (!window.confirm(`Заморозить ${ad.price.toLocaleString("ru")} ₽ на балансе кошелька и открыть безопасную сделку?`)) {
-          return;
-        }
-        setSafeDealBusy(true);
-        try {
-          const deal = await createSafeDeal(ad.id);
-          toast.success("Сделка создана, средства заморожены на балансе.");
-          navigate({ to: "/deals/$uuid", params: { uuid: deal.uuid }, search: { role: "buyer" } });
-        } catch (err) {
-          const message = formatApiErrorMessage(err, "Не удалось создать сделку");
-          if (message) toast.error(message);
-          const insufficient = err instanceof ApiError && (
-            Boolean(err.errors?.balance) || (err.payload as { code?: string } | undefined)?.code === "insufficient_funds"
-          );
-          if (insufficient) {
-            navigate({ to: "/settings/wallet" });
-          }
-        } finally {
-          setSafeDealBusy(false);
-        }
-      })();
+      if (isDemoMode()) {
+        toast.info("Безопасная сделка доступна на боевом контуре после входа.");
+        return;
+      }
+      setCheckoutOpen(true);
     });
   };
 
@@ -548,6 +528,9 @@ function AdDetailPage() {
           );
         }}
       />
+      {ad && (
+        <SafeDealCheckoutWizard open={checkoutOpen} onOpenChange={setCheckoutOpen} ad={ad} />
+      )}
     </AppLayout>
   );
 }

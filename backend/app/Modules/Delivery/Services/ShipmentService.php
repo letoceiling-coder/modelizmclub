@@ -51,6 +51,7 @@ class ShipmentService
 
         return Shipment::query()->create([
             'listing_id' => $listing->id,
+            'safe_deal_id' => $data['safe_deal_id'] ?? null,
             'conversation_id' => $conversationId,
             'seller_id' => $listing->user_id,
             'buyer_id' => $buyer->id,
@@ -322,7 +323,13 @@ class ShipmentService
             $this->recordEvent($shipment, $mapped, $providerStatus, 'Webhook: обновление статуса', $payload);
         }
 
-        return $shipment;
+        $fresh = $shipment->fresh() ?? $shipment;
+        $deal = $fresh->safeDeal ?? \App\Models\SafeDeal::query()->where('shipment_id', $fresh->id)->first();
+        if ($deal !== null) {
+            app(\Modules\Billing\Services\SafeDealService::class)->syncFromShipment($fresh);
+        }
+
+        return $fresh;
     }
 
     public function assertParticipant(Shipment $shipment, User $user): void

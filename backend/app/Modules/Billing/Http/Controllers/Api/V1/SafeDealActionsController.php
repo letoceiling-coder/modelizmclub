@@ -68,7 +68,7 @@ class SafeDealActionsController extends Controller
             'data' => [
                 'uuid' => $dispute->uuid,
                 'status' => $dispute->status->value,
-                'deal' => $this->deals->toArray($deal->fresh()),
+                'deal' => $this->deals->toArray($deal->fresh(['listing', 'shipment', 'reviews']), $request->user()),
             ],
             'message' => 'Спор открыт. Модератор рассмотрит его в ближайшее время.',
         ], 201);
@@ -76,7 +76,7 @@ class SafeDealActionsController extends Controller
 
     private function deal(string $uuid): SafeDeal
     {
-        return SafeDeal::query()->with(['listing', 'buyer', 'seller'])->where('uuid', $uuid)->firstOrFail();
+        return SafeDeal::query()->with(['listing', 'buyer', 'seller', 'shipment', 'reviews'])->where('uuid', $uuid)->firstOrFail();
     }
 
     private function respond(SafeDeal $deal, string $message): JsonResponse

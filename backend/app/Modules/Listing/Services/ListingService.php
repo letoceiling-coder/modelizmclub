@@ -14,6 +14,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Support\ParcelSize;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -256,6 +257,8 @@ class ListingService
     public function create(User $user, array $data): Listing
     {
         $this->assertCategory($data['category_id'] ?? null);
+        $this->assertDeliveryDetails($data);
+        $data = $this->normalizeParcelFields($data);
 
         return DB::transaction(function () use ($user, $data): Listing {
             $slug = Str::slug($data['title']);
@@ -279,6 +282,10 @@ class ListingService
                 'price_cents' => (int) ($data['price_cents'] ?? 0),
                 'city_id' => $data['city_id'] ?? null,
                 'delivery_methods' => $data['delivery_methods'] ?? [],
+                'package_size' => $data['package_size'] ?? null,
+                'weight_kg' => $data['weight_kg'] ?? null,
+                'dimensions_cm' => $data['dimensions_cm'] ?? null,
+                'pickup_address' => $data['pickup_address'] ?? null,
                 'status' => $status,
                 'published_at' => $publishedAt,
                 'placement_payment_id' => $placementMeta['placement_payment_id'] ?? null,
@@ -306,6 +313,14 @@ class ListingService
     public function update(Listing $listing, User $user, array $data): Listing
     {
         $this->assertOwner($listing, $user);
+        $this->assertDeliveryDetails(array_merge([
+            'delivery_methods' => $listing->delivery_methods,
+            'package_size' => $listing->package_size,
+            'weight_kg' => $listing->weight_kg,
+            'dimensions_cm' => $listing->dimensions_cm,
+            'pickup_address' => $listing->pickup_address,
+        ], $data), true);
+        $data = $this->normalizeParcelFields($data);
 
         if (array_key_exists('category_id', $data) && $data['category_id'] !== null) {
             $this->assertCategory($data['category_id']);
@@ -326,6 +341,18 @@ class ListingService
 
             if (array_key_exists('delivery_methods', $data)) {
                 $listing->delivery_methods = $data['delivery_methods'] ?? [];
+            }
+            if (array_key_exists('package_size', $data)) {
+                $listing->package_size = $data['package_size'];
+            }
+            if (array_key_exists('weight_kg', $data)) {
+                $listing->weight_kg = $data['weight_kg'];
+            }
+            if (array_key_exists('dimensions_cm', $data)) {
+                $listing->dimensions_cm = $data['dimensions_cm'];
+            }
+            if (array_key_exists('pickup_address', $data)) {
+                $listing->pickup_address = $data['pickup_address'];
             }
 
             $listing->save();
@@ -667,5 +694,57 @@ class ListingService
         }
 
         return [ListingStatus::PendingModeration, null];
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function assertDeliveryDetails(array $data, bool $updating = false): void
+    {
+        $methods = $data['delivery_methods'] ?? [];
+        if (! is_array($methods)) {
+            return;
+        }
+
+        if (ParcelSize::offersCdek($methods)) {
+            $preset = is_string($data['package_size'] ?? null) ? strtolower((string) $data['package_size']) : '';
+            $dims = is_array($data['dimensions_cm'] ?? null) ? $data['dimensions_cm'] : [];
+            $hasCustom = (int) ($dims['length'] ?? 0) > 0
+                && (int) ($dims['width'] ?? 0) > 0
+                && (int) ($dims['height'] ?? 0) > 0
+                && (float) ($data['weight_kg'] ?? 0) > 0;
+            if ($preset === '' && ! $hasCustom) {
+                throw ValidationException::withMessages([
+                    'package_size' => ['Для доставки СДЭК укажите типоразмер S/M/L или габариты и вес посылки.'],
+                ]);
+            }
+        }
+
+        if (ParcelSize::offersPickup($methods) && trim((string) ($data['pickup_address'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'pickup_address' => ['Укажите адрес или ориентир для самовывоза.'],
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function normalizeParcelFields(array $data): array
+    {
+        $methods = $data['delivery_methods'] ?? [];
+        if (! ParcelSize::offersCdek(is_array($methods) ? $methods : [])) {
+            return $data;
+        }
+
+        $parcel = ParcelSize::resolve(
+            is_string($data['package_size'] ?? null) ? $data['package_size'] : null,
+            is_array($data['dimensions_cm'] ?? null) ? $data['dimensions_cm'] : null,
+            $data['weight_kg'] ?? null,
+        );
+        $data['package_size'] = $parcel['package_size'];
+        $data['dimensions_cm'] = $parcel['dimensions_cm'];
+        $data['weight_kg'] = $parcel['weight_kg'];
+
+        return $data;
     }
 }

@@ -16,17 +16,21 @@ class SafeDeal extends Model
     protected $fillable = [
         'uuid',
         'listing_id',
+        'shipment_id',
         'buyer_id',
         'seller_id',
         'amount_kopecks',
         'platform_fee_kopecks',
         'seller_payout_kopecks',
+        'delivery_cost_kopecks',
         'currency',
         'status',
         'hold_transaction_id',
         'payout_transaction_id',
         'refund_transaction_id',
         'delivery_method',
+        'destination_point',
+        'delivery_status',
         'tracking_number',
         'paid_at',
         'shipped_at',
@@ -44,6 +48,8 @@ class SafeDeal extends Model
             'amount_kopecks' => 'integer',
             'platform_fee_kopecks' => 'integer',
             'seller_payout_kopecks' => 'integer',
+            'delivery_cost_kopecks' => 'integer',
+            'destination_point' => 'array',
             'paid_at' => 'datetime',
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
@@ -57,6 +63,11 @@ class SafeDeal extends Model
     public function listing(): BelongsTo
     {
         return $this->belongsTo(Listing::class);
+    }
+
+    public function shipment(): BelongsTo
+    {
+        return $this->belongsTo(Shipment::class);
     }
 
     public function buyer(): BelongsTo
@@ -77,6 +88,11 @@ class SafeDeal extends Model
     public function dispute(): HasOne
     {
         return $this->hasOne(Dispute::class)->latestOfMany();
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(UserReview::class);
     }
 
     public function involves(User $user): bool

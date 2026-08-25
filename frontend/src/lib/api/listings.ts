@@ -33,6 +33,11 @@ interface ApiListing {
   subcategory?: { id?: number; name?: string; slug?: string } | null;
   city?: { id?: number; name?: string } | null;
   media?: Array<{ uuid?: string; url?: string | null }>;
+  package_size?: "s" | "m" | "l" | null;
+  weight_kg?: number | null;
+  dimensions_cm?: { length?: number; width?: number; height?: number } | null;
+  pickup_address?: string | null;
+  offers_cdek?: boolean;
   is_promoted?: boolean;
   promoted_until?: string | null;
   published_at?: string | null;
@@ -110,6 +115,11 @@ export function mapListing(l: ApiListing): Ad {
     subcategoryId: l.subcategory?.id != null ? String(l.subcategory.id) : undefined,
     cityId: l.city?.id,
     mediaIds: (l.media ?? []).map((m) => m.uuid).filter((u): u is string => Boolean(u)),
+    packageSize: l.package_size ?? null,
+    weightKg: l.weight_kg ?? null,
+    dimensionsCm: l.dimensions_cm ?? null,
+    pickupAddress: l.pickup_address ?? null,
+    offersCdek: Boolean(l.offers_cdek),
     moderation:
       l.status === "published"
         ? "published"
@@ -230,6 +240,10 @@ export interface UpdateListingInput {
   cityId?: number;
   deliveryMethods?: string[];
   mediaIds?: string[];
+  packageSize?: "s" | "m" | "l" | null;
+  weightKg?: number | null;
+  dimensionsCm?: { length: number; width: number; height: number } | null;
+  pickupAddress?: string | null;
 }
 
 export async function updateListing(uuid: string, input: UpdateListingInput): Promise<Ad> {
@@ -249,6 +263,10 @@ export async function updateListing(uuid: string, input: UpdateListingInput): Pr
       city_id: input.cityId,
       delivery_methods: input.deliveryMethods,
       media_ids: input.mediaIds,
+      package_size: input.packageSize ?? undefined,
+      weight_kg: input.weightKg ?? undefined,
+      dimensions_cm: input.dimensionsCm ?? undefined,
+      pickup_address: input.pickupAddress ?? undefined,
     },
   });
   return mapListing(res.data);
@@ -323,6 +341,10 @@ export interface CreateListingInput {
   publish?: boolean;
   promocode?: string;
   placementPaymentUuid?: string;
+  packageSize?: "s" | "m" | "l" | null;
+  weightKg?: number | null;
+  dimensionsCm?: { length: number; width: number; height: number } | null;
+  pickupAddress?: string | null;
 }
 
 export async function createListing(input: CreateListingInput): Promise<Ad> {
@@ -366,6 +388,10 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       publish: input.publish ?? true,
       promocode: input.promocode?.trim() || undefined,
       placement_payment_uuid: input.placementPaymentUuid,
+      package_size: input.packageSize ?? undefined,
+      weight_kg: input.weightKg ?? undefined,
+      dimensions_cm: input.dimensionsCm ?? undefined,
+      pickup_address: input.pickupAddress ?? undefined,
     },
   });
   return mapListing(res.data);

@@ -14,6 +14,7 @@ class UserReview extends Model
         'uuid',
         'author_id',
         'target_user_id',
+        'safe_deal_id',
         'rating',
         'text',
     ];
@@ -26,5 +27,10 @@ class UserReview extends Model
     public function target(): BelongsTo
     {
         return $this->belongsTo(User::class, 'target_user_id');
+    }
+
+    public function safeDeal(): BelongsTo
+    {
+        return $this->belongsTo(SafeDeal::class);
     }
 }

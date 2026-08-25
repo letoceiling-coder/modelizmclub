@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreateSafeDealController;
+use Modules\Billing\Http\Controllers\Api\V1\QuoteSafeDealController;
+use Modules\Billing\Http\Controllers\Api\V1\ReviewSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexSafeDealsController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
@@ -37,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     // Wallet-based safe deals (spec v4.0 §T5).
     Route::get('safe-deals', IndexSafeDealsController::class);
+    Route::post('listings/{uuid}/safe-deal/quote', QuoteSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/safe-deal', CreateSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::get('safe-deals/{uuid}', ShowSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/ship', [SafeDealActionsController::class, 'ship'])->where('uuid', '[0-9a-f-]{36}');
@@ -44,4 +47,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('safe-deals/{uuid}/confirm', [SafeDealActionsController::class, 'confirm'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/cancel', [SafeDealActionsController::class, 'cancel'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/dispute', [SafeDealActionsController::class, 'dispute'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('safe-deals/{uuid}/review', ReviewSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
 });

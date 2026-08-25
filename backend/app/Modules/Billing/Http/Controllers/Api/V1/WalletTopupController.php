@@ -24,10 +24,13 @@ class WalletTopupController extends Controller
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:100', 'max:1000000'],
             'idempotency_key' => ['nullable', 'string', 'max:128'],
+            'return_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
         $amountKopecks = (int) round(((float) $data['amount']) * 100);
         $frontend = rtrim((string) config('billing.frontend_url'), '/');
+        $returnUrl = $this->sameOriginReturnUrl($data['return_url'] ?? null, $frontend, '/settings/wallet?payment=success');
+        $failUrl = $this->sameOriginReturnUrl(null, $frontend, '/settings/wallet?payment=failed');
 
         $result = $gateway->createCheckout(
             $request->user(),
@@ -37,8 +40,8 @@ class WalletTopupController extends Controller
             [
                 'payable_type' => 'wallet_topup',
                 'idempotency_key' => $data['idempotency_key'] ?? null,
-                'return_url' => $frontend.'/settings/wallet?payment=success',
-                'fail_url' => $frontend.'/settings/wallet?payment=failed',
+                'return_url' => $returnUrl,
+                'fail_url' => $failUrl,
             ],
         );
 
@@ -55,5 +58,31 @@ class WalletTopupController extends Controller
             'data' => $result,
             'message' => "Платёж создан. Перенаправление на оплату ({$providerLabel}).",
         ], 201);
+    }
+
+    private function sameOriginReturnUrl(?string $url, string $frontend, string $fallbackPath): string
+    {
+        $fallback = $frontend.$fallbackPath;
+        if (! is_string($url) || $url === '') {
+            return $fallback;
+        }
+
+        if (str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            return $frontend.$url;
+        }
+
+        $parsed = parse_url($url);
+        $front = parse_url($frontend);
+        if (! is_array($parsed) || ! is_array($front)) {
+            return $fallback;
+        }
+
+        $host = strtolower((string) ($parsed['host'] ?? ''));
+        $allowed = strtolower((string) ($front['host'] ?? ''));
+        if ($host === '' || $allowed === '' || $host !== $allowed) {
+            return $fallback;
+        }
+
+        return $url;
     }
 }

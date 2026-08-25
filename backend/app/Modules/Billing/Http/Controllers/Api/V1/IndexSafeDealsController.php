@@ -15,7 +15,7 @@ class IndexSafeDealsController extends Controller
         $user = $request->user();
         $role = $request->query('role'); // buyer|seller|null(both)
 
-        $query = SafeDeal::query()->with('listing')->latest();
+        $query = SafeDeal::query()->with(['listing', 'shipment', 'reviews'])->latest();
 
         if ($role === 'buyer') {
             $query->where('buyer_id', $user->id);
@@ -30,7 +30,7 @@ class IndexSafeDealsController extends Controller
         $paginator = $query->paginate(min(50, max(1, (int) $request->query('per_page', 20))));
 
         return response()->json([
-            'data' => collect($paginator->items())->map(fn (SafeDeal $deal) => $deals->toArray($deal))->all(),
+            'data' => collect($paginator->items())->map(fn (SafeDeal $deal) => $deals->toArray($deal, $user))->all(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),

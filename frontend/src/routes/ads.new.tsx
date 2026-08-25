@@ -31,6 +31,7 @@ import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { useDeliveryMethods } from "@/lib/hooks/useDeliveryMethods";
+import { isCdekDelivery, isPickupDelivery } from "@/lib/config/deliveryMethods";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PhoneInput, formatRuPhone } from "@/components/ui/phone-input";
@@ -110,7 +111,48 @@ interface Form {
   cityId?: number;
   contact: string;
   deliveries: string[];
+  packageSize: "" | "s" | "m" | "l";
+  weightKg: string;
+  dimL: string;
+  dimW: string;
+  dimH: string;
+  pickupAddress: string;
   promocode: string;
+}
+
+function parcelFromForm(form: Pick<Form, "deliveries" | "packageSize" | "weightKg" | "dimL" | "dimW" | "dimH" | "pickupAddress">): {
+  packageSize?: "s" | "m" | "l";
+  weightKg?: number;
+  dimensionsCm?: { length: number; width: number; height: number };
+  pickupAddress?: string;
+} {
+  const cdek = form.deliveries.some(isCdekDelivery);
+  const pickup = form.deliveries.some(isPickupDelivery);
+  const preset = form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l" ? form.packageSize : undefined;
+  const length = Number(form.dimL);
+  const width = Number(form.dimW);
+  const height = Number(form.dimH);
+  const weight = Number(String(form.weightKg).replace(",", "."));
+  const custom = length > 0 && width > 0 && height > 0 && weight > 0;
+  return {
+    packageSize: cdek ? preset : undefined,
+    weightKg: cdek && !preset && custom ? weight : undefined,
+    dimensionsCm: cdek && !preset && custom ? { length, width, height } : undefined,
+    pickupAddress: pickup ? form.pickupAddress.trim() : undefined,
+  };
+}
+
+function deliveryDetailsValid(form: Form): string | null {
+  if (form.deliveries.some(isCdekDelivery)) {
+    const preset = form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l";
+    const custom = Number(form.dimL) > 0 && Number(form.dimW) > 0 && Number(form.dimH) > 0
+      && Number(form.weightKg.replace(",", ".")) > 0;
+    if (!preset && !custom) return "Для СДЭК укажите типоразмер S/M/L или габариты и вес посылки.";
+  }
+  if (form.deliveries.some(isPickupDelivery) && form.pickupAddress.trim().length < 3) {
+    return "Укажите адрес или ориентир для самовывоза.";
+  }
+  return null;
 }
 
 /** Sticky footer CTA on step 3 — always returns visible text (PDF tests №16, №31). */
@@ -159,6 +201,12 @@ const initial: Form = {
   cityId: undefined,
   contact: "",
   deliveries: ["СДЭК"],
+  packageSize: "m",
+  weightKg: "",
+  dimL: "",
+  dimW: "",
+  dimH: "",
+  pickupAddress: "",
   promocode: "",
 };
 
@@ -190,6 +238,12 @@ function NewAdPage() {
     title: string;
     description: string;
     deliveries: string[];
+    packageSize: "" | "s" | "m" | "l";
+    weightKg: string;
+    dimL: string;
+    dimW: string;
+    dimH: string;
+    pickupAddress: string;
   } | null>(null);
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
@@ -230,6 +284,12 @@ function NewAdPage() {
           cityId: ad.cityId,
           contact: f.contact,
           deliveries: ad.delivery.length ? ad.delivery : ["СДЭК"],
+          packageSize: ad.packageSize ?? (ad.delivery.some(isCdekDelivery) ? "m" : ""),
+          weightKg: ad.weightKg != null ? String(ad.weightKg) : "",
+          dimL: ad.dimensionsCm?.length != null ? String(ad.dimensionsCm.length) : "",
+          dimW: ad.dimensionsCm?.width != null ? String(ad.dimensionsCm.width) : "",
+          dimH: ad.dimensionsCm?.height != null ? String(ad.dimensionsCm.height) : "",
+          pickupAddress: ad.pickupAddress ?? "",
           promocode: f.promocode,
         }));
       })
@@ -332,6 +392,13 @@ function NewAdPage() {
       return;
     }
 
+    const deliveryError = deliveryDetailsValid(form);
+    if (deliveryError) {
+      toast.error(deliveryError);
+      return;
+    }
+    const parcel = parcelFromForm(form);
+
     const priceCents = priceRubToCents(form.price);
     if (priceCents === null) {
       toast.error(t("pages.adsNew.priceMaxError", { max: MAX_LISTING_PRICE_RUB.toLocaleString("ru-RU") }));
@@ -378,6 +445,10 @@ function NewAdPage() {
           cityId: resolvedCityId,
           deliveryMethods: form.deliveries,
           mediaIds,
+          packageSize: parcel.packageSize,
+          weightKg: parcel.weightKg,
+          dimensionsCm: parcel.dimensionsCm,
+          pickupAddress: parcel.pickupAddress,
         });
         toast.success(
           updated.moderation === "moderation"
@@ -430,6 +501,12 @@ function NewAdPage() {
             title: form.title.trim(),
             description: form.description.trim(),
             deliveries: form.deliveries,
+            packageSize: parcel.packageSize ?? "",
+            weightKg: form.weightKg,
+            dimL: form.dimL,
+            dimW: form.dimW,
+            dimH: form.dimH,
+            pickupAddress: form.pickupAddress,
           });
           setSubmitting(false);
           return;
@@ -445,6 +522,10 @@ function NewAdPage() {
             mediaIds,
             publish: true,
             promocode,
+            packageSize: parcel.packageSize,
+            weightKg: parcel.weightKg,
+            dimensionsCm: parcel.dimensionsCm,
+            pickupAddress: parcel.pickupAddress,
           });
           toast.success(
             created.moderation === "moderation"
@@ -485,6 +566,10 @@ function NewAdPage() {
         mediaIds: job.mediaIds,
         publish: false,
         promocode: job.promocode,
+        packageSize: job.packageSize || undefined,
+        weightKg: parcelFromForm(job as Form).weightKg,
+        dimensionsCm: parcelFromForm(job as Form).dimensionsCm,
+        pickupAddress: job.pickupAddress || undefined,
       });
       const checkout = await createListingPlacementPayment({
         categoryId: job.categoryId,
@@ -954,17 +1039,96 @@ function StepData({
             )}
           </div>
         </div>
-        <Field label={t("pages.adsNew.deliveryMethodsLabel")}>
-          <div className="flex flex-wrap gap-[8px]">
-            {deliveryMethods.map((m) => (
-              <Checkbox
-                key={m.id}
-                checked={form.deliveries.includes(m.label)}
-                onChange={() => set("deliveries", form.deliveries.includes(m.label)
-                  ? form.deliveries.filter((x) => x !== m.label) : [...form.deliveries, m.label])}
-                label={m.label}
-              />
-            ))}
+        <Field label="Способы доставки">
+          <div className="space-y-[14px]">
+            {(() => {
+              const cdek = deliveryMethods.filter((m) => isCdekDelivery(m.label) || m.id === "cdek");
+              const pickup = deliveryMethods.filter((m) => isPickupDelivery(m.label) || m.id === "pickup");
+              const others = deliveryMethods.filter((m) => !cdek.includes(m) && !pickup.includes(m));
+              const toggle = (label: string) => {
+                const next = form.deliveries.includes(label)
+                  ? form.deliveries.filter((x) => x !== label)
+                  : [...form.deliveries, label];
+                set("deliveries", next);
+                if (next.some(isCdekDelivery) && !form.packageSize) set("packageSize", "m");
+              };
+              return (
+                <>
+                  {cdek.map((m) => (
+                    <div key={m.id} className="space-y-[8px]">
+                      <Checkbox
+                        checked={form.deliveries.includes(m.label)}
+                        onChange={() => toggle(m.label)}
+                        label="Доставка СДЭК (Безопасная сделка)"
+                      />
+                      {form.deliveries.includes(m.label) && (
+                        <div className="ml-[4px] space-y-[10px] rounded-[var(--r-card)] p-[12px]" style={{ background: "var(--background-surface)" }}>
+                          <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                            Укажите типоразмер или точные габариты — от них считается тариф СДЭК.
+                          </p>
+                          <div className="flex flex-wrap gap-[8px]">
+                            {(["s", "m", "l"] as const).map((size) => (
+                              <button
+                                key={size}
+                                type="button"
+                                className="min-h-[40px] rounded-[var(--r-tag)] border px-[14px] text-[13px] font-semibold"
+                                style={{
+                                  borderColor: form.packageSize === size ? "var(--accent)" : "var(--border)",
+                                  background: form.packageSize === size ? "var(--accent-soft)" : "var(--background-elevated)",
+                                  color: form.packageSize === size ? "var(--accent)" : "var(--foreground-70)",
+                                }}
+                                onClick={() => set("packageSize", form.packageSize === size ? "" : size)}
+                              >
+                                {size.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-4">
+                            <Input value={form.dimL} onChange={(e) => set("dimL", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="Д, см" inputMode="numeric" />
+                            <Input value={form.dimW} onChange={(e) => set("dimW", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="Ш, см" inputMode="numeric" />
+                            <Input value={form.dimH} onChange={(e) => set("dimH", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="В, см" inputMode="numeric" />
+                            <Input value={form.weightKg} onChange={(e) => set("weightKg", e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))} placeholder="Вес, кг" inputMode="decimal" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {others.length > 0 && (
+                    <div className="space-y-[8px]">
+                      <p className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                        Другие службы (прямая договорённость, без трекинга)
+                      </p>
+                      <div className="flex flex-wrap gap-[8px]">
+                        {others.map((m) => (
+                          <Checkbox
+                            key={m.id}
+                            checked={form.deliveries.includes(m.label)}
+                            onChange={() => toggle(m.label)}
+                            label={m.label}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {pickup.map((m) => (
+                    <div key={m.id} className="space-y-[8px]">
+                      <Checkbox
+                        checked={form.deliveries.includes(m.label)}
+                        onChange={() => toggle(m.label)}
+                        label="Самовывоз"
+                      />
+                      {form.deliveries.includes(m.label) && (
+                        <Input
+                          value={form.pickupAddress}
+                          onChange={(e) => set("pickupAddress", e.target.value)}
+                          placeholder="Адрес или ориентир"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </div>
         </Field>
       </Block>
