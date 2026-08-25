@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Listing\Support\ListingPlacementConfig;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -35,6 +36,7 @@ class ListingService
      * Поддерживаемые фильтры:
      *  - category_id, subcategory_id, city_id — точное совпадение
      *  - category_ids[] — несколько категорий сразу
+     *  - taxonomy_id — ID из единого дерева (post_categories), включая потомков
      *  - q — поиск по названию/описанию
      *  - price_min / price_max — диапазон цены в рублях (переводится в копейки)
      *  - delivery_method — способ доставки (в JSON-массиве delivery_methods)
@@ -48,10 +50,21 @@ class ListingService
         $query = Listing::query()
             ->with($this->relations())
             ->where('status', ListingStatus::Published)
-            ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
-            ->when($filters['subcategory_id'] ?? null, fn ($q, $id) => $q->where('subcategory_id', $id))
             ->when($filters['city_id'] ?? null, fn ($q, $id) => $q->where('city_id', $id))
-            ->when(! empty($filters['category_ids']), fn ($q) => $q->whereIn('category_id', (array) $filters['category_ids']))
+            ->when(! empty($filters['taxonomy_id']), function ($q) use ($filters): void {
+                $ids = app(CategoryTaxonomyService::class)->listingIdsForPostCategory((int) $filters['taxonomy_id']);
+                if ($ids === []) {
+                    $q->whereRaw('1 = 0');
+
+                    return;
+                }
+                $q->where(function ($q) use ($ids): void {
+                    $q->whereIn('category_id', $ids)->orWhereIn('subcategory_id', $ids);
+                });
+            })
+            ->when(empty($filters['taxonomy_id']) && ($filters['category_id'] ?? null), fn ($q, $id) => $q->where('category_id', $id))
+            ->when(empty($filters['taxonomy_id']) && ($filters['subcategory_id'] ?? null), fn ($q, $id) => $q->where('subcategory_id', $id))
+            ->when(empty($filters['taxonomy_id']) && ! empty($filters['category_ids']), fn ($q) => $q->whereIn('category_id', (array) $filters['category_ids']))
             ->when($filters['q'] ?? null, fn ($q, $term) => $this->applyTextSearch($q, (string) $term))
             ->when(isset($filters['price_min']), fn ($q) => $q->where('price_cents', '>=', (int) round(((float) $filters['price_min']) * 100)))
             ->when(isset($filters['price_max']), fn ($q) => $q->where('price_cents', '<=', (int) round(((float) $filters['price_max']) * 100)))

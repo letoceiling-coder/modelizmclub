@@ -16,6 +16,7 @@ import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchPostCategories, categoryIdByName } from "@/lib/api/categories";
+import { parseTaxonomyId } from "@/lib/taxonomy";
 import { fetchBanners } from "@/lib/api/banners";
 import { getHiddenPostIds, hidePostId } from "@/lib/hidden-posts";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
@@ -26,6 +27,19 @@ import { FEED_FILTER_ACTIONS, firstAllowedFeedFilter } from "@/lib/feed-guest-ac
 
 import i18n from "@/lib/i18n";
 
+function findCategoryName(categories: Category[], id: string): string | null {
+  for (const c of categories) {
+    if (c.id === id) return c.name;
+    for (const s of c.subcategories) {
+      if (s.id === id) return s.name;
+      for (const t of s.children ?? []) {
+        if (t.id === id) return t.name;
+      }
+    }
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/feed")({
   head: () => ({ meta: [{ title: i18n.t("pages.feed.metaTitle") }, { name: "description", content: i18n.t("pages.feed.metaDescription") }] }),
   // `category` — set by landing's "Направления" cards (routes/index.tsx
@@ -35,9 +49,10 @@ export const Route = createFileRoute("/feed")({
   // (activeCategory / categoryIdByName both key by name, not id) — both
   // the landing and this page read categories from the same
   // fetchPostCategories() source, so the names are guaranteed to match.
-  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string; taxonomy_id?: number } => ({
     composer: (search.composer as string) || undefined,
     category: (search.category as string) || undefined,
+    taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
   component: FeedPage,
 });
@@ -46,13 +61,13 @@ const PAGE_SIZE = 6;
 
 function FeedPage() {
   const { t } = useTranslation();
-  const { composer, category: categoryFromUrl } = Route.useSearch();
+  const { composer, category: categoryFromUrl, taxonomy_id: taxonomyFromUrl } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [filter, setFilter] = useState<FeedFilter>(categoryFromUrl ? "categories" : "all");
+  const [filter, setFilter] = useState<FeedFilter>(categoryFromUrl || taxonomyFromUrl ? "categories" : "all");
   const [activeCategory, setActiveCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerSelection, setComposerSelection] = useState<ComposerSelection | undefined>(undefined);
@@ -66,12 +81,12 @@ function FeedPage() {
   // Direct URL /feed?category=… must not bypass admin filter settings.
   useEffect(() => {
     if (!guestAccessReady) return;
-    if (categoryFromUrl && !isAllowed("feed.category.select")) {
+    if ((categoryFromUrl || taxonomyFromUrl) && !isAllowed("feed.category.select")) {
       setFilter("all");
       setActiveCategory(null);
       navigate({ to: "/feed", search: {}, replace: true });
     }
-  }, [guestAccessReady, categoryFromUrl, isAllowed, navigate]);
+  }, [guestAccessReady, categoryFromUrl, taxonomyFromUrl, isAllowed, navigate]);
 
   useEffect(() => {
     if (!guestAccessReady) return;
@@ -111,6 +126,15 @@ function FeedPage() {
   }, []);
 
   useEffect(() => {
+    if (!taxonomyFromUrl || categories.length === 0) return;
+    const found = findCategoryName(categories, String(taxonomyFromUrl));
+    if (found) {
+      setFilter("categories");
+      setActiveCategory(found);
+    }
+  }, [taxonomyFromUrl, categories]);
+
+  useEffect(() => {
     let alive = true;
     if (!guestAccessReady) return;
     if (!isAllowed(FEED_FILTER_ACTIONS[filter])) {
@@ -118,19 +142,20 @@ function FeedPage() {
       setInitialLoading(false);
       return;
     }
-    if (filter === "categories" && !activeCategory) {
+    if (filter === "categories" && !activeCategory && !taxonomyFromUrl) {
       setPosts([]);
       setInitialLoading(false);
       return;
     }
     setInitialLoading(true);
+    const categoryId = taxonomyFromUrl ?? (activeCategory ? categoryIdByName(activeCategory) : undefined);
     const query =
       filter === "following"
         ? { filter: "following" as const }
         : filter === "scheduled"
           ? { filter: "scheduled" as const }
-          : filter === "categories" && activeCategory
-            ? { filter: "category" as const, categoryId: categoryIdByName(activeCategory), categoryName: activeCategory }
+          : filter === "categories" && (activeCategory || taxonomyFromUrl)
+            ? { filter: "category" as const, categoryId, categoryName: activeCategory ?? undefined }
             : { filter: "all" as const };
     fetchFeed({ ...query, perPage: 50 })
       .then((r) => {
@@ -151,7 +176,7 @@ function FeedPage() {
     return () => {
       alive = false;
     };
-  }, [filter, activeCategory, guestAccessReady, isAllowed]);
+  }, [filter, activeCategory, taxonomyFromUrl, guestAccessReady, isAllowed]);
 
   const filtered = useMemo(() => {
     const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));

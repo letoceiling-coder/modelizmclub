@@ -14,6 +14,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CommunityService
@@ -24,7 +25,16 @@ class CommunityService
             ->active()
             ->withCount(['members as live_members_count'])
             ->with(['category', 'avatar', 'cover', 'city', 'topicCategories'])
-            ->when($filters['category_id'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
+            ->when(! empty($filters['taxonomy_id']), function ($q) use ($filters): void {
+                $ids = app(CategoryTaxonomyService::class)->communityIdsForPostCategory((int) $filters['taxonomy_id']);
+                if ($ids === []) {
+                    $q->whereRaw('1 = 0');
+
+                    return;
+                }
+                $q->whereIn('category_id', $ids);
+            })
+            ->when(empty($filters['taxonomy_id']) && ($filters['category_id'] ?? null), fn ($q, $id) => $q->where('category_id', $id))
             ->when($filters['q'] ?? null, function ($q, $term): void {
                 $q->where(function ($q) use ($term): void {
                     $q->where('name', 'ilike', "%{$term}%")

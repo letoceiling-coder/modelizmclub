@@ -124,10 +124,10 @@ function mapCommunityMember(m: ApiCommunityMember): CommunityMember {
   };
 }
 
-export async function fetchCommunities(query?: string): Promise<Community[]> {
+export async function fetchCommunities(query?: string, taxonomyId?: number): Promise<Community[]> {
   if (isDemoMode()) return demoCommunities(query);
   const res = await api<Paginated<ApiCommunity>>("/communities", {
-    query: { q: query || undefined, per_page: 50 },
+    query: { q: query || undefined, taxonomy_id: taxonomyId || undefined, per_page: 50 },
   });
   return (res.data ?? []).map(mapCommunity);
 }

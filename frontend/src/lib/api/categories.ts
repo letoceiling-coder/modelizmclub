@@ -11,7 +11,17 @@ interface ApiCategoryNode {
   icon_image_url?: string | null;
   depth?: number;
   listings_count?: number;
+  usage_count?: number;
   children?: ApiCategoryNode[];
+}
+
+function mapChild(node: ApiCategoryNode): Category["subcategories"][number] {
+  return {
+    id: String(node.id),
+    name: node.name,
+    usageCount: node.usage_count ?? 0,
+    children: (node.children ?? []).map(mapChild),
+  };
 }
 
 function mapCategory(node: ApiCategoryNode, includeListingsCount = false): Category {
@@ -23,10 +33,8 @@ function mapCategory(node: ApiCategoryNode, includeListingsCount = false): Categ
     iconImageUrl: node.icon_image_url ?? null,
     members: includeListingsCount ? (node.listings_count ?? 0) : 0,
     listingsCount: node.listings_count,
-    subcategories: (node.children ?? []).map((c) => ({
-      id: String(c.id),
-      name: c.name,
-    })),
+    usageCount: node.usage_count ?? 0,
+    subcategories: (node.children ?? []).map(mapChild),
   };
 }
 

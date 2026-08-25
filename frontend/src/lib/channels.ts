@@ -232,9 +232,11 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
 }
 
 // ---- fetchers ----
-export async function fetchChannels(): Promise<Channel[]> {
+export async function fetchChannels(taxonomyId?: number): Promise<Channel[]> {
   if (isDemoMode()) return demoChannels() as Channel[];
-  const res = await api<{ data: ApiChannel[] }>("/channels");
+  const res = await api<{ data: ApiChannel[] }>("/channels", {
+    query: { taxonomy_id: taxonomyId || undefined },
+  });
   return (res.data ?? []).map(mapChannel);
 }
 
@@ -434,17 +436,17 @@ export async function createChannelPost(input: {
 }
 
 // ---- hooks ----
-export function useChannels(): { channels: Channel[]; loading: boolean; reload: () => void } {
+export function useChannels(taxonomyId?: number): { channels: Channel[]; loading: boolean; reload: () => void } {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(() => {
     setLoading(true);
-    fetchChannels()
+    fetchChannels(taxonomyId)
       .then(setChannels)
       .catch(() => setChannels([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [taxonomyId]);
 
   useEffect(reload, [reload]);
   return { channels, loading, reload };

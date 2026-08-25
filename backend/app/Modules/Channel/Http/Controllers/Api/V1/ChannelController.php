@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Channel\Http\Resources\ChannelPostResource;
 use Modules\Channel\Http\Resources\ChannelResource;
 use Modules\Channel\Services\ChannelPostInteractionService;
@@ -37,6 +38,15 @@ class ChannelController extends Controller
         $channels = Channel::query()
             ->with(['owner.profile.avatar', 'avatar', 'banner'])
             ->where('is_active', true)
+            ->when($request->integer('taxonomy_id'), function ($q, $taxonomyId): void {
+                $names = app(CategoryTaxonomyService::class)->namesForPostCategory((int) $taxonomyId);
+                if ($names === []) {
+                    $q->whereRaw('1 = 0');
+
+                    return;
+                }
+                $q->whereIn('category', $names);
+            })
             ->orderByDesc('subscribers_count')
             ->get();
 

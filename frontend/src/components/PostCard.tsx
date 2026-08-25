@@ -239,6 +239,8 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     });
   };
 
+  const profileTo = author.slug ?? author.id;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -263,7 +265,14 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           >
             <Repeat2 className="h-[14px] w-[14px]" style={{ color: "var(--accent)" }} />
             <span>
-              <span style={{ color: "var(--foreground)", fontWeight: 600 }}>{reposter.name}</span>{" "}
+              <Link
+                to="/user/$id"
+                params={{ id: reposter.slug ?? reposter.id }}
+                style={{ color: "var(--foreground)", fontWeight: 600 }}
+                className="hover:underline"
+              >
+                {reposter.name}
+              </Link>{" "}
               {t("components.postCard.reposted")}
             </span>
           </div>
@@ -271,15 +280,19 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
         {/* Header */}
         <header className="flex items-center gap-[12px] px-[16px] pt-[16px]">
-          <AuthorAvatar src={author.avatar} name={author.name} />
+          <Link to="/user/$id" params={{ id: profileTo }} className="shrink-0">
+            <AuthorAvatar src={author.avatar} name={author.name} />
+          </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-[8px]">
-              <span
-                className="truncate text-[14px] font-semibold"
+              <Link
+                to="/user/$id"
+                params={{ id: profileTo }}
+                className="truncate text-[14px] font-semibold hover:underline"
                 style={{ color: "var(--foreground)" }}
               >
                 {author.name}
-              </span>
+              </Link>
               {post.status === "moderation" && (
                 <StatusBadge variant="moderation">{t("components.postCard.moderation")}</StatusBadge>
               )}

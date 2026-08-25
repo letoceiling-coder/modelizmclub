@@ -15,6 +15,7 @@ class IndexFeedController extends Controller
         $filters = [
             'filter' => $request->string('filter', 'all')->toString(),
             'category_id' => $request->integer('category_id') ?: null,
+            'taxonomy_id' => $request->integer('taxonomy_id') ?: null,
             'community_id' => $request->integer('community_id') ?: null,
             'author_id' => $request->integer('author_id') ?: null,
             'q' => $request->string('q')->toString() ?: null,

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useTranslation } from "react-i18next";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
@@ -18,11 +19,13 @@ import type { Ad } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
+import { parseTaxonomyId } from "@/lib/taxonomy";
 
 export const Route = createFileRoute("/ads/")({
   head: () => ({ meta: [{ title: i18n.t("pages.ads.metaTitle") }, { name: "description", content: i18n.t("pages.ads.metaDescription") }] }),
-  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { q?: string; taxonomy_id?: number } => ({
     q: typeof search.q === "string" ? search.q : undefined,
+    taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
   component: CatalogPage,
 });
@@ -47,9 +50,11 @@ function buildParams(
   q: string,
   filters: FiltersState,
   sort: SortKey,
+  taxonomyId?: number,
 ): CatalogParams {
   return {
     q: q || undefined,
+    taxonomyId,
     cityId: filters.cityId,
     cityName: filters.city || undefined,
     categoryName: filters.category !== "Все" ? filters.category : undefined,
@@ -66,6 +71,7 @@ function CatalogPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const search = Route.useSearch();
+  const taxonomyId = search.taxonomy_id;
   const { guardAction } = useGuestAccess();
 
   const [ads, setAds] = useState<Ad[]>([]);
@@ -99,7 +105,7 @@ function CatalogPage() {
       setLoadState("loading");
     }
     try {
-      const params = buildParams(q, filters, sort);
+      const params = buildParams(q, filters, sort, taxonomyId);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: 1 });
       setAds(result);
       setPage(1);
@@ -112,14 +118,14 @@ function CatalogPage() {
       setIsRefreshing(false);
       setIsPendingRefresh(false);
     }
-  }, [q, filters, sort]);
+  }, [q, filters, sort, taxonomyId]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const params = buildParams(q, filters, sort);
+      const params = buildParams(q, filters, sort, taxonomyId);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: nextPage });
       setAds((prev) => [...prev, ...result]);
       setPage(nextPage);
@@ -129,7 +135,7 @@ function CatalogPage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, page, q, filters, sort]);
+  }, [loadingMore, hasMore, page, q, filters, sort, taxonomyId]);
 
   // Debounced: `load` changes identity on every keystroke into text filters
   // (search query, city — CitySelect's own dropdown-suggestion debounce fires
@@ -138,7 +144,7 @@ function CatalogPage() {
   // The very first load (mount) skips the debounce so the page doesn't sit
   // blank for 350ms before showing the loading skeleton.
   const isFirstLoad = useRef(true);
-  const filterSnapshot = useRef({ q, filters, sort });
+  const filterSnapshot = useRef({ q, filters, sort, taxonomyId });
 
   // Lock results height and show refresh UI immediately — debounce only the API call.
   useEffect(() => {
@@ -147,20 +153,21 @@ function CatalogPage() {
     const changed =
       prev.q !== q ||
       prev.sort !== sort ||
-      prev.filters !== filters;
+      prev.filters !== filters ||
+      prev.taxonomyId !== taxonomyId;
     if (!changed) return;
 
-    filterSnapshot.current = { q, filters, sort };
+    filterSnapshot.current = { q, filters, sort, taxonomyId };
     if (resultsWrapRef.current) {
       setResultsMinHeight(resultsWrapRef.current.offsetHeight);
     }
     setIsPendingRefresh(true);
-  }, [q, filters, sort]);
+  }, [q, filters, sort, taxonomyId]);
 
   useEffect(() => {
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
-      filterSnapshot.current = { q, filters, sort };
+      filterSnapshot.current = { q, filters, sort, taxonomyId };
       void load();
       return;
     }
@@ -180,12 +187,15 @@ function CatalogPage() {
     setFilters(DEFAULT_FILTERS);
     setQ("");
     setSort("new");
+    if (taxonomyId) {
+      navigate({ to: "/ads", search: { q: undefined, taxonomy_id: undefined }, replace: true });
+    }
   }
 
   const hasAnyFilter = activeFilterCount > 0 || q;
 
   return (
-    <AppLayout rightColumn={false} navCollapsed footer>
+    <AppLayout rightColumn={<DirectionsRightRail variant="ads" />} navCollapsed footer>
       <div className="space-y-[16px] pb-[24px]">
         {/* Header */}
         <div className="flex items-start justify-between gap-[12px]">

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Radio, Users, Check, BadgeCheck, Store, Briefcase, Sparkles, Settings2, BarChart2, MoreVertical, Trash2 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 
 import {
 
@@ -39,15 +40,14 @@ import {
 
 
 import i18n from "@/lib/i18n";
-
-
+import { parseTaxonomyId } from "@/lib/taxonomy";
 
 export const Route = createFileRoute("/channels/")({
-
   head: () => ({ meta: [{ title: i18n.t("pages.channels.metaTitle") }, { name: "description", content: i18n.t("pages.channels.metaDescription") }] }),
-
+  validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
+    taxonomy_id: parseTaxonomyId(search.taxonomy_id),
+  }),
   component: ChannelsPage,
-
 });
 
 
@@ -209,7 +209,9 @@ function ChannelsPage() {
 
   const { t } = useTranslation();
 
-  const { channels: all, loading, reload } = useChannels();
+  const { taxonomy_id: taxonomyId } = Route.useSearch();
+
+  const { channels: all, loading, reload } = useChannels(taxonomyId);
 
   const me = useStore(selectors.currentUser);
 
@@ -290,7 +292,7 @@ function ChannelsPage() {
 
   return (
 
-    <AppLayout rightColumn={false} footer>
+    <AppLayout rightColumn={<DirectionsRightRail variant="channels" />} footer>
 
       <div className="space-y-[24px]">
 

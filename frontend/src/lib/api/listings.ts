@@ -120,6 +120,7 @@ export function mapListing(l: ApiListing): Ad {
 }
 
 export interface CatalogParams {
+  taxonomyId?: number;
   q?: string;
   cityId?: number;
   cityName?: string;
@@ -140,6 +141,7 @@ export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
   const res = await api<Paginated<ApiListing>>("/listings", {
     query: {
       q: params.q || undefined,
+      taxonomy_id: params.taxonomyId || undefined,
       city_id: params.cityId || undefined,
       price_min: params.priceMin || undefined,
       price_max: params.priceMax || undefined,

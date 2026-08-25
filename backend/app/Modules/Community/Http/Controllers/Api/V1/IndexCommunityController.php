@@ -14,6 +14,7 @@ class IndexCommunityController extends Controller
     {
         $paginator = $communities->list([
             'category_id' => $request->integer('category_id') ?: null,
+            'taxonomy_id' => $request->integer('taxonomy_id') ?: null,
             'q' => $request->string('q')->toString() ?: null,
             'official' => $request->has('official') ? $request->boolean('official') : null,
             'owned' => $request->boolean('owned') ?: null,

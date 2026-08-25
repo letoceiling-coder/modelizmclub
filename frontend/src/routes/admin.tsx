@@ -2338,6 +2338,17 @@ function CategoriesSection() {
     [items, kind],
   );
   const childrenOf = (id: number) => items.filter((c) => c.parentId === id);
+  const depthOf = (id: number) => {
+    let depth = 0;
+    let cur = items.find((x) => x.id === id);
+    const seen = new Set<number>();
+    while (cur?.parentId && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      depth += 1;
+      cur = items.find((x) => x.id === cur!.parentId);
+    }
+    return depth;
+  };
 
   const addRoot = async () => {
     const name = window.prompt(t("pages.adminCategories.promptName"))?.trim();
@@ -2352,6 +2363,10 @@ function CategoriesSection() {
   };
 
   const addSub = async (parent: AdminCategory) => {
+    if (depthOf(parent.id) >= 2) {
+      toast.error(t("pages.adminCategories.parentInvalid"));
+      return;
+    }
     const name = window.prompt(t("pages.adminCategories.promptSubName", { name: parent.name }))?.trim();
     if (!name) return;
     const slug = window.prompt(t("pages.adminCategories.promptSlug"), slugify(name))?.trim();
@@ -2371,9 +2386,25 @@ function CategoriesSection() {
     if (!name) return;
     const slug = window.prompt(t("pages.adminCategories.promptEditSlug"), c.slug)?.trim();
     if (!slug) return;
+    const icon = window.prompt(t("pages.adminCategories.promptIcon"), c.icon ?? "") ?? c.icon;
+    const sortRaw = window.prompt(t("pages.adminCategories.promptSort"), String(c.sortOrder));
+    const sortOrder = sortRaw != null && sortRaw !== "" ? Number(sortRaw) : c.sortOrder;
+    const parentRaw = window.prompt(
+      t("pages.adminCategories.promptParent"),
+      c.parentId != null ? String(c.parentId) : "",
+    );
+    let parentId = c.parentId;
+    if (parentRaw !== null) {
+      const trimmed = parentRaw.trim();
+      parentId = trimmed === "" ? null : Number(trimmed);
+      if (parentId != null && (!Number.isInteger(parentId) || parentId < 1 || parentId === c.id)) {
+        toast.error(t("pages.adminCategories.parentInvalid"));
+        return;
+      }
+    }
     try {
       const updated = await updateAdminCategory(kind, c.id, {
-        name, slug, parentId: c.parentId, icon: c.icon, sortOrder: c.sortOrder, isActive: c.isActive,
+        name, slug, parentId, icon: icon || null, sortOrder, isActive: c.isActive,
         listingPriceCents: c.listingPriceCents,
         subscriberListingPriceCents: c.subscriberListingPriceCents,
       });
@@ -2460,7 +2491,18 @@ function CategoriesSection() {
     if (!window.confirm(t("pages.adminCategories.deleteConfirm", { name: c.name }))) return;
     try {
       await deleteAdminCategory(kind, c.id);
-      setItems((p) => p.filter((x) => x.id !== c.id && x.parentId !== c.id));
+      const drop = new Set<number>([c.id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const x of items) {
+          if (x.parentId && drop.has(x.parentId) && !drop.has(x.id)) {
+            drop.add(x.id);
+            grew = true;
+          }
+        }
+      }
+      setItems((p) => p.filter((x) => !drop.has(x.id)));
       toast.success(t("pages.adminCommon.deleted"));
     } catch { toast.error(t("pages.adminCategories.deleteFailed")); }
   };
@@ -2476,6 +2518,12 @@ function CategoriesSection() {
       >
         {t("pages.adminCategories.title")}
       </H>
+
+      {kind === "post" && (
+        <p className="text-[13px]" style={{ color: "var(--foreground-50)", marginBottom: 12 }}>
+          {t("pages.adminCategories.unifiedHint")}
+        </p>
+      )}
 
       <div className="flex gap-[6px]" style={{ marginBottom: "12px" }}>
         {categoryKinds.map((k) => (
@@ -2541,22 +2589,43 @@ function CategoriesSection() {
                       transition={{ duration: 0.25 }}
                       style={{ overflow: "hidden", borderLeft: "1px solid var(--border)", marginLeft: "8px", paddingLeft: "16px" }}
                     >
-                      {subs.map((s) => (
+                      {subs.map((s) => {
+                        const thirds = childrenOf(s.id);
+                        return (
                         <div key={s.id}>
                           <div className="flex items-center justify-between" style={{ padding: "6px 0" }}>
                             <span className="flex items-center gap-[8px]" style={{ fontSize: "14px", color: "var(--foreground-70)" }}>
                               {s.name}
                               {!s.isActive && <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminCategories.hidden")}</span>}
+                              {thirds.length > 0 && <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>({thirds.length})</span>}
                             </span>
-                            <div className="flex gap-[4px]">
+                          <div className="flex gap-[4px]">
+                              {depthOf(s.id) < 2 && <IconBtn onClick={() => addSub(s)}><Plus size={14} /></IconBtn>}
                               <IconBtn onClick={() => void toggleActive(s)}>{s.isActive ? <Eye size={14} /> : <EyeOff size={14} />}</IconBtn>
-                              <IconBtn onClick={() => edit(s)}><Pencil size={14} /></IconBtn>
-                              <IconBtn danger onClick={() => remove(s)}><Trash2 size={14} /></IconBtn>
-                            </div>
+                            <IconBtn onClick={() => edit(s)}><Pencil size={14} /></IconBtn>
+                            <IconBtn danger onClick={() => remove(s)}><Trash2 size={14} /></IconBtn>
+                          </div>
                           </div>
                           {listingPriceFields(s)}
+                          {thirds.map((n) => (
+                            <div key={n.id} style={{ borderLeft: "1px solid var(--border)", marginLeft: "8px", paddingLeft: "16px" }}>
+                              <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+                                <span className="flex items-center gap-[8px]" style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+                                  {n.name}
+                                  {!n.isActive && <span style={{ fontSize: "11px" }}>{t("pages.adminCategories.hidden")}</span>}
+                                </span>
+                                <div className="flex gap-[4px]">
+                                  <IconBtn onClick={() => void toggleActive(n)}>{n.isActive ? <Eye size={14} /> : <EyeOff size={14} />}</IconBtn>
+                                  <IconBtn onClick={() => edit(n)}><Pencil size={14} /></IconBtn>
+                                  <IconBtn danger onClick={() => remove(n)}><Trash2 size={14} /></IconBtn>
+                                </div>
+                              </div>
+                              {listingPriceFields(n)}
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>

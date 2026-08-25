@@ -26,6 +26,8 @@ class CatalogService
 
     private const KEY_CITIES = 'catalog:cities:all';
 
+    private const KEY_TREE_POST_USAGE = 'catalog:tree:post:usage';
+
     public function __construct(
         private readonly CategoryTreeBuilder $treeBuilder,
     ) {}
@@ -33,7 +35,14 @@ class CatalogService
     /** @return list<array<string, mixed>> */
     public function postCategoryTree(): array
     {
-        return Cache::remember(self::KEY_TREE_POST, self::TTL, fn () => $this->categoryTree(PostCategory::query()));
+        $tree = Cache::remember(self::KEY_TREE_POST, self::TTL, fn () => $this->categoryTree(PostCategory::query()));
+        $counts = Cache::remember(self::KEY_TREE_POST_USAGE, 300, function () {
+            $flat = PostCategory::query()->where('is_active', true)->get();
+
+            return app(CategoryTaxonomyService::class)->usageCounts($flat);
+        });
+
+        return $this->attachUsageCounts($tree, $counts);
     }
 
     /** @return list<array<string, mixed>> */
@@ -54,7 +63,7 @@ class CatalogService
      */
     public static function flushCache(): void
     {
-        foreach ([self::KEY_TREE_POST, self::KEY_TREE_COMMUNITY, self::KEY_TREE_LISTING, self::KEY_CITIES] as $key) {
+        foreach ([self::KEY_TREE_POST, self::KEY_TREE_COMMUNITY, self::KEY_TREE_LISTING, self::KEY_CITIES, self::KEY_TREE_POST_USAGE] as $key) {
             Cache::forget($key);
         }
     }
@@ -148,5 +157,26 @@ class CatalogService
         }
 
         return $node;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tree
+     * @param  array<int, int>  $counts
+     * @return list<array<string, mixed>>
+     */
+    private function attachUsageCounts(array $tree, array $counts): array
+    {
+        return array_map(function (array $node) use ($counts): array {
+            $children = $this->attachUsageCounts($node['children'] ?? [], $counts);
+            $own = (int) ($counts[$node['id'] ?? 0] ?? 0);
+            $childSum = 0;
+            foreach ($children as $child) {
+                $childSum += (int) ($child['usage_count'] ?? 0);
+            }
+            $node['children'] = $children;
+            $node['usage_count'] = $own + $childSum;
+
+            return $node;
+        }, $tree);
     }
 }

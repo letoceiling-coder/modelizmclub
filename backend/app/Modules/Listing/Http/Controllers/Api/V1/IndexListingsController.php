@@ -17,6 +17,7 @@ class IndexListingsController extends Controller
             'subcategory_id' => $request->integer('subcategory_id') ?: null,
             'city_id' => $request->integer('city_id') ?: null,
             'category_ids' => $request->filled('category_ids') ? array_filter(array_map('intval', (array) $request->input('category_ids'))) : null,
+            'taxonomy_id' => $request->integer('taxonomy_id') ?: null,
             'q' => $request->string('q')->toString() ?: null,
             'delivery_method' => $request->string('delivery_method')->toString() ?: null,
             'sort' => $request->string('sort')->toString() ?: 'newest',

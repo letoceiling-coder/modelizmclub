@@ -7,11 +7,13 @@ use App\Models\Post;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 
 class FeedService
 {
     public function __construct(
         private readonly PostService $posts,
+        private readonly CategoryTaxonomyService $taxonomy,
     ) {}
 
     public function list(array $filters, ?User $viewer, int $perPage = 20): LengthAwarePaginator
@@ -71,13 +73,14 @@ class FeedService
                 ->orderBy('scheduled_at');
         }
 
-        if ($filter === 'category' && ! empty($filters['category_id'])) {
-            $query->where('category_id', (int) $filters['category_id']);
-        }
-
-        // category_id может приходить и вне режима "category" — как дополнительный фильтр.
-        if ($filter !== 'category' && ! empty($filters['category_id'])) {
-            $query->where('category_id', (int) $filters['category_id']);
+        $categoryId = (int) ($filters['taxonomy_id'] ?? $filters['category_id'] ?? 0);
+        if ($categoryId > 0) {
+            $ids = $this->taxonomy->descendantPostIds($categoryId);
+            if ($ids === []) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('category_id', $ids);
+            }
         }
 
         if (! empty($filters['author_id'])) {

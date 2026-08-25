@@ -53,7 +53,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
   const hasStats = hasRating || hasDeals;
 
   return (
-    <Link to="/profile">
+    <Link to="/user/$id" params={{ id: seller.id }}>
       <Card
         className="flex items-center gap-[12px] p-[14px] transition-colors hover:bg-[var(--background-surface)]"
         style={{

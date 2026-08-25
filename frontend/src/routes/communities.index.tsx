@@ -5,6 +5,7 @@ import {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff, Plus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import type { Community } from "@/lib/mock";
 import { fetchCommunities } from "@/lib/api/communities";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -15,9 +16,13 @@ import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
 import i18n from "@/lib/i18n";
+import { parseTaxonomyId } from "@/lib/taxonomy";
 
 export const Route = createFileRoute("/communities/")({
   head: () => ({ meta: [{ title: i18n.t("pages.communities.metaTitle") }] }),
+  validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
+    taxonomy_id: parseTaxonomyId(search.taxonomy_id),
+  }),
   component: CommunitiesPage,
 });
 
@@ -266,14 +271,15 @@ function CommunitySection({
 
 function CommunitiesPage() {
   const { t } = useTranslation();
+  const { taxonomy_id: taxonomyId } = Route.useSearch();
   const [all, setAll] = useState<Community[]>([]);
 
   useEffect(() => {
-    fetchCommunities().then(setAll).catch(() => {});
-  }, []);
+    fetchCommunities(undefined, taxonomyId).then(setAll).catch(() => {});
+  }, [taxonomyId]);
 
   const reloadCommunities = () => {
-    fetchCommunities().then(setAll).catch(() => {});
+    fetchCommunities(undefined, taxonomyId).then(setAll).catch(() => {});
   };
 
   const [query, setQuery] = useState("");
@@ -309,7 +315,7 @@ function CommunitiesPage() {
   const noneJoined = mine.length === 0 && subscriptions.length === 0;
 
   return (
-    <AppLayout rightColumn={false} footer>
+    <AppLayout rightColumn={<DirectionsRightRail variant="communities" />} footer>
       <div className="space-y-[24px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-end sm:justify-between">
           <div>

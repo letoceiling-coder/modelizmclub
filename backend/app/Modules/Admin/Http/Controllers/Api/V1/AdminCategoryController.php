@@ -8,9 +8,11 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Modules\Admin\Http\Requests\UpsertCategoryRequest;
 use Modules\Admin\Services\AuditService;
 use Modules\Catalog\Services\CatalogService;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 abstract class AdminCategoryController extends Controller
@@ -42,7 +44,12 @@ abstract class AdminCategoryController extends Controller
     {
         /** @var class-string<Model> $class */
         $class = $this->modelClass();
-        $category = $class::query()->create($request->validated());
+        $category = DB::transaction(function () use ($class, $request) {
+            $category = $class::query()->create($request->validated());
+            $this->afterMutate($category);
+
+            return $category->fresh();
+        });
         $audit->log($request->user(), $this->auditPrefix().'.create', $category, null, $category->toArray(), $request);
         CatalogService::flushCache();
 
@@ -62,11 +69,16 @@ abstract class AdminCategoryController extends Controller
     {
         $category = $this->findCategory($id);
         $old = $category->toArray();
-        $category->update($request->validated());
-        $audit->log($request->user(), $this->auditPrefix().'.update', $category, $old, $category->fresh()->toArray(), $request);
+        $category = DB::transaction(function () use ($category, $request, $old) {
+            $category->update($request->validated());
+            $this->afterMutate($category->fresh(), isset($old['path']) ? (string) $old['path'] : null);
+
+            return $category->fresh();
+        });
+        $audit->log($request->user(), $this->auditPrefix().'.update', $category, $old, $category->toArray(), $request);
         CatalogService::flushCache();
 
-        return response()->json(['data' => $category->fresh()]);
+        return response()->json(['data' => $category]);
     }
 
     #[PathParameter('id', description: 'ID категории (создайте копию для DELETE-теста)', example: 999)]
@@ -91,5 +103,12 @@ abstract class AdminCategoryController extends Controller
         }
 
         return $category;
+    }
+
+    protected function afterMutate(Model $category, ?string $previousPath = null): void
+    {
+        if ($category instanceof \App\Models\PostCategory) {
+            app(CategoryTaxonomyService::class)->syncFromPostCategory($category, $previousPath);
+        }
     }
 }

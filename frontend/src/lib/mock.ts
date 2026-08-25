@@ -187,6 +187,13 @@ export interface Ad {
   mediaIds?: string[];
 }
 
+export interface CategoryChild {
+  id: ID;
+  name: string;
+  usageCount?: number;
+  children?: CategoryChild[];
+}
+
 export interface Category {
   id: ID;
   name: string;
@@ -195,7 +202,8 @@ export interface Category {
   iconImageUrl?: string | null;
   members: number;
   listingsCount?: number;
-  subcategories: { id: ID; name: string }[];
+  usageCount?: number;
+  subcategories: CategoryChild[];
 }
 
 export interface CommunityContacts {
