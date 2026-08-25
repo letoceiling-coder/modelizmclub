@@ -52,12 +52,20 @@ return [
     ],
 
     'max' => [
+        // Placeholder website-OAuth (MAX does not issue these). Do not put the bot token here.
         'client_id' => env('MAX_CLIENT_ID'),
         'client_secret' => env('MAX_CLIENT_SECRET'),
         'redirect' => env('MAX_REDIRECT_URI'),
         'auth_url' => env('MAX_AUTH_URL', 'https://oauth.max.ru/authorize'),
         'token_url' => env('MAX_TOKEN_URL', 'https://oauth.max.ru/token'),
         'user_url' => env('MAX_USER_URL', 'https://api.max.ru/oauth/userinfo'),
+        // Live MAX login uses the bot + webhook, not website OAuth.
+        'bot_token' => env('MAX_BOT_TOKEN'),
+        'bot_username' => env('MAX_BOT_USERNAME', 'se13448473_1_bot'),
+        'bot_url' => env('MAX_BOT_URL', 'https://max.ru/se13448473_1_bot'),
+        'api_base' => env('MAX_API_BASE', 'https://platform-api2.max.ru'),
+        'webhook_secret' => env('MAX_WEBHOOK_SECRET'),
+        'webhook_url' => env('MAX_WEBHOOK_URL'),
     ],
 
 ];

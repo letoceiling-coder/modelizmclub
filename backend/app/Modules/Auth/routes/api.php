@@ -7,6 +7,8 @@ use Modules\Auth\Http\Controllers\Api\V1\LoginController;
 use Modules\Auth\Http\Controllers\Api\V1\LogoutController;
 use Modules\Auth\Http\Controllers\Api\V1\LogoutOthersController;
 use Modules\Auth\Http\Controllers\Api\V1\MeController;
+use Modules\Auth\Http\Controllers\Api\V1\MaxAuthController;
+use Modules\Auth\Http\Controllers\Api\V1\MaxWebhookController;
 use Modules\Auth\Http\Controllers\Api\V1\OAuthController;
 use Modules\Auth\Http\Controllers\Api\V1\RegisterController;
 use Modules\Auth\Http\Controllers\Api\V1\ResetPasswordController;
@@ -21,6 +23,10 @@ Route::prefix('auth')->group(function (): void {
 
     Route::get('oauth/{provider}/redirect', [OAuthController::class, 'redirect']);
     Route::get('oauth/{provider}/callback', [OAuthController::class, 'callback']);
+    Route::middleware('throttle:auth-max-start')->group(function (): void {
+        Route::post('oauth/max/start', [MaxAuthController::class, 'start']);
+        Route::get('oauth/max/status', [MaxAuthController::class, 'status']);
+    });
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('logout', LogoutController::class);
@@ -29,3 +35,5 @@ Route::prefix('auth')->group(function (): void {
         Route::get('me', MeController::class);
     });
 });
+
+Route::post('webhooks/max', MaxWebhookController::class);

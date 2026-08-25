@@ -34,5 +34,8 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <!-- Default false; individual tests opt in via config(['feed.auto_publish' => true]) -->
         <env name="FEED_AUTO_PUBLISH" value="false"/>
+        <!-- Empty so tests that call notify() never hit the live MAX API. -->
+        <env name="MAX_BOT_TOKEN" value=""/>
+        <env name="MAX_BOT_USERNAME" value=""/>
     </php>
 </phpunit>

@@ -10,12 +10,14 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
 use App\Models\Post;
 use App\Policies\PostPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Modules\Auth\Services\MaxNotificationService;
 use Modules\Auth\Socialite\MaxProvider;
 use Modules\Auth\Socialite\VkIdProvider;
 use Modules\Auth\Socialite\YandexProvider;
@@ -90,6 +92,10 @@ class AppServiceProvider extends ServiceProvider
             $event->extendSocialite('max', MaxProvider::class);
         });
 
+        Event::listen(NotificationSending::class, function (NotificationSending $event): void {
+            app(MaxNotificationService::class)->mirror($event->notifiable, $event->notification);
+        });
+
         Broadcast::routes(['middleware' => ['auth:sanctum'], 'prefix' => 'api/v1']);
 
         // This is an API-only backend: the password-reset link must point at the
@@ -123,6 +129,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-phone-verify', fn (Request $request) => Limit::perMinute(15)->by(
             ($request->user()?->id ?? 'guest').'|'.$request->ip()
         ));
+        RateLimiter::for('auth-max-start', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.

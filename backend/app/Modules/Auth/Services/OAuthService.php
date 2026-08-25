@@ -8,6 +8,7 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use App\Models\UserOAuthAccount;
 use App\Models\UserProfile;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
@@ -52,10 +53,15 @@ class OAuthService
         return DB::transaction(function () use ($provider, $providerUserId, $socialUser, $email): array {
             $name = $socialUser->getName() ?: $socialUser->getNickname() ?: 'Пользователь';
 
-            $user = User::create([
-                'name' => $name,
-                'email' => $email !== '' ? $email : $this->syntheticEmail($provider, $providerUserId),
-                'phone' => $this->extractPhone($socialUser),
+        $phone = $this->extractPhone($socialUser);
+        if ($phone !== null && User::withTrashed()->where('phone', $phone)->exists()) {
+            $phone = null;
+        }
+
+        $user = User::create([
+            'name' => $name,
+            'email' => $email !== '' ? $email : $this->syntheticEmail($provider, $providerUserId),
+            'phone' => $phone,
                 'password' => Str::password(32),
                 'role' => UserRole::User,
                 'status' => UserStatus::Active,
@@ -82,7 +88,7 @@ class OAuthService
      */
     private function applyProviderVerification(User $user, string $provider, string $email): void
     {
-        if ($provider === 'vk') {
+        if (in_array($provider, ['vk', 'max'], true)) {
             if ($user->email_verified_at === null) {
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
@@ -97,7 +103,7 @@ class OAuthService
 
     private function initialEmailVerifiedAt(string $provider, string $email): ?\Illuminate\Support\Carbon
     {
-        if ($provider === 'vk') {
+        if (in_array($provider, ['vk', 'max'], true)) {
             return now();
         }
 
@@ -175,9 +181,17 @@ class OAuthService
             return;
         }
 
-        $user->forceFill([
-            'phone' => $phone,
-        ])->save();
+        if (User::withTrashed()->where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
+            return;
+        }
+
+        try {
+            $user->forceFill([
+                'phone' => $phone,
+            ])->save();
+        } catch (UniqueConstraintViolationException) {
+            $user->refresh();
+        }
     }
 
     private function extractPhone(SocialiteUser $socialUser): ?string
@@ -188,6 +202,7 @@ class OAuthService
         }
 
         $phone = $raw['phone']
+            ?? $raw['phone_number']
             ?? ($raw['default_phone']['number'] ?? null)
             ?? (is_string($raw['default_phone'] ?? null) ? $raw['default_phone'] : null);
 

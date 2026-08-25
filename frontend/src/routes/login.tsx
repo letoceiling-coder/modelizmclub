@@ -184,7 +184,7 @@ function LoginPage() {
         </Button>
       </form>
       <OAuthDivider />
-      <OAuthButtons />
+      <OAuthButtons redirect={redirectTo} />
       {isDemoMode() && (
         <Link
           to="/feed"

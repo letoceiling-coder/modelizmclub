@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
+use Modules\Auth\Services\MaxAuthService;
 use Modules\Auth\Services\OAuthService;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,7 +15,7 @@ class OAuthController extends Controller
 {
     private const PROVIDERS = ['vk', 'yandex', 'max'];
 
-    public function redirect(string $provider): RedirectResponse|JsonResponse
+    public function redirect(Request $request, string $provider, MaxAuthService $max): RedirectResponse|JsonResponse
     {
         if (! $this->isSupported($provider)) {
             return response()->json(['message' => 'Неподдерживаемый OAuth-провайдер.'], 404);
@@ -27,9 +28,13 @@ class OAuthController extends Controller
             ], 503);
         }
 
+        if ($provider === 'max') {
+            return app(MaxAuthController::class)->start($request, $max);
+        }
+
         $driver = Socialite::driver($this->socialiteDriver($provider));
 
-        if (in_array($provider, ['yandex', 'max'], true)) {
+        if ($provider === 'yandex') {
             $driver = $driver->stateless();
         }
 
@@ -59,7 +64,7 @@ class OAuthController extends Controller
 
         try {
             $driver = Socialite::driver($this->socialiteDriver($provider));
-            if (in_array($provider, ['yandex', 'max'], true)) {
+            if ($provider === 'yandex') {
                 $driver = $driver->stateless();
             }
             $socialUser = $driver->user();
@@ -86,7 +91,7 @@ class OAuthController extends Controller
         return match ($provider) {
             'vk' => filled(config('services.vkontakte.client_id')),
             'yandex' => filled(config('services.yandex.client_id')),
-            'max' => filled(config('services.max.client_id')),
+            'max' => filled(config('services.max.bot_token')),
             default => false,
         };
     }

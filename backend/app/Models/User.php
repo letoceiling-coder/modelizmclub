@@ -224,10 +224,15 @@ class User extends Authenticatable
         return $this->oauthAccounts()->where('provider', $provider)->exists();
     }
 
-    /** VK identity is verified by the provider — email confirmation must never be required. */
+    /** VK / MAX identity is verified by the provider — email confirmation must never be required. */
     public function isVkOAuthUser(): bool
     {
         return $this->hasOAuthProvider('vk');
+    }
+
+    public function isMaxOAuthUser(): bool
+    {
+        return $this->hasOAuthProvider('max');
     }
 
     public function requiresEmailVerification(): bool
@@ -236,7 +241,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->isVkOAuthUser()) {
+        if ($this->isVkOAuthUser() || $this->isMaxOAuthUser()) {
             return false;
         }
 
