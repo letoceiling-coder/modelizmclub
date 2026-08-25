@@ -11,17 +11,30 @@ export function invalidateSiteBrandingCache(): void {
   inflight = null;
 }
 
+export function seedSiteBranding(data: SiteBranding): void {
+  cache = data;
+}
+
 function loadBranding(): Promise<SiteBranding> {
   if (cache) return Promise.resolve(cache);
   if (inflight) return inflight;
-  inflight = fetchSiteBranding()
-    .then((data) => {
-      cache = data;
-      return data;
-    })
-    .finally(() => {
-      inflight = null;
-    });
+  inflight = (async () => {
+    try {
+      const { startPublicBootstrap } = await import("@/lib/api/bootstrap");
+      const boot = await startPublicBootstrap();
+      if (boot?.branding) {
+        cache = boot.branding;
+        return cache;
+      }
+    } catch {
+      /* dedicated endpoint below */
+    }
+    const data = await fetchSiteBranding();
+    cache = data;
+    return data;
+  })().finally(() => {
+    inflight = null;
+  });
   return inflight;
 }
 

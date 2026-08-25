@@ -23,17 +23,30 @@ export async function loadFeedGuestAccess(force = false): Promise<FeedGuestAcces
   if (force) invalidateFeedGuestAccessCache();
   if (cached) return cached;
   if (!loadPromise) {
-    loadPromise = fetchFeedGuestAccess()
-      .then((config) => {
+    loadPromise = (async () => {
+      if (!force) {
+        try {
+          const { startPublicBootstrap } = await import("@/lib/api/bootstrap");
+          const boot = await startPublicBootstrap();
+          if (boot?.feed_guest_access) {
+            cached = hydrateConfig(boot.feed_guest_access);
+            return cached;
+          }
+        } catch {
+          /* dedicated endpoint below */
+        }
+      }
+      try {
+        const config = await fetchFeedGuestAccess();
         cached = hydrateConfig(config);
         return cached;
-      })
-      .catch(() => {
+      } catch {
         loadPromise = null;
         const fallback = buildDefaultFeedGuestAccessConfig();
         cached = fallback;
         return fallback;
-      });
+      }
+    })();
   }
   return loadPromise;
 }

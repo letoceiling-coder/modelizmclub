@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
   Home, Bell, Settings, Heart, Star, Search as SearchIcon, ChevronRight,
   Camera, ShieldCheck, Award, Wrench, Plane, Ship, Car,
@@ -15,6 +15,7 @@ import { useState } from "react";
 export const Route = createFileRoute("/admin/design-system")({
   head: () => ({ meta: [{ title: "Design System — МоДелизМ" }] }),
   beforeLoad: async ({ location }) => {
+    if (import.meta.env.PROD) throw notFound();
     const { requireAuth } = await import("@/lib/auth/requireAuth");
     await requireAuth(location);
   },

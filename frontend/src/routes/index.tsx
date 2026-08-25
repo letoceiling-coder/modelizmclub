@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
@@ -251,11 +251,20 @@ const navLinkStyle: React.CSSProperties = { color: "var(--foreground-70)" };
 
 /* ===================== Hero (video-first, blue accent) ===================== */
 
+function heroVideoSources(url: string): { webm?: string; mp4: string } {
+  if (/\.mp4$/i.test(url)) {
+    return { webm: url.replace(/\.mp4$/i, ".webm"), mp4: url };
+  }
+  return { mp4: url };
+}
+
 function Hero() {
   const { t } = useTranslation();
   const { section } = useLandingSection("hero");
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
+  const [deferVideo, setDeferVideo] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const reduce = useReducedMotion();
   const [stats, setStats] = useState({ users: 0, communities: 0, listing_categories: 0 });
   const [allowVideo, setAllowVideo] = useState(false);
@@ -263,6 +272,7 @@ function Hero() {
   const brand = section?.eyebrow || section?.title || "";
   const tagline = section?.eyebrow ? section.title : "";
   const subtitle = section?.subtitle || "";
+  const sources = heroVideoSources(videoSrc);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 150);
@@ -286,6 +296,30 @@ function Hero() {
     setAllowVideo(bigScreen && !saveData && !slow);
   }, []);
 
+  useEffect(() => {
+    if (!allowVideo || !videoSrc) return;
+    const start = () => setDeferVideo(false);
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(start, { timeout: 2200 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(start, 400);
+    return () => window.clearTimeout(timer);
+  }, [allowVideo, videoSrc]);
+
+  useEffect(() => {
+    return () => {
+      const el = videoRef.current;
+      if (!el) return;
+      el.pause();
+      el.removeAttribute("src");
+      el.querySelectorAll("source").forEach((node) => node.remove());
+      el.load();
+    };
+  }, []);
+
+  const showVideo = Boolean(allowVideo && videoSrc && !videoError && !deferVideo);
+
   const fadeUp = {
     hidden: { opacity: 0, y: 22 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
@@ -296,10 +330,9 @@ function Hero() {
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
       {/* background media */}
       <div className="absolute inset-0 z-0">
-        {videoError || !allowVideo || !videoSrc ? (
-          <img src={cover} alt={brand || t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
-        ) : (
+        {showVideo ? (
           <video
+            ref={videoRef}
             poster={cover}
             autoPlay
             muted
@@ -309,8 +342,11 @@ function Hero() {
             onError={() => setVideoError(true)}
             className="h-full w-full object-cover"
           >
-            <source src={videoSrc} type="video/mp4" />
+            {sources.webm ? <source src={sources.webm} type="video/webm" /> : null}
+            <source src={sources.mp4} type="video/mp4" />
           </video>
+        ) : (
+          <img src={cover} alt={brand || t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
         )}
         {/* dark overlay — fixed dark color at the bottom, independent of theme
             (var(--background) turned white in light theme and washed out the video).

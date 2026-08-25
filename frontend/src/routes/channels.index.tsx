@@ -47,8 +47,17 @@ export const Route = createFileRoute("/channels/")({
   validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
+  pendingComponent: ChannelsPending,
   component: ChannelsPage,
 });
+
+function ChannelsPending() {
+  return (
+    <AppLayout rightColumn={<DirectionsRightRail variant="channels" />} footer>
+      <ChannelsPageSkeleton />
+    </AppLayout>
+  );
+}
 
 
 

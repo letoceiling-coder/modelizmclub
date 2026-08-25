@@ -9,6 +9,7 @@ import { type Ad, type AdCondition } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
 import { fetchMyListings, publishListing, archiveListing, deleteListing, restoreListing } from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
+import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -94,6 +95,7 @@ function MyAdsPage() {
   const quickChips = useMemo(() => QUICK_CHIP_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
   const [tab, setTab] = useState<TabKey>("active");
   const [items, setItems] = useState<{ ad: Ad; status: AdStatusKey }[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -129,9 +131,13 @@ function MyAdsPage() {
   }, [filters]);
 
   useEffect(() => {
+    let alive = true;
+    setLoading(true);
     fetchMyListings()
-      .then(setItems)
-      .catch(() => setItems([]));
+      .then((rows) => { if (alive) setItems(rows); })
+      .catch(() => { if (alive) setItems([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, []);
 
   useEffect(() => {
@@ -588,7 +594,9 @@ function MyAdsPage() {
           transition={{ duration: 0.18 }}
           className="flex flex-col gap-[12px] pb-[120px] md:pb-[40px]"
         >
-            {visible.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 6 }, (_, i) => <AdCardSkeleton key={i} />)
+            ) : visible.length === 0 ? (
               <EmptyTab tab={tab} onCreate={handleCreate} dirty={filtersDirty} onReset={resetFilters} />
             ) : (
               visible.map(({ ad, status }) => (

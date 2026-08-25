@@ -40,3 +40,5 @@ export function PostCardSkeleton() {
     </article>
   );
 }
+
+export const PostSkeleton = PostCardSkeleton;

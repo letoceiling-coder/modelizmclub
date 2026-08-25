@@ -12,6 +12,7 @@ import { saveCookiePreferences } from "@/lib/api/legal";
 
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const [hiding, setHiding] = useState(false);
   const [configure, setConfigure] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [ads, setAds] = useState(false);
@@ -22,6 +23,8 @@ export function CookieBanner() {
 
   async function persist(analyticsOn: boolean, adsOn: boolean) {
     writeCookiePrefs({ analytics: analyticsOn, ads: adsOn });
+    setHiding(true);
+    window.setTimeout(() => setVisible(false), 280);
     try {
       await saveCookiePreferences({
         anonymous_key: getAnonymousCookieKey(),
@@ -33,15 +36,21 @@ export function CookieBanner() {
     }
     loadAnalyticsIfConsented();
     loadAdsIfConsented();
-    setVisible(false);
   }
 
   if (!visible) return null;
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[200] border-t px-4 py-4 shadow-lg"
-      style={{ background: "var(--background-surface)", borderColor: "var(--border)" }}
+      className="fixed inset-x-0 bottom-0 z-[200] border-t px-4 py-4 shadow-lg max-lg:bottom-[var(--bottom-nav-space)]"
+      style={{
+        background: "var(--background-surface)",
+        borderColor: "var(--border)",
+        opacity: hiding ? 0 : 1,
+        transform: hiding ? "translateY(12px)" : "translateY(0)",
+        transition: "opacity 280ms ease, transform 280ms ease",
+        pointerEvents: hiding ? "none" : "auto",
+      }}
       role="dialog"
       aria-label="Настройки cookie"
     >

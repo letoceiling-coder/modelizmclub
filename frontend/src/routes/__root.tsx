@@ -23,6 +23,7 @@ import { CookieBanner } from "@/components/legal/CookieBanner";
 import { restoreSession } from "@/lib/auth/session";
 import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
 import { loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
+import { startPublicBootstrap } from "@/lib/api/bootstrap";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
 
@@ -161,13 +162,18 @@ function RootComponent() {
   useEffect(() => {
     bindCallAudioUnlock();
     void restoreSession();
+    void startPublicBootstrap().then((data) => {
+      if (data?.footer_links) {
+        queryClient.setQueryData(["footer-links"], data.footer_links);
+      }
+    });
     void loadFeatureFlagsFromServer();
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void restoreSession();
     };
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);
-  }, []);
+  }, [queryClient]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>

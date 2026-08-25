@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { api } from "@/lib/api/client";
+import { mapBootstrapFeatureFlags, startPublicBootstrap, type BootstrapFeatureFlags } from "@/lib/api/bootstrap";
 import { isDemoMode } from "@/lib/demo-mode";
 
 /**
@@ -66,22 +67,27 @@ function notify() {
   window.dispatchEvent(new Event(EVENT));
 }
 
+export function applyServerFeatureFlags(data: BootstrapFeatureFlags): void {
+  serverFlags = mapBootstrapFeatureFlags(data);
+  if (typeof window !== "undefined") notify();
+}
+
+async function refreshFeatureFlagsFromEndpoint(): Promise<void> {
+  const res = await api<{ data: BootstrapFeatureFlags }>("/public/feature-flags", {
+    auth: false,
+  });
+  applyServerFeatureFlags(res.data ?? {});
+}
+
 export async function loadFeatureFlagsFromServer(): Promise<void> {
   if (isDemoMode()) return;
   try {
-    const res = await api<{ data: { communities_enabled?: boolean; reviews_enabled?: boolean; market_enabled?: boolean; escrow_enabled?: boolean; listing_payment_enabled?: boolean } }>("/public/feature-flags", {
-      auth: false,
-    });
-    serverFlags = {
-      communitiesEnabled: Boolean(res.data?.communities_enabled),
-      reviewsEnabled: res.data?.reviews_enabled !== false,
-      marketEnabled: Boolean(res.data?.market_enabled),
-      escrowEnabled: Boolean(res.data?.escrow_enabled),
-      listingPaymentEnabled: Boolean(res.data?.listing_payment_enabled),
-    };
-    if (typeof window !== "undefined") {
-      notify();
+    const boot = await startPublicBootstrap();
+    if (boot?.feature_flags) {
+      applyServerFeatureFlags(boot.feature_flags);
+      return;
     }
+    await refreshFeatureFlagsFromEndpoint();
   } catch {
     // Keep defaults/localStorage on error.
   }
@@ -90,7 +96,10 @@ export async function loadFeatureFlagsFromServer(): Promise<void> {
 if (typeof window !== "undefined" && !serverFetchStarted) {
   serverFetchStarted = true;
   void loadFeatureFlagsFromServer();
-  window.addEventListener("focus", () => void loadFeatureFlagsFromServer());
+  window.addEventListener("focus", () => {
+    if (isDemoMode()) return;
+    void refreshFeatureFlagsFromEndpoint().catch(() => {});
+  });
 }
 
 /** Read a flag outside React (e.g. plain non-component modules). */

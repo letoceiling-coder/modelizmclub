@@ -65,7 +65,18 @@ export function useDraftChangeCount(): number {
 
 export async function loadIconOverridesFromServer(): Promise<void> {
   if (typeof window === "undefined") return;
-  const map = await fetchIconOverrides(); // demo → localStorage; real → GET /icon-overrides; ошибка → {}
+  try {
+    const { startPublicBootstrap } = await import("@/lib/api/bootstrap");
+    const boot = await startPublicBootstrap();
+    if (boot) {
+      published = boot.icon_overrides ?? {};
+      notify();
+      return;
+    }
+  } catch {
+    /* fall through to dedicated endpoint */
+  }
+  const map = await fetchIconOverrides();
   published = map;
   notify();
 }

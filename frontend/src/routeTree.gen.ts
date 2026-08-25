@@ -36,6 +36,7 @@ import { Route as RefundRouteImport } from './routes/refund'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
+import { Route as SafeDealsRouteImport } from './routes/safe-deals'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubscriptionRouteImport } from './routes/subscription'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
@@ -144,6 +145,11 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
 const LandingRoute = LandingRouteImport.update({
   id: '/landing',
   path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SafeDealsRoute = SafeDealsRouteImport.update({
+  id: '/safe-deals',
+  path: '/safe-deals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/landing': typeof LandingRoute
+  '/safe-deals': typeof SafeDealsRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
   '/my-ads': typeof MyAdsRoute
@@ -488,6 +495,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/landing': typeof LandingRoute
+  '/safe-deals': typeof SafeDealsRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
   '/my-ads': typeof MyAdsRoute
@@ -555,6 +563,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/landing': typeof LandingRoute
+  '/safe-deals': typeof SafeDealsRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
   '/my-ads': typeof MyAdsRoute
@@ -626,6 +635,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/landing'
+    | '/safe-deals'
     | '/login'
     | '/messenger'
     | '/my-ads'
@@ -691,6 +701,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/landing'
+    | '/safe-deals'
     | '/login'
     | '/messenger'
     | '/my-ads'
@@ -756,6 +767,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/landing'
+    | '/safe-deals'
     | '/login'
     | '/messenger'
     | '/my-ads'
@@ -825,6 +837,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   LandingRoute: typeof LandingRoute
+  SafeDealsRoute: typeof SafeDealsRoute
   LoginRoute: typeof LoginRoute
   MessengerRoute: typeof MessengerRoute
   MyAdsRoute: typeof MyAdsRoute
@@ -948,6 +961,13 @@ declare module '@tanstack/react-router' {
       path: '/landing'
       fullPath: '/landing'
       preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/safe-deals': {
+      id: '/safe-deals'
+      path: '/safe-deals'
+      fullPath: '/safe-deals'
+      preLoaderRoute: typeof SafeDealsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1463,6 +1483,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   LandingRoute: LandingRoute,
+  SafeDealsRoute: SafeDealsRoute,
   LoginRoute: LoginRoute,
   MessengerRoute: MessengerRoute,
   MyAdsRoute: MyAdsRoute,

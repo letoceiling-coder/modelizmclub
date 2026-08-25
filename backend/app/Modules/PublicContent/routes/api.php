@@ -13,9 +13,11 @@ use Modules\PublicContent\Http\Controllers\Api\V1\LandingStatsController;
 use Modules\PublicContent\Http\Controllers\Api\V1\StatsController;
 use Modules\PublicContent\Http\Controllers\Api\V1\IndexDeliveryMethodsController;
 use Modules\PublicContent\Http\Controllers\Api\V1\PlacementPricingController;
+use Modules\PublicContent\Http\Controllers\Api\V1\PublicBootstrapController;
 use Modules\PublicContent\Http\Controllers\Api\V1\SiteBrandingController;
 
 Route::prefix('public')->group(function (): void {
+    Route::get('bootstrap', PublicBootstrapController::class);
     Route::get('banners', BannersController::class);
     Route::post('banners/{id}/events', RecordBannerEventController::class)->whereNumber('id');
     Route::get('faq', FaqController::class);

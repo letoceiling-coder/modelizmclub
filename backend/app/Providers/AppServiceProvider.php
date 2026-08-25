@@ -141,6 +141,7 @@ class AppServiceProvider extends ServiceProvider
                 // Public site config — loaded once on app boot; must not be throttled
                 // alongside media/image traffic or a transient loop can 429 the whole UI.
                 || $request->is('api/v1/icon-overrides')
+                || $request->is('api/v1/public/bootstrap')
                 || $request->is('api/v1/public/feature-flags')
                 || $request->is('api/v1/public/feed-guest-access')) {
                 return Limit::none();

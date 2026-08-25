@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
@@ -9,6 +9,9 @@ import { isAuthenticated } from "@/lib/auth/session";
 
 export const Route = createFileRoute("/pay/stub/$uuid")({
   head: () => ({ meta: [{ title: "Оплата — тестовый контур" }] }),
+  beforeLoad: () => {
+    if (import.meta.env.PROD) throw notFound();
+  },
   component: StubAcquiringPage,
 });
 

@@ -37,6 +37,13 @@ export async function fetchLegalPage(slug: string): Promise<LegalPageData> {
 }
 
 export async function fetchFooterLinks(): Promise<FooterLinksGrouped> {
+  try {
+    const { startPublicBootstrap } = await import("./bootstrap");
+    const boot = await startPublicBootstrap();
+    if (boot?.footer_links) return boot.footer_links;
+  } catch {
+    /* dedicated endpoint below */
+  }
   const res = await api<{ data: FooterLinksGrouped }>("/footer-links", { auth: false });
   return res.data;
 }

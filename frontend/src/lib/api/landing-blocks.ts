@@ -25,11 +25,30 @@ export interface LandingBlocksPublic {
 }
 
 let inflight: Promise<LandingBlocksPublic> | null = null;
+let cached: LandingBlocksPublic | null = null;
+
+export function seedLandingBlocks(data: LandingBlocksPublic): void {
+  cached = data;
+}
 
 export async function fetchLandingBlocks(): Promise<LandingBlocksPublic> {
+  if (cached) return cached;
+  try {
+    const { startPublicBootstrap } = await import("./bootstrap");
+    const boot = await startPublicBootstrap();
+    if (boot?.landing_blocks) {
+      cached = boot.landing_blocks;
+      return cached;
+    }
+  } catch {
+    /* dedicated endpoint below */
+  }
   if (inflight) return inflight;
   inflight = api<{ data: LandingBlocksPublic }>("/public/landing-blocks", { auth: false })
-    .then((res) => res.data ?? { sections: [] })
+    .then((res) => {
+      cached = res.data ?? { sections: [] };
+      return cached;
+    })
     .finally(() => {
       inflight = null;
     });
