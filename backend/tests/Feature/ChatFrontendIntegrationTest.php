@@ -714,11 +714,14 @@ class ChatFrontendIntegrationTest extends TestCase
             $recipient->fresh()->notifications()->where('data->type', 'messages')->first()?->read_at,
         );
 
-        $this->actingAs($sender, 'sanctum')
+        $messages = $this->actingAs($sender, 'sanctum')
             ->getJson("/api/v1/conversations/{$conv->uuid}/messages")
             ->assertOk()
-            ->assertJsonPath('data.0.uuid', $messageUuid)
-            ->assertJsonPath('data.0.status', 'read');
+            ->json('data');
+
+        $first = collect($messages)->firstWhere('uuid', $messageUuid);
+        $this->assertNotNull($first);
+        $this->assertSame('read', $first['status']);
     }
 
     public function test_message_is_delivered_when_recipient_was_active_after_send(): void
