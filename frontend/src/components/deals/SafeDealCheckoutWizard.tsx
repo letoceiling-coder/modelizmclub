@@ -328,7 +328,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               label="Согласен с Правилами безопасной сделки"
             />
             <a
-              href="/safe-deal"
+              href="/rules/safe-deal"
               target="_blank"
               rel="noreferrer"
               className="text-[12px] font-medium"
@@ -364,7 +364,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
         </div>
         {step === 3 && (
           <p className="mt-[10px] text-center text-[12px]">
-            <a href="/safe-deal" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+            <a href="/rules/safe-deal" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
               Как работает безопасная сделка
             </a>
           </p>

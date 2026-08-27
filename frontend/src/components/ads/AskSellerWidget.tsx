@@ -14,12 +14,12 @@ const QUICK_QUESTIONS = [
 /** Compact "ask a quick question" widget — sends straight into the existing
  *  messenger/dialog with the seller (via onAsk), not a separate Q&A system. */
 export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
-  const { isGuest, needsPhone, needsSubscription, requirePremium } = useGuestAccess();
-  const locked = isGuest || needsPhone || needsSubscription;
+  const { isAllowed, guardAction } = useGuestAccess();
+  const locked = !isAllowed("ads.write_seller");
   const [text, setText] = useState("");
 
   const withAccess = (then: () => void) => {
-    requirePremium(then);
+    guardAction("ads.write_seller", then);
   };
 
   const send = () => {

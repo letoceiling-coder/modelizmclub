@@ -153,7 +153,7 @@ export function AdminLegalPagesSection() {
         </Button>
       </div>
       <p className="text-xs" style={{ color: "var(--foreground-50)" }}>
-        Опубликованные страницы доступны по /legal/slug, /info/slug и выделенным адресам (/safe-deal, /refund). HTML или Markdown, без передеплоя. Каждое сохранение увеличивает версию и пишется в историю.
+        Опубликованные страницы доступны по /legal/slug и /info/slug. Раздел «Правила» (/rules) редактируется отдельно, блоками. HTML или Markdown, без передеплоя.
       </p>
 
       {featured && (
@@ -166,7 +166,7 @@ export function AdminLegalPagesSection() {
             <div>
               <div className="text-sm font-semibold">Правила безопасной сделки</div>
               <p className="mt-1 text-xs" style={{ color: "var(--foreground-70)" }}>
-                Публичный адрес /safe-deal · версия {featured.version} · {featured.status}
+                Публичный документ раздела «Правила»: /rules/safe-deal. Эта запись остаётся по адресу /legal/safe-deal.
               </p>
               <p className="mt-1 text-xs" style={{ color: "var(--foreground-50)" }}>
                 Регламент холда, СДЭК и споров. Редактируйте HTML или Markdown — история правок сохраняется.

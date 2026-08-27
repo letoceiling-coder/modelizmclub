@@ -1,4 +1,5 @@
 import { Link, notFound, useRouterState } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -42,7 +43,7 @@ export function legalDocumentHead(
   return { meta };
 }
 
-export function LegalDocumentPage({ page }: { page: LegalPageData }) {
+export function LegalDocumentPage({ page, afterContent }: { page: LegalPageData; afterContent?: ReactNode }) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const description = page.meta_description || excerptFromHtml(page.content_html);
@@ -119,6 +120,7 @@ export function LegalDocumentPage({ page }: { page: LegalPageData }) {
           style={{ color: "var(--foreground-80)", lineHeight: 1.7 }}
           dangerouslySetInnerHTML={{ __html: page.content_html }}
         />
+        {afterContent}
       </main>
     </div>
   );

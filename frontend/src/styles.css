@@ -654,6 +654,7 @@ html, body {
   text-underline-offset: 2px;
 }
 
-.legal-document a:hover {
-  text-decoration: underline;
+.legal-document strong {
+  color: var(--foreground);
+  font-weight: 650;
 }

@@ -1,4 +1,3 @@
-import { toast } from "@/lib/toast";
 import type { AppNotification } from "@/lib/api/notifications";
 import { mapMessage, type ApiMessage } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
@@ -69,14 +68,11 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     const notViewing = watchingDialogId !== p.conversation_uuid;
     ingestIncomingMessage(p.conversation_uuid, message, notViewing);
     if (notViewing) {
-      const who = p.message.author?.display_name ?? p.message.author?.name ?? "Новое сообщение";
-      const preview = (p.message.body ?? message.text ?? "").trim();
       try {
         playMessagePing();
       } catch {
         /* ignore */
       }
-      toast.message(who, preview ? { description: preview.slice(0, 120) } : undefined);
     }
     return;
   }

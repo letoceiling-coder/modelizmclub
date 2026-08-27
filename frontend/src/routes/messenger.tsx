@@ -482,7 +482,7 @@ function MessageBubble({
 
 function MessengerPage() {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const dlgs = useStore(selectors.dialogsList);
   const meId = useStore((s) => s.currentUserId);
   const dialogMetaMap = useStore((s) => s.dialogMeta);
@@ -853,7 +853,7 @@ function MessengerPage() {
   const send = async () => {
     if (!text.trim() || !active) return;
     let allowed = false;
-    requirePremium(() => { allowed = true; });
+    guardAction("messenger.send", () => { allowed = true; });
     if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
       toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
@@ -887,7 +887,7 @@ function MessengerPage() {
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
     let allowed = false;
-    requirePremium(() => { allowed = true; });
+    guardAction("messenger.send", () => { allowed = true; });
     if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
       toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
@@ -930,6 +930,9 @@ function MessengerPage() {
 
   const handleAttachment = async (file: File, kind: AttachmentKind) => {
     if (!active) return;
+    let allowed = false;
+    guardAction("messenger.send", () => { allowed = true; });
+    if (!allowed) return;
     const tooLarge = chatAttachmentTooLargeMessage(file);
     if (tooLarge) {
       toast.error(t("pages.messenger.fileTooLarge"), { description: tooLarge });

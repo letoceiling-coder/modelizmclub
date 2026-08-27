@@ -58,12 +58,13 @@ class LegalComplianceSeeder extends Seeder
         $this->seedLegalRequisites();
 
         $links = [
+            ['group' => 'legal', 'label' => 'Правила', 'target_type' => 'internal', 'target_value' => '/rules', 'sort' => 5],
             ['group' => 'legal', 'label' => 'Пользовательское соглашение', 'target_type' => 'internal', 'target_value' => '/legal/rules', 'sort' => 10],
             ['group' => 'legal', 'label' => 'Политика конфиденциальности', 'target_type' => 'internal', 'target_value' => '/legal/privacy', 'sort' => 20],
             ['group' => 'legal', 'label' => 'Согласие на обработку ПД', 'target_type' => 'internal', 'target_value' => '/legal/consent', 'sort' => 30],
             ['group' => 'legal', 'label' => 'Кодекс этики', 'target_type' => 'internal', 'target_value' => '/legal/compliance', 'sort' => 40],
             ['group' => 'legal', 'label' => 'Оплата', 'target_type' => 'internal', 'target_value' => '/payment', 'sort' => 50],
-            ['group' => 'legal', 'label' => 'Безопасная сделка', 'target_type' => 'internal', 'target_value' => '/safe-deal', 'sort' => 55],
+            ['group' => 'legal', 'label' => 'Безопасная сделка', 'target_type' => 'internal', 'target_value' => '/rules/safe-deal', 'sort' => 55],
             ['group' => 'legal', 'label' => 'Возврат', 'target_type' => 'internal', 'target_value' => '/refund', 'sort' => 60],
             ['group' => 'info', 'label' => 'Обратная связь', 'target_type' => 'internal', 'target_value' => '/info/feedback', 'sort' => 10],
             ['group' => 'info', 'label' => 'Безопасность', 'target_type' => 'internal', 'target_value' => '/info/security', 'sort' => 20],

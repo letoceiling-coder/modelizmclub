@@ -44,6 +44,7 @@ const SERVER_CONTROLLED: (keyof FeatureFlags)[] = [
 
 let serverFlags: Partial<FeatureFlags> | null = null;
 let serverFetchStarted = false;
+let flagsHydrated = false;
 
 function readFromStorage(): FeatureFlags {
   if (typeof window === "undefined") return { ...DEFAULTS, ...serverFlags };
@@ -80,7 +81,10 @@ async function refreshFeatureFlagsFromEndpoint(): Promise<void> {
 }
 
 export async function loadFeatureFlagsFromServer(): Promise<void> {
-  if (isDemoMode()) return;
+  if (isDemoMode()) {
+    flagsHydrated = true;
+    return;
+  }
   try {
     const boot = await startPublicBootstrap();
     if (boot?.feature_flags) {
@@ -90,6 +94,9 @@ export async function loadFeatureFlagsFromServer(): Promise<void> {
     await refreshFeatureFlagsFromEndpoint();
   } catch {
     // Keep defaults/localStorage on error.
+  } finally {
+    flagsHydrated = true;
+    if (typeof window !== "undefined") notify();
   }
 }
 
@@ -132,6 +139,15 @@ function subscribe(callback: () => void): () => void {
     window.removeEventListener(EVENT, callback);
     window.removeEventListener("storage", callback);
   };
+}
+
+/** True after the first bootstrap/feature-flags fetch (success or fail). */
+export function useFeatureFlagsHydrated(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => flagsHydrated || isDemoMode(),
+    () => false,
+  );
 }
 
 /** React hook — re-renders when the flag changes (same tab or another tab/admin). */

@@ -8,6 +8,8 @@ const PUBLIC_PREFIXES = [
   "/verify-email",
   "/oauth/",
   "/legal/",
+  "/rules",
+  "/safe-deal",
   "/help",
   "/subscription",
   "/payment",
@@ -17,6 +19,9 @@ const PUBLIC_PREFIXES = [
   "/auth",
   "/landing",
   "/onboarding",
+  "/wallet",
+  "/balance",
+  "/referral",
 ] as const;
 
 /** Auth, legal and marketing pages — never gated by admin access rules. */
@@ -98,6 +103,7 @@ export const GROUP_LABELS: Record<string, string> = {
   feed_directions: "Лента — направления",
   layout_nav: "Меню и шапка",
   route_guard: "Защита страниц",
+  marketplace: "Объявления и сделки",
 };
 
 /** Nav items are always visible; access is enforced on click and via route guards. */

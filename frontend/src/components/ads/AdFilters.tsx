@@ -3,12 +3,12 @@ import { X, RotateCcw } from "lucide-react";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { CitySelect } from "@/components/ads/CitySelect";
 
-const STATUSES = ["Продаю", "Куплю", "Обменяю"] as const;
+const STATUSES = ["Продаю", "Обменяю"] as const;
 
 export interface FiltersState {
   category: string;            // "Все" | category name
   subcategory: string;         // "Все" | subcat name
-  status: string;              // "Все" | "Продаю" | "Куплю" | "Обменяю"
+  status: string;              // "Все" | "Продаю" | "Обменяю"
   city: string;                // free text
   cityId?: number;
   deliveries: string[];

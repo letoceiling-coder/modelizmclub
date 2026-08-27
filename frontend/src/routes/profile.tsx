@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
-import type { User, Post, Ad, Community } from "@/lib/mock";
+import type { User, Post, Ad, Community, Category } from "@/lib/mock";
 import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
 import type { AdStatusKey } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
@@ -37,6 +37,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -689,9 +690,18 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
   const [mounted, setMounted] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const [cityId, setCityId] = useState<number | undefined>(draft.cityId);
+  const [interestOptions, setInterestOptions] = useState<Category[]>([]);
   const interestList = (draft.interests || "").split(",").map((s) => s.trim()).filter(Boolean);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    let alive = true;
+    fetchPostCategories()
+      .then((list) => { if (alive) setInterestOptions(list); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -826,15 +836,19 @@ function EditSheet({ draft, setDraft, onClose, onSave }: {
               ))}
             </div>
             <div className="mt-[10px] flex gap-[8px]">
-              <Input
+              <NativeSelect
                 value={newInterest}
-                onChange={(e) => setNewInterest(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterest())}
-                placeholder={t("pages.profile.addInterest")}
+                onChange={setNewInterest}
+                options={[
+                  { label: t("pages.profile.pickInterest"), value: "" },
+                  ...interestOptions
+                    .filter((c) => !interestList.includes(c.name))
+                    .map((c) => ({ label: c.name, value: c.name })),
+                ]}
                 className="h-11 flex-1"
                 disabled={interestList.length >= PROFILE_INTERESTS_MAX}
               />
-              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0" disabled={interestList.length >= PROFILE_INTERESTS_MAX}>
+              <Button type="button" size="icon" onClick={addInterest} className="h-11 w-11 shrink-0" disabled={interestList.length >= PROFILE_INTERESTS_MAX || !newInterest}>
                 <Plus size={18} />
               </Button>
             </div>
@@ -883,6 +897,23 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pickingFile, setPickingFile] = useState(false);
+  const [shownSrc, setShownSrc] = useState(src);
+
+  useEffect(() => {
+    if (!src?.trim()) {
+      setShownSrc(undefined);
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (!cancelled) setShownSrc(src);
+    };
+    img.src = src;
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -944,7 +975,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
           background: "var(--background)",
         }}
       >
-        {hasSrc && <AvatarImage src={src} alt="" className="object-cover" />}
+        {shownSrc && <AvatarImage src={shownSrc} alt="" className="object-cover" />}
         <AvatarFallback
           className="font-display text-[28px] font-bold md:text-[36px]"
           style={{ background: "var(--accent-soft)", color: "var(--accent)" }}

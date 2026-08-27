@@ -97,7 +97,7 @@ function AdDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
-  const { requireAccount, requirePremium } = useGuestAccess();
+  const { requireAccount, guardAction } = useGuestAccess();
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -141,7 +141,7 @@ function AdDetailPage() {
   const [phoneLoading, setPhoneLoading] = useState(false);
 
   const revealPhone = () => {
-    requirePremium(() => {
+    guardAction("ads.call_seller", () => {
       void (async () => {
         if (revealedPhone || phoneLoading) return;
         setPhoneLoading(true);
@@ -177,8 +177,8 @@ function AdDetailPage() {
     }
   };
 
-  const requireAuthAndNotOwnAd = (onAllowed: () => void): void => {
-    requirePremium(() => {
+  const requireAuthAndNotOwnAd = (actionKey: string, onAllowed: () => void): void => {
+    guardAction(actionKey, () => {
       if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
         toast.info(t("pages.adDetail.ownListing"));
         return;
@@ -189,7 +189,7 @@ function AdDetailPage() {
 
   const writeToSeller = () => {
     if (!ad) return;
-    requireAuthAndNotOwnAd(() => {
+    requireAuthAndNotOwnAd("ads.write_seller", () => {
       void (async () => {
         if (availableDeliveryMethods.length > 0) {
           setDeliveryPickerOpen(true);
@@ -202,7 +202,7 @@ function AdDetailPage() {
 
   const startSafeDeal = () => {
     if (!ad) return;
-    requireAuthAndNotOwnAd(() => {
+    requireAuthAndNotOwnAd("ads.safe_deal", () => {
       if (isDemoMode()) {
         toast.info("Безопасная сделка доступна на боевом контуре после входа.");
         return;
@@ -212,7 +212,7 @@ function AdDetailPage() {
   };
 
   const askSeller = (question: string) => {
-    requireAuthAndNotOwnAd(() => {
+    requireAuthAndNotOwnAd("ads.write_seller", () => {
       void proceedToConversation(question);
     });
   };

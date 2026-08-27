@@ -116,4 +116,31 @@ class ListingPlacementQuoteTest extends TestCase
             ->assertJsonPath('data.final_cents', 2000)
             ->assertJsonPath('data.has_active_subscription', true);
     }
+
+    public function test_quote_treats_listing_placement_credits_as_free(): void
+    {
+        $categoryId = ListingCategory::query()->create([
+            'name' => 'Наборы',
+            'slug' => 'kits-'.uniqid(),
+            'sort_order' => 1,
+            'is_active' => true,
+        ])->id;
+
+        $this->upsertSetting('listing.placement.registered_price_cents', ['cents' => 2000]);
+
+        $user = $this->seedVerifiedUser('credits');
+        $user->listing_placement_credits = 2;
+        $user->save();
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/listings/placement-quote?category_id='.$categoryId)
+            ->assertOk()
+            ->assertJsonPath('data.base_cents', 2000)
+            ->assertJsonPath('data.final_cents', 0)
+            ->assertJsonPath('data.is_free', true)
+            ->assertJsonPath('data.free_reason', 'listing_credit')
+            ->assertJsonPath('data.listing_placement_credits', 2);
+
+        $this->assertSame(2, (int) $user->fresh()->listing_placement_credits);
+    }
 }

@@ -16,6 +16,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDiagnosticsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDisputeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
@@ -25,6 +26,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFaqController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFooterLinkController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLegalPageController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminRulePageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
@@ -75,6 +77,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
     Route::middleware('role:admin')->group(function (): void {
         Route::get('dashboard', AdminDashboardController::class);
+        Route::get('diagnostics', AdminDiagnosticsController::class);
 
         Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
         Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid']);
@@ -158,6 +161,18 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
         Route::get('settings', [AdminSettingsController::class, 'index']);
         Route::patch('settings', [AdminSettingsController::class, 'update']);
+
+        Route::get('rule-pages', [AdminRulePageController::class, 'index']);
+        Route::post('rule-pages', [AdminRulePageController::class, 'store']);
+        Route::get('rule-pages/{id}', [AdminRulePageController::class, 'show'])->whereNumber('id');
+        Route::put('rule-pages/{id}', [AdminRulePageController::class, 'update'])->whereNumber('id');
+        Route::post('rule-pages/{id}/publish', [AdminRulePageController::class, 'publish'])->whereNumber('id');
+        Route::post('rule-pages/{id}/duplicate', [AdminRulePageController::class, 'duplicate'])->whereNumber('id');
+        Route::delete('rule-pages/{id}', [AdminRulePageController::class, 'destroy'])->whereNumber('id');
+        Route::get('rule-pages/{id}/revisions', [AdminRulePageController::class, 'revisions'])->whereNumber('id');
+        Route::post('rule-pages/{id}/revisions/{revisionId}/restore', [AdminRulePageController::class, 'restoreRevision'])
+            ->whereNumber('id')
+            ->whereNumber('revisionId');
 
         Route::get('legal-pages', [AdminLegalPageController::class, 'index']);
         Route::post('legal-pages', [AdminLegalPageController::class, 'store']);

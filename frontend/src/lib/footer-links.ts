@@ -21,10 +21,10 @@ export const COMPANY_LINKS: FooterLink[] = [
 ];
 
 export const DOCS_LINKS: FooterLink[] = [
-  { labelKey: "components.footerLinks.rules", to: "/legal/rules" },
+  { labelKey: "components.footerLinks.rules", to: "/rules" },
   { labelKey: "components.footerLinks.howItWorks", to: "/how-it-works" },
   { labelKey: "components.footerLinks.payment", to: "/payment" },
-  { labelKey: "components.footerLinks.safeDeal", to: "/safe-deal" },
+  { labelKey: "components.footerLinks.safeDeal", to: "/rules/safe-deal" },
   { labelKey: "components.footerLinks.refund", to: "/refund" },
   { labelKey: "components.footerLinks.security", to: "/info/security" },
 ];

@@ -10,6 +10,7 @@ export interface PlacementQuote {
   is_free: boolean;
   free_reason: string | null;
   free_listings_remaining: number | null;
+  listing_placement_credits?: number;
   has_active_subscription: boolean;
   category_id: number | null;
   category_name: string | null;

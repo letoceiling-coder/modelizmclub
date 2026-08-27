@@ -75,6 +75,12 @@ final class FeedGuestAccessRegistry
             ['key' => 'route.settings', 'group' => 'route_guard', 'label' => 'Страница /settings', 'hint' => 'Настройки', 'default_min_tier' => 'auth'],
             ['key' => 'route.profile', 'group' => 'route_guard', 'label' => 'Страница /profile', 'hint' => 'Мой профиль', 'default_min_tier' => 'auth'],
             ['key' => 'route.user', 'group' => 'route_guard', 'label' => 'Страница /user/{id}', 'hint' => 'Профиль пользователя', 'default_min_tier' => 'guest'],
+
+            // — Объявления и сделки —
+            ['key' => 'ads.write_seller', 'group' => 'marketplace', 'label' => 'Написать продавцу', 'hint' => 'Диалог с продавцом из объявления', 'default_min_tier' => 'auth'],
+            ['key' => 'ads.call_seller', 'group' => 'marketplace', 'label' => 'Показать телефон продавца', 'hint' => 'Раскрытие контакта в объявлении', 'default_min_tier' => 'auth'],
+            ['key' => 'ads.safe_deal', 'group' => 'marketplace', 'label' => 'Безопасная сделка', 'hint' => 'Открытие сделки из объявления', 'default_min_tier' => 'auth'],
+            ['key' => 'messenger.send', 'group' => 'marketplace', 'label' => 'Отправка сообщений', 'hint' => 'Текст, голос и вложения в мессенджере', 'default_min_tier' => 'auth'],
         ];
 
         return array_map(static function (array $row): array {
@@ -139,6 +145,7 @@ final class FeedGuestAccessRegistry
             'feed_directions' => 'Лента — направления',
             'layout_nav' => 'Меню и шапка',
             'route_guard' => 'Защита страниц',
+            'marketplace' => 'Объявления и сделки',
         ];
     }
 

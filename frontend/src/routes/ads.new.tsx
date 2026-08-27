@@ -18,7 +18,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
 import { isInsufficientFunds } from "@/lib/api/wallet";
 import { notifyBillingChanged } from "@/lib/billing-events";
-import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag } from "@/lib/config/featureFlags";
+import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag, useFeatureFlagsHydrated } from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -42,7 +42,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  ChevronLeft, ChevronRight, Tag, ShoppingCart,
+  ChevronLeft, ChevronRight, Tag,
   ArrowLeftRight, MapPin, Truck, Loader2, Phone, CircleHelp,
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/ads/new")({
   component: NewAdPage,
 });
 
-type Status = "Продаю" | "Куплю" | "Обменяю";
+type Status = "Продаю" | "Обменяю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
 
@@ -93,6 +93,23 @@ type PhotoItem = {
   mediaId?: string;
 };
 
+function listingCategoryPath(cats: Category[], leafId: string): { l1: string; l2: string; l3: string } {
+  for (const c of cats) {
+    if (c.id === leafId) return { l1: c.id, l2: "", l3: "" };
+    for (const s of c.subcategories) {
+      if (s.id === leafId) return { l1: c.id, l2: s.id, l3: "" };
+      for (const n of s.children ?? []) {
+        if (n.id === leafId) return { l1: c.id, l2: s.id, l3: n.id };
+      }
+    }
+  }
+  return { l1: "", l2: "", l3: "" };
+}
+
+function listingLeafId(form: Pick<Form, "subcategoryId" | "nestedCategoryId">): string {
+  return form.nestedCategoryId || form.subcategoryId;
+}
+
 function newPhotoId(): string {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === "function") return c.randomUUID();
@@ -107,6 +124,7 @@ interface Form {
   price: string;
   categoryId: string;
   subcategoryId: string;
+  nestedCategoryId: string;
   condition: AdCondition;
   city: string;
   cityId?: number;
@@ -162,12 +180,14 @@ function resolvePublishCtaLabel(
   opts: {
     editId?: string;
     listingPaymentEnabled: boolean;
+    flagsHydrated: boolean;
     quoteLoading: boolean;
     placementQuote: PlacementQuote | null;
   },
 ): string {
-  const { editId, listingPaymentEnabled, quoteLoading, placementQuote } = opts;
+  const { editId, listingPaymentEnabled, flagsHydrated, quoteLoading, placementQuote } = opts;
   if (editId) return t("pages.adsNew.saveChanges");
+  if (!flagsHydrated) return t("pages.adsNew.calculating");
   if (!listingPaymentEnabled) return t("pages.adsNew.publish");
   if (quoteLoading) return t("pages.adsNew.calculating");
   if (!placementQuote) return t("pages.adsNew.publish");
@@ -197,6 +217,7 @@ const initial: Form = {
   price: "",
   categoryId: "",
   subcategoryId: "",
+  nestedCategoryId: "",
   condition: "Б/у",
   city: "",
   cityId: undefined,
@@ -217,6 +238,7 @@ function NewAdPage() {
   const steps = useMemo(() => STEPS_KEYS.map((k) => t(k)), [t]);
   const { edit: editId, promo: promoFromUrl } = Route.useSearch();
   const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
+  const flagsHydrated = useFeatureFlagsHydrated();
   const currentUser = useStore(selectors.currentUser);
   const [verifiedPhone, setVerifiedPhone] = useState("");
   const [step, setStep] = useState(1);
@@ -255,7 +277,7 @@ function NewAdPage() {
         setForm((f) =>
           f.categoryId
             ? f
-            : { ...f, categoryId: list[0]?.id ?? "", subcategoryId: list[0]?.subcategories[0]?.id ?? "" },
+            : { ...f, categoryId: list[0]?.id ?? "", subcategoryId: list[0]?.subcategories[0]?.id ?? "", nestedCategoryId: "" },
         );
       })
       .catch(() => {});
@@ -274,12 +296,13 @@ function NewAdPage() {
             preview: url,
             mediaId: ad.mediaIds?.[i],
           })),
-          status: ad.status,
+          status: ad.status === "Обменяю" ? "Обменяю" : "Продаю",
           title: ad.title,
           description: ad.description ?? "",
           price: String(ad.price || ""),
           categoryId: ad.categoryId ?? "",
           subcategoryId: ad.subcategoryId ?? "",
+          nestedCategoryId: "",
           condition: ad.condition ?? "Б/у",
           city: ad.city,
           cityId: ad.cityId,
@@ -336,6 +359,22 @@ function NewAdPage() {
 
   const cat = useMemo(() => cats.find((c) => c.id === form.categoryId) ?? cats[0], [cats, form.categoryId]);
   const subcategories = cat?.subcategories ?? [];
+  const nestedCategories = useMemo(
+    () => subcategories.find((s) => s.id === form.subcategoryId)?.children ?? [],
+    [subcategories, form.subcategoryId],
+  );
+
+  useEffect(() => {
+    if (!cats.length) return;
+    setForm((f) => {
+      const leaf = f.nestedCategoryId || f.subcategoryId;
+      if (!leaf) return f;
+      const path = listingCategoryPath(cats, leaf);
+      if (!path.l1) return f;
+      if (f.categoryId === path.l1 && f.subcategoryId === path.l2 && f.nestedCategoryId === path.l3) return f;
+      return { ...f, categoryId: path.l1, subcategoryId: path.l2, nestedCategoryId: path.l3 };
+    });
+  }, [cats, editId]);
 
   useEffect(() => {
     if (!listingPaymentEnabled || editId || step < 2) return;
@@ -345,14 +384,14 @@ function NewAdPage() {
     setQuoteLoading(true);
     fetchPlacementQuote({
       categoryId,
-      subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined,
+      subcategoryId: listingLeafId(form) ? Number(listingLeafId(form)) : undefined,
       promocode: form.promocode,
     })
       .then((q) => { if (alive) setPlacementQuote(q); })
       .catch(() => { if (alive) setPlacementQuote(null); })
       .finally(() => { if (alive) setQuoteLoading(false); });
     return () => { alive = false; };
-  }, [listingPaymentEnabled, editId, step, form.categoryId, form.subcategoryId, form.promocode]);
+  }, [listingPaymentEnabled, editId, step, form.categoryId, form.subcategoryId, form.nestedCategoryId, form.promocode]);
 
   const valid = useMemo(() => {
     const photosOk = hasListingPhotos(form);
@@ -392,6 +431,11 @@ function NewAdPage() {
       toast.error(t("pages.adsNew.selectCategory"));
       return;
     }
+    if (nestedCategories.length > 0 && !form.nestedCategoryId) {
+      toast.error(t("pages.adsNew.pickNestedCategory"));
+      setStep(2);
+      return;
+    }
 
     const deliveryError = deliveryDetailsValid(form);
     if (deliveryError) {
@@ -406,7 +450,7 @@ function NewAdPage() {
       return;
     }
 
-    const subcategoryId = form.subcategoryId ? Number(form.subcategoryId) : undefined;
+    const subcategoryId = listingLeafId(form) ? Number(listingLeafId(form)) : undefined;
     const cityId = form.cityId != null ? Number(form.cityId) : undefined;
 
     setSubmitting(true);
@@ -608,14 +652,15 @@ function NewAdPage() {
       resolvePublishCtaLabel(t, {
         editId,
         listingPaymentEnabled,
+        flagsHydrated,
         quoteLoading,
         placementQuote,
       }),
-    [t, editId, listingPaymentEnabled, quoteLoading, placementQuote],
+    [t, editId, listingPaymentEnabled, flagsHydrated, quoteLoading, placementQuote],
   );
 
   /** Block only while quote is actively loading; submit() re-fetches if needed. */
-  const paymentGatePending = listingPaymentEnabled && !editId && quoteLoading;
+  const paymentGatePending = !editId && (!flagsHydrated || (listingPaymentEnabled && quoteLoading));
 
   return (
     <AppLayout rightColumn={false}>
@@ -908,6 +953,7 @@ function StepData({
   const cityErr = touched.has("city") && (form.city.trim().length < 2 || (!form.cityId && form.city.trim().length < 3));
   const contactVerified = phonesMatch(form.contact, verifiedPhone);
   const contactErr = touched.has("contact") && !contactVerified;
+  const nestedCategories = cat?.subcategories.find((s) => s.id === form.subcategoryId)?.children ?? [];
 
   // Keep the focused field clear of the mobile soft keyboard + the fixed
   // wizard footer: on focus, centre the field in the viewport. Delayed so the
@@ -933,11 +979,9 @@ function StepData({
       )}
 
       <Block title={t("pages.adsNew.listingType")}>
-        <div className="grid gap-[10px] sm:grid-cols-3">
+        <div className="grid gap-[10px] sm:grid-cols-2">
           <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
             icon={Tag} title={t("pages.adsNew.statusSelling")} description={t("pages.adsNew.statusSellingDesc")} />
-          <RadioCard selected={form.status === "Куплю"} onClick={() => set("status", "Куплю")}
-            icon={ShoppingCart} title={t("pages.adsNew.statusBuying")} description={t("pages.adsNew.statusBuyingDesc")} />
           <RadioCard selected={form.status === "Обменяю"} onClick={() => set("status", "Обменяю")}
             icon={ArrowLeftRight} title={t("pages.adsNew.statusExchange")} description={t("pages.adsNew.statusExchangeDesc")} />
         </div>
@@ -991,6 +1035,7 @@ function StepData({
                 const c = cats.find((x) => x.id === v);
                 set("categoryId", v);
                 set("subcategoryId", c?.subcategories[0]?.id ?? "");
+                set("nestedCategoryId", "");
               }}
               options={cats.map((c) => ({ label: c.name, value: c.id }))}
             />
@@ -999,8 +1044,23 @@ function StepData({
             <Field label={t("pages.adsNew.subcategoryLabel")}>
               <NativeSelect
                 value={form.subcategoryId}
-                onChange={(v) => set("subcategoryId", v)}
+                onChange={(v) => {
+                  set("subcategoryId", v);
+                  set("nestedCategoryId", "");
+                }}
                 options={subcategories.map((s) => ({ label: s.name, value: s.id }))}
+              />
+            </Field>
+          ) : null}
+          {nestedCategories.length > 0 ? (
+            <Field label={t("pages.adsNew.nestedCategoryLabel")}>
+              <NativeSelect
+                value={form.nestedCategoryId}
+                onChange={(v) => set("nestedCategoryId", v)}
+                options={[
+                  { label: t("pages.adsNew.pickNestedCategory"), value: "" },
+                  ...nestedCategories.map((s) => ({ label: s.name, value: s.id })),
+                ]}
               />
             </Field>
           ) : null}
@@ -1081,7 +1141,7 @@ function StepData({
                           </Tooltip>
                         </TooltipProvider>
                         <a
-                          href="/safe-deal"
+                          href="/rules/safe-deal"
                           target="_blank"
                           rel="noreferrer"
                           className="text-[12px] font-medium"
@@ -1187,6 +1247,7 @@ function StepPreview({
 }) {
   const { t } = useTranslation();
   const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
+  const nested = sub?.children?.find((s) => s.id === form.nestedCategoryId);
 
   return (
     <section className="space-y-[16px]">
@@ -1207,7 +1268,7 @@ function StepPreview({
           images={form.photoItems.map((p) => p.preview)}
           status={form.status}
           category={cat?.name}
-          subcategory={sub?.name}
+          subcategory={nested?.name ?? sub?.name}
         />
 
         <Card
@@ -1261,6 +1322,9 @@ function StepPreview({
               )}
               {placementQuote.has_active_subscription && placementQuote.free_listings_remaining != null && (
                 <div>{t("pages.adsNew.freeListingsRemaining", { count: placementQuote.free_listings_remaining })}</div>
+              )}
+              {(placementQuote.listing_placement_credits ?? 0) > 0 && (
+                <div>{t("pages.adsNew.listingCreditsRemaining", { count: placementQuote.listing_placement_credits })}</div>
               )}
             </div>
           )}

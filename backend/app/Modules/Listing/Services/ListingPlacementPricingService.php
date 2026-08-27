@@ -84,6 +84,12 @@ class ListingPlacementPricingService
             $freeReason ??= 'promocode';
         }
 
+        $credits = (int) ($user->listing_placement_credits ?? 0);
+        if ($credits >= 1 && $finalCents > 0) {
+            $finalCents = 0;
+            $freeReason = 'listing_credit';
+        }
+
         return [
             'base_cents' => $baseCents,
             'subscriber_adjustment_cents' => $subscriberAdjustment,
@@ -94,6 +100,7 @@ class ListingPlacementPricingService
             'is_free' => $finalCents === 0,
             'free_reason' => $finalCents === 0 ? $freeReason : null,
             'free_listings_remaining' => $freeListingsRemaining,
+            'listing_placement_credits' => $credits,
             'has_active_subscription' => $subscription !== null,
             'category_id' => $category?->id,
             'category_name' => $category?->name,

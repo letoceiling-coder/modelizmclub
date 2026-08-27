@@ -28,6 +28,16 @@ class LegalComplianceTest extends TestCase
             ->assertJsonStructure(['data' => ['title', 'content_html', 'version']]);
     }
 
+    public function test_payment_page_mentions_sbp(): void
+    {
+        $html = $this->getJson('/api/v1/legal/payment')
+            ->assertOk()
+            ->json('data.content_html');
+
+        $this->assertStringContainsString('Система быстрых платежей', $html);
+        $this->assertStringContainsString('СБП', $html);
+    }
+
     public function test_footer_links_are_grouped(): void
     {
         $this->getJson('/api/v1/footer-links')
@@ -65,7 +75,8 @@ class LegalComplianceTest extends TestCase
 
         $this->getJson('/api/v1/footer-links')
             ->assertOk()
-            ->assertJsonFragment(['target_value' => '/safe-deal', 'label' => 'Безопасная сделка']);
+            ->assertJsonFragment(['target_value' => '/rules', 'label' => 'Правила'])
+            ->assertJsonFragment(['target_value' => '/rules/safe-deal', 'label' => 'Безопасная сделка']);
     }
 
     public function test_register_requires_terms_and_privacy_consents(): void

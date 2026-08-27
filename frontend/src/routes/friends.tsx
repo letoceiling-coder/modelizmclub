@@ -271,13 +271,6 @@ function FriendsPage() {
   }, [filteredUsers, added]);
 
   const searchWrapRef = useRef<HTMLDivElement>(null);
-  const findFriends = () => {
-    setTab("all");
-    setTimeout(() => {
-      searchWrapRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-      searchWrapRef.current?.querySelector("input")?.focus();
-    }, 60);
-  };
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: t("pages.friends.tabAll"), count: allUsers.length },
@@ -418,16 +411,7 @@ function FriendsPage() {
           </div>
           {/* Full-width split on mobile so "Групповой звонок" never runs off the
               right edge; natural row on desktop. */}
-          <div className="flex w-full items-center gap-[8px] sm:w-auto sm:shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={findFriends}
-              className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
-              size="sm"
-            >
-              <UserPlus size={16} /> {t("pages.friends.findFriends")}
-            </Button>
+          <div className="flex w-full items-center justify-end gap-[8px] sm:w-auto sm:shrink-0">
             <Button
               type="button"
               onClick={() => groupCalls.openPicker("start")}

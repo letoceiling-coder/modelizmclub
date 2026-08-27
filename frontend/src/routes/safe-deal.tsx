@@ -1,22 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import {
-  LegalDocumentPage,
-  legalDocumentHead,
-  loadPublishedLegalPage,
-} from "@/components/legal/LegalDocumentPage";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-const META_DESCRIPTION =
-  "Регламент услуги «Безопасная сделка» ООО «МОДЕЛИЗМ»: холдирование оплаты, доставка СДЭК, подтверждение получения и споры.";
-
+/** Старый адрес юридического документа — постоянный редирект на хаб правил. */
 export const Route = createFileRoute("/safe-deal")({
-  loader: () => loadPublishedLegalPage("safe-deal"),
-  head: ({ loaderData }) => ({
-    ...legalDocumentHead(loaderData, "pages.legal.safeDealMetaTitle", META_DESCRIPTION),
-    links: [{ rel: "canonical", href: "https://modelizmclub.ru/safe-deal" }],
-  }),
-  component: SafeDealRulesPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/rules/$slug", params: { slug: "safe-deal" }, replace: true });
+  },
 });
-
-function SafeDealRulesPage() {
-  return <LegalDocumentPage page={Route.useLoaderData()} />;
-}

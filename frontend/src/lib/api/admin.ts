@@ -42,6 +42,26 @@ export async function fetchDashboard(): Promise<AdminDashboard> {
   };
 }
 
+export interface AdminDiagnostics {
+  status: "ok" | "degraded";
+  app: { name: string; env: string; laravel: string; php: string };
+  checks: Record<string, { ok: boolean }>;
+  integrations: {
+    billing_provider: string;
+    vtb_enabled: boolean;
+    vtb_configured: boolean;
+    cdek_enabled: boolean;
+    cdek_configured: boolean;
+    sms_driver: string;
+    sms_configured: boolean;
+  };
+}
+
+export async function fetchAdminDiagnostics(): Promise<AdminDiagnostics> {
+  const res = await api<{ data: AdminDiagnostics }>("/admin/diagnostics");
+  return res.data;
+}
+
 /** Moderator-safe dashboard counters (no admin-only /admin/dashboard). */
 export async function fetchModeratorDashboardStats(): Promise<Pick<AdminDashboard, "moderationPending" | "reportsPending">> {
   const [modRes, repRes] = await Promise.all([

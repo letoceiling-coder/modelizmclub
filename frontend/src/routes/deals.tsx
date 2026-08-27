@@ -58,7 +58,7 @@ function DealsPage() {
           <ShieldCheck size={18} className="mt-[2px] shrink-0" style={{ color: "var(--accent)" }} />
           <p className="text-[13px]" style={{ color: "var(--foreground-80)" }}>
             Сделки проходят по регламенту ООО «МОДЕЛИЗМ».{" "}
-            <a href="/safe-deal" className="font-semibold" style={{ color: "var(--accent)" }}>
+            <a href="/rules/safe-deal" className="font-semibold" style={{ color: "var(--accent)" }}>
               Правила безопасной сделки
             </a>
           </p>

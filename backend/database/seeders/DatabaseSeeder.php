@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DemoMediaSeeder::class);
         $this->call(ChannelSeeder::class);
         $this->call(LegalComplianceSeeder::class);
+        $this->call(RulesHubSeeder::class);
         $this->call(DeliveryMethodsSeeder::class);
         $this->call(FaqSeeder::class);
         $this->call(LandingPageSeeder::class);

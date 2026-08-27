@@ -59,6 +59,7 @@ import { IconManagerSection } from "@/components/admin/IconManagerSection";
 import { FeedGuestAccessAdminCard } from "@/components/admin/FeedGuestAccessAdminCard";
 import { NotificationPolicyAdminCard } from "@/components/admin/NotificationPolicyAdminCard";
 import { AdminLegalPagesSection } from "@/components/admin/AdminLegalPagesSection";
+import { AdminRulesSection } from "@/components/admin/AdminRulesSection";
 import { AdminFooterLinksSection } from "@/components/admin/AdminFooterLinksSection";
 import { ModerationAdminSection } from "@/components/admin/ModerationAdminSection";
 import { MediaManagerCard } from "@/components/admin/MediaManagerCard";
@@ -78,7 +79,7 @@ import i18n from "@/lib/i18n";
 type Section =
   | "dashboard" | "users" | "content" | "ads" | "moderation" | "delivery"
   | "monetization" | "feedBanners" | "feedGuestAccess" | "notificationPolicy" | "landingBlocks" | "categories" | "reviews" | "reviewCategories" | "notifications" | "analytics" | "design" | "icons" | "media" | "feedback" | "settings"
-  | "auditLog" | "applications" | "legalPages" | "footerLinks";
+  | "auditLog" | "applications" | "legalPages" | "rulesPages" | "footerLinks";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: i18n.t("pages.adminShell.metaTitle") }] }),
@@ -116,6 +117,7 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
   { id: "design", labelKey: "pages.adminShell.nav.design", icon: Palette, roles: ["admin"] },
   { id: "media", labelKey: "pages.adminShell.nav.media", icon: Image, roles: ["admin"] },
   { id: "settings", labelKey: "pages.adminShell.nav.settings", icon: Settings, roles: ["admin"] },
+  { id: "rulesPages", labelKey: "pages.adminShell.nav.rulesPages", icon: FileText, roles: ["admin"] },
   { id: "legalPages", labelKey: "pages.adminShell.nav.legalPages", icon: FileText, roles: ["admin"] },
   { id: "footerLinks", labelKey: "pages.adminShell.nav.footerLinks", icon: FileText, roles: ["admin"] },
   { id: "auditLog", labelKey: "pages.adminShell.nav.auditLog", icon: Search, roles: ["admin"] },
@@ -429,6 +431,7 @@ function SectionView({ section, adminRole }: { section: Section; adminRole: Admi
   if (section === "design") return <DesignSystemSection />;
   if (section === "media") return <MediaSection />;
   if (section === "auditLog") return <AuditLogSection />;
+  if (section === "rulesPages") return <AdminRulesSection />;
   if (section === "legalPages") return <AdminLegalPagesSection />;
   if (section === "footerLinks") return <AdminFooterLinksSection />;
   return <SettingsSection />;

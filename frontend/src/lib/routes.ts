@@ -25,6 +25,7 @@ export const ROUTES = {
   payment: "/payment",
   refund: "/refund",
   howItWorks: "/how-it-works",
+  rules: "/rules",
   admin: "/admin",
   channels: "/channels",
   channel: (id: string) => `/channel/${id}` as const,

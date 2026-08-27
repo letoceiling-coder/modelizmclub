@@ -18,34 +18,12 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 const OTHER_DIRECTION = "Другое";
 const OPEN_AFTER_LOGIN_KEY = "mc_open_feedback";
 
-export function FeedbackDialog() {
-  const { isGuest, requireLogin } = useGuestAccess();
-  const [open, setOpen] = useState(false);
+export function FeedbackForm({ onSent }: { onSent?: () => void }) {
   const [direction, setDirection] = useState("");
   const [message, setMessage] = useState("");
   const [consentPd, setConsentPd] = useState(false);
   const [sending, setSending] = useState(false);
   const categories = usePostCategories();
-
-  useEffect(() => {
-    if (isGuest || typeof window === "undefined") return;
-    if (sessionStorage.getItem(OPEN_AFTER_LOGIN_KEY) !== "1") return;
-    sessionStorage.removeItem(OPEN_AFTER_LOGIN_KEY);
-    setOpen(true);
-  }, [isGuest]);
-
-  function requestOpen() {
-    if (isGuest && typeof window !== "undefined") {
-      sessionStorage.setItem(OPEN_AFTER_LOGIN_KEY, "1");
-    }
-    requireLogin(() => setOpen(true));
-  }
-
-  function resetForm() {
-    setDirection("");
-    setMessage("");
-    setConsentPd(false);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,13 +48,86 @@ export function FeedbackDialog() {
         page: typeof window !== "undefined" ? window.location.pathname : undefined,
       });
       toast.success("Спасибо! Ваше сообщение отправлено");
-      resetForm();
-      setOpen(false);
+      setDirection("");
+      setMessage("");
+      setConsentPd(false);
+      onSent?.();
     } catch (err) {
       toast.error(formatApiErrorMessage(err, "Не удалось отправить. Попробуйте позже"));
     } finally {
       setSending(false);
     }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <select
+        value={direction}
+        onChange={(e) => setDirection(e.target.value)}
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
+      >
+        <option value="">Направление (необязательно)</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.name}>
+            {c.name}
+          </option>
+        ))}
+        <option value={OTHER_DIRECTION}>{OTHER_DIRECTION}</option>
+      </select>
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Ваше сообщение…"
+        rows={5}
+        maxLength={4000}
+        className="w-full resize-y rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
+      />
+      <label className="flex items-start gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={consentPd}
+          onChange={(e) => setConsentPd(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span>
+          Согласен(на) на обработку персональных данных (
+          <Link to="/legal/consent" className="text-primary underline">
+            Согласие на обработку ПД
+          </Link>
+          )
+        </span>
+      </label>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{message.length}/4000</span>
+        <button
+          type="submit"
+          disabled={sending || !consentPd}
+          className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          style={{ background: "var(--accent)" }}
+        >
+          {sending ? "Отправка…" : "Отправить"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function FeedbackDialog() {
+  const { isGuest, requireLogin } = useGuestAccess();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (isGuest || typeof window === "undefined") return;
+    if (sessionStorage.getItem(OPEN_AFTER_LOGIN_KEY) !== "1") return;
+    sessionStorage.removeItem(OPEN_AFTER_LOGIN_KEY);
+    setOpen(true);
+  }, [isGuest]);
+
+  function requestOpen() {
+    if (isGuest && typeof window !== "undefined") {
+      sessionStorage.setItem(OPEN_AFTER_LOGIN_KEY, "1");
+    }
+    requireLogin(() => setOpen(true));
   }
 
   return (
@@ -91,10 +142,7 @@ export function FeedbackDialog() {
       </button>
       <Dialog
         open={open && !isGuest}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (!next) resetForm();
-        }}
+        onOpenChange={setOpen}
       >
         <DialogContent className="max-w-md">
         <DialogHeader>
@@ -103,55 +151,7 @@ export function FeedbackDialog() {
             Расскажите, что улучшить, или сообщите о проблеме — мы читаем каждое сообщение.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <select
-            value={direction}
-            onChange={(e) => setDirection(e.target.value)}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
-          >
-            <option value="">Направление (необязательно)</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-            <option value={OTHER_DIRECTION}>{OTHER_DIRECTION}</option>
-          </select>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Ваше сообщение…"
-            rows={5}
-            maxLength={4000}
-            className="w-full resize-y rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
-          />
-          <label className="flex items-start gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={consentPd}
-              onChange={(e) => setConsentPd(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span>
-              Согласен(на) на обработку персональных данных (
-              <Link to="/legal/consent" className="text-primary underline">
-                Согласие на обработку ПД
-              </Link>
-              )
-            </span>
-          </label>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">{message.length}/4000</span>
-            <button
-              type="submit"
-              disabled={sending || !consentPd}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              style={{ background: "var(--accent)" }}
-            >
-              {sending ? "Отправка…" : "Отправить"}
-            </button>
-          </div>
-        </form>
+        <FeedbackForm onSent={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
     </>

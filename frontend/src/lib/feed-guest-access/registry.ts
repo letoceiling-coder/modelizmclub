@@ -71,6 +71,10 @@ export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
   "route.settings": "auth",
   "route.profile": "auth",
   "route.user": "guest",
+  "ads.write_seller": "auth",
+  "ads.call_seller": "auth",
+  "ads.safe_deal": "auth",
+  "messenger.send": "auth",
 };
 
 export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = Object.fromEntries(

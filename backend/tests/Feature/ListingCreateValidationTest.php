@@ -138,7 +138,7 @@ class ListingCreateValidationTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
-    public function test_published_listing_update_stays_published_when_auto_publish_enabled(): void
+    public function test_published_listing_update_re_moderates_even_when_auto_publish_enabled(): void
     {
         $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => false], 'feature');
         $this->upsertSetting('moderation_auto_publish', ['enabled' => true], 'moderation');
@@ -161,12 +161,16 @@ class ListingCreateValidationTest extends TestCase
                 'title' => 'Изменённое объявление',
             ])
             ->assertOk()
-            ->assertJsonPath('data.status', 'published');
+            ->assertJsonPath('data.status', 'pending_moderation');
+
+        $this->assertDatabaseHas('moderation_queue', [
+            'queue' => 'listings',
+            'status' => 'pending',
+        ]);
 
         $this->getJson('/api/v1/listings')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.title', 'Изменённое объявление');
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_listing_publish_requires_credit_when_payment_flag_enabled(): void

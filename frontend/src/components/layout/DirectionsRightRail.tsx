@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight, MessageCircle, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
-import { usePostCategories } from "@/lib/hooks/useCategories";
+import { usePostCategories, useListingCategories } from "@/lib/hooks/useCategories";
 import {
   onlineForCategory,
   totalOnlineFromStats,
@@ -128,7 +128,9 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(COLLAPSE_KEY) === "1";
   });
-  const categories = usePostCategories();
+  const postCategories = usePostCategories();
+  const listingCategories = useListingCategories();
+  const categories = variant === "ads" ? listingCategories : postCategories;
   const roomStats = useCategoryRoomStats();
 
   useEffect(() => {

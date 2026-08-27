@@ -34,6 +34,8 @@ class FeedGuestAccessTest extends TestCase
         $this->assertSame('subscription', $this->action($data, 'feed.compose.open')['min_tier']);
         $this->assertSame('guest', $this->action($data, 'route.feed')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'route.reviews')['min_tier']);
+        $this->assertSame('auth', $this->action($data, 'ads.write_seller')['min_tier']);
+        $this->assertSame('auth', $this->action($data, 'messenger.send')['min_tier']);
     }
 
     public function test_legacy_allowed_true_is_merged_as_guest(): void

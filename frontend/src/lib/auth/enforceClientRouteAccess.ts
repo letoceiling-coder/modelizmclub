@@ -18,7 +18,7 @@ export type ClientRouteRedirect = {
 
 /** Routes that always require a logged-in account (not guest-access configurable). */
 function isAdminRoute(pathname: string): boolean {
-  return pathname === ROUTES.admin || pathname.startsWith("/admin/");
+  return pathname === ROUTES.admin || pathname.startsWith("/admin/") || pathname === "/diag";
 }
 
 /**
