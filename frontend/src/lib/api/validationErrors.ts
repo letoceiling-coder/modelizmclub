@@ -55,7 +55,7 @@ export function formatApiErrorMessage(err: unknown, fallback: string): string {
       return "Файл слишком большой. Уменьшите размер и попробуйте снова.";
     }
     if (err.status >= 500) {
-      return "Сервис временно недоступен. Попробуйте опубликовать позже.";
+      return fallback || "Сервис временно недоступен. Попробуйте позже.";
     }
     if (err.status === 401) {
       return "Сессия истекла. Войдите в аккаунт и повторите попытку.";

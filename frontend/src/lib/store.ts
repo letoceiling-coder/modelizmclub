@@ -417,6 +417,14 @@ function reducer(s: AppState, a: Action): AppState {
         const keepMessages = prev && prev.messages.length > 0 && !s.dialogMeta[d.id]?.deletedLocally;
         dialogs[d.id] = keepMessages ? { ...d, messages: prev.messages } : d;
       }
+      // A poll page can omit a currently open chat (or a freshly restored one).
+      // Keep those locally so refresh / deep-links do not wipe the thread.
+      for (const [id, prev] of Object.entries(s.dialogs)) {
+        if (dialogs[id] || s.dialogMeta[id]?.deletedLocally) continue;
+        if (prev.messages.length > 0 || prev.listing || prev.lastMessage) {
+          dialogs[id] = prev;
+        }
+      }
       return { ...s, dialogs };
     }
     case "RESTORE_DIALOG": {
@@ -773,6 +781,16 @@ function hydrateDialogForIncoming(
   pendingDialogHydrations.set(dialogId, { queued, promise });
 }
 
+function isOptimisticTwin(local: Message, incoming: Message): boolean {
+  if (!String(local.id).startsWith("tmp")) return false;
+  if (local.authorId !== incoming.authorId) return false;
+  if ((local.text ?? "") !== (incoming.text ?? "")) return false;
+  if (Boolean(local.voice) !== Boolean(incoming.voice)) return false;
+  if (Boolean(local.image) !== Boolean(incoming.image)) return false;
+  if (Boolean(local.file) !== Boolean(incoming.file)) return false;
+  return true;
+}
+
 export function ingestIncomingMessage(
   dialogId: ID,
   message: Message,
@@ -784,6 +802,11 @@ export function ingestIncomingMessage(
     return;
   }
   if (d.messages.some((m) => m.id === message.id)) return;
+  const twin = d.messages.find((m) => isOptimisticTwin(m, message));
+  if (twin) {
+    replaceMessage(dialogId, twin.id, message);
+    return;
+  }
   dispatch({ type: "ADD_MESSAGE", dialogId, message, incrementUnread });
 }
 

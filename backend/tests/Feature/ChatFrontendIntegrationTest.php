@@ -103,6 +103,37 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonPath('data.listing.price_cents', 12_500);
     }
 
+    public function test_listing_conversation_persists_text_message_after_send(): void
+    {
+        [$seller, $buyer] = $this->usersWithProfiles();
+        $listing = $this->listing($seller);
+
+        $created = $this->actingAs($buyer, 'sanctum')
+            ->postJson('/api/v1/conversations', [
+                'user_id' => $seller->id,
+                'listing_uuid' => $listing->uuid,
+            ])
+            ->assertCreated();
+
+        $uuid = $created->json('data.uuid');
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/conversations/{$uuid}/messages", [
+                'body' => 'тест по объявлению',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.body', 'тест по объявлению');
+
+        $messages = $this->actingAs($buyer, 'sanctum')
+            ->getJson("/api/v1/conversations/{$uuid}/messages")
+            ->assertOk()
+            ->json('data');
+
+        $this->assertTrue(
+            collect($messages)->contains(fn (array $message): bool => ($message['body'] ?? null) === 'тест по объявлению'),
+        );
+    }
+
     public function test_recipient_sees_new_conversation_after_sender_starts_chat(): void
     {
         [$sender, $recipient] = $this->usersWithProfiles();

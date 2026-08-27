@@ -16,7 +16,7 @@ import {
   openOrCreateDialogWith,
 } from "@/lib/store";
 import {
-  fetchConversations, fetchMessages, openConversation, sendMessage as apiSendMessage,
+  fetchConversations, fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
   uploadChatAttachment, sendAttachmentMessage,
   hideMessageForMe, pinMessage as apiPinMessage, deleteConversation, clearConversationHistory,
@@ -513,6 +513,8 @@ function MessengerPage() {
   const messagesContentRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const stickToBottomRef = useRef(true);
+  const sendingRef = useRef(false);
+  const openingChatRef = useRef<string | null>(null);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
@@ -547,6 +549,7 @@ function MessengerPage() {
 
     const byConversation = dlgs.find((d) => d.id === chat);
     if (byConversation) {
+      openingChatRef.current = null;
       selectDialog(chat, byConversation);
       if (byConversation.type === "community") setListTab("channels");
       return;
@@ -554,20 +557,21 @@ function MessengerPage() {
 
     const byPartner = dlgs.find((d) => d.userId === chat);
     if (byPartner) {
+      openingChatRef.current = null;
       selectDialog(byPartner.id, byPartner);
       void navigate({ to: "/messenger", search: { chat: byPartner.id }, replace: true });
       return;
     }
 
     if (loading || meId === GUEST_USER.id) return;
-
-    const partner = userById(chat);
-    if (!isDemoMode() && !partner.numericId) return;
+    if (openingChatRef.current === chat) return;
+    openingChatRef.current = chat;
 
     let alive = true;
     void (async () => {
       try {
         if (isDemoMode()) {
+          const partner = userById(chat);
           const dialogId = openOrCreateDialogWith(partner.id);
           const dlg = getState().dialogs[dialogId];
           if (!alive || !dlg) return;
@@ -575,12 +579,28 @@ function MessengerPage() {
           void navigate({ to: "/messenger", search: { chat: dialogId }, replace: true });
           return;
         }
-        const dialog = await openConversation(partner.numericId!, meId, partner.id);
+        try {
+          const dialog = await fetchConversation(chat, meId);
+          if (!alive) return;
+          restoreDialog(dialog);
+          selectDialog(dialog.id, dialog);
+          return;
+        } catch {
+          // Legacy links pass a user uuid in ?chat= instead of a conversation uuid.
+        }
+        const partner = userById(chat);
+        if (!partner.numericId) {
+          throw new Error("unknown chat");
+        }
+        const dialog = await openConversation(partner.numericId, meId, partner.id);
         if (!alive) return;
         selectDialog(dialog.id, dialog);
         void navigate({ to: "/messenger", search: { chat: dialog.id }, replace: true });
       } catch {
-        if (alive) toast.error(t("pages.messenger.dialogOpenFailed"));
+        if (alive) {
+          openingChatRef.current = null;
+          toast.error(t("pages.messenger.dialogOpenFailed"));
+        }
       }
     })();
 
@@ -671,13 +691,14 @@ function MessengerPage() {
         setDialogMessages(activeId, msgs);
         const pending = getState().pendingDialogMessages[activeId];
         if (pending) {
+          actions.clearPendingMessage(activeId);
           try {
             const saved = await apiSendMessage(activeId, pending);
-            actions.addMessage(activeId, saved);
-          } catch {
-            /* delivery-choice message is best-effort; conversation itself already exists */
-          } finally {
-            actions.clearPendingMessage(activeId);
+            if (alive) actions.addMessage(activeId, saved);
+          } catch (err) {
+            if (!alive) return;
+            const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
+            if (message) toast.error(message);
           }
         }
       })
@@ -851,7 +872,7 @@ function MessengerPage() {
   };
 
   const send = async () => {
-    if (!text.trim() || !active) return;
+    if (!text.trim() || !active || sendingRef.current) return;
     let allowed = false;
     guardAction("messenger.send", () => { allowed = true; });
     if (!allowed) return;
@@ -859,6 +880,7 @@ function MessengerPage() {
       toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
       return;
     }
+    sendingRef.current = true;
     const dialogId = active.id;
     const body = text.trim();
     const replyId = replyTo?.id;
@@ -879,8 +901,12 @@ function MessengerPage() {
       const saved = await apiSendMessage(dialogId, body, replyId);
       replaceMessage(dialogId, tempId, saved);
     } catch (err) {
+      actions.removeMessage(dialogId, tempId);
+      setText((current) => current || body);
       const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
       if (message) toast.error(message);
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -923,6 +949,8 @@ function MessengerPage() {
       replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(localUrl);
     } catch (err) {
+      actions.removeMessage(dialogId, tempId);
+      URL.revokeObjectURL(localUrl);
       const message = formatApiErrorMessage(err, t("pages.messenger.voiceSendFailed"));
       if (message) toast.error(message);
     }

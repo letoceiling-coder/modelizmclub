@@ -18,6 +18,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Modules\Chat\Events\MessageDeleted;
 use Modules\Chat\Events\MessageSent;
@@ -352,7 +353,7 @@ class ChatService
             }
         }
 
-        return DB::transaction(function () use ($conversation, $user, $body, $replyToId, $forwardedFromId, $type, $mediaIds, $post): Message {
+        $message = DB::transaction(function () use ($conversation, $user, $body, $replyToId, $forwardedFromId, $type, $mediaIds, $post): Message {
             $message = Message::create([
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
@@ -370,26 +371,23 @@ class ChatService
 
             $conversation->update(['last_message_at' => now()]);
 
-            $message->load([
+            return $message->load([
                 'author.profile.avatar',
                 'replyTo.author.profile',
                 'forwardedFrom.author.profile.avatar',
                 'attachments.media',
                 'post.author.profile',
                 'post.mediaItems.media',
+                'listing.mediaItems.media',
                 'conversation',
             ]);
-
-            try {
-                broadcast(new MessageSent($message))->toOthers();
-            } catch (\Throwable) {
-                // Reverb may be unavailable during tests or maintenance
-            }
-
-            $this->notifyRecipients($conversation, $user, $message, $body, $type);
-
-            return $message;
         });
+
+        // Broadcast / notify after commit so a Reverb or notification failure
+        // cannot roll back a message the user already sent.
+        $this->dispatchMessageSideEffects($message, $conversation, $user, $body, $post ? 'post' : $type);
+
+        return $message;
     }
 
     public function findOrCreateDirect(User $from, User $to, ?Listing $listing = null): Conversation
@@ -709,6 +707,29 @@ class ChatService
         return $participant?->user;
     }
 
+    private function dispatchMessageSideEffects(
+        Message $message,
+        Conversation $conversation,
+        User $user,
+        ?string $body,
+        string $type,
+    ): void {
+        try {
+            broadcast(new MessageSent($message))->toOthers();
+        } catch (\Throwable) {
+            // Reverb may be unavailable during tests or maintenance
+        }
+
+        try {
+            $this->notifyRecipients($conversation, $user, $message, $body, $type);
+        } catch (\Throwable $e) {
+            Log::warning('Chat notifyRecipients failed after message persist', [
+                'message_uuid' => $message->uuid,
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+
     private function notifyRecipients(
         Conversation $conversation,
         User $author,
@@ -939,11 +960,13 @@ class ChatService
             'conversation',
         ]);
 
-        try {
-            broadcast(new MessageSent($message))->toOthers();
-        } catch (\Throwable) {
-            // Reverb may be unavailable during tests or maintenance
-        }
+        DB::afterCommit(function () use ($message): void {
+            try {
+                broadcast(new MessageSent($message))->toOthers();
+            } catch (\Throwable) {
+                // Reverb may be unavailable during tests or maintenance
+            }
+        });
     }
 
     /** @param  Collection<int, Conversation>  $conversations */

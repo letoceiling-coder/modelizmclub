@@ -329,7 +329,7 @@ export async function sendMessage(
   }
   const res = await api<{ data: ApiMessage }>(`/conversations/${uuid}/messages`, {
     method: "POST",
-    json: { body, reply_to_uuid: replyToUuid },
+    json: replyToUuid ? { body, reply_to_uuid: replyToUuid } : { body },
   });
   return mapMessage(res.data);
 }
