@@ -161,10 +161,15 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
         Route::get('legal-pages', [AdminLegalPageController::class, 'index']);
         Route::post('legal-pages', [AdminLegalPageController::class, 'store']);
+        Route::post('legal-pages/preview-markdown', [AdminLegalPageController::class, 'previewMarkdown']);
         Route::get('legal-pages/{id}', [AdminLegalPageController::class, 'show'])->whereNumber('id');
         Route::put('legal-pages/{id}', [AdminLegalPageController::class, 'update'])->whereNumber('id');
         Route::post('legal-pages/{id}/publish', [AdminLegalPageController::class, 'publish'])->whereNumber('id');
         Route::post('legal-pages/{id}/archive', [AdminLegalPageController::class, 'archive'])->whereNumber('id');
+        Route::get('legal-pages/{id}/revisions', [AdminLegalPageController::class, 'revisions'])->whereNumber('id');
+        Route::post('legal-pages/{id}/revisions/{revisionId}/restore', [AdminLegalPageController::class, 'restoreRevision'])
+            ->whereNumber('id')
+            ->whereNumber('revisionId');
 
         Route::get('footer-links', [AdminFooterLinkController::class, 'index']);
         Route::post('footer-links', [AdminFooterLinkController::class, 'store']);

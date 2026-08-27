@@ -619,10 +619,41 @@ html, body {
 .legal-document h3 {
   font-family: var(--font-display);
   font-weight: 700;
-  margin: 1.25em 0 0.5em;
+  margin: 1.35em 0 0.55em;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.legal-document h2 {
+  font-size: 1.2rem;
+}
+
+.legal-document h3 {
+  font-size: 1.05rem;
 }
 
 .legal-document ul,
 .legal-document ol {
-  margin: 0.5em 0 1em 1.25em;
+  margin: 0.5em 0 1em 1.35em;
+}
+
+.legal-document ul {
+  list-style: disc;
+}
+
+.legal-document ol {
+  list-style: decimal;
+}
+
+.legal-document li {
+  margin: 0.35em 0;
+}
+
+.legal-document a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+.legal-document a:hover {
+  text-decoration: underline;
 }

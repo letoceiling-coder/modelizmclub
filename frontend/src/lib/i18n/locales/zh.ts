@@ -563,6 +563,7 @@ export const zh: TranslationSchema = {
       rules: "规则",
       howItWorks: "平台如何运作",
       payment: "支付",
+      safeDeal: "安全交易",
       refund: "退款",
       security: "安全"
     },
@@ -2029,6 +2030,8 @@ export const zh: TranslationSchema = {
       send: "Send"
     },
     legal: {
+      metaTitle: "Legal — MoDelizM",
+      safeDealMetaTitle: "Safe deal rules — MoDelizM",
       rulesMetaTitle: "Community rules — MoDelizM",
       rulesMetaDescription: "Rules for posting, communication and behavior in the MoDelizM community.",
       rulesTitle: "Community rules",

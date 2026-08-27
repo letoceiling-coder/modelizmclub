@@ -51,6 +51,18 @@ function DealsPage() {
         <p className="mt-[6px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
           Оплата замораживается на балансе и переводится продавцу только после подтверждения получения.
         </p>
+        <div
+          className="mt-[14px] flex items-start gap-[10px] rounded-[var(--r-card)] border px-[14px] py-[12px]"
+          style={{ borderColor: "var(--border)", background: "var(--accent-soft)" }}
+        >
+          <ShieldCheck size={18} className="mt-[2px] shrink-0" style={{ color: "var(--accent)" }} />
+          <p className="text-[13px]" style={{ color: "var(--foreground-80)" }}>
+            Сделки проходят по регламенту ООО «МОДЕЛИЗМ».{" "}
+            <a href="/safe-deal" className="font-semibold" style={{ color: "var(--accent)" }}>
+              Правила безопасной сделки
+            </a>
+          </p>
+        </div>
 
         <div className="mt-[20px] inline-flex gap-[4px] rounded-[var(--r-pill)] p-[4px]" style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}>
           {(["buyer", "seller"] as const).map((r) => (

@@ -144,14 +144,14 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   };
 
   const pay = async () => {
-    if (offersCdek && !acceptTerms) {
-      toast.error("Нужно согласие с правилами безопасной сделки и офертой");
+    if (!acceptTerms) {
+      toast.error("Нужно согласие с Правилами безопасной сделки");
       return;
     }
     setBusy(true);
     try {
       const deal = await createSafeDeal(ad.id, {
-        acceptTerms: true,
+        acceptTerms,
         destination,
       });
       toast.success("Сделка создана, средства заморожены на балансе.");
@@ -325,12 +325,17 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
             <Checkbox
               checked={acceptTerms}
               onChange={setAcceptTerms}
-              label="Согласен с Правилами безопасной сделки и условиями оферты"
+              label="Согласен с Правилами безопасной сделки"
             />
-            <div className="flex gap-[12px] text-[12px]">
-              <a href="/legal/rules" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>Правила</a>
-              <a href="/legal/offer" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>Оферта</a>
-            </div>
+            <a
+              href="/safe-deal"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[12px] font-medium"
+              style={{ color: "var(--accent)" }}
+            >
+              Открыть правила в новой вкладке
+            </a>
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
               Средства холдируются на балансе. При нехватке откроется платёжный шлюз ВТБ для пополнения.
             </p>
@@ -351,12 +356,19 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               Далее
             </Button>
           ) : (
-            <Button onClick={() => void pay()} disabled={busy || (offersCdek && !acceptTerms)} className="gap-[6px]">
+            <Button onClick={() => void pay()} disabled={busy || !acceptTerms} className="gap-[6px]">
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
               Оплатить и захолдировать
             </Button>
           )}
         </div>
+        {step === 3 && (
+          <p className="mt-[10px] text-center text-[12px]">
+            <a href="/safe-deal" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+              Как работает безопасная сделка
+            </a>
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

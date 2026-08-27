@@ -38,11 +38,12 @@ import { PhoneInput, formatRuPhone } from "@/components/ui/phone-input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ChevronLeft, ChevronRight, Tag, ShoppingCart,
-  ArrowLeftRight, MapPin, Truck, Loader2, Phone,
+  ArrowLeftRight, MapPin, Truck, Loader2, Phone, CircleHelp,
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
 import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
@@ -1056,11 +1057,39 @@ function StepData({
                 <>
                   {cdek.map((m) => (
                     <div key={m.id} className="space-y-[8px]">
-                      <Checkbox
-                        checked={form.deliveries.includes(m.label)}
-                        onChange={() => toggle(m.label)}
-                        label="Доставка СДЭК (Безопасная сделка)"
-                      />
+                      <div className="flex flex-wrap items-center gap-[8px]">
+                        <Checkbox
+                          checked={form.deliveries.includes(m.label)}
+                          onChange={() => toggle(m.label)}
+                          label="Доставка СДЭК (Безопасная сделка)"
+                        />
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex h-[32px] w-[32px] items-center justify-center rounded-full"
+                                style={{ color: "var(--foreground-50)" }}
+                                aria-label="Как работает безопасная сделка"
+                              >
+                                <CircleHelp size={16} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[260px] text-[12px] leading-snug">
+                              Оплата холдируется до подтверждения получения. Доставка — через ПВЗ СДЭК.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <a
+                          href="/safe-deal"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[12px] font-medium"
+                          style={{ color: "var(--accent)" }}
+                        >
+                          Правила
+                        </a>
+                      </div>
                       {form.deliveries.includes(m.label) && (
                         <div className="ml-[4px] space-y-[10px] rounded-[var(--r-card)] p-[12px]" style={{ background: "var(--background-surface)" }}>
                           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>

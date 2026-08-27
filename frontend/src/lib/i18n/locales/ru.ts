@@ -471,6 +471,7 @@ export const ru = {
       rules: "Правила",
       howItWorks: "Как это работает",
       payment: "Оплата",
+      safeDeal: "Безопасная сделка",
       refund: "Возврат",
       security: "Безопасность",
     },
@@ -2021,6 +2022,8 @@ export const ru = {
       send: "Отправить",
     },
     legal: {
+      metaTitle: "Документы — МоДелизМ",
+      safeDealMetaTitle: "Правила безопасной сделки — МоДелизМ",
       rulesMetaTitle: "Правила сообщества — МоДелизМ",
       rulesMetaDescription: "Правила публикации, общения и поведения в сообществе МоДелизМ.",
       rulesTitle: "Правила сообщества",

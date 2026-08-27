@@ -15,7 +15,7 @@ class CreateSafeDealController extends Controller
         $listing = Listing::query()->with(['city', 'author'])->where('uuid', $uuid)->firstOrFail();
 
         $data = $request->validate([
-            'accept_terms' => ['sometimes', 'boolean'],
+            'accept_terms' => ['required', 'accepted'],
             'destination_point' => ['nullable', 'array'],
             'destination_point.city_code' => ['required_with:destination_point', 'integer', 'min:1'],
             'destination_point.external_point_id' => ['nullable', 'string', 'max:64'],

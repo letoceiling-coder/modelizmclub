@@ -122,12 +122,13 @@ class SafeDealService
         $offersCdek = ParcelSize::offersCdek($listing->delivery_methods ?? []);
         $destination = $this->normalizeDestination(is_array($options['destination_point'] ?? null) ? $options['destination_point'] : []);
 
+        if (! filter_var($options['accept_terms'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            throw ValidationException::withMessages([
+                'accept_terms' => ['Нужно согласие с Правилами безопасной сделки.'],
+            ]);
+        }
+
         if ($offersCdek) {
-            if (! filter_var($options['accept_terms'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-                throw ValidationException::withMessages([
-                    'accept_terms' => ['Нужно согласие с Правилами безопасной сделки и офертой.'],
-                ]);
-            }
             if ($destination === null) {
                 throw ValidationException::withMessages([
                     'destination_point' => ['Выберите пункт выдачи СДЭК.'],

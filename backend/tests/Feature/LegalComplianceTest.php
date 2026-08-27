@@ -45,7 +45,7 @@ class LegalComplianceTest extends TestCase
 
     public function test_vtb_and_how_it_works_pages_are_published(): void
     {
-        foreach (['payment', 'refund', 'how-it-works'] as $slug) {
+        foreach (['payment', 'refund', 'how-it-works', 'safe-deal'] as $slug) {
             $response = $this->getJson('/api/v1/legal/'.$slug)
                 ->assertOk()
                 ->assertJsonPath('data.slug', $slug);
@@ -53,6 +53,19 @@ class LegalComplianceTest extends TestCase
             $html = (string) $response->json('data.content_html');
             $this->assertNotSame('', trim($html));
         }
+    }
+
+    public function test_safe_deal_rules_are_published_with_seo_fields(): void
+    {
+        $this->getJson('/api/v1/legal/safe-deal')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'safe-deal')
+            ->assertJsonPath('data.title', 'Правила безопасной сделки')
+            ->assertJsonStructure(['data' => ['title', 'content_html', 'meta_description', 'version']]);
+
+        $this->getJson('/api/v1/footer-links')
+            ->assertOk()
+            ->assertJsonFragment(['target_value' => '/safe-deal', 'label' => 'Безопасная сделка']);
     }
 
     public function test_register_requires_terms_and_privacy_consents(): void

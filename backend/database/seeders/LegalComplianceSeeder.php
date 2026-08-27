@@ -20,6 +20,7 @@ class LegalComplianceSeeder extends Seeder
         'payment' => 'Оплата',
         'refund' => 'Возврат денежных средств',
         'how-it-works' => 'Как работает платформа',
+        'safe-deal' => 'Правила безопасной сделки',
     ];
 
     public function run(): void
@@ -30,15 +31,20 @@ class LegalComplianceSeeder extends Seeder
             $htmlPath = $dataDir.DIRECTORY_SEPARATOR.$slug.'.html';
             $content = File::exists($htmlPath) ? File::get($htmlPath) : '<p>Документ готовится.</p>';
 
+            $attrs = [
+                'title' => $title,
+                'content_html' => $content,
+                'status' => LegalPageStatus::Published,
+                'version' => 1,
+                'published_at' => now(),
+            ];
+            if ($slug === 'safe-deal') {
+                $attrs['meta_description'] = 'Регламент услуги «Безопасная сделка» ООО «МОДЕЛИЗМ»: холдирование оплаты, доставка СДЭК, подтверждение получения и споры.';
+            }
+
             LegalPage::query()->firstOrCreate(
                 ['slug' => $slug],
-                [
-                    'title' => $title,
-                    'content_html' => $content,
-                    'status' => LegalPageStatus::Published,
-                    'version' => 1,
-                    'published_at' => now(),
-                ],
+                $attrs,
             );
         }
 
@@ -51,6 +57,7 @@ class LegalComplianceSeeder extends Seeder
             ['group' => 'legal', 'label' => 'Согласие на обработку ПД', 'target_type' => 'internal', 'target_value' => '/legal/consent', 'sort' => 30],
             ['group' => 'legal', 'label' => 'Кодекс этики', 'target_type' => 'internal', 'target_value' => '/legal/compliance', 'sort' => 40],
             ['group' => 'legal', 'label' => 'Оплата', 'target_type' => 'internal', 'target_value' => '/payment', 'sort' => 50],
+            ['group' => 'legal', 'label' => 'Безопасная сделка', 'target_type' => 'internal', 'target_value' => '/safe-deal', 'sort' => 55],
             ['group' => 'legal', 'label' => 'Возврат', 'target_type' => 'internal', 'target_value' => '/refund', 'sort' => 60],
             ['group' => 'info', 'label' => 'Обратная связь', 'target_type' => 'internal', 'target_value' => '/info/feedback', 'sort' => 10],
             ['group' => 'info', 'label' => 'Безопасность', 'target_type' => 'internal', 'target_value' => '/info/security', 'sort' => 20],

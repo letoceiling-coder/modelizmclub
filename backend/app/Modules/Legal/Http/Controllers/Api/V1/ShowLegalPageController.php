@@ -25,6 +25,7 @@ class ShowLegalPageController extends Controller
                 'slug' => $page->slug,
                 'title' => $page->title,
                 'content_html' => $page->content_html,
+                'meta_description' => $page->meta_description,
                 'version' => $page->version,
                 'published_at' => $page->published_at?->toIso8601String(),
             ],

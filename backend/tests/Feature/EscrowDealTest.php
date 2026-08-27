@@ -71,7 +71,9 @@ class EscrowDealTest extends TestCase
         $this->fund($buyer, 100000);
 
         $response = $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->assertCreated()
             ->assertJsonPath('data.status', 'paid');
 
@@ -101,7 +103,9 @@ class EscrowDealTest extends TestCase
         $listing = $this->seedListing($seller);
 
         $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['balance']);
     }
@@ -116,7 +120,9 @@ class EscrowDealTest extends TestCase
         $this->fund($buyer, 100000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->json('data.uuid');
 
         $this->actingAs($seller, 'sanctum')
@@ -142,7 +148,9 @@ class EscrowDealTest extends TestCase
         $this->fund($buyer, 100000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->json('data.uuid');
 
         $this->actingAs($buyer, 'sanctum')
@@ -163,7 +171,9 @@ class EscrowDealTest extends TestCase
         $this->fund($buyer, 100000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->json('data.uuid');
 
         $this->actingAs($seller, 'sanctum')
@@ -191,7 +201,9 @@ class EscrowDealTest extends TestCase
         $this->fund($buyer, 100000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->json('data.uuid');
 
         $this->actingAs($seller, 'sanctum')

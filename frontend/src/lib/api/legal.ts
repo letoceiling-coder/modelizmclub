@@ -4,6 +4,7 @@ export interface LegalPageData {
   slug: string;
   title: string;
   content_html: string;
+  meta_description?: string | null;
   version: number;
   published_at?: string | null;
 }
@@ -75,7 +76,17 @@ export async function deleteMyAccount(): Promise<void> {
 export interface AdminLegalPage extends LegalPageData {
   id: number;
   status: "draft" | "published" | "archived";
+  content_md?: string | null;
   updated_at?: string | null;
+}
+
+export interface AdminLegalPageRevision {
+  id: number;
+  version: number;
+  title: string;
+  status: string;
+  created_at?: string | null;
+  editor?: string | null;
 }
 
 export async function adminFetchLegalPages(): Promise<AdminLegalPage[]> {
@@ -83,12 +94,24 @@ export async function adminFetchLegalPages(): Promise<AdminLegalPage[]> {
   return res.data;
 }
 
-export async function adminCreateLegalPage(payload: { slug: string; title: string; content_html: string }): Promise<AdminLegalPage> {
+export async function adminCreateLegalPage(payload: {
+  slug: string;
+  title: string;
+  content_html?: string;
+  content_md?: string;
+  meta_description?: string;
+}): Promise<AdminLegalPage> {
   const res = await api<{ data: AdminLegalPage }>("/admin/legal-pages", { method: "POST", json: payload });
   return res.data;
 }
 
-export async function adminUpdateLegalPage(id: number, payload: { slug: string; title: string; content_html: string }): Promise<AdminLegalPage> {
+export async function adminUpdateLegalPage(id: number, payload: {
+  slug: string;
+  title: string;
+  content_html?: string;
+  content_md?: string;
+  meta_description?: string;
+}): Promise<AdminLegalPage> {
   const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}`, { method: "PUT", json: payload });
   return res.data;
 }
@@ -101,6 +124,24 @@ export async function adminPublishLegalPage(id: number): Promise<AdminLegalPage>
 export async function adminArchiveLegalPage(id: number): Promise<AdminLegalPage> {
   const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/archive`, { method: "POST" });
   return res.data;
+}
+
+export async function adminFetchLegalPageRevisions(id: number): Promise<AdminLegalPageRevision[]> {
+  const res = await api<{ data: AdminLegalPageRevision[] }>(`/admin/legal-pages/${id}/revisions`);
+  return res.data;
+}
+
+export async function adminRestoreLegalPageRevision(id: number, revisionId: number): Promise<AdminLegalPage> {
+  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/revisions/${revisionId}/restore`, { method: "POST" });
+  return res.data;
+}
+
+export async function adminPreviewLegalMarkdown(content_md: string): Promise<string> {
+  const res = await api<{ data: { content_html: string } }>("/admin/legal-pages/preview-markdown", {
+    method: "POST",
+    json: { content_md },
+  });
+  return res.data.content_html;
 }
 
 export interface AdminFooterLink extends FooterLinkItem {

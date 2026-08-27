@@ -578,6 +578,7 @@ export const en: TranslationSchema = {
       rules: "Terms",
       howItWorks: "How it works",
       payment: "Payment",
+      safeDeal: "Safe deal",
       refund: "Refunds",
       security: "Security"
     },
@@ -2045,6 +2046,8 @@ export const en: TranslationSchema = {
       send: "Send"
     },
     legal: {
+      metaTitle: "Legal — MoDelizM",
+      safeDealMetaTitle: "Safe deal rules — MoDelizM",
       rulesMetaTitle: "Community rules — MoDelizM",
       rulesMetaDescription: "Rules for posting, communication and behavior in the MoDelizM community.",
       rulesTitle: "Community rules",

@@ -25,7 +25,9 @@ class UpsertLegalPageRequest extends FormRequest
                 Rule::unique('legal_pages', 'slug')->ignore($id),
             ],
             'title' => ['required', 'string', 'max:255'],
-            'content_html' => ['required', 'string'],
+            'meta_description' => ['nullable', 'string', 'max:320'],
+            'content_html' => ['required_without:content_md', 'nullable', 'string'],
+            'content_md' => ['nullable', 'string'],
         ];
     }
 }

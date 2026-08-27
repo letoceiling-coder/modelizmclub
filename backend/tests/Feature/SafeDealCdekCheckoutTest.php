@@ -213,6 +213,13 @@ class SafeDealCdekCheckoutTest extends TestCase
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['accept_terms']);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['destination_point']);
     }
 
     public function test_cdek_webhook_updates_deal_delivery_status(): void
@@ -288,7 +295,9 @@ class SafeDealCdekCheckoutTest extends TestCase
         $this->assertSame(0, $ratings['count']);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal")
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
             ->json('data.uuid');
 
         $this->actingAs($buyer, 'sanctum')
