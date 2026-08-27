@@ -8,6 +8,7 @@ use App\Models\LegalPage;
 use App\Models\SystemSetting;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 class LegalComplianceSeeder extends Seeder
 {
@@ -38,14 +39,19 @@ class LegalComplianceSeeder extends Seeder
                 'version' => 1,
                 'published_at' => now(),
             ];
-            if ($slug === 'safe-deal') {
-                $attrs['meta_description'] = 'Регламент услуги «Безопасная сделка» ООО «МОДЕЛИЗМ»: холдирование оплаты, доставка СДЭК, подтверждение получения и споры.';
+            $meta = 'Регламент услуги «Безопасная сделка» ООО «МОДЕЛИЗМ»: холдирование оплаты, доставка СДЭК, подтверждение получения и споры.';
+            $hasMeta = Schema::hasColumn('legal_pages', 'meta_description');
+            if ($slug === 'safe-deal' && $hasMeta) {
+                $attrs['meta_description'] = $meta;
             }
 
-            LegalPage::query()->firstOrCreate(
+            $page = LegalPage::query()->firstOrCreate(
                 ['slug' => $slug],
                 $attrs,
             );
+            if ($slug === 'safe-deal' && $hasMeta && blank($page->meta_description)) {
+                $page->update(['meta_description' => $meta]);
+            }
         }
 
         $this->seedInfoPages();
