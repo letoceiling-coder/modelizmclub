@@ -14,12 +14,24 @@ class UserPayoutRequisites extends Model
     protected $fillable = [
         'user_id',
         'payout_card_number',
+        'preferred_channel',
+        'sbp_phone',
+        'sbp_bank_id',
+        'sbp_bank_name',
+        'sbp_full_name',
+        'card_last4',
+    ];
+
+    protected $hidden = [
+        'payout_card_number',
+        'sbp_phone',
     ];
 
     protected function casts(): array
     {
         return [
             'payout_card_number' => 'encrypted',
+            'sbp_phone' => 'encrypted',
         ];
     }
 

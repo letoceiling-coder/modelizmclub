@@ -95,6 +95,31 @@ class SafeDeal extends Model
         return $this->hasMany(UserReview::class);
     }
 
+    public function incomingPayments(): HasMany
+    {
+        return $this->hasMany(SafeDealIncomingPayment::class);
+    }
+
+    public function payouts(): HasMany
+    {
+        return $this->hasMany(SafeDealPayout::class);
+    }
+
+    public function gatewayEvents(): HasMany
+    {
+        return $this->hasMany(SafeDealGatewayEvent::class);
+    }
+
+    public function latestIncomingPayment(): HasOne
+    {
+        return $this->hasOne(SafeDealIncomingPayment::class)->latestOfMany();
+    }
+
+    public function latestPayout(): HasOne
+    {
+        return $this->hasOne(SafeDealPayout::class)->latestOfMany();
+    }
+
     public function involves(User $user): bool
     {
         return (int) $this->buyer_id === (int) $user->id

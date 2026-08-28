@@ -154,6 +154,11 @@ class User extends Authenticatable
         return $this->hasOne(Wallet::class);
     }
 
+    public function payoutRequisites(): HasOne
+    {
+        return $this->hasOne(UserPayoutRequisites::class);
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(UserSubscription::class);

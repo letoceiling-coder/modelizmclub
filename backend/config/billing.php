@@ -47,6 +47,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | VTB Open API payouts (ОЭ) — cards A2C + SBP B2C
+    |--------------------------------------------------------------------------
+    |
+    | Direct merchant integration, no paykeeper, no nominal/transit account.
+    | Docs: https://test-pay.vtb.ru/api-developer-docs/#/api-transfer/account-to-card
+    |       https://test-pay.vtb.ru/api-developer-docs/#/api-transfer/transfer_sbp
+    | Sandbox OAuth: https://epa-ift-sbp.vtb.ru/passport/oauth2/token
+    | Production OAuth: https://open.api.vtb.ru/passport/oauth2/token
+    |
+    */
+    'vtb_payout' => [
+        'enabled' => env('VTB_PAYOUT_ENABLED', false),
+        'oauth_url' => rtrim(env('VTB_PAYOUT_OAUTH_URL', 'https://epa-ift-sbp.vtb.ru/passport/oauth2/token'), '/'),
+        'api_url' => rtrim(env('VTB_PAYOUT_API_URL', 'https://test3.api.vtb.ru:8443/openapi/smb/efcp'), '/'),
+        'client_id' => env('VTB_PAYOUT_CLIENT_ID'),
+        'client_secret' => env('VTB_PAYOUT_CLIENT_SECRET'),
+        'merchant_authorization' => env('VTB_PAYOUT_MERCHANT_AUTHORIZATION'),
+        'source_system_id' => env('VTB_PAYOUT_SOURCE_SYSTEM_ID', 'modelizmclub'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | YooKassa (payout card binding only — legacy)
     |--------------------------------------------------------------------------
     |
