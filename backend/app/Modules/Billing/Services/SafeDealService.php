@@ -116,6 +116,8 @@ class SafeDealService
             'hold_kopecks' => $item + $delivery,
             'seller_payout_kopecks' => $item - $fee,
             'currency' => $listing->currency ?? 'RUB',
+            // Tells the checkout whether to promise a card hold or a charge.
+            'escrow_holds_on_card' => ! $this->settlement->usesVtb() || $this->settlement->holdsOnCard(),
             'offers_cdek' => $offersCdek,
             'parcel' => $parcel,
             'origin' => $origin,
@@ -240,7 +242,9 @@ class SafeDealService
             'metadata' => array_merge($deal->metadata ?? [], ['checkout_url' => $incoming->checkout_url]),
         ]);
 
-        $this->log($deal, $buyer, 'checkout', $holdAmount, null, 'Холд ВТБ зарегистрирован, ожидаем оплату.');
+        $this->log($deal, $buyer, 'checkout', $holdAmount, null, $this->settlement->holdsOnCard()
+            ? 'Холд ВТБ зарегистрирован, ожидаем оплату.'
+            : 'Заказ в ВТБ зарегистрирован, ожидаем оплату картой.');
 
         return $deal->fresh(['listing', 'shipment']) ?? $deal;
     }
@@ -255,12 +259,18 @@ class SafeDealService
             return $deal;
         }
 
+        $onCard = $this->settlement->holdsOnCard();
+
         $deal->update(['status' => SafeDealStatus::Paid, 'paid_at' => now()]);
-        $this->log($deal, null, 'paid', (int) $deal->amount_kopecks, null, 'ВТБ подтвердил холд на карте покупателя.');
+        $this->log($deal, null, 'paid', (int) $deal->amount_kopecks, null, $onCard
+            ? 'ВТБ подтвердил холд на карте покупателя.'
+            : 'ВТБ подтвердил оплату картой.');
 
         $fresh = $deal->fresh(['listing', 'shipment']);
         $this->notifyDeal($fresh, $fresh?->seller_id, 'Новая безопасная сделка', 'Покупатель оплатил объявление.');
-        $this->notifyDeal($fresh, $fresh?->buyer_id, 'Оплата принята', 'Деньги удерживаются банком до подтверждения получения.');
+        $this->notifyDeal($fresh, $fresh?->buyer_id, 'Оплата принята', $onCard
+            ? 'Деньги удерживаются банком до подтверждения получения.'
+            : 'Деньги на счёте платформы: продавец получит их после того, как вы подтвердите получение.');
 
         return $fresh;
     }
@@ -537,9 +547,11 @@ class SafeDealService
             $this->releaseReservation($deal);
 
             $fresh = $deal->fresh();
-            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка отменена', $incoming !== null
-                ? 'Банк снял удержание, деньги вернутся на карту.'
-                : 'Средства возвращены на баланс.');
+            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка отменена', match (true) {
+                $incoming === null => 'Средства возвращены на баланс.',
+                $incoming->isTwoStage() => 'Банк снял удержание, деньги вернутся на карту.',
+                default => 'Возврат отправлен в банк, деньги вернутся на карту.',
+            });
             $this->notifyDeal($fresh, $fresh?->seller_id, 'Сделка отменена', $note);
 
             return $fresh;
@@ -755,6 +767,10 @@ class SafeDealService
                 && $myReview === null,
             'my_review' => $myReview,
             'escrow_provider' => $deal->metadata['escrow_provider'] ?? SafeDealSettlementService::PROVIDER_WALLET,
+            // Whether the money waits on the buyer's card or on our account —
+            // the wording the buyer sees differs, the flow does not.
+            'escrow_holds_on_card' => ($deal->metadata['escrow_provider'] ?? null) === SafeDealSettlementService::PROVIDER_VTB
+                && $this->settlement->holdsOnCard(),
             // Present only while the buyer still has to pass the card form.
             'checkout_url' => $deal->status === SafeDealStatus::Created
                 ? ($deal->metadata['checkout_url'] ?? null)

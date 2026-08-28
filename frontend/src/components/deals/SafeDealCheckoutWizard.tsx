@@ -71,6 +71,18 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     setAcceptTerms(false);
   }, [open, ad.id]);
 
+  // A СДЭК listing gets its quote once a pickup point is chosen; everything
+  // else can be priced right away, and the quote also tells us whether the
+  // bank will hold the money or charge it.
+  useEffect(() => {
+    if (!open || offersCdek) return;
+    let alive = true;
+    void quoteSafeDeal(ad.id)
+      .then((q) => { if (alive) setQuote(q); })
+      .catch(() => { /* the summary falls back to local numbers */ });
+    return () => { alive = false; };
+  }, [open, offersCdek, ad.id]);
+
   useEffect(() => {
     if (!open || cityQuery.trim().length < 2) {
       setCities([]);
@@ -187,6 +199,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
 
   const delivery = quote?.delivery_cost_kopecks ?? 0;
   const hold = quote?.hold_kopecks ?? itemKopecks + delivery;
+  const holdsOnCard = quote?.escrow_holds_on_card ?? true;
   const mapSrc = selectedPoint?.latitude && selectedPoint?.longitude
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${selectedPoint.longitude - 0.03}%2C${selectedPoint.latitude - 0.02}%2C${selectedPoint.longitude + 0.03}%2C${selectedPoint.latitude + 0.02}&layer=mapnik&marker=${selectedPoint.latitude}%2C${selectedPoint.longitude}`
     : null;
@@ -321,7 +334,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
             <Row label="Товар" value={`${kopecksToRub(quote?.item_kopecks ?? itemKopecks)} ₽`} />
             <Row label={`Комиссия ${FEE_PERCENT}%`} value={`${kopecksToRub(quote?.platform_fee_kopecks ?? feeKopecks)} ₽`} />
             <Row label="Доставка СДЭК" value={offersCdek ? `${kopecksToRub(delivery)} ₽` : "по договорённости"} />
-            <Row label="К оплате (холд)" value={`${kopecksToRub(hold)} ₽`} emphasize />
+            <Row label={holdsOnCard ? "К оплате (холд)" : "К оплате"} value={`${kopecksToRub(hold)} ₽`} emphasize />
             {selectedPoint && (
               <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
                 ПВЗ: {selectedPoint.name}{selectedPoint.address ? ` · ${selectedPoint.address}` : ""}
@@ -342,8 +355,9 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               Открыть правила в новой вкладке
             </a>
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Банк удержит сумму на вашей карте и спишет её только после того, как вы подтвердите
-              получение. Если сделка не состоится — удержание снимается, деньги вернутся на карту.
+              {holdsOnCard
+                ? "Банк удержит сумму на вашей карте и спишет её только после того, как вы подтвердите получение. Если сделка не состоится — удержание снимается, деньги вернутся на карту."
+                : "Сумма списывается с карты и хранится на счёте платформы. Продавец получит её только после того, как вы подтвердите получение. Если сделка не состоится — банк вернёт деньги на карту."}
             </p>
           </div>
         )}
@@ -364,7 +378,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
           ) : (
             <Button onClick={() => void pay()} disabled={busy || !acceptTerms} className="gap-[6px]">
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-              Оплатить и захолдировать
+              {holdsOnCard ? "Оплатить и захолдировать" : "Оплатить"}
             </Button>
           )}
         </div>

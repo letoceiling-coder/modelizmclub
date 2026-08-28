@@ -54,7 +54,8 @@ class SafeDealVtbHoldTest extends TestCase
             $url = $request->url();
 
             return match (true) {
-                str_contains($url, 'registerPreAuth.do') => Http::response([
+                str_contains($url, 'registerPreAuth.do'),
+                str_contains($url, 'register.do') => Http::response([
                     'orderId' => 'RBS-ORDER-1',
                     'formUrl' => 'https://vtb.test/payment/merchants/pay/RBS-ORDER-1',
                 ]),
@@ -120,10 +121,13 @@ class SafeDealVtbHoldTest extends TestCase
         return [$seller, $buyer, $listing, $uuid];
     }
 
-    /** VTB confirms the hold, as the buyer's 3-D Secure would. */
-    private function authorizeHold(): void
+    /**
+     * VTB confirms the card went through, as the buyer's 3-D Secure would.
+     * A two-stage hold lands on orderStatus 1, a one-stage charge on 2.
+     */
+    private function authorizeHold(int $orderStatus = 1): void
     {
-        $this->orderStatus = 1;
+        $this->orderStatus = $orderStatus;
 
         $this->postJson('/api/v1/safe-deals/webhooks/vtb', ['mdOrder' => 'RBS-ORDER-1'])
             ->assertOk();
@@ -232,6 +236,70 @@ class SafeDealVtbHoldTest extends TestCase
         $this->assertDatabaseHas('safe_deals', [
             'uuid' => $uuid,
             'status' => SafeDealStatus::Cancelled->value,
+        ]);
+        $this->assertNull($listing->fresh()->reserved_at);
+    }
+
+    /**
+     * Where the bank withholds предавторизация we charge the card outright.
+     * The deal lifecycle is unchanged — only the endpoints differ.
+     */
+    public function test_one_stage_charges_the_card_at_checkout(): void
+    {
+        config(['billing.safe_deal.vtb_capture_mode' => 'one_stage']);
+
+        [$seller, $buyer, $listing, $uuid] = $this->startDeal();
+
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'register.do'));
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'registerPreAuth.do'));
+        $this->assertDatabaseHas('safe_deal_incoming_payments', [
+            'rbs_order_id' => 'RBS-ORDER-1',
+            'capture_mode' => 'one_stage',
+        ]);
+
+        // A one-stage payment reports deposited (2) rather than authorized (1).
+        $this->authorizeHold(2);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->getJson("/api/v1/safe-deals/{$uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'paid')
+            ->assertJsonPath('data.escrow_holds_on_card', false);
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/ship", ['tracking_number' => 'TRK-1S'])
+            ->assertOk();
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/confirm")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed');
+
+        // Money is already on the settlement account, so nothing to capture.
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'deposit.do'));
+        $this->assertSame(95000, app(WalletService::class)->balanceKopecks($seller->fresh()));
+        $this->assertNull($listing->fresh()->reserved_at);
+    }
+
+    public function test_one_stage_cancellation_refunds_instead_of_reversing(): void
+    {
+        config(['billing.safe_deal.vtb_capture_mode' => 'one_stage']);
+
+        [, $buyer, $listing, $uuid] = $this->startDeal();
+        $this->authorizeHold(2);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'refund.do')
+            && (int) $request['amount'] === 100000);
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'reverse.do'));
+
+        $this->assertDatabaseHas('safe_deal_incoming_payments', [
+            'rbs_order_id' => 'RBS-ORDER-1',
+            'status' => SafeDealIncomingStatus::Refunded->value,
         ]);
         $this->assertNull($listing->fresh()->reserved_at);
     }

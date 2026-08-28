@@ -109,14 +109,22 @@ return [
     |--------------------------------------------------------------------------
     |
     | escrow_provider picks where the buyer's money waits:
-    |   vtb    — two-stage card hold (registerPreAuth → deposit / reverse / refund)
-    |   wallet — internal wallet ledger hold (legacy, no external money movement)
+    |   vtb    — the card is charged through VTB acquiring
+    |   wallet — internal wallet ledger hold (no external money movement)
     |   auto   — vtb when acquiring is configured, otherwise wallet
+    |
+    | vtb_capture_mode picks how the card is charged:
+    |   two_stage — hold on the card (registerPreAuth → deposit / reverse), the
+    |               buyer's money never leaves their account until completion.
+    |               Requires the bank to grant предавторизация for the merchant.
+    |   one_stage — charge on checkout (register.do), settle to the merchant
+    |               account immediately and give it back with refund.do.
     |
     */
     'safe_deal' => [
         'enabled' => env('SAFE_DEAL_ENABLED', true),
         'escrow_provider' => env('SAFE_DEAL_ESCROW_PROVIDER', 'auto'),
+        'vtb_capture_mode' => env('SAFE_DEAL_VTB_CAPTURE_MODE', 'two_stage'),
         // Platform commission (% of listing price, remainder goes to seller).
         'platform_fee_percent' => (float) env('SAFE_DEAL_PLATFORM_FEE_PERCENT', 5),
         // Days after delivery before funds auto-release to the seller.

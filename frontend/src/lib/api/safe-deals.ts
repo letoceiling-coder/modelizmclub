@@ -3,10 +3,13 @@ import { api } from "./client";
 /**
  * Safe deal (escrow) client. Mirrors the backend Billing module (spec v4.0 §T5).
  *
- * With `escrow_provider: "vtb"` the buyer's card is held by the bank: the deal
- * is created in `created` with a `checkout_url` to redirect to, and only turns
- * `paid` once VTB authorises the hold. With `"wallet"` the internal ledger
- * holds the money and the deal is `paid` right away. Amounts are in kopecks.
+ * With `escrow_provider: "vtb"` the buyer pays by card: the deal is created in
+ * `created` with a `checkout_url` to redirect to, and only turns `paid` once
+ * the bank confirms. `escrow_holds_on_card` says whether the money waits on the
+ * card (two-stage hold) or was charged to the platform account (one-stage) —
+ * the flow is identical, only the wording the buyer sees differs. With
+ * `"wallet"` the internal ledger holds the money and the deal is `paid` right
+ * away. Amounts are in kopecks.
  */
 
 export type SafeDealStatus =
@@ -70,6 +73,8 @@ export interface SafeDeal {
   can_review?: boolean;
   my_review?: { rating: number; text: string | null } | null;
   escrow_provider?: "vtb" | "wallet";
+  /** False when the card was charged outright instead of held. */
+  escrow_holds_on_card?: boolean;
   /** Bank payment form — present only while the deal is awaiting payment. */
   checkout_url?: string | null;
 }
@@ -83,6 +88,7 @@ export interface SafeDealQuote {
   hold_kopecks: number;
   seller_payout_kopecks: number;
   currency: string;
+  escrow_holds_on_card?: boolean;
   offers_cdek: boolean;
   parcel: {
     dimensions_cm: { length: number; width: number; height: number };
