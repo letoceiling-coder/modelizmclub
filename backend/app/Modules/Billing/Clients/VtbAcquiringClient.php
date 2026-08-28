@@ -7,15 +7,78 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * VTB internet acquiring REST client (register.do / getOrderStatusExtended.do).
+ * VTB internet acquiring REST client (ИЭ / RBS).
+ *
+ * One-stage: register.do → buyer pays → orderStatus 2 (deposited).
+ * Two-stage hold: registerPreAuth.do → orderStatus 1 → deposit.do / reverse.do.
+ *
+ * @see https://sandbox.vtb.ru/sandbox/ru/integration/api/rest.html
+ * @see https://sandbox.vtb.ru/sandbox/ru/integration/api/scripts.html#mp3-autocompletion
  */
 class VtbAcquiringClient
 {
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
     public function registerOrder(array $params): array
     {
         return $this->post('register.do', $params);
     }
 
+    /**
+     * Two-stage hold (pre-auth). Same body as register.do.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public function registerPreAuth(array $params): array
+    {
+        return $this->post('registerPreAuth.do', $params);
+    }
+
+    /**
+     * Capture a held pre-auth. Amount is minor units (kopecks); omit for full remainder.
+     *
+     * @return array<string, mixed>
+     */
+    public function deposit(string $orderId, ?int $amountKopecks = null): array
+    {
+        $params = ['orderId' => $orderId];
+
+        if ($amountKopecks !== null) {
+            $params['amount'] = $amountKopecks;
+        }
+
+        return $this->post('deposit.do', $params);
+    }
+
+    /**
+     * Cancel an uncaptured pre-auth.
+     *
+     * @return array<string, mixed>
+     */
+    public function reverse(string $orderId): array
+    {
+        return $this->post('reverse.do', ['orderId' => $orderId]);
+    }
+
+    /**
+     * Refund a captured payment. Amount is minor units (kopecks).
+     *
+     * @return array<string, mixed>
+     */
+    public function refund(string $orderId, int $amountKopecks): array
+    {
+        return $this->post('refund.do', [
+            'orderId' => $orderId,
+            'amount' => $amountKopecks,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function getOrderStatusExtended(string $orderId): array
     {
         return $this->post('getOrderStatusExtended.do', [
@@ -84,7 +147,7 @@ class VtbAcquiringClient
         return $data;
     }
 
-    public static function isPaidStatus(array $statusResponse): bool
+    public static function orderStatus(array $statusResponse): ?int
     {
         $orderStatus = $statusResponse['orderStatus'] ?? null;
 
@@ -92,6 +155,21 @@ class VtbAcquiringClient
             $orderStatus = $orderStatus['orderStatus'] ?? null;
         }
 
-        return in_array((int) $orderStatus, [1, 2], true);
+        return $orderStatus === null || $orderStatus === '' ? null : (int) $orderStatus;
+    }
+
+    public static function isPaidStatus(array $statusResponse): bool
+    {
+        return in_array(self::orderStatus($statusResponse), [1, 2], true);
+    }
+
+    public static function isAuthorizedStatus(array $statusResponse): bool
+    {
+        return self::orderStatus($statusResponse) === 1;
+    }
+
+    public static function isCapturedStatus(array $statusResponse): bool
+    {
+        return self::orderStatus($statusResponse) === 2;
     }
 }

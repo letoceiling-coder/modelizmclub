@@ -23,7 +23,10 @@ use Modules\Auth\Socialite\VkIdProvider;
 use Modules\Auth\Socialite\YandexProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use Illuminate\Support\Str;
+use Modules\Billing\Clients\VtbA2cPayoutClient;
 use Modules\Billing\Clients\VtbAcquiringClient;
+use Modules\Billing\Clients\VtbPayoutOAuthClient;
+use Modules\Billing\Clients\VtbSbpPayoutClient;
 use Modules\Billing\Clients\YooKassaClient;
 use Modules\Billing\Contracts\PaymentGateway;
 use Modules\Billing\Services\PaymentFulfillmentService;
@@ -52,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PaymentRecorder::class);
         $this->app->singleton(PaymentFulfillmentService::class);
         $this->app->singleton(VtbAcquiringClient::class);
+        $this->app->singleton(VtbPayoutOAuthClient::class);
+        $this->app->singleton(VtbSbpPayoutClient::class);
+        $this->app->singleton(VtbA2cPayoutClient::class);
         // YooKassaClient is retained only for the (legacy) payout card-binding
         // subsystem; the payment/escrow flow no longer uses YooKassa (spec v4.0).
         $this->app->singleton(YooKassaClient::class);
