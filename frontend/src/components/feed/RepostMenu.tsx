@@ -16,7 +16,13 @@ interface Props {
   disabled?: boolean;
 }
 
-type View = "main" | "chats";
+type View = "main" | "chats" | "share";
+
+const SHARE_TARGETS = [
+  { id: "telegram", label: "Telegram", href: (u: string) => `https://t.me/share/url?url=${encodeURIComponent(u)}` },
+  { id: "whatsapp", label: "WhatsApp", href: (u: string) => `https://wa.me/?text=${encodeURIComponent(u)}` },
+  { id: "vk", label: "VK", href: (u: string) => `https://vk.com/share.php?url=${encodeURIComponent(u)}` },
+] as const;
 
 export function RepostMenu({ postId, reposted, count, onRepost, disabled = false }: Props) {
   const { t } = useTranslation();
@@ -37,7 +43,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (view === "chats") setView("main");
+        if (view !== "main") setView("main");
         else setOpen(false);
       }
     };
@@ -70,23 +76,15 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
     }
   };
 
+  // The toast lives in the caller: a guest's repost is intercepted by the
+  // auth guard, so announcing success here would lie.
   const repostToFeed = () => {
     onRepost();
-    toast.success(reposted ? t("components.repostMenu.repostUndone") : t("components.repostMenu.repostAdded"));
     close();
   };
 
-  const shareExternal = async () => {
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await navigator.share({ title: t("components.repostMenu.postTitle"), url: url() });
-        close();
-        return;
-      } catch {
-        // fall through to copy
-      }
-    }
-    await copyLink();
+  const shareTo = (href: string) => {
+    if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
     close();
   };
 
@@ -141,15 +139,35 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
               <>
                 <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("components.repostMenu.undoRepost") : t("components.repostMenu.repostToFeed")} accent />
                 <Item onClick={() => setView("chats")} icon={MessageSquare} label={t("components.repostMenu.sendToMessages")} />
+                <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                <Item onClick={() => setView("share")} icon={Share2} label={t("components.repostMenu.share")} />
+              </>
+            )}
+            {view === "share" && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setView("main")}
+                  className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
+                  style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
+                >
+                  <ArrowLeft className="h-[14px] w-[14px]" /> {t("components.repostMenu.share")}
+                </button>
+                {SHARE_TARGETS.map((target) => (
+                  <Item
+                    key={target.id}
+                    onClick={() => shareTo(target.href(url()))}
+                    icon={Share2}
+                    label={target.label}
+                  />
+                ))}
                 <Item
                   onClick={copyLink}
                   icon={copied ? Check : Link2}
                   label={copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")}
                   accent={copied}
                 />
-                <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item onClick={shareExternal} icon={Share2} label={t("components.repostMenu.externalNetworks")} />
-              </>
+              </div>
             )}
             {view === "chats" && (
               <div>

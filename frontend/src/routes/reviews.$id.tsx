@@ -107,6 +107,7 @@ function WatchPageInner() {
   const [dislikeCount, setDislikeCount] = useState(0);
   const [watchLater, setWatchLater] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [showAllComments, setShowAllComments] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const currentUser = useStore(selectors.currentUser);
   const { requireAccount, requirePremium } = useGuestAccess();
@@ -535,7 +536,15 @@ function WatchPageInner() {
           <h2 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
             {t("pages.reviews.commentsCount", { count: commentsCount })}
           </h2>
-          <CommentSection comments={comments} onAdd={addComment} previewLimit={0} showAll />
+          <CommentSection
+            comments={comments}
+            onAdd={addComment}
+            previewLimit={3}
+            showAll={showAllComments}
+            onShowAll={() => setShowAllComments(true)}
+            onHide={() => setShowAllComments(false)}
+            totalCount={commentsCount}
+          />
         </section>
 
         {/* recommended reviews */}

@@ -150,10 +150,15 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     }
     setBusy(true);
     try {
-      const deal = await createSafeDeal(ad.id, {
-        acceptTerms,
-        destination,
-      });
+      const deal = await createSafeDeal(ad.id, { acceptTerms, destination });
+
+      // VTB deals finish on the bank's card form; wallet deals are already held.
+      if (deal.checkout_url) {
+        onOpenChange(false);
+        window.location.href = deal.checkout_url;
+        return;
+      }
+
       toast.success("Сделка создана, средства заморожены на балансе.");
       onOpenChange(false);
       void navigate({ to: "/deals/$uuid", params: { uuid: deal.uuid }, search: { role: "buyer" } });
@@ -337,7 +342,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               Открыть правила в новой вкладке
             </a>
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Средства холдируются на балансе. При нехватке откроется платёжный шлюз ВТБ для пополнения.
+              Банк удержит сумму на вашей карте и спишет её только после того, как вы подтвердите
+              получение. Если сделка не состоится — удержание снимается, деньги вернутся на карту.
             </p>
           </div>
         )}

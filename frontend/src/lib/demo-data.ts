@@ -502,6 +502,9 @@ export interface DemoPublicProfile {
     followers: number;
     following: number;
     rating: number;
+    reviews: number;
+    deals: number;
+    trusted: boolean;
   };
   memberSince?: string;
   isFollowing: boolean;
@@ -525,6 +528,9 @@ export function demoPublicProfile(slug: string): DemoPublicProfile {
       followers: 340,
       following: 128,
       rating: 4.9,
+      reviews: 24,
+      deals: 31,
+      trusted: true,
     },
     memberSince: u.joinedDate,
     isFollowing: false,

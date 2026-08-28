@@ -5,6 +5,7 @@ namespace Modules\User\Http\Resources;
 use App\Models\UserProfile;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\User\Services\UserRatingService;
 
 /** @mixin UserProfile */
 class PublicProfileResource extends JsonResource
@@ -46,6 +47,12 @@ class PublicProfileResource extends JsonResource
                 'followers_count' => $this->followers_count,
                 'following_count' => $this->following_count,
                 'rating_score' => (float) $this->rating_score,
+                'reviews_count' => (int) ($this->reviews_count ?? 0),
+                'deals_count' => (int) ($this->deals_count ?? 0),
+                'is_trusted_seller' => UserRatingService::isTrusted(
+                    (float) $this->rating_score,
+                    (int) ($this->reviews_count ?? 0),
+                ),
             ],
             'member_since' => $this->user?->created_at?->toIso8601String(),
             'is_following' => $this->when(

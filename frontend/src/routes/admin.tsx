@@ -22,6 +22,7 @@ import type { Tariff, PromoCode, Video } from "@/lib/mock";
 import { Search, Filter, Calendar, Tag } from "lucide-react";
 import {
   fetchDashboard, fetchModeratorDashboardStats, fetchAuditLogs, fetchAuditLogPage, fetchAdminUsers, updateAdminUser, deleteAdminUser,
+  setAdminUserSubscription,
   approveModeration,
   fetchAdminPlans, fetchAdminPlansDetailed, updateAdminPlan,
   fetchAdminPromocodes, createPromocode, deletePromocode,
@@ -956,6 +957,70 @@ function Dashboard({ role }: { role: AdminRole }) {
 }
 
 /* ============ USERS ============ */
+const SUBSCRIPTION_LABEL: Record<AdminUserRow["subscription"]["status"], { label: string; color: string }> = {
+  active: { label: "Активна", color: "var(--success)" },
+  expired: { label: "Истекла", color: "var(--warning)" },
+  cancelled: { label: "Неактивна", color: "var(--foreground-50)" },
+  none: { label: "Нет", color: "var(--foreground-50)" },
+};
+
+function SubscriptionCell({
+  user,
+  busy,
+  onChange,
+}: {
+  user: AdminUserRow;
+  busy: boolean;
+  onChange: (action: "activate" | "extend" | "deactivate", days?: number) => void;
+}) {
+  const [days, setDays] = useState(365);
+  const meta = SUBSCRIPTION_LABEL[user.subscription.status];
+  const endsAt = user.subscription.endsAt
+    ? new Date(user.subscription.endsAt).toLocaleDateString("ru-RU")
+    : null;
+
+  const actionStyle: React.CSSProperties = {
+    fontSize: "11px",
+    height: "24px",
+    padding: "0 8px",
+    borderRadius: "var(--r-card-sm)",
+    border: "1px solid var(--border)",
+    background: "var(--background-surface)",
+    color: "var(--foreground-70)",
+    opacity: busy ? 0.5 : 1,
+  };
+
+  return (
+    <div className="flex flex-col" style={{ gap: "6px" }}>
+      <span style={{ color: meta.color, fontWeight: 600 }}>{meta.label}</span>
+      {endsAt && <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>до {endsAt}</span>}
+      <div className="flex flex-wrap items-center" style={{ gap: "4px" }}>
+        <input
+          type="number"
+          min={1}
+          max={3650}
+          value={days}
+          onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 1))}
+          className="outline-none"
+          style={{ ...actionStyle, width: "60px", padding: "0 6px" }}
+          aria-label="Дней"
+        />
+        <button type="button" disabled={busy} onClick={() => onChange("activate", days)} style={actionStyle}>
+          Активировать
+        </button>
+        <button type="button" disabled={busy} onClick={() => onChange("extend", days)} style={actionStyle}>
+          Продлить
+        </button>
+        {user.subscription.isActive && (
+          <button type="button" disabled={busy} onClick={() => onChange("deactivate")} style={actionStyle}>
+            Снять
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UsersSection() {
   const { t } = useTranslation();
   const me = useStore(selectors.currentUser);
@@ -969,6 +1034,7 @@ function UsersSection() {
   const [role, setRole] = useState<"all" | AdminUserRow["role"]>("all");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [savingRole, setSavingRole] = useState<string | null>(null);
+  const [savingSubscription, setSavingSubscription] = useState<string | null>(null);
   const [deletingUuid, setDeletingUuid] = useState<string | null>(null);
 
   useEffect(() => {
@@ -993,6 +1059,23 @@ function UsersSection() {
       toast.error(t("pages.adminUsers.roleChangeFailed"));
     } finally {
       setSavingRole(null);
+    }
+  };
+
+  const changeSubscription = async (
+    uuid: string,
+    action: "activate" | "extend" | "deactivate",
+    days?: number,
+  ) => {
+    setSavingSubscription(uuid);
+    try {
+      const subscription = await setAdminUserSubscription(uuid, action, days);
+      setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, subscription } : u)));
+      toast.success(action === "deactivate" ? "Подписка снята" : "Подписка обновлена");
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, "Не удалось изменить подписку"));
+    } finally {
+      setSavingSubscription(null);
     }
   };
 
@@ -1103,7 +1186,13 @@ function UsersSection() {
                   </td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.email}</td>
                   <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.city || "—"}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{u.role === "subscriber" ? t("pages.adminUsers.subscriptionActive") : "—"}</td>
+                  <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>
+                    <SubscriptionCell
+                      user={u}
+                      busy={savingSubscription === u.uuid}
+                      onChange={(action, days) => changeSubscription(u.uuid, action, days)}
+                    />
+                  </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex flex-col" style={{ gap: "6px" }}>
                       {roleBadge(u.role)}

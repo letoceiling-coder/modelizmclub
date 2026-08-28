@@ -36,6 +36,7 @@ class Listing extends Model
         'views_count',
         'favorites_count',
         'published_at',
+        'reserved_at',
         'paid_until',
         'placement_payment_id',
         'placement_amount_cents',
@@ -52,6 +53,7 @@ class Listing extends Model
             'weight_kg' => 'float',
             'contact_via_messenger' => 'boolean',
             'published_at' => 'datetime',
+            'reserved_at' => 'datetime',
             'paid_until' => 'datetime',
             'placement_was_free' => 'boolean',
         ];

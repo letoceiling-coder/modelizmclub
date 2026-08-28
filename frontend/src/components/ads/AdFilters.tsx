@@ -3,12 +3,9 @@ import { X, RotateCcw } from "lucide-react";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { CitySelect } from "@/components/ads/CitySelect";
 
-const STATUSES = ["Продаю", "Обменяю"] as const;
-
 export interface FiltersState {
   category: string;            // "Все" | category name
   subcategory: string;         // "Все" | subcat name
-  status: string;              // "Все" | "Продаю" | "Обменяю"
   city: string;                // free text
   cityId?: number;
   deliveries: string[];
@@ -19,7 +16,6 @@ export interface FiltersState {
 export const DEFAULT_FILTERS: FiltersState = {
   category: "Все",
   subcategory: "Все",
-  status: "Все",
   city: "",
   cityId: undefined,
   deliveries: [],
@@ -55,29 +51,6 @@ function Body({ value, onChange, onReset }: Props) {
           options={cat ? ["Все", ...cat.subcategories.map((s) => s.name)] : ["Все"]}
           disabled={!cat}
         />
-      </Group>
-
-      <Group title="Статус">
-        <div className="grid grid-cols-2 gap-[8px]">
-          {(["Все", ...STATUSES] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => set("status", s)}
-              className="w-full text-center text-[12px] font-medium transition-colors"
-              style={{
-                background: value.status === s ? "var(--accent-soft)" : "var(--background-elevated)",
-                color: value.status === s ? "var(--accent)" : "var(--foreground-70)",
-                border: `1px solid ${value.status === s ? "var(--border-accent)" : "var(--border)"}`,
-                borderRadius: "var(--r-tag)",
-                height: 34,
-                padding: "0 8px",
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
       </Group>
 
       <Group title="Цена, ₽">

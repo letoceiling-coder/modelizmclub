@@ -17,7 +17,14 @@ class UserReview extends Model
         'safe_deal_id',
         'rating',
         'text',
+        'reply',
+        'replied_at',
     ];
+
+    protected function casts(): array
+    {
+        return ['replied_at' => 'datetime'];
+    }
 
     public function author(): BelongsTo
     {

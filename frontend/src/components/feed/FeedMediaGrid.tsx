@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { ImageOff, X, ChevronLeft, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
+import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
 
 const MAX_HEIGHT_DESKTOP = 480;
 const MAX_HEIGHT_MOBILE = 420;
 const GRID_GAP = 2;
 
-const aspectCache = new Map<string, number>();
-
 function useImageAspect(url: string): number | null {
-  const [aspect, setAspect] = useState<number | null>(() => aspectCache.get(url) ?? null);
+  const [aspect, setAspect] = useState<number | null>(() => getMediaAspect(url) ?? null);
 
   useEffect(() => {
-    const cached = aspectCache.get(url);
+    const cached = getMediaAspect(url);
     if (cached != null) {
       setAspect(cached);
       return;
@@ -22,7 +21,7 @@ function useImageAspect(url: string): number | null {
     img.onload = () => {
       if (!active || !img.naturalWidth || !img.naturalHeight) return;
       const ratio = img.naturalWidth / img.naturalHeight;
-      aspectCache.set(url, ratio);
+      rememberMediaAspect(url, ratio);
       setAspect(ratio);
     };
     img.src = url;

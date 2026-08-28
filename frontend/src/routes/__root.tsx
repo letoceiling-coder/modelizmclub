@@ -25,6 +25,7 @@ import { restoreSession } from "@/lib/auth/session";
 import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
 import { applyPublicBootstrap, ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
+import { markBooted } from "@/lib/boot/bootState";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 
 // Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
@@ -180,6 +181,7 @@ function RootComponent() {
   }
 
   useEffect(() => {
+    markBooted();
     bindCallAudioUnlock();
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void restoreSession();

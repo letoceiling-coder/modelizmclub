@@ -5,17 +5,26 @@ namespace Modules\User\Http\Resources;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\User\Services\UserRatingService;
 
 /** @mixin User */
 class UserCompactResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $rating = (float) ($this->profile?->rating_score ?? 0);
+        $reviews = (int) ($this->profile?->reviews_count ?? 0);
+
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
             'display_name' => $this->profile?->display_name,
             'slug' => $this->profile?->slug,
+            'rating' => $rating,
+            'reviews_count' => $reviews,
+            'deals_count' => (int) ($this->profile?->deals_count ?? 0),
+            'is_trusted_seller' => UserRatingService::isTrusted($rating, $reviews),
+            'member_since' => $this->created_at?->toIso8601String(),
             'avatar' => $this->when(
                 $this->relationLoaded('profile') && $this->profile?->relationLoaded('avatar'),
                 fn () => $this->profile?->avatar ? [

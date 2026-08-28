@@ -12,11 +12,11 @@ import {
   Store,
 } from "lucide-react";
 import type { Ad } from "@/lib/mock";
+import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 
 const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
   "Продаю":  { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
   "Куплю":   { bg: "var(--info-soft)",    fg: "var(--info)",    border: "var(--info)"    },
-  "Обменяю": { bg: "var(--warning-soft)", fg: "var(--warning)", border: "var(--warning)" },
 };
 
 function relativeTime(input?: string): string {
@@ -106,6 +106,8 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               <ImageOff size={32} style={{ color: "var(--foreground-30)" }} />
             </div>
           )}
+
+          {ad.reserved && <ReservedOverlay compact />}
 
           {/* Status badge */}
           <span

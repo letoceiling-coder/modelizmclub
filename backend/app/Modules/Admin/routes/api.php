@@ -43,6 +43,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserSubscriptionController;
 use Modules\Admin\Http\Controllers\Api\V1\ApproveModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexModerationQueueController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexReportsController;
@@ -80,6 +81,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('diagnostics', AdminDiagnosticsController::class);
 
         Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
+        Route::post('users/{uuid}/subscription', AdminUserSubscriptionController::class)->where('uuid', '[0-9a-f-]{36}');
         Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid']);
 
         Route::prefix('categories')->group(function (): void {
@@ -154,6 +156,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('withdrawals', [AdminWithdrawalController::class, 'index']);
         Route::patch('withdrawals/{uuid}', [AdminWithdrawalController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
         Route::get('safe-deals', [AdminSafeDealController::class, 'index']);
+        Route::get('safe-deals/export', [AdminSafeDealController::class, 'export']);
         Route::post('safe-deals/{uuid}/release', [AdminSafeDealController::class, 'release'])->where('uuid', '[0-9a-f-]{36}');
         Route::post('safe-deals/{uuid}/refund', [AdminSafeDealController::class, 'refund'])->where('uuid', '[0-9a-f-]{36}');
         Route::get('disputes', [AdminDisputeController::class, 'index']);

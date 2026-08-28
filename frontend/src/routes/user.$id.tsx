@@ -145,6 +145,9 @@ function UserPage() {
         ads: profile.stats.listings,
         friends: profile.stats.friends,
         communities: profile.stats.communities,
+        rating: profile.stats.rating,
+        reviews: profile.stats.reviews,
+        trusted: profile.stats.trusted,
       }}
       postsOverride={userPosts}
       adsOverride={userAds}

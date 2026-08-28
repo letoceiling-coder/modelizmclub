@@ -8,7 +8,7 @@ interface Props {
   price: string;
   /** All uploaded photos. First is the main/cover; the rest render as thumbnails. */
   images: string[];
-  status: "Продаю" | "Куплю" | "Обменяю";
+  status: "Продаю" | "Куплю";
   category?: string;
   subcategory?: string;
 }
@@ -16,7 +16,6 @@ interface Props {
 const STATUS_VARIANT: Record<Props["status"], NonNullable<BadgeProps["variant"]>> = {
   "Продаю": "info",
   "Куплю": "info",
-  "Обменяю": "secondary",
 };
 
 /** One image tile with an independent broken-photo fallback, so a single

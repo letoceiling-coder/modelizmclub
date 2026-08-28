@@ -6,7 +6,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
-import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
@@ -55,8 +54,6 @@ export const Route = createFileRoute("/ads/")({
     ]);
     return { ads };
   },
-  pendingComponent: AppBootPreload,
-  pendingMs: 0,
   staleTime: 30_000,
   component: CatalogPage,
 });
@@ -67,7 +64,6 @@ function countActiveFilters(f: FiltersState): number {
   let n = 0;
   if (f.category !== "Все") n++;
   if (f.city) n++;
-  if (f.status !== "Все") n++;
   if (f.priceMin > 0) n++;
   if (f.priceMax < 100000) n++;
   return n;
@@ -89,7 +85,6 @@ function buildParams(
     priceMin: filters.priceMin > 0 ? filters.priceMin : undefined,
     priceMax: filters.priceMax < 100000 ? filters.priceMax : undefined,
     deliveries: filters.deliveries.length ? filters.deliveries : undefined,
-    listingStatus: filters.status !== "Все" ? filters.status : undefined,
     sort,
   };
 }
@@ -292,12 +287,6 @@ function CatalogPage() {
                     <FilterTag
                       label={filters.city}
                       onRemove={() => setFilters((p) => ({ ...p, city: "", cityId: undefined }))}
-                    />
-                  )}
-                  {filters.status !== "Все" && (
-                    <FilterTag
-                      label={filters.status}
-                      onRemove={() => setFilters((p) => ({ ...p, status: "Все" }))}
                     />
                   )}
                   {(activeFilterCount > 1 || (activeFilterCount === 1 && q)) && (

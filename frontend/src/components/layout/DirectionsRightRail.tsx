@@ -99,20 +99,24 @@ function filterNodes(nodes: RailNode[], q: string): RailNode[] {
   });
 }
 
-function hrefFor(variant: RailVariant, id: string, ancestors: string[]): string {
+function hrefFor(variant: RailVariant, id: string): string {
   if (variant === "ads") return `/ads?taxonomy_id=${id}`;
   if (variant === "communities") return `/communities?taxonomy_id=${id}`;
   if (variant === "channels") return `/channels?taxonomy_id=${id}`;
-  if (ancestors.length === 0) return `/categories/${id}`;
-  if (ancestors.length === 1) return `/categories/${ancestors[0]}/${id}`;
   return `/feed?taxonomy_id=${id}`;
+}
+
+/** Category chat: level-1 opens the room list, deeper levels open the room. */
+function chatHrefFor(id: string, ancestors: string[]): string {
+  if (ancestors.length === 0) return `/categories/${id}`;
+  return `/categories/${ancestors[0]}/${id}`;
 }
 
 function allHref(variant: RailVariant): string {
   if (variant === "ads") return "/ads";
   if (variant === "communities") return "/communities";
   if (variant === "channels") return "/channels";
-  return "/categories";
+  return "/feed";
 }
 
 export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Props) {
@@ -201,43 +205,71 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
       {nodes.map((node) => {
         const open = Boolean(openIds[node.id]);
         const hasChildren = node.children.length > 0;
-        const href = hrefFor(variant, node.id, ancestors);
-        const active = activeTaxonomyId === Number(node.id) || location.pathname.includes(`/categories/${node.id}`);
+        const href = hrefFor(variant, node.id);
+        const active = activeTaxonomyId === Number(node.id);
         const pad = depth === 0 ? "py-[8px] pl-[10px]" : "px-[8px] py-[5px]";
+        const toggle = () => setOpenIds((p) => ({ ...p, [node.id]: !p[node.id] }));
+        const label = (
+          <>
+            {depth === 0 && (
+              <IconBox size="sm" variant="surface">
+                <CategoryIcon categoryId={node.id} name={categories.find((c) => c.id === node.id)?.icon} iconImageUrl={categories.find((c) => c.id === node.id)?.iconImageUrl} fill />
+              </IconBox>
+            )}
+            <span className="min-w-0 flex-1 text-left">
+              <span
+                className={`block truncate ${depth === 0 ? "text-[13.5px] font-medium" : "text-[12.5px]"}`}
+                style={{ color: depth === 0 ? "var(--foreground)" : "var(--foreground-70)" }}
+              >
+                {node.name}
+              </span>
+              {depth === 0 && !catalog && (
+                <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                  <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
+                  {t("components.rightCategories.onlineCount", { count: onlineForCategory(roomStats, node.id) })}
+                </span>
+              )}
+            </span>
+          </>
+        );
+        const rowClass = `group flex flex-1 items-center gap-[10px] ${pad} transition-colors hover:bg-[var(--background-surface)] ${hasChildren ? "rounded-l-[10px] pr-[4px]" : "rounded-[10px] pr-[10px]"}`;
+        const rowStyle = active ? { background: "var(--accent-soft)" } : undefined;
+
         return (
           <li key={node.id}>
             <div className="flex items-stretch">
-              <RailLink
-                to={href}
-                guestGuard={guestGuard}
-                actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
-                className={`group flex flex-1 items-center gap-[10px] ${pad} transition-colors hover:bg-[var(--background-surface)] ${hasChildren ? "rounded-l-[10px] pr-[4px]" : "rounded-[10px] pr-[10px]"}`}
-                style={active ? { background: "var(--accent-soft)" } : undefined}
-              >
-                {depth === 0 && (
-                  <IconBox size="sm" variant="surface">
-                    <CategoryIcon categoryId={node.id} name={categories.find((c) => c.id === node.id)?.icon} iconImageUrl={categories.find((c) => c.id === node.id)?.iconImageUrl} fill />
-                  </IconBox>
-                )}
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block truncate ${depth === 0 ? "text-[13.5px] font-medium" : "text-[12.5px]"}`}
-                    style={{ color: depth === 0 ? "var(--foreground)" : "var(--foreground-70)" }}
-                  >
-                    {node.name}
-                  </span>
-                  {depth === 0 && !catalog && (
-                    <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                      <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                      {t("components.rightCategories.onlineCount", { count: onlineForCategory(roomStats, node.id) })}
-                    </span>
-                  )}
-                </span>
-              </RailLink>
+              {hasChildren ? (
+                // A branch expands on click; the filter lives on its leaves and
+                // on the chat icon next to it.
+                <button type="button" onClick={toggle} aria-expanded={open} className={rowClass} style={rowStyle}>
+                  {label}
+                </button>
+              ) : (
+                <RailLink
+                  to={href}
+                  guestGuard={guestGuard}
+                  actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
+                  className={rowClass}
+                  style={rowStyle}
+                >
+                  {label}
+                </RailLink>
+              )}
+              {!catalog && (
+                <RailLink
+                  to={chatHrefFor(node.id, ancestors)}
+                  guestGuard={guestGuard}
+                  actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
+                  className="grid w-[26px] shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  <MessageCircle className="h-[13px] w-[13px]" />
+                </RailLink>
+              )}
               {hasChildren && (
                 <button
                   type="button"
-                  onClick={() => setOpenIds((p) => ({ ...p, [node.id]: !p[node.id] }))}
+                  onClick={toggle}
                   aria-label={
                     open
                       ? t("components.rightCategories.collapseSubcategories")
@@ -253,7 +285,20 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                 </button>
               )}
             </div>
-            {open && hasChildren && renderNodes(node.children, [...ancestors, node.id], depth + 1)}
+            {open && hasChildren && (
+              <>
+                <RailLink
+                  to={href}
+                  guestGuard={guestGuard}
+                  actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
+                  className="mb-[2px] ml-[36px] mt-[2px] block border-l pl-[10px] text-[12px]"
+                  style={{ borderColor: "var(--border)", color: active ? "var(--accent)" : "var(--foreground-50)" }}
+                >
+                  {t("components.rightCategories.allInCategory")}
+                </RailLink>
+                {renderNodes(node.children, [...ancestors, node.id], depth + 1)}
+              </>
+            )}
           </li>
         );
       })}

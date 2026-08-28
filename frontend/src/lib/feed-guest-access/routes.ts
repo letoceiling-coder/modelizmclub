@@ -47,6 +47,16 @@ export function isPublicGuestRoute(pathname: string): boolean {
   return false;
 }
 
+/**
+ * Sections that greet a guest with an in-page "войдите в аккаунт" stub and the
+ * shared auth dialog, instead of bouncing them to /login.
+ */
+export function isGuestStubRoute(pathname: string): boolean {
+  if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return true;
+  if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return true;
+  return false;
+}
+
 /** Logged-in users must confirm SMS before using these routes. */
 export function isVerifiedRequiredRoute(pathname: string): boolean {
   if (pathname === ROUTES.friends || pathname.startsWith("/friends/")) return true;

@@ -32,6 +32,7 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
 import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -75,12 +76,42 @@ export const Route = createFileRoute("/messenger")({
     chat: typeof search.chat === "string" ? search.chat : undefined,
     share: search.share === true || search.share === "1" || search.share === 1,
   }),
-  component: MessengerPage,
+  component: MessengerRoute,
 });
+
+function MessengerRoute() {
+  const guestBlocked = useGuestRouteBlocked("route.messenger");
+  if (guestBlocked) {
+    return (
+      <AppLayout>
+        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
+          <GuestSectionStub
+            icon={MessageSquare}
+            title="Чтобы общаться, войдите в аккаунт"
+            description="Личные и категорийные чаты доступны зарегистрированным пользователям."
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+  return <MessengerPage />;
+}
+
+type ChatScope = "all" | "direct" | "rooms" | "deals";
+
+/** Chats split into the three sections of the left panel. */
+function dialogScope(d: Dialog): Exclude<ChatScope, "all"> {
+  if (d.type === "room") return "rooms";
+  if (d.listing) return "deals";
+  return "direct";
+}
 
 function dialogIdentity(d: Dialog): { name: string; avatar?: string; communitySlug?: string } {
   if (d.type === "community") {
     return { name: d.title || "Сообщество", avatar: d.avatar, communitySlug: d.communitySlug };
+  }
+  if (d.type === "room") {
+    return { name: d.title || "Чат направления" };
   }
   const u = userById(d.userId);
   return { name: u.name, avatar: u.avatar };
@@ -506,6 +537,7 @@ function MessengerPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
+  const [chatScope, setChatScope] = useState<ChatScope>("all");
   const [chatSearchOpen, setChatSearchOpen] = useState(false);
   const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null);
   const [searchHighlightQuery, setSearchHighlightQuery] = useState("");
@@ -721,7 +753,9 @@ function MessengerPage() {
   }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
-  const partner = active && active.type !== "community" ? userById(active.userId) : null;
+  const partner = active && active.type !== "community" && active.type !== "room"
+    ? userById(active.userId)
+    : null;
   const activeIdentity = active ? dialogIdentity(active) : null;
 
   // Upgrade sent → delivered when partner is online (realtime, before next API poll).
@@ -782,6 +816,7 @@ function MessengerPage() {
     const q = query.trim().toLowerCase();
     const base = dlgs.filter((d) => {
       if (d.type === "community") return false;
+      if (chatScope !== "all" && dialogScope(d) !== chatScope) return false;
       const m = getMeta(d.id);
       if (m.deletedLocally) return false;
       return showArchived ? m.archived : !m.archived;
@@ -798,7 +833,7 @@ function MessengerPage() {
       const pb = b.pinned ? 1 : 0;
       return pb - pa;
     });
-  }, [dlgs, query, dialogMetaMap, showArchived]);
+  }, [dlgs, query, dialogMetaMap, showArchived, chatScope]);
 
   const communityDialogs = useMemo(
     () => dlgs.filter((d) => d.type === "community" && !getMeta(d.id).deletedLocally),
@@ -1187,6 +1222,33 @@ function MessengerPage() {
                 );
               })}
             </div>
+            {listTab === "chats" && (
+              <div className="flex gap-[6px] overflow-x-auto px-[12px] py-[8px]">
+                {([
+                  { key: "all" as const, label: t("pages.messenger.scopeAll") },
+                  { key: "direct" as const, label: t("pages.messenger.scopeDirect") },
+                  { key: "rooms" as const, label: t("pages.messenger.scopeCategory") },
+                  { key: "deals" as const, label: t("pages.messenger.scopeDeal") },
+                ]).map((scope) => {
+                  const on = chatScope === scope.key;
+                  return (
+                    <button
+                      key={scope.key}
+                      type="button"
+                      onClick={() => setChatScope(scope.key)}
+                      className="shrink-0 rounded-full px-[10px] py-[4px] text-[11.5px] font-medium transition-colors"
+                      style={{
+                        background: on ? "var(--accent-soft)" : "transparent",
+                        color: on ? "var(--accent)" : "var(--foreground-50)",
+                        border: `1px solid ${on ? "var(--border-accent)" : "var(--border)"}`,
+                      }}
+                    >
+                      {scope.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
 
@@ -1213,7 +1275,9 @@ function MessengerPage() {
             ) : (
               <ul>
                 {filtered.map((d) => {
-                  const u = userById(d.userId);
+                  const u = d.type === "room"
+                    ? { ...userById(d.userId), name: dialogIdentity(d).name, avatar: undefined }
+                    : userById(d.userId);
                   const isActive = d.id === activeId;
                   const isUnread = !!d.unread && !getMeta(d.id).muted;
                   return (
@@ -1328,17 +1392,27 @@ function MessengerPage() {
                   <ArrowLeft size={20} />
                 </Button>
                 <Link
-                  to={active.type === "community" && activeIdentity?.communitySlug ? "/communities/$id" : "/user/$id"}
-                  params={active.type === "community" && activeIdentity?.communitySlug
-                    ? { id: activeIdentity.communitySlug }
-                    : { id: partner?.slug ?? partner?.id ?? active.userId }}
+                  to={
+                    active.type === "community" && activeIdentity?.communitySlug
+                      ? "/communities/$id"
+                      : active.type === "room" && active.room?.rootId
+                        ? "/categories/$id/$subId"
+                        : "/user/$id"
+                  }
+                  params={
+                    active.type === "community" && activeIdentity?.communitySlug
+                      ? { id: activeIdentity.communitySlug }
+                      : active.type === "room" && active.room?.rootId
+                        ? { id: active.room.rootId, subId: active.room.categoryId }
+                        : { id: partner?.slug ?? partner?.id ?? active.userId }
+                  }
                   className="flex min-w-0 items-center gap-[12px]"
                 >
                   <ChatAvatar src={activeIdentity?.avatar ?? partner?.avatar} name={activeIdentity?.name ?? partner?.name ?? ""} size={40} />
                     <div className="min-w-0 flex-1">
                     <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={activeIdentity?.name}>{activeIdentity?.name ?? partner?.name}</div>
                     <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
-                      {active.type === "community" ? (
+                      {active.type === "community" || active.type === "room" ? (
                         <span style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.tabChat")}</span>
                       ) : partner ? (() => {
                         void presenceTick;

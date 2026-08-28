@@ -57,7 +57,27 @@ class UserResource extends JsonResource
                 ];
             }),
             'interests' => PostCategoryResource::collection($this->whenLoaded('interests')),
+            'subscription' => $this->when($this->relationLoaded('subscriptions'), fn () => $this->subscriptionSummary()),
             'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    /** Latest subscription row, flattened for the admin user list. */
+    private function subscriptionSummary(): ?array
+    {
+        $sub = $this->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
+        if (! $sub) {
+            return null;
+        }
+
+        $active = $sub->status === 'active' && ($sub->ends_at === null || $sub->ends_at->isFuture());
+        $expired = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
+
+        return [
+            'status' => $expired ? 'expired' : ($active ? 'active' : $sub->status),
+            'is_active' => $active,
+            'ends_at' => $sub->ends_at?->toIso8601String(),
+            'auto_renew' => (bool) $sub->auto_renew,
         ];
     }
 }

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
   adminRefundSafeDeal,
   adminReleaseSafeDeal,
+  downloadAdminSafeDealsExport,
   fetchAdminDisputes,
   fetchAdminSafeDeals,
   fetchAdminWallets,
@@ -169,20 +170,47 @@ function WithdrawalsBlock({ cardStyle }: { cardStyle: CardStyle }) {
   );
 }
 
+const DEAL_STATUSES: { value: string; label: string }[] = [
+  { value: "", label: "Все" },
+  { value: "paid", label: "Активные" },
+  { value: "shipped", label: "Отправлены" },
+  { value: "delivered", label: "Доставлены" },
+  { value: "completed", label: "Завершены" },
+  { value: "disputed", label: "Споры" },
+  { value: "refunded", label: "Возвращены" },
+  { value: "cancelled", label: "Отменены" },
+];
+
 function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
   const [rows, setRows] = useState<AdminSafeDealRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const filters = { status: status || undefined, search: search.trim() || undefined };
 
   const reload = useCallback(() => {
     setLoading(true);
-    fetchAdminSafeDeals({ page: 1 })
+    fetchAdminSafeDeals({ status: status || undefined, search: search.trim() || undefined, page: 1 })
       .then((r) => setRows(r.data))
       .catch(() => toast.error("Не удалось загрузить сделки"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [status, search]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      await downloadAdminSafeDealsExport(filters);
+    } catch {
+      toast.error("Не удалось выгрузить реестр сделок");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const act = async (uuid: string, kind: "release" | "refund") => {
     setBusy(uuid);
@@ -200,7 +228,30 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
 
   return (
     <div style={{ ...cardStyle, padding: 20 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>Безопасные сделки</h4>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>Безопасные сделки</h4>
+        <button type="button" disabled={exporting} style={ghostBtn} onClick={() => void exportCsv()}>
+          <Download size={13} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
+          {exporting ? "Готовим CSV…" : "Выгрузить CSV"}
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="outline-none"
+          style={{ height: 36, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--background)", fontSize: 13, color: "var(--foreground)" }}
+        >
+          {DEAL_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="UUID, трек-номер, email"
+          className="outline-none"
+          style={{ height: 36, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--background)", width: "min(320px, 100%)", fontSize: 13, color: "var(--foreground)" }}
+        />
+      </div>
       {loading ? <Loader2 size={16} className="mt-3 animate-spin" /> : (
         <table style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}>
           <thead>

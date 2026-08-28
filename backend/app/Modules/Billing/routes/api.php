@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Billing\Http\Controllers\Api\V1\CancelSubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreateSafeDealController;
@@ -11,6 +12,8 @@ use Modules\Billing\Http\Controllers\Api\V1\IndexSafeDealsController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealActionsController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealDeliveryWebhookController;
+use Modules\Billing\Http\Controllers\Api\V1\SafeDealPayoutWebhookController;
+use Modules\Billing\Http\Controllers\Api\V1\SafeDealVtbWebhookController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\ShowSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\SyncPaymentController;
@@ -23,10 +26,13 @@ use Modules\Billing\Http\Controllers\Api\V1\WalletWithdrawController;
 Route::get('plans', IndexPlansController::class);
 
 Route::match(['get', 'post'], 'payments/webhooks/vtb', VtbWebhookController::class);
+Route::match(['get', 'post'], 'safe-deals/webhooks/vtb', SafeDealVtbWebhookController::class);
+Route::post('safe-deals/webhooks/vtb-payout', SafeDealPayoutWebhookController::class);
 Route::post('safe-deals/webhooks/delivery', SafeDealDeliveryWebhookController::class);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/subscription', MySubscriptionController::class);
+    Route::post('users/me/subscription/cancel', CancelSubscriptionController::class);
     Route::post('payments', CreatePaymentController::class);
     Route::get('payments/{uuid}', ShowPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('payments/{uuid}/sync', SyncPaymentController::class)->where('uuid', '[0-9a-f-]{36}');

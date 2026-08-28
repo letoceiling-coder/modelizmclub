@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { motion } from "framer-motion";
+import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 
 /** Square fallback tile — used for a broken/empty single image. */
 function GalleryFallback() {
@@ -23,7 +24,7 @@ function GalleryFallback() {
   );
 }
 
-export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
+export function AdGallery({ images, alt, reserved }: { images: string[]; alt: string; reserved?: boolean }) {
   // Drop empty/whitespace URLs up front so we never emit <img src="">.
   const valid = useMemo(() => images.filter((s) => typeof s === "string" && s.trim().length > 0), [images]);
 
@@ -124,6 +125,8 @@ export function AdGallery({ images, alt }: { images: string[]; alt: string }) {
             </div>
           </>
         )}
+
+        {reserved && <ReservedOverlay />}
       </div>
 
       {valid.length > 1 && (

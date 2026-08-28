@@ -4,6 +4,7 @@ namespace Modules\Chat\Http\Resources;
 
 use App\Enums\ConversationType;
 use App\Models\Conversation;
+use App\Models\PostCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\User\Http\Resources\UserCompactResource;
@@ -70,6 +71,13 @@ class ConversationResource extends JsonResource
                     $myParticipant?->last_read_message_id,
                 ))
                 : 0,
+            'room' => $this->when(
+                $this->type === ConversationType::Room && $this->post_category_id !== null,
+                fn () => [
+                    'category_id' => (int) $this->post_category_id,
+                    'root_id' => $this->roomRootCategoryId(),
+                ],
+            ),
             'community' => $this->when(
                 $this->type === ConversationType::Community && $this->relationLoaded('community'),
                 fn () => $this->community ? [
@@ -79,5 +87,16 @@ class ConversationResource extends JsonResource
                 ] : null,
             ),
         ];
+    }
+
+    /** Top-level ancestor of the room's category — the /categories/{root}/{sub} URL needs it. */
+    private function roomRootCategoryId(): ?int
+    {
+        $current = PostCategory::query()->whereKey($this->post_category_id)->first();
+        for ($depth = 0; $current && $current->parent_id !== null && $depth < 5; $depth++) {
+            $current = PostCategory::query()->whereKey($current->parent_id)->first();
+        }
+
+        return $current?->id;
     }
 }

@@ -14,6 +14,11 @@ interface ApiListingAuthor {
   display_name?: string | null;
   slug?: string | null;
   avatar?: { url?: string | null } | null;
+  rating?: number;
+  reviews_count?: number;
+  deals_count?: number;
+  is_trusted_seller?: boolean;
+  member_since?: string | null;
 }
 
 interface ApiListing {
@@ -39,6 +44,7 @@ interface ApiListing {
   pickup_address?: string | null;
   offers_cdek?: boolean;
   is_promoted?: boolean;
+  is_reserved?: boolean;
   promoted_until?: string | null;
   published_at?: string | null;
   deleted_at?: string | null;
@@ -59,6 +65,13 @@ function registerAuthor(a?: ApiListingAuthor | null): User | null {
   } as ApiUser);
   registerUser(user);
   return user;
+}
+
+function memberSince(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
 }
 
 export function mapListingStatus(status?: string): AdStatusKey {
@@ -89,7 +102,17 @@ export function mapListing(l: ApiListing): Ad {
     .map((m) => m.url)
     .filter((u): u is string => Boolean(u));
   const seller: AdSeller | undefined = author
-    ? { id: author.id, numericId: l.author?.id ?? undefined, name: author.name, avatar: author.avatar, rating: 0, deals: 0, since: "" }
+    ? {
+        id: author.id,
+        numericId: l.author?.id ?? undefined,
+        name: author.name,
+        avatar: author.avatar,
+        rating: l.author?.rating ?? 0,
+        reviews: l.author?.reviews_count ?? 0,
+        deals: l.author?.deals_count ?? 0,
+        trusted: Boolean(l.author?.is_trusted_seller),
+        since: memberSince(l.author?.member_since),
+      }
     : undefined;
   return {
     id: l.uuid,
@@ -120,6 +143,7 @@ export function mapListing(l: ApiListing): Ad {
     dimensionsCm: l.dimensions_cm ?? null,
     pickupAddress: l.pickup_address ?? null,
     offersCdek: Boolean(l.offers_cdek),
+    reserved: Boolean(l.is_reserved),
     moderation:
       l.status === "published"
         ? "published"

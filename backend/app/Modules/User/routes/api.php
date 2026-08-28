@@ -33,6 +33,8 @@ Route::prefix('users')->group(function (): void {
         Route::get('me/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('me/presence', PresenceHeartbeatController::class);
 
+        Route::post('me/reviews/{uuid}/reply', [UserReviewsController::class, 'reply']);
+
         Route::get('me/blocks', [BlockController::class, 'index']);
         Route::get('me/friends', [FriendController::class, 'indexFriends']);
         Route::get('me/friend-requests', [FriendController::class, 'indexIncomingRequests']);

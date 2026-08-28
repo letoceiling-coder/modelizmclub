@@ -25,7 +25,6 @@ import { BoostSheet } from "@/components/ads/BoostSheet";
 const DEAL_VARIANT: Record<Ad["status"], NonNullable<BadgeProps["variant"]>> = {
   "Продаю": "info",
   "Куплю": "info",
-  "Обменяю": "secondary",
 };
 
 interface AdOwnerActionPanelProps {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send, MoreHorizontal } from "lucide-react";
@@ -26,8 +26,14 @@ interface Props {
   previewLimit?: number;
   showAll?: boolean;
   onShowAll?: () => void;
+  /** Collapses back to the preview. Omit to keep the expanded list open. */
+  onHide?: () => void;
   totalCount?: number;
 }
+
+/** Expanded lists grow in chunks so a thread with hundreds of replies
+ *  doesn't mount at once and shift the feed. */
+const PAGE_SIZE = 20;
 
 function CommentSkeleton() {
   return (
@@ -253,12 +259,18 @@ export function CommentSection({
   previewLimit = 3,
   showAll = false,
   onShowAll,
+  onHide,
   totalCount,
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
   const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (!showAll) setPage(1);
+  }, [showAll]);
 
   const handleReply = (parentId: string, text: string) => onAdd(text, parentId);
 
@@ -279,11 +291,13 @@ export function CommentSection({
   };
 
   const visibleComments = useMemo(() => {
-    if (showAll || previewLimit <= 0 || comments.length <= previewLimit) return comments;
+    if (showAll) return comments.slice(-page * PAGE_SIZE);
+    if (previewLimit <= 0 || comments.length <= previewLimit) return comments;
     return comments.slice(-previewLimit);
-  }, [comments, previewLimit, showAll]);
+  }, [comments, previewLimit, showAll, page]);
 
   const hiddenCount = Math.max(0, (totalCount ?? comments.length) - visibleComments.length);
+  const canLoadMore = showAll && comments.length > visibleComments.length;
 
   return (
     <div
@@ -332,13 +346,25 @@ export function CommentSection({
       {loading && comments.length === 0 ? (
         <CommentSkeleton />
       ) : (
-        visibleComments.length > 0 && (
-          <div className={cn(!readOnly ? "mt-[12px]" : "", "space-y-[12px]")}>
-            {visibleComments.map((c) => (
-              <CommentItem key={c.id} comment={c} onReply={handleReply} readOnly={readOnly} />
-            ))}
-          </div>
-        )
+        <>
+          {canLoadMore && (
+            <button
+              type="button"
+              onClick={() => setPage((p) => p + 1)}
+              className="mt-[10px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+              style={{ color: "var(--accent)" }}
+            >
+              {t("components.commentSection.loadMore")}
+            </button>
+          )}
+          {visibleComments.length > 0 && (
+            <div className={cn(!readOnly ? "mt-[12px]" : "", "space-y-[12px]")}>
+              {visibleComments.map((c) => (
+                <CommentItem key={c.id} comment={c} onReply={handleReply} readOnly={readOnly} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {!showAll && hiddenCount > 0 && onShowAll && (
@@ -349,6 +375,17 @@ export function CommentSection({
           style={{ color: "var(--accent)" }}
         >
           {t("components.commentSection.viewAll", { count: totalCount ?? comments.length })}
+        </button>
+      )}
+
+      {showAll && onHide && comments.length > previewLimit && (
+        <button
+          type="button"
+          onClick={onHide}
+          className="mt-[10px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+          style={{ color: "var(--accent)" }}
+        >
+          {t("components.commentSection.hide")}
         </button>
       )}
     </div>

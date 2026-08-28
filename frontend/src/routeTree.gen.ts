@@ -9,254 +9,84 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AdsRouteImport } from './routes/ads'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as CategoriesRouteImport } from './routes/categories'
-import { Route as CommunitiesRouteImport } from './routes/communities'
-import { Route as DealsRouteImport } from './routes/deals'
-import { Route as DiagRouteImport } from './routes/diag'
-import { Route as FavoritesRouteImport } from './routes/favorites'
-import { Route as FeedRouteImport } from './routes/feed'
-import { Route as FriendsRouteImport } from './routes/friends'
-import { Route as HelpRouteImport } from './routes/help'
-import { Route as HowItWorksRouteImport } from './routes/how-it-works'
-import { Route as LandingRouteImport } from './routes/landing'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as MessengerRouteImport } from './routes/messenger'
-import { Route as MyAdsRouteImport } from './routes/my-ads'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as PaymentRouteImport } from './routes/payment'
-import { Route as PayStubUuidRouteImport } from './routes/pay.stub.$uuid'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as RecoverRouteImport } from './routes/recover'
-import { Route as RefundRouteImport } from './routes/refund'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ReviewsRouteImport } from './routes/reviews'
-import { Route as RulesRouteImport } from './routes/rules'
-import { Route as SafeDealRouteImport } from './routes/safe-deal'
-import { Route as SafeDealsRouteImport } from './routes/safe-deals'
 import { Route as WalletRouteImport } from './routes/wallet'
-import { Route as BalanceRouteImport } from './routes/balance'
-import { Route as ReferralRouteImport } from './routes/referral'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SubscriptionRouteImport } from './routes/subscription'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as AdminDesignSystemRouteImport } from './routes/admin.design-system'
-import { Route as AdsIndexRouteImport } from './routes/ads.index'
-import { Route as AdsIdRouteImport } from './routes/ads.$id'
-import { Route as AdsNewRouteImport } from './routes/ads.new'
-import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
-import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
-import { Route as ChannelIdRouteImport } from './routes/channel.$id'
-import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
-import { Route as ChannelsNewRouteImport } from './routes/channels.new'
-import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
-import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
-import { Route as CommunitiesNewRouteImport } from './routes/communities.new'
-import { Route as DealsUuidRouteImport } from './routes/deals.$uuid'
-import { Route as InfoSlugRouteImport } from './routes/info.$slug'
-import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
-import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
-import { Route as ReviewsIdRouteImport } from './routes/reviews.$id'
-import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
-import { Route as RulesIndexRouteImport } from './routes/rules.index'
-import { Route as RulesSlugRouteImport } from './routes/rules.$slug'
+import { Route as SubscriptionRouteImport } from './routes/subscription'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SafeDealsRouteImport } from './routes/safe-deals'
+import { Route as SafeDealRouteImport } from './routes/safe-deal'
+import { Route as RulesRouteImport } from './routes/rules'
+import { Route as ReviewsRouteImport } from './routes/reviews'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as RefundRouteImport } from './routes/refund'
+import { Route as ReferralRouteImport } from './routes/referral'
+import { Route as RecoverRouteImport } from './routes/recover'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PaymentRouteImport } from './routes/payment'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MyAdsRouteImport } from './routes/my-ads'
+import { Route as MessengerRouteImport } from './routes/messenger'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LandingRouteImport } from './routes/landing'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as FriendsRouteImport } from './routes/friends'
+import { Route as FeedRouteImport } from './routes/feed'
+import { Route as FavoritesRouteImport } from './routes/favorites'
+import { Route as DiagRouteImport } from './routes/diag'
+import { Route as DealsRouteImport } from './routes/deals'
+import { Route as CommunitiesRouteImport } from './routes/communities'
+import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as BalanceRouteImport } from './routes/balance'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdsRouteImport } from './routes/ads'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
-import { Route as SettingsAccountRouteImport } from './routes/settings.account'
-import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
-import { Route as SettingsConsentsRouteImport } from './routes/settings.consents'
-import { Route as SettingsDashboardRouteImport } from './routes/settings.dashboard'
-import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
-import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
-import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.payment-methods'
-import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
-import { Route as SettingsRequisitesRouteImport } from './routes/settings.requisites'
-import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
-import { Route as SettingsSpacesRouteImport } from './routes/settings.spaces'
-import { Route as SettingsWalletRouteImport } from './routes/settings.wallet'
+import { Route as RulesIndexRouteImport } from './routes/rules.index'
+import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
+import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
+import { Route as ChannelsIndexRouteImport } from './routes/channels.index'
+import { Route as CategoriesIndexRouteImport } from './routes/categories.index'
+import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
-import { Route as AdminListingsUuidRouteImport } from './routes/admin.listings.$uuid'
+import { Route as SettingsWalletRouteImport } from './routes/settings.wallet'
+import { Route as SettingsSpacesRouteImport } from './routes/settings.spaces'
+import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
+import { Route as SettingsRequisitesRouteImport } from './routes/settings.requisites'
+import { Route as SettingsRatingRouteImport } from './routes/settings.rating'
+import { Route as SettingsPaymentMethodsRouteImport } from './routes/settings.payment-methods'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
+import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
+import { Route as SettingsDashboardRouteImport } from './routes/settings.dashboard'
+import { Route as SettingsConsentsRouteImport } from './routes/settings.consents'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
+import { Route as SettingsAccountRouteImport } from './routes/settings.account'
+import { Route as RulesSlugRouteImport } from './routes/rules.$slug'
+import { Route as ReviewsUploadRouteImport } from './routes/reviews.upload'
+import { Route as ReviewsIdRouteImport } from './routes/reviews.$id'
+import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
+import { Route as InfoSlugRouteImport } from './routes/info.$slug'
+import { Route as DealsUuidRouteImport } from './routes/deals.$uuid'
+import { Route as CommunitiesNewRouteImport } from './routes/communities.new'
+import { Route as CommunitiesIdRouteImport } from './routes/communities.$id'
+import { Route as ChannelsNewRouteImport } from './routes/channels.new'
+import { Route as ChannelIdRouteImport } from './routes/channel.$id'
+import { Route as CategoriesIdRouteImport } from './routes/categories.$id'
+import { Route as AdsNewRouteImport } from './routes/ads.new'
+import { Route as AdsIdRouteImport } from './routes/ads.$id'
+import { Route as AdminDesignSystemRouteImport } from './routes/admin.design-system'
 import { Route as CategoriesIdIndexRouteImport } from './routes/categories.$id.index'
-import { Route as CategoriesIdSubIdRouteImport } from './routes/categories.$id.$subId'
+import { Route as PayStubUuidRouteImport } from './routes/pay.stub.$uuid'
 import { Route as OauthVkCallbackRouteImport } from './routes/oauth.vk.callback'
+import { Route as CategoriesIdSubIdRouteImport } from './routes/categories.$id.$subId'
+import { Route as AdminListingsUuidRouteImport } from './routes/admin.listings.$uuid'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdsRoute = AdsRouteImport.update({
-  id: '/ads',
-  path: '/ads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CategoriesRoute = CategoriesRouteImport.update({
-  id: '/categories',
-  path: '/categories',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunitiesRoute = CommunitiesRouteImport.update({
-  id: '/communities',
-  path: '/communities',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DealsRoute = DealsRouteImport.update({
-  id: '/deals',
-  path: '/deals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiagRoute = DiagRouteImport.update({
-  id: '/diag',
-  path: '/diag',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FavoritesRoute = FavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedRoute = FeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FriendsRoute = FriendsRouteImport.update({
-  id: '/friends',
-  path: '/friends',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelpRoute = HelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HowItWorksRoute = HowItWorksRouteImport.update({
-  id: '/how-it-works',
-  path: '/how-it-works',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LandingRoute = LandingRouteImport.update({
-  id: '/landing',
-  path: '/landing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SafeDealRoute = SafeDealRouteImport.update({
-  id: '/safe-deal',
-  path: '/safe-deal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SafeDealsRoute = SafeDealsRouteImport.update({
-  id: '/safe-deals',
-  path: '/safe-deals',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BalanceRoute = BalanceRouteImport.update({
-  id: '/balance',
-  path: '/balance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReferralRoute = ReferralRouteImport.update({
-  id: '/referral',
-  path: '/referral',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MessengerRoute = MessengerRouteImport.update({
-  id: '/messenger',
-  path: '/messenger',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MyAdsRoute = MyAdsRouteImport.update({
-  id: '/my-ads',
-  path: '/my-ads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentRoute = PaymentRouteImport.update({
-  id: '/payment',
-  path: '/payment',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PayStubUuidRoute = PayStubUuidRouteImport.update({
-  id: '/pay/stub/$uuid',
-  path: '/pay/stub/$uuid',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecoverRoute = RecoverRouteImport.update({
-  id: '/recover',
-  path: '/recover',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundRoute = RefundRouteImport.update({
-  id: '/refund',
-  path: '/refund',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReviewsRoute = ReviewsRouteImport.update({
-  id: '/reviews',
-  path: '/reviews',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RulesRoute = RulesRouteImport.update({
-  id: '/rules',
-  path: '/rules',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SubscriptionRoute = SubscriptionRouteImport.update({
-  id: '/subscription',
-  path: '/subscription',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
@@ -264,159 +94,214 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminDesignSystemRoute = AdminDesignSystemRouteImport.update({
-  id: '/design-system',
-  path: '/design-system',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdsIndexRoute = AdsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdsRoute,
-} as any)
-const AdsIdRoute = AdsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdsRoute,
-} as any)
-const AdsNewRoute = AdsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AdsRoute,
-} as any)
-const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CategoriesRoute,
-} as any)
-const CategoriesIdRoute = CategoriesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CategoriesRoute,
-} as any)
-const ChannelIdRoute = ChannelIdRouteImport.update({
-  id: '/channel/$id',
-  path: '/channel/$id',
+const SubscriptionRoute = SubscriptionRouteImport.update({
+  id: '/subscription',
+  path: '/subscription',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChannelsIndexRoute = ChannelsIndexRouteImport.update({
-  id: '/channels/',
-  path: '/channels/',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChannelsNewRoute = ChannelsNewRouteImport.update({
-  id: '/channels/new',
-  path: '/channels/new',
+const SafeDealsRoute = SafeDealsRouteImport.update({
+  id: '/safe-deals',
+  path: '/safe-deals',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
+const SafeDealRoute = SafeDealRouteImport.update({
+  id: '/safe-deal',
+  path: '/safe-deal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RulesRoute = RulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundRoute = RefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferralRoute = ReferralRouteImport.update({
+  id: '/referral',
+  path: '/referral',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecoverRoute = RecoverRouteImport.update({
+  id: '/recover',
+  path: '/recover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentRoute = PaymentRouteImport.update({
+  id: '/payment',
+  path: '/payment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyAdsRoute = MyAdsRouteImport.update({
+  id: '/my-ads',
+  path: '/my-ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessengerRoute = MessengerRouteImport.update({
+  id: '/messenger',
+  path: '/messenger',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FriendsRoute = FriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagRoute = DiagRouteImport.update({
+  id: '/diag',
+  path: '/diag',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsRoute = DealsRouteImport.update({
+  id: '/deals',
+  path: '/deals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunitiesRoute = CommunitiesRouteImport.update({
+  id: '/communities',
+  path: '/communities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesRoute = CategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BalanceRoute = BalanceRouteImport.update({
+  id: '/balance',
+  path: '/balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdsRoute = AdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CommunitiesRoute,
-} as any)
-const CommunitiesIdRoute = CommunitiesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CommunitiesRoute,
-} as any)
-const CommunitiesNewRoute = CommunitiesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => CommunitiesRoute,
-} as any)
-const DealsUuidRoute = DealsUuidRouteImport.update({
-  id: '/$uuid',
-  path: '/$uuid',
-  getParentRoute: () => DealsRoute,
-} as any)
-const InfoSlugRoute = InfoSlugRouteImport.update({
-  id: '/info/$slug',
-  path: '/info/$slug',
   getParentRoute: () => rootRouteImport,
-} as any)
-const LegalSlugRoute = LegalSlugRouteImport.update({
-  id: '/legal/$slug',
-  path: '/legal/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ReviewsRoute,
-} as any)
-const ReviewsIdRoute = ReviewsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ReviewsRoute,
-} as any)
-const ReviewsUploadRoute = ReviewsUploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => ReviewsRoute,
-} as any)
-const RulesIndexRoute = RulesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => RulesRoute,
-} as any)
-const RulesSlugRoute = RulesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => RulesRoute,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SettingsRoute,
 } as any)
-const SettingsAccountRoute = SettingsAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => SettingsRoute,
+const RulesIndexRoute = RulesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RulesRoute,
 } as any)
-const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
-  id: '/appearance',
-  path: '/appearance',
-  getParentRoute: () => SettingsRoute,
+const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReviewsRoute,
 } as any)
-const SettingsConsentsRoute = SettingsConsentsRouteImport.update({
-  id: '/consents',
-  path: '/consents',
-  getParentRoute: () => SettingsRoute,
+const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CommunitiesRoute,
 } as any)
-const SettingsDashboardRoute = SettingsDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => SettingsRoute,
+const ChannelsIndexRoute = ChannelsIndexRouteImport.update({
+  id: '/channels/',
+  path: '/channels/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => SettingsRoute,
+const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CategoriesRoute,
 } as any)
-const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => SettingsRoute,
+const AdsIndexRoute = AdsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdsRoute,
 } as any)
-const SettingsPaymentMethodsRoute = SettingsPaymentMethodsRouteImport.update({
-  id: '/payment-methods',
-  path: '/payment-methods',
-  getParentRoute: () => SettingsRoute,
+const UserIdRoute = UserIdRouteImport.update({
+  id: '/user/$id',
+  path: '/user/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRatingRoute = SettingsRatingRouteImport.update({
-  id: '/rating',
-  path: '/rating',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsRequisitesRoute = SettingsRequisitesRouteImport.update({
-  id: '/requisites',
-  path: '/requisites',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
+const SettingsWalletRoute = SettingsWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSpacesRoute = SettingsSpacesRouteImport.update({
@@ -424,19 +309,124 @@ const SettingsSpacesRoute = SettingsSpacesRouteImport.update({
   path: '/spaces',
   getParentRoute: () => SettingsRoute,
 } as any)
-const SettingsWalletRoute = SettingsWalletRouteImport.update({
-  id: '/wallet',
-  path: '/wallet',
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
   getParentRoute: () => SettingsRoute,
 } as any)
-const UserIdRoute = UserIdRouteImport.update({
-  id: '/user/$id',
-  path: '/user/$id',
+const SettingsRequisitesRoute = SettingsRequisitesRouteImport.update({
+  id: '/requisites',
+  path: '/requisites',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRatingRoute = SettingsRatingRouteImport.update({
+  id: '/rating',
+  path: '/rating',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsPaymentMethodsRoute = SettingsPaymentMethodsRouteImport.update({
+  id: '/payment-methods',
+  path: '/payment-methods',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsDashboardRoute = SettingsDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsConsentsRoute = SettingsConsentsRouteImport.update({
+  id: '/consents',
+  path: '/consents',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAccountRoute = SettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const RulesSlugRoute = RulesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => RulesRoute,
+} as any)
+const ReviewsUploadRoute = ReviewsUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => ReviewsRoute,
+} as any)
+const ReviewsIdRoute = ReviewsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ReviewsRoute,
+} as any)
+const LegalSlugRoute = LegalSlugRouteImport.update({
+  id: '/legal/$slug',
+  path: '/legal/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminListingsUuidRoute = AdminListingsUuidRouteImport.update({
-  id: '/listings/$uuid',
-  path: '/listings/$uuid',
+const InfoSlugRoute = InfoSlugRouteImport.update({
+  id: '/info/$slug',
+  path: '/info/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealsUuidRoute = DealsUuidRouteImport.update({
+  id: '/$uuid',
+  path: '/$uuid',
+  getParentRoute: () => DealsRoute,
+} as any)
+const CommunitiesNewRoute = CommunitiesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CommunitiesRoute,
+} as any)
+const CommunitiesIdRoute = CommunitiesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CommunitiesRoute,
+} as any)
+const ChannelsNewRoute = ChannelsNewRouteImport.update({
+  id: '/channels/new',
+  path: '/channels/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelIdRoute = ChannelIdRouteImport.update({
+  id: '/channel/$id',
+  path: '/channel/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesIdRoute = CategoriesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CategoriesRoute,
+} as any)
+const AdsNewRoute = AdsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdsRoute,
+} as any)
+const AdsIdRoute = AdsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdsRoute,
+} as any)
+const AdminDesignSystemRoute = AdminDesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
   getParentRoute: () => AdminRoute,
 } as any)
 const CategoriesIdIndexRoute = CategoriesIdIndexRouteImport.update({
@@ -444,15 +434,25 @@ const CategoriesIdIndexRoute = CategoriesIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CategoriesIdRoute,
 } as any)
-const CategoriesIdSubIdRoute = CategoriesIdSubIdRouteImport.update({
-  id: '/$subId',
-  path: '/$subId',
-  getParentRoute: () => CategoriesIdRoute,
+const PayStubUuidRoute = PayStubUuidRouteImport.update({
+  id: '/pay/stub/$uuid',
+  path: '/pay/stub/$uuid',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OauthVkCallbackRoute = OauthVkCallbackRouteImport.update({
   id: '/oauth/vk/callback',
   path: '/oauth/vk/callback',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesIdSubIdRoute = CategoriesIdSubIdRouteImport.update({
+  id: '/$subId',
+  path: '/$subId',
+  getParentRoute: () => CategoriesIdRoute,
+} as any)
+const AdminListingsUuidRoute = AdminListingsUuidRouteImport.update({
+  id: '/listings/$uuid',
+  path: '/listings/$uuid',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -460,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/ads': typeof AdsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/balance': typeof BalanceRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/deals': typeof DealsRouteWithChildren
@@ -470,28 +471,26 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/landing': typeof LandingRoute
-  '/safe-deal': typeof SafeDealRoute
-  '/safe-deals': typeof SafeDealsRoute
-  '/wallet': typeof WalletRoute
-  '/balance': typeof BalanceRoute
-  '/referral': typeof ReferralRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
   '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment': typeof PaymentRoute
-  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
+  '/referral': typeof ReferralRoute
   '/refund': typeof RefundRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRouteWithChildren
   '/rules': typeof RulesRouteWithChildren
+  '/safe-deal': typeof SafeDealRoute
+  '/safe-deals': typeof SafeDealsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/wallet': typeof WalletRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
@@ -522,7 +521,6 @@ export interface FileRoutesByFullPath {
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
-  '/channels/new': typeof ChannelsNewRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/rules/': typeof RulesIndexRoute
@@ -530,12 +528,14 @@ export interface FileRoutesByFullPath {
   '/admin/listings/$uuid': typeof AdminListingsUuidRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/oauth/vk/callback': typeof OauthVkCallbackRoute
+  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/balance': typeof BalanceRoute
   '/deals': typeof DealsRouteWithChildren
   '/diag': typeof DiagRoute
   '/favorites': typeof FavoritesRoute
@@ -544,25 +544,23 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/landing': typeof LandingRoute
-  '/safe-deal': typeof SafeDealRoute
-  '/safe-deals': typeof SafeDealsRoute
-  '/wallet': typeof WalletRoute
-  '/balance': typeof BalanceRoute
-  '/referral': typeof ReferralRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
   '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment': typeof PaymentRoute
-  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
+  '/referral': typeof ReferralRoute
   '/refund': typeof RefundRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/safe-deal': typeof SafeDealRoute
+  '/safe-deals': typeof SafeDealsRoute
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/wallet': typeof WalletRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
@@ -592,7 +590,6 @@ export interface FileRoutesByTo {
   '/ads': typeof AdsIndexRoute
   '/categories': typeof CategoriesIndexRoute
   '/channels': typeof ChannelsIndexRoute
-  '/channels/new': typeof ChannelsNewRoute
   '/communities': typeof CommunitiesIndexRoute
   '/reviews': typeof ReviewsIndexRoute
   '/rules': typeof RulesIndexRoute
@@ -600,6 +597,7 @@ export interface FileRoutesByTo {
   '/admin/listings/$uuid': typeof AdminListingsUuidRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/oauth/vk/callback': typeof OauthVkCallbackRoute
+  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/categories/$id': typeof CategoriesIdIndexRoute
 }
 export interface FileRoutesById {
@@ -608,6 +606,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/ads': typeof AdsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/balance': typeof BalanceRoute
   '/categories': typeof CategoriesRouteWithChildren
   '/communities': typeof CommunitiesRouteWithChildren
   '/deals': typeof DealsRouteWithChildren
@@ -618,28 +617,26 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/landing': typeof LandingRoute
-  '/safe-deal': typeof SafeDealRoute
-  '/safe-deals': typeof SafeDealsRoute
-  '/wallet': typeof WalletRoute
-  '/balance': typeof BalanceRoute
-  '/referral': typeof ReferralRoute
   '/login': typeof LoginRoute
   '/messenger': typeof MessengerRoute
   '/my-ads': typeof MyAdsRoute
   '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment': typeof PaymentRoute
-  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
+  '/referral': typeof ReferralRoute
   '/refund': typeof RefundRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRouteWithChildren
   '/rules': typeof RulesRouteWithChildren
+  '/safe-deal': typeof SafeDealRoute
+  '/safe-deals': typeof SafeDealsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/subscription': typeof SubscriptionRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/wallet': typeof WalletRoute
   '/admin/design-system': typeof AdminDesignSystemRoute
   '/ads/$id': typeof AdsIdRoute
   '/ads/new': typeof AdsNewRoute
@@ -670,7 +667,6 @@ export interface FileRoutesById {
   '/ads/': typeof AdsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/channels/': typeof ChannelsIndexRoute
-  '/channels/new': typeof ChannelsNewRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/rules/': typeof RulesIndexRoute
@@ -678,6 +674,7 @@ export interface FileRoutesById {
   '/admin/listings/$uuid': typeof AdminListingsUuidRoute
   '/categories/$id/$subId': typeof CategoriesIdSubIdRoute
   '/oauth/vk/callback': typeof OauthVkCallbackRoute
+  '/pay/stub/$uuid': typeof PayStubUuidRoute
   '/categories/$id/': typeof CategoriesIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -687,6 +684,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/ads'
     | '/auth'
+    | '/balance'
     | '/categories'
     | '/communities'
     | '/deals'
@@ -697,28 +695,26 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/landing'
-    | '/safe-deal'
-    | '/safe-deals'
-    | '/wallet'
-    | '/balance'
-    | '/referral'
     | '/login'
     | '/messenger'
     | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/payment'
-    | '/pay/stub/$uuid'
     | '/profile'
     | '/recover'
+    | '/referral'
     | '/refund'
     | '/register'
     | '/reset-password'
     | '/reviews'
     | '/rules'
+    | '/safe-deal'
+    | '/safe-deals'
     | '/settings'
     | '/subscription'
     | '/verify-email'
+    | '/wallet'
     | '/admin/design-system'
     | '/ads/$id'
     | '/ads/new'
@@ -756,12 +752,14 @@ export interface FileRouteTypes {
     | '/admin/listings/$uuid'
     | '/categories/$id/$subId'
     | '/oauth/vk/callback'
+    | '/pay/stub/$uuid'
     | '/categories/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/auth'
+    | '/balance'
     | '/deals'
     | '/diag'
     | '/favorites'
@@ -770,25 +768,23 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/landing'
-    | '/safe-deal'
-    | '/safe-deals'
-    | '/wallet'
-    | '/balance'
-    | '/referral'
     | '/login'
     | '/messenger'
     | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/payment'
-    | '/pay/stub/$uuid'
     | '/profile'
     | '/recover'
+    | '/referral'
     | '/refund'
     | '/register'
     | '/reset-password'
+    | '/safe-deal'
+    | '/safe-deals'
     | '/subscription'
     | '/verify-email'
+    | '/wallet'
     | '/admin/design-system'
     | '/ads/$id'
     | '/ads/new'
@@ -825,6 +821,7 @@ export interface FileRouteTypes {
     | '/admin/listings/$uuid'
     | '/categories/$id/$subId'
     | '/oauth/vk/callback'
+    | '/pay/stub/$uuid'
     | '/categories/$id'
   id:
     | '__root__'
@@ -832,6 +829,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/ads'
     | '/auth'
+    | '/balance'
     | '/categories'
     | '/communities'
     | '/deals'
@@ -842,28 +840,26 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/landing'
-    | '/safe-deal'
-    | '/safe-deals'
-    | '/wallet'
-    | '/balance'
-    | '/referral'
     | '/login'
     | '/messenger'
     | '/my-ads'
     | '/notifications'
     | '/onboarding'
     | '/payment'
-    | '/pay/stub/$uuid'
     | '/profile'
     | '/recover'
+    | '/referral'
     | '/refund'
     | '/register'
     | '/reset-password'
     | '/reviews'
     | '/rules'
+    | '/safe-deal'
+    | '/safe-deals'
     | '/settings'
     | '/subscription'
     | '/verify-email'
+    | '/wallet'
     | '/admin/design-system'
     | '/ads/$id'
     | '/ads/new'
@@ -901,6 +897,7 @@ export interface FileRouteTypes {
     | '/admin/listings/$uuid'
     | '/categories/$id/$subId'
     | '/oauth/vk/callback'
+    | '/pay/stub/$uuid'
     | '/categories/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -909,6 +906,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AdsRoute: typeof AdsRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BalanceRoute: typeof BalanceRoute
   CategoriesRoute: typeof CategoriesRouteWithChildren
   CommunitiesRoute: typeof CommunitiesRouteWithChildren
   DealsRoute: typeof DealsRouteWithChildren
@@ -919,282 +917,43 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   LandingRoute: typeof LandingRoute
-  SafeDealRoute: typeof SafeDealRoute
-  SafeDealsRoute: typeof SafeDealsRoute
-  WalletRoute: typeof WalletRoute
-  BalanceRoute: typeof BalanceRoute
-  ReferralRoute: typeof ReferralRoute
   LoginRoute: typeof LoginRoute
   MessengerRoute: typeof MessengerRoute
   MyAdsRoute: typeof MyAdsRoute
   NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   PaymentRoute: typeof PaymentRoute
-  PayStubUuidRoute: typeof PayStubUuidRoute
   ProfileRoute: typeof ProfileRoute
   RecoverRoute: typeof RecoverRoute
+  ReferralRoute: typeof ReferralRoute
   RefundRoute: typeof RefundRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReviewsRoute: typeof ReviewsRouteWithChildren
   RulesRoute: typeof RulesRouteWithChildren
+  SafeDealRoute: typeof SafeDealRoute
+  SafeDealsRoute: typeof SafeDealsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SubscriptionRoute: typeof SubscriptionRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  WalletRoute: typeof WalletRoute
   ChannelIdRoute: typeof ChannelIdRoute
+  ChannelsNewRoute: typeof ChannelsNewRoute
   InfoSlugRoute: typeof InfoSlugRoute
   LegalSlugRoute: typeof LegalSlugRoute
   UserIdRoute: typeof UserIdRoute
   ChannelsIndexRoute: typeof ChannelsIndexRoute
-  ChannelsNewRoute: typeof ChannelsNewRoute
   OauthVkCallbackRoute: typeof OauthVkCallbackRoute
+  PayStubUuidRoute: typeof PayStubUuidRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ads': {
-      id: '/ads'
-      path: '/ads'
-      fullPath: '/ads'
-      preLoaderRoute: typeof AdsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/categories': {
-      id: '/categories'
-      path: '/categories'
-      fullPath: '/categories'
-      preLoaderRoute: typeof CategoriesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/communities': {
-      id: '/communities'
-      path: '/communities'
-      fullPath: '/communities'
-      preLoaderRoute: typeof CommunitiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/deals': {
-      id: '/deals'
-      path: '/deals'
-      fullPath: '/deals'
-      preLoaderRoute: typeof DealsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/diag': {
-      id: '/diag'
-      path: '/diag'
-      fullPath: '/diag'
-      preLoaderRoute: typeof DiagRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/favorites': {
-      id: '/favorites'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof FavoritesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feed': {
-      id: '/feed'
-      path: '/feed'
-      fullPath: '/feed'
-      preLoaderRoute: typeof FeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/friends': {
-      id: '/friends'
-      path: '/friends'
-      fullPath: '/friends'
-      preLoaderRoute: typeof FriendsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/help': {
-      id: '/help'
-      path: '/help'
-      fullPath: '/help'
-      preLoaderRoute: typeof HelpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/how-it-works': {
-      id: '/how-it-works'
-      path: '/how-it-works'
-      fullPath: '/how-it-works'
-      preLoaderRoute: typeof HowItWorksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing': {
-      id: '/landing'
-      path: '/landing'
-      fullPath: '/landing'
-      preLoaderRoute: typeof LandingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/safe-deal': {
-      id: '/safe-deal'
-      path: '/safe-deal'
-      fullPath: '/safe-deal'
-      preLoaderRoute: typeof SafeDealRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/safe-deals': {
-      id: '/safe-deals'
-      path: '/safe-deals'
-      fullPath: '/safe-deals'
-      preLoaderRoute: typeof SafeDealsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/wallet': {
       id: '/wallet'
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/balance': {
-      id: '/balance'
-      path: '/balance'
-      fullPath: '/balance'
-      preLoaderRoute: typeof BalanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/referral': {
-      id: '/referral'
-      path: '/referral'
-      fullPath: '/referral'
-      preLoaderRoute: typeof ReferralRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messenger': {
-      id: '/messenger'
-      path: '/messenger'
-      fullPath: '/messenger'
-      preLoaderRoute: typeof MessengerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/my-ads': {
-      id: '/my-ads'
-      path: '/my-ads'
-      fullPath: '/my-ads'
-      preLoaderRoute: typeof MyAdsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payment': {
-      id: '/payment'
-      path: '/payment'
-      fullPath: '/payment'
-      preLoaderRoute: typeof PaymentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pay/stub/$uuid': {
-      id: '/pay/stub/$uuid'
-      path: '/pay/stub/$uuid'
-      fullPath: '/pay/stub/$uuid'
-      preLoaderRoute: typeof PayStubUuidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recover': {
-      id: '/recover'
-      path: '/recover'
-      fullPath: '/recover'
-      preLoaderRoute: typeof RecoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund': {
-      id: '/refund'
-      path: '/refund'
-      fullPath: '/refund'
-      preLoaderRoute: typeof RefundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reviews': {
-      id: '/reviews'
-      path: '/reviews'
-      fullPath: '/reviews'
-      preLoaderRoute: typeof ReviewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rules': {
-      id: '/rules'
-      path: '/rules'
-      fullPath: '/rules'
-      preLoaderRoute: typeof RulesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/subscription': {
-      id: '/subscription'
-      path: '/subscription'
-      fullPath: '/subscription'
-      preLoaderRoute: typeof SubscriptionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify-email': {
@@ -1204,145 +963,236 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/design-system': {
-      id: '/admin/design-system'
-      path: '/design-system'
-      fullPath: '/admin/design-system'
-      preLoaderRoute: typeof AdminDesignSystemRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/ads/': {
-      id: '/ads/'
-      path: '/'
-      fullPath: '/ads/'
-      preLoaderRoute: typeof AdsIndexRouteImport
-      parentRoute: typeof AdsRoute
-    }
-    '/ads/$id': {
-      id: '/ads/$id'
-      path: '/$id'
-      fullPath: '/ads/$id'
-      preLoaderRoute: typeof AdsIdRouteImport
-      parentRoute: typeof AdsRoute
-    }
-    '/ads/new': {
-      id: '/ads/new'
-      path: '/new'
-      fullPath: '/ads/new'
-      preLoaderRoute: typeof AdsNewRouteImport
-      parentRoute: typeof AdsRoute
-    }
-    '/categories/': {
-      id: '/categories/'
-      path: '/'
-      fullPath: '/categories/'
-      preLoaderRoute: typeof CategoriesIndexRouteImport
-      parentRoute: typeof CategoriesRoute
-    }
-    '/categories/$id': {
-      id: '/categories/$id'
-      path: '/$id'
-      fullPath: '/categories/$id'
-      preLoaderRoute: typeof CategoriesIdRouteImport
-      parentRoute: typeof CategoriesRoute
-    }
-    '/channel/$id': {
-      id: '/channel/$id'
-      path: '/channel/$id'
-      fullPath: '/channel/$id'
-      preLoaderRoute: typeof ChannelIdRouteImport
+    '/subscription': {
+      id: '/subscription'
+      path: '/subscription'
+      fullPath: '/subscription'
+      preLoaderRoute: typeof SubscriptionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/channels/': {
-      id: '/channels/'
-      path: '/channels'
-      fullPath: '/channels/'
-      preLoaderRoute: typeof ChannelsIndexRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/channels/new': {
-      id: '/channels/new'
-      path: '/channels/new'
-      fullPath: '/channels/new'
-      preLoaderRoute: typeof ChannelsNewRouteImport
+    '/safe-deals': {
+      id: '/safe-deals'
+      path: '/safe-deals'
+      fullPath: '/safe-deals'
+      preLoaderRoute: typeof SafeDealsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/communities/': {
-      id: '/communities/'
+    '/safe-deal': {
+      id: '/safe-deal'
+      path: '/safe-deal'
+      fullPath: '/safe-deal'
+      preLoaderRoute: typeof SafeDealRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rules': {
+      id: '/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund': {
+      id: '/refund'
+      path: '/refund'
+      fullPath: '/refund'
+      preLoaderRoute: typeof RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/referral': {
+      id: '/referral'
+      path: '/referral'
+      fullPath: '/referral'
+      preLoaderRoute: typeof ReferralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recover': {
+      id: '/recover'
+      path: '/recover'
+      fullPath: '/recover'
+      preLoaderRoute: typeof RecoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment': {
+      id: '/payment'
+      path: '/payment'
+      fullPath: '/payment'
+      preLoaderRoute: typeof PaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-ads': {
+      id: '/my-ads'
+      path: '/my-ads'
+      fullPath: '/my-ads'
+      preLoaderRoute: typeof MyAdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messenger': {
+      id: '/messenger'
+      path: '/messenger'
+      fullPath: '/messenger'
+      preLoaderRoute: typeof MessengerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/friends': {
+      id: '/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diag': {
+      id: '/diag'
+      path: '/diag'
+      fullPath: '/diag'
+      preLoaderRoute: typeof DiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals': {
+      id: '/deals'
+      path: '/deals'
+      fullPath: '/deals'
+      preLoaderRoute: typeof DealsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communities': {
+      id: '/communities'
+      path: '/communities'
+      fullPath: '/communities'
+      preLoaderRoute: typeof CommunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories': {
+      id: '/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof CategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/balance': {
+      id: '/balance'
+      path: '/balance'
+      fullPath: '/balance'
+      preLoaderRoute: typeof BalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ads': {
+      id: '/ads'
+      path: '/ads'
+      fullPath: '/ads'
+      preLoaderRoute: typeof AdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
       path: '/'
-      fullPath: '/communities/'
-      preLoaderRoute: typeof CommunitiesIndexRouteImport
-      parentRoute: typeof CommunitiesRoute
-    }
-    '/communities/$id': {
-      id: '/communities/$id'
-      path: '/$id'
-      fullPath: '/communities/$id'
-      preLoaderRoute: typeof CommunitiesIdRouteImport
-      parentRoute: typeof CommunitiesRoute
-    }
-    '/communities/new': {
-      id: '/communities/new'
-      path: '/new'
-      fullPath: '/communities/new'
-      preLoaderRoute: typeof CommunitiesNewRouteImport
-      parentRoute: typeof CommunitiesRoute
-    }
-    '/deals/$uuid': {
-      id: '/deals/$uuid'
-      path: '/$uuid'
-      fullPath: '/deals/$uuid'
-      preLoaderRoute: typeof DealsUuidRouteImport
-      parentRoute: typeof DealsRoute
-    }
-    '/info/$slug': {
-      id: '/info/$slug'
-      path: '/info/$slug'
-      fullPath: '/info/$slug'
-      preLoaderRoute: typeof InfoSlugRouteImport
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/legal/$slug': {
-      id: '/legal/$slug'
-      path: '/legal/$slug'
-      fullPath: '/legal/$slug'
-      preLoaderRoute: typeof LegalSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reviews/': {
-      id: '/reviews/'
-      path: '/'
-      fullPath: '/reviews/'
-      preLoaderRoute: typeof ReviewsIndexRouteImport
-      parentRoute: typeof ReviewsRoute
-    }
-    '/reviews/$id': {
-      id: '/reviews/$id'
-      path: '/$id'
-      fullPath: '/reviews/$id'
-      preLoaderRoute: typeof ReviewsIdRouteImport
-      parentRoute: typeof ReviewsRoute
-    }
-    '/reviews/upload': {
-      id: '/reviews/upload'
-      path: '/upload'
-      fullPath: '/reviews/upload'
-      preLoaderRoute: typeof ReviewsUploadRouteImport
-      parentRoute: typeof ReviewsRoute
-    }
-    '/rules/': {
-      id: '/rules/'
-      path: '/'
-      fullPath: '/rules/'
-      preLoaderRoute: typeof RulesIndexRouteImport
-      parentRoute: typeof RulesRoute
-    }
-    '/rules/$slug': {
-      id: '/rules/$slug'
-      path: '/$slug'
-      fullPath: '/rules/$slug'
-      preLoaderRoute: typeof RulesSlugRouteImport
-      parentRoute: typeof RulesRoute
     }
     '/settings/': {
       id: '/settings/'
@@ -1351,74 +1201,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/settings/account': {
-      id: '/settings/account'
-      path: '/account'
-      fullPath: '/settings/account'
-      preLoaderRoute: typeof SettingsAccountRouteImport
-      parentRoute: typeof SettingsRoute
+    '/rules/': {
+      id: '/rules/'
+      path: '/'
+      fullPath: '/rules/'
+      preLoaderRoute: typeof RulesIndexRouteImport
+      parentRoute: typeof RulesRoute
     }
-    '/settings/appearance': {
-      id: '/settings/appearance'
-      path: '/appearance'
-      fullPath: '/settings/appearance'
-      preLoaderRoute: typeof SettingsAppearanceRouteImport
-      parentRoute: typeof SettingsRoute
+    '/reviews/': {
+      id: '/reviews/'
+      path: '/'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof ReviewsIndexRouteImport
+      parentRoute: typeof ReviewsRoute
     }
-    '/settings/consents': {
-      id: '/settings/consents'
-      path: '/consents'
-      fullPath: '/settings/consents'
-      preLoaderRoute: typeof SettingsConsentsRouteImport
-      parentRoute: typeof SettingsRoute
+    '/communities/': {
+      id: '/communities/'
+      path: '/'
+      fullPath: '/communities/'
+      preLoaderRoute: typeof CommunitiesIndexRouteImport
+      parentRoute: typeof CommunitiesRoute
     }
-    '/settings/dashboard': {
-      id: '/settings/dashboard'
-      path: '/dashboard'
-      fullPath: '/settings/dashboard'
-      preLoaderRoute: typeof SettingsDashboardRouteImport
-      parentRoute: typeof SettingsRoute
+    '/channels/': {
+      id: '/channels/'
+      path: '/channels'
+      fullPath: '/channels/'
+      preLoaderRoute: typeof ChannelsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/settings/history': {
-      id: '/settings/history'
-      path: '/history'
-      fullPath: '/settings/history'
-      preLoaderRoute: typeof SettingsHistoryRouteImport
-      parentRoute: typeof SettingsRoute
+    '/categories/': {
+      id: '/categories/'
+      path: '/'
+      fullPath: '/categories/'
+      preLoaderRoute: typeof CategoriesIndexRouteImport
+      parentRoute: typeof CategoriesRoute
     }
-    '/settings/notifications': {
-      id: '/settings/notifications'
-      path: '/notifications'
-      fullPath: '/settings/notifications'
-      preLoaderRoute: typeof SettingsNotificationsRouteImport
-      parentRoute: typeof SettingsRoute
+    '/ads/': {
+      id: '/ads/'
+      path: '/'
+      fullPath: '/ads/'
+      preLoaderRoute: typeof AdsIndexRouteImport
+      parentRoute: typeof AdsRoute
     }
-    '/settings/payment-methods': {
-      id: '/settings/payment-methods'
-      path: '/payment-methods'
-      fullPath: '/settings/payment-methods'
-      preLoaderRoute: typeof SettingsPaymentMethodsRouteImport
-      parentRoute: typeof SettingsRoute
+    '/user/$id': {
+      id: '/user/$id'
+      path: '/user/$id'
+      fullPath: '/user/$id'
+      preLoaderRoute: typeof UserIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/settings/rating': {
-      id: '/settings/rating'
-      path: '/rating'
-      fullPath: '/settings/rating'
-      preLoaderRoute: typeof SettingsRatingRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/requisites': {
-      id: '/settings/requisites'
-      path: '/requisites'
-      fullPath: '/settings/requisites'
-      preLoaderRoute: typeof SettingsRequisitesRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/security': {
-      id: '/settings/security'
-      path: '/security'
-      fullPath: '/settings/security'
-      preLoaderRoute: typeof SettingsSecurityRouteImport
+    '/settings/wallet': {
+      id: '/settings/wallet'
+      path: '/wallet'
+      fullPath: '/settings/wallet'
+      preLoaderRoute: typeof SettingsWalletRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/spaces': {
@@ -1428,25 +1264,172 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSpacesRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/settings/wallet': {
-      id: '/settings/wallet'
-      path: '/wallet'
-      fullPath: '/settings/wallet'
-      preLoaderRoute: typeof SettingsWalletRouteImport
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/user/$id': {
-      id: '/user/$id'
-      path: '/user/$id'
-      fullPath: '/user/$id'
-      preLoaderRoute: typeof UserIdRouteImport
+    '/settings/requisites': {
+      id: '/settings/requisites'
+      path: '/requisites'
+      fullPath: '/settings/requisites'
+      preLoaderRoute: typeof SettingsRequisitesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/rating': {
+      id: '/settings/rating'
+      path: '/rating'
+      fullPath: '/settings/rating'
+      preLoaderRoute: typeof SettingsRatingRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/payment-methods': {
+      id: '/settings/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/settings/payment-methods'
+      preLoaderRoute: typeof SettingsPaymentMethodsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/notifications': {
+      id: '/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/history': {
+      id: '/settings/history'
+      path: '/history'
+      fullPath: '/settings/history'
+      preLoaderRoute: typeof SettingsHistoryRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/dashboard': {
+      id: '/settings/dashboard'
+      path: '/dashboard'
+      fullPath: '/settings/dashboard'
+      preLoaderRoute: typeof SettingsDashboardRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/consents': {
+      id: '/settings/consents'
+      path: '/consents'
+      fullPath: '/settings/consents'
+      preLoaderRoute: typeof SettingsConsentsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/account': {
+      id: '/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof SettingsAccountRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/rules/$slug': {
+      id: '/rules/$slug'
+      path: '/$slug'
+      fullPath: '/rules/$slug'
+      preLoaderRoute: typeof RulesSlugRouteImport
+      parentRoute: typeof RulesRoute
+    }
+    '/reviews/upload': {
+      id: '/reviews/upload'
+      path: '/upload'
+      fullPath: '/reviews/upload'
+      preLoaderRoute: typeof ReviewsUploadRouteImport
+      parentRoute: typeof ReviewsRoute
+    }
+    '/reviews/$id': {
+      id: '/reviews/$id'
+      path: '/$id'
+      fullPath: '/reviews/$id'
+      preLoaderRoute: typeof ReviewsIdRouteImport
+      parentRoute: typeof ReviewsRoute
+    }
+    '/legal/$slug': {
+      id: '/legal/$slug'
+      path: '/legal/$slug'
+      fullPath: '/legal/$slug'
+      preLoaderRoute: typeof LegalSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/listings/$uuid': {
-      id: '/admin/listings/$uuid'
-      path: '/listings/$uuid'
-      fullPath: '/admin/listings/$uuid'
-      preLoaderRoute: typeof AdminListingsUuidRouteImport
+    '/info/$slug': {
+      id: '/info/$slug'
+      path: '/info/$slug'
+      fullPath: '/info/$slug'
+      preLoaderRoute: typeof InfoSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deals/$uuid': {
+      id: '/deals/$uuid'
+      path: '/$uuid'
+      fullPath: '/deals/$uuid'
+      preLoaderRoute: typeof DealsUuidRouteImport
+      parentRoute: typeof DealsRoute
+    }
+    '/communities/new': {
+      id: '/communities/new'
+      path: '/new'
+      fullPath: '/communities/new'
+      preLoaderRoute: typeof CommunitiesNewRouteImport
+      parentRoute: typeof CommunitiesRoute
+    }
+    '/communities/$id': {
+      id: '/communities/$id'
+      path: '/$id'
+      fullPath: '/communities/$id'
+      preLoaderRoute: typeof CommunitiesIdRouteImport
+      parentRoute: typeof CommunitiesRoute
+    }
+    '/channels/new': {
+      id: '/channels/new'
+      path: '/channels/new'
+      fullPath: '/channels/new'
+      preLoaderRoute: typeof ChannelsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel/$id': {
+      id: '/channel/$id'
+      path: '/channel/$id'
+      fullPath: '/channel/$id'
+      preLoaderRoute: typeof ChannelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories/$id': {
+      id: '/categories/$id'
+      path: '/$id'
+      fullPath: '/categories/$id'
+      preLoaderRoute: typeof CategoriesIdRouteImport
+      parentRoute: typeof CategoriesRoute
+    }
+    '/ads/new': {
+      id: '/ads/new'
+      path: '/new'
+      fullPath: '/ads/new'
+      preLoaderRoute: typeof AdsNewRouteImport
+      parentRoute: typeof AdsRoute
+    }
+    '/ads/$id': {
+      id: '/ads/$id'
+      path: '/$id'
+      fullPath: '/ads/$id'
+      preLoaderRoute: typeof AdsIdRouteImport
+      parentRoute: typeof AdsRoute
+    }
+    '/admin/design-system': {
+      id: '/admin/design-system'
+      path: '/design-system'
+      fullPath: '/admin/design-system'
+      preLoaderRoute: typeof AdminDesignSystemRouteImport
       parentRoute: typeof AdminRoute
     }
     '/categories/$id/': {
@@ -1456,12 +1439,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesIdIndexRouteImport
       parentRoute: typeof CategoriesIdRoute
     }
-    '/categories/$id/$subId': {
-      id: '/categories/$id/$subId'
-      path: '/$subId'
-      fullPath: '/categories/$id/$subId'
-      preLoaderRoute: typeof CategoriesIdSubIdRouteImport
-      parentRoute: typeof CategoriesIdRoute
+    '/pay/stub/$uuid': {
+      id: '/pay/stub/$uuid'
+      path: '/pay/stub/$uuid'
+      fullPath: '/pay/stub/$uuid'
+      preLoaderRoute: typeof PayStubUuidRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/oauth/vk/callback': {
       id: '/oauth/vk/callback'
@@ -1469,6 +1452,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/oauth/vk/callback'
       preLoaderRoute: typeof OauthVkCallbackRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/categories/$id/$subId': {
+      id: '/categories/$id/$subId'
+      path: '/$subId'
+      fullPath: '/categories/$id/$subId'
+      preLoaderRoute: typeof CategoriesIdSubIdRouteImport
+      parentRoute: typeof CategoriesIdRoute
+    }
+    '/admin/listings/$uuid': {
+      id: '/admin/listings/$uuid'
+      path: '/listings/$uuid'
+      fullPath: '/admin/listings/$uuid'
+      preLoaderRoute: typeof AdminListingsUuidRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
@@ -1621,6 +1618,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AdsRoute: AdsRouteWithChildren,
   AuthRoute: AuthRoute,
+  BalanceRoute: BalanceRoute,
   CategoriesRoute: CategoriesRouteWithChildren,
   CommunitiesRoute: CommunitiesRouteWithChildren,
   DealsRoute: DealsRouteWithChildren,
@@ -1631,36 +1629,45 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   LandingRoute: LandingRoute,
-  SafeDealRoute: SafeDealRoute,
-  SafeDealsRoute: SafeDealsRoute,
-  WalletRoute: WalletRoute,
-  BalanceRoute: BalanceRoute,
-  ReferralRoute: ReferralRoute,
   LoginRoute: LoginRoute,
   MessengerRoute: MessengerRoute,
   MyAdsRoute: MyAdsRoute,
   NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   PaymentRoute: PaymentRoute,
-  PayStubUuidRoute: PayStubUuidRoute,
   ProfileRoute: ProfileRoute,
   RecoverRoute: RecoverRoute,
+  ReferralRoute: ReferralRoute,
   RefundRoute: RefundRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ReviewsRoute: ReviewsRouteWithChildren,
   RulesRoute: RulesRouteWithChildren,
+  SafeDealRoute: SafeDealRoute,
+  SafeDealsRoute: SafeDealsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SubscriptionRoute: SubscriptionRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  WalletRoute: WalletRoute,
   ChannelIdRoute: ChannelIdRoute,
+  ChannelsNewRoute: ChannelsNewRoute,
   InfoSlugRoute: InfoSlugRoute,
   LegalSlugRoute: LegalSlugRoute,
   UserIdRoute: UserIdRoute,
   ChannelsIndexRoute: ChannelsIndexRoute,
-  ChannelsNewRoute: ChannelsNewRoute,
   OauthVkCallbackRoute: OauthVkCallbackRoute,
+  PayStubUuidRoute: PayStubUuidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

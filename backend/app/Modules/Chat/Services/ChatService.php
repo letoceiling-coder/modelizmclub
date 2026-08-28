@@ -45,7 +45,11 @@ class ChatService
             ->whereIn('conversations.id', $conversationIds)
             ->when($space === 'communities', function ($q): void {
                 $q->where('conversations.type', ConversationType::Community);
-            }, function ($q): void {
+            })
+            ->when($space === 'rooms', function ($q): void {
+                $q->where('conversations.type', ConversationType::Room);
+            })
+            ->when($space === 'chats', function ($q): void {
                 $q->where('conversations.type', '!=', ConversationType::Room)
                     ->where('conversations.type', '!=', ConversationType::Community);
             })
@@ -124,11 +128,11 @@ class ChatService
     {
         $sub = PostCategory::query()
             ->whereKey($subCategoryId)
-            ->where('parent_id', $parentCategoryId)
             ->where('is_active', true)
             ->first();
 
-        if (! $sub) {
+        // Rooms exist on levels 2 and 3, so the URL parent is any ancestor.
+        if (! $sub || ! $this->isDescendantOf($sub, $parentCategoryId)) {
             throw new NotFoundHttpException('Подкатегория не найдена.');
         }
 
@@ -150,6 +154,42 @@ class ChatService
         $this->ensureParticipant($conversation, $user);
 
         return $conversation;
+    }
+
+    private function isDescendantOf(PostCategory $category, int $ancestorId): bool
+    {
+        $current = $category;
+        for ($depth = 0; $depth < 5; $depth++) {
+            if ($current->parent_id === null) {
+                return false;
+            }
+            if ($current->parent_id === $ancestorId) {
+                return true;
+            }
+            $current = PostCategory::query()->whereKey($current->parent_id)->first();
+            if (! $current) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return \Illuminate\Support\Collection<int, int> */
+    private function descendantCategoryIds(int $parentCategoryId): \Illuminate\Support\Collection
+    {
+        $ids = collect();
+        $frontier = collect([$parentCategoryId]);
+
+        for ($depth = 0; $depth < 5 && $frontier->isNotEmpty(); $depth++) {
+            $frontier = PostCategory::query()
+                ->whereIn('parent_id', $frontier)
+                ->where('is_active', true)
+                ->pluck('id');
+            $ids = $ids->merge($frontier);
+        }
+
+        return $ids->unique()->values();
     }
 
     public const PRESENCE_ONLINE_SECONDS = 120;
@@ -197,11 +237,7 @@ class ChatService
             ->whereNotNull('post_category_id');
 
         if ($parentCategoryId !== null) {
-            $subIds = PostCategory::query()
-                ->where('parent_id', $parentCategoryId)
-                ->where('is_active', true)
-                ->pluck('id');
-            $query->whereIn('post_category_id', $subIds);
+            $query->whereIn('post_category_id', $this->descendantCategoryIds($parentCategoryId));
         }
 
         $conversations = $query

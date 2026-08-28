@@ -25,7 +25,6 @@ import { FeedRightRail } from "@/components/feed/FeedRightRail";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FEED_FILTER_ACTIONS, firstAllowedFeedFilter } from "@/lib/feed-guest-access/registry";
-import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 
 import i18n from "@/lib/i18n";
@@ -75,8 +74,6 @@ export const Route = createFileRoute("/feed")({
     ]);
     return { posts: feed.posts, banners, categories };
   },
-  pendingComponent: AppBootPreload,
-  pendingMs: 0,
   staleTime: 30_000,
   component: FeedPage,
 });

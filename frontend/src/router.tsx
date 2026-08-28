@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import { AppBootPreload } from "@/components/boot/AppBootPreload";
+import { RoutePending } from "@/components/boot/RoutePending";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -20,8 +20,11 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    defaultPendingComponent: AppBootPreload,
-    defaultPendingMs: 0,
+    defaultPendingComponent: RoutePending,
+    // Loaders that resolve from cache finish in a few ms — waiting a beat keeps
+    // instant navigations from flashing a skeleton.
+    defaultPendingMs: 120,
+    defaultPendingMinMs: 240,
     defaultStaleTime: 30_000,
     defaultPreloadStaleTime: 30_000,
   });

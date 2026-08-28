@@ -159,6 +159,19 @@ function DealDetailPage() {
             )}
           </div>
 
+          {deal.checkout_url && (
+            <div className="mt-[14px] rounded-[var(--r-card-sm)] p-[12px]" style={{ background: "var(--accent-soft)" }}>
+              <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>Оплата не завершена</div>
+              <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                Сделка ждёт подтверждения оплаты. Банк удержит сумму на карте — списание произойдёт
+                только после того, как вы подтвердите получение.
+              </p>
+              <Button asChild className="mt-[10px]">
+                <a href={deal.checkout_url}>Перейти к оплате</a>
+              </Button>
+            </div>
+          )}
+
           {deal.dispute && (
             <div className="mt-[14px] flex items-start gap-[8px] rounded-[var(--r-card-sm)] p-[12px]" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
               <AlertTriangle size={16} className="mt-[1px] shrink-0" />

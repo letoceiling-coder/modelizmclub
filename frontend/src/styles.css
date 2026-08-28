@@ -364,6 +364,18 @@ html, body {
   }
 }
 
+/* Off-screen feed cards skip layout/paint but still reserve their height, so
+   long lists stay cheap without the scroll-anchoring bugs of a virtualiser. */
+.feed-virtual-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+.catalog-virtual-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
 /* Landing tappable cards — on touch devices iOS applies sticky :hover on the
    first tap (border/transform via JS or Tailwind hover:*), which consumes the
    tap and forces a second tap to navigate. Hover lift/border only on fine pointers. */

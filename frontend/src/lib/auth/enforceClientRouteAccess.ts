@@ -3,7 +3,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
 import { isPhoneVerified, isPhoneVerificationRequired, isStaffUser, requestPhoneVerificationModal } from "@/lib/auth/verification";
-import { isAlwaysPublicRoute, isVerifiedRequiredRoute, pathnameToRouteAction } from "@/lib/feed-guest-access/routes";
+import { isAlwaysPublicRoute, isGuestStubRoute, isVerifiedRequiredRoute, pathnameToRouteAction } from "@/lib/feed-guest-access/routes";
 import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/store";
 import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
@@ -58,6 +58,7 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
 
   if (!getToken()) {
     if (minTier === "guest") return null;
+    if (isGuestStubRoute(pathname)) return null;
     const from = pathname + window.location.search;
     return { to: "/login", search: { redirect: from }, replace: true };
   }

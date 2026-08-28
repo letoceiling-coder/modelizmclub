@@ -12,10 +12,12 @@ class IndexConversationsController extends Controller
 {
     public function __invoke(Request $request, ChatService $chat): JsonResponse
     {
+        $space = $request->string('space')->toString();
+
         $paginator = $chat->listConversations(
             $request->user(),
             $request->integer('per_page', 30),
-            $request->string('space')->toString() === 'communities' ? 'communities' : 'chats',
+            in_array($space, ['communities', 'rooms'], true) ? $space : 'chats',
         );
 
         return ConversationResource::collection($paginator)->response();

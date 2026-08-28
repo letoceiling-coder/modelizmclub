@@ -22,7 +22,7 @@ import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { userById } from "@/lib/mock";
-import type { Category, Message, User, Ad } from "@/lib/mock";
+import type { Category, CategoryChild, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { toast } from "@/lib/toast";
@@ -44,6 +44,7 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { navigateToPartnerChat } from "@/lib/api/chat";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { findDescendant } from "@/lib/taxonomy";
 
 type Tab = "chat" | "ads" | "members";
 
@@ -202,12 +203,21 @@ function buildMessages(c: Category, subName: string, pool: User[]): RoomMessage[
   ];
 }
 
+/** Depth-first list of every room under a category (levels 2 and 3). */
+function flattenRooms(nodes: CategoryChild[], depth = 0): { node: CategoryChild; depth: number }[] {
+  return nodes.flatMap((node) => [
+    { node, depth },
+    ...flattenRooms(node.children ?? [], depth + 1),
+  ]);
+}
+
 function SubcategoryRoomPage() {
   const { t } = useTranslation();
   const { id, subId } = Route.useParams();
   const categories = usePostCategories();
   const c = categories.find((x) => x.id === id);
-  const sub = c?.subcategories.find((s) => s.id === subId);
+  // Rooms exist on levels 2 and 3, so the id can sit anywhere in the subtree.
+  const sub = c ? findDescendant(c.subcategories, subId) : null;
   const onlineSet = useOnlineSet();
   const me = useStore(selectors.currentUser);
 
@@ -379,23 +389,24 @@ function SubcategoryRoomPage() {
               </button>
             </div>
             <ul className="max-h-[calc(80vh-72px)] overflow-y-auto p-[8px]">
-              {c.subcategories.map((s) => {
-                const active = s.id === sub.id;
+              {flattenRooms(c.subcategories).map(({ node, depth }) => {
+                const active = node.id === sub.id;
                 return (
-                  <li key={s.id}>
+                  <li key={node.id}>
                     <Link
                       to="/categories/$id/$subId"
-                      params={{ id: c.id, subId: s.id }}
+                      params={{ id: c.id, subId: node.id }}
                       onClick={() => setSubSheetOpen(false)}
                       className="flex items-center gap-[10px] rounded-[10px] px-[12px] py-[10px] transition-colors hover:bg-[var(--background-surface)]"
                       style={{
                         background: active ? "var(--background-surface)" : "transparent",
                         color: active ? "var(--accent)" : "var(--foreground)",
+                        marginLeft: depth * 16,
                       }}
                     >
                       <span className="grid h-[28px] w-[28px] place-items-center rounded-[8px] text-[12px] font-semibold"
                         style={{ background: "var(--background)", color: active ? "var(--accent)" : "var(--foreground-70)" }}>#</span>
-                      <span className="flex-1 text-[14px] font-medium">{s.name}</span>
+                      <span className="flex-1 text-[14px] font-medium">{node.name}</span>
                       {active && <span className="text-[11px]" style={{ color: "var(--accent)" }}>{t("pages.subcategoryDetail.hereNow")}</span>}
                     </Link>
                   </li>

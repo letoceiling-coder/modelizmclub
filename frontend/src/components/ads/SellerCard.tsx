@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Star, ChevronRight, Calendar } from "lucide-react";
+import { Star, ChevronRight, Calendar, ShieldCheck } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 
@@ -43,11 +43,27 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
   );
 }
 
+function reviewsNoun(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return "отзывов";
+  switch (n % 10) {
+    case 1:
+      return "отзыв";
+    case 2:
+    case 3:
+    case 4:
+      return "отзыва";
+    default:
+      return "отзывов";
+  }
+}
+
 /** Compact — identity + rating only. Contact actions (Написать/Позвонить)
  *  live solely in the sticky AdActionPanel now, so this doesn't duplicate
  *  them; tapping the row just opens the seller's profile. */
 export function SellerCard({ seller }: { seller: AdSeller }) {
   const hasRating = seller.rating > 0;
+  const reviews = seller.reviews ?? 0;
   const hasDeals = seller.deals > 0;
   const hasSince = Boolean(seller.since && seller.since.trim());
   const hasStats = hasRating || hasDeals;
@@ -65,8 +81,19 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
       >
         <SellerAvatar seller={seller} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-            {seller.name}
+          <div className="flex items-center gap-[6px]">
+            <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {seller.name}
+            </span>
+            {seller.trusted && (
+              <span
+                className="inline-flex shrink-0 items-center gap-[3px] px-[6px] py-[1px] text-[11px] font-semibold"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+                title="Рейтинг не ниже 4,5 по 10 и более отзывам"
+              >
+                <ShieldCheck size={11} /> Надёжный продавец
+              </span>
+            )}
           </div>
           <div className="mt-[2px] flex flex-wrap items-center gap-x-[8px] gap-y-[2px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
             {hasStats ? (
@@ -75,6 +102,7 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
                   <span className="inline-flex items-center gap-[3px]">
                     <Star size={11} fill="currentColor" style={{ color: "var(--warning)" }} />
                     <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
+                    {reviews > 0 && <span>· {reviews} {reviewsNoun(reviews)}</span>}
                   </span>
                 )}
                 {hasDeals && <span>{seller.deals} сделок</span>}

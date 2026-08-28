@@ -21,15 +21,19 @@ export function EmojiPicker({ onPick, align = "start", compact = false }: Props)
   const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef(0);
+  /** Height is measured once per opening: resizing it mid-scroll made the
+   *  whole grid reflow and the emoji rows jump under the cursor. */
+  const heightRef = useRef(0);
   const [panelStyle, setPanelStyle] = useState<{
     top: number;
     left: number;
-    maxHeight: number;
+    height: number;
   } | null>(null);
 
   useEffect(() => setMounted(true), []);
 
-  const updatePosition = () => {
+  const updatePosition = (remeasureHeight = false) => {
     const trigger = triggerRef.current;
     if (!trigger) return;
 
@@ -44,25 +48,43 @@ export function EmojiPicker({ onPick, align = "start", compact = false }: Props)
     const spaceAbove = rect.top - VIEWPORT_PAD - PANEL_GAP;
     const spaceBelow = vh - rect.bottom - VIEWPORT_PAD - PANEL_GAP;
     const preferAbove = spaceAbove >= 160 || spaceAbove >= spaceBelow;
-    const maxHeight = Math.min(240, Math.max(120, preferAbove ? spaceAbove : spaceBelow));
+    if (remeasureHeight || heightRef.current === 0) {
+      heightRef.current = Math.min(240, Math.max(120, preferAbove ? spaceAbove : spaceBelow));
+    }
+    const height = heightRef.current;
     const top = preferAbove
-      ? Math.max(VIEWPORT_PAD, rect.top - PANEL_GAP - maxHeight)
+      ? Math.max(VIEWPORT_PAD, rect.top - PANEL_GAP - height)
       : rect.bottom + PANEL_GAP;
 
-    setPanelStyle({ top, left, maxHeight });
+    setPanelStyle({ top, left, height });
   };
 
   useLayoutEffect(() => {
     if (!open) {
+      heightRef.current = 0;
       setPanelStyle(null);
       return;
     }
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
+    updatePosition(true);
+
+    const schedule = (event: Event) => {
+      // Scrolling the emoji grid itself must not move the panel.
+      if (event.target instanceof Node && panelRef.current?.contains(event.target)) return;
+      if (frameRef.current) return;
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = 0;
+        updatePosition();
+      });
+    };
+    const onResize = () => updatePosition(true);
+
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", schedule, true);
     return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
+      if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = 0;
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", schedule, true);
     };
   }, [open, align]);
 
@@ -101,16 +123,16 @@ export function EmojiPicker({ onPick, align = "start", compact = false }: Props)
         key="emoji-panel"
         role="dialog"
         aria-label="Выбор смайла"
-        initial={{ opacity: 0, y: 6, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 6, scale: 0.96 }}
-        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.12, ease: "easeOut" }}
         className="fixed z-[10000] overflow-hidden rounded-[12px] border"
         style={{
           top: panelStyle.top,
           left: panelStyle.left,
           width: Math.min(PANEL_WIDTH, window.innerWidth - VIEWPORT_PAD * 2),
-          maxHeight: panelStyle.maxHeight,
+          height: panelStyle.height,
           background: "var(--background-elevated)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-float)",
@@ -118,7 +140,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false }: Props)
       >
         <div
           className="h-full overflow-y-auto overscroll-contain px-[10px] py-[10px]"
-          style={{ scrollbarWidth: "thin", maxHeight: panelStyle.maxHeight }}
+          style={{ scrollbarWidth: "thin" }}
         >
           {MESSENGER_EMOJI_GROUPS.map((group) => (
             <div key={group.label} className="mb-[8px] last:mb-0">

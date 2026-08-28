@@ -16,6 +16,7 @@ class CreateSafeDealController extends Controller
 
         $data = $request->validate([
             'accept_terms' => ['required', 'accepted'],
+            'return_url' => ['nullable', 'string', 'max:2000'],
             'destination_point' => ['nullable', 'array'],
             'destination_point.city_code' => ['required_with:destination_point', 'integer', 'min:1'],
             'destination_point.external_point_id' => ['nullable', 'string', 'max:64'],
@@ -26,10 +27,13 @@ class CreateSafeDealController extends Controller
         ]);
 
         $deal = $deals->create($request->user(), $listing, $data);
+        $payload = $deals->toArray($deal, $request->user());
 
         return response()->json([
-            'data' => $deals->toArray($deal, $request->user()),
-            'message' => 'Безопасная сделка создана, средства заблокированы на балансе.',
+            'data' => $payload,
+            'message' => $payload['checkout_url']
+                ? 'Сделка создана. Подтвердите оплату — банк удержит сумму на вашей карте.'
+                : 'Безопасная сделка создана, средства заблокированы на балансе.',
         ], 201);
     }
 }

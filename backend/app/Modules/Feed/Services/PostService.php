@@ -355,6 +355,7 @@ class PostService
             'mediaItems.media',
             'tags',
             'repostOf.author.profile',
+            'repostOf.category',
         ];
     }
 

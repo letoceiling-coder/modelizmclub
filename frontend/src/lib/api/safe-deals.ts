@@ -1,10 +1,12 @@
 import { api } from "./client";
 
 /**
- * Wallet-based safe deal (escrow) client. Mirrors the backend Billing module
- * (spec v4.0 §T5). Money never leaves the internal wallet ledger: the buyer's
- * balance is held on creation, released to the seller on confirmation, or
- * refunded on cancel/dispute. All amounts are in kopecks.
+ * Safe deal (escrow) client. Mirrors the backend Billing module (spec v4.0 §T5).
+ *
+ * With `escrow_provider: "vtb"` the buyer's card is held by the bank: the deal
+ * is created in `created` with a `checkout_url` to redirect to, and only turns
+ * `paid` once VTB authorises the hold. With `"wallet"` the internal ledger
+ * holds the money and the deal is `paid` right away. Amounts are in kopecks.
  */
 
 export type SafeDealStatus =
@@ -67,6 +69,9 @@ export interface SafeDeal {
   dispute?: { uuid: string; status: string; reason: string } | null;
   can_review?: boolean;
   my_review?: { rating: number; text: string | null } | null;
+  escrow_provider?: "vtb" | "wallet";
+  /** Bank payment form — present only while the deal is awaiting payment. */
+  checkout_url?: string | null;
 }
 
 export interface SafeDealQuote {
@@ -103,13 +108,14 @@ export async function quoteSafeDeal(listingUuid: string, destination?: SafeDealD
 
 export async function createSafeDeal(
   listingUuid: string,
-  input?: { acceptTerms?: boolean; destination?: SafeDealDestination },
+  input?: { acceptTerms?: boolean; destination?: SafeDealDestination; returnUrl?: string },
 ): Promise<SafeDeal> {
   const res = await api<{ data: SafeDeal }>(`/listings/${listingUuid}/safe-deal`, {
     method: "POST",
     json: {
       accept_terms: input?.acceptTerms ?? false,
       destination_point: input?.destination,
+      return_url: input?.returnUrl,
     },
   });
   return res.data;

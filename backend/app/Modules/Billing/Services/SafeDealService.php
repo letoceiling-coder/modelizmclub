@@ -5,6 +5,7 @@ namespace Modules\Billing\Services;
 use App\Enums\DeliveryCarrier;
 use App\Enums\DisputeStatus;
 use App\Enums\ListingStatus;
+use App\Enums\SafeDealIncomingStatus;
 use App\Enums\SafeDealStatus;
 use App\Enums\ShipmentStatus;
 use App\Enums\WalletTransactionType;
@@ -12,6 +13,7 @@ use App\Models\Dispute;
 use App\Models\EscrowTransaction;
 use App\Models\Listing;
 use App\Models\SafeDeal;
+use App\Models\SafeDealIncomingPayment;
 use App\Models\SellerDeliveryProfile;
 use App\Models\Shipment;
 use App\Models\SystemSetting;
@@ -19,16 +21,21 @@ use App\Models\User;
 use App\Models\UserReview;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Services\NotificationPolicy;
 use App\Support\ParcelSize;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Exceptions\InsufficientFundsException;
+use Modules\Billing\Notifications\SafeDealStatusNotification;
 use Modules\Delivery\Services\Carriers\CdekDeliveryAdapter;
 use Modules\Delivery\Services\CdekApiExtension;
 use Modules\Delivery\Services\SellerDeliveryProfileService;
 use Modules\Delivery\Services\ShipmentService;
+use Modules\User\Services\UserRatingService;
 use RuntimeException;
+use Throwable;
 
 /**
  * Wallet-based safe deal (escrow) service (spec v4.0 §T5).
@@ -39,7 +46,12 @@ use RuntimeException;
  */
 class SafeDealService
 {
-    public function __construct(private readonly WalletService $wallet) {}
+    public function __construct(
+        private readonly WalletService $wallet,
+        private readonly UserRatingService $ratings,
+        private readonly SafeDealSettlementService $settlement,
+        private readonly SafeDealPayoutService $payouts,
+    ) {}
 
     public function platformFeePercent(): float
     {
@@ -147,8 +159,10 @@ class SafeDealService
             throw ValidationException::withMessages(['listing' => ['Сумма слишком мала для безопасной сделки.']]);
         }
 
+        $vtb = $this->settlement->usesVtb();
+
         try {
-            return DB::transaction(function () use ($buyer, $listing, $item, $fee, $delivery, $payout, $holdAmount, $destination, $offersCdek, $quote): SafeDeal {
+            $deal = DB::transaction(function () use ($buyer, $listing, $item, $fee, $delivery, $payout, $holdAmount, $destination, $offersCdek, $quote, $vtb): SafeDeal {
                 $deal = SafeDeal::query()->create([
                     'uuid' => (string) Str::uuid(),
                     'listing_id' => $listing->id,
@@ -159,42 +173,110 @@ class SafeDealService
                     'seller_payout_kopecks' => $payout,
                     'delivery_cost_kopecks' => $delivery,
                     'currency' => $listing->currency ?? 'RUB',
-                    'status' => SafeDealStatus::Paid,
-                    'paid_at' => now(),
+                    // A card hold only exists once the buyer passes 3-D Secure,
+                    // so a VTB deal waits in `created` until VTB confirms it.
+                    'status' => $vtb ? SafeDealStatus::Created : SafeDealStatus::Paid,
+                    'paid_at' => $vtb ? null : now(),
                     'delivery_method' => $offersCdek ? 'СДЭК' : null,
                     'destination_point' => $destination,
                     'delivery_status' => $offersCdek ? 'pending' : null,
                     'metadata' => [
                         'item_kopecks' => $item,
                         'tariff_code' => $quote['tariff_code'] ?? null,
+                        'escrow_provider' => $vtb ? SafeDealSettlementService::PROVIDER_VTB : SafeDealSettlementService::PROVIDER_WALLET,
                     ],
                 ]);
 
-                $hold = $this->wallet->hold(
-                    $buyer,
-                    $holdAmount,
-                    WalletTransactionType::SafeDealHold,
-                    "Холд по сделке {$deal->uuid}",
-                    'safe_deal',
-                    $deal->id,
-                    'safe-deal-hold:'.$deal->id,
-                );
+                if (! $vtb) {
+                    $hold = $this->wallet->hold(
+                        $buyer,
+                        $holdAmount,
+                        WalletTransactionType::SafeDealHold,
+                        "Холд по сделке {$deal->uuid}",
+                        'safe_deal',
+                        $deal->id,
+                        'safe-deal-hold:'.$deal->id,
+                    );
 
-                $deal->update(['hold_transaction_id' => $hold->id]);
-                $this->log($deal, $buyer, 'paid', $holdAmount, $hold->id, 'Средства заблокированы на балансе покупателя.');
+                    $deal->update(['hold_transaction_id' => $hold->id]);
+                    $this->log($deal, $buyer, 'paid', $holdAmount, $hold->id, 'Средства заблокированы на балансе покупателя.');
+                }
+
+                $listing->forceFill(['reserved_at' => now()])->save();
 
                 if ($offersCdek && $destination !== null) {
                     $this->attachDraftShipment($deal, $listing, $buyer, $destination, $quote);
                 }
 
-                $fresh = $deal->fresh(['listing', 'shipment']);
-                $this->notifyDeal($fresh, $fresh?->seller_id, 'Новая безопасная сделка', 'Покупатель оплатил объявление.');
-
-                return $fresh;
+                return $deal->fresh(['listing', 'shipment']);
             });
         } catch (InsufficientFundsException $e) {
             throw ValidationException::withMessages(['balance' => [$e->getMessage()]]);
         }
+
+        if (! $vtb) {
+            $this->notifyDeal($deal, $deal->seller_id, 'Новая безопасная сделка', 'Покупатель оплатил объявление.');
+
+            return $deal;
+        }
+
+        // Registering the hold talks to VTB, so it stays outside the transaction.
+        try {
+            $incoming = $this->settlement->openHold(
+                $deal,
+                $buyer,
+                'Безопасная сделка: '.mb_substr((string) $listing->title, 0, 120),
+                is_string($options['return_url'] ?? null) ? $options['return_url'] : null,
+            );
+        } catch (Throwable $e) {
+            $this->releaseReservation($deal);
+            $deal->update(['status' => SafeDealStatus::Cancelled, 'cancelled_at' => now()]);
+            Log::error('SafeDeal: VTB pre-auth failed', ['deal' => $deal->uuid, 'exception' => $e->getMessage()]);
+
+            throw ValidationException::withMessages(['payment' => ['Не удалось начать оплату. Попробуйте ещё раз.']]);
+        }
+
+        $deal->update([
+            'metadata' => array_merge($deal->metadata ?? [], ['checkout_url' => $incoming->checkout_url]),
+        ]);
+
+        $this->log($deal, $buyer, 'checkout', $holdAmount, null, 'Холд ВТБ зарегистрирован, ожидаем оплату.');
+
+        return $deal->fresh(['listing', 'shipment']) ?? $deal;
+    }
+
+    /**
+     * VTB confirmed the card hold — the deal becomes payable and the seller is told.
+     * Idempotent: repeated callbacks for the same order are no-ops.
+     */
+    public function markHoldAuthorized(SafeDeal $deal): SafeDeal
+    {
+        if ($deal->status !== SafeDealStatus::Created) {
+            return $deal;
+        }
+
+        $deal->update(['status' => SafeDealStatus::Paid, 'paid_at' => now()]);
+        $this->log($deal, null, 'paid', (int) $deal->amount_kopecks, null, 'ВТБ подтвердил холд на карте покупателя.');
+
+        $fresh = $deal->fresh(['listing', 'shipment']);
+        $this->notifyDeal($fresh, $fresh?->seller_id, 'Новая безопасная сделка', 'Покупатель оплатил объявление.');
+        $this->notifyDeal($fresh, $fresh?->buyer_id, 'Оплата принята', 'Деньги удерживаются банком до подтверждения получения.');
+
+        return $fresh;
+    }
+
+    /** The buyer never finished the card form — free the listing. */
+    public function expireCheckout(SafeDeal $deal, string $note = 'Оплата не завершена, сделка отменена.'): SafeDeal
+    {
+        if ($deal->status !== SafeDealStatus::Created) {
+            return $deal;
+        }
+
+        $deal->update(['status' => SafeDealStatus::Cancelled, 'cancelled_at' => now()]);
+        $this->log($deal, null, 'cancelled', null, null, $note);
+        $this->releaseReservation($deal);
+
+        return $deal->fresh() ?? $deal;
     }
 
     public function ship(User $seller, SafeDeal $deal, ?string $trackingNumber, ?string $method): SafeDeal
@@ -334,31 +416,40 @@ class SafeDealService
 
         $deal = $dispute->safeDeal;
 
-        return DB::transaction(function () use ($admin, $dispute, $deal, $inFavorOf, $resolution): Dispute {
-            if ($inFavorOf === 'buyer') {
-                $this->refundBuyer($deal, $admin, SafeDealStatus::Refunded, 'Спор решён в пользу покупателя.');
-                $dispute->status = DisputeStatus::ResolvedBuyer;
-            } else {
-                $this->releaseToSeller($deal, $admin, 'Спор решён в пользу продавца.');
-                $dispute->status = DisputeStatus::ResolvedSeller;
-            }
+        // Money first, and outside a transaction: both paths talk to the bank,
+        // and the dispute row must only close once the money actually moved.
+        if ($inFavorOf === 'buyer') {
+            $this->refundBuyer($deal, $admin, SafeDealStatus::Refunded, 'Спор решён в пользу покупателя.');
+            $dispute->status = DisputeStatus::ResolvedBuyer;
+        } else {
+            $this->releaseToSeller($deal, $admin, 'Спор решён в пользу продавца.');
+            $dispute->status = DisputeStatus::ResolvedSeller;
+        }
 
-            $dispute->resolution = $resolution;
-            $dispute->resolved_by = $admin->id;
-            $dispute->resolved_at = now();
-            $dispute->save();
+        $dispute->resolution = $resolution;
+        $dispute->resolved_by = $admin->id;
+        $dispute->resolved_at = now();
+        $dispute->save();
 
-            return $dispute->fresh();
-        });
+        return $dispute->fresh();
     }
 
     private function releaseToSeller(SafeDeal $deal, ?User $actor, string $note): SafeDeal
     {
-        return DB::transaction(function () use ($deal, $actor, $note): SafeDeal {
+        // Capture first: crediting the seller before the bank settles would
+        // hand out money we might never receive.
+        $incoming = $this->activeIncoming($deal);
+        if ($incoming !== null) {
+            $this->settlement->capture($incoming);
+        }
+
+        $completed = DB::transaction(function () use ($deal, $actor, $note, $incoming): SafeDeal {
             $buyer = $deal->buyer;
             $seller = $deal->seller;
 
-            $this->wallet->consumeHold($buyer, (int) $deal->amount_kopecks);
+            if ($incoming === null) {
+                $this->wallet->consumeHold($buyer, (int) $deal->amount_kopecks);
+            }
 
             $payout = $this->wallet->credit(
                 $seller,
@@ -382,18 +473,51 @@ class SafeDealService
                 $this->log($deal, null, 'commission', (int) $deal->platform_fee_kopecks, null, 'Комиссия платформы удержана.');
             }
 
-            $fresh = $deal->fresh();
-            $this->notifyDeal($fresh, $fresh?->seller_id, 'Сделка завершена', 'Средства переведены на ваш баланс.');
-            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка завершена', '');
+            $this->releaseReservation($deal);
+
+            $fresh = $deal->fresh() ?? $deal;
+            $this->ratings->sync((int) $deal->seller_id);
+            $this->ratings->sync((int) $deal->buyer_id);
 
             return $fresh;
         });
+
+        // SBP pays the seller directly when their requisites allow it; the
+        // wallet credit above is the fallback they can withdraw manually. The
+        // bank call stays outside the transaction so it holds no row locks.
+        $sbp = $this->startSellerPayout($completed);
+
+        $this->notifyDeal($completed, $completed->seller_id, 'Сделка завершена', $sbp
+            ? 'Выплата отправлена по СБП на ваш номер.'
+            : 'Средства переведены на ваш баланс.');
+        $this->notifyDeal($completed, $completed->buyer_id, 'Сделка завершена', '');
+
+        return $completed;
+    }
+
+    private function startSellerPayout(SafeDeal $deal): bool
+    {
+        try {
+            return $this->payouts->start($deal) !== null;
+        } catch (Throwable $e) {
+            Log::error('SafeDeal: seller payout could not be started', [
+                'deal' => $deal->uuid,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     private function refundBuyer(SafeDeal $deal, ?User $actor, SafeDealStatus $finalStatus, string $note): SafeDeal
     {
-        return DB::transaction(function () use ($deal, $actor, $finalStatus, $note): SafeDeal {
-            $refund = $this->wallet->refundHold(
+        $incoming = $this->activeIncoming($deal);
+        if ($incoming !== null) {
+            $this->settlement->releaseBack($incoming);
+        }
+
+        return DB::transaction(function () use ($deal, $actor, $finalStatus, $note, $incoming): SafeDeal {
+            $refund = $incoming !== null ? null : $this->wallet->refundHold(
                 $deal->buyer,
                 (int) $deal->amount_kopecks,
                 WalletTransactionType::SafeDealRefund,
@@ -406,17 +530,47 @@ class SafeDealService
             $deal->update([
                 'status' => $finalStatus,
                 'cancelled_at' => now(),
-                'refund_transaction_id' => $refund->id,
+                'refund_transaction_id' => $refund?->id,
             ]);
 
-            $this->log($deal, $actor, $finalStatus->value, (int) $deal->amount_kopecks, $refund->id, $note);
+            $this->log($deal, $actor, $finalStatus->value, (int) $deal->amount_kopecks, $refund?->id, $note);
+            $this->releaseReservation($deal);
 
             $fresh = $deal->fresh();
-            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка отменена', 'Средства возвращены на баланс.');
+            $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка отменена', $incoming !== null
+                ? 'Банк снял удержание, деньги вернутся на карту.'
+                : 'Средства возвращены на баланс.');
             $this->notifyDeal($fresh, $fresh?->seller_id, 'Сделка отменена', $note);
 
             return $fresh;
         });
+    }
+
+    /** The VTB hold backing this deal, or null when it is a wallet deal. */
+    private function activeIncoming(SafeDeal $deal): ?SafeDealIncomingPayment
+    {
+        if (! $this->settlement->usesVtb()) {
+            return null;
+        }
+
+        return SafeDealIncomingPayment::query()
+            ->where('safe_deal_id', $deal->id)
+            ->whereIn('status', [
+                SafeDealIncomingStatus::Authorized,
+                SafeDealIncomingStatus::Captured,
+            ])
+            ->latest('id')
+            ->first();
+    }
+
+    /** Puts the listing back on the market once the deal is no longer holding it. */
+    private function releaseReservation(SafeDeal $deal): void
+    {
+        if ($deal->listing_id === null) {
+            return;
+        }
+
+        Listing::query()->whereKey($deal->listing_id)->update(['reserved_at' => null]);
     }
 
     public function review(User $author, SafeDeal $deal, int $rating, ?string $text): UserReview
@@ -433,7 +587,7 @@ class SafeDealService
             throw ValidationException::withMessages(['deal' => ['Вы уже оставили оценку по этой сделке.']]);
         }
 
-        return UserReview::query()->create([
+        $review = UserReview::query()->create([
             'uuid' => (string) Str::uuid(),
             'author_id' => $author->id,
             'target_user_id' => $targetId,
@@ -441,6 +595,10 @@ class SafeDealService
             'rating' => $rating,
             'text' => $text,
         ]);
+
+        $this->ratings->sync($targetId);
+
+        return $review;
     }
 
     public function syncFromShipment(Shipment $shipment): void
@@ -494,6 +652,26 @@ class SafeDealService
             $user,
             new InAppNotification('deals', $title, $body, "/deals/{$deal->uuid}"),
         );
+
+        $this->mailDeal($deal, $user, $title, $body);
+    }
+
+    /** Email mirrors every step; a mail failure must not roll back the deal. */
+    private function mailDeal(SafeDeal $deal, User $user, string $title, string $body): void
+    {
+        if (! $user->email || ! NotificationPolicy::allows($user, 'deals', 'mail')) {
+            return;
+        }
+
+        try {
+            $user->notify(new SafeDealStatusNotification($deal->loadMissing('listing'), $title, $body));
+        } catch (Throwable $e) {
+            Log::warning('SafeDeal: status email failed', [
+                'deal' => $deal->uuid,
+                'user' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function assertParticipant(SafeDeal $deal, User $user, string $role): void
@@ -576,6 +754,11 @@ class SafeDealService
                 && $deal->involves($viewer)
                 && $myReview === null,
             'my_review' => $myReview,
+            'escrow_provider' => $deal->metadata['escrow_provider'] ?? SafeDealSettlementService::PROVIDER_WALLET,
+            // Present only while the buyer still has to pass the card form.
+            'checkout_url' => $deal->status === SafeDealStatus::Created
+                ? ($deal->metadata['checkout_url'] ?? null)
+                : null,
         ];
     }
 
@@ -587,6 +770,10 @@ class SafeDealService
 
         if ((int) $listing->price_cents <= 0) {
             throw ValidationException::withMessages(['listing' => ['У объявления не указана цена.']]);
+        }
+
+        if ($listing->reserved_at !== null) {
+            throw ValidationException::withMessages(['listing' => ['Объявление уже забронировано другим покупателем.']]);
         }
 
         if ($buyer !== null && (int) $listing->user_id === (int) $buyer->id) {

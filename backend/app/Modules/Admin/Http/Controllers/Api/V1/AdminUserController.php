@@ -27,7 +27,7 @@ class AdminUserController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $users = User::query()
-            ->with('profile')
+            ->with(['profile', 'subscriptions'])
             ->when(request()->filled('role'), fn ($q) => $q->where('role', request('role')))
             ->when(request()->filled('status'), fn ($q) => $q->where('status', request('status')))
             ->latest()

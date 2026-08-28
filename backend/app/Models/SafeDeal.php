@@ -100,6 +100,15 @@ class SafeDeal extends Model
         return $this->hasMany(SafeDealIncomingPayment::class);
     }
 
+    /** The VTB charge that currently backs this deal, newest first. */
+    public function activeIncomingPayment(): ?SafeDealIncomingPayment
+    {
+        return $this->incomingPayments()
+            ->whereNotIn('status', ['reversed', 'failed'])
+            ->orderByDesc('id')
+            ->first();
+    }
+
     public function payouts(): HasMany
     {
         return $this->hasMany(SafeDealPayout::class);

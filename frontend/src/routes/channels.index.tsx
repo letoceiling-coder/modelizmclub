@@ -39,7 +39,6 @@ import {
 
 
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
-import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 
 import i18n from "@/lib/i18n";
@@ -61,8 +60,6 @@ export const Route = createFileRoute("/channels/")({
     }
     return null;
   },
-  pendingComponent: AppBootPreload,
-  pendingMs: 0,
   staleTime: 30_000,
   component: ChannelsPage,
 });

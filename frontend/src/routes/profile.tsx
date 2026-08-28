@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Bell, BadgeCheck, Ban, FileText, Mail, MapPin, Pencil, Tag, User as UserIcon,
   UserPlus, Users, X, Plus, Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging,
-  Camera, Trash2, Clock,
+  Camera, Trash2, Clock, Repeat2, Star, ShieldCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
@@ -18,6 +18,7 @@ import { AdCard } from "@/components/AdCard";
 import { toast } from "@/lib/toast";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
 import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
+import { SubscriptionBlock } from "@/components/profile/SubscriptionBlock";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { fetchMe } from "@/lib/api/auth";
 import { getToken } from "@/lib/api/client";
@@ -26,6 +27,7 @@ import { fetchCommunities } from "@/lib/api/communities";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchMyListings } from "@/lib/api/listings";
 import { fetchFriends, updateOwnProfile, syncOwnInterests, applyOwnProfilePatch } from "@/lib/api/social";
+import { fetchUserRating, fetchUserReviews, replyToUserReview, type UserReviewApi, type UserReviewSort } from "@/lib/api/rating";
 import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import { openConversation } from "@/lib/api/chat";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -80,6 +82,7 @@ function ProfilePage() {
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [friendsCount, setFriendsCount] = useState(0);
+  const [rating, setRating] = useState({ average: 0, count: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,6 +103,9 @@ function ProfilePage() {
       fetchCommunities().then((cs) => active && setMyCommunities(cs.filter((c) => c.joined))),
       fetchFeed({ perPage: 50 }).then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id))),
       fetchFriends().then((fr) => active && setFriendsCount(fr.length)),
+      currentUser.numericId
+        ? fetchUserRating(currentUser.numericId).then((r) => active && setRating(r))
+        : Promise.resolve(),
     ]);
     settle.finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -154,7 +160,12 @@ function ProfilePage() {
     <ProfileView
       user={currentUser}
       isOwn
-      stats={{ friends: friendsCount }}
+      stats={{
+        friends: friendsCount,
+        rating: rating.average,
+        reviews: rating.count,
+        trusted: rating.average >= 4.5 && rating.count >= 10,
+      }}
       postsOverride={myPosts}
       adsOverride={myAds}
       communitiesOverride={myCommunities}
@@ -165,11 +176,13 @@ function ProfilePage() {
   );
 }
 
-type TabKey = "posts" | "ads" | "communities" | "invited" | "blocked" | "about";
+type TabKey = "posts" | "reposts" | "ads" | "reviews" | "communities" | "invited" | "blocked" | "about";
 
 const TAB_LABEL_KEYS: Record<TabKey, string> = {
   posts: "pages.profile.tabPosts",
+  reposts: "pages.profile.tabReposts",
   ads: "pages.profile.tabAds",
+  reviews: "pages.profile.tabReviews",
   communities: "pages.profile.tabCommunities",
   invited: "pages.profile.tabInvited",
   blocked: "pages.profile.tabBlocked",
@@ -178,7 +191,9 @@ const TAB_LABEL_KEYS: Record<TabKey, string> = {
 
 const TABS_BASE: { key: TabKey; Icon: typeof FileText; ownOnly?: boolean }[] = [
   { key: "posts", Icon: FileText },
+  { key: "reposts", Icon: Repeat2 },
   { key: "ads", Icon: Tag },
+  { key: "reviews", Icon: Star },
   { key: "communities", Icon: Users },
   { key: "invited", Icon: UserPlus, ownOnly: true },
   { key: "blocked", Icon: Ban, ownOnly: true },
@@ -207,7 +222,15 @@ const AD_STATUS_FILTER_KEYS: { key: AdStatus | "all"; labelKey: string }[] = [
 export interface ProfileViewProps {
   user: User;
   isOwn: boolean;
-  stats?: { publications?: number; ads?: number; friends?: number; communities?: number };
+  stats?: {
+    publications?: number;
+    ads?: number;
+    friends?: number;
+    communities?: number;
+    rating?: number;
+    reviews?: number;
+    trusted?: boolean;
+  };
   postsOverride?: Post[];
   adsOverride?: { ad: Ad; status: AdStatus }[];
   communitiesOverride?: Community[];
@@ -249,6 +272,8 @@ export function ProfileView({
   useEffect(() => { if (isFollowingInitial !== undefined) setSubscribed(isFollowingInitial); }, [isFollowingInitial]);
 
   const userPosts = postsOverride ?? [];
+  const originalPosts = useMemo(() => userPosts.filter((p) => !p.repostOf), [userPosts]);
+  const repostedPosts = useMemo(() => userPosts.filter((p) => Boolean(p.repostOf)), [userPosts]);
   const userAdsWithStatus = adsOverride ?? [];
   const userAds = userAdsWithStatus;
   const filteredUserAds = useMemo(
@@ -316,8 +341,31 @@ export function ProfileView({
                 </Link>
               )}
             </div>
-            <div className="mt-[3px] flex items-center gap-[6px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-              <MapPin size={12} /> {user.city}
+            <div className="mt-[3px] flex flex-wrap items-center gap-x-[10px] gap-y-[2px] text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
+              <span className="inline-flex items-center gap-[6px]">
+                <MapPin size={12} /> {user.city}
+              </span>
+              {(stats?.rating ?? 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTab("reviews")}
+                  className="inline-flex items-center gap-[4px] hover:underline"
+                >
+                  <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
+                  <span style={{ color: "var(--foreground)", fontWeight: 600 }}>{(stats?.rating ?? 0).toFixed(1)}</span>
+                  {(stats?.reviews ?? 0) > 0 && (
+                    <span>{t("pages.profile.reviewsCount", { count: stats?.reviews ?? 0 })}</span>
+                  )}
+                </button>
+              )}
+              {stats?.trusted && (
+                <span
+                  className="inline-flex items-center gap-[3px] px-[6px] py-[1px] text-[11px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+                >
+                  <ShieldCheck size={11} /> {t("pages.profile.trustedSeller")}
+                </span>
+              )}
             </div>
             {user.status && <div className="mt-[2px] text-[12.5px] italic" style={{ color: "var(--foreground-50)" }}>{user.status}</div>}
           </div>
@@ -441,6 +489,12 @@ export function ProfileView({
         {/* Tabs */}
         <Tabs tab={tab} setTab={setTab} isOwn={isOwn} />
 
+        {isOwn && (
+          <div className="px-[16px] pt-[16px] md:px-[32px]">
+            <SubscriptionBlock />
+          </div>
+        )}
+
         {/* Tab content */}
         <div className="px-[16px] py-[24px] md:px-[32px]">
           <ReducedMotionSwitch
@@ -452,10 +506,17 @@ export function ProfileView({
           >
               {tab === "posts" && (
                 loading ? <ProfileTabSkeleton /> :
-                userPosts.length === 0 ? <EmptyTab text={t("pages.profile.emptyPostsShort")} /> : (
-                  <div className="space-y-[16px]">{userPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
+                originalPosts.length === 0 ? <EmptyTab text={t("pages.profile.emptyPostsShort")} /> : (
+                  <div className="space-y-[16px]">{originalPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
                 )
               )}
+              {tab === "reposts" && (
+                loading ? <ProfileTabSkeleton /> :
+                repostedPosts.length === 0 ? <EmptyTab text={t("pages.profile.emptyReposts")} /> : (
+                  <div className="space-y-[16px]">{repostedPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
+                )
+              )}
+              {tab === "reviews" && <ProfileReviewsTab numericUserId={user.numericId} isOwn={isOwn} />}
               {tab === "ads" && (
                 loading ? <ProfileTabSkeleton /> :
                 userAds.length === 0 ? (
@@ -662,6 +723,142 @@ function EmptyTab({ text, children, bare }: { text: string; children?: React.Rea
     <EmptyState variant={bare ? "bare" : "compact"} title={text}>
       {children}
     </EmptyState>
+  );
+}
+
+function ProfileReviewsTab({ numericUserId, isOwn }: { numericUserId?: number; isOwn: boolean }) {
+  const { t } = useTranslation();
+  const [sort, setSort] = useState<UserReviewSort>("new");
+  const [reviews, setReviews] = useState<UserReviewApi[] | null>(null);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!numericUserId) {
+      setReviews([]);
+      return;
+    }
+    let active = true;
+    setReviews(null);
+    fetchUserReviews(numericUserId, sort)
+      .then((list) => active && setReviews(list))
+      .catch(() => active && setReviews([]));
+    return () => { active = false; };
+  }, [numericUserId, sort]);
+
+  const submitReply = async (reviewId: string) => {
+    setSaving(true);
+    try {
+      await replyToUserReview(reviewId, replyText);
+      setReviews((prev) =>
+        prev?.map((r) => (r.id === reviewId ? { ...r, reply: replyText.trim() || null, replied_at: new Date().toISOString() } : r)) ?? prev,
+      );
+      setReplyTo(null);
+      setReplyText("");
+      toast.success(t("pages.profile.replySaved"));
+    } catch {
+      toast.error(t("pages.profile.replyFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (reviews === null) return <ProfileTabSkeleton />;
+  if (reviews.length === 0) return <EmptyTab text={t("pages.profile.emptyReviews")} />;
+
+  return (
+    <div className="space-y-[16px]">
+      <div className="flex gap-[6px]">
+        {(["new", "high", "low"] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSort(key)}
+            className="inline-flex items-center text-[13px] transition-colors"
+            style={{
+              height: 32,
+              padding: "0 14px",
+              borderRadius: "var(--r-pill)",
+              background: sort === key ? "var(--accent)" : "var(--background-surface)",
+              color: sort === key ? "#fff" : "var(--foreground-70)",
+              fontWeight: sort === key ? 600 : 500,
+              border: `1px solid ${sort === key ? "var(--accent)" : "var(--border)"}`,
+            }}
+          >
+            {t(`pages.profile.reviewSort.${key}`)}
+          </button>
+        ))}
+      </div>
+
+      {reviews.map((review) => (
+        <Card key={review.id} className="space-y-[8px] p-[14px]">
+          <div className="flex items-center justify-between gap-[8px]">
+            <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {review.author.display_name ?? t("pages.profile.reviewAnonymous")}
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-[2px]">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  size={13}
+                  fill={i < review.rating ? "currentColor" : "none"}
+                  style={{ color: i < review.rating ? "var(--warning)" : "var(--foreground-30)" }}
+                />
+              ))}
+            </span>
+          </div>
+          {review.text && (
+            <p className="text-[14px] leading-[1.5]" style={{ color: "var(--foreground-70)" }}>{review.text}</p>
+          )}
+          <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {new Date(review.date).toLocaleDateString("ru-RU")}
+          </div>
+
+          {review.reply && (
+            <div
+              className="rounded-[10px] p-[10px] text-[13px]"
+              style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
+            >
+              <div className="mb-[2px] text-[12px] font-semibold" style={{ color: "var(--foreground)" }}>
+                {t("pages.profile.sellerReply")}
+              </div>
+              {review.reply}
+            </div>
+          )}
+
+          {isOwn && (
+            replyTo === review.id ? (
+              <div className="space-y-[8px]">
+                <Textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  maxLength={2000}
+                  rows={3}
+                  placeholder={t("pages.profile.replyPlaceholder")}
+                />
+                <div className="flex gap-[8px]">
+                  <Button size="sm" disabled={saving} onClick={() => void submitReply(review.id)}>
+                    {t("pages.profile.replySubmit")}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setReplyTo(null); setReplyText(""); }}>
+                    {t("pages.profile.replyCancel")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => { setReplyTo(review.id); setReplyText(review.reply ?? ""); }}
+              >
+                {review.reply ? t("pages.profile.replyEdit") : t("pages.profile.replyAdd")}
+              </Button>
+            )
+          )}
+        </Card>
+      ))}
+    </div>
   );
 }
 

@@ -51,6 +51,7 @@ class PostResource extends JsonResource
             'repost_of' => $this->whenLoaded('repostOf', fn () => $this->repostOf ? [
                 'uuid' => $this->repostOf->uuid,
                 'title' => $this->repostOf->title,
+                'category' => $this->repostOf->category?->name,
                 'author' => new UserCompactResource($this->repostOf->author),
             ] : null),
             'stats' => [

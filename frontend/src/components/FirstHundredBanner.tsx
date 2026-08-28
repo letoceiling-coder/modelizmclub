@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { Crown, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { fetchStats, getCachedStats } from "@/lib/api/content";
+import { selectors, useStore } from "@/lib/store";
+import { ROUTES } from "@/lib/routes";
 
 export function FirstHundredBanner() {
   const cached = getCachedStats()?.firstHundred;
   const [stats, setStats] = useState(() => cached ?? { taken: 0, total: 100, enabled: false });
   const [ready, setReady] = useState(() => cached != null);
+  const isMember = useStore(selectors.currentUser).id !== "guest";
 
   useEffect(() => {
     if (cached != null) return;
@@ -139,7 +142,7 @@ export function FirstHundredBanner() {
 
           <div className="flex flex-wrap" style={{ gap: "10px" }}>
             <Link
-              to="/register"
+              to={isMember ? ROUTES.profile : "/register"}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -153,25 +156,27 @@ export function FirstHundredBanner() {
                 fontSize: "15px",
               }}
             >
-              Получить год бесплатно
+              {isMember ? "Мой профиль" : "Получить год бесплатно"}
             </Link>
-            <Link
-              to="/login"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                height: "48px",
-                padding: "0 18px",
-                borderRadius: "12px",
-                background: "rgba(31, 19, 0, 0.1)",
-                color: "#1F1300",
-                fontWeight: 600,
-                fontSize: "14px",
-                border: "1px solid rgba(31, 19, 0, 0.3)",
-              }}
-            >
-              Уже с нами — войти
-            </Link>
+            {!isMember && (
+              <Link
+                to="/login"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  height: "48px",
+                  padding: "0 18px",
+                  borderRadius: "12px",
+                  background: "rgba(31, 19, 0, 0.1)",
+                  color: "#1F1300",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  border: "1px solid rgba(31, 19, 0, 0.3)",
+                }}
+              >
+                Уже с нами — войти
+              </Link>
+            )}
           </div>
         </div>
       </div>

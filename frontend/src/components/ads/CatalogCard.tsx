@@ -11,6 +11,7 @@ import { getToken } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useStore, actions, selectors } from "@/lib/store";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 
 export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
@@ -21,7 +22,7 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   return (
     <Card
       className={cn(
-        "group relative flex flex-col overflow-hidden p-0",
+        "catalog-virtual-item group relative flex flex-col overflow-hidden p-0",
         "rounded-[var(--r-card)] border-[var(--border)] shadow-[var(--shadow-card)]",
         className,
       )}
@@ -45,6 +46,7 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
             if (src !== ph) setSrc(ph);
           }}
         />
+        {ad.reserved && <ReservedOverlay compact />}
         <button
           type="button"
           aria-label={fav ? "Убрать из избранного" : "В избранное"}

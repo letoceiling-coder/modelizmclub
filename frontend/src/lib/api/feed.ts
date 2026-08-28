@@ -1,8 +1,9 @@
-import type { Post, Comment, User } from "@/lib/mock";
+import type { Post, Comment, PostMediaItem, User } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
 import { api } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
+import { rememberMediaAspect } from "@/lib/media/aspectCache";
 import { demoFeed, demoPostComments } from "@/lib/demo-data";
 
 interface ApiPostAuthor {
@@ -15,7 +16,12 @@ interface ApiPostAuthor {
 
 interface ApiPostMedia {
   type?: string;
-  media?: { url?: string | null; mime_type?: string | null } | null;
+  media?: {
+    url?: string | null;
+    mime_type?: string | null;
+    width?: number | null;
+    height?: number | null;
+  } | null;
 }
 
 export interface ApiPost {
@@ -27,6 +33,12 @@ export interface ApiPost {
   category?: { id?: number; name?: string; slug?: string } | null;
   media?: ApiPostMedia[];
   hashtags?: string[];
+  repost_of?: {
+    uuid?: string;
+    title?: string | null;
+    category?: string | null;
+    author?: ApiPostAuthor | null;
+  } | null;
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
   permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean; can_interact?: boolean };
@@ -70,14 +82,18 @@ function isVideoMedia(m: ApiPostMedia): boolean {
   return mime.startsWith("video/");
 }
 
-export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; mediaItems: Array<{ type: "image" | "video"; url: string }> } {
+export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; mediaItems: PostMediaItem[] } {
   const mediaItems = (p.media ?? [])
     .map((m) => {
       const url = m.media?.url;
       if (!url) return null;
-      return { type: isVideoMedia(m) ? ("video" as const) : ("image" as const), url };
+      // Dimensions let the feed reserve the exact box before the image loads.
+      const width = m.media?.width ?? undefined;
+      const height = m.media?.height ?? undefined;
+      if (width && height) rememberMediaAspect(url, width / height);
+      return { type: isVideoMedia(m) ? ("video" as const) : ("image" as const), url, width, height };
     })
-    .filter((item): item is { type: "image" | "video"; url: string } => item !== null);
+    .filter((item): item is PostMediaItem => item !== null);
 
   const images = mediaItems.filter((m) => m.type === "image").map((m) => m.url);
   const video = mediaItems.find((m) => m.type === "video")?.url;
@@ -109,6 +125,14 @@ export function mapPost(p: ApiPost): Post {
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
     isReposted: p.viewer?.reposted ?? false,
+    repostOf: p.repost_of?.uuid
+      ? {
+          id: p.repost_of.uuid,
+          title: p.repost_of.title ?? "",
+          category: p.repost_of.category ?? "",
+          authorName: p.repost_of.author?.display_name ?? "",
+        }
+      : undefined,
     canDelete: p.permissions?.can_delete ?? false,
     canPublish: p.permissions?.can_publish ?? false,
     canCancelSchedule: p.permissions?.can_cancel_schedule ?? false,

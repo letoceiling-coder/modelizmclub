@@ -155,6 +155,15 @@ export async function fetchAuditLogPage(
 export type AdminUserRole = "user" | "subscriber" | "moderator" | "admin";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 
+export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "none";
+
+export interface AdminUserSubscription {
+  status: AdminSubscriptionStatus;
+  isActive: boolean;
+  endsAt: string | null;
+  autoRenew: boolean;
+}
+
 export interface AdminUserRow {
   uuid: string;
   name: string;
@@ -163,6 +172,14 @@ export interface AdminUserRow {
   status: AdminUserStatus;
   city: string;
   createdAt: string;
+  subscription: AdminUserSubscription;
+}
+
+interface ApiAdminSubscription {
+  status?: string;
+  is_active?: boolean;
+  ends_at?: string | null;
+  auto_renew?: boolean;
 }
 
 interface ApiAdminUser {
@@ -172,7 +189,18 @@ interface ApiAdminUser {
   role?: string;
   status?: string;
   profile?: { display_name?: string | null; slug?: string | null } | null;
+  subscription?: ApiAdminSubscription | null;
   created_at?: string | null;
+}
+
+function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
+  if (!s) return { status: "none", isActive: false, endsAt: null, autoRenew: false };
+  return {
+    status: (s.status as AdminSubscriptionStatus) ?? "none",
+    isActive: s.is_active === true,
+    endsAt: s.ends_at ?? null,
+    autoRenew: s.auto_renew === true,
+  };
 }
 
 function mapAdminUser(u: ApiAdminUser): AdminUserRow {
@@ -184,6 +212,7 @@ function mapAdminUser(u: ApiAdminUser): AdminUserRow {
     status: (u.status as AdminUserStatus) ?? "active",
     city: "",
     createdAt: u.created_at ?? "",
+    subscription: mapAdminSubscription(u.subscription),
   };
 }
 
@@ -211,6 +240,18 @@ export async function updateAdminUser(
 
 export async function deleteAdminUser(uuid: string): Promise<void> {
   await api(`/admin/users/${uuid}`, { method: "DELETE" });
+}
+
+export async function setAdminUserSubscription(
+  uuid: string,
+  action: "activate" | "extend" | "deactivate",
+  days?: number,
+): Promise<AdminUserSubscription> {
+  const res = await api<{ data: ApiAdminSubscription }>(`/admin/users/${uuid}/subscription`, {
+    method: "POST",
+    json: { action, days },
+  });
+  return mapAdminSubscription(res.data);
 }
 
 export type ModerationType = "posts" | "communities" | "videos" | "channel_posts" | "listings";
@@ -1213,6 +1254,14 @@ export async function fetchAdminPayments(query: AdminPaymentsQuery = {}): Promis
 }
 
 export async function downloadAdminPaymentsExport(query: Omit<AdminPaymentsQuery, "page" | "per_page"> = {}): Promise<void> {
+  await downloadCsv("/admin/payments/export", query, "payments");
+}
+
+async function downloadCsv(
+  path: string,
+  query: Record<string, unknown>,
+  fallbackPrefix: string,
+): Promise<void> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined && value !== null && value !== "") {
@@ -1220,7 +1269,7 @@ export async function downloadAdminPaymentsExport(query: Omit<AdminPaymentsQuery
     }
   }
   const qs = params.toString();
-  const url = `${API_BASE_URL}/admin/payments/export${qs ? `?${qs}` : ""}`;
+  const url = `${API_BASE_URL}${path}${qs ? `?${qs}` : ""}`;
   const token = getToken();
   const res = await fetch(url, {
     headers: {
@@ -1242,7 +1291,7 @@ export async function downloadAdminPaymentsExport(query: Omit<AdminPaymentsQuery
   const blob = await res.blob();
   const disposition = res.headers.get("content-disposition") ?? "";
   const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
-  const filename = match?.[1] ?? `payments-${new Date().toISOString().slice(0, 10)}.csv`;
+  const filename = match?.[1] ?? `${fallbackPrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = objectUrl;
@@ -1595,13 +1644,25 @@ export interface AdminSafeDealRow {
   status_label: string;
   amount_kopecks: number;
   listing_uuid: string | null;
-  buyer?: { uuid: string | null; name: string | null };
-  seller?: { uuid: string | null; name: string | null };
+  buyer?: { uuid: string | null; name: string | null; email?: string | null };
+  seller?: { uuid: string | null; name: string | null; email?: string | null };
 }
 
-export async function fetchAdminSafeDeals(query: { status?: string; page?: number } = {}): Promise<{ data: AdminSafeDealRow[]; meta: AdminMeta }> {
+export interface AdminSafeDealsQuery {
+  status?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+}
+
+export async function fetchAdminSafeDeals(query: AdminSafeDealsQuery = {}): Promise<{ data: AdminSafeDealRow[]; meta: AdminMeta }> {
   const res = await api<{ data: AdminSafeDealRow[]; meta: AdminMeta }>("/admin/safe-deals", { query });
   return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
+}
+
+export async function downloadAdminSafeDealsExport(query: Omit<AdminSafeDealsQuery, "page"> = {}): Promise<void> {
+  await downloadCsv("/admin/safe-deals/export", query, "safe-deals");
 }
 
 export async function adminReleaseSafeDeal(uuid: string): Promise<void> {

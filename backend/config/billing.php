@@ -105,19 +105,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Safe Deal (Безопасная сделка) — wallet-based escrow (spec v4.0 §T5)
+    | Safe Deal (Безопасная сделка) — escrow (spec v4.0 §T5)
     |--------------------------------------------------------------------------
     |
-    | Funds are held on the buyer's internal wallet balance and released to the
-    | seller (minus the platform commission) on completion. No external escrow.
+    | escrow_provider picks where the buyer's money waits:
+    |   vtb    — two-stage card hold (registerPreAuth → deposit / reverse / refund)
+    |   wallet — internal wallet ledger hold (legacy, no external money movement)
+    |   auto   — vtb when acquiring is configured, otherwise wallet
     |
     */
     'safe_deal' => [
         'enabled' => env('SAFE_DEAL_ENABLED', true),
+        'escrow_provider' => env('SAFE_DEAL_ESCROW_PROVIDER', 'auto'),
         // Platform commission (% of listing price, remainder goes to seller).
         'platform_fee_percent' => (float) env('SAFE_DEAL_PLATFORM_FEE_PERCENT', 5),
         // Days after delivery before funds auto-release to the seller.
         'auto_release_days' => (int) env('SAFE_DEAL_AUTO_RELEASE_DAYS', 7),
+        // An unpaid deal keeps the listing reserved this long, then it expires.
+        'checkout_ttl_minutes' => (int) env('SAFE_DEAL_CHECKOUT_TTL_MINUTES', 30),
     ],
 
 ];

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import type { Category } from "@/lib/mock";
+import type { Category, CategoryChild } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
@@ -22,6 +22,13 @@ export const Route = createFileRoute("/categories/$id/")({
 
 function seedFrom(s: string): number {
   return s.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
+}
+
+function flattenRooms(nodes: CategoryChild[], depth = 0): { node: CategoryChild; depth: number }[] {
+  return nodes.flatMap((node) => [
+    { node, depth },
+    ...flattenRooms(node.children ?? [], depth + 1),
+  ]);
 }
 
 const ROOM_PREVIEW_KEYS = [
@@ -43,11 +50,14 @@ function CategoryRoomsPage() {
   const roomStats = useCategoryRoomStats(id);
   const [query, setQuery] = useState("");
 
+  // Rooms live on levels 2 and 3 — a flat, indented list keeps «Ил-6»-style
+  // third-level rooms reachable without an extra page.
   const filteredSubs = useMemo(() => {
     if (!c) return [];
     const q = query.trim().toLowerCase();
-    if (!q) return c.subcategories;
-    return c.subcategories.filter((s) => s.name.toLowerCase().includes(q));
+    const flat = flattenRooms(c.subcategories);
+    if (!q) return flat;
+    return flat.filter(({ node }) => node.name.toLowerCase().includes(q));
   }, [c, query]);
 
   if (!c) {
@@ -146,7 +156,7 @@ function CategoryRoomsPage() {
           </div>
 
           <ul>
-            {filteredSubs.map((s, i) => {
+            {filteredSubs.map(({ node: s, depth }, i) => {
               const online = onlineForSubcategory(roomStats, s.id);
               const members = membersForSubcategory(roomStats, s.id);
               const adsCount = 0;
@@ -157,7 +167,8 @@ function CategoryRoomsPage() {
                   <Link
                     to="/categories/$id/$subId"
                     params={{ id: c.id, subId: s.id }}
-                    className="flex items-center gap-[12px] px-[16px] py-[12px] transition-colors hover:bg-[var(--background-surface)]"
+                    className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)]"
+                    style={{ paddingLeft: 16 + depth * 20 }}
                   >
                     <span
                       className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[12px] text-[14px] font-semibold"

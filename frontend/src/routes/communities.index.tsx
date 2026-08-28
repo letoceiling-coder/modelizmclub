@@ -9,7 +9,6 @@ import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import type { Community } from "@/lib/mock";
 import { fetchCommunities } from "@/lib/api/communities";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
-import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -38,8 +37,6 @@ export const Route = createFileRoute("/communities/")({
     ]);
     return { communities };
   },
-  pendingComponent: AppBootPreload,
-  pendingMs: 0,
   staleTime: 30_000,
   component: CommunitiesPage,
 });

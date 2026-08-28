@@ -8,12 +8,11 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 
-/** Deal-type (Продаю/Куплю/Обменяю) → Badge variant. Stays within the
+/** Deal-type (Продаю/Куплю) → Badge variant. Stays within the
  *  blue accent family + neutral; never the commercial-orange palette. */
 const DEAL_VARIANT: Record<Ad["status"], NonNullable<BadgeProps["variant"]>> = {
   "Продаю": "info",
   "Куплю": "info",
-  "Обменяю": "secondary",
 };
 
 interface AdActionPanelProps {
@@ -118,9 +117,15 @@ export function AdActionPanel({
 
       <div className="flex flex-col gap-[8px]">
         {showSafeDeal && (
-          <Button onClick={onSafeDeal} loading={safeDealBusy} size="lg" className="w-full rounded-[var(--r-button)]">
-            <ShieldCheck size={16} /> Купить через безопасную сделку
-          </Button>
+          ad.reserved ? (
+            <Button disabled size="lg" variant="secondary" className="w-full rounded-[var(--r-button)] disabled:opacity-100">
+              <ShieldCheck size={16} /> Забронировано
+            </Button>
+          ) : (
+            <Button onClick={onSafeDeal} loading={safeDealBusy} size="lg" className="w-full rounded-[var(--r-button)]">
+              <ShieldCheck size={16} /> Купить через безопасную сделку
+            </Button>
+          )
         )}
         <Button onClick={onWrite} size="lg" variant={showSafeDeal ? "outline" : "default"} className="w-full rounded-[var(--r-button)]">
           <MessageSquare size={16} /> Написать продавцу

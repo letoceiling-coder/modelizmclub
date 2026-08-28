@@ -33,6 +33,7 @@ import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
 import { footerLinkLabel, groupTitle, resolveFooterHref, useFooterLinksApi } from "@/lib/hooks/useFooterLinks";
 import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
+import { usePostCategoriesState } from "@/lib/hooks/useCategories";
 
 import i18n from "@/lib/i18n";
 
@@ -829,6 +830,7 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
 function CategoriesSection() {
   const { t } = useTranslation();
   const { section, loading } = useLandingSection("directions");
+  const { categories: postCategories } = usePostCategoriesState();
   const cards = section?.cards ?? [];
 
   if (!loading && cards.length === 0) return null;
@@ -843,31 +845,50 @@ function CategoriesSection() {
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {cards.map((card) => {
             const count = card.listings_count ?? 0;
+            const subs = card.post_category_id != null
+              ? (postCategories.find((c) => c.id === String(card.post_category_id))?.subcategories ?? [])
+              : [];
             return (
-              <LandingBlockLink
-                key={card.id}
-                card={card}
-                className="group landing-tap-card landing-tap-card--lift-sm flex items-center gap-[10px] p-3 sm:gap-3 sm:p-4"
-                style={cardStyle}
-              >
-                <IconBox
-                  size="md"
-                  variant="elevated"
-                  className="h-[36px] w-[36px] shrink-0 transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
+              <div key={card.id} className="flex flex-col">
+                <LandingBlockLink
+                  card={card}
+                  className="group landing-tap-card landing-tap-card--lift-sm flex items-center gap-[10px] p-3 sm:gap-3 sm:p-4"
+                  style={cardStyle}
                 >
-                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
-                </IconBox>
-                <div className="min-w-0">
-                  <div
-                    className="text-[13px] font-semibold leading-tight sm:text-sm"
-                    style={{ color: "var(--foreground)", hyphens: "auto", overflowWrap: "break-word" }}
-                    lang="ru"
+                  <IconBox
+                    size="md"
+                    variant="elevated"
+                    className="h-[36px] w-[36px] shrink-0 transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
                   >
-                    {card.title}
+                    <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+                  </IconBox>
+                  <div className="min-w-0">
+                    <div
+                      className="text-[13px] font-semibold leading-tight sm:text-sm"
+                      style={{ color: "var(--foreground)", hyphens: "auto", overflowWrap: "break-word" }}
+                      lang="ru"
+                    >
+                      {card.title}
+                    </div>
+                    <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
                   </div>
-                  <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
-                </div>
-              </LandingBlockLink>
+                </LandingBlockLink>
+                {subs.length > 0 && (
+                  <div className="mt-[6px] flex flex-wrap gap-[4px] px-[2px]">
+                    {subs.slice(0, 4).map((s) => (
+                      <Link
+                        key={s.id}
+                        to="/feed"
+                        search={{ taxonomy_id: Number(s.id) }}
+                        className="rounded-full px-[8px] py-[3px] text-[11px] transition-colors hover:bg-[var(--background-elevated)]"
+                        style={{ border: "1px solid var(--border)", color: "var(--foreground-70)" }}
+                      >
+                        {s.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

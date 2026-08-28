@@ -47,6 +47,9 @@ interface ApiPublicProfile {
     followers_count?: number;
     following_count?: number;
     rating_score?: number;
+    reviews_count?: number;
+    deals_count?: number;
+    is_trusted_seller?: boolean;
   };
   member_since?: string | null;
   is_following?: boolean;
@@ -66,6 +69,9 @@ export interface PublicProfile {
     followers: number;
     following: number;
     rating: number;
+    reviews: number;
+    deals: number;
+    trusted: boolean;
   };
   memberSince?: string;
   isFollowing: boolean;
@@ -322,6 +328,9 @@ export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
       followers: p.stats?.followers_count ?? 0,
       following: p.stats?.following_count ?? 0,
       rating: p.stats?.rating_score ?? 0,
+      reviews: p.stats?.reviews_count ?? 0,
+      deals: p.stats?.deals_count ?? 0,
+      trusted: Boolean(p.stats?.is_trusted_seller),
     },
     memberSince: p.member_since ?? undefined,
     isFollowing: Boolean(p.is_following),

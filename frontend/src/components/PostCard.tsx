@@ -199,9 +199,11 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
       const next = !reposted;
       setReposted(next);
       setReposts((n) => n + (next ? 1 : -1));
+      toast.success(next ? t("components.repostMenu.repostAdded") : t("components.repostMenu.repostUndone"));
       repostPost(post.id, next).catch(() => {
         setReposted(!next);
         setReposts((n) => n + (next ? -1 : 1));
+        toast.error(t("components.repostMenu.repostFailed"));
       });
     });
   };
@@ -246,6 +248,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="feed-virtual-item"
     >
       <Card
         className={cn(
@@ -274,6 +277,24 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
                 {reposter.name}
               </Link>{" "}
               {t("components.postCard.reposted")}
+            </span>
+          </div>
+        )}
+
+        {!reposter && post.repostOf && (
+          <div
+            className="flex items-center gap-[8px] border-b px-[16px] py-[8px] text-[12px]"
+            style={{
+              color: "var(--foreground-70)",
+              borderColor: "var(--border)",
+              background: "var(--background-overlay)",
+            }}
+          >
+            <Repeat2 className="h-[14px] w-[14px]" style={{ color: "var(--accent)" }} />
+            <span className="truncate">
+              {post.repostOf.category
+                ? t("components.postCard.repostFromCategory", { category: post.repostOf.category })
+                : t("components.postCard.repostFrom", { author: post.repostOf.authorName })}
             </span>
           </div>
         )}
@@ -570,6 +591,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               setShowAllComments(true);
               startCommentsFetch();
             }}
+            onHide={() => setShowAllComments(false)}
             totalCount={commentsCount}
           />
         </div>

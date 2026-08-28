@@ -95,7 +95,13 @@ export interface Video {
   commentList?: Comment[];   // the SAME Comment type, reused unchanged
 }
 
-export type PostMediaItem = { type: "image" | "video"; url: string };
+export type PostMediaItem = {
+  type: "image" | "video";
+  url: string;
+  /** Intrinsic size, when the API knows it — used to reserve the media box. */
+  width?: number;
+  height?: number;
+};
 
 export interface Post {
   id: ID;
@@ -125,6 +131,8 @@ export interface Post {
   isLiked?: boolean;
   isSaved?: boolean;
   isReposted?: boolean;
+  /** Set when this post is a repost — carries the original for the "репост из …" label. */
+  repostOf?: { id: ID; title: string; category: string; authorName: string };
   repostComment?: string;
   commentList?: Comment[];
   repostedBy?: ID;
@@ -146,7 +154,11 @@ export interface AdSeller {
   name: string;
   avatar: string;
   rating: number;
+  /** Number of ratings behind `rating`. */
+  reviews?: number;
   deals: number;
+  /** rating >= 4.5 over >= 10 reviews — mirrors UserRatingService::isTrusted. */
+  trusted?: boolean;
   since: string;
   /** Demo-only for now — no backend field exists yet (see
    *  backend-endpoints-needed.md #22). Populated by makeSeller() below;
@@ -167,7 +179,7 @@ export interface Ad {
   delivery: string[];
   deliveryDetails?: string;
   condition?: AdCondition;
-  status: "Продаю" | "Куплю" | "Обменяю";
+  status: "Продаю" | "Куплю";
   contact: string;
   authorId: ID;
   seller?: AdSeller;
@@ -190,6 +202,8 @@ export interface Ad {
   dimensionsCm?: { length?: number; width?: number; height?: number } | null;
   pickupAddress?: string | null;
   offersCdek?: boolean;
+  /** A safe deal is holding this listing — shown as a «Забронировано» overlay. */
+  reserved?: boolean;
 }
 
 export interface CategoryChild {
@@ -364,6 +378,8 @@ export interface Dialog {
   title?: string;
   avatar?: string;
   communitySlug?: string;
+  /** Category chat: taxonomy ids needed to build the /categories/{root}/{id} link. */
+  room?: { categoryId: string; rootId: string | null };
 }
 
 export interface DialogAdRef {
@@ -519,7 +535,7 @@ const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]
   { id: "a5", title: "Пульт Radiomaster TX16S MKII ELRS", price: 22000, category: "Радиоаппаратура", subcategory: "Пульты", city: "Москва", delivery: ["СДЭК", "Ozon"], deliveryDetails: "Полный комплект с зарядкой, оригинальная коробка.", condition: "Б/у", status: "Продаю", contact: "+7 900 000-00-05", authorId: "u4", description: "Radiomaster TX16S MKII, прошивка EdgeTX последняя, модуль ELRS внутренний 1W. Стики Hall-эффект AG01. Состояние идеальное, не падал.", views: 3210, likes: 56, createdAt: "2 дня назад", seeds: [15, 151, 152, 153, 154], sellerStats: [4.9, 64, "февраль 2022"] },
   { id: "a6", title: "ESC-регулятор Hobbywing Justock 120A", price: 5400, category: "Автомодели", subcategory: "Электро", city: "Сочи", delivery: ["СДЭК"], deliveryDetails: "Готов к встрече в Сочи, по России — СДЭК.", condition: "Б/у", status: "Куплю", contact: "tg @racer_sochi", authorId: "u7", description: "Куплю Hobbywing Justock 120A или аналог. Рассмотрю варианты от 4500₽ при хорошем состоянии.", views: 540, likes: 4, createdAt: "2 дня назад", seeds: [16, 161, 162], sellerStats: [4.6, 12, "сентябрь 2023"] },
   { id: "a7", title: "Сервопривод Savox SC-1256TG (титан)", price: 4900, category: "Запчасти", subcategory: "Моторы", city: "Новосибирск", delivery: ["Wildberries", "СДЭК"], deliveryDetails: "Отправка в течение 1–2 рабочих дней.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-07", authorId: "u4", description: "Savox SC-1256TG, 20 кг·см при 6В, 0.15 сек/60°, титановые шестерни. Новый, в заводской коробке.", views: 980, likes: 14, createdAt: "3 дня назад", seeds: [17, 171, 172, 173], sellerStats: [4.9, 64, "февраль 2022"] },
-  { id: "a8", title: "Комплект декалей для Як-54 (масштаб 1:6)", price: 6700, category: "Самолёты", subcategory: "Пилотажки", city: "Ростов-на-Дону", delivery: ["СДЭК", "Почта России"], deliveryDetails: "Отправка в тубусе, аккуратная упаковка.", condition: "Новое", status: "Обменяю", contact: "tg @yak_pilot", authorId: "u8", description: "Полный комплект декалей для Як-54 1:6 советской раскраски. Готов обменять на исправный сервопривод HV или сложить с доплатой.", views: 320, likes: 6, createdAt: "3 дня назад", seeds: [18, 181, 182], sellerStats: [4.8, 18, "январь 2023"] },
+  { id: "a8", title: "Комплект декалей для Як-54 (масштаб 1:6)", price: 6700, category: "Самолёты", subcategory: "Пилотажки", city: "Ростов-на-Дону", delivery: ["СДЭК", "Почта России"], deliveryDetails: "Отправка в тубусе, аккуратная упаковка.", condition: "Новое", status: "Продаю", contact: "tg @yak_pilot", authorId: "u8", description: "Полный комплект декалей для Як-54 1:6 советской раскраски. Готов обменять на исправный сервопривод HV или сложить с доплатой.", views: 320, likes: 6, createdAt: "3 дня назад", seeds: [18, 181, 182], sellerStats: [4.8, 18, "январь 2023"] },
   { id: "a9", title: "Корпус катера 1:20 из стеклопластика", price: 8500, category: "Корабли", subcategory: "Катера", city: "Екатеринбург", delivery: ["СДЭК"], deliveryDetails: "Крупногабарит — только СДЭК с дополнительной упаковкой.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-09", authorId: "u5", description: "Корпус глиссера 1:20, ручная формовка, стеклопластик 1.5мм. Без отделки, под покраску. Длина 600мм.", views: 410, likes: 9, createdAt: "4 дня назад", seeds: [19, 191, 192, 193], sellerStats: [4.7, 23, "октябрь 2022"] },
   { id: "a10", title: "Набор винтов APC 11x5.5E (5 пар)", price: 1200, category: "Запчасти", subcategory: "Моторы", city: "Краснодар", delivery: ["Почта России", "Ozon"], deliveryDetails: "Отправка Почтой 1 класса.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-10", authorId: "u1", description: "Электро-винты APC 11x5.5E, 5 пар. Балансировка с завода. Подходят для самолётов класса 1м.", views: 280, likes: 5, createdAt: "5 дней назад", seeds: [20, 201, 202], sellerStats: [4.9, 47, "март 2022"] },
   { id: "a11", title: "Шасси Mugen MBX8 ECO для багги 1:8", price: 24000, category: "Автомодели", subcategory: "Запчасти", city: "Краснодар", delivery: ["СДЭК"], deliveryDetails: "Самовывоз или СДЭК с осмотром при получении.", condition: "Б/у", status: "Продаю", contact: "+7 900 000-00-11", authorId: "u1", description: "Полное шасси Mugen MBX8 ECO без электроники. Амортизаторы перебраны, новые масла. Подвеска без люфтов.", views: 1820, likes: 41, createdAt: "5 дней назад", seeds: [31, 311, 312, 313, 314], sellerStats: [4.9, 47, "март 2022"] },
@@ -536,7 +552,7 @@ const rawAds: Array<Omit<Ad, "image" | "gallery" | "seller"> & { seeds: number[]
   { id: "a22", title: "Кузов Pro-Line Chevy SS 1:10 короткий", price: 2400, category: "Автомодели", subcategory: "Запчасти", city: "Краснодар", delivery: ["Почта России", "СДЭК"], deliveryDetails: "Кузов чистый, под покраску.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-22", authorId: "u1", description: "Pro-Line Chevy SS для туринга 1:10, 190мм. Прозрачный, не тонирован, под покраску.", views: 380, likes: 7, createdAt: "3 недели назад", seeds: [42, 421, 422], sellerStats: [4.9, 47, "март 2022"] },
   { id: "a23", title: "Полётный комплект Pixhawk 6C Mini", price: 28000, category: "Разработчики", subcategory: "Автопилоты", city: "Ростов-на-Дону", delivery: ["СДЭК"], deliveryDetails: "Комплект: автопилот, GPS, PM, провода.", condition: "Новое", status: "Продаю", contact: "tg @pixhawk_rnd", authorId: "u8", description: "Holybro Pixhawk 6C Mini полный комплект. ArduPilot/PX4. Новый, не использовался.", views: 1620, likes: 31, createdAt: "3 недели назад", seeds: [43, 431, 432, 433], sellerStats: [4.8, 18, "январь 2023"] },
   { id: "a24", title: "Гироскоп MEMS BMI088 модуль", price: 850, category: "Электроника", subcategory: "Датчики", city: "Казань", delivery: ["Почта России"], deliveryDetails: "Отправка письмом 1 класса.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-24", authorId: "u6", description: "Модуль IMU на BMI088. SPI/I2C, 3.3В логика. В наличии 12 шт.", views: 240, likes: 2, createdAt: "месяц назад", seeds: [44, 441], sellerStats: [4.7, 21, "май 2023"] },
-  { id: "a25", title: "Контроллер для электросамоката 60V 30A", price: 4500, category: "Электросамокаты", subcategory: "Контроллеры", city: "Сочи", delivery: ["СДЭК"], deliveryDetails: "С прошивкой под Kugoo/Dualtron.", condition: "Б/у", status: "Обменяю", contact: "tg @scooter_sochi", authorId: "u7", description: "Контроллер 60V 30A с FOC, прошивка кастомная. Меняю на батарею 60V не менее 25Ah.", views: 680, likes: 11, createdAt: "месяц назад", seeds: [45, 451, 452], sellerStats: [4.6, 12, "сентябрь 2023"] },
+  { id: "a25", title: "Контроллер для электросамоката 60V 30A", price: 4500, category: "Электросамокаты", subcategory: "Контроллеры", city: "Сочи", delivery: ["СДЭК"], deliveryDetails: "С прошивкой под Kugoo/Dualtron.", condition: "Б/у", status: "Продаю", contact: "tg @scooter_sochi", authorId: "u7", description: "Контроллер 60V 30A с FOC, прошивка кастомная. Меняю на батарею 60V не менее 25Ah.", views: 680, likes: 11, createdAt: "месяц назад", seeds: [45, 451, 452], sellerStats: [4.6, 12, "сентябрь 2023"] },
   { id: "a26", title: "Парусник Yacht Class 1м (RTR)", price: 14000, category: "Корабли", subcategory: "Парусники", city: "Екатеринбург", delivery: ["СДЭК"], deliveryDetails: "Крупногабарит, дополнительная защита корпуса.", condition: "Б/у", status: "Продаю", contact: "+7 900 000-00-26", authorId: "u5", description: "Парусная яхта класса 1м, готова к ходу. В комплекте 2 паруса, передатчик, ЗУ.", views: 320, likes: 5, createdAt: "месяц назад", seeds: [46, 461, 462, 463], sellerStats: [4.7, 23, "октябрь 2022"] },
   { id: "a27", title: "Набор инструмента Arrowmax 1:8 Touring", price: 7800, category: "Запчасти", subcategory: "Шасси", city: "Москва", delivery: ["СДЭК", "Ozon"], deliveryDetails: "Полный комплект в кейсе.", condition: "Новое", status: "Продаю", contact: "+7 900 000-00-27", authorId: "u2", description: "Arrowmax Honeycomb Tool Set для туринга и багги: шестигранники 1.5/2.0/2.5/3.0мм, плоские отвёртки, ключи. В алюминиевом кейсе.", views: 920, likes: 18, createdAt: "месяц назад", seeds: [47, 471, 472, 473], sellerStats: [4.8, 32, "июль 2021"] },
   { id: "a28", title: "Аэродинамический пакет для туринга 1:10", price: 2100, category: "Автомодели", subcategory: "Тюнинг", city: "Санкт-Петербург", delivery: ["Почта России"], deliveryDetails: "Лёгкая отправка письмом.", condition: "Новое", status: "Продаю", contact: "tg @rc_spb", authorId: "u3", description: "Прижимной обвес + сплиттер из лексана. Универсальная установка на туринг 190мм.", views: 410, likes: 7, createdAt: "месяц назад", seeds: [48, 481], sellerStats: [5.0, 89, "ноябрь 2020"] },

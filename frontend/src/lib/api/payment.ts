@@ -15,6 +15,7 @@ import { api } from "./client";
  *   POST   /payments/{uuid}/sync          SyncPaymentController
  *   POST   /payments/{uuid}/confirm-stub  ConfirmStubPaymentController  (test acquiring outcomes)
  *   GET    /users/me/subscription         MySubscriptionController
+ *   POST   /users/me/subscription/cancel  CancelSubscriptionController
  *   GET    /plans                         IndexPlansController
  */
 
@@ -161,6 +162,14 @@ export function paymentFailureCopy(reason: string | undefined, t: (key: string) 
 /** Current subscription, or null when the user is on the free tier. */
 export async function fetchMySubscription(): Promise<MySubscription | null> {
   const res = await api<{ data: MySubscription | null }>("/users/me/subscription");
+  return res.data ?? null;
+}
+
+/** Stops auto-renew. The subscription stays valid until `ends_at`. */
+export async function cancelMySubscription(): Promise<MySubscription | null> {
+  const res = await api<{ data: MySubscription | null }>("/users/me/subscription/cancel", {
+    method: "POST",
+  });
   return res.data ?? null;
 }
 

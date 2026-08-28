@@ -28,7 +28,6 @@ import {
   verifyListingImageDecodable,
 } from "@/lib/listing-image";
 import { ListingPreviewCard } from "@/components/ads/wizard/ListingPreviewCard";
-import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { Checkbox } from "@/components/ui-bespoke/Checkbox";
 import { useDeliveryMethods } from "@/lib/hooks/useDeliveryMethods";
 import { isCdekDelivery, isPickupDelivery } from "@/lib/config/deliveryMethods";
@@ -43,7 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ChevronLeft, ChevronRight, Tag,
-  ArrowLeftRight, MapPin, Truck, Loader2, Phone, CircleHelp,
+  MapPin, Truck, Loader2, Phone, CircleHelp,
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
 import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
@@ -67,7 +66,7 @@ export const Route = createFileRoute("/ads/new")({
   component: NewAdPage,
 });
 
-type Status = "Продаю" | "Обменяю";
+type Status = "Продаю";
 const CONDITIONS: AdCondition[] = ["Новое", "Б/у"];
 const MAX_PHOTOS = 10;
 
@@ -296,7 +295,7 @@ function NewAdPage() {
             preview: url,
             mediaId: ad.mediaIds?.[i],
           })),
-          status: ad.status === "Обменяю" ? "Обменяю" : "Продаю",
+          status: "Продаю",
           title: ad.title,
           description: ad.description ?? "",
           price: String(ad.price || ""),
@@ -405,9 +404,10 @@ function NewAdPage() {
         && form.city.trim().length >= 2
         && (form.cityId != null || form.city.trim().length >= 3)
         && phonesMatch(form.contact, verifiedPhone)
+        && deliveryDetailsValid(form) === null
       );
     }
-    return photosOk;
+    return photosOk && deliveryDetailsValid(form) === null;
   }, [step, form, verifiedPhone]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -978,15 +978,6 @@ function StepData({
         </Block>
       )}
 
-      <Block title={t("pages.adsNew.listingType")}>
-        <div className="grid gap-[10px] sm:grid-cols-2">
-          <RadioCard selected={form.status === "Продаю"} onClick={() => set("status", "Продаю")}
-            icon={Tag} title={t("pages.adsNew.statusSelling")} description={t("pages.adsNew.statusSellingDesc")} />
-          <RadioCard selected={form.status === "Обменяю"} onClick={() => set("status", "Обменяю")}
-            icon={ArrowLeftRight} title={t("pages.adsNew.statusExchange")} description={t("pages.adsNew.statusExchangeDesc")} />
-        </div>
-      </Block>
-
       <Block title={t("pages.adsNew.descriptionBlock")}>
         <Field label={t("pages.adsNew.titleLabel")} required error={titleErr ? t("pages.adsNew.titleMinError") : undefined}>
           <Input
@@ -1207,11 +1198,18 @@ function StepData({
                         label="Самовывоз"
                       />
                       {form.deliveries.includes(m.label) && (
-                        <Input
-                          value={form.pickupAddress}
-                          onChange={(e) => set("pickupAddress", e.target.value)}
-                          placeholder="Адрес или ориентир"
-                        />
+                        <Field
+                          label="Адрес или ориентир"
+                          required
+                          error={form.pickupAddress.trim().length < 3 ? "Укажите адрес или ориентир для самовывоза" : undefined}
+                        >
+                          <Input
+                            value={form.pickupAddress}
+                            onChange={(e) => set("pickupAddress", e.target.value)}
+                            error={form.pickupAddress.trim().length < 3}
+                            placeholder="Адрес или ориентир"
+                          />
+                        </Field>
                       )}
                     </div>
                   ))}

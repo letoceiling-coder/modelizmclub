@@ -388,7 +388,7 @@ function AdDetailPage() {
           className="grid gap-[16px] lg:grid-cols-[1fr_360px] lg:items-start lg:gap-[24px] [grid-template-areas:'gallery'_'actions'_'content'] lg:[grid-template-areas:'gallery_actions'_'content_actions']"
         >
           <div className="min-w-0 [grid-area:gallery]">
-            <AdGallery images={images} alt={ad.title} />
+            <AdGallery images={images} alt={ad.title} reserved={ad.reserved} />
           </div>
 
           <div className="flex flex-col gap-[16px] [grid-area:actions] lg:sticky lg:top-[16px]">
