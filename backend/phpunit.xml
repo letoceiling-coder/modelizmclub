@@ -37,5 +37,7 @@
         <!-- Empty so tests that call notify() never hit the live MAX API. -->
         <env name="MAX_BOT_TOKEN" value=""/>
         <env name="MAX_BOT_USERNAME" value=""/>
+        <!-- Wallet escrow by default; VTB hold tests opt in and fake the gateway. -->
+        <env name="SAFE_DEAL_ESCROW_PROVIDER" value="wallet"/>
     </php>
 </phpunit>
