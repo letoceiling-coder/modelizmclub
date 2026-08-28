@@ -12,6 +12,7 @@ import {
 import { useMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import {
+  getFeedGuestAccessSync,
   isActionAllowedForTier,
   loadFeedGuestAccess,
   resolveDenyMode,
@@ -64,8 +65,8 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     !isStaffUser(me) &&
     !subLoading &&
     sub?.is_active !== true;
-  const [config, setConfig] = useState<FeedGuestAccessConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<FeedGuestAccessConfig | null>(() => getFeedGuestAccessSync());
+  const [loading, setLoading] = useState(() => !getFeedGuestAccessSync());
   const [authOpen, setAuthOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [phoneReturnTo, setPhoneReturnTo] = useState("/feed");
@@ -75,12 +76,16 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
-    void loadFeedGuestAccess().then((c) => {
-      if (alive) {
-        setConfig(c);
-        setLoading(false);
-      }
-    });
+    if (getFeedGuestAccessSync()) {
+      setLoading(false);
+    } else {
+      void loadFeedGuestAccess().then((c) => {
+        if (alive) {
+          setConfig(c);
+          setLoading(false);
+        }
+      });
+    }
     const unsub = subscribeFeedGuestAccess(() => {
       void loadFeedGuestAccess().then((c) => { if (alive) setConfig(c); });
     });

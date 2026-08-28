@@ -15,15 +15,18 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed } from "@/lib/api/feed";
-import { fetchPostCategories, categoryIdByName } from "@/lib/api/categories";
+import { fetchPostCategories, categoryIdByName, getCachedPostCategories } from "@/lib/api/categories";
 import { parseTaxonomyId } from "@/lib/taxonomy";
-import { fetchBanners } from "@/lib/api/banners";
+import { fetchBanners, fetchBannersWithSettings } from "@/lib/api/banners";
+import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { getHiddenPostIds, hidePostId } from "@/lib/hidden-posts";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import { FeedRightRail } from "@/components/feed/FeedRightRail";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FEED_FILTER_ACTIONS, firstAllowedFeedFilter } from "@/lib/feed-guest-access/registry";
+import { AppBootPreload } from "@/components/boot/AppBootPreload";
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 
 import i18n from "@/lib/i18n";
 
@@ -54,6 +57,27 @@ export const Route = createFileRoute("/feed")({
     category: (search.category as string) || undefined,
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
+  loader: async () => {
+    await ensurePublicBootstrap();
+    if (typeof window === "undefined") {
+      return {
+        posts: [] as Post[],
+        banners: [] as Banner[],
+        categories: getCachedPostCategories() ?? [],
+      };
+    }
+    const [feed, banners, categories] = await Promise.all([
+      fetchFeed({ filter: "all", perPage: 50 }).catch(() => ({ posts: [] as Post[] })),
+      fetchBanners("feed").catch(() => [] as Banner[]),
+      fetchPostCategories().catch(() => getCachedPostCategories() ?? []),
+      fetchBannersWithSettings().catch(() => null),
+      prefetchCategoryRoomStats(),
+    ]);
+    return { posts: feed.posts, banners, categories };
+  },
+  pendingComponent: AppBootPreload,
+  pendingMs: 0,
+  staleTime: 30_000,
   component: FeedPage,
 });
 
@@ -64,9 +88,10 @@ function FeedPage() {
   const { composer, category: categoryFromUrl, taxonomy_id: taxonomyFromUrl } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const loaded = Route.useLoaderData();
+  const [posts, setPosts] = useState<Post[]>(() => loaded.posts);
+  const [categories, setCategories] = useState<Category[]>(() => loaded.categories);
+  const [banners, setBanners] = useState<Banner[]>(() => loaded.banners);
   const [filter, setFilter] = useState<FeedFilter>(categoryFromUrl || taxonomyFromUrl ? "categories" : "all");
   const [activeCategory, setActiveCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -118,12 +143,15 @@ function FeedPage() {
     setPosts((cur) => cur.filter((p) => p.id !== id));
   };
 
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(() => loaded.posts.length === 0);
+  const usedLoaderFeed = useRef(loaded.posts.length > 0);
 
   useEffect(() => {
-    fetchPostCategories().then(setCategories).catch(() => {});
-    fetchBanners("feed").then(setBanners).catch(() => {});
-  }, []);
+    if (loaded.categories.length) setCategories(loaded.categories);
+    else fetchPostCategories().then(setCategories).catch(() => {});
+    if (loaded.banners.length) setBanners(loaded.banners);
+    else fetchBanners("feed").then(setBanners).catch(() => {});
+  }, [loaded.banners, loaded.categories]);
 
   useEffect(() => {
     if (!taxonomyFromUrl || categories.length === 0) return;
@@ -147,6 +175,17 @@ function FeedPage() {
       setInitialLoading(false);
       return;
     }
+    if (
+      usedLoaderFeed.current &&
+      filter === "all" &&
+      !activeCategory &&
+      !taxonomyFromUrl
+    ) {
+      usedLoaderFeed.current = false;
+      setInitialLoading(false);
+      return;
+    }
+    usedLoaderFeed.current = false;
     setInitialLoading(true);
     const categoryId = taxonomyFromUrl ?? (activeCategory ? categoryIdByName(activeCategory) : undefined);
     const query =

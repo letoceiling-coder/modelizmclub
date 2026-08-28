@@ -7,6 +7,7 @@ import { actions, GUEST_USER, setCurrentUser, setDialogs, setSessionResolved } f
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
+import { getMySubscription } from "@/lib/subscription";
 
 /** Replace local favorite IDs with the server list (source of truth for the badge). */
 export async function syncFavoritesFromServer(): Promise<void> {
@@ -78,7 +79,11 @@ async function loadSession(): Promise<boolean> {
   setCurrentUser(me);
   shutdownCalls();
   await startRealtimeHub(me.id);
-  await Promise.all([syncFavoritesFromServer(), syncDialogsFromServer(me.id)]);
+  await Promise.all([
+    syncFavoritesFromServer(),
+    syncDialogsFromServer(me.id),
+    getMySubscription(),
+  ]);
   return true;
 }
 

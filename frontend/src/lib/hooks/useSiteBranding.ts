@@ -42,6 +42,7 @@ export function useSiteBranding(): SiteBranding {
   const [data, setData] = useState<SiteBranding>(cache ?? DEFAULT);
 
   useEffect(() => {
+    if (cache) return;
     let active = true;
     void loadBranding().then((branding) => {
       if (active) setData(branding);

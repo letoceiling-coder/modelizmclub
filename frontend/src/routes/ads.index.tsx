@@ -5,6 +5,9 @@ import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-re
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { AppBootPreload } from "@/components/boot/AppBootPreload";
+import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
@@ -21,20 +24,44 @@ import { cn } from "@/lib/utils";
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 
+// Fetched in batches via per_page/page instead of all at once — keeps the
+// initial catalog payload light (perf, especially on weak mobile networks).
+const PAGE_SIZE = 24;
+
 export const Route = createFileRoute("/ads/")({
   head: () => ({ meta: [{ title: i18n.t("pages.ads.metaTitle") }, { name: "description", content: i18n.t("pages.ads.metaDescription") }] }),
   validateSearch: (search: Record<string, unknown>): { q?: string; taxonomy_id?: number } => ({
     q: typeof search.q === "string" ? search.q : undefined,
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
+  loaderDeps: ({ search }) => ({
+    q: search.q,
+    taxonomy_id: search.taxonomy_id,
+  }),
+  loader: async ({ deps }) => {
+    await ensurePublicBootstrap();
+    if (typeof window === "undefined") {
+      return { ads: [] as Ad[] };
+    }
+    const [ads] = await Promise.all([
+      fetchListings({
+        q: deps.q,
+        taxonomyId: deps.taxonomy_id,
+        sort: "new",
+        perPage: PAGE_SIZE,
+        page: 1,
+      }).catch(() => [] as Ad[]),
+      prefetchCategoryRoomStats(),
+    ]);
+    return { ads };
+  },
+  pendingComponent: AppBootPreload,
+  pendingMs: 0,
+  staleTime: 30_000,
   component: CatalogPage,
 });
 
 type LoadState = "idle" | "loading" | "ok" | "error";
-
-// Fetched in batches via per_page/page instead of all at once — keeps the
-// initial catalog payload light (perf, especially on weak mobile networks).
-const PAGE_SIZE = 24;
 
 function countActiveFilters(f: FiltersState): number {
   let n = 0;
@@ -71,20 +98,21 @@ function CatalogPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const search = Route.useSearch();
+  const loaded = Route.useLoaderData();
   const taxonomyId = search.taxonomy_id;
   const { guardAction } = useGuestAccess();
 
-  const [ads, setAds] = useState<Ad[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [ads, setAds] = useState<Ad[]>(() => loaded.ads);
+  const [loadState, setLoadState] = useState<LoadState>("ok");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPendingRefresh, setIsPendingRefresh] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(() => loaded.ads.length === PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
   const [q, setQ] = useState(search.q ?? "");
   const [resultsMinHeight, setResultsMinHeight] = useState<number | undefined>(undefined);
   const resultsWrapRef = useRef<HTMLDivElement>(null);
-  const hasLoadedOnce = useRef(false);
+  const hasLoadedOnce = useRef(true);
 
   useEffect(() => {
     setQ(search.q ?? "");
@@ -168,7 +196,6 @@ function CatalogPage() {
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
       filterSnapshot.current = { q, filters, sort, taxonomyId };
-      void load();
       return;
     }
     const timer = setTimeout(() => {

@@ -55,6 +55,13 @@ export function getFeedGuestAccessSync(): FeedGuestAccessConfig | null {
   return cached;
 }
 
+export function seedFeedGuestAccess(config: FeedGuestAccessConfig): void {
+  cached = hydrateConfig(config);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(EVENT));
+  }
+}
+
 function hydrateConfig(config: FeedGuestAccessConfig): FeedGuestAccessConfig {
   const actions: FeedGuestAccessConfig["actions"] = {};
   for (const [key, fallback] of Object.entries(GUEST_ACCESS_DEFAULT_TIERS)) {

@@ -31,6 +31,10 @@ export function seedLandingBlocks(data: LandingBlocksPublic): void {
   cached = data;
 }
 
+export function getCachedLandingBlocks(): LandingBlocksPublic | null {
+  return cached;
+}
+
 export async function fetchLandingBlocks(): Promise<LandingBlocksPublic> {
   if (cached) return cached;
   try {

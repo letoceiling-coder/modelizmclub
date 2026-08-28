@@ -62,38 +62,65 @@ function mapBanner(b: ApiBanner): Banner {
   };
 }
 
-export async function fetchBanners(placement?: string): Promise<Banner[]> {
-  if (isDemoMode()) return demoBanners();
-  const res = await api<BannersResponse>("/public/banners", {
-    query: placement ? { placement } : undefined,
-    auth: false,
-  });
-  return (res.data ?? []).map(mapBanner);
+const DEFAULT_CAROUSEL: BannerCarouselSettings = {
+  enabled: true,
+  placement: "events",
+  autoplay_seconds: 10,
+  max_slides: 5,
+};
+
+export type BannerPack = { banners: Banner[]; carousel: BannerCarouselSettings };
+
+const packCache = new Map<string, BannerPack>();
+const packInflight = new Map<string, Promise<BannerPack>>();
+
+function placementKey(placement?: string): string {
+  return placement ?? "";
 }
 
-export async function fetchBannersWithSettings(placement?: string): Promise<{
-  banners: Banner[];
-  carousel: BannerCarouselSettings;
-}> {
-  if (isDemoMode()) {
-    return {
-      banners: demoBanners(),
-      carousel: { enabled: true, placement: "events", autoplay_seconds: 10, max_slides: 5 },
+export function getCachedBannersWithSettings(placement?: string): BannerPack | null {
+  return packCache.get(placementKey(placement)) ?? null;
+}
+
+export async function fetchBanners(placement?: string): Promise<Banner[]> {
+  const pack = await fetchBannersWithSettings(placement);
+  return pack.banners;
+}
+
+export async function fetchBannersWithSettings(placement?: string): Promise<BannerPack> {
+  const key = placementKey(placement);
+  const hit = packCache.get(key);
+  if (hit) return hit;
+  const pending = packInflight.get(key);
+  if (pending) return pending;
+
+  const req = (async (): Promise<BannerPack> => {
+    if (isDemoMode()) {
+      const pack: BannerPack = {
+        banners: demoBanners(),
+        carousel: { ...DEFAULT_CAROUSEL, placement: placement ?? "events" },
+      };
+      packCache.set(key, pack);
+      return pack;
+    }
+    const res = await api<BannersResponse>("/public/banners", {
+      query: placement ? { placement } : undefined,
+      auth: false,
+    });
+    const pack: BannerPack = {
+      banners: (res.data ?? []).map(mapBanner),
+      carousel: res.meta?.carousel ?? {
+        ...DEFAULT_CAROUSEL,
+        placement: placement ?? "events",
+      },
     };
-  }
-  const res = await api<BannersResponse>("/public/banners", {
-    query: placement ? { placement } : undefined,
-    auth: false,
+    packCache.set(key, pack);
+    return pack;
+  })().finally(() => {
+    packInflight.delete(key);
   });
-  return {
-    banners: (res.data ?? []).map(mapBanner),
-    carousel: res.meta?.carousel ?? {
-      enabled: true,
-      placement: placement ?? "events",
-      autoplay_seconds: 10,
-      max_slides: 5,
-    },
-  };
+  packInflight.set(key, req);
+  return req;
 }
 
 export async function recordBannerEvent(

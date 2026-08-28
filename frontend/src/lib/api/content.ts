@@ -19,19 +19,20 @@ export async function fetchFaq(): Promise<FaqCategory[]> {
 }
 
 export async function fetchLandingFaq(): Promise<{ name: string | null; articles: FaqArticle[] }> {
+  if (landingFaqCache) return landingFaqCache;
   try {
     const { startPublicBootstrap } = await import("./bootstrap");
     const boot = await startPublicBootstrap();
     if (boot?.landing_faq) {
-      const cat = boot.landing_faq[0];
-      return { name: cat?.name ?? null, articles: cat?.articles ?? [] };
+      seedLandingFaq(boot.landing_faq);
+      return landingFaqCache ?? { name: null, articles: [] };
     }
   } catch {
     /* dedicated endpoint below */
   }
   const res = await api<{ data: FaqCategory[] }>("/public/faq?category=landing", { auth: false });
-  const cat = res.data?.[0];
-  return { name: cat?.name ?? null, articles: cat?.articles ?? [] };
+  seedLandingFaq(res.data ?? []);
+  return landingFaqCache ?? { name: null, articles: [] };
 }
 
 export interface FirstHundredStats {
@@ -47,12 +48,26 @@ export interface ReferralProgramStats {
 }
 
 let statsCache: { firstHundred: FirstHundredStats; referral?: ReferralProgramStats } | null = null;
+let landingFaqCache: { name: string | null; articles: FaqArticle[] } | null = null;
 
 export function seedStats(data: {
   firstHundred: FirstHundredStats;
   referral?: ReferralProgramStats;
 }): void {
   statsCache = data;
+}
+
+export function getCachedStats(): { firstHundred: FirstHundredStats; referral?: ReferralProgramStats } | null {
+  return statsCache;
+}
+
+export function seedLandingFaq(categories: FaqCategory[]): void {
+  const cat = categories[0];
+  landingFaqCache = { name: cat?.name ?? null, articles: cat?.articles ?? [] };
+}
+
+export function getCachedLandingFaq(): { name: string | null; articles: FaqArticle[] } | null {
+  return landingFaqCache;
 }
 
 export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats; referral?: ReferralProgramStats }> {

@@ -9,7 +9,6 @@ const EVENT = "modelizm:icon-overrides-changed";
 let published: IconOverrideMap = {};
 let draft: IconOverrideMap = {};              // slotKey → override (для превью)
 const draftCleared = new Set<string>();       // слоты, сброшенные на дефолт в черновике
-let fetchStarted = false;
 
 function notify() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENT));
@@ -79,13 +78,6 @@ export async function loadIconOverridesFromServer(): Promise<void> {
   const map = await fetchIconOverrides();
   published = map;
   notify();
-}
-
-// Само-инициализация при импорте (как featureFlags.ts). В demo тоже грузим —
-// fetchIconOverrides сам читает localStorage.
-if (typeof window !== "undefined" && !fetchStarted) {
-  fetchStarted = true;
-  void loadIconOverridesFromServer();
 }
 
 function subscribe(cb: () => void): () => void {

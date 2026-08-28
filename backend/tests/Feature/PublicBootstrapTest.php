@@ -52,6 +52,8 @@ class PublicBootstrapTest extends TestCase
                     'feed_guest_access',
                     'icon_overrides',
                     'landing_faq',
+                    'post_categories',
+                    'listing_categories',
                 ],
             ]);
     }

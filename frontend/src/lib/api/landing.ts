@@ -15,6 +15,10 @@ export function seedLandingStats(data: LandingStats): void {
   cached = data;
 }
 
+export function getCachedLandingStats(): LandingStats | null {
+  return cached;
+}
+
 export async function fetchLandingStats(): Promise<LandingStats> {
   if (cached) return cached;
   try {

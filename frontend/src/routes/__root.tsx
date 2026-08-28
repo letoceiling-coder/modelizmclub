@@ -6,7 +6,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import appCss from "../styles.css?url";
@@ -20,12 +20,12 @@ import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider"
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { restoreSession } from "@/lib/auth/session";
 import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
-import { loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
-import { startPublicBootstrap } from "@/lib/api/bootstrap";
+import { applyPublicBootstrap, ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
-import "@/lib/icon-overrides"; // bootstrap published icon-override map on app start
 
 // Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
 // "theme" key holds the resolved value from the old binary toggle). "system"
@@ -76,8 +76,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
-    await requireGuestRouteAccess(location);
+    await ensurePublicBootstrap();
+    if (typeof window !== "undefined") {
+      await restoreSession();
+      await requireGuestRouteAccess(location);
+    }
   },
+  loader: async () => {
+    const bootstrap = await ensurePublicBootstrap();
+    return { bootstrap };
+  },
+  pendingComponent: AppBootPreload,
+  pendingMs: 0,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -158,22 +168,26 @@ function FadingOutlet() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { bootstrap } = Route.useLoaderData();
   const bottomToastOffset = useBottomToastOffset();
+  const seededRef = useRef(false);
+
+  if (bootstrap && !seededRef.current) {
+    seededRef.current = true;
+    rememberPublicBootstrap(bootstrap);
+    applyPublicBootstrap(bootstrap);
+    queryClient.setQueryData(["footer-links"], bootstrap.footer_links);
+  }
+
   useEffect(() => {
     bindCallAudioUnlock();
-    void restoreSession();
-    void startPublicBootstrap().then((data) => {
-      if (data?.footer_links) {
-        queryClient.setQueryData(["footer-links"], data.footer_links);
-      }
-    });
-    void loadFeatureFlagsFromServer();
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void restoreSession();
     };
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);
-  }, [queryClient]);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>

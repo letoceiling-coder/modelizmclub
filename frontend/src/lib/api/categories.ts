@@ -15,6 +15,8 @@ interface ApiCategoryNode {
   children?: ApiCategoryNode[];
 }
 
+export type CategoryApiNode = ApiCategoryNode;
+
 function mapChild(node: ApiCategoryNode): Category["subcategories"][number] {
   return {
     id: String(node.id),
@@ -54,15 +56,7 @@ export async function fetchPostCategories(): Promise<Category[]> {
     }
     const res = await api<{ data: ApiCategoryNode[] }>("/categories/posts");
     const categories = (res.data ?? []).map((n) => mapCategory(n));
-    const byName = new Map<string, number>();
-    const walk = (nodes: ApiCategoryNode[]) => {
-      for (const n of nodes) {
-        byName.set(n.name, n.id);
-        if (n.children) walk(n.children);
-      }
-    };
-    walk(res.data ?? []);
-    cache = { categories, byName };
+    cache = { categories, byName: indexByName(res.data ?? []) };
     return categories;
   })().finally(() => { inflight = null; });
   return inflight;
@@ -72,15 +66,49 @@ export function categoryIdByName(name: string): number | undefined {
   return cache?.byName.get(name);
 }
 
+export function getCachedPostCategories(): Category[] | null {
+  return cache?.categories ?? null;
+}
+
 let listingCache: Category[] | null = null;
+let listingInflight: Promise<Category[]> | null = null;
+
+function indexByName(nodes: ApiCategoryNode[]): Map<string, number> {
+  const byName = new Map<string, number>();
+  const walk = (list: ApiCategoryNode[]) => {
+    for (const n of list) {
+      byName.set(n.name, n.id);
+      if (n.children) walk(n.children);
+    }
+  };
+  walk(nodes);
+  return byName;
+}
+
+export function seedPostCategoryTree(nodes: ApiCategoryNode[]): void {
+  const categories = (nodes ?? []).map((n) => mapCategory(n));
+  cache = { categories, byName: indexByName(nodes ?? []) };
+}
+
+export function seedListingCategoryTree(nodes: ApiCategoryNode[]): void {
+  listingCache = (nodes ?? []).map((n) => mapCategory(n, true));
+}
+
+export function getCachedListingCategories(): Category[] | null {
+  return listingCache;
+}
 
 export async function fetchListingCategories(): Promise<Category[]> {
   if (listingCache) return listingCache;
-  if (isDemoMode()) {
-    listingCache = demoCategories();
-    return listingCache;
-  }
-  const res = await api<{ data: ApiCategoryNode[] }>("/categories/listings");
-  listingCache = (res.data ?? []).map((n) => mapCategory(n, true));
-  return listingCache;
+  if (listingInflight) return listingInflight;
+  listingInflight = (async () => {
+    if (isDemoMode()) {
+      listingCache = demoCategories();
+      return listingCache;
+    }
+    const res = await api<{ data: ApiCategoryNode[] }>("/categories/listings");
+    seedListingCategoryTree(res.data ?? []);
+    return listingCache ?? [];
+  })().finally(() => { listingInflight = null; });
+  return listingInflight;
 }

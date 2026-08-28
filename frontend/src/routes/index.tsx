@@ -12,13 +12,14 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LegalRequisites } from "@/components/legal/LegalRequisites";
 import { isDemoMode } from "@/lib/demo-mode";
-import { ensureSession } from "@/lib/auth/session";
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
 import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
 import { toast } from "@/lib/toast";
-import { fetchLandingStats, formatLandingStat } from "@/lib/api/landing";
-import { fetchLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
-import { fetchLandingFaq, type FaqArticle } from "@/lib/api/content";
+import { fetchLandingStats, formatLandingStat, getCachedLandingStats } from "@/lib/api/landing";
+import { fetchLandingBlocks, getCachedLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
+import { fetchLandingFaq, getCachedLandingFaq, type FaqArticle } from "@/lib/api/content";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -35,6 +36,8 @@ import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 
 import i18n from "@/lib/i18n";
 
+const POPULAR_SLOTS = 12;
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -42,6 +45,14 @@ export const Route = createFileRoute("/")({
       { name: "description", content: i18n.t("landing.hero.metaDescription") },
     ],
   }),
+  loader: async () => {
+    await ensurePublicBootstrap();
+    const popular = await fetchPopularListings(POPULAR_SLOTS).catch(() => [] as Ad[]);
+    return { popular };
+  },
+  pendingComponent: AppBootPreload,
+  pendingMs: 0,
+  staleTime: 30_000,
   component: LandingPage,
 });
 
@@ -80,15 +91,11 @@ function TopNav() {
   const { t } = useTranslation();
   const enter = useEnter();
   const me = useStore(selectors.currentUser);
+  const sessionResolved = useStore(selectors.sessionResolved);
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
-  const [sessionReady, setSessionReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    void ensureSession().finally(() => setSessionReady(true));
-  }, []);
-
-  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
+  const loggedIn = sessionResolved && me.id !== GUEST_USER.id;
   const navLinks = useMemo(
     () =>
       (
@@ -260,13 +267,14 @@ function heroVideoSources(url: string): { webm?: string; mp4: string } {
 
 function Hero() {
   const { t } = useTranslation();
-  const { section } = useLandingSection("hero");
+  const { section, loading: heroLoading } = useLandingSection("hero");
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
   const [deferVideo, setDeferVideo] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduce = useReducedMotion();
-  const [stats, setStats] = useState({ users: 0, communities: 0, listing_categories: 0 });
+  const [stats, setStats] = useState(() => getCachedLandingStats() ?? { users: 0, communities: 0, listing_categories: 0 });
+  const [statsReady, setStatsReady] = useState(() => getCachedLandingStats() != null);
   const [allowVideo, setAllowVideo] = useState(false);
   const videoSrc = section?.media_url?.trim() || "";
   const brand = section?.eyebrow || section?.title || "";
@@ -280,10 +288,16 @@ function Hero() {
   }, []);
 
   useEffect(() => {
+    if (getCachedLandingStats()) return;
     let alive = true;
     fetchLandingStats()
-      .then((data) => { if (alive) setStats(data); })
-      .catch(() => {});
+      .then((data) => {
+        if (alive) {
+          setStats(data);
+          setStatsReady(true);
+        }
+      })
+      .catch(() => { if (alive) setStatsReady(true); });
     return () => { alive = false; };
   }, []);
 
@@ -365,7 +379,7 @@ function Hero() {
       {/* content */}
       <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
         <AnimatePresence>
-          {ready && (
+          {ready && !heroLoading && (
             <motion.div variants={stagger} initial={reduce ? "visible" : "hidden"} animate="visible" className="w-full max-w-[720px] py-20">
               <motion.h1
                 variants={fadeUp}
@@ -417,6 +431,7 @@ function Hero() {
               </motion.div>
               )}
 
+              {statsReady ? (
               <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
                 {[
                   { n: formatLandingStat(stats.users), l: t("landing.hero.stats.modelers") },
@@ -429,6 +444,7 @@ function Hero() {
                   </div>
                 ))}
               </motion.div>
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>
@@ -462,12 +478,22 @@ const ctaText: React.CSSProperties = {
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
 function useLandingSection(slug: string) {
-  const [section, setSection] = useState<LandingSectionPublic | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [section, setSection] = useState<LandingSectionPublic | null>(
+    () => {
+      const cached = getCachedLandingBlocks();
+      return cached ? sectionBySlug(cached, slug) ?? null : null;
+    },
+  );
+  const [loading, setLoading] = useState(() => !getCachedLandingBlocks());
 
   useEffect(() => {
+    const cached = getCachedLandingBlocks();
+    if (cached) {
+      setSection(sectionBySlug(cached, slug) ?? null);
+      setLoading(false);
+      return;
+    }
     let alive = true;
-    setLoading(true);
     fetchLandingBlocks()
       .then((data) => { if (alive) setSection(sectionBySlug(data, slug) ?? null); })
       .catch(() => { if (alive) setSection(null); })
@@ -584,23 +610,27 @@ const CONDITION_COLOR = (c?: string) =>
  * We fetch up to 12 real listings ("popular" is already a global selection —
  * no direction/date narrowing to widen); if the whole catalog has fewer than 12,
  * the remaining slots are backfilled with a "Разместить объявление" CTA card. */
-const POPULAR_SLOTS = 12;
 
 function PopularListings() {
   const { t, i18n } = useTranslation();
   const { section, loading: sectionLoading } = useLandingSection("listings");
-  const [items, setItems] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(true);
+  const loaded = Route.useLoaderData();
+  const [items, setItems] = useState<Ad[]>(() => loaded.popular.slice(0, POPULAR_SLOTS));
+  const [loading, setLoading] = useState(() => loaded.popular.length === 0 && typeof window !== "undefined");
 
   useEffect(() => {
+    if (loaded.popular.length > 0) {
+      setItems(loaded.popular.slice(0, POPULAR_SLOTS));
+      setLoading(false);
+      return;
+    }
     let alive = true;
-    setLoading(true);
     fetchPopularListings(POPULAR_SLOTS)
       .then((list) => { if (alive) setItems(list.slice(0, POPULAR_SLOTS)); })
       .catch(() => { if (alive) setItems([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, []);
+  }, [loaded.popular]);
 
   if (!sectionLoading && !section) return null;
 
@@ -953,12 +983,14 @@ function WhyChoose() {
 
 function FaqSection() {
   const { section } = useLandingSection("faq");
-  const [items, setItems] = useState<FaqArticle[]>([]);
-  const [heading, setHeading] = useState<string | null>(null);
+  const cachedFaq = getCachedLandingFaq();
+  const [items, setItems] = useState<FaqArticle[]>(() => cachedFaq?.articles ?? []);
+  const [heading, setHeading] = useState<string | null>(() => cachedFaq?.name ?? null);
   const [open, setOpen] = useState<number | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(() => cachedFaq != null);
 
   useEffect(() => {
+    if (cachedFaq) return;
     let active = true;
     fetchLandingFaq()
       .then(({ name, articles }) => {

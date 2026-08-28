@@ -232,12 +232,21 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
 }
 
 // ---- fetchers ----
+let channelsCache: { taxonomyId?: number; list: Channel[] } | null = null;
+
+export function getCachedChannels(taxonomyId?: number): Channel[] | null {
+  if (channelsCache && channelsCache.taxonomyId === taxonomyId) return channelsCache.list;
+  return null;
+}
+
 export async function fetchChannels(taxonomyId?: number): Promise<Channel[]> {
   if (isDemoMode()) return demoChannels() as Channel[];
   const res = await api<{ data: ApiChannel[] }>("/channels", {
     query: { taxonomy_id: taxonomyId || undefined },
   });
-  return (res.data ?? []).map(mapChannel);
+  const list = (res.data ?? []).map(mapChannel);
+  channelsCache = { taxonomyId, list };
+  return list;
 }
 
 export async function fetchChannel(slug: string): Promise<Channel | null> {
@@ -437,8 +446,9 @@ export async function createChannelPost(input: {
 
 // ---- hooks ----
 export function useChannels(taxonomyId?: number): { channels: Channel[]; loading: boolean; reload: () => void } {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedChannels(taxonomyId);
+  const [channels, setChannels] = useState<Channel[]>(() => cached ?? []);
+  const [loading, setLoading] = useState(() => !cached);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -448,7 +458,15 @@ export function useChannels(taxonomyId?: number): { channels: Channel[]; loading
       .finally(() => setLoading(false));
   }, [taxonomyId]);
 
-  useEffect(reload, [reload]);
+  useEffect(() => {
+    const hit = getCachedChannels(taxonomyId);
+    if (hit) {
+      setChannels(hit);
+      setLoading(false);
+      return;
+    }
+    reload();
+  }, [reload, taxonomyId]);
   return { channels, loading, reload };
 }
 

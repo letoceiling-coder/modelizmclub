@@ -1,18 +1,29 @@
 import { useEffect, useState } from "react";
 import { Crown, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { fetchStats } from "@/lib/api/content";
+import { fetchStats, getCachedStats } from "@/lib/api/content";
 
 export function FirstHundredBanner() {
-  const [stats, setStats] = useState({ taken: 0, total: 100, enabled: false });
+  const cached = getCachedStats()?.firstHundred;
+  const [stats, setStats] = useState(() => cached ?? { taken: 0, total: 100, enabled: false });
+  const [ready, setReady] = useState(() => cached != null);
 
   useEffect(() => {
+    if (cached != null) return;
     let active = true;
     fetchStats()
-      .then((s) => active && setStats(s.firstHundred))
-      .catch(() => {});
+      .then((s) => {
+        if (!active) return;
+        setStats(s.firstHundred);
+        setReady(true);
+      })
+      .catch(() => {
+        if (active) setReady(true);
+      });
     return () => { active = false; };
   }, []);
+
+  if (!ready) return null;
 
   const taken = Math.max(0, Math.min(stats.total, stats.taken));
   const total = stats.total;

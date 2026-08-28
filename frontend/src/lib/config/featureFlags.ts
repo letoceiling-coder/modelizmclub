@@ -43,7 +43,6 @@ const SERVER_CONTROLLED: (keyof FeatureFlags)[] = [
 ];
 
 let serverFlags: Partial<FeatureFlags> | null = null;
-let serverFetchStarted = false;
 let flagsHydrated = false;
 
 function readFromStorage(): FeatureFlags {
@@ -70,6 +69,13 @@ function notify() {
 
 export function applyServerFeatureFlags(data: BootstrapFeatureFlags): void {
   serverFlags = mapBootstrapFeatureFlags(data);
+  flagsHydrated = true;
+  if (typeof window !== "undefined") notify();
+}
+
+/** Mark flags as resolved when bootstrap is unavailable (demo / network error). */
+export function markFeatureFlagsHydrated(): void {
+  flagsHydrated = true;
   if (typeof window !== "undefined") notify();
 }
 
@@ -85,6 +91,7 @@ export async function loadFeatureFlagsFromServer(): Promise<void> {
     flagsHydrated = true;
     return;
   }
+  if (flagsHydrated && serverFlags) return;
   try {
     const boot = await startPublicBootstrap();
     if (boot?.feature_flags) {
@@ -100,16 +107,6 @@ export async function loadFeatureFlagsFromServer(): Promise<void> {
   }
 }
 
-if (typeof window !== "undefined" && !serverFetchStarted) {
-  serverFetchStarted = true;
-  void loadFeatureFlagsFromServer();
-  window.addEventListener("focus", () => {
-    if (isDemoMode()) return;
-    void refreshFeatureFlagsFromEndpoint().catch(() => {});
-  });
-}
-
-/** Read a flag outside React (e.g. plain non-component modules). */
 export function getFeatureFlags(): FeatureFlags {
   return typeof window === "undefined" ? { ...DEFAULTS, ...serverFlags } : cache;
 }

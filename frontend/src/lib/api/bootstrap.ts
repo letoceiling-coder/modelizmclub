@@ -8,6 +8,7 @@ import type { LandingStats } from "@/lib/api/landing";
 import type { FaqCategory } from "@/lib/api/content";
 import type { FeedGuestAccessConfig } from "@/lib/api/feed-guest-access";
 import type { IconOverrideMap } from "@/lib/api/icons";
+import type { CategoryApiNode } from "@/lib/api/categories";
 
 export interface BootstrapFeatureFlags {
   communities_enabled?: boolean;
@@ -33,6 +34,8 @@ export interface PublicBootstrapPayload {
   feed_guest_access: FeedGuestAccessConfig;
   icon_overrides: IconOverrideMap;
   landing_faq: FaqCategory[];
+  post_categories?: CategoryApiNode[];
+  listing_categories?: CategoryApiNode[];
 }
 
 let payload: PublicBootstrapPayload | null = null;
@@ -40,6 +43,12 @@ let inflight: Promise<PublicBootstrapPayload | null> | null = null;
 
 export function getPublicBootstrapSync(): PublicBootstrapPayload | null {
   return payload;
+}
+
+export function rememberPublicBootstrap(data: PublicBootstrapPayload | null): void {
+  if (!data) return;
+  payload = data;
+  inflight = Promise.resolve(data);
 }
 
 export async function fetchPublicBootstrap(): Promise<PublicBootstrapPayload> {

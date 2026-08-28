@@ -10,9 +10,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 
 import {
-
   useChannels, setChannelSubscription, isChannelOwner,
-
+  fetchChannels,
   formatCount,
   type Channel, type ChannelKind,
 } from "@/lib/channels";
@@ -39,6 +38,10 @@ import {
 
 
 
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { AppBootPreload } from "@/components/boot/AppBootPreload";
+import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
+
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 
@@ -47,19 +50,22 @@ export const Route = createFileRoute("/channels/")({
   validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
-  pendingComponent: ChannelsPending,
+  loaderDeps: ({ search }) => ({ taxonomy_id: search.taxonomy_id }),
+  loader: async ({ deps }) => {
+    await ensurePublicBootstrap();
+    if (typeof window !== "undefined") {
+      await Promise.all([
+        fetchChannels(deps.taxonomy_id).catch(() => []),
+        prefetchCategoryRoomStats(),
+      ]);
+    }
+    return null;
+  },
+  pendingComponent: AppBootPreload,
+  pendingMs: 0,
+  staleTime: 30_000,
   component: ChannelsPage,
 });
-
-function ChannelsPending() {
-  return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="channels" />} footer>
-      <ChannelsPageSkeleton />
-    </AppLayout>
-  );
-}
-
-
 
 const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
 

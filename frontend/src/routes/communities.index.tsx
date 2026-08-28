@@ -8,13 +8,15 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import type { Community } from "@/lib/mock";
 import { fetchCommunities } from "@/lib/api/communities";
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { AppBootPreload } from "@/components/boot/AppBootPreload";
+import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
-import { CommunitiesPageSkeleton } from "@/components/communities/CommunitySkeleton";
 
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
@@ -24,17 +26,23 @@ export const Route = createFileRoute("/communities/")({
   validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),
-  pendingComponent: CommunitiesPending,
+  loaderDeps: ({ search }) => ({ taxonomy_id: search.taxonomy_id }),
+  loader: async ({ deps }) => {
+    await ensurePublicBootstrap();
+    if (typeof window === "undefined") {
+      return { communities: [] as Community[] };
+    }
+    const [communities] = await Promise.all([
+      fetchCommunities(undefined, deps.taxonomy_id).catch(() => [] as Community[]),
+      prefetchCategoryRoomStats(),
+    ]);
+    return { communities };
+  },
+  pendingComponent: AppBootPreload,
+  pendingMs: 0,
+  staleTime: 30_000,
   component: CommunitiesPage,
 });
-
-function CommunitiesPending() {
-  return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="communities" />} footer>
-      <CommunitiesPageSkeleton />
-    </AppLayout>
-  );
-}
 
 const ICON_MAP: Record<string, typeof Car> = {
   Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging,
@@ -282,18 +290,12 @@ function CommunitySection({
 function CommunitiesPage() {
   const { t } = useTranslation();
   const { taxonomy_id: taxonomyId } = Route.useSearch();
-  const [all, setAll] = useState<Community[]>([]);
-  const [loading, setLoading] = useState(true);
+  const loaded = Route.useLoaderData();
+  const [all, setAll] = useState<Community[]>(() => loaded.communities);
 
   useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    fetchCommunities(undefined, taxonomyId)
-      .then((rows) => { if (alive) setAll(rows); })
-      .catch(() => { if (alive) setAll([]); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [taxonomyId]);
+    setAll(loaded.communities);
+  }, [loaded.communities]);
 
   const reloadCommunities = () => {
     fetchCommunities(undefined, taxonomyId).then(setAll).catch(() => {});
@@ -361,9 +363,7 @@ function CommunitiesPage() {
           placeholder={t("pages.communities.searchPlaceholder")}
         />
 
-        {loading ? (
-          <CommunitiesPageSkeleton />
-        ) : nothing ? (
+        {nothing ? (
           hasQuery ? <EmptySearch /> : <EmptyMy onSwitch={() => { /* scroll handled naturally */ }} />
         ) : (
           <div className="space-y-[28px]">

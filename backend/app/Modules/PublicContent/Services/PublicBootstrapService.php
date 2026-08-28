@@ -14,12 +14,14 @@ use App\Support\FirstHundredPromo;
 use App\Support\FooterContacts;
 use App\Support\ReferralProgramConfig;
 use App\Support\SiteBranding;
+use Modules\Catalog\Services\CatalogService;
 
 class PublicBootstrapService
 {
     public function __construct(
         private readonly LandingBlocksService $landingBlocks,
         private readonly FeedGuestAccessService $guestAccess,
+        private readonly CatalogService $catalog,
     ) {}
 
     /** @return array<string, mixed> */
@@ -70,6 +72,8 @@ class PublicBootstrapService
             'feed_guest_access' => $this->guestAccess->publicPayload(),
             'icon_overrides' => is_array($iconRaw) && $iconRaw !== [] ? $iconRaw : new \stdClass(),
             'landing_faq' => $this->landingFaq(),
+            'post_categories' => $this->catalog->postCategoryTree(),
+            'listing_categories' => $this->catalog->listingCategoryTree(),
         ];
     }
 

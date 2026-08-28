@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight, MessageCircle, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
-import { usePostCategories, useListingCategories } from "@/lib/hooks/useCategories";
+import { usePostCategoriesState, useListingCategoriesState } from "@/lib/hooks/useCategories";
 import {
   onlineForCategory,
   totalOnlineFromStats,
@@ -128,9 +128,10 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(COLLAPSE_KEY) === "1";
   });
-  const postCategories = usePostCategories();
-  const listingCategories = useListingCategories();
+  const { categories: postCategories, loading: postLoading } = usePostCategoriesState();
+  const { categories: listingCategories, loading: listingLoading } = useListingCategoriesState();
   const categories = variant === "ads" ? listingCategories : postCategories;
+  const categoriesLoading = variant === "ads" ? listingLoading : postLoading;
   const roomStats = useCategoryRoomStats();
 
   useEffect(() => {
@@ -342,7 +343,17 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
             </div>
           </div>
 
-          {visible.length === 0 ? (
+          {categoriesLoading ? (
+            <div className="space-y-[6px] p-[12px]" aria-busy="true" aria-live="polite">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[36px] animate-pulse rounded-[10px]"
+                  style={{ background: "var(--background-surface)" }}
+                />
+              ))}
+            </div>
+          ) : visible.length === 0 ? (
             <p className="px-[16px] py-[14px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
               {t("components.rightCategories.emptySearch")}
             </p>

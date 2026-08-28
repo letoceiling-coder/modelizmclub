@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import type { Banner } from "@/lib/mock";
-import { fetchBannersWithSettings, recordBannerEvent } from "@/lib/api/banners";
+import { fetchBannersWithSettings, getCachedBannersWithSettings, recordBannerEvent } from "@/lib/api/banners";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
@@ -21,13 +21,15 @@ export function EventsHero() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { guardAction } = useGuestAccess();
+  const cached = getCachedBannersWithSettings();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [allBanners, setAllBanners] = useState<Banner[]>([]);
-  const [autoplayMs, setAutoplayMs] = useState(10_000);
-  const [enabled, setEnabled] = useState(true);
+  const [allBanners, setAllBanners] = useState<Banner[]>(() => cached?.banners ?? []);
+  const [autoplayMs, setAutoplayMs] = useState(() => Math.max(3000, (cached?.carousel.autoplay_seconds ?? 10) * 1000));
+  const [enabled, setEnabled] = useState(() => cached?.carousel.enabled !== false);
   const [signup, setSignup] = useState<Banner | null>(null);
   useEffect(() => {
+    if (cached) return;
     let active = true;
     fetchBannersWithSettings()
       .then(({ banners, carousel }) => {
@@ -38,7 +40,7 @@ export function EventsHero() {
       })
       .catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [cached]);
 
   const list = useMemo(
     () => sortBanners(allBanners.filter((b) => b.active !== false)),

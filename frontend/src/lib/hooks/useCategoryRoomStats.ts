@@ -8,8 +8,26 @@ const EMPTY: CategoryRoomStats = { bySubcategory: {}, byParent: {} };
 let cache: CategoryRoomStats | null = null;
 let inflight: Promise<CategoryRoomStats> | null = null;
 
+export function prefetchCategoryRoomStats(parentId?: string): Promise<CategoryRoomStats> {
+  if (isDemoMode() || typeof window === "undefined" || !getToken()) {
+    return Promise.resolve(parentId ? EMPTY : (cache ?? EMPTY));
+  }
+  if (!parentId && cache) return Promise.resolve(cache);
+  const load = !parentId && inflight ? inflight : fetchCategoryRoomStats(parentId);
+  if (!parentId) inflight = load;
+  return load
+    .then((data) => {
+      if (!parentId) cache = data;
+      return data;
+    })
+    .catch(() => (parentId ? EMPTY : (cache ?? EMPTY)))
+    .finally(() => {
+      if (!parentId) inflight = null;
+    });
+}
+
 export function useCategoryRoomStats(parentId?: string): CategoryRoomStats {
-  const [stats, setStats] = useState<CategoryRoomStats>(cache ?? EMPTY);
+  const [stats, setStats] = useState<CategoryRoomStats>(() => (!parentId && cache ? cache : EMPTY));
 
   useEffect(() => {
     if (isDemoMode() || !getToken()) {
@@ -21,20 +39,9 @@ export function useCategoryRoomStats(parentId?: string): CategoryRoomStats {
       return;
     }
     let active = true;
-    const load = inflight ?? fetchCategoryRoomStats(parentId);
-    if (!parentId) inflight = load;
-    load
-      .then((data) => {
-        if (!active) return;
-        if (!parentId) cache = data;
-        setStats(data);
-      })
-      .catch(() => {
-        if (active) setStats(EMPTY);
-      })
-      .finally(() => {
-        if (!parentId) inflight = null;
-      });
+    void prefetchCategoryRoomStats(parentId).then((data) => {
+      if (active) setStats(data);
+    });
     return () => {
       active = false;
     };

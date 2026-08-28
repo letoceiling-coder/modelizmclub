@@ -40,7 +40,10 @@ const listeners = new Set<() => void>();
 /** Current subscription (module-level cache, one request per SPA session). */
 export async function getMySubscription(force = false): Promise<MySubscription | null> {
   if (isDemoMode()) return demoSubscription();
-  if (!isAuthenticated()) return null;
+  if (!isAuthenticated()) {
+    cache = null;
+    return null;
+  }
   if (!force && cache !== undefined) return cache;
   if (!inflight || force) {
     inflight = fetchMySubscription()
@@ -66,8 +69,8 @@ export function invalidateMySubscription(): void {
 /** React hook over getMySubscription(). `sub` is null when on the free tier. */
 export function useMySubscription(): { sub: MySubscription | null; loading: boolean } {
   const sessionResolved = useStore(selectors.sessionResolved);
-  const [sub, setSub] = useState<MySubscription | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [sub, setSub] = useState<MySubscription | null>(() => cache ?? null);
+  const [loading, setLoading] = useState(() => cache === undefined);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -81,8 +84,7 @@ export function useMySubscription(): { sub: MySubscription | null; loading: bool
   useEffect(() => {
     if (!sessionResolved) return;
     let alive = true;
-    setLoading(true);
-    getMySubscription(true)
+    void getMySubscription(tick > 0)
       .then((s) => {
         if (alive) setSub(s);
       })
