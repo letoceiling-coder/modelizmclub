@@ -1,4 +1,4 @@
-import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, Tag, Phone, ShieldCheck } from "lucide-react";
+import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, Tag, ShieldCheck } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
@@ -23,9 +23,6 @@ interface AdActionPanelProps {
   onShare: () => void;
   onSafeDeal?: () => void;
   safeDealBusy?: boolean;
-  phoneRevealState: "idle" | "loading" | "revealed";
-  revealedPhone: string | null;
-  onRevealPhone: () => void;
   className?: string;
 }
 
@@ -37,9 +34,6 @@ export function AdActionPanel({
   onShare,
   onSafeDeal,
   safeDealBusy,
-  phoneRevealState,
-  revealedPhone,
-  onRevealPhone,
   className,
 }: AdActionPanelProps) {
   const showSafeDeal = Boolean(onSafeDeal) && ad.status === "Продаю" && ad.price > 0;
@@ -130,27 +124,6 @@ export function AdActionPanel({
         <Button onClick={onWrite} size="lg" variant={showSafeDeal ? "outline" : "default"} className="w-full rounded-[var(--r-button)]">
           <MessageSquare size={16} /> Написать продавцу
         </Button>
-        {phoneRevealState === "revealed" && revealedPhone ? (
-          <Button asChild variant="success" size="lg" className="w-full rounded-[var(--r-button)]">
-            <a href={`tel:${revealedPhone.replace(/[^\d+]/g, "")}`}>
-              <Phone size={16} /> {revealedPhone}
-            </a>
-          </Button>
-        ) : (
-          <Button
-            variant="success"
-            size="lg"
-            onClick={onRevealPhone}
-            loading={phoneRevealState === "loading"}
-            className="w-full rounded-[var(--r-button)]"
-          >
-            {phoneRevealState === "loading" ? "Загрузка…" : (
-              <>
-                <Phone size={16} /> Позвонить продавцу
-              </>
-            )}
-          </Button>
-        )}
         <div className="grid grid-cols-2 gap-[8px]">
           <Button
             variant="outline"

@@ -54,6 +54,7 @@ export function isPublicGuestRoute(pathname: string): boolean {
 export function isGuestStubRoute(pathname: string): boolean {
   if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return true;
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return true;
+  if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return true;
   return false;
 }
 

@@ -220,4 +220,62 @@ class EscrowDealTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'delivered');
     }
+
+    public function test_dispute_blocked_after_hold_expires(): void
+    {
+        $seller = $this->seedUser('seller');
+        $buyer = $this->seedUser('buyer');
+        $listing = $this->seedListing($seller);
+        $this->fund($buyer, 100000);
+
+        $uuid = $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.can_dispute', true)
+            ->json('data.uuid');
+
+        $this->assertNotNull(
+            $this->actingAs($buyer, 'sanctum')->getJson("/api/v1/safe-deals/{$uuid}")->json('data.hold_expires_at')
+        );
+
+        $this->travel(15)->days();
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/dispute", ['reason' => 'late'])
+            ->assertStatus(422);
+    }
+
+    public function test_admin_can_split_dispute_amount(): void
+    {
+        $seller = $this->seedUser('seller');
+        $buyer = $this->seedUser('buyer');
+        $admin = $this->seedUser('admin');
+        $admin->update(['role' => UserRole::Admin]);
+        $listing = $this->seedListing($seller);
+        $this->fund($buyer, 100000);
+
+        $uuid = $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
+            ->json('data.uuid');
+
+        $disputeUuid = $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/dispute", ['reason' => 'partial'])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/disputes/{$disputeUuid}/resolve", [
+                'in_favor_of' => 'split',
+                'buyer_kopecks' => 40000,
+                'seller_kopecks' => 60000,
+            ])
+            ->assertOk();
+
+        $this->assertSame(40000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
+        $this->assertSame(60000, app(WalletService::class)->balanceKopecks($seller->fresh()));
+    }
 }

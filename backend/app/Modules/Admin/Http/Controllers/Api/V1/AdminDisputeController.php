@@ -32,6 +32,7 @@ class AdminDisputeController extends Controller
                 'status' => $d->status->value,
                 'reason' => $d->reason,
                 'description' => $d->description,
+                'evidence' => $d->evidence ?? [],
                 'opened_by' => ['uuid' => $d->openedBy?->uuid, 'name' => $d->openedBy?->name],
                 'deal' => $this->deals->toArray($d->safeDeal),
                 'created_at' => $d->created_at?->toIso8601String(),
@@ -47,12 +48,21 @@ class AdminDisputeController extends Controller
     public function resolve(Request $request, string $uuid): JsonResponse
     {
         $data = $request->validate([
-            'in_favor_of' => ['required', Rule::in(['buyer', 'seller'])],
+            'in_favor_of' => ['required', Rule::in(['buyer', 'seller', 'split'])],
             'resolution' => ['nullable', 'string', 'max:2000'],
+            'buyer_kopecks' => ['required_if:in_favor_of,split', 'integer', 'min:0'],
+            'seller_kopecks' => ['required_if:in_favor_of,split', 'integer', 'min:0'],
         ]);
 
         $dispute = Dispute::query()->where('uuid', $uuid)->firstOrFail();
-        $dispute = $this->deals->resolveDispute($request->user(), $dispute, $data['in_favor_of'], $data['resolution'] ?? null);
+        $dispute = $this->deals->resolveDispute(
+            $request->user(),
+            $dispute,
+            $data['in_favor_of'],
+            $data['resolution'] ?? null,
+            isset($data['buyer_kopecks']) ? (int) $data['buyer_kopecks'] : null,
+            isset($data['seller_kopecks']) ? (int) $data['seller_kopecks'] : null,
+        );
 
         return response()->json([
             'data' => [

@@ -69,6 +69,8 @@ export interface SafeDeal {
   delivered_at: string | null;
   completed_at: string | null;
   auto_release_at: string | null;
+  hold_expires_at?: string | null;
+  can_dispute?: boolean;
   dispute?: { uuid: string; status: string; reason: string } | null;
   can_review?: boolean;
   my_review?: { rating: number; text: string | null } | null;
@@ -174,10 +176,14 @@ export async function cancelSafeDeal(uuid: string): Promise<SafeDeal> {
   return res.data;
 }
 
-export async function disputeSafeDeal(uuid: string, reason: string, description?: string): Promise<void> {
+export async function disputeSafeDeal(uuid: string, reason: string, description?: string, evidenceUuids?: string[]): Promise<void> {
   await api(`/safe-deals/${uuid}/dispute`, {
     method: "POST",
-    json: { reason, description: description || undefined },
+    json: {
+      reason,
+      description: description || undefined,
+      evidence_uuids: evidenceUuids?.length ? evidenceUuids : undefined,
+    },
   });
 }
 

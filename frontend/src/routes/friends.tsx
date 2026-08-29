@@ -32,6 +32,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FriendActionsMenu } from "@/components/friends/FriendActionsMenu";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog";
 
 import i18n from "@/lib/i18n";
 
@@ -149,7 +150,7 @@ function FriendCard({
 
 function FriendsPage() {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { requireAccount } = useGuestAccess();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const me = useStore(selectors.currentUser);
@@ -159,6 +160,8 @@ function FriendsPage() {
   const [pending, setPending] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [complaintTarget, setComplaintTarget] = useState<User | null>(null);
+  const [friendPrompt, setFriendPrompt] = useState<User | null>(null);
+  const [friendPromptBusy, setFriendPromptBusy] = useState(false);
   const navigateMessenger = useNavigate();
   const onlineSet = useOnlineSet();
   const [presenceTick, setPresenceTick] = useState(0);
@@ -358,8 +361,12 @@ function FriendsPage() {
   const writeTo = async (u: User) => {
     if (!u.numericId || !me) return;
     let allowed = false;
-    requirePremium(() => { allowed = true; });
+    requireAccount(() => { allowed = true; });
     if (!allowed) return;
+    if (!added.has(u.id)) {
+      setFriendPrompt(u);
+      return;
+    }
     try {
       const dialog = await openConversation(u.numericId, me.id, u.id);
       navigateMessenger({ to: "/messenger", search: { chat: dialog.id } });
@@ -665,6 +672,20 @@ function FriendsPage() {
         </ReducedMotionSwitch>
       </div>
       <ComplaintDialog target={complaintTarget} onClose={() => setComplaintTarget(null)} report={complaintTarget ? { type: "user", targetId: complaintTarget.id } : undefined} />
+      <FriendRequiredDialog
+        open={friendPrompt !== null}
+        onOpenChange={(open) => { if (!open) setFriendPrompt(null); }}
+        adding={friendPromptBusy}
+        onAdd={() => {
+          const u = friendPrompt;
+          if (!u) return;
+          setFriendPromptBusy(true);
+          void toggleFriend(u).finally(() => {
+            setFriendPromptBusy(false);
+            setFriendPrompt(null);
+          });
+        }}
+      />
     </AppLayout>
   );
 }

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
+import { AdsPageSkeleton } from "@/components/boot/PageSkeletons";
 
 // Fetched in batches via per_page/page instead of all at once — keeps the
 // initial catalog payload light (perf, especially on weak mobile networks).
@@ -55,6 +56,7 @@ export const Route = createFileRoute("/ads/")({
     return { ads };
   },
   staleTime: 30_000,
+  pendingComponent: AdsPageSkeleton,
   component: CatalogPage,
 });
 

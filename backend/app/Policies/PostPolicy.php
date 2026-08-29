@@ -33,7 +33,11 @@ class PostPolicy
 
     public function update(User $user, Post $post): bool
     {
-        return $post->user_id === $user->id && $post->isEditable();
+        if ($post->user_id !== $user->id) {
+            return false;
+        }
+
+        return $post->isEditable() || $post->status === ContentStatus::Published;
     }
 
     public function delete(User $user, Post $post): bool

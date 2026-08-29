@@ -12,6 +12,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\Dispute;
 use App\Models\EscrowTransaction;
 use App\Models\Listing;
+use App\Models\Media;
 use App\Models\SafeDeal;
 use App\Models\SafeDealIncomingPayment;
 use App\Models\SellerDeliveryProfile;
@@ -74,6 +75,12 @@ class SafeDealService
         }
 
         return (int) config('billing.safe_deal.auto_release_days', 7);
+    }
+
+    /** Days after payment during which a dispute can be opened. */
+    public function holdDays(): int
+    {
+        return max(1, (int) config('billing.safe_deal.hold_days', 14));
     }
 
     /**
@@ -179,6 +186,7 @@ class SafeDealService
                     // so a VTB deal waits in `created` until VTB confirms it.
                     'status' => $vtb ? SafeDealStatus::Created : SafeDealStatus::Paid,
                     'paid_at' => $vtb ? null : now(),
+                    'hold_expires_at' => $vtb ? null : now()->addDays($this->holdDays()),
                     'delivery_method' => $offersCdek ? 'СДЭК' : null,
                     'destination_point' => $destination,
                     'delivery_status' => $offersCdek ? 'pending' : null,
@@ -261,7 +269,11 @@ class SafeDealService
 
         $onCard = $this->settlement->holdsOnCard();
 
-        $deal->update(['status' => SafeDealStatus::Paid, 'paid_at' => now()]);
+        $deal->update([
+            'status' => SafeDealStatus::Paid,
+            'paid_at' => now(),
+            'hold_expires_at' => now()->addDays($this->holdDays()),
+        ]);
         $this->log($deal, null, 'paid', (int) $deal->amount_kopecks, null, $onCard
             ? 'ВТБ подтвердил холд на карте покупателя.'
             : 'ВТБ подтвердил оплату картой.');
@@ -377,7 +389,7 @@ class SafeDealService
         return $this->refundBuyer($deal, $actor, SafeDealStatus::Cancelled, 'Сделка отменена, средства возвращены покупателю.');
     }
 
-    public function openDispute(User $user, SafeDeal $deal, string $reason, ?string $description): Dispute
+    public function openDispute(User $user, SafeDeal $deal, string $reason, ?string $description, array $evidenceUuids = []): Dispute
     {
         $this->assertParticipant($deal, $user, 'any');
 
@@ -389,7 +401,13 @@ class SafeDealService
             throw ValidationException::withMessages(['deal' => ['Спор по этой сделке уже открыт.']]);
         }
 
-        $dispute = DB::transaction(function () use ($user, $deal, $reason, $description): Dispute {
+        if ($deal->hold_expires_at !== null && ! $deal->hold_expires_at->isFuture()) {
+            throw ValidationException::withMessages(['deal' => ['Срок холда истёк, открыть спор нельзя.']]);
+        }
+
+        $evidence = $this->normalizeDisputeEvidence($user, $evidenceUuids);
+
+        $dispute = DB::transaction(function () use ($user, $deal, $reason, $description, $evidence): Dispute {
             $previousStatus = $deal->status->value;
 
             $deal->update([
@@ -404,6 +422,7 @@ class SafeDealService
                 'reason' => $reason,
                 'description' => $description,
                 'status' => DisputeStatus::Open,
+                'evidence' => $evidence,
             ]);
 
             $this->log($deal, $user, 'disputed', null, null, "Открыт спор: {$reason}");
@@ -418,8 +437,14 @@ class SafeDealService
         return $dispute;
     }
 
-    public function resolveDispute(User $admin, Dispute $dispute, string $inFavorOf, ?string $resolution): Dispute
-    {
+    public function resolveDispute(
+        User $admin,
+        Dispute $dispute,
+        string $inFavorOf,
+        ?string $resolution,
+        ?int $buyerKopecks = null,
+        ?int $sellerKopecks = null,
+    ): Dispute {
         if ($dispute->status !== DisputeStatus::Open) {
             throw ValidationException::withMessages(['dispute' => ['Спор уже закрыт.']]);
         }
@@ -431,6 +456,9 @@ class SafeDealService
         if ($inFavorOf === 'buyer') {
             $this->refundBuyer($deal, $admin, SafeDealStatus::Refunded, 'Спор решён в пользу покупателя.');
             $dispute->status = DisputeStatus::ResolvedBuyer;
+        } elseif ($inFavorOf === 'split') {
+            $this->splitPayout($deal, $admin, (int) $buyerKopecks, (int) $sellerKopecks, $resolution ?: 'Спор: сумма разделена.');
+            $dispute->status = DisputeStatus::ResolvedSplit;
         } else {
             $this->releaseToSeller($deal, $admin, 'Спор решён в пользу продавца.');
             $dispute->status = DisputeStatus::ResolvedSeller;
@@ -556,6 +584,119 @@ class SafeDealService
 
             return $fresh;
         });
+    }
+
+    /**
+     * Wallet-only split: consume the hold, then credit buyer X and seller Y.
+     * Card (VTB) one-stage charges cannot be split without a partial refund API.
+     */
+    private function splitPayout(SafeDeal $deal, ?User $actor, int $buyerKopecks, int $sellerKopecks, string $note): SafeDeal
+    {
+        $total = (int) $deal->amount_kopecks;
+        if ($buyerKopecks < 0 || $sellerKopecks < 0 || $buyerKopecks + $sellerKopecks !== $total) {
+            throw ValidationException::withMessages([
+                'split' => ['Суммы покупателя и продавца должны в сумме равняться сумме сделки.'],
+            ]);
+        }
+
+        $incoming = $this->activeIncoming($deal);
+        if ($incoming !== null) {
+            throw ValidationException::withMessages([
+                'split' => ['Разделение суммы при оплате картой недоступно в одностадийном режиме ВТБ. Выберите полный возврат или полную выплату.'],
+            ]);
+        }
+
+        $completed = DB::transaction(function () use ($deal, $actor, $buyerKopecks, $sellerKopecks, $note, $total): SafeDeal {
+            $buyer = $deal->buyer;
+            $seller = $deal->seller;
+
+            $this->wallet->consumeHold($buyer, $total);
+
+            $refund = $buyerKopecks > 0
+                ? $this->wallet->credit(
+                    $buyer,
+                    $buyerKopecks,
+                    WalletTransactionType::SafeDealRefund,
+                    "Частичный возврат по сделке {$deal->uuid}",
+                    'safe_deal',
+                    $deal->id,
+                    'safe-deal-split-refund:'.$deal->id,
+                )
+                : null;
+
+            $payout = $sellerKopecks > 0
+                ? $this->wallet->credit(
+                    $seller,
+                    $sellerKopecks,
+                    WalletTransactionType::SafeDealPayout,
+                    "Частичная выплата по сделке {$deal->uuid}",
+                    'safe_deal',
+                    $deal->id,
+                    'safe-deal-split-payout:'.$deal->id,
+                )
+                : null;
+
+            $deal->update([
+                'status' => $sellerKopecks > 0 ? SafeDealStatus::Completed : SafeDealStatus::Refunded,
+                'completed_at' => $sellerKopecks > 0 ? now() : null,
+                'cancelled_at' => $sellerKopecks === 0 ? now() : null,
+                'payout_transaction_id' => $payout?->id,
+                'refund_transaction_id' => $refund?->id,
+                'metadata' => array_merge($deal->metadata ?? [], [
+                    'split' => [
+                        'buyer_kopecks' => $buyerKopecks,
+                        'seller_kopecks' => $sellerKopecks,
+                    ],
+                ]),
+            ]);
+
+            $this->log($deal, $actor, 'split', $sellerKopecks, $payout?->id, $note);
+            $this->releaseReservation($deal);
+
+            $fresh = $deal->fresh() ?? $deal;
+            $this->ratings->sync((int) $deal->seller_id);
+            $this->ratings->sync((int) $deal->buyer_id);
+
+            return $fresh;
+        });
+
+        $this->notifyDeal($completed, $completed->buyer_id, 'Спор разрешён', 'Часть суммы возвращена на баланс.');
+        $this->notifyDeal($completed, $completed->seller_id, 'Спор разрешён', $sellerKopecks > 0
+            ? 'Часть суммы зачислена на баланс.'
+            : $note);
+
+        return $completed;
+    }
+
+    /**
+     * @param  list<string>  $uuids
+     * @return list<array{uuid: string, url: string|null, filename: string|null}>
+     */
+    private function normalizeDisputeEvidence(User $user, array $uuids): array
+    {
+        $uuids = array_values(array_unique(array_filter($uuids, fn ($id) => is_string($id) && $id !== '')));
+        if (count($uuids) > 5) {
+            throw ValidationException::withMessages(['evidence_uuids' => ['Можно приложить не больше 5 файлов.']]);
+        }
+        if ($uuids === []) {
+            return [];
+        }
+
+        $media = Media::query()->whereIn('uuid', $uuids)->get()->keyBy('uuid');
+        $out = [];
+        foreach ($uuids as $uuid) {
+            $row = $media->get($uuid);
+            if ($row === null || (int) $row->uploaded_by !== (int) $user->id || $row->purpose !== 'dispute') {
+                throw ValidationException::withMessages(['evidence_uuids' => ['Файл не найден или недоступен.']]);
+            }
+            $out[] = [
+                'uuid' => $row->uuid,
+                'url' => $row->url,
+                'filename' => $row->filename,
+            ];
+        }
+
+        return $out;
     }
 
     /** The VTB hold backing this deal, or null when it is a wallet deal. */
@@ -761,6 +902,9 @@ class SafeDealService
             'delivered_at' => $deal->delivered_at?->toIso8601String(),
             'completed_at' => $deal->completed_at?->toIso8601String(),
             'auto_release_at' => $deal->auto_release_at?->toIso8601String(),
+            'hold_expires_at' => $deal->hold_expires_at?->toIso8601String(),
+            'can_dispute' => in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped, SafeDealStatus::Delivered], true)
+                && ($deal->hold_expires_at === null || $deal->hold_expires_at->isFuture()),
             'can_review' => $viewer !== null
                 && $deal->status === SafeDealStatus::Completed
                 && $deal->involves($viewer)

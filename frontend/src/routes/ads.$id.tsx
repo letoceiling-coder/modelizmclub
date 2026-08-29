@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
-import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, revealSellerPhone, archiveListing, deleteListing } from "@/lib/api/listings";
+import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, archiveListing, deleteListing } from "@/lib/api/listings";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
@@ -136,27 +136,6 @@ function AdDetailPage() {
     () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
     [ad],
   );
-
-  const revealedPhone = useStore((s) => s.revealedPhones[id]) ?? null;
-  const [phoneLoading, setPhoneLoading] = useState(false);
-
-  const revealPhone = () => {
-    guardAction("ads.call_seller", () => {
-      void (async () => {
-        if (revealedPhone || phoneLoading) return;
-        setPhoneLoading(true);
-        try {
-          const phone = await revealSellerPhone(id);
-          actions.setRevealedPhone(id, phone);
-        } catch (err) {
-          const message = formatApiErrorMessage(err, t("pages.adDetail.phoneFailed"));
-          if (message) toast.error(message);
-        } finally {
-          setPhoneLoading(false);
-        }
-      })();
-    });
-  };
 
   const proceedToConversation = async (queuedMessage: string | null) => {
     const sellerId = ad?.seller?.numericId;
@@ -412,9 +391,6 @@ function AdDetailPage() {
                 onShare={share}
                 onSafeDeal={() => void startSafeDeal()}
                 safeDealBusy={safeDealBusy}
-                phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
-                revealedPhone={revealedPhone}
-                onRevealPhone={() => void revealPhone()}
               />
             ) : (
               <AdOwnerActionPanel
@@ -505,9 +481,6 @@ function AdDetailPage() {
         <MobileStickyActionBar
           ad={ad}
           onWrite={writeToSeller}
-          phoneRevealState={phoneLoading ? "loading" : revealedPhone ? "revealed" : "idle"}
-          revealedPhone={revealedPhone}
-          onRevealPhone={() => void revealPhone()}
         />
       ) : (
         <AdOwnerMobileBar

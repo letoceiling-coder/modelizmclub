@@ -59,10 +59,18 @@ class SafeDealActionsController extends Controller
         $data = $request->validate([
             'reason' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'evidence_uuids' => ['sometimes', 'array', 'max:5'],
+            'evidence_uuids.*' => ['uuid'],
         ]);
 
         $deal = $this->deal($uuid);
-        $dispute = $this->deals->openDispute($request->user(), $deal, $data['reason'], $data['description'] ?? null);
+        $dispute = $this->deals->openDispute(
+            $request->user(),
+            $deal,
+            $data['reason'],
+            $data['description'] ?? null,
+            $data['evidence_uuids'] ?? [],
+        );
 
         return response()->json([
             'data' => [

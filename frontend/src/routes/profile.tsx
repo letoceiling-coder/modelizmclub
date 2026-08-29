@@ -32,6 +32,7 @@ import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import { openConversation } from "@/lib/api/chat";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog";
 import { uploadMedia } from "@/lib/api/media";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -55,9 +56,11 @@ import { ApiError } from "@/lib/api/client";
 import { firstFieldError } from "@/lib/api/validationErrors";
 
 import i18n from "@/lib/i18n";
+import { ProfilePageSkeleton } from "@/components/boot/PageSkeletons";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: i18n.t("pages.profile.metaTitle") }] }),
+  pendingComponent: ProfilePageSkeleton,
   component: ProfilePage,
 });
 
@@ -251,10 +254,12 @@ export function ProfileView({
   isFriendInitial, friendRequestStatusInitial, isFollowingInitial, onToggleFriend, onToggleFollow, onWrite, onSaveProfile, onDeletePost,
 }: ProfileViewProps) {
   const { t } = useTranslation();
-  const { requireAccount, requirePremium } = useGuestAccess();
+  const { requireAccount } = useGuestAccess();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
+  const [friendPromptOpen, setFriendPromptOpen] = useState(false);
+  const [friendPromptBusy, setFriendPromptBusy] = useState(false);
   const navigateToMessenger = useNavigate();
   const currentUser = useStore(selectors.currentUser);
   const storeFriendIds = useStore(selectors.friendsOf(currentUser?.id ?? user.id));
@@ -426,7 +431,11 @@ export function ProfileView({
                   title={t("pages.profile.writeMessage")}
                   aria-label={t("pages.profile.writeMessageAria")}
                   onClick={() => {
-                    requirePremium(() => {
+                    requireAccount(() => {
+                      if (!isFriend) {
+                        setFriendPromptOpen(true);
+                        return;
+                      }
                       void (async () => {
                         if (onWrite) { await onWrite(); return; }
                         if (!user.numericId || !currentUser?.id) {
@@ -668,6 +677,25 @@ export function ProfileView({
           />
         )}
       </AnimatePresence>
+      <FriendRequiredDialog
+        open={friendPromptOpen}
+        onOpenChange={setFriendPromptOpen}
+        adding={friendPromptBusy}
+        onAdd={() => {
+          setFriendPromptBusy(true);
+          void (async () => {
+            try {
+              await onToggleFriend?.();
+              toast.success(t("pages.profile.requestSent"));
+              setFriendPromptOpen(false);
+            } catch {
+              toast.error(t("pages.profile.requestFailed"));
+            } finally {
+              setFriendPromptBusy(false);
+            }
+          })();
+        }}
+      />
     </AppLayout>
   );
 }

@@ -63,6 +63,8 @@ export const en: TranslationSchema = {
   guestAuth: {
     title: "Sign in",
     description: "Sign in or create an account to use this feature.",
+    dealsTitle: "Sign in to view deals",
+    dealsDescription: "Safe deals are available after you sign in.",
     login: "Sign in",
     register: "Create account",
     later: "Not now",
@@ -1054,7 +1056,16 @@ export const en: TranslationSchema = {
       demoSignupNote: "Demo mode: event signup saved. Production will show a participant form and confirmation.",
       gotIt: "Got it",
       reportSuffix: " (community)",
-      reportDesc: "You are reporting community «{{name}}». Describe the issue."
+      reportDesc: "You are reporting community «{{name}}». Describe the issue.",
+      editPost: "Edit",
+      deletePost: "Delete",
+      deletePostConfirm: "Delete this post? It will disappear from the community wall.",
+      deletePostSuccess: "Post deleted",
+      deletePostFailed: "Could not delete post",
+      editPostTitle: "Edit post",
+      editPostSave: "Save",
+      editPostSaved: "Post updated",
+      editPostFailed: "Could not save post",
     },
     channels: {
       metaTitle: "Channels — MoDelizM",
@@ -1222,7 +1233,10 @@ export const en: TranslationSchema = {
       userBlockedDesc: "Пропал из друзей и списков — можно разблокировать в разделе «Заблокированные» в профиле",
       wantsToAdd: "Хочет добавить вас в друзья",
       myFriends: "Мои друзья",
-      recommendations: "Рекомендации"
+      recommendations: "Рекомендации",
+      writeNeedFriendTitle: "Add this user as a friend to message them",
+      writeNeedFriendDesc: "Messages are available to friends only. Send a request — once they accept, you can start a chat.",
+      writeNeedFriendAdd: "Add",
     },
     profile: {
       metaTitle: "Profile — MoDelizM",
@@ -1271,6 +1285,9 @@ export const en: TranslationSchema = {
       requestFailed: "Could not send request",
       writeMessage: "Send message",
       writeMessageAria: "Send message",
+      writeNeedFriendTitle: "Add this user as a friend to message them",
+      writeNeedFriendDesc: "Messages are available to friends only. Send a request — once they accept, you can start a chat.",
+      writeNeedFriendAdd: "Add",
       dialogOpenFailed: "Could not open chat",
       followed: "You followed",
       unfollowed: "You unfollowed",

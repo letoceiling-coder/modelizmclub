@@ -124,6 +124,7 @@ export interface Post {
   status?: "published" | "moderation" | "scheduled";
   scheduledAt?: string;
   canDelete?: boolean;
+  canEdit?: boolean;
   canPublish?: boolean;
   canCancelSchedule?: boolean;
   canInteract?: boolean;

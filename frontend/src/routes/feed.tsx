@@ -26,6 +26,7 @@ import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FEED_FILTER_ACTIONS, firstAllowedFeedFilter } from "@/lib/feed-guest-access/registry";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { FeedPageSkeleton } from "@/components/boot/PageSkeletons";
 
 import i18n from "@/lib/i18n";
 
@@ -75,6 +76,7 @@ export const Route = createFileRoute("/feed")({
     return { posts: feed.posts, banners, categories };
   },
   staleTime: 30_000,
+  pendingComponent: FeedPageSkeleton,
   component: FeedPage,
 });
 

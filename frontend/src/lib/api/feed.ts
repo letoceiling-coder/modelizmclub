@@ -134,6 +134,7 @@ export function mapPost(p: ApiPost): Post {
         }
       : undefined,
     canDelete: p.permissions?.can_delete ?? false,
+    canEdit: p.permissions?.can_edit ?? false,
     canPublish: p.permissions?.can_publish ?? false,
     canCancelSchedule: p.permissions?.can_cancel_schedule ?? false,
     canInteract: p.permissions?.can_interact ?? p.status === "published",
@@ -372,6 +373,31 @@ export async function cancelScheduledPost(uuid: string): Promise<Post> {
     };
   }
   const res = await api<{ data: ApiPost }>(`/posts/${uuid}/schedule`, { method: "DELETE" });
+  return mapPost(res.data);
+}
+
+export async function updatePost(uuid: string, data: { title?: string; body?: string }): Promise<Post> {
+  if (isDemoMode()) {
+    return {
+      id: uuid,
+      authorId: "",
+      author: "Вы",
+      date: "",
+      category: "",
+      title: data.title ?? "",
+      text: data.body ?? "",
+      tags: [],
+      views: 0,
+      likes: 0,
+      comments: 0,
+      saves: 0,
+      reposts: 0,
+      status: "published",
+      isLiked: false,
+      isSaved: false,
+    };
+  }
+  const res = await api<{ data: ApiPost }>(`/posts/${uuid}`, { method: "PATCH", json: data });
   return mapPost(res.data);
 }
 

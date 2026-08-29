@@ -1,13 +1,16 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Package, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/card";
-import { isAuthenticated } from "@/lib/auth/session";
+import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { fetchSafeDeals, kopecksToRub, type SafeDeal, type SafeDealRole } from "@/lib/api/safe-deals";
+import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 
 export const Route = createFileRoute("/deals")({
-  component: DealsPage,
+  component: DealsRoute,
+  pendingComponent: DealsPageSkeleton,
 });
 
 const STATUS_COLORS: Record<string, string> = {
@@ -21,17 +24,34 @@ const STATUS_COLORS: Record<string, string> = {
   created: "var(--foreground-50)",
 };
 
+function DealsRoute() {
+  const guestBlocked = useGuestRouteBlocked("route.deals");
+  const { requireLogin } = useGuestAccess();
+  useEffect(() => {
+    if (guestBlocked) requireLogin(() => {});
+  }, [guestBlocked, requireLogin]);
+  if (guestBlocked) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
+          <GuestSectionStub
+            icon={ShieldCheck}
+            title="Войдите, чтобы посмотреть сделки"
+            description="История безопасных сделок доступна после входа в аккаунт."
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+  return <DealsPage />;
+}
+
 function DealsPage() {
-  const navigate = useNavigate();
   const [role, setRole] = useState<SafeDealRole>("buyer");
   const [deals, setDeals] = useState<SafeDeal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate({ to: "/login", search: { redirect: "/deals" } });
-      return;
-    }
     let alive = true;
     setLoading(true);
     fetchSafeDeals(role)
@@ -39,7 +59,7 @@ function DealsPage() {
       .catch(() => { if (alive) setDeals([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [role, navigate]);
+  }, [role]);
 
   return (
     <AppLayout rightColumn={false}>

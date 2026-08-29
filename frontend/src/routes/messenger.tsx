@@ -65,6 +65,7 @@ import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 import i18n from "@/lib/i18n";
+import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -77,6 +78,7 @@ export const Route = createFileRoute("/messenger")({
     share: search.share === true || search.share === "1" || search.share === 1,
   }),
   component: MessengerRoute,
+  pendingComponent: MessengerPageSkeleton,
 });
 
 function MessengerRoute() {

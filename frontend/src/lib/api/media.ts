@@ -1,7 +1,7 @@
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 
-export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "listing" | "chat" | "icon" | "banner" | "logo";
+export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "listing" | "chat" | "icon" | "banner" | "logo" | "dispute";
 
 export interface UploadedMedia {
   uuid: string;

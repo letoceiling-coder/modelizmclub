@@ -1744,6 +1744,7 @@ export interface AdminDisputeRow {
   status: string;
   reason: string;
   description: string | null;
+  evidence?: { uuid: string; url: string | null; filename: string | null }[];
   opened_by: { uuid: string | null; name: string | null };
   deal: AdminSafeDealRow;
   created_at: string | null;
@@ -1754,7 +1755,18 @@ export async function fetchAdminDisputes(query: { status?: string; page?: number
   return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
 }
 
-export async function resolveAdminDispute(uuid: string, inFavorOf: "buyer" | "seller"): Promise<void> {
-  await api(`/admin/disputes/${uuid}/resolve`, { method: "POST", json: { in_favor_of: inFavorOf } });
+export async function resolveAdminDispute(
+  uuid: string,
+  inFavorOf: "buyer" | "seller" | "split",
+  split?: { buyerKopecks: number; sellerKopecks: number },
+): Promise<void> {
+  await api(`/admin/disputes/${uuid}/resolve`, {
+    method: "POST",
+    json: {
+      in_favor_of: inFavorOf,
+      buyer_kopecks: split?.buyerKopecks,
+      seller_kopecks: split?.sellerKopecks,
+    },
+  });
 }
 

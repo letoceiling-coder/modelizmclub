@@ -6,7 +6,7 @@ import {
   Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging, Users,
   Share2, Globe, Phone, MessageCircle, FilePlus, ImageOff, ArrowLeft,
   Check, Plus, CalendarDays, MapPin, MessagesSquare, Heart, ChevronRight,
-  Settings2, Flag,
+  Settings2, Flag, Pencil, Trash2,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -35,6 +35,10 @@ import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
 import { toast } from "@/lib/toast";
+import { deletePost, updatePost } from "@/lib/api/feed";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 import i18n from "@/lib/i18n";
 
@@ -155,10 +159,57 @@ function LoadingSkeleton() {
 
 /* ============================ Tab content ============================ */
 
-function CommunityPostCard({ post, community, Icon }: { post: Post; community: Community; Icon: typeof Car }) {
+function CommunityPostCard({
+  post,
+  community,
+  Icon,
+  onDeleted,
+  onUpdated,
+}: {
+  post: Post;
+  community: Community;
+  Icon: typeof Car;
+  onDeleted: (id: string) => void;
+  onUpdated: (post: Post) => void;
+}) {
+  const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState(post.title);
+  const [editBody, setEditBody] = useState(post.text);
+  const [busy, setBusy] = useState(false);
   const img = post.image ?? post.images?.[0];
   const showAvatar = Boolean(community.avatarImage);
+  const canManage = Boolean(post.canEdit || post.canDelete);
+
+  const saveEdit = async () => {
+    setBusy(true);
+    try {
+      const next = await updatePost(post.id, { title: editTitle.trim(), body: editBody.trim() });
+      onUpdated({ ...post, ...next, title: editTitle.trim(), text: editBody.trim() });
+      setEditOpen(false);
+      toast.success(t("pages.communityDetail.editPostSaved"));
+    } catch {
+      toast.error(t("pages.communityDetail.editPostFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm(t("pages.communityDetail.deletePostConfirm"))) return;
+    setBusy(true);
+    try {
+      await deletePost(post.id);
+      onDeleted(post.id);
+      toast.success(t("pages.communityDetail.deletePostSuccess"));
+    } catch {
+      toast.error(t("pages.communityDetail.deletePostFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="flex items-center gap-[10px] px-[16px] pt-[14px]">
@@ -169,10 +220,37 @@ function CommunityPostCard({ post, community, Icon }: { post: Post; community: C
             <Icon size={18} style={{ color: "var(--accent)" }} />
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{community.name}</div>
           <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{post.date}</div>
         </div>
+        {canManage && (
+          <div className="flex shrink-0 gap-[4px]">
+            {post.canEdit && (
+              <button
+                type="button"
+                className="grid h-[32px] w-[32px] place-items-center rounded-[8px]"
+                style={{ color: "var(--foreground-50)" }}
+                aria-label={t("pages.communityDetail.editPost")}
+                onClick={() => { setEditTitle(post.title); setEditBody(post.text); setEditOpen(true); }}
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+            {post.canDelete && (
+              <button
+                type="button"
+                className="grid h-[32px] w-[32px] place-items-center rounded-[8px]"
+                style={{ color: "var(--foreground-50)" }}
+                aria-label={t("pages.communityDetail.deletePost")}
+                disabled={busy}
+                onClick={() => void remove()}
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div className="px-[16px] pb-[12px] pt-[10px]">
         <h3 className="font-display text-[16px] font-semibold leading-tight" style={{ color: "var(--foreground)" }}>{post.title}</h3>
@@ -187,6 +265,21 @@ function CommunityPostCard({ post, community, Icon }: { post: Post; community: C
         <span className="inline-flex items-center gap-[6px]"><Heart size={15} /> {post.likes}</span>
         <span className="inline-flex items-center gap-[6px]"><MessageCircle size={15} /> {post.comments}</span>
       </div>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-[440px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+          <DialogHeader>
+            <DialogTitle>{t("pages.communityDetail.editPostTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-[10px]">
+            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={200} />
+            <Textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} rows={6} />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditOpen(false)} disabled={busy}>{t("common.cancel")}</Button>
+            <Button onClick={() => void saveEdit()} disabled={busy || editTitle.trim().length === 0}>{t("pages.communityDetail.editPostSave")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -837,7 +930,16 @@ function CommunityDetailPage() {
               </div>
             ) : posts.length > 0 ? (
               <div className="space-y-[16px]">
-                {posts.map((p) => <CommunityPostCard key={p.id} post={p} community={community} Icon={Icon} />)}
+                {posts.map((p) => (
+                  <CommunityPostCard
+                    key={p.id}
+                    post={p}
+                    community={community}
+                    Icon={Icon}
+                    onDeleted={(id) => setPosts((list) => list.filter((x) => x.id !== id))}
+                    onUpdated={(next) => setPosts((list) => list.map((x) => (x.id === next.id ? next : x)))}
+                  />
+                ))}
               </div>
             ) : (
               <EmptyState icon={ImageOff} title={t("pages.communityDetail.emptyPosts")} description={t("pages.communityDetail.emptyPostsDesc")} variant="compact">

@@ -1,14 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ChevronLeft, Loader2, ShieldCheck, Truck, CheckCircle2, XCircle, AlertTriangle, Package } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, Loader2, ShieldCheck, Truck, CheckCircle2, XCircle, AlertTriangle, Package, Paperclip, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
-import { isAuthenticated } from "@/lib/auth/session";
+import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { uploadMedia } from "@/lib/api/media";
 import {
   fetchSafeDeal,
   resolveSafeDealRole,
@@ -22,16 +24,44 @@ import {
   type SafeDeal,
   type SafeDealRole,
 } from "@/lib/api/safe-deals";
+import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 
 export const Route = createFileRoute("/deals/$uuid")({
   validateSearch: (search: Record<string, unknown>): { role?: SafeDealRole } => ({
     role: search.role === "buyer" || search.role === "seller" ? search.role : undefined,
   }),
-  component: DealDetailPage,
+  pendingComponent: DealsPageSkeleton,
+  component: DealDetailRoute,
 });
 
 function fmt(date: string | null): string {
   return date ? new Date(date).toLocaleString("ru-RU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+}
+
+function reviewDismissedKey(uuid: string): string {
+  return `deal-review-dismissed:${uuid}`;
+}
+
+function DealDetailRoute() {
+  const guestBlocked = useGuestRouteBlocked("route.deals");
+  const { requireLogin } = useGuestAccess();
+  useEffect(() => {
+    if (guestBlocked) requireLogin(() => {});
+  }, [guestBlocked, requireLogin]);
+  if (guestBlocked) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
+          <GuestSectionStub
+            icon={ShieldCheck}
+            title="Войдите, чтобы посмотреть сделки"
+            description="Безопасные сделки доступны после входа в аккаунт."
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+  return <DealDetailPage />;
 }
 
 function DealDetailPage() {
@@ -44,17 +74,15 @@ function DealDetailPage() {
   const [busy, setBusy] = useState(false);
   const [shipOpen, setShipOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const reload = async () => {
     const d = await fetchSafeDeal(uuid);
     setDeal(d);
+    return d;
   };
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate({ to: "/login", search: { redirect: `/deals/${uuid}` } });
-      return;
-    }
     let alive = true;
     setLoading(true);
     (async () => {
@@ -73,20 +101,28 @@ function DealDetailPage() {
       }
     })();
     return () => { alive = false; };
-  }, [uuid, roleHint, navigate]);
+  }, [uuid, roleHint]);
 
   const runAction = async (fn: () => Promise<unknown>, successMsg: string) => {
     setBusy(true);
     try {
       await fn();
-      await reload();
+      const next = await reload();
       toast.success(successMsg);
+      return next;
     } catch {
       toast.error("Не удалось выполнить действие");
+      return null;
     } finally {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (!deal?.can_review || deal.status !== "completed" || role !== "buyer") return;
+    if (typeof window !== "undefined" && sessionStorage.getItem(reviewDismissedKey(uuid))) return;
+    setReviewOpen(true);
+  }, [deal?.can_review, deal?.status, uuid, role]);
 
   if (loading) {
     return (
@@ -114,11 +150,12 @@ function DealDetailPage() {
   const isBuyer = role === "buyer";
   const isSeller = role === "seller";
   const s = deal.status;
+  const holdOpen = !deal.hold_expires_at || new Date(deal.hold_expires_at).getTime() > Date.now();
   const canShip = isSeller && s === "paid";
   const canMarkDelivered = isSeller && (s === "paid" || s === "shipped");
   const canConfirm = isBuyer && (s === "paid" || s === "shipped" || s === "delivered");
   const canCancel = (s === "paid" || s === "shipped");
-  const canDispute = (s === "paid" || s === "shipped" || s === "delivered");
+  const canDispute = (s === "paid" || s === "shipped" || s === "delivered") && holdOpen;
 
   return (
     <AppLayout rightColumn={false}>
@@ -232,6 +269,11 @@ function DealDetailPage() {
                 <AlertTriangle size={16} /> Открыть спор
               </Button>
             )}
+            {!holdOpen && (s === "paid" || s === "shipped" || s === "delivered") && (
+              <p className="w-full text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                Срок холда истёк — открыть спор больше нельзя.
+              </p>
+            )}
           </div>
         )}
 
@@ -253,10 +295,23 @@ function DealDetailPage() {
         setShipOpen(false);
         void runAction(() => shipSafeDeal(uuid, { trackingNumber: tracking, deliveryMethod: method }), "Отмечено как отправлено");
       }} />
-      <DisputeDialog open={disputeOpen} onOpenChange={setDisputeOpen} busy={busy} onSubmit={(reason, description) => {
+      <DisputeDialog open={disputeOpen} onOpenChange={setDisputeOpen} busy={busy} onSubmit={(reason, description, evidenceUuids) => {
         setDisputeOpen(false);
-        void runAction(() => disputeSafeDeal(uuid, reason, description), "Спор открыт");
+        void runAction(() => disputeSafeDeal(uuid, reason, description, evidenceUuids), "Спор открыт");
       }} />
+      <DealReviewDialog
+        open={reviewOpen && Boolean(deal.can_review) && role === "buyer"}
+        busy={busy}
+        onLater={() => {
+          sessionStorage.setItem(reviewDismissedKey(uuid), "1");
+          setReviewOpen(false);
+        }}
+        onSubmit={(rating, text) => {
+          void runAction(() => reviewSafeDeal(uuid, rating, text), "Оценка сохранена").then((next) => {
+            if (next) setReviewOpen(false);
+          });
+        }}
+      />
     </AppLayout>
   );
 }
@@ -352,11 +407,96 @@ function ShipDialog({ open, onOpenChange, busy, onSubmit }: { open: boolean; onO
   );
 }
 
-function DisputeDialog({ open, onOpenChange, busy, onSubmit }: { open: boolean; onOpenChange: (v: boolean) => void; busy: boolean; onSubmit: (reason: string, description: string) => void }) {
+function DealReviewDialog({
+  open,
+  busy,
+  onLater,
+  onSubmit,
+}: {
+  open: boolean;
+  busy: boolean;
+  onLater: () => void;
+  onSubmit: (rating: number, text: string) => void;
+}) {
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState("");
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onLater(); }}>
+      <DialogContent className="max-w-[420px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+        <DialogHeader>
+          <DialogTitle>Оцените продавца</DialogTitle>
+          <DialogDescription>Сделка завершена. Оценка появится в профиле продавца.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-[12px]">
+          <div className="flex justify-center gap-[6px]">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="h-[40px] w-[40px] rounded-full text-[14px] font-bold"
+                style={{
+                  background: rating >= n ? "var(--accent)" : "var(--background-surface)",
+                  color: rating >= n ? "var(--accent-foreground)" : "var(--foreground-50)",
+                }}
+                onClick={() => setRating(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={2000} placeholder="Комментарий (необязательно)" />
+        </div>
+        <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+          <Button disabled={busy} className="w-full" onClick={() => onSubmit(rating, text.trim())}>Отправить оценку</Button>
+          <Button type="button" variant="ghost" className="w-full" onClick={onLater} disabled={busy}>Оценить позже</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DisputeDialog({ open, onOpenChange, busy, onSubmit }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  busy: boolean;
+  onSubmit: (reason: string, description: string, evidenceUuids: string[]) => void;
+}) {
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
+  const [files, setFiles] = useState<{ uuid: string; name: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = async (list: FileList | null) => {
+    if (!list) return;
+    const remaining = 5 - files.length;
+    const picked = Array.from(list).slice(0, remaining);
+    if (picked.length === 0) return;
+    setUploading(true);
+    try {
+      const uploaded: { uuid: string; name: string }[] = [];
+      for (const file of picked) {
+        const media = await uploadMedia(file, "dispute");
+        uploaded.push({ uuid: media.uuid, name: file.name });
+      }
+      setFiles((prev) => [...prev, ...uploaded].slice(0, 5));
+    } catch {
+      toast.error("Не удалось загрузить файл");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => {
+      if (!v) {
+        setReason("");
+        setDescription("");
+        setFiles([]);
+      }
+      onOpenChange(v);
+    }}>
       <DialogContent className="max-w-[400px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
         <DialogHeader>
           <DialogTitle>Открыть спор</DialogTitle>
@@ -370,10 +510,36 @@ function DisputeDialog({ open, onOpenChange, busy, onSubmit }: { open: boolean; 
             <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Описание (необязательно)</label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={4} />
           </div>
+          <div className="space-y-[6px]">
+            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Файлы (до 5)</label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => void addFiles(e.target.files)}
+            />
+            <Button type="button" variant="outline" size="sm" disabled={uploading || files.length >= 5} onClick={() => fileRef.current?.click()} className="gap-[6px]">
+              <Paperclip size={14} /> {uploading ? "Загрузка…" : "Прикрепить"}
+            </Button>
+            {files.length > 0 && (
+              <ul className="space-y-[4px]">
+                {files.map((f) => (
+                  <li key={f.uuid} className="flex items-center justify-between gap-[8px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                    <span className="truncate">{f.name}</span>
+                    <button type="button" onClick={() => setFiles((prev) => prev.filter((x) => x.uuid !== f.uuid))} aria-label="Удалить файл">
+                      <X size={12} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>Отмена</Button>
-          <Button disabled={busy || reason.trim().length === 0} style={{ background: "var(--danger)", color: "#fff" }} onClick={() => onSubmit(reason.trim(), description.trim())}>Открыть спор</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy || uploading}>Отмена</Button>
+          <Button disabled={busy || uploading || reason.trim().length === 0} style={{ background: "var(--danger)", color: "#fff" }} onClick={() => onSubmit(reason.trim(), description.trim(), files.map((f) => f.uuid))}>Открыть спор</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

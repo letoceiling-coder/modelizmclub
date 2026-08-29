@@ -31,8 +31,16 @@ export function GuestAuthDialog({ open, onOpenChange, onLogin, onRegister }: Pro
           >
             <LogIn size={22} />
           </div>
-          <DialogTitle>{t("guestAuth.title")}</DialogTitle>
-          <DialogDescription>{t("guestAuth.description")}</DialogDescription>
+          <DialogTitle>
+            {typeof window !== "undefined" && window.location.pathname.startsWith("/deals")
+              ? t("guestAuth.dealsTitle")
+              : t("guestAuth.title")}
+          </DialogTitle>
+          <DialogDescription>
+            {typeof window !== "undefined" && window.location.pathname.startsWith("/deals")
+              ? t("guestAuth.dealsDescription")
+              : t("guestAuth.description")}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
           <Button type="button" className="w-full" onClick={onLogin}>

@@ -63,6 +63,8 @@ export const zh: TranslationSchema = {
   guestAuth: {
     title: "Sign in",
     description: "Sign in or create an account to use this feature.",
+    dealsTitle: "请登录以查看交易",
+    dealsDescription: "登录后即可查看安全交易。",
     login: "Sign in",
     register: "Create account",
     later: "Not now",
@@ -1039,7 +1041,16 @@ export const zh: TranslationSchema = {
       demoSignupNote: "Demo mode: event signup saved. Production will show a participant form and confirmation.",
       gotIt: "Got it",
       reportSuffix: " (community)",
-      reportDesc: "You are reporting community «{{name}}». Describe the issue."
+      reportDesc: "You are reporting community «{{name}}». Describe the issue.",
+      editPost: "编辑",
+      deletePost: "删除",
+      deletePostConfirm: "删除这条帖子？它将从社区墙消失。",
+      deletePostSuccess: "帖子已删除",
+      deletePostFailed: "无法删除帖子",
+      editPostTitle: "编辑帖子",
+      editPostSave: "保存",
+      editPostSaved: "帖子已更新",
+      editPostFailed: "无法保存帖子",
     },
     channels: {
       metaTitle: "Channels — MoDelizM",
@@ -1206,7 +1217,10 @@ export const zh: TranslationSchema = {
       userBlockedDesc: "Пропал из друзей и списков — можно разблокировать в разделе «Заблокированные» в профиле",
       wantsToAdd: "Хочет добавить вас в друзья",
       myFriends: "Мои друзья",
-      recommendations: "Рекомендации"
+      recommendations: "Рекомендации",
+      writeNeedFriendTitle: "请先加为好友再发消息",
+      writeNeedFriendDesc: "只有好友可以私信。发送申请，对方同意后即可开始对话。",
+      writeNeedFriendAdd: "添加",
     },
     profile: {
       metaTitle: "Profile — MoDelizM",
@@ -1255,6 +1269,9 @@ export const zh: TranslationSchema = {
       requestFailed: "Could not send request",
       writeMessage: "Send message",
       writeMessageAria: "Send message",
+      writeNeedFriendTitle: "请先加为好友再发消息",
+      writeNeedFriendDesc: "只有好友可以私信。发送申请，对方同意后即可开始对话。",
+      writeNeedFriendAdd: "添加",
       dialogOpenFailed: "Could not open chat",
       followed: "You followed",
       unfollowed: "You unfollowed",

@@ -292,6 +292,9 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
   const [rows, setRows] = useState<AdminDisputeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [splitOf, setSplitOf] = useState<string | null>(null);
+  const [buyerRub, setBuyerRub] = useState("");
+  const [sellerRub, setSellerRub] = useState("");
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -303,11 +306,23 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const act = async (uuid: string, side: "buyer" | "seller") => {
+  const act = async (uuid: string, side: "buyer" | "seller" | "split") => {
     setBusy(uuid);
     try {
-      await resolveAdminDispute(uuid, side);
-      toast.success(side === "buyer" ? "Спор закрыт в пользу покупателя" : "Спор закрыт в пользу продавца");
+      if (side === "split") {
+        const buyerKopecks = Math.round(Number(buyerRub.replace(",", ".")) * 100);
+        const sellerKopecks = Math.round(Number(sellerRub.replace(",", ".")) * 100);
+        if (!Number.isFinite(buyerKopecks) || !Number.isFinite(sellerKopecks)) {
+          toast.error("Укажите суммы разделения");
+          return;
+        }
+        await resolveAdminDispute(uuid, "split", { buyerKopecks, sellerKopecks });
+        toast.success("Сумма разделена");
+        setSplitOf(null);
+      } else {
+        await resolveAdminDispute(uuid, side);
+        toast.success(side === "buyer" ? "Спор закрыт в пользу покупателя" : "Спор закрыт в пользу продавца");
+      }
       reload();
     } catch {
       toast.error("Не удалось разрешить спор");
@@ -333,14 +348,54 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
             {rows.length === 0 && <tr><td colSpan={4} style={td}>Открытых споров нет</td></tr>}
             {rows.map((d) => (
               <tr key={d.uuid}>
-                <td style={td}>{d.reason}<div style={{ fontSize: 11, color: "var(--foreground-50)" }}>{fmt(d.created_at)}</div></td>
+                <td style={td}>
+                  {d.reason}
+                  <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>{fmt(d.created_at)}</div>
+                  {(d.evidence?.length ?? 0) > 0 && (
+                    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {d.evidence!.map((f, i) => (
+                        <a key={f.uuid} href={f.url ?? "#"} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--accent)" }}>
+                          {f.filename || `файл ${i + 1}`}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </td>
                 <td style={td}>{rub(d.deal.amount_kopecks)} ₽</td>
                 <td style={td}>{d.opened_by.name ?? "—"}</td>
                 <td style={td}>
                   {d.status === "open" && (
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "buyer")}>Покупателю</button>
-                      <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "seller")}>Продавцу</button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
+                        <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "buyer")}>Вернуть покупателю</button>
+                        <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "seller")}>Выплатить продавцу</button>
+                        <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => {
+                          setSplitOf(splitOf === d.uuid ? null : d.uuid);
+                          const half = (d.deal.amount_kopecks / 100 / 2).toFixed(2);
+                          setBuyerRub(half);
+                          setSellerRub(half);
+                        }}>Разделить сумму</button>
+                      </div>
+                      {splitOf === d.uuid && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                          <input
+                            value={buyerRub}
+                            onChange={(e) => setBuyerRub(e.target.value)}
+                            placeholder="Покупателю"
+                            inputMode="decimal"
+                            style={{ height: 32, width: 96, borderRadius: 8, border: "1px solid var(--border)", padding: "0 8px", background: "var(--background)", color: "var(--foreground)", fontSize: 12 }}
+                          />
+                          <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>/</span>
+                          <input
+                            value={sellerRub}
+                            onChange={(e) => setSellerRub(e.target.value)}
+                            placeholder="Продавцу"
+                            inputMode="decimal"
+                            style={{ height: 32, width: 96, borderRadius: 8, border: "1px solid var(--border)", padding: "0 8px", background: "var(--background)", color: "var(--foreground)", fontSize: 12 }}
+                          />
+                          <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "split")}>Применить X/Y</button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </td>

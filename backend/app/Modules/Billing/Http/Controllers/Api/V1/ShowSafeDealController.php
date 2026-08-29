@@ -42,6 +42,7 @@ class ShowSafeDealController extends Controller
                 'uuid' => $deal->dispute->uuid,
                 'status' => $deal->dispute->status->value,
                 'reason' => $deal->dispute->reason,
+                'evidence' => $deal->dispute->evidence ?? [],
             ];
         }
 

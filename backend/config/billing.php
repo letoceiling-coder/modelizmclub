@@ -131,6 +131,8 @@ return [
         'auto_release_days' => (int) env('SAFE_DEAL_AUTO_RELEASE_DAYS', 7),
         // An unpaid deal keeps the listing reserved this long, then it expires.
         'checkout_ttl_minutes' => (int) env('SAFE_DEAL_CHECKOUT_TTL_MINUTES', 30),
+        // Window after payment during which a dispute can be opened.
+        'hold_days' => (int) env('SAFE_DEAL_HOLD_DAYS', 14),
     ],
 
 ];
