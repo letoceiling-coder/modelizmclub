@@ -8,6 +8,8 @@ import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
 import { getMySubscription } from "@/lib/subscription";
+import { claimReferralCode } from "@/lib/api/referral";
+import { peekStoredReferralCode, consumeStoredReferralCode } from "@/lib/referral-cookie";
 
 /** Replace local favorite IDs with the server list (source of truth for the badge). */
 export async function syncFavoritesFromServer(): Promise<void> {
@@ -84,6 +86,11 @@ async function loadSession(): Promise<boolean> {
     syncDialogsFromServer(me.id),
     getMySubscription(),
   ]);
+  const pendingRef = peekStoredReferralCode();
+  if (pendingRef) {
+    await claimReferralCode(pendingRef);
+    consumeStoredReferralCode();
+  }
   return true;
 }
 

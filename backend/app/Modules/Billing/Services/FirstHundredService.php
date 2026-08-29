@@ -3,11 +3,15 @@
 namespace Modules\Billing\Services;
 
 use App\Enums\WalletTransactionType;
+use App\Models\PromoPool;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserSubscription;
+use App\Notifications\InAppNotification;
+use App\Services\InAppNotify;
 use App\Support\FirstHundredPromo;
+use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
 
 class FirstHundredService
@@ -38,6 +42,14 @@ class FirstHundredService
             }
 
             $config = FirstHundredPromo::get();
+            $pool = \Illuminate\Support\Facades\Schema::hasTable('promo_pools')
+                ? PromoPool::query()->granting()->lockForUpdate()->first()
+                : null;
+
+            if ($pool && $pool->seatsLeft() > 0) {
+                return $this->grantFromPool($locked, $pool);
+            }
+
             if (! $config['enabled'] || FirstHundredPromo::takenCount() >= $config['total']) {
                 return false;
             }
@@ -47,18 +59,7 @@ class FirstHundredService
                 return false;
             }
 
-            $bonusKopecks = (int) ($config['bonus_kopecks'] ?? 0);
-            if ($bonusKopecks > 0) {
-                $this->wallet->credit(
-                    $locked,
-                    $bonusKopecks,
-                    WalletTransactionType::PromoBonus,
-                    'Бонус «Первые 100»',
-                    'promo_first_hundred',
-                    $locked->id,
-                    'first-hundred:'.$locked->id,
-                );
-            }
+            $this->creditWelcomeBonus($locked, (int) ($config['bonus_kopecks'] ?? 0), 'Бонус «Первые 100»');
 
             $locked->forceFill([
                 'is_first_hundred' => true,
@@ -116,10 +117,126 @@ class FirstHundredService
         });
     }
 
+    private function grantFromPool(User $user, PromoPool $pool): bool
+    {
+        $plan = $this->resolvePlan((string) $pool->plan_slug);
+        if (! $plan) {
+            return false;
+        }
+
+        $this->creditWelcomeBonus($user, (int) $pool->bonus_kopecks, 'Бонус «'.$pool->name.'»');
+
+        $user->forceFill([
+            'is_first_hundred' => true,
+            'first_hundred_granted_at' => now(),
+            'promo_pool_id' => $pool->id,
+        ])->save();
+
+        $this->ensurePromoSubscription($user->fresh(), $plan, $pool->expires_at);
+        $pool->increment('current_activations');
+
+        return true;
+    }
+
+    private function creditWelcomeBonus(User $user, int $bonusKopecks, string $note): void
+    {
+        if ($bonusKopecks <= 0) {
+            return;
+        }
+
+        $this->wallet->credit(
+            $user,
+            $bonusKopecks,
+            WalletTransactionType::PromoBonus,
+            $note,
+            'promo_first_hundred',
+            $user->id,
+            'first-hundred:'.$user->id,
+        );
+    }
+
+    public function extendSubscription(User $user, int $days): void
+    {
+        if ($days <= 0) {
+            return;
+        }
+
+        $active = UserSubscription::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where(function ($q): void {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->latest('id')
+            ->first();
+
+        if ($active) {
+            $from = $active->ends_at && $active->ends_at->gt(now()) ? $active->ends_at->copy() : now();
+            $active->update(['ends_at' => $from->addDays($days)]);
+
+            return;
+        }
+
+        $plan = $this->resolvePlan('year');
+        if (! $plan) {
+            return;
+        }
+
+        $this->ensurePromoSubscription($user, $plan, now()->addDays($days));
+    }
+
+    /** Soft-expire unpaid promo subscriptions past ends_at and ping the user. */
+    public function expireEndedPromoSubscriptions(): int
+    {
+        $rows = UserSubscription::query()
+            ->where('status', 'active')
+            ->whereNotNull('ends_at')
+            ->where('ends_at', '<=', now())
+            ->get();
+
+        $count = 0;
+        foreach ($rows as $row) {
+            $user = $row->user;
+            if (! $user || $user->hasPaidSubscriptionPayment()) {
+                continue;
+            }
+
+            $row->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'auto_renew' => false,
+            ]);
+
+            InAppNotify::sendQuiet(
+                $user,
+                new InAppNotification(
+                    'promo',
+                    'Промо-подписка закончилась',
+                    'Продлите тариф, чтобы сохранить доступ к платным функциям клуба.',
+                    '/subscription',
+                ),
+            );
+            $count++;
+        }
+
+        return $count;
+    }
+
     private function syncFlaggedUser(User $user): void
     {
         $config = FirstHundredPromo::get();
         $plan = $this->resolvePlan($config['plan_slug']);
+
+        if ($user->promo_pool_id) {
+            $pool = PromoPool::query()->find($user->promo_pool_id);
+            $poolPlan = $pool ? $this->resolvePlan((string) $pool->plan_slug) : null;
+            // Pause/complete stop new grants only — existing seats stay until ends_at.
+            if ($pool && ($poolPlan ?? $plan)) {
+                $this->ensurePromoSubscription($user, $poolPlan ?? $plan, $pool->expires_at);
+
+                return;
+            }
+        }
 
         if ($config['enabled'] && $plan && FirstHundredPromo::coversUser($user)) {
             $this->ensurePromoSubscription($user, $plan);
@@ -130,7 +247,7 @@ class FirstHundredService
         $this->cancelUnpaidPromoSubscription($user);
     }
 
-    private function ensurePromoSubscription(User $user, SubscriptionPlan $plan): void
+    private function ensurePromoSubscription(User $user, SubscriptionPlan $plan, ?DateTimeInterface $endsAt = null): void
     {
         $active = UserSubscription::query()
             ->where('user_id', $user->id)
@@ -161,7 +278,7 @@ class FirstHundredService
             return;
         }
 
-        $subscription = $this->payments->activateSubscription($user, (int) $plan->id);
+        $subscription = $this->payments->activateSubscription($user, (int) $plan->id, $endsAt);
         $subscription->update(['auto_renew' => false]);
     }
 

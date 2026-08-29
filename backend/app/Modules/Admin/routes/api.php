@@ -110,6 +110,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
         Route::apiResource('promocodes', AdminPromocodeController::class)->parameters(['promocodes' => 'code']);
         Route::get('referrals', [AdminReferralController::class, 'index']);
+        Route::get('promo-pools', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'index']);
+        Route::post('promo-pools', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'store']);
+        Route::post('promo-pools/{uuid}/pause', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'pause'])
+            ->where('uuid', '[0-9a-f-]{36}');
+        Route::post('promo-pools/{uuid}/resume', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'resume'])
+            ->where('uuid', '[0-9a-f-]{36}');
+        Route::post('promo-pools/{uuid}/complete', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'complete'])
+            ->where('uuid', '[0-9a-f-]{36}');
         Route::get('payments', [AdminPaymentsController::class, 'index']);
         Route::get('payments/export', [AdminPaymentsController::class, 'export']);
         Route::patch('banners/carousel/settings', [AdminBannerController::class, 'updateCarousel']);

@@ -50,6 +50,7 @@ import { DeliveryMethodsAdminCard } from "@/components/admin/DeliveryMethodsAdmi
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
 import { FirstHundredAdminCard } from "@/components/admin/FirstHundredAdminCard";
+import { PromoPoolsAdminCard } from "@/components/admin/PromoPoolsAdminCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
@@ -2263,6 +2264,7 @@ function MonetizationSection() {
     <div>
       <H>{t("pages.adminMonetization.title")}</H>
 
+      <PromoPoolsAdminCard cardStyle={card} />
       <FirstHundredAdminCard cardStyle={card} />
 
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>

@@ -42,7 +42,7 @@ function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: nu
           Пригласи друга
         </h3>
         <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-          +{perInvite} бесплатное объявление за каждого друга, который зарегистрируется. Максимум — {maxBonus} объявлений.
+          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум — {maxBonus} объявлений.
         </p>
       </div>
     </div>
@@ -232,6 +232,13 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
           <Share2 size={14} /> Поделиться
         </button>
       </div>
+      <Link
+        to="/referral"
+        className="mt-[12px] inline-block text-[13px] font-semibold"
+        style={{ color: "var(--accent)" }}
+      >
+        Открыть кабинет приглашений
+      </Link>
     </section>
   );
 }

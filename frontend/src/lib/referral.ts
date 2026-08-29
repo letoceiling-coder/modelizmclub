@@ -35,7 +35,7 @@ export const PUBLIC_ORIGIN = "https://modelizmclub.ru";
 export function getReferralLink(userId: string): string {
   const code = getReferralCode(userId);
   const origin = publicOrigin();
-  return code ? `${origin}/register?ref=${code}` : origin;
+  return code ? `${origin}/r/${encodeURIComponent(code)}` : origin;
 }
 
 export function getReferralBonus(): number {

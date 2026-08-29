@@ -17,12 +17,11 @@ interface Props {
   onNavigate?: () => void;
 }
 
-/** Sidebar / mobile menu entry → /subscription#invite-friend */
+/** Sidebar / mobile menu entry → /referral */
 export function InviteFriendNavLink({ className, onNavigate }: Props) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hash = useRouterState({ select: (s) => s.location.hash });
-  const active = pathname === ROUTES.subscription && hash === INVITE_FRIEND_SECTION_ID;
+  const active = pathname === ROUTES.referral || pathname === "/referral";
   const [enabled, setEnabled] = useState(true);
 
   useEffect(() => {
@@ -40,18 +39,10 @@ export function InviteFriendNavLink({ className, onNavigate }: Props) {
 
   if (!enabled) return null;
 
-  const handleClick = () => {
-    onNavigate?.();
-    if (pathname === ROUTES.subscription) {
-      window.setTimeout(() => scrollToInviteFriendBlock(), 0);
-    }
-  };
-
   return (
     <Link
-      to={ROUTES.subscription}
-      hash={INVITE_FRIEND_SECTION_ID}
-      onClick={handleClick}
+      to="/referral"
+      onClick={() => onNavigate?.()}
       className={
         className
         ?? `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted ${

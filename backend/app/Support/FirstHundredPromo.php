@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\PromoPool;
 use App\Models\SystemSetting;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 final class FirstHundredPromo
 {
@@ -68,9 +70,23 @@ final class FirstHundredPromo
 
     public static function seatsOpen(): bool
     {
+        $pool = self::activeGrantingPool();
+        if ($pool) {
+            return $pool->isGranting();
+        }
+
         $config = self::get();
 
         return $config['enabled'] && self::takenCount() < $config['total'];
+    }
+
+    public static function activeGrantingPool(): ?PromoPool
+    {
+        if (! Schema::hasTable('promo_pools')) {
+            return null;
+        }
+
+        return PromoPool::query()->granting()->first();
     }
 
     /** True when this user currently holds a promo seat allowed by admin settings. */
@@ -101,15 +117,56 @@ final class FirstHundredPromo
             ->map(fn ($id) => (int) $id);
     }
 
-    /** @return array{taken: int, total: int, enabled: bool} */
+    /** @return array{taken: int, total: int, enabled: bool, expires_at: ?string} */
     public static function publicStats(): array
     {
+        $pool = self::activeGrantingPool()
+            ?? (Schema::hasTable('promo_pools')
+                ? PromoPool::query()
+                    ->where('auto_assign_on_register', true)
+                    ->whereNull('completed_at')
+                    ->orderByDesc('id')
+                    ->first()
+                : null);
+
+        if ($pool) {
+            return [
+                'taken' => (int) $pool->current_activations,
+                'total' => (int) $pool->max_activations,
+                'enabled' => $pool->isGranting(),
+                'expires_at' => $pool->expires_at?->toIso8601String(),
+            ];
+        }
+
         $config = self::get();
 
         return [
             'taken' => self::takenCount(),
             'total' => $config['total'],
             'enabled' => $config['enabled'],
+            'expires_at' => null,
         ];
+    }
+
+    /** Keep the legacy banner/card in sync with promo pools. Does not reconcile seats. */
+    public static function syncFromPool(PromoPool $pool): void
+    {
+        $granting = self::activeGrantingPool();
+        $current = self::get();
+
+        SystemSetting::query()->updateOrCreate(
+            ['key' => self::SETTING_KEY],
+            [
+                'value' => [
+                    'enabled' => $granting !== null,
+                    'total' => $granting
+                        ? max(1, (int) $granting->max_activations)
+                        : max(1, (int) $pool->max_activations ?: $current['total']),
+                    'plan_slug' => ($granting?->plan_slug ?: $pool->plan_slug) ?: $current['plan_slug'],
+                    'bonus_kopecks' => max(0, (int) ($granting?->bonus_kopecks ?? $pool->bonus_kopecks ?? $current['bonus_kopecks'])),
+                ],
+                'group' => 'marketing',
+            ],
+        );
     }
 }

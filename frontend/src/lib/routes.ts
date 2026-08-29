@@ -35,11 +35,13 @@ export const ROUTES = {
   reviewUpload: "/reviews/upload",
   settings: "/settings",
   wallet: "/settings/wallet",
+  /** Page with copy/share, click stats and invited friends. */
+  referral: "/referral",
   /** Scroll target on /subscription for the referral block. */
   subscriptionInviteHash: "invite-friend",
 } as const;
 
-export const SUBSCRIPTION_INVITE_URL = `${ROUTES.subscription}#${ROUTES.subscriptionInviteHash}`;
+export const SUBSCRIPTION_INVITE_URL = ROUTES.referral;
 
 // Maps sidebar section ids to URL prefixes that should highlight it.
 export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
@@ -58,7 +60,7 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   messenger: ["/messenger"],
   profile: ["/profile", "/user"],
   friends: ["/friends"],
-  subscription: ["/subscription"],
+  subscription: ["/subscription", "/referral"],
   wallet: ["/settings/wallet"],
   help: ["/help"],
   admin: ["/admin"],

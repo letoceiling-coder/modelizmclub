@@ -22,6 +22,7 @@ import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { restoreSession } from "@/lib/auth/session";
+import { captureReferralFromLocation } from "@/lib/referral-cookie";
 import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
 import { applyPublicBootstrap, ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
@@ -181,6 +182,7 @@ function RootComponent() {
   }
 
   useEffect(() => {
+    captureReferralFromLocation();
     markBooted();
     bindCallAudioUnlock();
     const onPageShow = (e: PageTransitionEvent) => {

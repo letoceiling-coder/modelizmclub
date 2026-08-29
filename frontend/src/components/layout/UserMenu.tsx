@@ -13,7 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useStore, selectors } from "@/lib/store";
 import { signOut, isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
-import { ROUTES, SUBSCRIPTION_INVITE_URL } from "@/lib/routes";
+import { ROUTES } from "@/lib/routes";
 import { useTheme } from "@/components/ThemeProvider";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 
@@ -118,9 +118,9 @@ export function UserMenu() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <a href={SUBSCRIPTION_INVITE_URL} className="flex items-center gap-2">
+            <Link to="/referral" className="flex items-center gap-2">
               <SlotIcon slot="nav.invite-friend" className="h-4 w-4" size={16} inheritColor /> {t("nav.inviteFriend")}
-            </a>
+            </Link>
           </DropdownMenuItem>
           {me.isAdmin && (
             <DropdownMenuItem asChild>

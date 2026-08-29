@@ -13,3 +13,4 @@ Schedule::command('posts:publish-scheduled')->everyMinute();
 Schedule::command('videos:publish-scheduled')->everyMinute();
 Schedule::command('communities:sync-counters')->daily();
 Schedule::command('safe-deals:auto-release')->hourly();
+Schedule::command('subscription:check-expired')->dailyAt('00:05');

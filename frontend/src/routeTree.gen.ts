@@ -21,6 +21,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ReferralRouteImport } from './routes/referral'
+import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PaymentRouteImport } from './routes/payment'
@@ -142,6 +143,11 @@ const RefundRoute = RefundRouteImport.update({
 const ReferralRoute = ReferralRouteImport.update({
   id: '/referral',
   path: '/referral',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RCodeRoute = RCodeRouteImport.update({
+  id: '/r/$code',
+  path: '/r/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecoverRoute = RecoverRouteImport.update({
@@ -480,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/referral': typeof ReferralRoute
+  '/r/$code': typeof RCodeRoute
   '/refund': typeof RefundRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -553,6 +560,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/referral': typeof ReferralRoute
+  '/r/$code': typeof RCodeRoute
   '/refund': typeof RefundRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -626,6 +634,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/recover': typeof RecoverRoute
   '/referral': typeof ReferralRoute
+  '/r/$code': typeof RCodeRoute
   '/refund': typeof RefundRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -704,6 +713,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recover'
     | '/referral'
+    | '/r/$code'
     | '/refund'
     | '/register'
     | '/reset-password'
@@ -777,6 +787,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recover'
     | '/referral'
+    | '/r/$code'
     | '/refund'
     | '/register'
     | '/reset-password'
@@ -849,6 +860,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recover'
     | '/referral'
+    | '/r/$code'
     | '/refund'
     | '/register'
     | '/reset-password'
@@ -926,6 +938,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RecoverRoute: typeof RecoverRoute
   ReferralRoute: typeof ReferralRoute
+  RCodeRoute: typeof RCodeRoute
   RefundRoute: typeof RefundRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -1031,6 +1044,13 @@ declare module '@tanstack/react-router' {
       path: '/referral'
       fullPath: '/referral'
       preLoaderRoute: typeof ReferralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$code': {
+      id: '/r/$code'
+      path: '/r/$code'
+      fullPath: '/r/$code'
+      preLoaderRoute: typeof RCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recover': {
@@ -1638,6 +1658,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RecoverRoute: RecoverRoute,
   ReferralRoute: ReferralRoute,
+  RCodeRoute: RCodeRoute,
   RefundRoute: RefundRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,

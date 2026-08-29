@@ -144,11 +144,13 @@ class PaymentFulfillmentService
         ]);
     }
 
-    public function activateSubscription(User $user, int $planId): UserSubscription
+    public function activateSubscription(User $user, int $planId, ?\DateTimeInterface $endsAt = null): UserSubscription
     {
         $plan = SubscriptionPlan::query()->findOrFail($planId);
         $startsAt = now();
-        $endsAt = $startsAt->copy()->addDays($plan->period_days);
+        $endsAt = $endsAt
+            ? \Illuminate\Support\Carbon::parse($endsAt)
+            : $startsAt->copy()->addDays($plan->period_days);
 
         UserSubscription::query()
             ->where('user_id', $user->id)

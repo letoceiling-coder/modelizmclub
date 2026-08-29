@@ -45,6 +45,9 @@ class AdminSettingsController extends Controller
                 $value = FirstHundredPromo::normalize($value);
                 $promoChanged = true;
             }
+            if ($row['key'] === \App\Support\ReferralProgramConfig::SETTING_KEY) {
+                $value = \App\Support\ReferralProgramConfig::normalize($value);
+            }
 
             // Previous value is kept in the audit log so publications like
             // icon_overrides can be rolled back from /admin (see §26).

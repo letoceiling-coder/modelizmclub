@@ -1155,17 +1155,83 @@ export interface AdminReferralRow {
   invitee: { uuid: string; display_name: string; slug: string | null; email: string | null };
   inviter: { uuid: string; display_name: string; slug: string | null; referral_code: string | null } | null;
   joined_at: string | null;
+  phone_verified?: boolean;
+  status?: string;
 }
 
 export async function fetchAdminReferrals(): Promise<{
   data: AdminReferralRow[];
-  settings: { enabled: boolean; per_invite: number; max_bonus: number };
+  settings: {
+    enabled: boolean;
+    per_invite: number;
+    max_bonus: number;
+    reward_kopecks?: number;
+    reward_listing_credits?: boolean;
+    reward_subscription_days?: number;
+  };
 }> {
   const res = await api<{
     data: AdminReferralRow[];
-    settings: { enabled: boolean; per_invite: number; max_bonus: number };
+    settings: {
+      enabled: boolean;
+      per_invite: number;
+      max_bonus: number;
+      reward_kopecks?: number;
+      reward_listing_credits?: boolean;
+      reward_subscription_days?: number;
+    };
   }>("/admin/referrals");
-  return { data: res.data ?? [], settings: res.settings ?? { enabled: true, per_invite: 1, max_bonus: 10 } };
+  return {
+    data: res.data ?? [],
+    settings: res.settings ?? { enabled: true, per_invite: 1, max_bonus: 10 },
+  };
+}
+
+export interface AdminPromoPool {
+  uuid: string;
+  name: string;
+  max_activations: number;
+  current_activations: number;
+  seats_left: number;
+  expires_at: string | null;
+  is_active: boolean;
+  auto_assign_on_register: boolean;
+  is_granting: boolean;
+  plan_slug: string;
+  bonus_kopecks: number;
+  paused_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+}
+
+export async function fetchAdminPromoPools(): Promise<AdminPromoPool[]> {
+  const res = await api<{ data: AdminPromoPool[] }>("/admin/promo-pools");
+  return res.data ?? [];
+}
+
+export async function createAdminPromoPool(payload: {
+  name: string;
+  max_activations: number;
+  expires_at: string;
+  auto_assign_on_register: boolean;
+}): Promise<AdminPromoPool> {
+  const res = await api<{ data: AdminPromoPool }>("/admin/promo-pools", { method: "POST", json: payload });
+  return res.data;
+}
+
+export async function pauseAdminPromoPool(uuid: string): Promise<AdminPromoPool> {
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/pause`, { method: "POST" });
+  return res.data;
+}
+
+export async function resumeAdminPromoPool(uuid: string): Promise<AdminPromoPool> {
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/resume`, { method: "POST" });
+  return res.data;
+}
+
+export async function completeAdminPromoPool(uuid: string): Promise<AdminPromoPool> {
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/complete`, { method: "POST" });
+  return res.data;
 }
 
 export type AdminPaymentType = "subscription" | "listing" | "listing_boost" | "escrow" | "other";

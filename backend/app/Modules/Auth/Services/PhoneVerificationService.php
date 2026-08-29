@@ -149,6 +149,7 @@ class PhoneVerificationService
 
         if ($firstPhoneVerify) {
             app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($user->fresh());
+            app(\Modules\Billing\Services\ReferralService::class)->onPhoneVerified($user->fresh());
         }
 
         return $user->fresh(['profile']);

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { UserPlus, Megaphone, Users2, UserCircle } from "lucide-react";
@@ -12,6 +12,7 @@ import { OAuthButtons, OAuthDivider } from "@/components/auth/OAuthButtons";
 import { register } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { isValidEmail, isValidPersonName, sanitizePersonName } from "@/lib/validation";
+import { peekStoredReferralCode, rememberReferralCodeAndTrack } from "@/lib/referral-cookie";
 
 import i18n from "@/lib/i18n";
 
@@ -37,6 +38,10 @@ function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (ref) void rememberReferralCodeAndTrack(ref);
+  }, [ref]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -68,7 +73,7 @@ function RegisterPage() {
         email,
         password,
         passwordConfirmation,
-        referralCode: ref,
+        referralCode: ref || peekStoredReferralCode(),
         acceptTerms,
         acceptPrivacy,
         acceptAds,

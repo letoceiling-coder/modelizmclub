@@ -32,7 +32,9 @@ class RegisterController extends Controller
             password: $request->string('password')->toString(),
             track: RegistrationTrack::from($request->string('registration_track')->toString()),
             displayName: $request->filled('display_name') ? $request->string('display_name')->toString() : null,
-            referralCode: $request->filled('referral_code') ? $request->string('referral_code')->toString() : null,
+            referralCode: $request->filled('referral_code')
+                ? $request->string('referral_code')->toString()
+                : $request->cookie('mdlzm_ref'),
             phone: $request->filled('phone') ? $request->string('phone')->toString() : null,
             acceptTerms: $request->boolean('accept_terms'),
             acceptPrivacy: $request->boolean('accept_privacy'),

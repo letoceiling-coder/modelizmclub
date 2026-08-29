@@ -30,6 +30,7 @@ Route::prefix('public')->group(function (): void {
     Route::get('branding', SiteBrandingController::class);
     Route::get('delivery-methods', IndexDeliveryMethodsController::class);
     Route::get('placement-pricing', PlacementPricingController::class);
+    Route::post('referrals/click', \Modules\PublicContent\Http\Controllers\Api\V1\TrackReferralClickController::class);
 });
 
 // Published icon slot overrides — public by design, mirrors feature-flags.

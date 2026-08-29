@@ -49,7 +49,7 @@ export function InvitedFriendsSection() {
           <Users size={28} style={{ color: "var(--foreground-30)" }} />
           <p className="mt-[10px] text-[13px]">Вы пока никого не пригласили</p>
           <Link
-            to="/subscription"
+            to="/referral"
             className="mt-[14px] inline-flex items-center gap-[6px] font-semibold"
             style={{
               height: 36,
@@ -100,13 +100,13 @@ export function InvitedFriendsSection() {
                     className="shrink-0 font-semibold"
                     style={{
                       fontSize: 12,
-                      color: "var(--success)",
-                      background: "var(--success-soft)",
+                      color: inv.status === "completed" ? "var(--success)" : "var(--foreground-70)",
+                      background: inv.status === "completed" ? "var(--success-soft)" : "var(--background-surface)",
                       padding: "4px 10px",
                       borderRadius: "var(--r-pill)",
                     }}
                   >
-                    +1
+                    {inv.status === "completed" ? "Бонус начислен" : "Ждёт телефон"}
                   </span>
                 </Link>
               </li>

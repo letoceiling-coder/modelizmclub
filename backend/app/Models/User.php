@@ -44,6 +44,9 @@ class User extends Authenticatable
         'referred_by',
         'is_first_hundred',
         'first_hundred_granted_at',
+        'promo_pool_id',
+        'listing_placement_credits',
+        'referral_click_count',
         'locale',
         'last_seen_at',
         'email_verified_at',
@@ -67,6 +70,8 @@ class User extends Authenticatable
             'registration_track' => RegistrationTrack::class,
             'is_first_hundred' => 'boolean',
             'first_hundred_granted_at' => 'datetime',
+            'listing_placement_credits' => 'integer',
+            'referral_click_count' => 'integer',
         ];
     }
 
@@ -144,6 +149,16 @@ class User extends Authenticatable
         return $this->hasMany(self::class, 'referred_by');
     }
 
+    public function referralInvites(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'inviter_id');
+    }
+
+    public function promoPool(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(PromoPool::class);
+    }
+
     public function oauthAccounts(): HasMany
     {
         return $this->hasMany(UserOAuthAccount::class);
@@ -176,6 +191,10 @@ class User extends Authenticatable
         }
 
         if ($this->is_first_hundred) {
+            if ($this->promo_pool_id) {
+                return true;
+            }
+
             return FirstHundredPromo::coversUser($this);
         }
 
