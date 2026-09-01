@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\MediaStatus;
 use App\Models\Concerns\HasPublicUuid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Media\Services\MediaVariantProcessor;
@@ -46,6 +47,21 @@ class Media extends Model
     public function isReady(): bool
     {
         return $this->status === MediaStatus::Ready;
+    }
+
+    /**
+     * Rows with no display variants yet. PostgreSQL has no json = text operator,
+     * so empty JSON is matched via CAST(... AS TEXT), not where('variants', '[]').
+     *
+     * @param  Builder<Media>  $query
+     * @return Builder<Media>
+     */
+    public function scopeMissingVariants(Builder $query): Builder
+    {
+        return $query->where(function (Builder $inner): void {
+            $inner->whereNull('variants')
+                ->orWhereRaw("CAST(variants AS TEXT) IN ('[]', 'null', '{}')");
+        });
     }
 
     public function getUrlAttribute(): ?string

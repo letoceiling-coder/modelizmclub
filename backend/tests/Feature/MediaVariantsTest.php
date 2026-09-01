@@ -31,6 +31,7 @@ class MediaVariantsTest extends TestCase
     {
         Queue::fake();
 
+        $user = User::factory()->create();
         Sanctum::actingAs($user);
         $file = UploadedFile::fake()->image('lot.jpg', 1200, 800);
 
@@ -162,6 +163,32 @@ class MediaVariantsTest extends TestCase
 
         app(MediaVariantProcessor::class)->process($media->fresh());
         $this->assertNull($media->fresh()->variants);
+    }
+
+    public function test_rebuild_command_queues_ready_images_without_variants(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+        $path = 'media/listing/rebuild.jpg';
+        Storage::disk('s3')->put($path, $this->jpegBytes(80, 60));
+
+        $media = Media::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'disk' => 's3',
+            'path' => $path,
+            'filename' => 'rebuild.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 100,
+            'uploaded_by' => $user->id,
+            'status' => MediaStatus::Ready,
+        ]);
+
+        $this->artisan('media:rebuild-variants', ['--limit' => 50])
+            ->expectsOutputToContain('Queued 1')
+            ->assertSuccessful();
+
+        Queue::assertPushed(ProcessMediaVariantsJob::class, fn (ProcessMediaVariantsJob $job) => $job->mediaId === $media->id);
     }
 
     private function jpegBytes(int $width, int $height): string

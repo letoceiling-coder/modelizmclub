@@ -21,9 +21,7 @@ class RebuildMediaVariantsCommand extends Command
 
         $rows = Media::query()
             ->where('status', MediaStatus::Ready)
-            ->where(function ($query): void {
-                $query->whereNull('variants')->orWhere('variants', '[]');
-            })
+            ->missingVariants()
             ->orderBy('id')
             ->limit($limit)
             ->get();
