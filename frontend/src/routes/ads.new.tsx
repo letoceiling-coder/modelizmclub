@@ -5,9 +5,10 @@ import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category } from "@/lib/mock";
-import { fetchListingCategories } from "@/lib/api/categories";
+import { fetchListingCategories, fetchPostCategories, mapCategorySelectionByName } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
+import { PickupAddressField, rememberPickupAddress } from "@/components/ads/PickupAddressField";
 import { uploadMediaDeduped } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
 import { fetchPlacementQuote, formatQuoteRub, type PlacementQuote } from "@/lib/api/listing-placement";
@@ -107,6 +108,49 @@ function listingCategoryPath(cats: Category[], leafId: string): { l1: string; l2
 
 function listingLeafId(form: Pick<Form, "subcategoryId" | "nestedCategoryId">): string {
   return form.nestedCategoryId || form.subcategoryId;
+}
+
+function isDeliveryOn(deliveries: string[], m: { id: string; label: string }): boolean {
+  return deliveries.includes(m.id) || deliveries.includes(m.label);
+}
+
+function toggleDeliveryMethod(deliveries: string[], m: { id: string; label: string }): string[] {
+  const on = isDeliveryOn(deliveries, m);
+  const next = deliveries.filter((x) => x !== m.id && x !== m.label);
+  return on ? next : [...next, m.label];
+}
+
+function listingIdsFromForm(
+  form: Pick<Form, "categoryId" | "subcategoryId" | "nestedCategoryId">,
+  postCats: Category[],
+  listingCats: Category[],
+): { categoryId: number; subcategoryId?: number } | null {
+  const mapped = mapCategorySelectionByName(
+    postCats,
+    listingCats,
+    form.categoryId,
+    form.subcategoryId,
+    form.nestedCategoryId,
+  );
+  if (!mapped) {
+    if (listingCats.length > 0) return null;
+    const categoryId = Number(form.categoryId);
+    if (!Number.isInteger(categoryId) || categoryId <= 0) return null;
+    const leaf = listingLeafId(form);
+    const subcategoryId = leaf ? Number(leaf) : undefined;
+    return {
+      categoryId,
+      subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+    };
+  }
+  const categoryId = Number(mapped.categoryId);
+  if (!Number.isInteger(categoryId) || categoryId <= 0) return null;
+  const leaf = mapped.nestedCategoryId || mapped.subcategoryId;
+  const subcategoryId = leaf ? Number(leaf) : undefined;
+  return {
+    categoryId,
+    subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+  };
 }
 
 function newPhotoId(): string {
@@ -243,6 +287,8 @@ function NewAdPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>({ ...initial, promocode: promoFromUrl?.toUpperCase() ?? "" });
   const [cats, setCats] = useState<Category[]>([]);
+  const [listingCats, setListingCats] = useState<Category[]>([]);
+  const [listingPathToMap, setListingPathToMap] = useState<{ categoryId: string; subcategoryId: string; nestedCategoryId: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -270,13 +316,14 @@ function NewAdPage() {
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
   useEffect(() => {
-    fetchListingCategories()
-      .then((list) => {
-        setCats(list);
+    Promise.all([fetchPostCategories(), fetchListingCategories()])
+      .then(([posts, listings]) => {
+        setCats(posts);
+        setListingCats(listings);
         setForm((f) =>
           f.categoryId
             ? f
-            : { ...f, categoryId: list[0]?.id ?? "", subcategoryId: list[0]?.subcategories[0]?.id ?? "", nestedCategoryId: "" },
+            : { ...f, categoryId: posts[0]?.id ?? "", subcategoryId: posts[0]?.subcategories[0]?.id ?? "", nestedCategoryId: "" },
         );
       })
       .catch(() => {});
@@ -289,6 +336,11 @@ function NewAdPage() {
     fetchListing(editId)
       .then((ad) => {
         if (!alive) return;
+        setListingPathToMap({
+          categoryId: ad.categoryId ?? "",
+          subcategoryId: ad.subcategoryId ?? "",
+          nestedCategoryId: "",
+        });
         setForm((f) => ({
           photoItems: (ad.gallery ?? (ad.image ? [ad.image] : [])).map((url, i) => ({
             id: `existing-${i}-${url}`,
@@ -306,7 +358,9 @@ function NewAdPage() {
           city: ad.city,
           cityId: ad.cityId,
           contact: f.contact,
-          deliveries: ad.delivery.length ? ad.delivery : ["СДЭК"],
+          deliveries: (ad.delivery.length ? ad.delivery : ["СДЭК"]).filter(
+            (d) => !/boxberry|боксберри/i.test(d),
+          ),
           packageSize: ad.packageSize ?? (ad.delivery.some(isCdekDelivery) ? "m" : ""),
           weightKg: ad.weightKg != null ? String(ad.weightKg) : "",
           dimL: ad.dimensionsCm?.length != null ? String(ad.dimensionsCm.length) : "",
@@ -365,6 +419,21 @@ function NewAdPage() {
 
   useEffect(() => {
     if (!cats.length) return;
+    if (listingPathToMap && listingCats.length) {
+      const mapped = mapCategorySelectionByName(
+        listingCats,
+        cats,
+        listingPathToMap.categoryId,
+        listingPathToMap.subcategoryId,
+        listingPathToMap.nestedCategoryId,
+      );
+      setListingPathToMap(null);
+      if (mapped) {
+        setForm((f) => ({ ...f, ...mapped }));
+        return;
+      }
+    }
+    if (listingPathToMap) return;
     setForm((f) => {
       const leaf = f.nestedCategoryId || f.subcategoryId;
       if (!leaf) return f;
@@ -373,42 +442,41 @@ function NewAdPage() {
       if (f.categoryId === path.l1 && f.subcategoryId === path.l2 && f.nestedCategoryId === path.l3) return f;
       return { ...f, categoryId: path.l1, subcategoryId: path.l2, nestedCategoryId: path.l3 };
     });
-  }, [cats, editId]);
+  }, [cats, listingCats, editId, listingPathToMap]);
 
   useEffect(() => {
     if (!listingPaymentEnabled || editId || step < 2) return;
-    const categoryId = Number(form.categoryId);
-    if (!Number.isInteger(categoryId) || categoryId <= 0) return;
+    const ids = listingIdsFromForm(form, cats, listingCats);
+    if (!ids) return;
     let alive = true;
     setQuoteLoading(true);
     fetchPlacementQuote({
-      categoryId,
-      subcategoryId: listingLeafId(form) ? Number(listingLeafId(form)) : undefined,
+      categoryId: ids.categoryId,
+      subcategoryId: ids.subcategoryId,
       promocode: form.promocode,
     })
       .then((q) => { if (alive) setPlacementQuote(q); })
       .catch(() => { if (alive) setPlacementQuote(null); })
       .finally(() => { if (alive) setQuoteLoading(false); });
     return () => { alive = false; };
-  }, [listingPaymentEnabled, editId, step, form.categoryId, form.subcategoryId, form.nestedCategoryId, form.promocode]);
+  }, [listingPaymentEnabled, editId, step, form.categoryId, form.subcategoryId, form.nestedCategoryId, form.promocode, cats, listingCats]);
 
   const valid = useMemo(() => {
     const photosOk = hasListingPhotos(form);
+    const dataOk =
+      photosOk
+      && form.title.trim().length >= 4
+      && form.description.trim().length >= 20
+      && form.price
+      && form.city.trim().length >= 2
+      && (form.cityId != null || form.city.trim().length >= 3)
+      && phonesMatch(form.contact, verifiedPhone)
+      && deliveryDetailsValid(form) === null;
+    if (editId) return dataOk;
     if (step === 1) return photosOk;
-    if (step === 2) {
-      return (
-        photosOk
-        && form.title.trim().length >= 4
-        && form.description.trim().length >= 20
-        && form.price
-        && form.city.trim().length >= 2
-        && (form.cityId != null || form.city.trim().length >= 3)
-        && phonesMatch(form.contact, verifiedPhone)
-        && deliveryDetailsValid(form) === null
-      );
-    }
+    if (step === 2) return dataOk;
     return photosOk && deliveryDetailsValid(form) === null;
-  }, [step, form, verifiedPhone]);
+  }, [step, form, verifiedPhone, editId]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -426,11 +494,13 @@ function NewAdPage() {
       return;
     }
 
-    const categoryId = Number(form.categoryId);
-    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    const ids = listingIdsFromForm(form, cats, listingCats);
+    if (!ids) {
       toast.error(t("pages.adsNew.selectCategory"));
       return;
     }
+    const categoryId = ids.categoryId;
+    const subcategoryId = ids.subcategoryId;
     if (nestedCategories.length > 0 && !form.nestedCategoryId) {
       toast.error(t("pages.adsNew.pickNestedCategory"));
       setStep(2);
@@ -443,6 +513,7 @@ function NewAdPage() {
       return;
     }
     const parcel = parcelFromForm(form);
+    if (parcel.pickupAddress) rememberPickupAddress(parcel.pickupAddress);
 
     const priceCents = priceRubToCents(form.price);
     if (priceCents === null) {
@@ -450,7 +521,6 @@ function NewAdPage() {
       return;
     }
 
-    const subcategoryId = listingLeafId(form) ? Number(listingLeafId(form)) : undefined;
     const cityId = form.cityId != null ? Number(form.cityId) : undefined;
 
     setSubmitting(true);
@@ -671,7 +741,7 @@ function NewAdPage() {
           </Link>
           <h1 className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
             style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-            {t("pages.adsNew.newListingTitle")}
+            {editId ? t("pages.adsNew.editListingTitle") : t("pages.adsNew.newListingTitle")}
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
             {listingPaymentEnabled
@@ -680,8 +750,28 @@ function NewAdPage() {
           </p>
         </header>
 
-        <StepIndicator current={step} labels={steps} />
+        {!editId && <StepIndicator current={step} labels={steps} />}
 
+        {editId ? (
+          <>
+            <StepPhotos form={form} set={set} />
+            <StepData
+              form={form}
+              set={set}
+              cat={cat}
+              cats={cats}
+              subcategories={subcategories}
+              touched={touched}
+              touch={touch}
+              verifiedPhone={verifiedPhone}
+              hidePhotoPreview
+              onVerifiedPhone={(phone) => {
+                setVerifiedPhone(phone);
+                set("contact", phone);
+              }}
+            />
+          </>
+        ) : (
         <ReducedMotionSwitch
           switchKey={step}
           initial={{ opacity: 0, x: 12 }}
@@ -719,6 +809,7 @@ function NewAdPage() {
             />
           )}
         </ReducedMotionSwitch>
+        )}
       </div>
 
       {/* Sticky footer — lifted above the mobile BottomNav so the submit CTA is never covered */}
@@ -730,15 +821,34 @@ function NewAdPage() {
         }}
       >
         <div className="mx-auto flex max-w-[760px] flex-col-reverse gap-[8px] px-[16px] py-[12px] sm:flex-row sm:items-center sm:justify-between sm:gap-[12px] sm:px-[24px]">
-          <Button
-            variant="outline"
-            disabled={step === 1}
-            onClick={() => setStep((s) => Math.max(1, s - 1))}
-            className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
-          >
-            <ChevronLeft size={16} /> {t("pages.adsNew.back")}
-          </Button>
-          {step < 3 ? (
+          {!editId && (
+            <Button
+              variant="outline"
+              disabled={step === 1}
+              onClick={() => setStep((s) => Math.max(1, s - 1))}
+              className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
+            >
+              <ChevronLeft size={16} /> {t("pages.adsNew.back")}
+            </Button>
+          )}
+          {editId || step >= 3 ? (
+            <Button
+              onClick={() => {
+                if (!hasListingPhotos(form)) {
+                  notifyPhotosRequired(setStep, t);
+                  return;
+                }
+                if (editId && !valid) return;
+                void submit();
+              }}
+              loading={submitting}
+              disabled={editId ? !valid : paymentGatePending}
+              aria-label={publishButtonLabel}
+              className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
+            >
+              {submitting ? (editId ? t("pages.adsNew.saving") : t("pages.adsNew.publishing")) : publishButtonLabel}
+            </Button>
+          ) : (
             <Button
               disabled={step === 2 && !valid}
               onClick={() => {
@@ -752,22 +862,6 @@ function NewAdPage() {
               className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
             >
               {t("pages.adsNew.next")} <ChevronRight size={16} />
-            </Button>
-          ) : (
-            <Button
-              onClick={() => {
-                if (!hasListingPhotos(form)) {
-                  notifyPhotosRequired(setStep, t);
-                  return;
-                }
-                void submit();
-              }}
-              loading={submitting}
-              disabled={paymentGatePending}
-              aria-label={publishButtonLabel}
-              className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
-            >
-              {submitting ? (editId ? t("pages.adsNew.saving") : t("pages.adsNew.publishing")) : publishButtonLabel}
             </Button>
           )}
         </div>
@@ -947,7 +1041,7 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 
 /* ────────── STEP 2: Data ────────── */
 function StepData({
-  form, set, cat, cats, subcategories, touched, touch, verifiedPhone, onVerifiedPhone,
+  form, set, cat, cats, subcategories, touched, touch, verifiedPhone, onVerifiedPhone, hidePhotoPreview = false,
 }: {
   form: Form;
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
@@ -958,6 +1052,7 @@ function StepData({
   touch: (name: string) => void;
   verifiedPhone: string;
   onVerifiedPhone: (phone: string) => void;
+  hidePhotoPreview?: boolean;
 }) {
   const { t } = useTranslation();
   const deliveryMethods = useDeliveryMethods();
@@ -988,7 +1083,7 @@ function StepData({
 
   return (
     <section className="space-y-[16px]" onFocusCapture={keepFieldVisible}>
-      {form.photoItems.length > 0 && (
+      {form.photoItems.length > 0 && !hidePhotoPreview && (
         <Block title={t("pages.adsNew.photosHeading")}>
           <ListingPhotoGrid
             photoItems={form.photoItems}
@@ -1118,10 +1213,8 @@ function StepData({
               const cdek = deliveryMethods.filter((m) => isCdekDelivery(m.label) || m.id === "cdek");
               const pickup = deliveryMethods.filter((m) => isPickupDelivery(m.label) || m.id === "pickup");
               const others = deliveryMethods.filter((m) => !cdek.includes(m) && !pickup.includes(m));
-              const toggle = (label: string) => {
-                const next = form.deliveries.includes(label)
-                  ? form.deliveries.filter((x) => x !== label)
-                  : [...form.deliveries, label];
+              const toggle = (m: { id: string; label: string }) => {
+                const next = toggleDeliveryMethod(form.deliveries, m);
                 set("deliveries", next);
                 if (next.some(isCdekDelivery) && !form.packageSize) set("packageSize", "m");
               };
@@ -1131,8 +1224,8 @@ function StepData({
                     <div key={m.id} className="space-y-[8px]">
                       <div className="flex flex-wrap items-center gap-[8px]">
                         <Checkbox
-                          checked={form.deliveries.includes(m.label)}
-                          onChange={() => toggle(m.label)}
+                          checked={isDeliveryOn(form.deliveries, m)}
+                          onChange={() => toggle(m)}
                           label="Доставка СДЭК (Безопасная сделка)"
                         />
                         <TooltipProvider delayDuration={200}>
@@ -1162,7 +1255,7 @@ function StepData({
                           Правила
                         </a>
                       </div>
-                      {form.deliveries.includes(m.label) && (
+                      {isDeliveryOn(form.deliveries, m) && (
                         <div className="ml-[4px] space-y-[10px] rounded-[var(--r-card)] p-[12px]" style={{ background: "var(--background-surface)" }}>
                           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
                             Укажите типоразмер или точные габариты — от них считается тариф СДЭК.
@@ -1203,8 +1296,8 @@ function StepData({
                         {others.map((m) => (
                           <Checkbox
                             key={m.id}
-                            checked={form.deliveries.includes(m.label)}
-                            onChange={() => toggle(m.label)}
+                            checked={isDeliveryOn(form.deliveries, m)}
+                            onChange={() => toggle(m)}
                             label={m.label}
                           />
                         ))}
@@ -1214,19 +1307,19 @@ function StepData({
                   {pickup.map((m) => (
                     <div key={m.id} className="space-y-[8px]">
                       <Checkbox
-                        checked={form.deliveries.includes(m.label)}
-                        onChange={() => toggle(m.label)}
+                        checked={isDeliveryOn(form.deliveries, m)}
+                        onChange={() => toggle(m)}
                         label="Самовывоз"
                       />
-                      {form.deliveries.includes(m.label) && (
+                      {isDeliveryOn(form.deliveries, m) && (
                         <Field
                           label="Адрес или ориентир"
                           required
                           error={form.pickupAddress.trim().length < 3 ? "Укажите адрес или ориентир для самовывоза" : undefined}
                         >
-                          <Input
+                          <PickupAddressField
                             value={form.pickupAddress}
-                            onChange={(e) => set("pickupAddress", e.target.value)}
+                            onChange={(v) => set("pickupAddress", v)}
                             error={form.pickupAddress.trim().length < 3}
                             placeholder="Адрес или ориентир"
                           />

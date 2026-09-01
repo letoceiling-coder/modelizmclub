@@ -15,8 +15,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
 
 interface Props {
   postId: string;
@@ -49,7 +53,7 @@ export function PostActionMenu({
   postId,
   saved,
   title,
-  text,
+  text: _text,
   status,
   canInteract = true,
   canDelete = false,
@@ -123,17 +127,9 @@ export function PostActionMenu({
     }
   };
 
-  const handleShare = async () => {
+  const handleShareTo = (href: string) => {
+    openShareTarget(href);
     close();
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await navigator.share({ title, text, url: buildUrl() });
-        return;
-      } catch {
-        // user cancelled or unsupported — fall through to copy
-      }
-    }
-    await handleCopy();
   };
 
   const handleApprove = async () => {
@@ -249,7 +245,25 @@ export function PostActionMenu({
           <>
             <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? t("components.postActionMenu.removeFromSaved") : t("components.postActionMenu.save")} accent={saved} />
             <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? t("components.postActionMenu.copied") : t("components.postActionMenu.copyLink")} accent={copied} />
-            <MenuItem onClick={handleShare} icon={Share2} label={t("components.postActionMenu.share")} />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="gap-[10px] px-[14px] py-[10px] text-[13px]" style={{ color: "var(--foreground)" }}>
+                <Share2 className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
+                {t("components.postActionMenu.share")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent
+                className="z-[210] w-[200px] overflow-hidden rounded-[12px] border p-0"
+                style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+              >
+                {SHARE_TARGETS.map((target) => (
+                  <MenuItem
+                    key={target.id}
+                    onClick={() => handleShareTo(target.href(buildUrl(), title))}
+                    icon={Share2}
+                    label={target.label}
+                  />
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </>
         )}
         {canInteract && !isOwn && (

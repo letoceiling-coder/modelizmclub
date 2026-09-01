@@ -98,6 +98,57 @@ export function getCachedListingCategories(): Category[] | null {
   return listingCache;
 }
 
+type NamedNode = {
+  id: string;
+  name: string;
+  subcategories?: NamedNode[];
+  children?: NamedNode[];
+};
+
+function namedChildren(node: NamedNode): NamedNode[] {
+  return node.subcategories ?? node.children ?? [];
+}
+
+/** Map a selected path between post/listing taxonomy trees by node names. */
+export function mapCategorySelectionByName(
+  fromTree: Category[],
+  toTree: Category[],
+  categoryId: string,
+  subcategoryId = "",
+  nestedId = "",
+): { categoryId: string; subcategoryId: string; nestedCategoryId: string } | null {
+  const names: string[] = [];
+  const l1 = fromTree.find((c) => c.id === categoryId);
+  if (!l1) return null;
+  names.push(l1.name);
+  let cursor: NamedNode = l1;
+  if (subcategoryId) {
+    const l2 = namedChildren(cursor).find((c) => c.id === subcategoryId);
+    if (!l2) return null;
+    names.push(l2.name);
+    cursor = l2;
+  }
+  if (nestedId) {
+    const l3 = namedChildren(cursor).find((c) => c.id === nestedId);
+    if (!l3) return null;
+    names.push(l3.name);
+  }
+
+  let level: NamedNode[] = toTree;
+  const ids: string[] = [];
+  for (const name of names) {
+    const hit = level.find((n) => n.name === name);
+    if (!hit) return null;
+    ids.push(hit.id);
+    level = namedChildren(hit);
+  }
+  return {
+    categoryId: ids[0] ?? "",
+    subcategoryId: ids[1] ?? "",
+    nestedCategoryId: ids[2] ?? "",
+  };
+}
+
 export async function fetchListingCategories(): Promise<Category[]> {
   if (listingCache) return listingCache;
   if (listingInflight) return listingInflight;

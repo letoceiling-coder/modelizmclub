@@ -5,6 +5,7 @@ import { Search, User as UserIcon, Users2, Megaphone, Compass } from "lucide-rea
 import { useGlobalSearch, MIN_QUERY_LENGTH } from "@/lib/hooks/useGlobalSearch";
 import { SearchGroup, ResultRow } from "@/components/layout/search/SearchResultRow";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 /** Header search — live dropdown split by content type (люди, сообщества,
  *  объявления, направления), VK-style. Replaces the old behavior of only
@@ -13,6 +14,7 @@ export function GlobalSearch() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
+  const { isAllowed, guardAction } = useGuestAccess();
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,12 @@ export function GlobalSearch() {
     void navigate({ to: "/ads", search: q ? { q } : {} });
   };
 
+  const promptSearchAuth = (e: { preventDefault: () => void }) => {
+    if (isAllowed("layout.header.search")) return;
+    e.preventDefault();
+    guardAction("layout.header.search", () => {});
+  };
+
   return (
     <div className="relative min-w-0 max-w-[420px] flex-1" ref={containerRef}>
       <Search
@@ -53,7 +61,12 @@ export function GlobalSearch() {
           setValue(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        readOnly={!isAllowed("layout.header.search")}
+        onPointerDown={promptSearchAuth}
+        onFocus={(e) => {
+          promptSearchAuth(e);
+          if (isAllowed("layout.header.search")) setOpen(true);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") goToCatalog();
           if (e.key === "Escape") setOpen(false);

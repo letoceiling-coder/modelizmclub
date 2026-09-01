@@ -478,6 +478,9 @@ export const en: TranslationSchema = {
       report: "Report",
       reportSuffix: " (comment)",
       reportDesc: "Describe what is wrong with this comment.",
+      sortInteresting: "Most interesting first",
+      sortNew: "Newest first",
+      sortOld: "Oldest first",
     },
     collapsibleText: {
       expand: "Show more",
@@ -1506,6 +1509,7 @@ export const en: TranslationSchema = {
       listingCreditsRemaining: "Placement credits: {{count}}",
       backToListings: "Back to listings",
       newListingTitle: "New listing",
+      editListingTitle: "Edit listing",
       back: "Back",
       next: "Next",
       payAndPublish: "Pay {{price}} and publish",

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { Star, ChevronRight, Calendar, ShieldCheck } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -62,14 +63,19 @@ function reviewsNoun(n: number): string {
  *  live solely in the sticky AdActionPanel now, so this doesn't duplicate
  *  them; tapping the row just opens the seller's profile. */
 export function SellerCard({ seller }: { seller: AdSeller }) {
+  const guest = useGuestAccessOptional();
   const hasRating = seller.rating > 0;
   const reviews = seller.reviews ?? 0;
   const hasDeals = seller.deals > 0;
   const hasSince = Boolean(seller.since && seller.since.trim());
   const hasStats = hasRating || hasDeals;
+  const href = `/user/${seller.id}`;
+  const actionKey = guest && !guest.isAllowed("ads.seller.profile")
+    ? "ads.seller.profile"
+    : "route.user";
 
   return (
-    <Link to="/user/$id" params={{ id: seller.id }}>
+    <GuestGuardLink actionKey={actionKey} to={href}>
       <Card
         className="flex items-center gap-[12px] p-[14px] transition-colors hover:bg-[var(--background-surface)]"
         style={{
@@ -119,6 +125,6 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
         </div>
         <ChevronRight size={16} className="shrink-0" style={{ color: "var(--foreground-30)" }} />
       </Card>
-    </Link>
+    </GuestGuardLink>
   );
 }

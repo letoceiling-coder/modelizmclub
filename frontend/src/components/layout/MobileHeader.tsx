@@ -10,6 +10,7 @@ import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
 import { MobileSearchOverlay } from "@/components/layout/MobileSearchOverlay";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { ROUTES } from "@/lib/routes";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
@@ -30,6 +31,7 @@ import {
 export function MobileHeader() {
   const { t } = useTranslation();
   const unread = useUnreadNotifications();
+  const { guardAction } = useGuestAccess();
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -56,7 +58,7 @@ export function MobileHeader() {
           <button
             type="button"
             aria-label={t("common.search")}
-            onClick={() => setSearchOpen(true)}
+            onClick={() => guardAction("layout.header.search", () => setSearchOpen(true))}
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
             style={{ color: "var(--foreground-70)" }}
           >

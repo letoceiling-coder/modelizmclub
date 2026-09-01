@@ -463,6 +463,9 @@ export const zh: TranslationSchema = {
       viewAll: "View all {{count}} comments",
       hide: "隐藏评论",
       loadMore: "显示更多",
+      sortInteresting: "先看热门",
+      sortNew: "先看新的",
+      sortOld: "先看旧的",
     },
     collapsibleText: {
       expand: "Show more",
@@ -1490,6 +1493,7 @@ export const zh: TranslationSchema = {
       listingCreditsRemaining: "Placement credits: {{count}}",
       backToListings: "Back to listings",
       newListingTitle: "New listing",
+      editListingTitle: "Edit listing",
       back: "Back",
       next: "Next",
       payAndPublish: "Pay {{price}} and publish",

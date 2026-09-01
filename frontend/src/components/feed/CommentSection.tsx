@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Reply, Send, MoreHorizontal } from "lucide-react";
+import { Heart, Reply, Send, MoreHorizontal, ChevronDown } from "lucide-react";
 import type { Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -34,6 +34,27 @@ interface Props {
 /** Expanded lists grow in chunks so a thread with hundreds of replies
  *  doesn't mount at once and shift the feed. */
 const PAGE_SIZE = 20;
+
+type CommentSort = "interesting" | "old" | "new";
+
+function commentTime(c: Comment): number {
+  const t = Date.parse(c.time);
+  return Number.isFinite(t) ? t : 0;
+}
+
+function sortComments(list: Comment[], mode: CommentSort): Comment[] {
+  const copy = [...list];
+  copy.sort((a, b) => {
+    if (mode === "interesting") {
+      const byLikes = (b.likes ?? 0) - (a.likes ?? 0);
+      if (byLikes !== 0) return byLikes;
+      return commentTime(b) - commentTime(a);
+    }
+    if (mode === "old") return commentTime(a) - commentTime(b);
+    return commentTime(b) - commentTime(a);
+  });
+  return copy;
+}
 
 function CommentSkeleton() {
   return (
@@ -267,6 +288,7 @@ export function CommentSection({
   const me = useStore(selectors.currentUser);
   const [draft, setDraft] = useState("");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<CommentSort>("interesting");
 
   useEffect(() => {
     if (!showAll) setPage(1);
@@ -290,14 +312,23 @@ export function CommentSection({
     guest?.guardAction("feed.post.comment", () => {});
   };
 
+  const sortedComments = useMemo(() => sortComments(comments, sort), [comments, sort]);
+
   const visibleComments = useMemo(() => {
-    if (showAll) return comments.slice(-page * PAGE_SIZE);
-    if (previewLimit <= 0 || comments.length <= previewLimit) return comments;
-    return comments.slice(-previewLimit);
-  }, [comments, previewLimit, showAll, page]);
+    if (showAll) return sortedComments.slice(0, page * PAGE_SIZE);
+    if (previewLimit <= 0 || sortedComments.length <= previewLimit) return sortedComments;
+    return sortedComments.slice(0, previewLimit);
+  }, [sortedComments, previewLimit, showAll, page]);
 
   const hiddenCount = Math.max(0, (totalCount ?? comments.length) - visibleComments.length);
-  const canLoadMore = showAll && comments.length > visibleComments.length;
+  const canLoadMore = showAll && sortedComments.length > visibleComments.length;
+
+  const sortLabel =
+    sort === "interesting"
+      ? t("components.commentSection.sortInteresting")
+      : sort === "old"
+        ? t("components.commentSection.sortOld")
+        : t("components.commentSection.sortNew");
 
   return (
     <div
@@ -322,13 +353,22 @@ export function CommentSection({
               className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
               style={{ color: "var(--foreground)" }}
             />
-            <EmojiPicker onPick={(emoji) => {
-              if (commentBlocked) {
+            <EmojiPicker
+              onBeforeOpen={() => {
+                if (!commentBlocked) return true;
                 guest?.guardAction("feed.post.comment", () => {});
-                return;
-              }
-              setDraft((v) => v + emoji);
-            }} align="end" compact />
+                return false;
+              }}
+              onPick={(emoji) => {
+                if (commentBlocked) {
+                  guest?.guardAction("feed.post.comment", () => {});
+                  return;
+                }
+                setDraft((v) => v + emoji);
+              }}
+              align="end"
+              compact
+            />
             <button
               type="button"
               onClick={submit}
@@ -347,6 +387,40 @@ export function CommentSection({
         <CommentSkeleton />
       ) : (
         <>
+          {comments.length > 1 && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="mt-[10px] inline-flex items-center gap-[4px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+                  style={{ color: "var(--foreground-70)" }}
+                >
+                  {sortLabel}
+                  <ChevronDown className="h-[14px] w-[14px]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="z-[80] min-w-[220px] overflow-hidden rounded-[12px] border p-0"
+                style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+              >
+                {([
+                  ["interesting", t("components.commentSection.sortInteresting")],
+                  ["new", t("components.commentSection.sortNew")],
+                  ["old", t("components.commentSection.sortOld")],
+                ] as const).map(([key, label]) => (
+                  <DropdownMenuItem
+                    key={key}
+                    onSelect={() => setSort(key)}
+                    className="cursor-pointer rounded-none px-[14px] py-[10px] text-[13px]"
+                    style={{ color: sort === key ? "var(--accent)" : "var(--foreground)" }}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           {canLoadMore && (
             <button
               type="button"

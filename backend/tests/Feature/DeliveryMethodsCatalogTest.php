@@ -28,7 +28,8 @@ class DeliveryMethodsCatalogTest extends TestCase
             ->assertJsonFragment(['name' => 'Почта России'])
             ->assertJsonFragment(['name' => 'Ozon'])
             ->assertJsonFragment(['name' => 'Самовывоз'])
-            ->assertJsonFragment(['name' => 'Боксберри']);
+            ->assertJsonMissing(['name' => 'Боксберри'])
+            ->assertJsonMissing(['code' => 'boxberry']);
     }
 
     public function test_listing_rejects_unknown_delivery_method(): void

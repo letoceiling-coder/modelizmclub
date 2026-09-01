@@ -10,13 +10,15 @@ interface Props {
   align?: "start" | "end";
   /** Smaller trigger for compact composers (e.g. category room chat). */
   compact?: boolean;
+  /** Return false to keep the panel closed (e.g. guest auth gate). */
+  onBeforeOpen?: () => boolean;
 }
 
 const PANEL_WIDTH = 280;
 const PANEL_GAP = 8;
 const VIEWPORT_PAD = 12;
 
-export function EmojiPicker({ onPick, align = "start", compact = false }: Props) {
+export function EmojiPicker({ onPick, align = "start", compact = false, onBeforeOpen }: Props) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -174,7 +176,13 @@ export function EmojiPicker({ onPick, align = "start", compact = false }: Props)
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => {
+            if (v) return false;
+            if (onBeforeOpen && !onBeforeOpen()) return false;
+            return true;
+          });
+        }}
         className={triggerClass}
         style={{ color: open ? "var(--accent)" : "var(--foreground-50)" }}
         aria-label="Смайлы"

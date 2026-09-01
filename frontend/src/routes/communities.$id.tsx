@@ -1070,7 +1070,7 @@ function CommunityDetailPage() {
         </div>
       </div>
 
-      <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} />
+      <ShareSheet open={shareOpen} onOpenChange={setShareOpen} url={url} title={community.name} heading="Поделиться сообществом" showSendToFriend />
       <SubmitPostSheet open={submitOpen} onOpenChange={setSubmitOpen} communityName={community.name} />
       {canManage && (
         <CommunitySettingsSheet

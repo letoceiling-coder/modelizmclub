@@ -38,8 +38,10 @@ export interface ApiPost {
   repost_of?: {
     uuid?: string;
     title?: string | null;
+    body?: string | null;
     category?: string | null;
     author?: ApiPostAuthor | null;
+    media?: ApiPostMedia[];
   } | null;
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
@@ -110,14 +112,18 @@ export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; me
 
 export function mapPost(p: ApiPost): Post {
   const author = registerAuthor(p.author);
-  const { images, video, mediaItems } = mapPostMedia(p);
+  const ownMedia = mapPostMedia(p);
+  const originalMedia = p.repost_of?.media?.length
+    ? mapPostMedia({ media: p.repost_of.media } as ApiPost)
+    : { images: [] as string[], video: undefined as string | undefined, mediaItems: [] as PostMediaItem[] };
+  const { images, video, mediaItems } = ownMedia.mediaItems.length ? ownMedia : originalMedia;
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
     date: p.published_at ?? p.scheduled_at ?? p.created_at ?? "",
-    category: p.category?.name ?? "",
-    title: p.title ?? "",
-    text: p.body ?? "",
+    category: p.category?.name ?? p.repost_of?.category ?? "",
+    title: p.title || p.repost_of?.title || "",
+    text: p.body || p.repost_of?.body || "",
     image: images[0],
     images,
     video,

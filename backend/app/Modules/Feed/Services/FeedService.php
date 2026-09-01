@@ -32,7 +32,7 @@ class FeedService
         // Reposts are meaningful in the "following" tab (you want to see what the
         // people you follow shared). In the global/category/discovery feed they
         // only duplicate originals and flood the timeline, so hide them there.
-        if ($filter !== 'following') {
+        if ($filter !== 'following' && empty($filters['author_id'])) {
             $query->whereNull('repost_of_id');
         }
 

@@ -356,6 +356,7 @@ class PostService
             'tags',
             'repostOf.author.profile',
             'repostOf.category',
+            'repostOf.mediaItems.media',
         ];
     }
 

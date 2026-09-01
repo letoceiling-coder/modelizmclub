@@ -14,7 +14,7 @@ import type { Category, CategoryChild } from "@/lib/mock";
 import { parseTaxonomyId, type RailVariant } from "@/lib/taxonomy";
 
 const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
-const SORT_KEY = "modelizm:rightrail:sort";
+const SORT_KEY = "modelizm:rightrail:sort:v2";
 
 type SortMode = "popular" | "alpha";
 
@@ -125,8 +125,8 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>(() => {
-    if (typeof window === "undefined") return "popular";
-    return window.localStorage.getItem(SORT_KEY) === "alpha" ? "alpha" : "popular";
+    if (typeof window === "undefined") return "alpha";
+    return window.localStorage.getItem(SORT_KEY) === "popular" ? "popular" : "alpha";
   });
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;

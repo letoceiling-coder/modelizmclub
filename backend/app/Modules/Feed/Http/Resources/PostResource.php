@@ -51,8 +51,12 @@ class PostResource extends JsonResource
             'repost_of' => $this->whenLoaded('repostOf', fn () => $this->repostOf ? [
                 'uuid' => $this->repostOf->uuid,
                 'title' => $this->repostOf->title,
+                'body' => $this->repostOf->body,
                 'category' => $this->repostOf->category?->name,
                 'author' => new UserCompactResource($this->repostOf->author),
+                'media' => $this->repostOf->relationLoaded('mediaItems')
+                    ? PostMediaResource::collection($this->repostOf->mediaItems)
+                    : [],
             ] : null),
             'stats' => [
                 'views' => $this->views_count,

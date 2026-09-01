@@ -35,6 +35,9 @@ class FeedGuestAccessTest extends TestCase
         $this->assertSame('guest', $this->action($data, 'route.feed')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'route.reviews')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'ads.write_seller')['min_tier']);
+        $this->assertSame('auth', $this->action($data, 'ads.seller.profile')['min_tier']);
+        $this->assertSame('auth', $this->action($data, 'feed.post.author')['min_tier']);
+        $this->assertSame('auth', $this->action($data, 'layout.header.search')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'messenger.send')['min_tier']);
     }
 

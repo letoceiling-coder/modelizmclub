@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, MessageCircle } from "lucide-react";
 import { Icon as SlotIcon, CategoryIcon, IconBox } from "@/components/ui/Icon";
@@ -25,6 +25,16 @@ export function FindYourPeopleSheet() {
   const [open, setOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const categories = usePostCategories();
+  const sortedCategories = useMemo(
+    () =>
+      [...categories]
+        .map((c) => ({
+          ...c,
+          subcategories: [...c.subcategories].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ru")),
+    [categories],
+  );
   const { guardAction } = useGuestAccess();
   const roomStats = useCategoryRoomStats();
 
@@ -91,7 +101,7 @@ export function FindYourPeopleSheet() {
           </SheetHeader>
 
           <ul className="min-h-0 flex-1 overflow-y-auto p-[8px]">
-            {categories.map((c) => {
+            {sortedCategories.map((c) => {
               const expanded = openId === c.id;
               const online = onlineForCategory(roomStats, c.id);
               return (

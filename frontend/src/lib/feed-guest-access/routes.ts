@@ -55,6 +55,7 @@ export function isGuestStubRoute(pathname: string): boolean {
   if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return true;
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return true;
   if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return true;
+  if (pathname.startsWith("/user/")) return true;
   return false;
 }
 

@@ -31,7 +31,7 @@ final class FeedGuestAccessRegistry
             ['key' => 'feed.post.comment', 'group' => 'feed_content', 'label' => 'Комментарии', 'hint' => 'Комментирование', 'default_min_tier' => 'subscription'],
             ['key' => 'feed.post.save', 'group' => 'feed_content', 'label' => 'Закладка', 'hint' => 'Сохранение публикации', 'default_min_tier' => 'auth'],
             ['key' => 'feed.post.repost', 'group' => 'feed_content', 'label' => 'Репост', 'hint' => 'Репост публикации', 'default_min_tier' => 'subscription'],
-            ['key' => 'feed.post.author', 'group' => 'feed_content', 'label' => 'Профиль автора', 'hint' => 'Переход в профиль из поста', 'default_min_tier' => 'guest'],
+            ['key' => 'feed.post.author', 'group' => 'feed_content', 'label' => 'Профиль автора', 'hint' => 'Переход в профиль из поста', 'default_min_tier' => 'auth'],
             ['key' => 'feed.sponsored.click', 'group' => 'feed_content', 'label' => 'Рекламный пост', 'hint' => 'Клик по спонсорской публикации', 'default_min_tier' => 'guest'],
             ['key' => 'feed.empty.action', 'group' => 'feed_content', 'label' => 'Кнопки пустого состояния', 'hint' => '«Показать все», «Найти авторов»', 'default_min_tier' => 'guest'],
 
@@ -56,7 +56,7 @@ final class FeedGuestAccessRegistry
             ['key' => 'layout.nav.friends', 'group' => 'layout_nav', 'label' => 'Друзья', 'hint' => 'Пункт меню → /friends', 'default_min_tier' => 'auth'],
             ['key' => 'layout.nav.settings', 'group' => 'layout_nav', 'label' => 'Настройки', 'hint' => 'Пункт меню → /settings', 'default_min_tier' => 'auth'],
             ['key' => 'layout.header.notifications', 'group' => 'layout_nav', 'label' => 'Уведомления', 'hint' => 'Колокольчик в шапке', 'default_min_tier' => 'auth'],
-            ['key' => 'layout.header.search', 'group' => 'layout_nav', 'label' => 'Поиск', 'hint' => 'Строка поиска в шапке', 'default_min_tier' => 'guest'],
+            ['key' => 'layout.header.search', 'group' => 'layout_nav', 'label' => 'Поиск', 'hint' => 'Строка поиска в шапке', 'default_min_tier' => 'auth'],
 
             // — Защита страниц (прямой URL) —
             ['key' => 'route.feed', 'group' => 'route_guard', 'label' => 'Страница /feed', 'hint' => 'Лента', 'default_min_tier' => 'guest'],
@@ -78,6 +78,7 @@ final class FeedGuestAccessRegistry
 
             // — Объявления и сделки —
             ['key' => 'ads.write_seller', 'group' => 'marketplace', 'label' => 'Написать продавцу', 'hint' => 'Диалог с продавцом из объявления', 'default_min_tier' => 'auth'],
+            ['key' => 'ads.seller.profile', 'group' => 'marketplace', 'label' => 'Профиль продавца', 'hint' => 'Переход в профиль продавца из объявления', 'default_min_tier' => 'auth'],
             ['key' => 'ads.call_seller', 'group' => 'marketplace', 'label' => 'Показать телефон продавца', 'hint' => 'Раскрытие контакта в объявлении', 'default_min_tier' => 'auth'],
             ['key' => 'ads.safe_deal', 'group' => 'marketplace', 'label' => 'Безопасная сделка', 'hint' => 'Открытие сделки из объявления', 'default_min_tier' => 'auth'],
             ['key' => 'messenger.send', 'group' => 'marketplace', 'label' => 'Отправка сообщений', 'hint' => 'Текст, голос и вложения в мессенджере', 'default_min_tier' => 'auth'],

@@ -19,7 +19,8 @@ function loadMethods(): Promise<DeliveryMethodOption[]> {
   if (inflight) return inflight;
   inflight = fetchDeliveryMethodsPublic()
     .then((rows) => {
-      const options = rows.length > 0 ? toOptions(rows) : DELIVERY_METHODS_FALLBACK;
+      const options = (rows.length > 0 ? toOptions(rows) : DELIVERY_METHODS_FALLBACK)
+        .filter((m) => m.id !== "boxberry");
       cache = options;
       return options;
     })

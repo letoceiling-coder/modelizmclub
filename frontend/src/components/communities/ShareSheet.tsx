@@ -5,17 +5,27 @@ import { storePendingShare } from "@/components/messenger/ShareLinkDialog";
 import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
+import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   url: string;
   title: string;
+  heading?: string;
+  /** Community share also offers “send to a friend on the platform”. */
+  showSendToFriend?: boolean;
 }
 
-export function ShareSheet({ open, onOpenChange, url, title }: Props) {
+export function ShareSheet({
+  open,
+  onOpenChange,
+  url,
+  title,
+  heading = "Поделиться",
+  showSendToFriend = false,
+}: Props) {
   const navigate = useNavigate();
-  const text = `${title} — ${url}`;
 
   const openFriendPicker = () => {
     if (!isDemoMode() && !getToken()) {
@@ -27,53 +37,43 @@ export function ShareSheet({ open, onOpenChange, url, title }: Props) {
     void navigate({ to: "/messenger", search: { share: "1" } });
   };
 
-  const items = [
-    {
-      key: "friend",
-      label: "Отправить другу на платформе",
-      icon: Users,
-      onClick: openFriendPicker,
-    },
-    {
-      key: "copy",
-      label: "Скопировать ссылку",
-      icon: Link2,
-      onClick: () => {
-        if (typeof navigator !== "undefined") navigator.clipboard?.writeText(url);
-        toast.success("Ссылка скопирована");
-        onOpenChange(false);
-      },
-    },
-    {
-      key: "vk",
-      label: "ВКонтакте",
+  const copyLink = async () => {
+    try {
+      if (typeof navigator !== "undefined") await navigator.clipboard?.writeText(url);
+      toast.success("Ссылка скопирована");
+    } catch {
+      toast.info("Скопируйте ссылку из адресной строки");
+    }
+    onOpenChange(false);
+  };
+
+  const items: Array<{ key: string; label: string; icon: typeof Share2; onClick: () => void }> = [
+    ...(showSendToFriend
+      ? [{ key: "friend", label: "Отправить другу на платформе", icon: Users, onClick: openFriendPicker }]
+      : []),
+    ...SHARE_TARGETS.map((target) => ({
+      key: target.id,
+      label: target.label,
       icon: Share2,
       onClick: () => {
-        window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`, "_blank", "noopener,noreferrer");
+        openShareTarget(target.href(url, title));
         onOpenChange(false);
       },
-    },
-    {
-      key: "wa",
-      label: "WhatsApp",
-      icon: Share2,
-      onClick: () => {
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-        onOpenChange(false);
-      },
-    },
+    })),
+    { key: "copy", label: "Скопировать ссылку", icon: Link2, onClick: () => { void copyLink(); } },
   ];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl p-0 sm:max-w-md sm:left-1/2 sm:-translate-x-1/2">
         <SheetHeader className="px-5 pt-5">
-          <SheetTitle>Поделиться сообществом</SheetTitle>
+          <SheetTitle>{heading}</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col p-2">
           {items.map((it) => (
             <button
               key={it.key}
+              type="button"
               onClick={it.onClick}
               className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-[var(--background-surface)]"
             >

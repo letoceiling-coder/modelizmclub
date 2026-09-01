@@ -60,6 +60,9 @@ class FeedGuestAccessRegistryTest extends TestCase
         $this->assertSame('auth', $config['actions']['route.reviews']['min_tier']);
         $this->assertSame('subscription', $config['actions']['feed.compose.open']['min_tier']);
         $this->assertSame('auth', $config['actions']['ads.write_seller']['min_tier']);
+        $this->assertSame('auth', $config['actions']['ads.seller.profile']['min_tier']);
+        $this->assertSame('auth', $config['actions']['feed.post.author']['min_tier']);
+        $this->assertSame('auth', $config['actions']['layout.header.search']['min_tier']);
         $this->assertSame('auth', $config['actions']['messenger.send']['min_tier']);
         $this->assertTrue($config['actions']['feed.filter.all']['allowed']);
         $this->assertFalse($config['actions']['feed.filter.following']['allowed']);

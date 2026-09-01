@@ -104,7 +104,9 @@ function ProfilePage() {
     const settle = Promise.allSettled([
       fetchMyListings().then((list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) })))),
       fetchCommunities().then((cs) => active && setMyCommunities(cs.filter((c) => c.joined))),
-      fetchFeed({ perPage: 50 }).then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id))),
+      currentUser.numericId
+        ? fetchFeed({ authorId: currentUser.numericId, perPage: 50 }).then((r) => active && setMyPosts(r.posts))
+        : fetchFeed({ perPage: 50 }).then((r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id))),
       fetchFriends().then((fr) => active && setFriendsCount(fr.length)),
       currentUser.numericId
         ? fetchUserRating(currentUser.numericId).then((r) => active && setRating(r))

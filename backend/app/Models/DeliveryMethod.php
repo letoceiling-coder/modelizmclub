@@ -28,6 +28,7 @@ class DeliveryMethod extends Model
     {
         return self::query()
             ->where('is_active', true)
+            ->where('code', '!=', 'boxberry')
             ->orderBy('sort_order')
             ->pluck('name')
             ->all();

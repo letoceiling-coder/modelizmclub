@@ -13,7 +13,6 @@ export const DELIVERY_METHODS_FALLBACK: DeliveryMethodOption[] = [
   { id: "cdek", label: "СДЭК", isIntegrated: true },
   { id: "yandex", label: "Яндекс Доставка", isIntegrated: true },
   { id: "pochta", label: "Почта России", isIntegrated: false },
-  { id: "boxberry", label: "Боксберри", isIntegrated: false },
   { id: "ozon", label: "Ozon", isIntegrated: false },
   { id: "pickup", label: "Самовывоз", isIntegrated: false },
 ];

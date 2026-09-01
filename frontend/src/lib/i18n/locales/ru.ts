@@ -370,7 +370,9 @@ export const ru = {
       actions: "Действия с комментарием",
       report: "Пожаловаться",
       reportSuffix: " (комментарий)",
-      reportDesc: "Опишите, что не так с этим комментарием.",
+      sortInteresting: "Сначала интересные",
+      sortNew: "Сначала новые",
+      sortOld: "Сначала старые",
     },
     collapsibleText: {
       expand: "Показать полностью",
@@ -1478,6 +1480,7 @@ export const ru = {
       listingCreditsRemaining: "Кредитов размещения: {{count}}",
       backToListings: "Назад к объявлениям",
       newListingTitle: "Новое объявление",
+      editListingTitle: "Редактирование объявления",
       back: "Назад",
       next: "Далее",
       payAndPublish: "Оплатить {{price}} и опубликовать",

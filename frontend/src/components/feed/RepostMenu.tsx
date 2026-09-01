@@ -7,6 +7,8 @@ import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
 import { userById } from "@/lib/mock";
 import { sendPostShareMessage } from "@/lib/api/chat";
+import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
 
 interface Props {
   postId: string;
@@ -18,14 +20,9 @@ interface Props {
 
 type View = "main" | "chats" | "share";
 
-const SHARE_TARGETS = [
-  { id: "telegram", label: "Telegram", href: (u: string) => `https://t.me/share/url?url=${encodeURIComponent(u)}` },
-  { id: "whatsapp", label: "WhatsApp", href: (u: string) => `https://wa.me/?text=${encodeURIComponent(u)}` },
-  { id: "vk", label: "VK", href: (u: string) => `https://vk.com/share.php?url=${encodeURIComponent(u)}` },
-] as const;
-
 export function RepostMenu({ postId, reposted, count, onRepost, disabled = false }: Props) {
   const { t } = useTranslation();
+  const guest = useGuestAccessOptional();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
@@ -84,8 +81,16 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
   };
 
   const shareTo = (href: string) => {
-    if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
+    openShareTarget(href);
     close();
+  };
+
+  const openChats = () => {
+    if (guest) {
+      guest.guardAction("messenger.send", () => setView("chats"));
+      return;
+    }
+    setView("chats");
   };
 
   const sendToChat = async (dialogId: string, partnerName: string) => {
@@ -138,7 +143,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
             {view === "main" && (
               <>
                 <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("components.repostMenu.undoRepost") : t("components.repostMenu.repostToFeed")} accent />
-                <Item onClick={() => setView("chats")} icon={MessageSquare} label={t("components.repostMenu.sendToMessages")} />
+                <Item onClick={openChats} icon={MessageSquare} label={t("components.repostMenu.sendToMessages")} />
                 <div className="border-t" style={{ borderColor: "var(--border)" }} />
                 <Item onClick={() => setView("share")} icon={Share2} label={t("components.repostMenu.share")} />
               </>

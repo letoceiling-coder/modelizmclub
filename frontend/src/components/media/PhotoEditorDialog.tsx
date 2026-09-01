@@ -140,18 +140,6 @@ export function PhotoEditorDialog({
     setOverlayTick((n) => n + 1);
   };
 
-  const ensureImageCoversCrop = (cropper: Cropper) => {
-    const image = cropper.getImageData();
-    const cropBox = cropper.getCropBoxData();
-    if (image.width >= cropBox.width && image.height >= cropBox.height) return;
-    const scaleW = cropBox.width / Math.max(image.width, 1);
-    const scaleH = cropBox.height / Math.max(image.height, 1);
-    const factor = Math.max(scaleW, scaleH, 1);
-    if (factor > 1.001) {
-      cropper.zoomTo(image.ratio * factor);
-    }
-  };
-
   // Resolve whatever source we were given into a same-origin blob: URL.
   useEffect(() => {
     if (!isOpen || !resolvedSrc) {
@@ -200,9 +188,9 @@ export function PhotoEditorDialog({
     const initialAspect = shapeState === "circle" ? 1 : effectiveAspect;
     const cropper = new Cropper(img, {
       aspectRatio: initialAspect,
-      viewMode: 0,
+      viewMode: isBannerEditor ? 1 : 0,
       dragMode: interactionMode === "pan" ? "move" : "crop",
-      autoCropArea: isBannerEditor ? 0.92 : 0.85,
+      autoCropArea: isBannerEditor ? 1 : 0.85,
       background: false,
       guides: true,
       center: true,
@@ -220,9 +208,6 @@ export function PhotoEditorDialog({
         setActiveCropper(cropper);
         if (effectiveAspect) {
           cropper.setAspectRatio(initialAspect ?? NaN);
-        }
-        if (isBannerEditor) {
-          ensureImageCoversCrop(cropper);
         }
         syncCropMetrics();
         setReady(true);
@@ -317,9 +302,6 @@ export function PhotoEditorDialog({
     setEffects(DEFAULT_EFFECTS);
     setShapeState(shape);
     setInteractionMode("pan");
-    if (cropperRef.current && isBannerEditor) {
-      ensureImageCoversCrop(cropperRef.current);
-    }
     syncCropMetrics();
   };
 

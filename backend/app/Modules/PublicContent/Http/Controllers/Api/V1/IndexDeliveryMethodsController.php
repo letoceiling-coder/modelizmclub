@@ -12,6 +12,7 @@ class IndexDeliveryMethodsController extends Controller
     {
         $rows = DeliveryMethod::query()
             ->where('is_active', true)
+            ->where('code', '!=', 'boxberry')
             ->orderBy('sort_order')
             ->get(['code', 'name', 'is_integrated']);
 

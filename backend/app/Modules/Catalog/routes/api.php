@@ -5,6 +5,7 @@ use Modules\Catalog\Http\Controllers\Api\V1\CitiesController;
 use Modules\Catalog\Http\Controllers\Api\V1\CommunityCategoryTreeController;
 use Modules\Catalog\Http\Controllers\Api\V1\ListingCategoryTreeController;
 use Modules\Catalog\Http\Controllers\Api\V1\PostCategoryTreeController;
+use Modules\Catalog\Http\Controllers\Api\V1\SuggestAddressController;
 use Modules\Catalog\Http\Controllers\Api\V1\TagsController;
 
 Route::prefix('categories')->group(function (): void {
@@ -14,4 +15,5 @@ Route::prefix('categories')->group(function (): void {
 });
 
 Route::get('cities', CitiesController::class);
+Route::get('geo/address-suggest', SuggestAddressController::class)->middleware('throttle:20,1');
 Route::get('tags', TagsController::class);

@@ -29,6 +29,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
 import { SafeDealCheckoutWizard } from "@/components/deals/SafeDealCheckoutWizard";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { ShareSheet } from "@/components/communities/ShareSheet";
 
 import i18n from "@/lib/i18n";
 
@@ -131,6 +132,7 @@ function AdDetailPage() {
   const [ownerBusy, setOwnerBusy] = useState(false);
   const [safeDealBusy] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const availableDeliveryMethods = useMemo(
     () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
@@ -246,27 +248,7 @@ function AdDetailPage() {
       ? ad.gallery
       : [ad.image];
 
-  const share = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await (navigator as Navigator).share({ title: ad.title, url });
-        return;
-      } catch {
-        /* user cancelled — fall through to copy */
-      }
-    }
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success(t("pages.adDetail.linkCopied"));
-        return;
-      } catch {
-        /* clipboard blocked */
-      }
-    }
-    toast.info(t("pages.adDetail.copyFromBar"));
-  };
+  const share = () => setShareOpen(true);
 
   const toggleSave = () => {
     requireAccount(() => {
@@ -505,6 +487,14 @@ function AdDetailPage() {
           );
         }}
       />
+      {ad && (
+        <ShareSheet
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          url={typeof window !== "undefined" ? window.location.href : ""}
+          title={ad.title}
+        />
+      )}
       {ad && (
         <SafeDealCheckoutWizard open={checkoutOpen} onOpenChange={setCheckoutOpen} ad={ad} />
       )}
