@@ -144,6 +144,10 @@ function FeedPage() {
 
   const [initialLoading, setInitialLoading] = useState(() => loaded.posts.length === 0);
   const usedLoaderFeed = useRef(loaded.posts.length > 0);
+  const hasPostsRef = useRef(loaded.posts.length > 0);
+  const filterAllowed = guestAccessReady
+    ? isAllowed(FEED_FILTER_ACTIONS[filter])
+    : filter === "all";
 
   useEffect(() => {
     if (loaded.categories.length) setCategories(loaded.categories);
@@ -162,9 +166,15 @@ function FeedPage() {
   }, [taxonomyFromUrl, categories]);
 
   useEffect(() => {
+    hasPostsRef.current = posts.length > 0;
+  }, [posts.length]);
+
+  useEffect(() => {
     let alive = true;
-    if (!guestAccessReady) return;
-    if (!isAllowed(FEED_FILTER_ACTIONS[filter])) {
+    // Public "all" feed must not wait for session/subscription: otherwise a
+    // full page load keeps PostCardSkeleton forever while /ads already shows photos.
+    if (!filterAllowed) {
+      if (!guestAccessReady) return;
       setPosts([]);
       setInitialLoading(false);
       return;
@@ -185,7 +195,7 @@ function FeedPage() {
       return;
     }
     usedLoaderFeed.current = false;
-    setInitialLoading(true);
+    if (!hasPostsRef.current) setInitialLoading(true);
     const categoryId = taxonomyFromUrl ?? (activeCategory ? categoryIdByName(activeCategory) : undefined);
     const query =
       filter === "following"
@@ -199,6 +209,7 @@ function FeedPage() {
       .then((r) => {
         if (!alive) return;
         setPosts(r.posts);
+        hasPostsRef.current = r.posts.length > 0;
         setSavedIds((prev) => {
           const next = new Set(prev);
           for (const p of r.posts) if (p.isSaved) next.add(p.id);
@@ -214,7 +225,7 @@ function FeedPage() {
     return () => {
       alive = false;
     };
-  }, [filter, activeCategory, taxonomyFromUrl, guestAccessReady, isAllowed]);
+  }, [filter, activeCategory, taxonomyFromUrl, guestAccessReady, filterAllowed]);
 
   const filtered = useMemo(() => {
     const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));
@@ -326,7 +337,7 @@ function FeedPage() {
         )}
 
         <div className="-mx-3 space-y-[16px] sm:mx-0">
-          {initialLoading ? (
+          {initialLoading && slice.length === 0 ? (
             Array.from({ length: 3 }).map((_, i) => <PostCardSkeleton key={i} />)
           ) : slice.length === 0 ? (
             filter === "following" ? (
