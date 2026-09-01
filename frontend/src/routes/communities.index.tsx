@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, ImageOff, Plus,
+  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, Plus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
@@ -14,6 +14,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
@@ -63,7 +64,7 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
   return (
     <Card
       className="overflow-hidden flex flex-col shadow-none"
-      style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}
+      style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: 16 }}
     >
       {/* banner */}
       <Link to="/communities/$id" params={{ id: c.id }} className="relative block">
@@ -228,6 +229,22 @@ function EmptySearch() {
   );
 }
 
+function CommunityCardSkeleton() {
+  return (
+    <Card
+      className="overflow-hidden"
+      style={{ borderColor: "var(--border)", borderRadius: 16, background: "var(--background-elevated)" }}
+    >
+      <Skeleton className="h-[120px] w-full rounded-none" />
+      <div className="space-y-[10px] px-[16px] pb-[16px] pt-[32px]">
+        <Skeleton className="h-[16px] w-[55%]" />
+        <Skeleton className="h-[12px] w-full" />
+        <Skeleton className="h-[12px] w-[72%]" />
+      </div>
+    </Card>
+  );
+}
+
 const SECTION_LIMIT = 6;
 
 function CommunitySection({
@@ -289,10 +306,33 @@ function CommunitiesPage() {
   const { taxonomy_id: taxonomyId } = Route.useSearch();
   const loaded = Route.useLoaderData();
   const [all, setAll] = useState<Community[]>(() => loaded.communities);
+  const [loading, setLoading] = useState(() => loaded.communities.length === 0);
+  const hasRowsRef = useRef(loaded.communities.length > 0);
 
   useEffect(() => {
+    if (loaded.communities.length === 0) return;
+    hasRowsRef.current = true;
     setAll(loaded.communities);
+    setLoading(false);
   }, [loaded.communities]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!hasRowsRef.current) setLoading(true);
+    fetchCommunities(undefined, taxonomyId)
+      .then((rows) => {
+        if (!alive) return;
+        hasRowsRef.current = rows.length > 0;
+        setAll(rows);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [taxonomyId]);
 
   const reloadCommunities = () => {
     fetchCommunities(undefined, taxonomyId).then(setAll).catch(() => {});
@@ -360,7 +400,13 @@ function CommunitiesPage() {
           placeholder={t("pages.communities.searchPlaceholder")}
         />
 
-        {nothing ? (
+        {loading && all.length === 0 ? (
+          <div className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <CommunityCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : nothing ? (
           hasQuery ? <EmptySearch /> : <EmptyMy onSwitch={() => { /* scroll handled naturally */ }} />
         ) : (
           <div className="space-y-[28px]">
