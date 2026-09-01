@@ -15,4 +15,8 @@ Route::prefix('media')->middleware(['auth:sanctum', 'verified'])->group(function
 });
 
 // Public media proxy (streams from the private bucket). Must stay outside auth.
-Route::get('media/{uuid}', ServeMediaController::class);
+Route::get('media/{uuid}/{variant}', ServeMediaController::class)
+    ->where('uuid', '[0-9a-fA-F-]{36}')
+    ->where('variant', 'thumb\.webp|thumb\.jpg|card\.webp|card\.jpg|medium\.webp|medium\.jpg|large\.webp|large\.jpg');
+Route::get('media/{uuid}', ServeMediaController::class)
+    ->where('uuid', '[0-9a-fA-F-]{36}');

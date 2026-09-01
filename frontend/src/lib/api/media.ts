@@ -1,5 +1,6 @@
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
+import type { MediaVariantSet } from "@/lib/media/variants";
 
 export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "listing" | "chat" | "icon" | "banner" | "logo" | "dispute";
 
@@ -10,6 +11,7 @@ export interface UploadedMedia {
   width?: number | null;
   height?: number | null;
   status?: string;
+  variants?: MediaVariantSet;
 }
 
 const PRESIGNED_THRESHOLD = 10 * 1024 * 1024; // 10 MB — above this use direct-to-S3 session
@@ -97,4 +99,15 @@ export async function uploadMedia(file: File, purpose: MediaPurpose): Promise<Up
     body: form,
   });
   return res.data;
+}
+
+const inflightUploads = new WeakMap<File, Promise<UploadedMedia>>();
+
+/** Same File object shares one in-flight request (pick + submit race). */
+export function uploadMediaDeduped(file: File, purpose: MediaPurpose): Promise<UploadedMedia> {
+  const existing = inflightUploads.get(file);
+  if (existing) return existing;
+  const pending = uploadMedia(file, purpose).finally(() => inflightUploads.delete(file));
+  inflightUploads.set(file, pending);
+  return pending;
 }

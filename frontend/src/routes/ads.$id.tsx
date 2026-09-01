@@ -240,7 +240,11 @@ function AdDetailPage() {
     );
   }
 
-  const images = ad.gallery && ad.gallery.length ? ad.gallery : [ad.image];
+  const images = ad.galleryMedia?.length
+    ? ad.galleryMedia
+    : ad.gallery && ad.gallery.length
+      ? ad.gallery
+      : [ad.image];
 
   const share = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";

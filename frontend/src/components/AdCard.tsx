@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
+import { ResponsiveImage } from "@/components/media/ResponsiveImage";
+import { toDisplayMedia } from "@/lib/media/variants";
 
 const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
   "Продаю":  { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
@@ -49,8 +51,8 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
   const moderationState = state !== "default" ? state : ad.moderation && ad.moderation !== "published" ? ad.moderation : "default";
   const [liked, setLiked] = useState<boolean>(false);
   const [likeBump, setLikeBump] = useState(0);
+  const hero = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
   const status = STATUS_STYLE[ad.status];
-  const hero = ad.gallery?.[0] ?? ad.image;
   const moderated = moderationState === "moderation";
   const rejected = moderationState === "rejected";
 
@@ -95,10 +97,11 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
           style={{ aspectRatio: "4 / 3", background: "var(--background-surface-hover)" }}
         >
           {hero ? (
-            <img
-              src={hero}
+            <ResponsiveImage
+              media={hero}
               alt={ad.title}
-              loading="lazy"
+              variants={["thumb", "card"]}
+              sizes="(max-width: 640px) 50vw, 320px"
               className="h-full w-full object-cover transition-[filter] duration-300 group-hover:brightness-105"
             />
           ) : (

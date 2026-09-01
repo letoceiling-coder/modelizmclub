@@ -7,7 +7,7 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/modelizmclub/backend
-ExecStart=/usr/bin/php artisan queue:work redis --queue=default --sleep=3 --tries=3 --max-time=3600 --backoff=5
+ExecStart=/usr/bin/php artisan queue:work redis --queue=default --sleep=3 --tries=3 --timeout=120 --max-time=3600 --backoff=5
 Restart=always
 RestartSec=3
 

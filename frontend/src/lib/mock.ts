@@ -101,6 +101,7 @@ export type PostMediaItem = {
   /** Intrinsic size, when the API knows it — used to reserve the media box. */
   width?: number;
   height?: number;
+  variants?: import("@/lib/media/variants").MediaVariantSet;
 };
 
 export interface Post {
@@ -176,6 +177,7 @@ export interface Ad {
   city: string;
   image: string;
   gallery?: string[];
+  galleryMedia?: import("@/lib/media/variants").DisplayMedia[];
   description?: string;
   delivery: string[];
   deliveryDetails?: string;

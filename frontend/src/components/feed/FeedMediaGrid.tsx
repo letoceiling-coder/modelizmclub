@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ImageOff, X, ChevronLeft, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
+import { ResponsiveImage } from "@/components/media/ResponsiveImage";
+import { displaySrc, toDisplayMedia, type DisplayMedia } from "@/lib/media/variants";
 
 const MAX_HEIGHT_DESKTOP = 480;
 const MAX_HEIGHT_MOBILE = 420;
@@ -32,12 +34,12 @@ function useImageAspect(url: string): number | null {
 }
 
 function GridImage({
-  src,
+  media,
   alt,
   onClick,
   className = "",
 }: {
-  src: string;
+  media: DisplayMedia;
   alt: string;
   onClick?: () => void;
   className?: string;
@@ -51,13 +53,13 @@ function GridImage({
     );
   }
   return (
-    <img
-      src={src}
+    <ResponsiveImage
+      media={media}
       alt={alt}
-      loading="lazy"
-      decoding="async"
-      onClick={onClick}
+      variants={["card", "medium"]}
+      sizes="(max-width:768px) 100vw, 680px"
       className={`h-full w-full cursor-zoom-in object-cover ${className}`}
+      onClick={onClick}
       onError={() => setErr(true)}
     />
   );
@@ -124,8 +126,8 @@ function Lightbox({ images, startIndex, alt, onClose }: { images: string[]; star
   );
 }
 
-function SingleImage({ url, alt, onOpen }: { url: string; alt: string; onOpen: () => void }) {
-  const aspect = useImageAspect(url) ?? 1;
+function SingleImage({ media, alt, onOpen }: { media: DisplayMedia; alt: string; onOpen: () => void }) {
+  const aspect = useImageAspect(media.url) ?? 1;
   const isPortrait = aspect < 0.95;
   const isWide = aspect >= 1.6;
 
@@ -137,69 +139,73 @@ function SingleImage({ url, alt, onOpen }: { url: string; alt: string; onOpen: (
 
   return (
     <div className="overflow-hidden rounded-[var(--r-card)] bg-[var(--background-surface)] sm:max-h-[480px]" style={style}>
-      <GridImage src={url} alt={alt} onClick={onOpen} className="!object-contain sm:!object-cover" />
+      <GridImage media={media} alt={alt} onClick={onOpen} className="!object-contain sm:!object-cover" />
     </div>
   );
 }
 
 /** VK-style image grid for feed posts (images only). */
-export function FeedMediaGrid({ images, alt }: { images: string[]; alt: string }) {
+export function FeedMediaGrid({ images, alt }: { images: Array<string | DisplayMedia>; alt: string }) {
+  const items = images
+    .map((item) => (typeof item === "string" ? toDisplayMedia(item) : item))
+    .filter((item): item is DisplayMedia => Boolean(item?.url));
+  const lightboxUrls = items.map((item) => displaySrc(item, "large"));
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  if (images.length === 0) return null;
+  if (items.length === 0) return null;
 
-  if (images.length === 1) {
+  if (items.length === 1) {
     return (
       <>
-        <SingleImage url={images[0]} alt={alt} onOpen={() => setLightbox(0)} />
-        {lightbox !== null && <Lightbox images={images} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
+        <SingleImage media={items[0]} alt={alt} onOpen={() => setLightbox(0)} />
+        {lightbox !== null && <Lightbox images={lightboxUrls} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
       </>
     );
   }
 
-  if (images.length === 2) {
+  if (items.length === 2) {
     return (
       <>
         <div className="grid grid-cols-2 overflow-hidden rounded-[var(--r-card)]" style={{ gap: GRID_GAP, maxHeight: MAX_HEIGHT_DESKTOP }}>
-          {images.map((url, i) => (
-            <div key={url} className="relative min-h-[140px] overflow-hidden" style={{ aspectRatio: "1" }}>
-              <GridImage src={url} alt={`${alt} — ${i + 1}`} onClick={() => setLightbox(i)} />
+          {items.map((item, i) => (
+            <div key={item.url} className="relative min-h-[140px] overflow-hidden" style={{ aspectRatio: "1" }}>
+              <GridImage media={item} alt={`${alt} — ${i + 1}`} onClick={() => setLightbox(i)} />
             </div>
           ))}
         </div>
-        {lightbox !== null && <Lightbox images={images} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
+        {lightbox !== null && <Lightbox images={lightboxUrls} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
       </>
     );
   }
 
-  if (images.length === 3) {
+  if (items.length === 3) {
     return (
       <>
         <div className="grid overflow-hidden rounded-[var(--r-card)]" style={{ gap: GRID_GAP, gridTemplateColumns: "2fr 1fr", gridTemplateRows: "1fr 1fr", maxHeight: MAX_HEIGHT_DESKTOP, aspectRatio: "16/9" }}>
           <div className="relative row-span-2 min-h-0 overflow-hidden">
-            <GridImage src={images[0]} alt={`${alt} — 1`} onClick={() => setLightbox(0)} />
+            <GridImage media={items[0]} alt={`${alt} — 1`} onClick={() => setLightbox(0)} />
           </div>
           <div className="relative min-h-0 overflow-hidden">
-            <GridImage src={images[1]} alt={`${alt} — 2`} onClick={() => setLightbox(1)} />
+            <GridImage media={items[1]} alt={`${alt} — 2`} onClick={() => setLightbox(1)} />
           </div>
           <div className="relative min-h-0 overflow-hidden">
-            <GridImage src={images[2]} alt={`${alt} — 3`} onClick={() => setLightbox(2)} />
+            <GridImage media={items[2]} alt={`${alt} — 3`} onClick={() => setLightbox(2)} />
           </div>
         </div>
-        {lightbox !== null && <Lightbox images={images} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
+        {lightbox !== null && <Lightbox images={lightboxUrls} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
       </>
     );
   }
 
-  const visible = images.slice(0, 4);
-  const extra = images.length - 4;
+  const visible = items.slice(0, 4);
+  const extra = items.length - 4;
 
   return (
     <>
       <div className="grid grid-cols-2 overflow-hidden rounded-[var(--r-card)]" style={{ gap: GRID_GAP, maxHeight: MAX_HEIGHT_DESKTOP }}>
-        {visible.map((url, i) => (
-          <div key={url} className="relative aspect-square min-h-[100px] overflow-hidden">
-            <GridImage src={url} alt={`${alt} — ${i + 1}`} onClick={() => setLightbox(i)} />
+        {visible.map((item, i) => (
+          <div key={item.url} className="relative aspect-square min-h-[100px] overflow-hidden">
+            <GridImage media={item} alt={`${alt} — ${i + 1}`} onClick={() => setLightbox(i)} />
             {i === 3 && extra > 0 && (
               <button
                 type="button"
@@ -214,7 +220,7 @@ export function FeedMediaGrid({ images, alt }: { images: string[]; alt: string }
           </div>
         ))}
       </div>
-      {lightbox !== null && <Lightbox images={images} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
+      {lightbox !== null && <Lightbox images={lightboxUrls} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
     </>
   );
 }

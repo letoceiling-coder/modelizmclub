@@ -3,6 +3,8 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
+import { ResponsiveImage } from "@/components/media/ResponsiveImage";
+import { toDisplayMedia, type DisplayMedia } from "@/lib/media/variants";
 
 /** Square fallback tile — used for a broken/empty single image. */
 function GalleryFallback() {
@@ -24,12 +26,25 @@ function GalleryFallback() {
   );
 }
 
-export function AdGallery({ images, alt, reserved }: { images: string[]; alt: string; reserved?: boolean }) {
-  // Drop empty/whitespace URLs up front so we never emit <img src="">.
-  const valid = useMemo(() => images.filter((s) => typeof s === "string" && s.trim().length > 0), [images]);
+export function AdGallery({
+  images,
+  alt,
+  reserved,
+}: {
+  images: Array<string | DisplayMedia>;
+  alt: string;
+  reserved?: boolean;
+}) {
+  const items = useMemo(
+    () =>
+      images
+        .map((item) => (typeof item === "string" ? toDisplayMedia(item) : item))
+        .filter((item): item is DisplayMedia => Boolean(item?.url?.trim())),
+    [images],
+  );
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: valid.length > 1,
+    loop: items.length > 1,
     align: "start",
     dragFree: false,
   });
@@ -58,7 +73,7 @@ export function AdGallery({ images, alt, reserved }: { images: string[]; alt: st
   const onThumb = (i: number) => emblaApi?.scrollTo(i);
 
   // No usable photos → single fallback tile, no carousel chrome.
-  if (valid.length === 0) return <GalleryFallback />;
+  if (items.length === 0) return <GalleryFallback />;
 
   return (
     <div className="flex flex-col gap-[12px]">
@@ -73,16 +88,18 @@ export function AdGallery({ images, alt, reserved }: { images: string[]; alt: st
       >
         <div ref={emblaRef} className="h-full overflow-hidden touch-pan-y" style={{ touchAction: "pan-y pinch-zoom" }}>
           <div className="flex h-full">
-            {valid.map((src, i) => (
-              <div key={i} className="relative h-full min-w-0 flex-[0_0_100%] select-none">
+            {items.map((item, i) => (
+              <div key={item.url + i} className="relative h-full min-w-0 flex-[0_0_100%] select-none">
                 {broken[i] ? (
                   <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
                     <ImageOff size={40} />
                   </div>
                 ) : (
-                  <img
-                    src={src}
+                  <ResponsiveImage
+                    media={item}
                     alt={`${alt} — фото ${i + 1}`}
+                    variants={["medium", "large"]}
+                    sizes="(max-width: 768px) 100vw, 900px"
                     width={1200}
                     height={900}
                     draggable={false}
@@ -96,7 +113,7 @@ export function AdGallery({ images, alt, reserved }: { images: string[]; alt: st
           </div>
         </div>
 
-        {valid.length > 1 && (
+        {items.length > 1 && (
           <>
             <button
               type="button"
@@ -121,7 +138,7 @@ export function AdGallery({ images, alt, reserved }: { images: string[]; alt: st
               className="absolute bottom-[12px] left-1/2 -translate-x-1/2 px-[10px] py-[4px] text-[11px] font-medium"
               style={{ background: "rgba(0,0,0,0.55)", color: "#fff", borderRadius: "var(--r-pill)", backdropFilter: "blur(8px)" }}
             >
-              {selected + 1} / {valid.length}
+              {selected + 1} / {items.length}
             </div>
           </>
         )}
@@ -129,12 +146,12 @@ export function AdGallery({ images, alt, reserved }: { images: string[]; alt: st
         {reserved && <ReservedOverlay />}
       </div>
 
-      {valid.length > 1 && (
+      {items.length > 1 && (
         <div ref={thumbRef} className="overflow-hidden">
           <div className="flex gap-[8px]">
-            {valid.map((src, i) => (
+            {items.map((item, i) => (
               <motion.button
-                key={i}
+                key={item.url + i}
                 type="button"
                 onClick={() => onThumb(i)}
                 whileTap={{ scale: 0.95 }}
@@ -153,14 +170,15 @@ export function AdGallery({ images, alt, reserved }: { images: string[]; alt: st
                 {broken[i] ? (
                   <ImageOff size={18} style={{ color: "var(--foreground-30)" }} />
                 ) : (
-                  <img
-                    src={src}
+                  <ResponsiveImage
+                    media={item}
                     alt=""
+                    variants={["thumb"]}
+                    sizes="88px"
                     width={88}
                     height={66}
                     draggable={false}
                     className="h-full w-full object-cover"
-                    loading="lazy"
                     onError={() => setBroken((b) => ({ ...b, [i]: true }))}
                   />
                 )}

@@ -8,7 +8,7 @@ import { type AdCondition, type Category } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMediaDeduped } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
 import { fetchPlacementQuote, formatQuoteRub, type PlacementQuote } from "@/lib/api/listing-placement";
 import { createListingPlacementPayment, type PayWith } from "@/lib/api/payment";
@@ -458,11 +458,11 @@ function NewAdPage() {
     try {
       const mediaIds: string[] = [];
       for (const item of form.photoItems) {
-        if (item.file) {
-          const m = await uploadMedia(item.file, "listing");
-          mediaIds.push(m.uuid);
-        } else if (item.mediaId) {
+        if (item.mediaId) {
           mediaIds.push(item.mediaId);
+        } else if (item.file) {
+          const m = await uploadMediaDeduped(item.file, "listing");
+          mediaIds.push(m.uuid);
         }
       }
       if (mediaIds.length === 0) {
@@ -832,6 +832,19 @@ function usePhotoGridHandlers(
 
         if (accepted.length > 0) {
           setPhotoItems([...current, ...accepted]);
+          for (const item of accepted) {
+            if (!item.file) continue;
+            void uploadMediaDeduped(item.file, "listing")
+              .then((m) => {
+                const latest = photoItemsRef.current.map((p) =>
+                  p.id === item.id ? { ...p, mediaId: m.uuid } : p,
+                );
+                setPhotoItems(latest);
+              })
+              .catch(() => {
+                /* submit still uploads the File */
+              });
+          }
         }
       })();
     },
@@ -852,6 +865,14 @@ function usePhotoGridHandlers(
       next[i] = { ...old, preview, file, mediaId: undefined };
       setPhotoItems(next);
       if (old.preview.startsWith("blob:")) URL.revokeObjectURL(old.preview);
+      void uploadMediaDeduped(file, "listing")
+        .then((m) => {
+          const latest = photoItemsRef.current.map((p) =>
+            p.id === old.id ? { ...p, mediaId: m.uuid } : p,
+          );
+          setPhotoItems(latest);
+        })
+        .catch(() => {});
     },
   };
 }

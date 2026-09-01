@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Media;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Modules\Media\Services\MediaVariantProcessor;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -15,6 +16,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Private purposes are never served here. Chat attachments use the same
  * unguessable-UUID posture as voice notes so <img>/<audio> can load them
  * without an Authorization header.
+ *
+ * Variant URLs (/media/{uuid}/card.webp) fall back to the original with a
+ * short cache if the job has not finished — never 404 a visible image.
  */
 class ServeMediaController extends Controller
 {
@@ -25,7 +29,7 @@ class ServeMediaController extends Controller
      */
     private const PUBLIC_PURPOSES = ['avatar', 'cover', 'post', 'post_video', 'listing', 'banner', 'icon', 'voice', 'review_video', 'chat'];
 
-    public function __invoke(Request $request, string $uuid): StreamedResponse
+    public function __invoke(Request $request, MediaVariantProcessor $processor, string $uuid, ?string $variant = null): StreamedResponse
     {
         $media = Media::query()->where('uuid', $uuid)->first();
 
@@ -40,24 +44,93 @@ class ServeMediaController extends Controller
         }
 
         $disk = Storage::disk($media->disk);
+        $parsed = $this->parseVariant($variant);
+
+        if ($parsed !== null) {
+            $variantPath = $processor->variantStoragePath($media, $parsed['name'], $parsed['ext']);
+
+            if (is_string($variantPath) && $disk->exists($variantPath)) {
+                $bytes = (int) ($media->variants[$parsed['name']][$parsed['format']]['bytes'] ?? $disk->size($variantPath));
+
+                return $this->streamPath(
+                    $request,
+                    $disk,
+                    $variantPath,
+                    $parsed['mime'],
+                    $bytes,
+                    $uuid.'.'.$parsed['ext'],
+                    'public, max-age=31536000, immutable',
+                );
+            }
+
+            if (! $disk->exists($media->path)) {
+                abort(404);
+            }
+
+            return $this->streamPath(
+                $request,
+                $disk,
+                $media->path,
+                $media->mime_type ?: 'application/octet-stream',
+                (int) ($media->size_bytes ?? 0),
+                $media->filename ?: $uuid,
+                'public, max-age=60',
+            );
+        }
 
         if (! $disk->exists($media->path)) {
             abort(404);
         }
 
-        return $this->streamFile($request, $disk, $media, $uuid);
+        return $this->streamPath(
+            $request,
+            $disk,
+            $media->path,
+            $media->mime_type ?: 'application/octet-stream',
+            (int) ($media->size_bytes ?? 0),
+            $media->filename ?: $uuid,
+            'public, max-age=31536000, immutable',
+        );
     }
 
-    private function streamFile(Request $request, $disk, Media $media, string $uuid): StreamedResponse
+    /**
+     * @return array{name: string, ext: string, format: string, mime: string}|null
+     */
+    private function parseVariant(?string $variant): ?array
     {
-        $size = (int) ($media->size_bytes ?? 0);
-        $mime = $media->mime_type ?: 'application/octet-stream';
-        $filename = addslashes($media->filename ?: $uuid);
+        if ($variant === null || $variant === '') {
+            return null;
+        }
+
+        if (! preg_match('/^(thumb|card|medium|large)\.(webp|jpg)$/', $variant, $matches)) {
+            abort(404);
+        }
+
+        $ext = $matches[2];
+
+        return [
+            'name' => $matches[1],
+            'ext' => $ext,
+            'format' => $ext === 'webp' ? 'webp' : 'jpeg',
+            'mime' => $ext === 'webp' ? 'image/webp' : 'image/jpeg',
+        ];
+    }
+
+    private function streamPath(
+        Request $request,
+        mixed $disk,
+        string $path,
+        string $mime,
+        int $size,
+        string $filename,
+        string $cacheControl,
+    ): StreamedResponse {
+        $filename = addslashes($filename);
 
         $headers = [
             'Content-Type' => $mime,
             'Accept-Ranges' => 'bytes',
-            'Cache-Control' => 'public, max-age=31536000, immutable',
+            'Cache-Control' => $cacheControl,
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ];
 
@@ -84,7 +157,6 @@ class ServeMediaController extends Controller
             $headers['Content-Length'] = (string) $size;
         }
 
-        $path = $media->path;
         $rangeStart = $start;
         $rangeEnd = $end;
 

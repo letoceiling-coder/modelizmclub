@@ -1,6 +1,37 @@
 <?php
 
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Display variants (вариант A: очередь + GD WebP)
+    |--------------------------------------------------------------------------
+    |
+    | Original stays on S3. A queued job writes thumb/card/medium/large.
+    | Upload HTTP returns ready+original URL immediately.
+    |
+    */
+    'variants' => [
+        'enabled' => (bool) env('MEDIA_VARIANTS_ENABLED', true),
+        'q_start' => (int) env('MEDIA_VARIANTS_Q_START', 84),
+        'q_min' => (int) env('MEDIA_VARIANTS_Q_MIN', 76),
+        'q_step' => (int) env('MEDIA_VARIANTS_Q_STEP', 4),
+        'max_megapixels' => (int) env('MEDIA_VARIANTS_MAX_MEGAPIXELS', 40),
+        'sizes' => [
+            'thumb' => 320,
+            'card' => 640,
+            'medium' => 1080,
+            'large' => 1600,
+        ],
+        'budgets' => [
+            'thumb' => ['webp' => 40 * 1024, 'jpeg' => 55 * 1024],
+            'card' => ['webp' => 80 * 1024, 'jpeg' => 110 * 1024],
+            'medium' => ['webp' => 180 * 1024, 'jpeg' => 250 * 1024],
+            'large' => ['webp' => 350 * 1024, 'jpeg' => 480 * 1024],
+        ],
+        'skip_purposes' => ['icon', 'post_video', 'review_video', 'voice'],
+    ],
+
     'transcription' => [
         // Provider selection. Defaults to the stub unless a real provider is
         // explicitly chosen. Keeping MEDIA_TRANSCRIPTION_STUB for backward compat:

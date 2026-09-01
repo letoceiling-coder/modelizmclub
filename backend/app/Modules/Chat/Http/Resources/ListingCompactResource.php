@@ -13,7 +13,13 @@ class ListingCompactResource extends JsonResource
     {
         $preview = null;
         if ($this->relationLoaded('mediaItems')) {
-            $preview = $this->mediaItems->first()?->media?->url;
+            $media = $this->mediaItems->first()?->media;
+            $variants = $media?->publicVariantUrls() ?? [];
+            $preview = $variants['card']['webp']
+                ?? $variants['card']['jpeg']
+                ?? $variants['thumb']['webp']
+                ?? $variants['thumb']['jpeg']
+                ?? $media?->url;
         }
 
         return [

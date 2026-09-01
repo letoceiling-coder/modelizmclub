@@ -38,13 +38,12 @@ class DirectUploadController extends Controller
         );
 
         return response()->json([
-            'data' => [
+            'data' => $media->toApiArray() ?? [
                 'uuid' => $media->uuid,
                 'url' => $media->url,
                 'mime_type' => $media->mime_type,
                 'width' => $media->width,
                 'height' => $media->height,
-                'duration' => $media->duration_seconds,
                 'status' => $media->status->value,
             ],
         ], 201);

@@ -5,6 +5,7 @@ import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoConversations, demoMessages } from "@/lib/demo-data";
 import { getState, openOrCreateDialogWith, restoreDialog, wasChatWithPartnerDeleted } from "@/lib/store";
+import type { MediaVariantSet } from "@/lib/media/variants";
 
 function seedFromId(id: string): number {
   let h = 0;
@@ -48,7 +49,17 @@ export interface ApiMessage {
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
-  attachments?: Array<{ media?: { uuid?: string | null; url?: string | null; mime_type?: string | null; duration?: number | null; filename?: string | null; size_bytes?: number | null; width?: number | null; height?: number | null } | null }>;
+  attachments?: Array<{ media?: {
+    uuid?: string | null;
+    url?: string | null;
+    mime_type?: string | null;
+    duration?: number | null;
+    filename?: string | null;
+    size_bytes?: number | null;
+    width?: number | null;
+    height?: number | null;
+    variants?: MediaVariantSet;
+  } | null }>;
   created_at: string;
 }
 
@@ -118,8 +129,11 @@ function mapMessageStatus(raw?: string | null): Message["status"] {
   return "sent";
 }
 
-function resolveMediaUrl(media?: { url?: string | null; uuid?: string | null } | null): string | undefined {
+function resolveMediaUrl(media?: { url?: string | null; uuid?: string | null; variants?: MediaVariantSet } | null, variant: "card" | "large" | "thumb" = "card"): string | undefined {
   if (!media) return undefined;
+  const slot = media.variants?.[variant] ?? media.variants?.card ?? media.variants?.thumb;
+  if (slot?.webp) return slot.webp;
+  if (slot?.jpeg) return slot.jpeg;
   if (media.url) return media.url;
   if (media.uuid) return `${API_BASE_URL}/media/${media.uuid}`;
   return undefined;

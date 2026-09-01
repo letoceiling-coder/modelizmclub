@@ -41,16 +41,17 @@ class MessageResource extends JsonResource
                 fn () => new PostCompactResource($this->post),
             ),
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
-                'media' => $attachment->relationLoaded('media') && $attachment->media ? [
-                    'uuid' => $attachment->media->uuid,
-                    'url' => $attachment->media->url,
-                    'filename' => $attachment->media->filename,
-                    'mime_type' => $attachment->media->mime_type,
-                    'size_bytes' => $attachment->media->size_bytes,
-                    'width' => $attachment->media->width,
-                    'height' => $attachment->media->height,
-                    'duration' => $attachment->media->duration_seconds,
-                ] : null,
+                'media' => $attachment->relationLoaded('media') && $attachment->media ? array_merge(
+                    $attachment->media->toApiArray() ?? [
+                        'uuid' => $attachment->media->uuid,
+                        'url' => $attachment->media->url,
+                    ],
+                    [
+                        'filename' => $attachment->media->filename,
+                        'size_bytes' => $attachment->media->size_bytes,
+                        'duration' => $attachment->media->duration_seconds,
+                    ],
+                ) : null,
             ])),
             'created_at' => $this->created_at->toIso8601String(),
             'edited_at' => $this->edited_at?->toIso8601String(),

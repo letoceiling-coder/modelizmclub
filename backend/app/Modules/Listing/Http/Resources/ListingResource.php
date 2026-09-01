@@ -49,13 +49,8 @@ class ListingResource extends JsonResource
                 'name' => $this->city->name,
             ] : null),
             'media' => $this->whenLoaded('mediaItems', fn () => $this->mediaItems
-                ->map(fn ($item) => [
-                    'uuid' => $item->media?->uuid,
-                    'url' => $item->media?->url,
-                    'width' => $item->media?->width,
-                    'height' => $item->media?->height,
-                ])
-                ->filter(fn ($m) => $m['url'] !== null)
+                ->map(fn ($item) => $item->media?->toApiArray())
+                ->filter()
                 ->values()),
             'published_at' => $this->published_at?->toIso8601String(),
             'is_reserved' => $this->reserved_at !== null,

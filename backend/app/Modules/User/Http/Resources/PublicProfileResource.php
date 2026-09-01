@@ -31,14 +31,8 @@ class PublicProfileResource extends JsonResource
                 'name' => $this->city->name,
                 'slug' => $this->city->slug,
             ] : null),
-            'avatar' => $this->whenLoaded('avatar', fn () => $this->avatar ? [
-                'uuid' => $this->avatar->uuid,
-                'url' => $this->avatar->url ?? null,
-            ] : null),
-            'cover' => $this->whenLoaded('cover', fn () => $this->cover ? [
-                'uuid' => $this->cover->uuid,
-                'url' => $this->cover->url ?? null,
-            ] : null),
+            'avatar' => $this->whenLoaded('avatar', fn () => $this->avatar?->toApiArray()),
+            'cover' => $this->whenLoaded('cover', fn () => $this->cover?->toApiArray()),
             'stats' => [
                 'publications_count' => $this->publications_count,
                 'friends_count' => (int) ($this->friends_count ?? 0),

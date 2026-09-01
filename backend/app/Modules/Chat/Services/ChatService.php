@@ -468,7 +468,7 @@ class ChatService
         });
     }
 
-    /** @return array{url: ?string, type: string, name: string, size: int, media_uuid: string} */
+    /** @return array{url: ?string, type: string, name: string, size: int, media_uuid: string, variants: ?array} */
     public function uploadAttachment(Conversation $conversation, User $user, UploadedFile $file): array
     {
         if (! $this->isParticipant($conversation, $user)) {
@@ -484,6 +484,7 @@ class ChatService
             'name' => $media->filename,
             'size' => $media->size_bytes,
             'media_uuid' => $media->uuid,
+            'variants' => $media->publicVariantUrls() ?: null,
         ];
     }
 

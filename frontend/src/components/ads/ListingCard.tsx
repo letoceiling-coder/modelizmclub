@@ -6,6 +6,8 @@ import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ResponsiveImage } from "@/components/media/ResponsiveImage";
+import { toDisplayMedia } from "@/lib/media/variants";
 
 export type ListingStatus =
   | "active"
@@ -48,7 +50,7 @@ interface ListingCardProps {
 
 export function ListingCard({ ad, status, selected, onSelect, actions, className }: ListingCardProps) {
   const [imgErr, setImgErr] = useState(false);
-  const hero = ad.gallery?.[0] ?? ad.image;
+  const hero = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
   const statusCfg = status ? STATUS_CONFIG[status] : undefined;
 
   return (
@@ -73,10 +75,11 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
         }}
       >
         {hero && !imgErr ? (
-          <img
-            src={hero}
+          <ResponsiveImage
+            media={hero}
             alt={ad.title}
-            loading="lazy"
+            variants={["thumb", "card"]}
+            sizes="96px"
             className="h-full w-full object-cover"
             onError={() => setImgErr(true)}
           />

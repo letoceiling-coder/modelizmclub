@@ -27,10 +27,7 @@ class UserCompactResource extends JsonResource
             'member_since' => $this->created_at?->toIso8601String(),
             'avatar' => $this->when(
                 $this->relationLoaded('profile') && $this->profile?->relationLoaded('avatar'),
-                fn () => $this->profile?->avatar ? [
-                    'uuid' => $this->profile->avatar->uuid,
-                    'url' => $this->profile->avatar->url ?? null,
-                ] : null,
+                fn () => $this->profile?->avatar?->toApiArray(),
             ),
             'city' => $this->when(
                 $this->relationLoaded('profile') && $this->profile?->relationLoaded('city'),

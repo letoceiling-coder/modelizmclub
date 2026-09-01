@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { uploadMedia, validatePostVideoFile } from "@/lib/api/media";
+import { uploadMedia, uploadMediaDeduped, validatePostVideoFile } from "@/lib/api/media";
 import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -218,6 +218,9 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
     const urls = next.map((f) => URL.createObjectURL(f));
     setPhotos((p) => [...p, ...urls]);
     setPhotoFiles((f) => [...f, ...next]);
+    for (const file of next) {
+      void uploadMediaDeduped(file, "post").catch(() => {});
+    }
   };
   const removePhoto = (i: number) => {
     setPhotos((p) => p.filter((_, idx) => idx !== i));
@@ -237,6 +240,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
     setPhotos((p) => p.map((u, idx) => (idx === i ? newUrl : u)));
     setPhotoFiles((f) => f.map((file, idx) => (idx === i ? newFile : file)));
     if (oldUrl?.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
+    void uploadMediaDeduped(newFile, "post").catch(() => {});
   };
 
   const publish = async () => {
@@ -263,7 +267,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       const mediaIds: string[] = [];
       if (sel.kind === "photo") {
         for (const file of photoFiles) {
-          const m = await uploadMedia(file, "post");
+          const m = await uploadMediaDeduped(file, "post");
           mediaIds.push(m.uuid);
         }
       } else if (videoFile) {

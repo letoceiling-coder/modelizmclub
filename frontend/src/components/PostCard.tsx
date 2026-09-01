@@ -89,8 +89,10 @@ function PostMediaBlock({ post }: { post: Post }) {
     return <PostMediaCarousel items={items} alt={post.title} />;
   }
 
-  const imageUrls = items.map((item) => item.url);
-  return <FeedMediaGrid images={imageUrls} alt={post.title} />;
+  const imageItems = items
+    .filter((item) => item.type === "image")
+    .map((item) => ({ url: item.url, variants: item.variants }));
+  return <FeedMediaGrid images={imageItems} alt={post.title} />;
 }
 
 /** Shared class for footer action buttons — ghost-style, accent hover */

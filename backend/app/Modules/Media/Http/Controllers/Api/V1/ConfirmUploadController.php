@@ -18,11 +18,11 @@ class ConfirmUploadController extends Controller
         );
 
         return response()->json([
-            'data' => collect($media)->map(fn ($item) => [
+            'data' => collect($media)->map(fn ($item) => $item->toApiArray() ?? [
                 'uuid' => $item->uuid,
                 'status' => $item->status->value,
                 'url' => $item->url,
-            ]),
+            ])->values(),
         ]);
     }
 }

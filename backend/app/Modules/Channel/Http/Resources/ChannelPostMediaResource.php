@@ -15,13 +15,7 @@ class ChannelPostMediaResource extends JsonResource
             'type' => $this->type,
             'sort_order' => $this->sort_order,
             'duration_seconds' => $this->duration_seconds,
-            'media' => $this->whenLoaded('media', fn () => [
-                'uuid' => $this->media->uuid,
-                'mime_type' => $this->media->mime_type,
-                'url' => $this->media->url,
-                'width' => $this->media->width,
-                'height' => $this->media->height,
-            ]),
+            'media' => $this->whenLoaded('media', fn () => $this->media->toApiArray()),
         ];
     }
 }

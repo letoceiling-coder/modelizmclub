@@ -7,6 +7,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing, demoPublicProfile } from "@/lib/demo-data";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatTimeAgo } from "@/lib/utils";
+import { toDisplayMedia, type MediaVariantSet } from "@/lib/media/variants";
 
 interface ApiListingAuthor {
   id?: number;
@@ -37,7 +38,7 @@ interface ApiListing {
   category?: { id?: number; name?: string; slug?: string } | null;
   subcategory?: { id?: number; name?: string; slug?: string } | null;
   city?: { id?: number; name?: string } | null;
-  media?: Array<{ uuid?: string; url?: string | null }>;
+  media?: Array<{ uuid?: string; url?: string | null; variants?: MediaVariantSet }>;
   package_size?: "s" | "m" | "l" | null;
   weight_kg?: number | null;
   dimensions_cm?: { length?: number; width?: number; height?: number } | null;
@@ -98,9 +99,10 @@ export function mapListingStatus(status?: string): AdStatusKey {
 
 export function mapListing(l: ApiListing): Ad {
   const author = registerAuthor(l.author);
-  const gallery = (l.media ?? [])
-    .map((m) => m.url)
-    .filter((u): u is string => Boolean(u));
+  const galleryMedia = (l.media ?? [])
+    .map((m) => toDisplayMedia(m.url, m.variants))
+    .filter((m): m is NonNullable<typeof m> => m != null);
+  const gallery = galleryMedia.map((m) => m.url);
   const seller: AdSeller | undefined = author
     ? {
         id: author.id,
@@ -123,6 +125,7 @@ export function mapListing(l: ApiListing): Ad {
     city: l.city?.name ?? "",
     image: gallery[0] ?? "",
     gallery,
+    galleryMedia,
     description: l.description ?? undefined,
     delivery: l.delivery_methods ?? [],
     status: "Продаю",

@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Media\Jobs\ProcessMediaVariantsJob;
 
 class MediaUploadService
 {
@@ -187,7 +188,7 @@ class MediaUploadService
             fclose($stream);
         }
 
-        return Media::create([
+        $media = Media::create([
             'disk' => $disk,
             'path' => $path,
             'filename' => $file->getClientOriginalName(),
@@ -200,6 +201,10 @@ class MediaUploadService
             'status' => MediaStatus::Ready,
             'metadata' => ['upload' => 'direct'],
         ]);
+
+        $this->dispatchVariants($media);
+
+        return $media;
     }
 
     /** @return array{0: ?int, 1: ?int} */
@@ -264,11 +269,21 @@ class MediaUploadService
 
             $media->status = MediaStatus::Ready;
             $media->save();
+            $this->dispatchVariants($media);
 
             $confirmed[] = $media;
         }
 
         return $confirmed;
+    }
+
+    private function dispatchVariants(Media $media): void
+    {
+        if (! config('media.variants.enabled', true)) {
+            return;
+        }
+
+        ProcessMediaVariantsJob::dispatch($media->id);
     }
 
     private function presignedPutUrl(string $disk, string $path, string $mime): string

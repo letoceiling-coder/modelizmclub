@@ -12,11 +12,14 @@ import { cn } from "@/lib/utils";
 import { useStore, actions, selectors } from "@/lib/store";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
+import { ResponsiveImage } from "@/components/media/ResponsiveImage";
+import { toDisplayMedia } from "@/lib/media/variants";
 
 export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
-  const initial = ad.gallery?.[0] ?? ad.image ?? "";
-  const [src, setSrc] = useState(initial);
+  const media = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
+  const placeholder = categoryPlaceholder(ad.id, ad.category);
+  const [broken, setBroken] = useState(false);
   const guest = useGuestAccessOptional();
 
   return (
@@ -35,17 +38,24 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
         className="relative block aspect-[4/3] w-full overflow-hidden"
         style={{ background: "var(--background-surface)" }}
       >
-        <img
-          src={src}
-          alt={ad.title}
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          onError={() => {
-            const ph = categoryPlaceholder(ad.id, ad.category);
-            if (src !== ph) setSrc(ph);
-          }}
-        />
+        {broken || !media ? (
+          <img
+            src={placeholder}
+            alt={ad.title}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <ResponsiveImage
+            media={media}
+            alt={ad.title}
+            variants={["thumb", "card"]}
+            sizes="(max-width: 640px) 50vw, 280px"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            onError={() => setBroken(true)}
+          />
+        )}
         {ad.reserved && <ReservedOverlay compact />}
         <button
           type="button"
