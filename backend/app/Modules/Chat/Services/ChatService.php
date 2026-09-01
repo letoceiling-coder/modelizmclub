@@ -647,7 +647,16 @@ class ChatService
             ->whereNull('left_at')
             ->update(['last_read_message_id' => $latestId]);
 
-        $this->markConversationNotificationsRead($user, $conversation);
+        try {
+            $this->markConversationNotificationsRead($user, $conversation);
+        } catch (\Throwable $e) {
+            Log::warning('chat_mark_read_notifications_failed', [
+                'conversation_uuid' => $conversation->uuid,
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
+
         $this->notifyConversationRead($conversation, $user);
     }
 
@@ -831,11 +840,8 @@ class ChatService
         $title = UserLabel::display($author).' написал(а) вам';
 
         $existing = $recipient->unreadNotifications()
-            ->where('data->link', $link)
-            ->where(function ($q): void {
-                $q->where('data->type', 'messages')
-                    ->orWhere('data->type', 'message');
-            })
+            ->whereRaw("(data::jsonb->>'link') = ?", [$link])
+            ->whereRaw("(data::jsonb->>'type') in (?, ?)", ['messages', 'message'])
             ->first();
 
         if ($existing) {
@@ -860,7 +866,7 @@ class ChatService
         $link = $this->conversationNotificationLink($conversation);
 
         $user->unreadNotifications()
-            ->where('data->link', $link)
+            ->whereRaw("(data::jsonb->>'link') = ?", [$link])
             ->get()
             ->each(function ($notification): void {
                 $notification->markAsRead();
