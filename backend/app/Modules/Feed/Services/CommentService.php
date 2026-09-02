@@ -17,22 +17,29 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CommentService
 {
-    public function listForPost(Post $post, int $perPage = 20): LengthAwarePaginator
+    public function listForPost(Post $post, int $perPage = 20, string $sort = 'interesting'): LengthAwarePaginator
     {
-        return Comment::query()
+        $sort = in_array($sort, ['interesting', 'old', 'new'], true) ? $sort : 'interesting';
+        $perPage = max(1, min($perPage, 100));
+
+        $query = Comment::query()
             ->with([
                 'author.profile.avatar',
-                'replies' => fn ($q) => $q
-                    ->with(['author.profile.avatar'])
-                    ->where('status', 'published')
-                    ->orderBy('created_at'),
+                'replies' => function ($q) use ($sort): void {
+                    $q->with(['author.profile.avatar'])
+                        ->where('status', 'published')
+                        ->reorder();
+                    $this->applyCommentSort($q, $sort);
+                },
             ])
             ->where('commentable_type', Post::class)
             ->where('commentable_id', $post->id)
             ->whereNull('parent_id')
-            ->where('status', 'published')
-            ->orderBy('created_at')
-            ->paginate($perPage);
+            ->where('status', 'published');
+
+        $this->applyCommentSort($query, $sort);
+
+        return $query->paginate($perPage);
     }
 
     public function createOnPost(Post $post, User $user, string $body, ?string $parentUuid = null): Comment
@@ -194,5 +201,15 @@ class CommentService
         }
 
         PostInteractionRules::assertPublicInteractionsAllowed($post);
+    }
+
+    /** @param  mixed  $query */
+    private function applyCommentSort($query, string $sort): void
+    {
+        match ($sort) {
+            'interesting' => $query->orderByDesc('reactions_count')->orderByDesc('created_at'),
+            'old' => $query->orderBy('created_at')->orderBy('id'),
+            default => $query->orderByDesc('created_at')->orderByDesc('id'),
+        };
     }
 }

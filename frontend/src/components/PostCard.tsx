@@ -10,9 +10,11 @@ import {
   bookmarkPost,
   repostPost,
   fetchPostComments,
+  fetchAllPostComments,
   createComment,
   publishPost,
   cancelScheduledPost,
+  type CommentSort,
 } from "@/lib/api/feed";
 import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule";
 import { toast } from "@/lib/toast";
@@ -122,6 +124,8 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
   const [commentsFetchStarted, setCommentsFetchStarted] = useState((post.commentList?.length ?? 0) > 0);
   const [commentsFetched, setCommentsFetched] = useState((post.commentList?.length ?? 0) > 0);
+  const [commentSort, setCommentSort] = useState<CommentSort>("interesting");
+  const commentsReq = useRef(0);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const { guardAction, requirePremium, isAllowed } = useGuestAccess();
   const commentsEnabled = post.channel?.commentsEnabled !== false;
@@ -130,16 +134,28 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const canInteract = post.canInteract ?? post.status === "published";
   const hasCommentsHint = (post.comments ?? 0) > 0 || (post.commentList?.length ?? 0) > 0;
 
-  const startCommentsFetch = useCallback(() => {
-    if (commentsFetchStarted) return;
+  const loadComments = useCallback((sort: CommentSort, all: boolean) => {
     setCommentsFetchStarted(true);
-    fetchPostComments(post.id)
+    const n = ++commentsReq.current;
+    const req = all
+      ? fetchAllPostComments(post.id, sort)
+      : fetchPostComments(post.id, { sort, perPage: 50 });
+    req
       .then((list) => {
+        if (n !== commentsReq.current) return;
         setCommentList(list);
         setCommentsFetched(true);
       })
-      .catch(() => setCommentsFetched(true));
-  }, [commentsFetchStarted, post.id]);
+      .catch(() => {
+        if (n !== commentsReq.current) return;
+        setCommentsFetched(true);
+      });
+  }, [post.id]);
+
+  const startCommentsFetch = useCallback(() => {
+    if (commentsFetchStarted) return;
+    loadComments(commentSort, showAllComments);
+  }, [commentsFetchStarted, loadComments, commentSort, showAllComments]);
 
   useEffect(() => {
     if (hasCommentsHint || canInteract) startCommentsFetch();
@@ -163,7 +179,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     }
     if (commentsCount > 3) {
       setShowAllComments(true);
-      startCommentsFetch();
+      loadComments(commentSort, true);
       return;
     }
     if (!canInteract && commentsCount === 0) return;
@@ -218,7 +234,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
       const newC: Comment = {
         id: tempId,
         authorId: me.id,
-        time: t("components.postCard.justNow"),
+        time: new Date().toISOString(),
         text,
         likes: 0,
         replies: [],
@@ -594,10 +610,14 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             showAll={showAllComments}
             onShowAll={() => {
               setShowAllComments(true);
-              startCommentsFetch();
+              loadComments(commentSort, true);
             }}
             onHide={() => setShowAllComments(false)}
             totalCount={commentsCount}
+            onSortChange={(next) => {
+              setCommentSort(next);
+              loadComments(next, showAllComments);
+            }}
           />
         </div>
         )}

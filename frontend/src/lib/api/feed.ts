@@ -232,6 +232,8 @@ export interface ApiComment {
   created_at?: string;
 }
 
+export type CommentSort = "interesting" | "old" | "new";
+
 export function mapComment(c: ApiComment): Comment {
   const author = registerAuthor(c.author);
   return {
@@ -244,11 +246,48 @@ export function mapComment(c: ApiComment): Comment {
   };
 }
 
-export async function fetchPostComments(uuid: string): Promise<Comment[]> {
-  if (isDemoMode()) return demoPostComments(uuid);
-  const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`, { auth: false });
+export async function fetchPostComments(
+  uuid: string,
+  opts?: { sort?: CommentSort; perPage?: number; page?: number },
+): Promise<Comment[]> {
+  const { comments } = await fetchPostCommentsPage(uuid, opts);
+  return comments;
+}
+
+async function fetchPostCommentsPage(
+  uuid: string,
+  opts?: { sort?: CommentSort; perPage?: number; page?: number },
+): Promise<{ comments: Comment[]; lastPage: number }> {
+  if (isDemoMode()) {
+    return { comments: demoPostComments(uuid), lastPage: 1 };
+  }
+  const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`, {
+    auth: false,
+    query: {
+      sort: opts?.sort ?? "interesting",
+      per_page: opts?.perPage ?? 50,
+      page: opts?.page || undefined,
+    },
+  });
   const rows = Array.isArray(res.data) ? res.data : [];
-  return rows.map(mapComment);
+  return {
+    comments: rows.map(mapComment),
+    lastPage: Math.max(1, res.meta?.last_page ?? 1),
+  };
+}
+
+export async function fetchAllPostComments(uuid: string, sort: CommentSort = "interesting"): Promise<Comment[]> {
+  if (isDemoMode()) return demoPostComments(uuid);
+  const all: Comment[] = [];
+  let page = 1;
+  let lastPage = 1;
+  do {
+    const chunk = await fetchPostCommentsPage(uuid, { sort, perPage: 50, page });
+    all.push(...chunk.comments);
+    lastPage = chunk.lastPage;
+    page += 1;
+  } while (page <= lastPage && page <= 20);
+  return all;
 }
 
 export async function reactToComment(uuid: string, on: boolean): Promise<void> {
@@ -265,7 +304,7 @@ export async function createComment(
     return {
       id: `demo-c-${Date.now()}`,
       authorId: "u1",
-      time: "только что",
+      time: new Date().toISOString(),
       text: body,
       likes: 0,
       replies: [],

@@ -120,4 +120,38 @@ class ReportAndCommentReactionTest extends TestCase
             ->assertJsonPath('data.reactions_count', 0)
             ->assertJsonPath('data.viewer_reacted', false);
     }
+
+    public function test_comments_list_sorts_by_reactions_and_time(): void
+    {
+        $author = User::factory()->create(['status' => UserStatus::Active]);
+        $reactor = User::factory()->create(['status' => UserStatus::Active]);
+        $postUuid = $this->publishedPostUuid($author);
+
+        $this->actingAs($author, 'sanctum')
+            ->postJson("/api/v1/posts/{$postUuid}/comments", ['body' => 'Старый'])
+            ->assertCreated();
+        $hotUuid = $this->actingAs($author, 'sanctum')
+            ->postJson("/api/v1/posts/{$postUuid}/comments", ['body' => 'Популярный'])
+            ->assertCreated()
+            ->json('data.uuid');
+        $this->actingAs($author, 'sanctum')
+            ->postJson("/api/v1/posts/{$postUuid}/comments", ['body' => 'Новый'])
+            ->assertCreated();
+
+        $this->actingAs($reactor, 'sanctum')
+            ->postJson("/api/v1/comments/{$hotUuid}/react")
+            ->assertOk();
+
+        $this->getJson("/api/v1/posts/{$postUuid}/comments?sort=interesting")
+            ->assertOk()
+            ->assertJsonPath('data.0.body', 'Популярный');
+
+        $this->getJson("/api/v1/posts/{$postUuid}/comments?sort=old")
+            ->assertOk()
+            ->assertJsonPath('data.0.body', 'Старый');
+
+        $this->getJson("/api/v1/posts/{$postUuid}/comments?sort=new")
+            ->assertOk()
+            ->assertJsonPath('data.0.body', 'Новый');
+    }
 }

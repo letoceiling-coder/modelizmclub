@@ -14,9 +14,18 @@ class PostCommentsController extends Controller
     public function index(string $uuid, Request $request, PostService $posts, CommentService $comments): JsonResponse
     {
         $post = $posts->findByUuid($uuid, $request->user());
+        $data = $request->validate([
+            'sort' => ['sometimes', 'nullable', 'string', 'in:interesting,old,new'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+        ]);
 
         return CommentResource::collection(
-            $comments->listForPost($post, $request->integer('per_page', 20)),
+            $comments->listForPost(
+                $post,
+                (int) ($data['per_page'] ?? 20),
+                (string) ($data['sort'] ?? 'interesting'),
+            ),
         )->response();
     }
 

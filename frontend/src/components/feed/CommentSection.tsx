@@ -6,7 +6,7 @@ import type { Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { reactToComment } from "@/lib/api/feed";
+import { reactToComment, type CommentSort } from "@/lib/api/feed";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
@@ -29,24 +29,30 @@ interface Props {
   /** Collapses back to the preview. Omit to keep the expanded list open. */
   onHide?: () => void;
   totalCount?: number;
+  onSortChange?: (sort: CommentSort) => void;
 }
 
 /** Expanded lists grow in chunks so a thread with hundreds of replies
  *  doesn't mount at once and shift the feed. */
 const PAGE_SIZE = 20;
 
-type CommentSort = "interesting" | "old" | "new";
-
 function commentTime(c: Comment): number {
   const t = Date.parse(c.time);
   return Number.isFinite(t) ? t : 0;
 }
 
-function sortComments(list: Comment[], mode: CommentSort): Comment[] {
-  const copy = [...list];
+function likesOf(c: Comment, overrides: Record<string, number>): number {
+  return overrides[c.id] ?? c.likes ?? 0;
+}
+
+function sortComments(list: Comment[], mode: CommentSort, overrides: Record<string, number> = {}): Comment[] {
+  const copy = list.map((c) => ({
+    ...c,
+    replies: c.replies?.length ? sortComments(c.replies, mode, overrides) : c.replies,
+  }));
   copy.sort((a, b) => {
     if (mode === "interesting") {
-      const byLikes = (b.likes ?? 0) - (a.likes ?? 0);
+      const byLikes = likesOf(b, overrides) - likesOf(a, overrides);
       if (byLikes !== 0) return byLikes;
       return commentTime(b) - commentTime(a);
     }
@@ -108,18 +114,22 @@ function CommentItem({
   depth = 0,
   onReply,
   readOnly = false,
+  likeOverrides,
+  onLikeChange,
 }: {
   comment: Comment;
   depth?: number;
   onReply: (parentId: string, text: string) => void;
   readOnly?: boolean;
+  likeOverrides: Record<string, number>;
+  onLikeChange: (id: string, likes: number) => void;
 }) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
   const me = useStore(selectors.currentUser);
   const author = userById(comment.authorId);
   const [liked, setLiked] = useState(false);
-  const [likes, setLikes] = useState(comment.likes ?? 0);
+  const likes = likeOverrides[comment.id] ?? comment.likes ?? 0;
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
@@ -138,10 +148,11 @@ function CommentItem({
     runGuarded(guest, "feed.post.like", () => {
       const next = !liked;
       setLiked(next);
-      setLikes((n) => n + (next ? 1 : -1));
+      const nextLikes = likes + (next ? 1 : -1);
+      onLikeChange(comment.id, nextLikes);
       reactToComment(comment.id, next).catch(() => {
         setLiked(!next);
-        setLikes((n) => n + (next ? -1 : 1));
+        onLikeChange(comment.id, likes);
       });
     });
   };
@@ -252,7 +263,15 @@ function CommentItem({
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-[10px] space-y-[10px]">
               {comment.replies.map((r) => (
-                <CommentItem key={r.id} comment={r} depth={depth + 1} onReply={onReply} readOnly={readOnly} />
+                <CommentItem
+                  key={r.id}
+                  comment={r}
+                  depth={depth + 1}
+                  onReply={onReply}
+                  readOnly={readOnly}
+                  likeOverrides={likeOverrides}
+                  onLikeChange={onLikeChange}
+                />
               ))}
             </div>
           )}
@@ -282,6 +301,7 @@ export function CommentSection({
   onShowAll,
   onHide,
   totalCount,
+  onSortChange,
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -289,6 +309,7 @@ export function CommentSection({
   const [draft, setDraft] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CommentSort>("interesting");
+  const [likeOverrides, setLikeOverrides] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!showAll) setPage(1);
@@ -312,16 +333,33 @@ export function CommentSection({
     guest?.guardAction("feed.post.comment", () => {});
   };
 
-  const sortedComments = useMemo(() => sortComments(comments, sort), [comments, sort]);
+  const applySort = (next: CommentSort) => {
+    setSort(next);
+    setPage(1);
+    onSortChange?.(next);
+  };
+
+  const onLikeChange = (id: string, likes: number) => {
+    setLikeOverrides((prev) => ({ ...prev, [id]: likes }));
+  };
+
+  const sortedComments = useMemo(
+    () => sortComments(comments, sort, likeOverrides),
+    [comments, sort, likeOverrides],
+  );
 
   const visibleComments = useMemo(() => {
-    if (showAll) return sortedComments.slice(0, page * PAGE_SIZE);
+    if (showAll) {
+      if (sortedComments.length <= PAGE_SIZE) return sortedComments;
+      return sortedComments.slice(0, page * PAGE_SIZE);
+    }
     if (previewLimit <= 0 || sortedComments.length <= previewLimit) return sortedComments;
     return sortedComments.slice(0, previewLimit);
   }, [sortedComments, previewLimit, showAll, page]);
 
   const hiddenCount = Math.max(0, (totalCount ?? comments.length) - visibleComments.length);
   const canLoadMore = showAll && sortedComments.length > visibleComments.length;
+  const showSort = (totalCount ?? comments.length) > 1;
 
   const sortLabel =
     sort === "interesting"
@@ -387,7 +425,7 @@ export function CommentSection({
         <CommentSkeleton />
       ) : (
         <>
-          {comments.length > 1 && (
+          {showSort && (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
@@ -406,12 +444,12 @@ export function CommentSection({
               >
                 {([
                   ["interesting", t("components.commentSection.sortInteresting")],
-                  ["new", t("components.commentSection.sortNew")],
                   ["old", t("components.commentSection.sortOld")],
+                  ["new", t("components.commentSection.sortNew")],
                 ] as const).map(([key, label]) => (
                   <DropdownMenuItem
                     key={key}
-                    onSelect={() => setSort(key)}
+                    onSelect={() => applySort(key)}
                     className="cursor-pointer rounded-none px-[14px] py-[10px] text-[13px]"
                     style={{ color: sort === key ? "var(--accent)" : "var(--foreground)" }}
                   >
@@ -434,7 +472,14 @@ export function CommentSection({
           {visibleComments.length > 0 && (
             <div className={cn(!readOnly ? "mt-[12px]" : "", "space-y-[12px]")}>
               {visibleComments.map((c) => (
-                <CommentItem key={c.id} comment={c} onReply={handleReply} readOnly={readOnly} />
+                <CommentItem
+                  key={c.id}
+                  comment={c}
+                  onReply={handleReply}
+                  readOnly={readOnly}
+                  likeOverrides={likeOverrides}
+                  onLikeChange={onLikeChange}
+                />
               ))}
             </div>
           )}
