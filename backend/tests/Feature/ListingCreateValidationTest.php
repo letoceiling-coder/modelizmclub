@@ -188,4 +188,32 @@ class ListingCreateValidationTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['publish']);
     }
+
+    public function test_create_reuses_title_when_previous_listing_was_deleted(): void
+    {
+        $this->upsertSetting('feature.listing_payment_enabled', ['enabled' => false], 'feature');
+        $this->upsertSetting('moderation_auto_publish', ['enabled' => true], 'moderation');
+
+        $payload = [
+            'title' => 'Test',
+            'description' => str_repeat('Описание объявления. ', 5),
+            'category_id' => $this->categoryId,
+            'price_cents' => 10_000,
+            'publish' => true,
+        ];
+
+        $created = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/v1/listings', $payload)
+            ->assertCreated();
+
+        $uuid = $created->json('data.uuid');
+        $this->actingAs($this->user, 'sanctum')
+            ->deleteJson("/api/v1/listings/{$uuid}")
+            ->assertOk();
+
+        $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/v1/listings', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.title', 'Test');
+    }
 }

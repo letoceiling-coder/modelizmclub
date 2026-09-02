@@ -262,13 +262,7 @@ class ListingService
         $data = $this->normalizeParcelFields($data);
 
         return DB::transaction(function () use ($user, $data): Listing {
-            $slug = Str::slug($data['title']);
-            $base = $slug !== '' ? $slug : 'listing';
-            $slug = $base;
-            $i = 1;
-            while (Listing::query()->where('user_id', $user->id)->where('slug', $slug)->exists()) {
-                $slug = $base.'-'.$i++;
-            }
+            $slug = $this->uniqueSlug($user, (string) $data['title']);
 
             $publish = (bool) ($data['publish'] ?? true);
             [$status, $publishedAt, $placementMeta] = $this->resolveCreateStatus($user, $publish, $data);
@@ -575,6 +569,19 @@ class ListingService
                 'listing' => ['Нет доступа к объявлению.'],
             ]);
         }
+    }
+
+    private function uniqueSlug(User $user, string $title): string
+    {
+        $slug = Str::slug($title);
+        $base = $slug !== '' ? $slug : 'listing';
+        $candidate = $base;
+        $i = 1;
+        while (Listing::withTrashed()->where('user_id', $user->id)->where('slug', $candidate)->exists()) {
+            $candidate = $base.'-'.$i++;
+        }
+
+        return $candidate;
     }
 
     /** @param array<string, mixed> $data */
