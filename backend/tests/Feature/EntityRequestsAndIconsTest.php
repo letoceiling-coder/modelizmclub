@@ -437,9 +437,10 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_icon_overrides_returns_empty_object_when_not_published(): void
     {
-        $this->getJson('/api/v1/icon-overrides')
+        $response = $this->getJson('/api/v1/icon-overrides')
             ->assertOk()
             ->assertExactJson(['data' => []]);
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
     public function test_icon_overrides_returns_published_map(): void

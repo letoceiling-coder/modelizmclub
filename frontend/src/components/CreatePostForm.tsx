@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { uploadMedia, uploadMediaDeduped, validatePostVideoFile } from "@/lib/api/media";
+import { uploadMediaDeduped, validatePostVideoFile } from "@/lib/api/media";
 import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -105,6 +105,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   photoFilesRef.current = photoFiles;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState<PersistedPostDraft | null>(null);
@@ -207,6 +208,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
     } else if (sel.kind === "video" && video) {
       setVideoFile(video);
       setVideoUrl(URL.createObjectURL(video));
+      setVideoProgress(0);
+      void uploadMediaDeduped(video, "post_video", setVideoProgress).catch(() => setVideoProgress(null));
     }
   }, [initialDraft, sel.kind]);
 
@@ -271,7 +274,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
           mediaIds.push(m.uuid);
         }
       } else if (videoFile) {
-        const m = await uploadMedia(videoFile, "post_video");
+        const m = await uploadMediaDeduped(videoFile, "post_video", setVideoProgress);
         mediaIds.push(m.uuid);
       }
 
@@ -501,11 +504,18 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
               if (err) { toast.error(err); return; }
               setVideoFile(file);
               setVideoUrl(URL.createObjectURL(file));
+              setVideoProgress(0);
+              void uploadMediaDeduped(file, "post_video", setVideoProgress).catch(() => {
+                setVideoProgress(null);
+                toast.error(t("components.createPostForm.publishFailed"));
+              });
             }}
             onClear={() => {
               setVideoFile(null);
               setVideoUrl(null);
+              setVideoProgress(null);
             }}
+            progress={videoProgress}
           />
         )}
       </div>
@@ -533,7 +543,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
         <button
           type="button"
           onClick={publish}
-          disabled={publishing}
+          disabled={publishing || (videoFile != null && videoProgress != null && videoProgress < 100)}
           className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
         >

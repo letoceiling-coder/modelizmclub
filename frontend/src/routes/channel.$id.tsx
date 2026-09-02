@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
@@ -722,6 +722,7 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   photoFilesRef.current = photoFiles;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState<null | { id: string }>(null);
@@ -768,7 +769,7 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
         mediaIds.push(m.uuid);
       }
       if (videoFile) {
-        const m = await uploadMedia(videoFile, "post_video");
+        const m = await uploadMediaDeduped(videoFile, "post_video", setVideoProgress);
         mediaIds.push(m.uuid);
       }
       const post = await createChannelPost({
@@ -929,13 +930,17 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
           fileUrl={videoUrl}
           accept="video/*"
           label={t("pages.channelDetail.addVideo")}
+          progress={videoProgress}
           onPick={(file) => {
             setVideoFile(file);
             setVideoUrl(URL.createObjectURL(file));
+            setVideoProgress(0);
+            void uploadMediaDeduped(file, "post_video", setVideoProgress).catch(() => setVideoProgress(null));
           }}
           onClear={() => {
             setVideoFile(null);
             setVideoUrl(null);
+            setVideoProgress(null);
           }}
         />
       </div>

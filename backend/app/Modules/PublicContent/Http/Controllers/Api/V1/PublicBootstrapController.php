@@ -11,6 +11,6 @@ class PublicBootstrapController extends Controller
     public function __invoke(PublicBootstrapService $bootstrap): JsonResponse
     {
         return response()->json(['data' => $bootstrap->payload()])
-            ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+            ->header('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
     }
 }

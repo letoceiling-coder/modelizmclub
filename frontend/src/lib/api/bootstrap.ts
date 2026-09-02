@@ -38,8 +38,12 @@ export interface PublicBootstrapPayload {
   listing_categories?: CategoryApiNode[];
 }
 
+const BOOTSTRAP_TTL_MS = 15_000;
+
 let payload: PublicBootstrapPayload | null = null;
 let inflight: Promise<PublicBootstrapPayload | null> | null = null;
+let cachedAt = 0;
+let fetching = false;
 
 export function getPublicBootstrapSync(): PublicBootstrapPayload | null {
   return payload;
@@ -48,7 +52,17 @@ export function getPublicBootstrapSync(): PublicBootstrapPayload | null {
 export function rememberPublicBootstrap(data: PublicBootstrapPayload | null): void {
   if (!data) return;
   payload = data;
+  cachedAt = Date.now();
+  fetching = false;
   inflight = Promise.resolve(data);
+}
+
+/** Drop the in-process bootstrap cache (admin publish, tests). */
+export function invalidatePublicBootstrap(): void {
+  payload = null;
+  inflight = null;
+  cachedAt = 0;
+  fetching = false;
 }
 
 export async function fetchPublicBootstrap(): Promise<PublicBootstrapPayload> {
@@ -59,14 +73,20 @@ export async function fetchPublicBootstrap(): Promise<PublicBootstrapPayload> {
 /** Single in-flight GET /public/bootstrap. Demo mode skips the network. */
 export function startPublicBootstrap(): Promise<PublicBootstrapPayload | null> {
   if (isDemoMode()) return Promise.resolve(null);
-  if (inflight) return inflight;
+  if (fetching && inflight) return inflight;
+  if (inflight && cachedAt > 0 && Date.now() - cachedAt < BOOTSTRAP_TTL_MS) return inflight;
+  fetching = true;
   inflight = fetchPublicBootstrap()
     .then((data) => {
       payload = data;
+      cachedAt = Date.now();
+      fetching = false;
       return data;
     })
     .catch(() => {
       inflight = null;
+      cachedAt = 0;
+      fetching = false;
       return null;
     });
   return inflight;

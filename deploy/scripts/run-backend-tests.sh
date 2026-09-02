@@ -11,6 +11,15 @@ if [[ ! -f .env.testing ]]; then
   exit 1
 fi
 
+# config:clear makes php-fpm re-read config/database.php. Without a cached
+# config, missing process env falls back to sqlite and listings/auth 500.
+restore_prod_caches() {
+  echo "==> Restoring Laravel config/route cache"
+  php artisan config:cache
+  php artisan route:cache
+}
+trap restore_prod_caches EXIT
+
 php artisan config:clear
 php artisan route:clear
 

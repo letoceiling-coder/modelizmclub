@@ -19,6 +19,6 @@ class IconOverridesController extends Controller
 
         return response()->json([
             'data' => is_array($map) && $map !== [] ? $map : new \stdClass(),
-        ]);
+        ])->header('Cache-Control', 'no-store');
     }
 }

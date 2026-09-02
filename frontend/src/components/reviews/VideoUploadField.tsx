@@ -14,9 +14,11 @@ interface Props {
   autoOpen?: boolean;
   /** Shows a pencil "Edit" button over image previews (ignored for video). */
   onEdit?: () => void;
+  /** 0–100 while the file is uploading; hide when null or 100. */
+  progress?: number | null;
 }
 
-export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, autoOpen, onEdit }: Props) {
+export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, autoOpen, onEdit, progress }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,6 +46,17 @@ export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, auto
               <X size={14} />
             </button>
           </div>
+          {progress != null && progress < 100 && (
+            <div
+              className="absolute inset-x-0 bottom-0 px-[10px] py-[8px] text-[12px] font-semibold"
+              style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.72))", color: "#fff" }}
+            >
+              <div className="mb-[6px]">{progress}%</div>
+              <div className="h-[4px] overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.28)" }}>
+                <div className="h-full rounded-full" style={{ width: `${progress}%`, background: "var(--accent)" }} />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <label className="grid cursor-pointer place-items-center gap-[8px] py-[28px] text-center" style={{ border: "1.5px dashed var(--border)", borderRadius: "var(--r-card)", color: "var(--foreground-50)" }}>

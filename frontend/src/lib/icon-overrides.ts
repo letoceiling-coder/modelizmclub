@@ -9,6 +9,8 @@ const EVENT = "modelizm:icon-overrides-changed";
 let published: IconOverrideMap = {};
 let draft: IconOverrideMap = {};              // slotKey → override (для превью)
 const draftCleared = new Set<string>();       // слоты, сброшенные на дефолт в черновике
+/** After an admin publish in this tab, ignore stale SSR/bootstrap icon maps. */
+let preferLocalPublished = false;
 
 function notify() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENT));
@@ -47,7 +49,16 @@ export function resetDraft(): void {
   notify();
 }
 
-export function applyPublishedMap(map: IconOverrideMap): void {
+export function applyPublishedMap(map: IconOverrideMap, source: "bootstrap" | "publish" = "bootstrap"): void {
+  if (source === "publish") {
+    preferLocalPublished = true;
+    published = map ?? {};
+    draft = {};
+    draftCleared.clear();
+    notify();
+    return;
+  }
+  if (preferLocalPublished) return;
   published = map ?? {};
   draft = {};
   draftCleared.clear();
@@ -64,20 +75,8 @@ export function useDraftChangeCount(): number {
 
 export async function loadIconOverridesFromServer(): Promise<void> {
   if (typeof window === "undefined") return;
-  try {
-    const { startPublicBootstrap } = await import("@/lib/api/bootstrap");
-    const boot = await startPublicBootstrap();
-    if (boot) {
-      published = boot.icon_overrides ?? {};
-      notify();
-      return;
-    }
-  } catch {
-    /* fall through to dedicated endpoint */
-  }
   const map = await fetchIconOverrides();
-  published = map;
-  notify();
+  applyPublishedMap(map, preferLocalPublished ? "publish" : "bootstrap");
 }
 
 function subscribe(cb: () => void): () => void {

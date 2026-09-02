@@ -9,7 +9,7 @@ import { TagInput } from "@/components/reviews/TagInput";
 import { fetchAdminVideo, updateAdminVideo } from "@/lib/api/admin";
 import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
 import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
-import { uploadMedia, validateReviewVideoFile } from "@/lib/api/media";
+import { uploadMedia, uploadMediaDeduped, validateReviewVideoFile } from "@/lib/api/media";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ function UploadPage() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [editingPoster, setEditingPoster] = useState(false);
@@ -103,7 +104,10 @@ function UploadPage() {
   const pickVideo = (f: File) => {
     const err = validateReviewVideoFile(f);
     if (err) { toast.error(err); return; }
-    setVideoFile(f); setVideoUrl(URL.createObjectURL(f));
+    setVideoFile(f);
+    setVideoUrl(URL.createObjectURL(f));
+    setVideoProgress(0);
+    void uploadMediaDeduped(f, "review_video", setVideoProgress).catch(() => setVideoProgress(null));
   };
   const pickPoster = (f: File) => { setPosterFile(f); setPosterUrl(URL.createObjectURL(f)); };
   const replacePoster = (blob: Blob) => {
@@ -124,7 +128,7 @@ function UploadPage() {
     setSubmitting(true);
     try {
       if (isEditMode && editUuid) {
-        const videoMedia = videoFile ? await uploadMedia(videoFile, "review_video") : null;
+        const videoMedia = videoFile ? await uploadMediaDeduped(videoFile, "review_video", setVideoProgress) : null;
         const posterMedia = posterFile ? await uploadMedia(posterFile, "post") : null;
         await updateAdminVideo(editUuid, {
           title: title.trim(),
@@ -141,7 +145,7 @@ function UploadPage() {
       }
 
       if (!videoFile) return;
-      const videoMedia = await uploadMedia(videoFile, "review_video");
+      const videoMedia = await uploadMediaDeduped(videoFile, "review_video", setVideoProgress);
       const posterMedia = posterFile ? await uploadMedia(posterFile, "post") : null;
       const video = await uploadVideo({
         title: title.trim(),
@@ -190,7 +194,14 @@ function UploadPage() {
         <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
           {isEditMode ? t("pages.reviews.editReview") : t("pages.reviews.newReview")}
         </h1>
-        <VideoUploadField fileUrl={videoUrl} onPick={pickVideo} onClear={() => { setVideoFile(null); setVideoUrl(null); }} accept="video/*" label={t("pages.reviews.uploadVideo")} />
+        <VideoUploadField
+          fileUrl={videoUrl}
+          onPick={pickVideo}
+          onClear={() => { setVideoFile(null); setVideoUrl(null); setVideoProgress(null); }}
+          accept="video/*"
+          label={t("pages.reviews.uploadVideo")}
+          progress={videoProgress}
+        />
         <VideoUploadField
           fileUrl={posterUrl}
           onPick={pickPoster}

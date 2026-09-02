@@ -35,8 +35,10 @@ class PublicBootstrapTest extends TestCase
             ],
         );
 
-        $this->getJson('/api/v1/public/bootstrap')
-            ->assertOk()
+        $response = $this->getJson('/api/v1/public/bootstrap')
+            ->assertOk();
+        $this->assertStringContainsString('max-age=15', (string) $response->headers->get('Cache-Control'));
+        $response
             ->assertJsonPath('data.feature_flags.communities_enabled', true)
             ->assertJsonPath('data.feature_flags.reviews_enabled', true)
             ->assertJsonPath('data.footer_contacts.email', 'support@modelizmclub.ru')

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send, MoreHorizontal, ChevronDown } from "lucide-react";
-import type { Comment } from "@/lib/mock";
+import type { Comment, User } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { reactToComment, type CommentSort } from "@/lib/api/feed";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,8 +78,24 @@ function CommentSkeleton() {
   );
 }
 
-function CommentAvatar({ authorId, name }: { authorId: string; name: string }) {
-  const author = userById(authorId);
+function profileHref(user: Pick<User, "id" | "slug">): string {
+  return `/user/${user.slug ?? user.id}`;
+}
+
+function authorActionKey(guest: ReturnType<typeof useGuestAccessOptional>): string {
+  if (guest && !guest.isAllowed("feed.post.author")) return "feed.post.author";
+  return "route.user";
+}
+
+function CommentAvatar({
+  author,
+  name,
+  actionKey,
+}: {
+  author: User;
+  name: string;
+  actionKey: string;
+}) {
   const src = author.avatar;
   const initials = name
     .split(" ")
@@ -86,18 +103,28 @@ function CommentAvatar({ authorId, name }: { authorId: string; name: string }) {
     .map((w) => w[0] ?? "")
     .join("")
     .toUpperCase() || "?";
-  if (!src) {
-    return (
-      <div
-        className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
-        style={{ background: "var(--accent)" }}
-        aria-hidden
-      >
-        {initials}
-      </div>
-    );
-  }
-  return <img src={src} alt={name} className="h-[32px] w-[32px] shrink-0 rounded-full object-cover" />;
+  const face = !src ? (
+    <div
+      className="grid h-[32px] w-[32px] place-items-center rounded-full text-[11px] font-bold text-white"
+      style={{ background: "var(--accent)" }}
+      aria-hidden
+    >
+      {initials}
+    </div>
+  ) : (
+    <img src={src} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
+  );
+  if (!author.id) return <span className="shrink-0">{face}</span>;
+  return (
+    <GuestGuardLink
+      actionKey={actionKey}
+      to={profileHref(author)}
+      className="shrink-0 rounded-full hover:opacity-80"
+      aria-label={name}
+    >
+      {face}
+    </GuestGuardLink>
+  );
 }
 
 function runGuarded(
@@ -160,7 +187,7 @@ function CommentItem({
   return (
     <>
       <div className="flex gap-[10px]" style={{ marginLeft: depth > 0 ? 36 : 0 }}>
-        <CommentAvatar authorId={comment.authorId} name={author.name} />
+        <CommentAvatar author={author} name={author.name} actionKey={authorActionKey(guest)} />
         <div className="min-w-0 flex-1">
           <div
             className="rounded-[12px] px-[12px] py-[8px]"
@@ -169,9 +196,20 @@ function CommentItem({
             <div className="flex items-start gap-[8px]">
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-[8px]">
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
-                    {author.name}
-                  </span>
+                  {author.id ? (
+                    <GuestGuardLink
+                      actionKey={authorActionKey(guest)}
+                      to={profileHref(author)}
+                      className="text-[13px] font-semibold hover:underline"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      {author.name}
+                    </GuestGuardLink>
+                  ) : (
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+                      {author.name}
+                    </span>
+                  )}
                   <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
                     {formatRelativeTime(comment.time)}
                   </span>
@@ -375,7 +413,7 @@ export function CommentSection({
     >
       {!readOnly && (
         <div className="flex items-center gap-[10px]">
-          <CommentAvatar authorId={me.id} name={me.name} />
+          <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
           <div
             className="flex min-w-0 flex-1 items-center gap-[6px] rounded-[12px] border px-[10px] py-[6px]"
             style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}

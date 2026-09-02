@@ -13,6 +13,7 @@ import {
 import {
   getMergedMap, setDraftOverride, resetDraft, applyPublishedMap, useDraftChangeCount,
 } from "@/lib/icon-overrides";
+import { invalidatePublicBootstrap } from "@/lib/api/bootstrap";
 import {
   buildAdminSlotEntries, GROUP_LABELS, PAGE_LABELS, TOKEN_OPTIONS,
   type AdminIconSlotEntry, type IconPage, type IconSlotGroup, type TokenKey,
@@ -205,7 +206,8 @@ export function IconManagerSection() {
     try {
       const map = buildPublishMap();
       await publishIconOverrides(map);
-      applyPublishedMap(map);
+      applyPublishedMap(map, "publish");
+      invalidatePublicBootstrap();
       setCanRollback(true);
       toast.success(isDemoMode() ? t("pages.adminIcons.toasts.publishedDemo") : t("pages.adminIcons.toasts.publishedAll"));
     } catch (err) {
@@ -220,7 +222,8 @@ export function IconManagerSection() {
       const prev = await fetchLastPublishedIconOverrides();
       if (prev === null) { setCanRollback(false); return; }
       await publishIconOverrides(prev);
-      applyPublishedMap(prev);
+      applyPublishedMap(prev, "publish");
+      invalidatePublicBootstrap();
       toast.success(t("pages.adminIcons.toasts.rollbackDone"));
     } catch (err) {
       toast.error(formatApiErrorMessage(err, t("pages.adminIcons.toasts.rollbackFailed")));

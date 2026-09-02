@@ -15,7 +15,7 @@ export function applyPublicBootstrap(data: PublicBootstrapPayload): void {
   if (data.branding) seedSiteBranding(data.branding);
   if (data.footer_contacts) seedFooterContacts(data.footer_contacts);
   applyServerFeatureFlags(data.feature_flags ?? {});
-  applyPublishedMap(data.icon_overrides ?? {});
+  applyPublishedMap(data.icon_overrides ?? {}, "bootstrap");
   if (data.feed_guest_access) seedFeedGuestAccess(data.feed_guest_access);
   seedLandingFaq(data.landing_faq ?? []);
   if (data.post_categories) seedPostCategoryTree(data.post_categories);
