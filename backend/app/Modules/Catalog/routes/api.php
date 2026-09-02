@@ -15,5 +15,5 @@ Route::prefix('categories')->group(function (): void {
 });
 
 Route::get('cities', CitiesController::class);
-Route::get('geo/address-suggest', SuggestAddressController::class)->middleware('throttle:20,1');
+Route::get('geo/address-suggest', SuggestAddressController::class)->middleware('throttle:30,1');
 Route::get('tags', TagsController::class);

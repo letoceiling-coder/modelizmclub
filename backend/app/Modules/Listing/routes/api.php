@@ -12,6 +12,7 @@ use Modules\Listing\Http\Controllers\Api\V1\IndexListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\ListingFavoriteController;
 use Modules\Listing\Http\Controllers\Api\V1\ListingStatusController;
 use Modules\Listing\Http\Controllers\Api\V1\MyListingsController;
+use Modules\Listing\Http\Controllers\Api\V1\RecentPickupAddressesController;
 use Modules\Listing\Http\Controllers\Api\V1\ShowListingController;
 use Modules\Listing\Http\Controllers\Api\V1\RevealPhoneController;
 use Modules\Listing\Http\Controllers\Api\V1\StoreListingController;
@@ -24,6 +25,7 @@ Route::get('listings/{uuid}', ShowListingController::class)->where('uuid', '[0-9
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/listings', MyListingsController::class);
+    Route::get('users/me/pickup-addresses', RecentPickupAddressesController::class);
     Route::get('users/me/favorites', FavoriteListingsController::class);
 });
 

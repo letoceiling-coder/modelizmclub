@@ -112,6 +112,44 @@ class ListingService
     }
 
     /**
+     * Last distinct pickup addresses the seller already used on listings.
+     *
+     * @return list<string>
+     */
+    public function recentPickupAddresses(User $user, int $limit = 3): array
+    {
+        $limit = max(1, min(3, $limit));
+        $rows = Listing::query()
+            ->withTrashed()
+            ->where('user_id', $user->id)
+            ->whereNotNull('pickup_address')
+            ->where('pickup_address', '!=', '')
+            ->orderByDesc('updated_at')
+            ->limit(30)
+            ->pluck('pickup_address');
+
+        $out = [];
+        $seen = [];
+        foreach ($rows as $raw) {
+            $label = trim((string) $raw);
+            if (mb_strlen($label) < 3) {
+                continue;
+            }
+            $key = mb_strtolower($label);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $label;
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * @param  Builder<Listing>  $query
      */
     private function applyTextSearch($query, string $term, bool $titleOnly = false): void

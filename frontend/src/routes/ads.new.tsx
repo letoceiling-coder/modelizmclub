@@ -1340,8 +1340,9 @@ function StepData({
                           <PickupAddressField
                             value={form.pickupAddress}
                             onChange={(v) => set("pickupAddress", v)}
+                            city={form.city}
                             error={form.pickupAddress.trim().length < 3}
-                            placeholder="Адрес или ориентир"
+                            placeholder={form.city.trim() ? `${form.city.trim()}, улица, дом` : "Город, улица, дом"}
                           />
                         </Field>
                       )}
