@@ -11,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Billing\Contracts\PaymentGateway;
 use Modules\Billing\Exceptions\InsufficientFundsException;
 use Modules\Billing\Services\WalletPaymentService;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Listing\Services\ListingPlacementPricingService;
 
 class CreatePaymentController extends Controller
@@ -20,8 +21,9 @@ class CreatePaymentController extends Controller
         $data = $request->validate([
             'plan_slug' => ['required_without:payable_type', 'nullable', 'string', 'exists:subscription_plans,slug'],
             'payable_type' => ['sometimes', 'nullable', 'string', Rule::in(['listing_placement'])],
-            'category_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
-            'subcategory_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
+            'taxonomy_id' => ['nullable', 'integer'],
+            'category_id' => ['nullable', 'integer'],
+            'subcategory_id' => ['nullable', 'integer'],
             'promocode' => ['nullable', 'string', 'max:64'],
             'listing_uuid' => ['nullable', 'uuid'],
             'pay_with' => ['sometimes', 'nullable', Rule::in(['gateway', 'wallet'])],
@@ -32,10 +34,22 @@ class CreatePaymentController extends Controller
         $payableType = $data['payable_type'] ?? null;
 
         if ($payableType === 'listing_placement') {
+            $categoryId = $data['category_id'] ?? null;
+            $subcategoryId = $data['subcategory_id'] ?? null;
+            if (! empty($data['taxonomy_id']) || $categoryId) {
+                $pair = app(CategoryTaxonomyService::class)->resolveListingCategoryInput(
+                    $categoryId ? (int) $categoryId : null,
+                    $subcategoryId ? (int) $subcategoryId : null,
+                    ! empty($data['taxonomy_id']) ? (int) $data['taxonomy_id'] : null,
+                );
+                $categoryId = $pair['category_id'];
+                $subcategoryId = $pair['subcategory_id'];
+            }
+
             $quote = $pricing->quote(
                 $request->user(),
-                $data['category_id'] ?? null,
-                $data['subcategory_id'] ?? null,
+                $categoryId,
+                $subcategoryId,
                 $data['promocode'] ?? null,
             );
 
@@ -55,8 +69,8 @@ class CreatePaymentController extends Controller
             $frontend = rtrim((string) config('billing.frontend_url'), '/');
             $metadata = [
                 'payable_type' => 'listing_placement',
-                'category_id' => $data['category_id'] ?? null,
-                'subcategory_id' => $data['subcategory_id'] ?? null,
+                'category_id' => $categoryId,
+                'subcategory_id' => $subcategoryId,
                 'promocode_id' => $quote['promocode']['id'] ?? null,
                 'listing_uuid' => $data['listing_uuid'] ?? null,
                 'quote' => $quote,

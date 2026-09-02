@@ -106,10 +106,6 @@ function listingCategoryPath(cats: Category[], leafId: string): { l1: string; l2
   return { l1: "", l2: "", l3: "" };
 }
 
-function listingLeafId(form: Pick<Form, "subcategoryId" | "nestedCategoryId">): string {
-  return form.nestedCategoryId || form.subcategoryId;
-}
-
 function isDeliveryOn(deliveries: string[], m: { id: string; label: string }): boolean {
   return deliveries.includes(m.id) || deliveries.includes(m.label);
 }
@@ -124,7 +120,10 @@ function listingIdsFromForm(
   form: Pick<Form, "categoryId" | "subcategoryId" | "nestedCategoryId">,
   postCats: Category[],
   listingCats: Category[],
-): { categoryId: number; subcategoryId?: number } | null {
+): { taxonomyId: number; categoryId?: number; subcategoryId?: number } | null {
+  const taxonomyId = Number(form.nestedCategoryId || form.subcategoryId || form.categoryId);
+  if (!Number.isInteger(taxonomyId) || taxonomyId <= 0) return null;
+
   const mapped = mapCategorySelectionByName(
     postCats,
     listingCats,
@@ -133,21 +132,16 @@ function listingIdsFromForm(
     form.nestedCategoryId,
   );
   if (!mapped) {
-    if (listingCats.length > 0) return null;
-    const categoryId = Number(form.categoryId);
-    if (!Number.isInteger(categoryId) || categoryId <= 0) return null;
-    const leaf = listingLeafId(form);
-    const subcategoryId = leaf ? Number(leaf) : undefined;
-    return {
-      categoryId,
-      subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
-    };
+    return { taxonomyId };
   }
   const categoryId = Number(mapped.categoryId);
-  if (!Number.isInteger(categoryId) || categoryId <= 0) return null;
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    return { taxonomyId };
+  }
   const leaf = mapped.nestedCategoryId || mapped.subcategoryId;
   const subcategoryId = leaf ? Number(leaf) : undefined;
   return {
+    taxonomyId,
     categoryId,
     subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
   };
@@ -297,7 +291,8 @@ function NewAdPage() {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [pendingPay, setPendingPay] = useState<{
     mediaIds: string[];
-    categoryId: number;
+    taxonomyId: number;
+    categoryId?: number;
     subcategoryId?: number;
     cityId?: number;
     priceCents: number;
@@ -323,7 +318,12 @@ function NewAdPage() {
         setForm((f) =>
           f.categoryId
             ? f
-            : { ...f, categoryId: posts[0]?.id ?? "", subcategoryId: posts[0]?.subcategories[0]?.id ?? "", nestedCategoryId: "" },
+            : {
+                ...f,
+                categoryId: posts[0]?.id ?? "",
+                subcategoryId: posts[0]?.subcategories[0]?.id ?? "",
+                nestedCategoryId: posts[0]?.subcategories[0]?.children?.[0]?.id ?? "",
+              },
         );
       })
       .catch(() => {});
@@ -439,18 +439,25 @@ function NewAdPage() {
       if (!leaf) return f;
       const path = listingCategoryPath(cats, leaf);
       if (!path.l1) return f;
-      if (f.categoryId === path.l1 && f.subcategoryId === path.l2 && f.nestedCategoryId === path.l3) return f;
-      return { ...f, categoryId: path.l1, subcategoryId: path.l2, nestedCategoryId: path.l3 };
+      const l2 = cats.find((c) => c.id === path.l1)?.subcategories.find((s) => s.id === path.l2);
+      const firstNested = l2?.children?.[0]?.id ?? "";
+      const nestedCategoryId = path.l3 || f.nestedCategoryId || firstNested;
+      if (f.categoryId === path.l1 && f.subcategoryId === path.l2 && f.nestedCategoryId === nestedCategoryId) return f;
+      return { ...f, categoryId: path.l1, subcategoryId: path.l2, nestedCategoryId };
     });
   }, [cats, listingCats, editId, listingPathToMap]);
 
   useEffect(() => {
     if (!listingPaymentEnabled || editId || step < 2) return;
     const ids = listingIdsFromForm(form, cats, listingCats);
-    if (!ids) return;
+    if (!ids) {
+      setQuoteLoading(false);
+      return;
+    }
     let alive = true;
     setQuoteLoading(true);
     fetchPlacementQuote({
+      taxonomyId: ids.taxonomyId,
       categoryId: ids.categoryId,
       subcategoryId: ids.subcategoryId,
       promocode: form.promocode,
@@ -468,6 +475,8 @@ function NewAdPage() {
       && form.title.trim().length >= 4
       && form.description.trim().length >= 20
       && form.price
+      && Number(form.categoryId) > 0
+      && (nestedCategories.length === 0 || Boolean(form.nestedCategoryId))
       && form.city.trim().length >= 2
       && (form.cityId != null || form.city.trim().length >= 3)
       && phonesMatch(form.contact, verifiedPhone)
@@ -476,7 +485,7 @@ function NewAdPage() {
     if (step === 1) return photosOk;
     if (step === 2) return dataOk;
     return photosOk && deliveryDetailsValid(form) === null;
-  }, [step, form, verifiedPhone, editId]);
+  }, [step, form, verifiedPhone, editId, nestedCategories.length]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -497,8 +506,10 @@ function NewAdPage() {
     const ids = listingIdsFromForm(form, cats, listingCats);
     if (!ids) {
       toast.error(t("pages.adsNew.selectCategory"));
+      setStep(2);
       return;
     }
+    const taxonomyId = ids.taxonomyId;
     const categoryId = ids.categoryId;
     const subcategoryId = ids.subcategoryId;
     if (nestedCategories.length > 0 && !form.nestedCategoryId) {
@@ -555,6 +566,7 @@ function NewAdPage() {
           title: form.title.trim(),
           description: form.description.trim(),
           priceCents,
+          taxonomyId,
           categoryId,
           subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
           cityId: resolvedCityId,
@@ -579,6 +591,7 @@ function NewAdPage() {
         if (paymentEnabled) {
           try {
             quote = await fetchPlacementQuote({
+              taxonomyId,
               categoryId,
               subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
               promocode,
@@ -607,6 +620,7 @@ function NewAdPage() {
         if (needsPayment) {
           setPendingPay({
             mediaIds,
+            taxonomyId,
             categoryId,
             subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
             cityId: resolvedCityId,
@@ -630,6 +644,7 @@ function NewAdPage() {
             title: form.title.trim(),
             description: form.description.trim(),
             priceCents,
+            taxonomyId,
             categoryId,
             subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
             cityId: resolvedCityId,
@@ -674,6 +689,7 @@ function NewAdPage() {
         title: job.title,
         description: job.description,
         priceCents: job.priceCents,
+        taxonomyId: job.taxonomyId,
         categoryId: job.categoryId,
         subcategoryId: job.subcategoryId,
         cityId: job.cityId,
@@ -687,6 +703,7 @@ function NewAdPage() {
         pickupAddress: job.pickupAddress || undefined,
       });
       const checkout = await createListingPlacementPayment({
+        taxonomyId: job.taxonomyId,
         categoryId: job.categoryId,
         subcategoryId: job.subcategoryId,
         promocode: job.promocode,
@@ -1140,9 +1157,11 @@ function StepData({
               value={form.categoryId}
               onChange={(v) => {
                 const c = cats.find((x) => x.id === v);
+                const firstSub = c?.subcategories[0];
+                const firstNested = firstSub?.children?.[0];
                 set("categoryId", v);
-                set("subcategoryId", c?.subcategories[0]?.id ?? "");
-                set("nestedCategoryId", "");
+                set("subcategoryId", firstSub?.id ?? "");
+                set("nestedCategoryId", firstNested?.id ?? "");
               }}
               options={cats.map((c) => ({ label: c.name, value: c.id }))}
             />
@@ -1152,8 +1171,9 @@ function StepData({
               <NativeSelect
                 value={form.subcategoryId}
                 onChange={(v) => {
+                  const nested = subcategories.find((s) => s.id === v)?.children ?? [];
                   set("subcategoryId", v);
-                  set("nestedCategoryId", "");
+                  set("nestedCategoryId", nested[0]?.id ?? "");
                 }}
                 options={subcategories.map((s) => ({ label: s.name, value: s.id }))}
               />

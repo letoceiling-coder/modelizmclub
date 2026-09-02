@@ -5,22 +5,36 @@ namespace Modules\Listing\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Listing\Services\ListingPlacementPricingService;
 
 class PlacementQuoteController extends Controller
 {
-    public function __invoke(Request $request, ListingPlacementPricingService $pricing): JsonResponse
+    public function __invoke(Request $request, ListingPlacementPricingService $pricing, CategoryTaxonomyService $taxonomy): JsonResponse
     {
         $data = $request->validate([
-            'category_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
-            'subcategory_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
+            'taxonomy_id' => ['nullable', 'integer'],
+            'category_id' => ['nullable', 'integer'],
+            'subcategory_id' => ['nullable', 'integer'],
             'promocode' => ['nullable', 'string', 'max:64'],
         ]);
 
+        $categoryId = $data['category_id'] ?? null;
+        $subcategoryId = $data['subcategory_id'] ?? null;
+        if (! empty($data['taxonomy_id']) || $categoryId) {
+            $pair = $taxonomy->resolveListingCategoryInput(
+                $categoryId ? (int) $categoryId : null,
+                $subcategoryId ? (int) $subcategoryId : null,
+                ! empty($data['taxonomy_id']) ? (int) $data['taxonomy_id'] : null,
+            );
+            $categoryId = $pair['category_id'];
+            $subcategoryId = $pair['subcategory_id'];
+        }
+
         $quote = $pricing->quote(
             $request->user(),
-            $data['category_id'] ?? null,
-            $data['subcategory_id'] ?? null,
+            $categoryId,
+            $subcategoryId,
             $data['promocode'] ?? null,
         );
 

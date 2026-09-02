@@ -256,6 +256,7 @@ class ListingService
     /** @param array<string, mixed> $data */
     public function create(User $user, array $data): Listing
     {
+        $data = $this->resolveCategoryIds($data);
         $this->assertCategory($data['category_id'] ?? null);
         $this->assertDeliveryDetails($data);
         $data = $this->normalizeParcelFields($data);
@@ -322,18 +323,22 @@ class ListingService
         ], $data), true);
         $data = $this->normalizeParcelFields($data);
 
-        if (array_key_exists('category_id', $data) && $data['category_id'] !== null) {
-            $this->assertCategory($data['category_id']);
+        if (! empty($data['taxonomy_id']) || (array_key_exists('category_id', $data) && $data['category_id'] !== null)) {
+            $data = $this->resolveCategoryIds($data);
+            $this->assertCategory($data['category_id'] ?? null);
         }
 
         return DB::transaction(function () use ($listing, $user, $data): Listing {
             $listing->fill(array_filter([
                 'category_id' => $data['category_id'] ?? null,
-                'subcategory_id' => $data['subcategory_id'] ?? null,
                 'title' => $data['title'] ?? null,
                 'description' => $data['description'] ?? null,
                 'city_id' => $data['city_id'] ?? null,
             ], fn ($value) => $value !== null));
+
+            if (array_key_exists('subcategory_id', $data)) {
+                $listing->subcategory_id = $data['subcategory_id'];
+            }
 
             if (array_key_exists('price_cents', $data)) {
                 $listing->price_cents = (int) $data['price_cents'];
@@ -570,6 +575,21 @@ class ListingService
                 'listing' => ['Нет доступа к объявлению.'],
             ]);
         }
+    }
+
+    /** @param array<string, mixed> $data */
+    private function resolveCategoryIds(array $data): array
+    {
+        $pair = app(CategoryTaxonomyService::class)->resolveListingCategoryInput(
+            isset($data['category_id']) ? (int) $data['category_id'] : null,
+            isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
+            isset($data['taxonomy_id']) ? (int) $data['taxonomy_id'] : null,
+        );
+        $data['category_id'] = $pair['category_id'];
+        $data['subcategory_id'] = $pair['subcategory_id'];
+        unset($data['taxonomy_id']);
+
+        return $data;
     }
 
     private function assertCategory(?int $categoryId): void

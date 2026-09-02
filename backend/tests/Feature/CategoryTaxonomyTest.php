@@ -247,4 +247,74 @@ class CategoryTaxonomyTest extends TestCase
         $this->expectException(ValidationException::class);
         $taxonomy->applyHierarchy($root);
     }
+
+    public function test_listing_pair_maps_post_leaf_to_listing_ids_and_syncs_missing_mirror(): void
+    {
+        $taxonomy = app(CategoryTaxonomyService::class);
+        $suffix = uniqid();
+
+        $root = PostCategory::query()->create([
+            'name' => 'Авиация',
+            'slug' => 'aviation-'.$suffix,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        $leaf = PostCategory::query()->create([
+            'parent_id' => $root->id,
+            'name' => 'ДВС',
+            'slug' => 'ice-'.$suffix,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->assertDatabaseMissing('listing_categories', ['slug' => 'ice-'.$suffix]);
+
+        $pair = $taxonomy->listingPairForPostCategory((int) $leaf->id);
+
+        $listingRoot = ListingCategory::query()->where('slug', 'aviation-'.$suffix)->firstOrFail();
+        $listingLeaf = ListingCategory::query()->where('slug', 'ice-'.$suffix)->firstOrFail();
+
+        $this->assertSame((int) $listingRoot->id, $pair['category_id']);
+        $this->assertSame((int) $listingLeaf->id, $pair['subcategory_id']);
+        $this->assertNotSame((int) $root->id, $pair['category_id']);
+        $this->assertNotSame((int) $leaf->id, $pair['subcategory_id']);
+    }
+
+    public function test_create_listing_accepts_post_taxonomy_id_when_listing_ids_differ(): void
+    {
+        $taxonomy = app(CategoryTaxonomyService::class);
+        $suffix = uniqid();
+        $user = User::factory()->create();
+
+        $root = PostCategory::query()->create([
+            'name' => 'Авиация',
+            'slug' => 'aviation-'.$suffix,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        $leaf = PostCategory::query()->create([
+            'parent_id' => $root->id,
+            'name' => 'ДВС',
+            'slug' => 'ice-'.$suffix,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        $taxonomy->syncFromPostCategory($root);
+        $taxonomy->syncFromPostCategory($leaf);
+
+        $listingLeaf = ListingCategory::query()->where('slug', 'ice-'.$suffix)->firstOrFail();
+        $this->assertNotSame((int) $leaf->id, (int) $listingLeaf->id);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/listings', [
+                'title' => 'Тестовое объявление ДВС',
+                'description' => str_repeat('Описание объявления. ', 5),
+                'taxonomy_id' => $leaf->id,
+                'price_cents' => 100_000,
+                'publish' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.category.id', $listingLeaf->parent_id)
+            ->assertJsonPath('data.subcategory.id', $listingLeaf->id);
+    }
 }

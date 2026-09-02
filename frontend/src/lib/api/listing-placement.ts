@@ -24,12 +24,14 @@ export interface PlacementQuote {
 }
 
 export async function fetchPlacementQuote(params: {
+  taxonomyId?: number;
   categoryId?: number;
   subcategoryId?: number;
   promocode?: string;
 }): Promise<PlacementQuote> {
   const res = await api<{ data: PlacementQuote }>("/listings/placement-quote", {
     query: {
+      taxonomy_id: params.taxonomyId,
       category_id: params.categoryId,
       subcategory_id: params.subcategoryId,
       promocode: params.promocode?.trim() || undefined,

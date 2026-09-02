@@ -16,7 +16,8 @@ final class ListingFormRules
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:10000'],
-            'category_id' => ['required', 'integer'],
+            'taxonomy_id' => ['nullable', 'integer', 'exists:post_categories,id'],
+            'category_id' => ['required_without:taxonomy_id', 'nullable', 'integer'],
             'subcategory_id' => ['nullable', 'integer'],
             'price_cents' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_PRICE_CENTS],
             'city_id' => ['nullable', 'integer'],
@@ -43,7 +44,8 @@ final class ListingFormRules
         return [
             'title' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'string', 'max:10000'],
-            'category_id' => ['sometimes', 'integer'],
+            'taxonomy_id' => ['nullable', 'integer', 'exists:post_categories,id'],
+            'category_id' => ['sometimes', 'nullable', 'integer'],
             'subcategory_id' => ['nullable', 'integer'],
             'price_cents' => ['sometimes', 'integer', 'min:0', 'max:'.self::MAX_PRICE_CENTS],
             'city_id' => ['nullable', 'integer'],
@@ -66,7 +68,9 @@ final class ListingFormRules
     {
         return [
             'category_id.required' => 'Выберите категорию.',
+            'category_id.required_without' => 'Выберите категорию.',
             'category_id.integer' => 'Выберите категорию из списка.',
+            'taxonomy_id.exists' => 'Выберите категорию.',
             'subcategory_id.integer' => 'Выберите подкатегорию из списка.',
             'city_id.integer' => 'Выберите город из списка.',
             'package_size.in' => 'Выберите типоразмер S, M или L либо укажите габариты.',
@@ -85,6 +89,7 @@ final class ListingFormRules
             'description' => 'описание',
             'category_id' => 'категория',
             'subcategory_id' => 'подкатегория',
+            'taxonomy_id' => 'категория',
             'price_cents' => 'цена',
             'city_id' => 'город',
         ];

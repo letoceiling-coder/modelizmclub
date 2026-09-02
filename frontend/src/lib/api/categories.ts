@@ -109,6 +109,10 @@ function namedChildren(node: NamedNode): NamedNode[] {
   return node.subcategories ?? node.children ?? [];
 }
 
+function namesMatch(a: string, b: string): boolean {
+  return a.trim().toLocaleLowerCase("ru") === b.trim().toLocaleLowerCase("ru");
+}
+
 /** Map a selected path between post/listing taxonomy trees by node names. */
 export function mapCategorySelectionByName(
   fromTree: Category[],
@@ -137,7 +141,7 @@ export function mapCategorySelectionByName(
   let level: NamedNode[] = toTree;
   const ids: string[] = [];
   for (const name of names) {
-    const hit = level.find((n) => n.name === name);
+    const hit = level.find((n) => namesMatch(n.name, name));
     if (!hit) return null;
     ids.push(hit.id);
     level = namedChildren(hit);

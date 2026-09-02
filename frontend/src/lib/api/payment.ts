@@ -105,6 +105,7 @@ export async function createSubscriptionPayment(planSlug: string, payWith: PayWi
  *  subscription; backend credits `users.listing_placement_credits` on
  *  fulfillment. */
 export async function createListingPlacementPayment(input?: {
+  taxonomyId?: number;
   categoryId?: number;
   subcategoryId?: number;
   promocode?: string;
@@ -115,6 +116,7 @@ export async function createListingPlacementPayment(input?: {
     method: "POST",
     json: {
       payable_type: "listing_placement",
+      taxonomy_id: input?.taxonomyId,
       category_id: input?.categoryId,
       subcategory_id: input?.subcategoryId,
       promocode: input?.promocode?.trim() || undefined,

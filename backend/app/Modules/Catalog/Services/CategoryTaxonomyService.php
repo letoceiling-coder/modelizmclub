@@ -102,6 +102,83 @@ class CategoryTaxonomyService
         return $this->mirrorIdsForPostCategory($postCategoryId, ListingCategory::class);
     }
 
+    /**
+     * Map a post-taxonomy leaf onto listing category_id + subcategory_id.
+     * Creates the listing mirror (and ancestors) if the trees drifted.
+     *
+     * @return array{category_id: int, subcategory_id: int|null}
+     */
+    public function listingPairForPostCategory(int $postCategoryId): array
+    {
+        $post = PostCategory::query()->find($postCategoryId);
+        if (! $post || ! $post->is_active) {
+            throw ValidationException::withMessages([
+                'taxonomy_id' => ['Выберите категорию.'],
+            ]);
+        }
+
+        $listing = $this->ensureListingMirror($post);
+        if (! $listing->is_active) {
+            throw ValidationException::withMessages([
+                'taxonomy_id' => ['Выберите категорию.'],
+            ]);
+        }
+
+        $leaf = $listing;
+        $root = $listing;
+        $guard = 0;
+        while ($root->parent_id && $guard++ < 16) {
+            $parent = ListingCategory::query()->find($root->parent_id);
+            if (! $parent) {
+                break;
+            }
+            $root = $parent;
+        }
+
+        $categoryId = (int) $root->id;
+        $leafId = (int) $leaf->id;
+
+        return [
+            'category_id' => $categoryId,
+            'subcategory_id' => $leafId !== $categoryId ? $leafId : null,
+        ];
+    }
+
+    /**
+     * Accept listing IDs, post-taxonomy IDs, or taxonomy_id (post leaf).
+     * taxonomy_id always wins so the ads form can keep using the feed tree.
+     *
+     * @return array{category_id: int, subcategory_id: int|null}
+     */
+    public function resolveListingCategoryInput(?int $categoryId, ?int $subcategoryId = null, ?int $taxonomyId = null): array
+    {
+        if ($taxonomyId) {
+            return $this->listingPairForPostCategory($taxonomyId);
+        }
+
+        if ($categoryId) {
+            $listingCat = ListingCategory::query()->whereKey($categoryId)->where('is_active', true)->first();
+            $listingSub = $subcategoryId
+                ? ListingCategory::query()->whereKey($subcategoryId)->where('is_active', true)->first()
+                : null;
+            if ($listingCat && (! $subcategoryId || $listingSub)) {
+                return [
+                    'category_id' => (int) $listingCat->id,
+                    'subcategory_id' => $listingSub?->id ? (int) $listingSub->id : null,
+                ];
+            }
+
+            $postLeaf = $subcategoryId ?: $categoryId;
+            if (PostCategory::query()->whereKey($postLeaf)->where('is_active', true)->exists()) {
+                return $this->listingPairForPostCategory($postLeaf);
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'category_id' => ['Выберите категорию.'],
+        ]);
+    }
+
     public function communityIdsForPostCategory(int $postCategoryId): array
     {
         return $this->mirrorIdsForPostCategory($postCategoryId, CommunityCategory::class);
@@ -177,6 +254,41 @@ class CategoryTaxonomyService
         }
 
         return $counts;
+    }
+
+    private function findListingMirror(PostCategory $post): ?ListingCategory
+    {
+        return ListingCategory::query()->where('path', $post->path)->first()
+            ?? ListingCategory::query()->where('slug', $post->slug)->first();
+    }
+
+    private function ensureListingMirror(PostCategory $post): ListingCategory
+    {
+        $chain = [];
+        $cursor = $post;
+        $guard = 0;
+        while ($cursor && $guard++ < 16) {
+            array_unshift($chain, $cursor);
+            $cursor = $cursor->parent_id
+                ? PostCategory::query()->find($cursor->parent_id)
+                : null;
+        }
+
+        foreach ($chain as $node) {
+            $node = $this->applyHierarchy($node);
+            $this->mirror($node, ListingCategory::class, (string) $node->path);
+        }
+
+        CatalogService::flushCache();
+
+        $listing = $this->findListingMirror($post);
+        if (! $listing) {
+            throw ValidationException::withMessages([
+                'taxonomy_id' => ['Выберите категорию.'],
+            ]);
+        }
+
+        return $listing;
     }
 
     /**

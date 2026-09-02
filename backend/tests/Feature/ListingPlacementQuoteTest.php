@@ -143,4 +143,38 @@ class ListingPlacementQuoteTest extends TestCase
 
         $this->assertSame(2, (int) $user->fresh()->listing_placement_credits);
     }
+
+    public function test_quote_accepts_post_taxonomy_id(): void
+    {
+        $taxonomy = app(\Modules\Catalog\Services\CategoryTaxonomyService::class);
+        $suffix = uniqid();
+
+        $root = \App\Models\PostCategory::query()->create([
+            'name' => 'Авиация',
+            'slug' => 'aviation-quote-'.$suffix,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        $leaf = \App\Models\PostCategory::query()->create([
+            'parent_id' => $root->id,
+            'name' => 'ДВС',
+            'slug' => 'ice-quote-'.$suffix,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        $taxonomy->syncFromPostCategory($root);
+        $taxonomy->syncFromPostCategory($leaf);
+
+        $listingLeaf = ListingCategory::query()->where('slug', 'ice-quote-'.$suffix)->firstOrFail();
+        $listingLeaf->listing_price_cents = 4500;
+        $listingLeaf->save();
+
+        $user = $this->seedVerifiedUser('tax');
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/listings/placement-quote?taxonomy_id='.$leaf->id)
+            ->assertOk()
+            ->assertJsonPath('data.base_cents', 4500)
+            ->assertJsonPath('data.category_id', $listingLeaf->id);
+    }
 }

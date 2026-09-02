@@ -262,6 +262,7 @@ export interface UpdateListingInput {
   title?: string;
   description?: string;
   priceCents?: number;
+  taxonomyId?: number;
   categoryId?: number;
   subcategoryId?: number;
   cityId?: number;
@@ -285,6 +286,7 @@ export async function updateListing(uuid: string, input: UpdateListingInput): Pr
       title: input.title,
       description: input.description,
       price_cents: input.priceCents,
+      taxonomy_id: input.taxonomyId,
       category_id: input.categoryId,
       subcategory_id: input.subcategoryId,
       city_id: input.cityId,
@@ -360,7 +362,8 @@ export interface CreateListingInput {
   title: string;
   description: string;
   priceCents: number;
-  categoryId: number;
+  taxonomyId?: number;
+  categoryId?: number;
   subcategoryId?: number;
   cityId?: number;
   deliveryMethods?: string[];
@@ -407,6 +410,7 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       title: input.title,
       description: input.description,
       price_cents: input.priceCents,
+      taxonomy_id: input.taxonomyId,
       category_id: input.categoryId,
       subcategory_id: input.subcategoryId,
       city_id: input.cityId,
