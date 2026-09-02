@@ -311,7 +311,7 @@ class CategoryTaxonomyTest extends TestCase
                 'description' => str_repeat('Описание объявления. ', 5),
                 'taxonomy_id' => $leaf->id,
                 'price_cents' => 100_000,
-                'publish' => true,
+                'publish' => false,
             ])
             ->assertCreated()
             ->assertJsonPath('data.category.id', $listingLeaf->parent_id)
