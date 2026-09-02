@@ -125,6 +125,7 @@ class ListingService
             ->whereNotNull('pickup_address')
             ->where('pickup_address', '!=', '')
             ->orderByDesc('updated_at')
+            ->orderByDesc('id')
             ->limit(30)
             ->pluck('pickup_address');
 

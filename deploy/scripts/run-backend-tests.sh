@@ -12,6 +12,7 @@ if [[ ! -f .env.testing ]]; then
 fi
 
 php artisan config:clear
+php artisan route:clear
 
 echo "==> PHPUnit on PostgreSQL database: modelizmclub_test"
 php artisan test "$@"

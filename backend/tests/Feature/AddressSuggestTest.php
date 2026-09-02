@@ -159,7 +159,7 @@ class AddressSuggestTest extends TestCase
 
     private function listing(User $user, ListingCategory $category, string $address, $updatedAt): Listing
     {
-        return Listing::query()->create([
+        $listing = Listing::query()->create([
             'user_id' => $user->id,
             'category_id' => $category->id,
             'title' => 'Модель '.$address,
@@ -169,8 +169,12 @@ class AddressSuggestTest extends TestCase
             'status' => ListingStatus::Published,
             'pickup_address' => $address,
             'published_at' => $updatedAt,
+        ]);
+        Listing::query()->whereKey($listing->id)->update([
             'created_at' => $updatedAt,
             'updated_at' => $updatedAt,
         ]);
+
+        return $listing->refresh();
     }
 }
