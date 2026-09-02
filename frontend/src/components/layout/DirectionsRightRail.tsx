@@ -14,7 +14,8 @@ import type { Category, CategoryChild } from "@/lib/mock";
 import { parseTaxonomyId, type RailVariant } from "@/lib/taxonomy";
 
 const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
-const SORT_KEY = "modelizm:rightrail:sort:v2";
+/** v3: first paint is always А–Я; older keys stored «popular» as an implicit default. */
+const SORT_KEY = "modelizm:rightrail:sort:v3";
 
 type SortMode = "popular" | "alpha";
 
