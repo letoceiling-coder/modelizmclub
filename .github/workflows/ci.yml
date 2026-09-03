@@ -1,0 +1,120 @@
+# Root CI — the only workflows GitHub Actions reads are the ones in the
+# repository root. The Laravel skeleton's backend/.github/ never ran.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: frontend · tsc + eslint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Same contract as the deploy script: the lockfile must already match
+      # package.json. A drift fails here instead of on the server.
+      - name: Install (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      # 84 tsc errors and 92 eslint errors are pre-existing (docs/audit/01-baseline.md).
+      # Reported, not blocking — drop continue-on-error after W4-10 clears them.
+      - name: tsc
+        continue-on-error: true
+        run: npx tsc --noEmit
+
+      - name: eslint
+        continue-on-error: true
+        run: npx eslint . --max-warnings=0
+
+      - name: Build
+        run: bun run build
+
+  backend:
+    name: backend · phpunit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Matches backend/.env.testing.example; tests refuse any other database name.
+          POSTGRES_DB: modelizmclub_test
+          POSTGRES_USER: modelizmclub
+          POSTGRES_PASSWORD: secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U modelizmclub -d modelizmclub_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, pgsql, bcmath, gd, intl
+          coverage: none
+
+      - name: Composer cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Testing env
+        run: |
+          cp .env.testing.example .env.testing
+          php artisan key:generate --env=testing --force
+
+      - name: phpunit
+        run: php artisan test --env=testing
+
+  audit:
+    name: backend · composer audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      # Advisory only: the report lands in the job summary, the job never blocks a PR.
+      - name: composer audit → summary
+        run: |
+          {
+            echo "## composer audit"
+            echo
+            echo '```'
+            composer audit --no-interaction 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
