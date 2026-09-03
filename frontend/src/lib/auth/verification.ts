@@ -142,7 +142,8 @@ export async function requireVerified(location?: {
   if (typeof window === "undefined") return;
   if (isDemoMode()) return;
 
-  // Imported lazily: lib/gate reads this module for the level ladder.
+  // Lazy: lib/gate reads this module for the ladder — a static import here
+  // would close the cycle.
   const { routeGuard } = await import("@/lib/gate/routeGuard");
   const { allowed } = await routeGuard("verified", location);
   if (!allowed) return;

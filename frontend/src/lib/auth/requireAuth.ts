@@ -47,7 +47,7 @@ export async function requireAuth(location?: {
     throw redirect({ to: "/login", search: { redirect: pathname + search } });
   }
 
-  // Imported lazily: lib/gate reads verification.ts, which imports this module.
+  // Lazy: only a refused visitor needs the gate, and it pulls in the ladder.
   const { openRouteGate, gateFallbackPath } = await import("@/lib/gate/routeGate");
   openRouteGate("registered", pathname + search);
   const fallback = gateFallbackPath(pathname);
