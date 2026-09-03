@@ -47,7 +47,7 @@ WORKTREE="${WORKTREES_DIR}/frontend-${RELEASE_ID}"
 
 git worktree add --detach "${WORKTREE}" HEAD
 cd "${WORKTREE}/frontend"
-bun install --frozen-lockfile 2>/dev/null || bun install
+bun install --frozen-lockfile
 bun run build
 
 chown -R www-data:www-data "${WORKTREE}/frontend/.output"
