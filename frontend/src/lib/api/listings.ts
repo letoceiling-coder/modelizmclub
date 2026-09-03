@@ -1,6 +1,6 @@
 import type { Ad, AdSeller, User } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
-import { api } from "./client";
+import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -176,6 +176,7 @@ export interface CatalogParams {
 export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
   if (isDemoMode()) return demoListingsFiltered(params);
   const res = await api<Paginated<ApiListing>>("/listings", {
+    auth: Boolean(getToken()),
     query: {
       q: params.q || undefined,
       taxonomy_id: params.taxonomyId || undefined,

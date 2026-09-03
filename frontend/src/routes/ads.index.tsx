@@ -40,19 +40,14 @@ export const Route = createFileRoute("/ads/")({
   }),
   loader: async ({ deps }) => {
     await ensurePublicBootstrap();
-    if (typeof window === "undefined") {
-      return { ads: [] as Ad[] };
-    }
-    const [ads] = await Promise.all([
-      fetchListings({
-        q: deps.q,
-        taxonomyId: deps.taxonomy_id,
-        sort: "new",
-        perPage: PAGE_SIZE,
-        page: 1,
-      }).catch(() => [] as Ad[]),
-      prefetchCategoryRoomStats(),
-    ]);
+    const ads = await fetchListings({
+      q: deps.q,
+      taxonomyId: deps.taxonomy_id,
+      sort: "new",
+      perPage: PAGE_SIZE,
+      page: 1,
+    }).catch(() => [] as Ad[]);
+    void prefetchCategoryRoomStats();
     return { ads };
   },
   staleTime: 30_000,

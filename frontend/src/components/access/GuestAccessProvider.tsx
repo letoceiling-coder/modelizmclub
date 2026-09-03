@@ -264,7 +264,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     }
   }, [subLoading, needsPhone, needsSubscription, openPaywall, openPhoneGate, isAllowed, isGuest, config, denyGuest, denySubscription]);
 
-  const ready = !loading && (isGuest || isDemoMode() || isStaffUser(me) || !subLoading);
+  const ready = !loading && (isGuest || isDemoMode() || isStaffUser(me) || !getToken() || sessionResolved);
 
   const value = useMemo(
     () => ({

@@ -1,5 +1,7 @@
 # ModelizmClub API v1
 
+Полное клиентское руководство (все роуты по зонам, таблицы, роли, ВТБ и безопасная сделка, факты тестов с сервера): **[BACKEND-CLIENT-GUIDE.md](./BACKEND-CLIENT-GUIDE.md)**.
+
 > Базовый URL (production): `https://modelizmclub.ru/api/v1`  
 > Альтернативно: `https://api.modelizmclub.ru/api/v1`  
 > Dev: `https://dev.modelizmclub.ru/api/v1`  

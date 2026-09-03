@@ -21,10 +21,10 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     defaultPendingComponent: RoutePending,
-    // Loaders that resolve from cache finish in a few ms — waiting a beat keeps
-    // instant navigations from flashing a skeleton.
-    defaultPendingMs: 120,
-    defaultPendingMinMs: 240,
+    // Show a skeleton only if the loader is actually slow. A min-pending
+    // window forced a 240ms flash even when data was already in cache.
+    defaultPendingMs: 200,
+    defaultPendingMinMs: 0,
     defaultStaleTime: 30_000,
     defaultPreloadStaleTime: 30_000,
   });

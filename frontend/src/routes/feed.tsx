@@ -17,7 +17,7 @@ import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed, fetchPost } from "@/lib/api/feed";
 import { fetchPostCategories, categoryIdByName, getCachedPostCategories } from "@/lib/api/categories";
 import { parseTaxonomyId } from "@/lib/taxonomy";
-import { fetchBanners, fetchBannersWithSettings } from "@/lib/api/banners";
+import { fetchBanners } from "@/lib/api/banners";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { getHiddenPostIds, hidePostId } from "@/lib/hidden-posts";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
@@ -60,20 +60,12 @@ export const Route = createFileRoute("/feed")({
   }),
   loader: async () => {
     await ensurePublicBootstrap();
-    if (typeof window === "undefined") {
-      return {
-        posts: [] as Post[],
-        banners: [] as Banner[],
-        categories: getCachedPostCategories() ?? [],
-      };
-    }
     const [feed, banners, categories] = await Promise.all([
-      fetchFeed({ filter: "all", perPage: 50 }).catch(() => ({ posts: [] as Post[] })),
+      fetchFeed({ filter: "all", perPage: 20 }).catch(() => ({ posts: [] as Post[] })),
       fetchBanners("feed").catch(() => [] as Banner[]),
       fetchPostCategories().catch(() => getCachedPostCategories() ?? []),
-      fetchBannersWithSettings().catch(() => null),
-      prefetchCategoryRoomStats(),
     ]);
+    void prefetchCategoryRoomStats();
     return { posts: feed.posts, banners, categories };
   },
   staleTime: 30_000,
@@ -273,10 +265,8 @@ function FeedPage() {
         const e = entries[0];
         if (e.isIntersecting && visible < filtered.length && !loadingMore) {
           setLoadingMore(true);
-          setTimeout(() => {
-            setVisible((v) => Math.min(v + PAGE_SIZE, filtered.length));
-            setLoadingMore(false);
-          }, 600);
+          setVisible((v) => Math.min(v + PAGE_SIZE, filtered.length));
+          setLoadingMore(false);
         }
       },
       { rootMargin: "300px" },

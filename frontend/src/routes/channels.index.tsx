@@ -52,13 +52,9 @@ export const Route = createFileRoute("/channels/")({
   loaderDeps: ({ search }) => ({ taxonomy_id: search.taxonomy_id }),
   loader: async ({ deps }) => {
     await ensurePublicBootstrap();
-    if (typeof window !== "undefined") {
-      await Promise.all([
-        fetchChannels(deps.taxonomy_id).catch(() => []),
-        prefetchCategoryRoomStats(),
-      ]);
-    }
-    return null;
+    const channels = await fetchChannels(deps.taxonomy_id).catch(() => []);
+    void prefetchCategoryRoomStats();
+    return { channels };
   },
   staleTime: 30_000,
   component: ChannelsPage,
@@ -223,7 +219,9 @@ function ChannelsPage() {
 
   const { taxonomy_id: taxonomyId } = Route.useSearch();
 
-  const { channels: all, loading, reload } = useChannels(taxonomyId);
+  const loaded = Route.useLoaderData();
+
+  const { channels: all, loading, reload } = useChannels(taxonomyId, loaded.channels);
 
   const me = useStore(selectors.currentUser);
 

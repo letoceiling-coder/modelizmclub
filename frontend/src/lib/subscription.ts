@@ -70,7 +70,7 @@ export function invalidateMySubscription(): void {
 export function useMySubscription(): { sub: MySubscription | null; loading: boolean } {
   const sessionResolved = useStore(selectors.sessionResolved);
   const [sub, setSub] = useState<MySubscription | null>(() => cache ?? null);
-  const [loading, setLoading] = useState(() => cache === undefined);
+  const [loading, setLoading] = useState(() => isAuthenticated() && cache === undefined);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {

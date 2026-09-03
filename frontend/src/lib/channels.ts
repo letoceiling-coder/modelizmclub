@@ -445,7 +445,17 @@ export async function createChannelPost(input: {
 }
 
 // ---- hooks ----
-export function useChannels(taxonomyId?: number): { channels: Channel[]; loading: boolean; reload: () => void } {
+export function seedChannelsCache(list: Channel[], taxonomyId?: number): void {
+  channelsCache = { taxonomyId, list };
+}
+
+export function useChannels(
+  taxonomyId?: number,
+  initial?: Channel[],
+): { channels: Channel[]; loading: boolean; reload: () => void } {
+  if (initial && initial.length > 0 && !getCachedChannels(taxonomyId)) {
+    seedChannelsCache(initial, taxonomyId);
+  }
   const cached = getCachedChannels(taxonomyId);
   const [channels, setChannels] = useState<Channel[]>(() => cached ?? []);
   const [loading, setLoading] = useState(() => !cached);

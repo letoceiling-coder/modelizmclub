@@ -52,7 +52,7 @@ export const Route = createFileRoute("/")({
     return { popular };
   },
   pendingComponent: AppBootPreload,
-  pendingMs: 0,
+  pendingMs: 120,
   staleTime: 30_000,
   component: LandingPage,
 });

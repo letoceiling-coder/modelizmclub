@@ -29,13 +29,8 @@ export const Route = createFileRoute("/communities/")({
   loaderDeps: ({ search }) => ({ taxonomy_id: search.taxonomy_id }),
   loader: async ({ deps }) => {
     await ensurePublicBootstrap();
-    if (typeof window === "undefined") {
-      return { communities: [] as Community[] };
-    }
-    const [communities] = await Promise.all([
-      fetchCommunities(undefined, deps.taxonomy_id).catch(() => [] as Community[]),
-      prefetchCategoryRoomStats(),
-    ]);
+    const communities = await fetchCommunities(undefined, deps.taxonomy_id).catch(() => [] as Community[]);
+    void prefetchCategoryRoomStats();
     return { communities };
   },
   staleTime: 30_000,
@@ -309,6 +304,8 @@ function CommunitiesPage() {
   const [loading, setLoading] = useState(() => loaded.communities.length === 0);
   const hasRowsRef = useRef(loaded.communities.length > 0);
 
+  const primed = useRef(loaded.communities.length > 0);
+
   useEffect(() => {
     if (loaded.communities.length === 0) return;
     hasRowsRef.current = true;
@@ -317,6 +314,10 @@ function CommunitiesPage() {
   }, [loaded.communities]);
 
   useEffect(() => {
+    if (primed.current) {
+      primed.current = false;
+      return;
+    }
     let alive = true;
     if (!hasRowsRef.current) setLoading(true);
     fetchCommunities(undefined, taxonomyId)

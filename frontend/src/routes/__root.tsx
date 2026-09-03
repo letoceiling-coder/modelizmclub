@@ -28,6 +28,7 @@ import { applyPublicBootstrap, ensurePublicBootstrap } from "@/lib/boot/applyPub
 import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
 import { markBooted } from "@/lib/boot/bootState";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
+import { isAlwaysPublicRoute, isPublicGuestRoute } from "@/lib/feed-guest-access/routes";
 
 // Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
 // "theme" key holds the resolved value from the old binary toggle). "system"
@@ -78,18 +79,29 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
-    await ensurePublicBootstrap();
-    if (typeof window !== "undefined") {
-      await restoreSession();
-      await requireGuestRouteAccess(location);
+    const bootstrap = ensurePublicBootstrap();
+    if (typeof window === "undefined") {
+      await bootstrap;
+      return;
     }
+    // Start /auth/me in parallel with bootstrap. Public catalog pages paint
+    // without waiting for the session so the shell is not stuck on «Загрузка…».
+    const session = restoreSession();
+    await bootstrap;
+    const path = location.pathname;
+    if (!isAlwaysPublicRoute(path) && !isPublicGuestRoute(path)) {
+      await session;
+    }
+    await requireGuestRouteAccess(location);
   },
   loader: async () => {
     const bootstrap = await ensurePublicBootstrap();
     return { bootstrap };
   },
   pendingComponent: AppBootPreload,
-  pendingMs: 0,
+  // Cached bootstrap resolves in a few ms — do not flash the full-screen
+  // spinner over SSR HTML on every navigation.
+  pendingMs: 120,
   head: () => ({
     meta: [
       { charSet: "utf-8" },

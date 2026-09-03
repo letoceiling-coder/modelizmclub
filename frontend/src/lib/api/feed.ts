@@ -1,6 +1,6 @@
 import type { Post, Comment, PostMediaItem, User } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
-import { api } from "./client";
+import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { rememberMediaAspect } from "@/lib/media/aspectCache";
@@ -216,6 +216,7 @@ export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
     return demoFeed({ filter: opts.filter, categoryName: opts.categoryName, page: opts.page, perPage: opts.perPage });
   }
   const res = await api<Paginated<ApiPost>>("/feed", {
+    auth: Boolean(getToken()),
     query: {
       filter: opts.filter ?? "all",
       category_id: opts.categoryId,

@@ -79,19 +79,29 @@ async function loadSession(): Promise<boolean> {
     return false;
   }
   setCurrentUser(me);
-  shutdownCalls();
-  await startRealtimeHub(me.id);
-  await Promise.all([
-    syncFavoritesFromServer(),
-    syncDialogsFromServer(me.id),
-    getMySubscription(),
-  ]);
-  const pendingRef = peekStoredReferralCode();
-  if (pendingRef) {
-    await claimReferralCode(pendingRef);
-    consumeStoredReferralCode();
-  }
+  // Messenger, favorites, LiveKit and billing must not block first paint.
+  // The header already has `me`; badges catch up in the background.
+  void hydrateAuthenticatedSession(me.id);
   return true;
+}
+
+async function hydrateAuthenticatedSession(userId: string): Promise<void> {
+  try {
+    shutdownCalls();
+    await startRealtimeHub(userId);
+    await Promise.all([
+      syncFavoritesFromServer(),
+      syncDialogsFromServer(userId),
+      getMySubscription(),
+    ]);
+    const pendingRef = peekStoredReferralCode();
+    if (pendingRef) {
+      await claimReferralCode(pendingRef);
+      consumeStoredReferralCode();
+    }
+  } catch {
+    // Non-fatal: the user is already in the store and can use the page.
+  }
 }
 
 /** Clears the in-flight session promise (after login / logout). */
