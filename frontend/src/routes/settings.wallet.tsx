@@ -30,6 +30,7 @@ import { paymentFailureCopy, syncPayment } from "@/lib/api/payment";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 import { notifyBillingChanged } from "@/lib/billing-events";
+import { formatDate } from "@/lib/format/date";
 
 type WalletSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
@@ -212,7 +213,7 @@ function WalletSection() {
                   <Badge variant={status.variant} withIcon={false}>{t(status.labelKey)}</Badge>
                 </div>
                 <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  {new Date(op.date).toLocaleString("ru-RU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {formatDate(op.date, "absolute")}
                 </div>
               </div>
               <div className="shrink-0 text-right">

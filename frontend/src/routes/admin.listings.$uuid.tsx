@@ -13,6 +13,7 @@ import {
   updateAdminListing,
   type AdminListingDetail,
 } from "@/lib/api/admin";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/admin/listings/$uuid")({
   head: () => ({ meta: [{ title: "Объявление — админ — МоДелизМ" }] }),
@@ -208,6 +209,10 @@ function AdminListingPage() {
                     <img
                       key={`${src}-${i}`}
                       src={src}
+                      width={120}
+                      height={120}
+                      loading="lazy"
+                      decoding="async"
                       alt=""
                       className="h-[120px] w-[120px] rounded-[10px] object-cover"
                       style={{ border: i === 0 ? "2px solid var(--accent)" : "1px solid var(--border)" }}
@@ -265,7 +270,7 @@ function AdminListingPage() {
               <div className="grid gap-[12px] sm:grid-cols-3 text-[13px]" style={{ color: "var(--foreground-50)" }}>
                 <div>Просмотры: <span style={{ color: "var(--foreground)" }}>{listing.viewsCount}</span></div>
                 <div>В избранном: <span style={{ color: "var(--foreground)" }}>{listing.favoritesCount}</span></div>
-                <div>Создано: <span style={{ color: "var(--foreground)" }}>{listing.createdAt ? new Date(listing.createdAt).toLocaleString("ru-RU") : "—"}</span></div>
+                <div>Создано: <span style={{ color: "var(--foreground)" }}>{listing.createdAt ? formatDate(listing.createdAt, "absolute") : "—"}</span></div>
               </div>
 
               <div className="flex flex-wrap gap-[10px] pt-[4px]">

@@ -4,18 +4,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { calls } from "@/lib/calls";
 import { fetchCallHistory, type ApiCallRecord } from "@/lib/api/calls";
 import { openOrCreateDialogWith } from "@/lib/store";
+import { formatDate } from "@/lib/format/date";
 
 function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const same = d.toDateString() === now.toDateString();
-  const yest = new Date(now);
-  yest.setDate(now.getDate() - 1);
-  const isYest = d.toDateString() === yest.toDateString();
-  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-  if (same) return `Сегодня · ${time}`;
-  if (isYest) return `Вчера · ${time}`;
-  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + " · " + time;
+  return formatDate(iso, "relative");
 }
 
 function fmtDuration(sec: number): string {
@@ -78,7 +70,7 @@ export function CallsList({ onOpenChat }: Props) {
             style={{ borderBottom: "1px solid var(--border)" }}
           >
             {rec.peer.avatar ? (
-              <img src={rec.peer.avatar} alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
+              <img src={rec.peer.avatar} width={44} height={44} loading="lazy" decoding="async" alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
             ) : (
               <div className="grid h-[44px] w-[44px] place-items-center rounded-full font-display text-[16px] font-bold text-[var(--accent-foreground)]" style={{ background: "var(--accent)" }}>
                 {initial}

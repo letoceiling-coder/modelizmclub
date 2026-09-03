@@ -7,14 +7,10 @@ import {
   Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
+import { userById, makeMockWaveform } from "@/lib/mock";
 import type { Dialog, Message } from "@/lib/mock";
-import {
-  useStore, actions, selectors,
-  setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage,
-  GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog,
-  openOrCreateDialogWith,
-} from "@/lib/store";
+import { useStore, actions, selectors, setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage, GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog, openOrCreateDialogWith } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import {
   fetchConversations, fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
@@ -66,6 +62,7 @@ import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 import i18n from "@/lib/i18n";
 import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -118,7 +115,6 @@ function dialogIdentity(d: Dialog): { name: string; avatar?: string; communitySl
   const u = userById(d.userId);
   return { name: u.name, avatar: u.avatar };
 }
-
 
 function DialogListSkeleton() {
   return (
@@ -288,6 +284,10 @@ function MessageImage({
           )}
           <img
             src={src}
+            width={frame.w}
+            height={frame.h}
+            loading="lazy"
+            decoding="async"
             alt=""
             draggable={false}
             className="h-full w-full"
@@ -316,7 +316,7 @@ function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {listing.image ? (
-          <img src={listing.image} alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img src={listing.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
         ) : (
           <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
         )}
@@ -344,7 +344,7 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {post.image ? (
-          <img src={post.image} alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img src={post.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
         ) : (
           <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
         )}
@@ -379,7 +379,7 @@ function MessageBubble({
   searchQuery?: string;
 }) {
   const { t } = useTranslation();
-  const meId = useStore((s) => s.currentUserId);
+  const meId = useCurrentUser().id;
   const isMe = msg.authorId === meId;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
@@ -517,7 +517,7 @@ function MessengerPage() {
   const { t } = useTranslation();
   const { guardAction } = useGuestAccess();
   const dlgs = useStore(selectors.dialogsList);
-  const meId = useStore((s) => s.currentUserId);
+  const meId = useCurrentUser().id;
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);
@@ -561,7 +561,6 @@ function MessengerPage() {
   }, [scrollToBottom]);
 
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
-
 
   // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
   // Value is normally a conversation uuid; legacy links may pass a user uuid.
@@ -1253,8 +1252,6 @@ function MessengerPage() {
             )}
           </div>
 
-
-
           <div className="min-h-0 flex-1 overflow-y-auto">
             {listTab === "calls" ? (
               <CallsList
@@ -1270,7 +1267,6 @@ function MessengerPage() {
               <ChannelsList query={query} communityDialogs={communityDialogs} onSelect={handleSelect} activeId={activeId} />
             ) : loading ? (
               <DialogListSkeleton />
-
 
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
@@ -1444,7 +1440,6 @@ function MessengerPage() {
                     />
                   )}
                 </div>
-
 
               </header>
               </div>

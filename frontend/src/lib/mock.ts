@@ -61,6 +61,8 @@ export interface Comment {
   likes?: number;
   replies?: Comment[];
   images?: string[];
+  /** Per-ability verdicts from the API (`can: { edit, delete, react }`). */
+  can?: Record<string, boolean>;
 }
 
 export interface VideoCategory {
@@ -131,6 +133,8 @@ export interface Post {
   canPublish?: boolean;
   canCancelSchedule?: boolean;
   canInteract?: boolean;
+  /** Per-ability verdicts from the API (`can: { edit, delete, react, comment }`); absent until the backend sends them. */
+  can?: Record<string, boolean>;
   isFollowing?: boolean;
   isLiked?: boolean;
   isSaved?: boolean;
@@ -468,7 +472,6 @@ export const categories: Category[] = [
   { id: "c8", name: "Электросамокаты", description: "Самокаты и моды", icon: "Zap", members: 980, subcategories: [{ id: "s1", name: "Контроллеры" }, { id: "s2", name: "Моды" }] },
 ];
 
-
 const cmt = (id: string, authorId: ID, time: string, text: string, likes = 0, replies: Comment[] = []): Comment => ({ id, authorId, time, text, likes, replies });
 
 export const posts: Post[] = [
@@ -763,24 +766,6 @@ export const userById = (id: ID): User =>
   dynamicUsers[id] ?? placeholderUser(id);
 export const categoryById = (id: ID) => categories.find((c) => c.id === id);
 export const communityById = (id: ID) => communities.find((c) => c.id === id);
-
-export function formatRelativeTime(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return iso;
-  const diffMs = Date.now() - t;
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "только что";
-  if (min < 60) return `${min} мин назад`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `${h} ч назад`;
-  const d = new Date(t);
-  const days = Math.floor(h / 24);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  if (days < 2) return `Вчера ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  if (days < 7) return `${days} дн назад`;
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
-}
-
 
 // ============= v6.0 additions =============
 

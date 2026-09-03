@@ -12,8 +12,20 @@ use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
+use App\Models\Comment;
+use App\Models\Conversation;
+use App\Models\Dispute;
+use App\Models\Listing;
+use App\Models\Message;
 use App\Models\Post;
+use App\Models\SafeDeal;
+use App\Policies\CommentPolicy;
+use App\Policies\ConversationPolicy;
+use App\Policies\DisputePolicy;
+use App\Policies\ListingPolicy;
+use App\Policies\MessagePolicy;
 use App\Policies\PostPolicy;
+use App\Policies\SafeDealPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -118,6 +130,16 @@ class AppServiceProvider extends ServiceProvider
         // surfaces as a 500 ("invalid input syntax for type uuid"); with the
         // pattern it simply fails to match the route and returns a clean 404.
         \Illuminate\Support\Facades\Route::pattern('uuid', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
+        // Every module ends its group with a `{slug}` catch-all (User, Channel,
+        // Community) and none of them constrained it, so anything that failed to
+        // match an explicit route — a typo, a removed path, a reserved word —
+        // fell through to a show-controller instead of a 404. Same treatment
+        // the uuid parameter already gets.
+        // Case-insensitive on purpose: slugs are lowercased where they are
+        // generated (Str::slug), and this pattern's job is to reject what is
+        // not a slug at all — %20, punctuation, underscores — not to police
+        // case. Reserved words such as `me` are handled by route order.
+        \Illuminate\Support\Facades\Route::pattern('slug', '[A-Za-z0-9][A-Za-z0-9-]{1,60}');
 
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
         RateLimiter::for('auth-verify', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
@@ -159,6 +181,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::policy(Post::class, PostPolicy::class);
+        Gate::policy(SafeDeal::class, SafeDealPolicy::class);
+        Gate::policy(Dispute::class, DisputePolicy::class);
+        Gate::policy(Conversation::class, ConversationPolicy::class);
+        Gate::policy(Message::class, MessagePolicy::class);
+        Gate::policy(Comment::class, CommentPolicy::class);
+        Gate::policy(Listing::class, ListingPolicy::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {

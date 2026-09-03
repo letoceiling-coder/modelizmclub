@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { enforceClientRouteAccess } from "@/lib/auth/enforceClientRouteAccess";
 import { subscribeFeedGuestAccess } from "@/lib/feed-guest-access/store";
-import { selectors, useStore } from "@/lib/store";
+import { useSessionResolved } from "@/lib/session";
 
 /**
  * Re-runs guest / auth / subscription route guards after hydration,
@@ -11,13 +11,13 @@ import { selectors, useStore } from "@/lib/store";
 export function RouteAccessEnforcer() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const sessionResolved = useStore(selectors.sessionResolved);
+  const sessionReady = useSessionResolved();
   const [accessTick, setAccessTick] = useState(0);
 
   useEffect(() => subscribeFeedGuestAccess(() => setAccessTick((n) => n + 1)), []);
 
   useEffect(() => {
-    if (!sessionResolved) return;
+    if (!sessionReady) return;
 
     let alive = true;
     void enforceClientRouteAccess(pathname).then((redirect) => {
@@ -32,7 +32,7 @@ export function RouteAccessEnforcer() {
     return () => {
       alive = false;
     };
-  }, [pathname, navigate, sessionResolved, accessTick]);
+  }, [pathname, navigate, sessionReady, accessTick]);
 
   return null;
 }

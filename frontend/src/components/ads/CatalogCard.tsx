@@ -14,6 +14,7 @@ import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider"
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
+import { Img } from "@/components/ui/Img";
 
 export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
@@ -39,11 +40,11 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
         style={{ background: "var(--background-surface)" }}
       >
         {broken || !media ? (
-          <img
+          <Img
             src={placeholder}
+            width={800}
+            height={600}
             alt={ad.title}
-            loading="lazy"
-            decoding="async"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (

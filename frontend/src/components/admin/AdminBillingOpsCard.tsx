@@ -16,6 +16,7 @@ import {
   type AdminWalletRow,
   type AdminWithdrawalRow,
 } from "@/lib/api/admin";
+import { formatDate } from "@/lib/format/date";
 
 type CardStyle = React.CSSProperties;
 
@@ -25,7 +26,7 @@ function rub(kopecks: number): string {
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return formatDate(iso, "absolute");
 }
 
 const th: React.CSSProperties = { textAlign: "left", padding: "8px 10px", fontSize: 12, color: "var(--foreground-50)", fontWeight: 600 };

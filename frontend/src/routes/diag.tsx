@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { fetchAdminDiagnostics, type AdminDiagnostics } from "@/lib/api/admin";
 import { isAdminUser } from "@/lib/auth/verification";
-import { getState, selectors } from "@/lib/store";
+import { getSessionUser } from "@/lib/session";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/diag")({
@@ -26,7 +26,7 @@ function StatusDot({ ok }: { ok: boolean }) {
 function DiagPage() {
   const [data, setData] = useState<AdminDiagnostics | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const me = selectors.currentUser(getState());
+  const me = getSessionUser();
   const allowed = isAdminUser(me);
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
 import { useChannels, isChannelOwner } from "@/lib/channels";
 import { useOwnedCommunities } from "@/lib/api/communities";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import type { EntityKind } from "@/lib/api/entity-requests";
 
 import i18n from "@/lib/i18n";
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/settings/spaces")({
 function SettingsSpacesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { channels } = useChannels();
   const myChannel = channels.find((c) => isChannelOwner(c, me.id));
   const { communities: ownedCommunities } = useOwnedCommunities();

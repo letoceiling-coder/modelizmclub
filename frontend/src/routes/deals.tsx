@@ -7,6 +7,7 @@ import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/Gues
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { fetchSafeDeals, kopecksToRub, type SafeDeal, type SafeDealRole } from "@/lib/api/safe-deals";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/deals")({
   component: DealsRoute,
@@ -123,7 +124,7 @@ function DealsPage() {
                       {deal.listing_title || `${kopecksToRub(deal.amount_kopecks)} ₽`}
                     </div>
                     <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                      {kopecksToRub(deal.amount_kopecks)} ₽ · {deal.paid_at ? new Date(deal.paid_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+                      {kopecksToRub(deal.amount_kopecks)} ₽ · {deal.paid_at ? formatDate(deal.paid_at, "absolute") : "—"}
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full px-[10px] py-[4px] text-[12px] font-semibold" style={{ background: "var(--background-surface)", color: STATUS_COLORS[deal.status] ?? "var(--foreground-70)" }}>

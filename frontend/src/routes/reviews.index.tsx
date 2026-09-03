@@ -38,7 +38,7 @@ function WatchLaterCard({ item }: { item: WatchLaterItem }) {
         style={{ aspectRatio: "16 / 9", background: "var(--background-surface)" }}
       >
         {item.posterUrl ? (
-          <img src={item.posterUrl} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
+          <img src={item.posterUrl} width={1600} height={900} decoding="async" alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
         ) : (
           <div className="grid h-full w-full place-items-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
             <Bookmark size={24} />

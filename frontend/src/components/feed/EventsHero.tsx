@@ -28,6 +28,10 @@ export function EventsHero() {
   const [autoplayMs, setAutoplayMs] = useState(() => Math.max(3000, (cached?.carousel.autoplay_seconds ?? 10) * 1000));
   const [enabled, setEnabled] = useState(() => cached?.carousel.enabled !== false);
   const [signup, setSignup] = useState<Banner | null>(null);
+  // False only during the very first fetch. Until then the hero's box is
+  // reserved (see below): rendering null and then inserting a 200px slider
+  // above the feed was the single largest layout shift on /feed (CLS 0.25).
+  const [settled, setSettled] = useState(() => cached !== null);
   useEffect(() => {
     if (cached) return;
     let active = true;
@@ -38,7 +42,10 @@ export function EventsHero() {
         setAutoplayMs(Math.max(3000, (carousel.autoplay_seconds ?? 10) * 1000));
         setEnabled(carousel.enabled !== false);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (active) setSettled(true);
+      });
     return () => { active = false; };
   }, [cached]);
 
@@ -65,6 +72,17 @@ export function EventsHero() {
 
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
+  if (!settled) {
+    return (
+      <section
+        aria-hidden
+        className="relative overflow-hidden rounded-[16px] border"
+        style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+      >
+        <div className={`animate-pulse ${BANNER_HERO_HEIGHT}`} style={{ background: "var(--background-surface)" }} />
+      </section>
+    );
+  }
   if (!enabled || list.length === 0) return null;
 
   const current = list[index];

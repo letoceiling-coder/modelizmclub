@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { Crown, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { fetchStats, getCachedStats } from "@/lib/api/content";
-import { selectors, useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { ROUTES } from "@/lib/routes";
 
 export function FirstHundredBanner() {
   const cached = getCachedStats()?.firstHundred;
   const [stats, setStats] = useState(() => cached ?? { taken: 0, total: 100, enabled: false });
   const [ready, setReady] = useState(() => cached != null);
-  const isMember = useStore(selectors.currentUser).id !== "guest";
+  const isMember = useCurrentUser().id !== "guest";
 
   useEffect(() => {
     if (cached != null) return;

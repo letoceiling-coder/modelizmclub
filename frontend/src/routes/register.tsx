@@ -17,8 +17,9 @@ import { peekStoredReferralCode, rememberReferralCodeAndTrack } from "@/lib/refe
 import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/register")({
-  validateSearch: (s: Record<string, unknown>): { ref?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { ref?: string; returnTo?: string } => ({
     ref: typeof s.ref === "string" ? s.ref : undefined,
+    returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") ? s.returnTo : undefined,
   }),
   head: () => ({ meta: [{ title: i18n.t("pages.register.metaTitle") }] }),
   component: RegisterPage,

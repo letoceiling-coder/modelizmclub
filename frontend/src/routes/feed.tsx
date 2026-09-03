@@ -8,11 +8,11 @@ import { CreatePostMenu, type ComposerDraft, type ComposerSelection } from "@/co
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
-import { PostCard } from "@/components/PostCard";
+import { PostCard } from "@/components/post/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed, fetchPost } from "@/lib/api/feed";
 import { fetchPostCategories, categoryIdByName, getCachedPostCategories } from "@/lib/api/categories";
@@ -79,7 +79,7 @@ function FeedPage() {
   const { t } = useTranslation();
   const { composer, category: categoryFromUrl, taxonomy_id: taxonomyFromUrl, post: focusPostId } = Route.useSearch();
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const loaded = Route.useLoaderData();
   const [posts, setPosts] = useState<Post[]>(() => loaded.posts);
   const [categories, setCategories] = useState<Category[]>(() => loaded.categories);
@@ -394,6 +394,7 @@ function FeedPage() {
                 <PostCard
                   key={post.id}
                   post={post}
+                  priority={idx === 0}
                   isSavedExternal={savedIds.has(post.id)}
                   onToggleSave={toggleSave}
                   onDelete={removePost}

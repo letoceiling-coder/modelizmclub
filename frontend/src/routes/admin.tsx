@@ -14,7 +14,7 @@ import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useStore, selectors, getState } from "@/lib/store";
+import { getSessionUser, useCurrentUser } from "@/lib/session";
 import { setFeatureFlag, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
@@ -131,7 +131,7 @@ function AdminPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isNestedAdminRoute = pathname.startsWith("/admin/") && pathname !== "/admin";
   const { section: sectionFromUrl } = Route.useSearch();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [section, setSection] = useState<Section>(sectionFromUrl ?? "dashboard");
@@ -150,7 +150,7 @@ function AdminPage() {
         navigate({ to: "/login", search: { redirect: "/admin" } });
         return;
       }
-      const current = selectors.currentUser(getState());
+      const current = getSessionUser();
       // `role` is the source of truth when present (real API sessions);
       // demo-mode sessions only set `isAdmin` (see lib/demo-data.ts DEMO_USER),
       // so fall back to treating isAdmin as "admin" there.
@@ -447,6 +447,7 @@ import {
   ACCENT_PRESET_LIST, ACCENT_PRESETS, DEFAULT_ACCENT_ID, isAccentPresetId,
   type Mode, type AccentSwatch, type AccentPreset, type AccentPresetId,
 } from "@/lib/theme-manager";
+import { formatDate } from "@/lib/format/date";
 
 function MediaSection() {
   return (
@@ -977,7 +978,7 @@ function SubscriptionCell({
   const [days, setDays] = useState(365);
   const meta = SUBSCRIPTION_LABEL[user.subscription.status];
   const endsAt = user.subscription.endsAt
-    ? new Date(user.subscription.endsAt).toLocaleDateString("ru-RU")
+    ? formatDate(user.subscription.endsAt, "date")
     : null;
 
   const actionStyle: React.CSSProperties = {
@@ -1024,7 +1025,7 @@ function SubscriptionCell({
 
 function UsersSection() {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const roleOptions = useMemo(() => ([
     { value: "user" as const, label: t("pages.adminUsers.roleUser") },
     { value: "subscriber" as const, label: t("pages.adminUsers.roleSubscriber") },
@@ -1437,6 +1438,10 @@ function ContentSection() {
             ) : preview.images[0] ? (
               <img
                 src={preview.images[0]}
+                width={1200}
+                height={675}
+                loading="lazy"
+                decoding="async"
                 alt={preview.title}
                 style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }}
               />
@@ -1945,7 +1950,7 @@ function DeliverySection() {
                       {row.deliveryCostCents != null ? `${Math.round(row.deliveryCostCents / 100).toLocaleString("ru")} ₽` : "—"}
                     </td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-50)", fontSize: "12px" }}>
-                      {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : "—"}
+                      {row.createdAt ? formatDate(row.createdAt, "absolute") : "—"}
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <button type="button" onClick={() => openRow(row)} style={{ ...primaryBtn, height: "32px", fontSize: "12px" }}>
@@ -2120,7 +2125,7 @@ function FeedbackSection() {
                     </span>
                   </div>
                   <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                    {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : ""}
+                    {row.createdAt ? formatDate(row.createdAt, "absolute") : ""}
                   </span>
                 </div>
                 <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>
@@ -3017,7 +3022,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
+  const formatDateCell = (iso?: string) => (iso ? formatDate(iso, "date") : "—");
 
   const approve = async (uuid: string) => {
     try {
@@ -3200,7 +3205,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
                       <div className="truncate max-w-[280px]">{v.title}</div>
                       {v.scheduledAt && (
                         <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                          {t("pages.adminReviews.scheduledAt", { date: new Date(v.scheduledAt).toLocaleString() })}
+                          {t("pages.adminReviews.scheduledAt", { date: formatDate(v.scheduledAt, "absolute") })}
                         </div>
                       )}
                     </td>
@@ -3210,7 +3215,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>
                       {t("pages.adminReviews.engagementSummary", { likes: v.likesCount, comments: v.commentsCount })}
                     </td>
-                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>{formatDate(v.publishedAt)}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>{formatDateCell(v.publishedAt)}</td>
                     <td style={{ padding: "10px 16px" }}><StatusBadge variant={meta.variant}>{meta.label}</StatusBadge></td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.views.toLocaleString()}</td>
                     <td style={{ padding: "10px 16px" }}>
@@ -3265,7 +3270,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
             {preview.videoUrl ? (
               <video src={preview.videoUrl} controls preload="metadata" playsInline poster={preview.posterUrl} style={{ marginTop: "16px", width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
             ) : preview.posterUrl ? (
-              <img src={preview.posterUrl} alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
+              <img src={preview.posterUrl} width={1200} height={675} loading="lazy" decoding="async" alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
             ) : (
               <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.videoUnavailable")}</p>
             )}
@@ -4395,7 +4400,7 @@ function ApplicationsSection() {
                 <Link to="/user/$id" params={{ id: r.applicant.slug ?? r.applicant.id }} style={{ color: "var(--accent)" }}>
                   {r.applicant.name}
                 </Link>
-                {" · "}{r.category}{" · "}{new Date(r.createdAt).toLocaleDateString("ru-RU")}
+                {" · "}{r.category}{" · "}{formatDate(r.createdAt, "date")}
               </div>
               {r.description && (
                 <div style={{ marginBottom: "12px", fontSize: "13px", color: "var(--foreground-70)", wordBreak: "break-word" }}>

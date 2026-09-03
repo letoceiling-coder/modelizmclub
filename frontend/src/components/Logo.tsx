@@ -22,6 +22,9 @@ export function Logo({
       <span className="logo-plate inline-flex min-w-0 items-center justify-center">
         <img
           src={src}
+          width={Math.round(height * 1600 / 514)}
+          loading="lazy"
+          decoding="async"
           alt={branding.site_name ?? "МоДелизМ"}
           height={height}
           className="object-contain block"

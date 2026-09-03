@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/admin";
 import { uploadAdminMedia } from "@/lib/api/admin-media";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { formatDate } from "@/lib/format/date";
 
 const BANNER_LIMITS = {
   title: 200,
@@ -147,7 +148,7 @@ function BannerImagePreview({
                 className="flex min-h-[100px] items-center justify-center rounded-[12px] border p-[10px]"
                 style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
               >
-                <img src={banner.imageUrl} alt="" className="max-h-[220px] max-w-full object-contain" />
+                <img src={banner.imageUrl} width={1200} height={400} loading="lazy" decoding="async" alt="" className="max-h-[220px] max-w-full object-contain" />
               </div>
             </div>
           )}
@@ -644,12 +645,12 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                           {" · "}
                           {b.startsAt
                             ? t("pages.adminBanners.list.dateFrom", {
-                                date: new Date(`${b.startsAt}T00:00:00`).toLocaleDateString("ru-RU"),
+                                date: formatDate(`${b.startsAt}T00:00:00`, "date"),
                               })
                             : t("pages.adminBanners.list.dateNoStart")}
                           {b.endsAt
                             ? t("pages.adminBanners.list.dateTo", {
-                                date: new Date(`${b.endsAt}T00:00:00`).toLocaleDateString("ru-RU"),
+                                date: formatDate(`${b.endsAt}T00:00:00`, "date"),
                               })
                             : ""}
                         </span>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoChannels, demoChannel, demoChannelPosts, setDemoChannelSubscription } from "@/lib/demo-data";
+import { formatDate } from "@/lib/format/date";
 
 export type ChannelKind = "official" | "brand" | "shop" | "author" | "expert";
 export type PostStatus = "published" | "moderation" | "rejected";
@@ -66,6 +67,8 @@ export interface Channel {
   canManage?: boolean;
   isSubscribed?: boolean;
   commentsEnabled?: boolean;
+  /** Reactions on channel posts; undefined = allowed. */
+  reactionsEnabled?: boolean;
   rules?: string;
   contacts?: string;
   ownerNumericId?: number;
@@ -525,8 +528,8 @@ export function formatCount(n: number) {
   return String(n);
 }
 
-export function formatDate(iso: string) {
+export function formatChannelDate(iso: string) {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return formatDate(d, "relative");
 }

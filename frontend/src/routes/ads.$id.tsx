@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Truck, SearchX } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useStore, selectors, actions } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { openConversation } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -97,7 +98,7 @@ function AdDetailPage() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { requireAccount, guardAction } = useGuestAccess();
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);

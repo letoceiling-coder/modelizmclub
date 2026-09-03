@@ -6,15 +6,8 @@ import { getToken } from "@/lib/api/client";
 import { fetchConversations, openConversation, sendMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { userById } from "@/lib/mock";
-import {
-  actions,
-  getState,
-  openOrCreateDialogWith,
-  selectors,
-  setDialogs,
-  upsertMessage,
-  useStore,
-} from "@/lib/store";
+import { actions, getState, openOrCreateDialogWith, selectors, setDialogs, upsertMessage, useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { toast } from "@/lib/toast";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
@@ -39,7 +32,7 @@ function shareMessage(payload: ShareLinkPayload): string {
 }
 
 export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
   const dialogs = useStore(selectors.dialogsList);
   const ref = useRef<HTMLDivElement>(null);
@@ -193,7 +186,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                           onClick={() => void sendTo(d.userId)}
                           className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)] disabled:opacity-60"
                         >
-                          <img src={u.avatar} alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
+                          <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
                           <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
                             {u.name}
                           </span>

@@ -20,6 +20,8 @@ class SafeDealActionsController extends Controller
         ]);
 
         $deal = $this->deal($uuid);
+
+        $this->authorize('ship', $deal);
         $deal = $this->deals->ship($request->user(), $deal, $data['tracking_number'] ?? null, $data['delivery_method'] ?? null);
 
         return $this->respond($deal, 'Сделка отмечена как отправленная.');
@@ -28,6 +30,7 @@ class SafeDealActionsController extends Controller
     public function delivered(Request $request, string $uuid): JsonResponse
     {
         $deal = $this->deal($uuid);
+        $this->authorize('markDelivered', $deal);
 
         if (! $deal->involves($request->user()) && ! $request->user()->isModerator()) {
             abort(403);
@@ -41,6 +44,7 @@ class SafeDealActionsController extends Controller
     public function confirm(Request $request, string $uuid): JsonResponse
     {
         $deal = $this->deal($uuid);
+        $this->authorize('confirmDelivery', $deal);
         $deal = $this->deals->confirm($request->user(), $deal);
 
         return $this->respond($deal, 'Получение подтверждено, средства переведены продавцу.');
@@ -49,6 +53,7 @@ class SafeDealActionsController extends Controller
     public function cancel(Request $request, string $uuid): JsonResponse
     {
         $deal = $this->deal($uuid);
+        $this->authorize('cancel', $deal);
         $deal = $this->deals->cancel($request->user(), $deal);
 
         return $this->respond($deal, 'Сделка отменена, средства возвращены покупателю.');
@@ -64,6 +69,8 @@ class SafeDealActionsController extends Controller
         ]);
 
         $deal = $this->deal($uuid);
+
+        $this->authorize('openDispute', $deal);
         $dispute = $this->deals->openDispute(
             $request->user(),
             $deal,

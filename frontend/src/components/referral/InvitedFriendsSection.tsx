@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Users, Gift } from "lucide-react";
 import { REFERRAL_MAX_BONUS } from "@/lib/referral";
 import { useReferral } from "@/lib/api/referral";
-import { formatRelativeTime } from "@/lib/mock";
+import { formatDate } from "@/lib/format/date";
 
 export function InvitedFriendsSection() {
   const { data } = useReferral();
@@ -81,7 +81,11 @@ export function InvitedFriendsSection() {
                   }}
                 >
                   <img
-                    src={u.avatar ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.displayName)}`}
+                    src={u.avatar ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.displayName)}
+                    width={40}
+                    height={40}
+                    loading="lazy"
+                    decoding="async"`}
                     alt=""
                     className="h-[40px] w-[40px] rounded-full object-cover"
                   />
@@ -93,7 +97,7 @@ export function InvitedFriendsSection() {
                       {u.displayName}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--foreground-50)" }}>
-                      Присоединился {inv.joinedAt ? formatRelativeTime(inv.joinedAt) : ""}
+                      Присоединился {inv.joinedAt ? formatDate(inv.joinedAt, "relative") : ""}
                     </div>
                   </div>
                   <span

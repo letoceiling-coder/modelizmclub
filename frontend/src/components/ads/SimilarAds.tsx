@@ -82,6 +82,7 @@ export function SimilarAds({ items }: { items: Ad[] }) {
               <div className="overflow-hidden" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
                 <img
                   src={a.image}
+                  decoding="async"
                   alt={a.title}
                   width={440}
                   height={330}

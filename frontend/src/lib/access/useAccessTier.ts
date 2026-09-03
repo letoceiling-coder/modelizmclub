@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { getToken } from "@/lib/api/client";
-import { selectors, useStore } from "@/lib/store";
+import { useCurrentUser, useSessionResolved } from "@/lib/session";
 import { useMySubscription } from "@/lib/subscription";
 import {
   accessTierLabel,
@@ -21,8 +21,8 @@ export function useAccessTier(): {
   canViewReviews: boolean;
   canCreateContent: boolean;
 } {
-  const me = useStore(selectors.currentUser);
-  const sessionResolved = useStore(selectors.sessionResolved);
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
   const hasToken = !!getToken();
   const { sub, loading: subLoading } = useMySubscription();
 
@@ -36,7 +36,7 @@ export function useAccessTier(): {
     [hasToken, me, sub?.is_active],
   );
 
-  const loading = !sessionResolved || (hasToken && me.id === "guest") || (hasToken && subLoading);
+  const loading = !sessionReady || (hasToken && me.id === "guest") || (hasToken && subLoading);
 
   return {
     tier,

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { RulePageData, RuleSection, RulesHubData } from "@/lib/api/rules";
+import { formatDate } from "@/lib/format/date";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 
@@ -7,7 +8,7 @@ export function formatRevisionDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  return formatDate(d, "absolute");
 }
 
 export function rulesJsonLd(page: RulePageData, pathname: string) {

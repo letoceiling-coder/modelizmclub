@@ -18,6 +18,7 @@ class ReviewSafeDealController extends Controller
         ]);
 
         $deal = SafeDeal::query()->with(['listing', 'shipment'])->where('uuid', $uuid)->firstOrFail();
+        $this->authorize('review', $deal);
         $review = $deals->review($request->user(), $deal, (int) $data['rating'], $data['text'] ?? null);
 
         return response()->json([

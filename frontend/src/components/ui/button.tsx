@@ -5,6 +5,9 @@ import { ChevronDown, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+const primaryClasses =
+  "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-button)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none";
+
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-button)] text-sm font-medium cursor-pointer transition-[color,background-color,border-color,box-shadow,transform] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
@@ -12,8 +15,10 @@ const buttonVariants = cva(
       variant: {
         // Primary — brand accent (preset-driven). Text uses --accent-foreground
         // so menthol gets dark ink and blue gets white (contrast-safe).
-        default:
-          "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-button)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none",
+        default: primaryClasses,
+        // `primary` — каноническое имя из docs/design-system.md; `default`
+        // остаётся для существующих вызовов (68 файлов), это один и тот же стиль.
+        primary: primaryClasses,
         // Secondary / dark — solid dark fill, "Доп кнопка" in UI Kit
         secondary:
           "bg-[var(--neutral-900)] text-white hover:bg-[var(--neutral-700)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)]",
@@ -34,12 +39,27 @@ const buttonVariants = cva(
         success:
           "bg-[var(--success)] text-white shadow-sm hover:opacity-90 disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)]",
         link: "text-[var(--accent)] underline-offset-4 hover:underline disabled:text-[var(--neutral-400)]",
+        // Tertiary — третий приоритет: приглушённый текст, без заливки и рамки.
+        // В отличие от ghost не уходит в accent на hover — остаётся нейтральным.
+        tertiary:
+          "text-[var(--foreground-70)] hover:bg-[var(--background-surface)] hover:text-[var(--foreground)] disabled:text-[var(--neutral-400)]",
+        // Detached — отдельно стоящая кнопка (вне группы/шапки): рамка +
+        // приподнятый фон, чтобы читаться на любой подложке.
+        detached:
+          "border border-[var(--border)] bg-[var(--background-elevated)] text-[var(--foreground)] shadow-[var(--shadow-card-airy)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:border-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none",
+        // Icon — только иконка, квадрат; сочетать с size="icon" (44×44).
+        icon:
+          "aspect-square p-0 text-[var(--foreground-70)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:text-[var(--neutral-400)]",
       },
+      // Тап-таргет: md и icon — 44px (минимум для мобильного), sm — 36px.
+      // `default` (40) и `lg` (44) — legacy-имена для существующих вызовов;
+      // новый код использует sm | md | icon (docs/design-system.md).
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-8 rounded-[var(--r-button)] px-3 text-xs",
+        sm: "h-9 rounded-[var(--r-button)] px-3 text-xs",
+        md: "h-11 rounded-[var(--r-button)] px-5",
         lg: "h-11 rounded-[var(--r-button)] px-8",
-        icon: "h-10 w-10",
+        icon: "h-11 w-11 p-0",
       },
     },
     defaultVariants: {

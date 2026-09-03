@@ -82,7 +82,7 @@ export function AuthShell({ title, subtitle, children, footer, leftContent }: Pr
     >
       {/* LEFT — visual */}
       <div className="relative hidden overflow-hidden lg:block">
-        <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={cover} width={1200} height={1600} loading="lazy" decoding="async" alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div
           className="absolute inset-0"
           style={{

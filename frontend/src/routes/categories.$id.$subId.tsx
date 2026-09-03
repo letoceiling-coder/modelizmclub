@@ -27,7 +27,8 @@ import { usePostCategories } from "@/lib/hooks/useCategories";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
-import { useStore, selectors, GUEST_USER } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { searchUsers } from "@/lib/api/social";
 import { fetchListings } from "@/lib/api/listings";
 import {
@@ -219,7 +220,7 @@ function SubcategoryRoomPage() {
   // Rooms exist on levels 2 and 3, so the id can sit anywhere in the subtree.
   const sub = c ? findDescendant(c.subcategories, subId) : null;
   const onlineSet = useOnlineSet();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
 
   const [tab, setTab] = useState<Tab>("chat");
   const [subSheetOpen, setSubSheetOpen] = useState(false);
@@ -477,7 +478,7 @@ function dedupeRoomMessages(messages: RoomMessage[]): RoomMessage[] {
 
 function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const navigate = useNavigate();
   const openPrivateChat = useCallback(async (partner: User) => {
     try {
@@ -904,7 +905,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               }}
               className={`flex gap-[10px] ${mine ? "flex-row-reverse" : ""}`}
             >
-              <img src={u.avatar} alt={u.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
+              <img src={u.avatar} width={32} height={32} loading="lazy" decoding="async" alt={u.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
               <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                 <div className="mb-[2px] flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
                   {!mine && (
@@ -955,6 +956,9 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                         >
                           <img
                             src={src}
+                            width={800}
+                            height={600}
+                            decoding="async"
                             alt={t("pages.subcategoryDetail.attachmentAlt")}
                             className="h-full max-h-[220px] w-full object-cover"
                             loading="lazy"
@@ -1041,7 +1045,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[10px] border"
               style={{ borderColor: "var(--border)", background: "var(--background)" }}
             >
-              <img src={item.preview} alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
+              <img src={item.preview} width={64} height={64} loading="lazy" decoding="async" alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => setEditingAttachment(item.preview)}
@@ -1194,7 +1198,7 @@ function MembersTab({
   onlineSet: Set<string>;
 }) {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const navigate = useNavigate();
   const openPrivateChat = useCallback(async (partner: User) => {
     try {
@@ -1246,7 +1250,7 @@ function MembersTab({
             className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
           >
             <div className="relative shrink-0">
-              <img src={u.avatar} alt={u.name} className="h-[40px] w-[40px] rounded-full" />
+              <img src={u.avatar} width={40} height={40} loading="lazy" decoding="async" alt={u.name} className="h-[40px] w-[40px] rounded-full" />
               <span
                 className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
                 style={{

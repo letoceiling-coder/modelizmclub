@@ -1,0 +1,8 @@
+[Unit]
+Description=Report a failed backup run (%i)
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/var/www/modelizmclub
+ExecStart=/var/www/modelizmclub/deploy/scripts/backup-db-notify.sh %i

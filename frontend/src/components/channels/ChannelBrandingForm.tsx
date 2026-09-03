@@ -189,7 +189,7 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
             style={{ background: showBanner ? "transparent" : channel.bannerColor, border: "1px solid var(--border)" }}
           >
             {showBanner ? (
-              <img src={bannerUrl} alt="" className="h-24 w-full object-cover" onError={() => setBrokenBanner(true)} />
+              <img src={bannerUrl} width={1200} height={300} loading="lazy" decoding="async" alt="" className="h-24 w-full object-cover" onError={() => setBrokenBanner(true)} />
             ) : (
               <div className="grid h-24 place-items-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
                 {t("components.channelBranding.bannerNotUploaded")}

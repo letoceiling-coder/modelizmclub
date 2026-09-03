@@ -1,0 +1,11 @@
+{
+  "Rules": [
+    {
+      "ID": "modelizmclub-backups-expire-60d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "backups/" },
+      "Expiration": { "Days": 60 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 3 }
+    }
+  ]
+}

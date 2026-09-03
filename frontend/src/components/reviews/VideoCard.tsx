@@ -6,11 +6,12 @@ import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatDuration } from "@/lib/format-duration";
 import { cn } from "@/lib/utils";
 import { GuardedReviewLink } from "@/components/reviews/GuardedReviewLink";
+import { formatDate } from "@/lib/format/date";
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ru", { day: "numeric", month: "short" });
+  return formatDate(d, "relative");
 }
 
 function shortViews(n: number): string {
@@ -31,6 +32,8 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
       >
         <img
           src={src}
+          width={1600}
+          height={900}
           alt={video.title}
           loading="lazy"
           decoding="async"

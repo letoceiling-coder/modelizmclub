@@ -54,6 +54,10 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
             <div className="flex flex-col items-center text-center">
               <img
                 src={peer.avatar}
+                width={64}
+                height={64}
+                loading="lazy"
+                decoding="async"
                 alt=""
                 className="h-[64px] w-[64px] rounded-full object-cover"
                 style={{ border: "2px solid var(--border)" }}

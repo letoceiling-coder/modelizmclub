@@ -4,10 +4,9 @@ import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Car, Plane, Ship, Send as SendIcon, Code2, Wrench, Cpu, BatteryCharging, Users,
-  Share2, Globe, Phone, MessageCircle, FilePlus, ImageOff, ArrowLeft,
-  Check, Plus, CalendarDays, MapPin, MessagesSquare, Heart, ChevronRight,
-  Settings2, Flag, Pencil, Trash2,
-} from "lucide-react";
+  Share2, Globe, Phone, FilePlus, ImageOff, ArrowLeft,
+  Check, Plus, CalendarDays, MapPin, MessagesSquare, ChevronRight,
+  Settings2, Flag, } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById } from "@/lib/mock";
@@ -24,6 +23,7 @@ import {
 import { ShareSheet } from "@/components/communities/ShareSheet";
 import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
 import { Card } from "@/components/ui/card";
+import { PostCard } from "@/components/post/PostCard";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,12 +35,9 @@ import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
 import { toast } from "@/lib/toast";
-import { deletePost, updatePost } from "@/lib/api/feed";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }] }),
@@ -159,130 +156,6 @@ function LoadingSkeleton() {
 
 /* ============================ Tab content ============================ */
 
-function CommunityPostCard({
-  post,
-  community,
-  Icon,
-  onDeleted,
-  onUpdated,
-}: {
-  post: Post;
-  community: Community;
-  Icon: typeof Car;
-  onDeleted: (id: string) => void;
-  onUpdated: (post: Post) => void;
-}) {
-  const { t } = useTranslation();
-  const [broken, setBroken] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState(post.title);
-  const [editBody, setEditBody] = useState(post.text);
-  const [busy, setBusy] = useState(false);
-  const img = post.image ?? post.images?.[0];
-  const showAvatar = Boolean(community.avatarImage);
-  const canManage = Boolean(post.canEdit || post.canDelete);
-
-  const saveEdit = async () => {
-    setBusy(true);
-    try {
-      const next = await updatePost(post.id, { title: editTitle.trim(), body: editBody.trim() });
-      onUpdated({ ...post, ...next, title: editTitle.trim(), text: editBody.trim() });
-      setEditOpen(false);
-      toast.success(t("pages.communityDetail.editPostSaved"));
-    } catch {
-      toast.error(t("pages.communityDetail.editPostFailed"));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const remove = async () => {
-    if (!window.confirm(t("pages.communityDetail.deletePostConfirm"))) return;
-    setBusy(true);
-    try {
-      await deletePost(post.id);
-      onDeleted(post.id);
-      toast.success(t("pages.communityDetail.deletePostSuccess"));
-    } catch {
-      toast.error(t("pages.communityDetail.deletePostFailed"));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-      <div className="flex items-center gap-[10px] px-[16px] pt-[14px]">
-        <div className="grid h-[38px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-[10px]" style={{ background: "var(--accent-soft)" }}>
-          {showAvatar ? (
-            <img src={community.avatarImage} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <Icon size={18} style={{ color: "var(--accent)" }} />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{community.name}</div>
-          <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{post.date}</div>
-        </div>
-        {canManage && (
-          <div className="flex shrink-0 gap-[4px]">
-            {post.canEdit && (
-              <button
-                type="button"
-                className="grid h-[32px] w-[32px] place-items-center rounded-[8px]"
-                style={{ color: "var(--foreground-50)" }}
-                aria-label={t("pages.communityDetail.editPost")}
-                onClick={() => { setEditTitle(post.title); setEditBody(post.text); setEditOpen(true); }}
-              >
-                <Pencil size={15} />
-              </button>
-            )}
-            {post.canDelete && (
-              <button
-                type="button"
-                className="grid h-[32px] w-[32px] place-items-center rounded-[8px]"
-                style={{ color: "var(--foreground-50)" }}
-                aria-label={t("pages.communityDetail.deletePost")}
-                disabled={busy}
-                onClick={() => void remove()}
-              >
-                <Trash2 size={15} />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="px-[16px] pb-[12px] pt-[10px]">
-        <h3 className="font-display text-[16px] font-semibold leading-tight" style={{ color: "var(--foreground)" }}>{post.title}</h3>
-        <p className="mt-[6px] text-[14px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>{post.text}</p>
-      </div>
-      {img && !broken && (
-        <div className="aspect-video overflow-hidden" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
-        </div>
-      )}
-      <div className="flex items-center gap-[18px] px-[16px] py-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        <span className="inline-flex items-center gap-[6px]"><Heart size={15} /> {post.likes}</span>
-        <span className="inline-flex items-center gap-[6px]"><MessageCircle size={15} /> {post.comments}</span>
-      </div>
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-[440px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
-          <DialogHeader>
-            <DialogTitle>{t("pages.communityDetail.editPostTitle")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-[10px]">
-            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={200} />
-            <Textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} rows={6} />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditOpen(false)} disabled={busy}>{t("common.cancel")}</Button>
-            <Button onClick={() => void saveEdit()} disabled={busy || editTitle.trim().length === 0}>{t("pages.communityDetail.editPostSave")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
 
 function DiscussionRow({ d }: { d: DemoDiscussion }) {
   const { t } = useTranslation();
@@ -303,12 +176,12 @@ function DiscussionRow({ d }: { d: DemoDiscussion }) {
 function HubEventCard({ e, onToggle, busy }: { e: CommunityEvent; onToggle: (e: CommunityEvent) => void; busy?: boolean }) {
   const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
-  const when = e.startsAt ? new Date(e.startsAt).toLocaleString("ru") : "";
+  const when = e.startsAt ? formatDate(e.startsAt, "absolute") : "";
   return (
     <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="relative h-[140px] w-full overflow-hidden" style={{ background: "var(--background-surface)" }}>
         {e.coverUrl && !broken ? (
-          <img src={e.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+          <img src={e.coverUrl} width={1200} height={420} decoding="async" alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
         ) : (
           <div className="grid h-full w-full place-items-center" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))", color: "#fff" }}>
             <CalendarDays size={30} />
@@ -464,7 +337,7 @@ function CommunityRightRail({
                 return (
                   <Link key={c.id} to="/communities/$id" params={{ id: c.id }} className="flex items-center gap-[10px] rounded-[10px] p-[6px] transition-colors hover:bg-[var(--background-surface)]">
                     <span className="grid h-[36px] w-[36px] shrink-0 place-items-center overflow-hidden rounded-[10px]" style={{ background: "var(--accent-soft)" }}>
-                      {c.avatarImage ? <img src={c.avatarImage} alt="" className="h-full w-full object-cover" /> : <CIcon size={16} style={{ color: "var(--accent)" }} />}
+                      {c.avatarImage ? <img src={c.avatarImage} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" /> : <CIcon size={16} style={{ color: "var(--accent)" }} />}
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{c.name}</span>
@@ -931,13 +804,14 @@ function CommunityDetailPage() {
             ) : posts.length > 0 ? (
               <div className="space-y-[16px]">
                 {posts.map((p) => (
-                  <CommunityPostCard
+                  <PostCard
                     key={p.id}
+                    variant="community"
                     post={p}
-                    community={community}
-                    Icon={Icon}
-                    onDeleted={(id) => setPosts((list) => list.filter((x) => x.id !== id))}
-                    onUpdated={(next) => setPosts((list) => list.map((x) => (x.id === next.id ? next : x)))}
+                    context={{ community }}
+                    onDelete={(id) => setPosts((list) => list.filter((x) => x.id !== id))}
+                    onEdited={(next) => setPosts((list) => list.map((x) => (x.id === next.id ? next : x)))}
+                    onTogglePost={(id, patch) => setPosts((list) => list.map((x) => (x.id === id ? { ...x, ...patch } : x)))}
                   />
                 ))}
               </div>

@@ -34,6 +34,10 @@ function PngIcon({ url, className, size, fill }: { url: string; className?: stri
   return (
     <img
       src={url}
+      width={size ?? 24}
+      height={size ?? 24}
+      loading="lazy"
+      decoding="async"
       alt=""
       aria-hidden
       className={cn(fill && FILL_CLASS, className)}
@@ -125,6 +129,10 @@ export function LandingCardIconSlot({
     return (
       <img
         src={iconUrl}
+        width={size ?? 24}
+        height={size ?? 24}
+        loading="lazy"
+        decoding="async"
         alt=""
         className={cn(fill && FILL_CLASS, imgClassName ?? className)}
         style={fill ? { objectFit: "contain" } : { width: size, height: size, objectFit: "contain" }}

@@ -6,9 +6,10 @@ import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { mockMyRating, mockMyReviews } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchUserRating, fetchUserReviews } from "@/lib/api/rating";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/settings/rating")({
   component: RatingSection,
@@ -40,7 +41,7 @@ interface ReviewRow {
 
 function RatingSection() {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const demo = isDemoMode();
   const [rating, setRating] = useState(demo ? mockMyRating : { average: 0, count: 0 });
   const [reviews, setReviews] = useState<ReviewRow[]>(demo ? mockMyReviews : []);
@@ -93,7 +94,7 @@ function RatingSection() {
               </div>
               <p className="mt-[4px] text-[13.5px] leading-[1.5]" style={{ color: "var(--foreground-90)" }}>{r.text}</p>
               <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                {new Date(r.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+                {formatDate(r.date, "absolute")}
               </div>
             </div>
           </Card>

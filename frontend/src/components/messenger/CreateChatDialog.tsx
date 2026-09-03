@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Search } from "lucide-react";
 import type { User } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { searchUsers } from "@/lib/api/social";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOnlineSet } from "@/lib/realtime/presence";
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function CreateChatDialog({ open, onClose, onPick }: Props) {
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const onlineSet = useOnlineSet();
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
@@ -143,7 +143,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                         className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left"
                         style={{ background: active ? "var(--background-surface)" : "transparent" }}
                       >
-                        <img src={u.avatar} alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
+                        <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{u.name}</div>
                           <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>

@@ -362,7 +362,7 @@ class ChatFrontendIntegrationTest extends TestCase
 
         $this->actingAs($b, 'sanctum')
             ->deleteJson("/api/v1/conversations/{$conv->uuid}/messages/{$message->uuid}/everyone")
-            ->assertUnprocessable();
+            ->assertForbidden(); // MessagePolicy::delete — author only
     }
 
     public function test_clear_conversation_history_for_current_user_only(): void

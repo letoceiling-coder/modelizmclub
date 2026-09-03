@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatRelativeTime } from "@/lib/mock";
+import { formatDate } from "@/lib/format/date";
 
 /**
  * Hydration-safe relative-time label. Renders a stable placeholder until the
@@ -11,8 +11,8 @@ export function TimeAgo({ iso, className, style }: { iso: string; className?: st
 
   useEffect(() => {
     setMounted(true);
-    setText(formatRelativeTime(iso));
-    const id = window.setInterval(() => setText(formatRelativeTime(iso)), 60_000);
+    setText(formatDate(iso, "relative"));
+    const id = window.setInterval(() => setText(formatDate(iso, "relative")), 60_000);
     return () => window.clearInterval(id);
   }, [iso]);
 

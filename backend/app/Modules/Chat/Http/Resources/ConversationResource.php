@@ -3,6 +3,7 @@
 namespace Modules\Chat\Http\Resources;
 
 use App\Enums\ConversationType;
+use App\Http\Resources\Concerns\HasCanFlags;
 use App\Models\Conversation;
 use App\Models\PostCategory;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Modules\Chat\Services\ChatService;
 /** @mixin Conversation */
 class ConversationResource extends JsonResource
 {
+    use HasCanFlags;
+
     public function toArray(Request $request): array
     {
         $user = $request->user();
@@ -36,6 +39,7 @@ class ConversationResource extends JsonResource
 
         return [
             'uuid' => $this->uuid,
+            'can' => $this->canFlags($request->user(), ['view', 'send', 'delete', 'pin']),
             'type' => $this->type->value,
             'title' => $title,
             'listing_id' => $this->listing_id,

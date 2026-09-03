@@ -83,3 +83,54 @@ changed.
   для реального (не demo) теста иконок, а не дефект фронта. Demo-цикл проверен
   end-to-end (upload → sanitize/tokenize → reject multicolor → assign → publish →
   render в /feed → переживает reload).
+
+## `GET /users/me` answers 500 — public `{slug}` catch-all swallows unmatched paths
+
+**Found:** 2026-09-03, while writing the post-deploy smoke check
+(`deploy/scripts/smoke-check.sh`). The check picked `/users/me` as its
+"authenticated route" probe and failed on the first run against production.
+
+```
+GET https://api.modelizmclub.ru/api/v1/users/me   (no token)
+→ 500 {"message":"Server Error"}
+```
+
+Every other protected route behaves correctly:
+
+```
+users/me/listings         401
+me/entity-requests        401
+wallet                    401
+account/payment-methods   401
+```
+
+**Cause.** There is no `GET users/me` route at all — `backend/app/Modules/User/routes/api.php`
+declares `me/stats`, `me/settings`, `me/interests`, … under `auth:sanctum` and
+`PATCH me` under `auth:sanctum,verified`, but no bare `GET me`. The request
+therefore falls through to the public catch-all on line 63:
+
+```php
+Route::get('{slug}', ShowProfileController::class);
+```
+
+which treats `me` as a profile slug, finds no such user, and throws instead of
+returning 404.
+
+**Why this is worth a task of its own.** The bug is not the missing route —
+it is that an unauthenticated catch-all sits at the end of the `users` prefix
+and absorbs every path that did not match something explicit. Any future typo,
+renamed route or client calling a path that no longer exists lands in
+`ShowProfileController` and surfaces as a 500. `{slug}` has no `where()`
+constraint, unlike the `{id}` routes above it which are guarded with
+`->whereNumber('id')`. The same shape may exist under other prefixes.
+
+Worth checking as part of the F3 routing audit:
+- constrain `{slug}` (a slug pattern, or an explicit exclusion list of reserved
+  words like `me`), so unmatched paths 404 instead of reaching a controller;
+- make `ShowProfileController` return 404 for a missing profile rather than
+  throwing;
+- sweep the other module route files for unconstrained catch-alls.
+
+**Not fixed** — recorded deliberately. The smoke check probes
+`users/me/listings` instead, so the deploy gate does not depend on this bug
+being resolved first.
