@@ -9,13 +9,12 @@ import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { useStore } from "@/lib/store";
 import { ROUTES } from "@/lib/routes";
+import { useUnreadMessagesTotal } from "@/lib/messenger";
 
 export function DesktopTopBar() {
   const unread = useUnreadNotifications();
   const favCount = useStore((s) => s.favoriteAdIds.length);
-  const unreadMessages = useStore((s) =>
-    Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
-  );
+  const unreadMessages = useUnreadMessagesTotal();
   const { t } = useTranslation();
 
   const iconClass = "relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]";

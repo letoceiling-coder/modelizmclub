@@ -4,8 +4,9 @@ import { api, API_BASE_URL } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoConversations, demoMessages } from "@/lib/demo-data";
-import { getState, openOrCreateDialogWith, restoreDialog, wasChatWithPartnerDeleted } from "@/lib/store";
+import { wasChatWithPartnerDeleted } from "@/lib/store";
 import type { MediaVariantSet } from "@/lib/media/variants";
+import { messengerCache } from "@/lib/messenger";
 
 function seedFromId(id: string): number {
   let h = 0;
@@ -443,7 +444,7 @@ export async function openConversation(
   if (reopening && !isDemoMode()) {
     await clearConversationHistory(dialog.id).catch(() => {});
   }
-  restoreDialog(dialog);
+  messengerCache.restoreDialog(dialog);
   return dialog;
 }
 
@@ -455,14 +456,16 @@ export async function navigateToPartnerChat(
   partner: User,
   meUuid: string,
 ): Promise<void> {
-  const existing = Object.values(getState().dialogs).find((d) => d.userId === partner.id);
+  const existing = messengerCache.findByPartner(partner.id);
   if (existing) {
     navigate({ to: "/messenger", search: { chat: existing.id } });
     return;
   }
 
   if (isDemoMode()) {
-    navigate({ to: "/messenger", search: { chat: openOrCreateDialogWith(partner.id) } });
+    const demo = messengerCache.findByPartner(partner.id) ?? { id: `d_${partner.id}`, userId: partner.id, lastMessage: "", time: new Date().toISOString(), unread: 0, messages: [] };
+    messengerCache.restoreDialog(demo);
+    navigate({ to: "/messenger", search: { chat: demo.id } });
     return;
   }
 

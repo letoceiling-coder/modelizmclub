@@ -88,8 +88,8 @@ export function seedDemoStore(): void {
   // community pages' join/leave buttons).
   for (const id of JOINED_COMMUNITY_IDS) actions.joinCommunity(DEMO_USER.id, id);
 
-  // Conversations into the store (messenger reads dialogs from the store).
-  setDialogs(mockDialogs);
+  // Conversations into the Query cache — the messenger reads dialogs from there.
+  messengerCache.setDialogs(mockDialogs);
 }
 
 // ── auth ─────────────────────────────────────────────────────────────────────
@@ -712,6 +712,7 @@ export function demoSetVideoFeatured(id: ID, on: boolean): void {
 
 // ---- Entity creation requests (Channel / Community) — demo ----
 import type { EntityRequest, RequestStatus, CommunityCategoryOption } from "@/lib/api/entity-requests";
+import { messengerCache } from "@/lib/messenger";
 
 let demoRequestsList: EntityRequest[] = [
   { id: "req-1", kind: "community", proposedName: "RC-моделисты Краснодара", description: "Хотим отдельное сообщество по нашему городу, чтобы не засорять общий чат Автомоделей.", category: "Автомодели", status: "pending", createdAt: "2026-07-13T10:00:00Z", applicant: { id: "u2", name: "Сергей ДВС", slug: "u2" } },

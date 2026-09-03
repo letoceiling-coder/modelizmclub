@@ -11,7 +11,7 @@ import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
-import { useStore } from "@/lib/store";
+import { useUnreadMessagesTotal } from "@/lib/messenger";
 
 interface Item {
   to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/deals" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings" | "/settings/wallet";
@@ -75,9 +75,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const marketEnabled = useFeatureFlag("marketEnabled");
   const { sub } = useMySubscription();
   const { isGuest } = useGuestAccess();
-  const unreadMessages = useStore((s) =>
-    Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
-  );
+  const unreadMessages = useUnreadMessagesTotal();
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,

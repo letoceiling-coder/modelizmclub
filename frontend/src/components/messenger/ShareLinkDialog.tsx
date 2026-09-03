@@ -6,10 +6,11 @@ import { getToken } from "@/lib/api/client";
 import { fetchConversations, openConversation, sendMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { userById } from "@/lib/mock";
-import { actions, getState, openOrCreateDialogWith, selectors, setDialogs, upsertMessage, useStore } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { toast } from "@/lib/toast";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { useDialogs, messengerCache } from "@/lib/messenger";
 
 export interface ShareLinkPayload {
   url: string;
@@ -34,7 +35,7 @@ function shareMessage(payload: ShareLinkPayload): string {
 export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
   const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
-  const dialogs = useStore(selectors.dialogsList);
+  const { dialogs } = useDialogs();
   const ref = useRef<HTMLDivElement>(null);
   const open = Boolean(payload);
   const [createChatOpen, setCreateChatOpen] = useState(false);
@@ -44,7 +45,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
     if (!open) return;
     if (isDemoMode() || !getToken()) return;
     void fetchConversations(me.id)
-      .then(setDialogs)
+      .then((list) => messengerCache.setDialogs(list))
       .catch(() => toast.error("Не удалось загрузить список диалогов"));
   }, [open, me.id]);
 
@@ -58,11 +59,13 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
   }, [open, onClose]);
 
   const resolveDialogId = async (partnerId: string): Promise<string> => {
-    const existing = Object.values(getState().dialogs).find((d) => d.userId === partnerId);
+    const existing = messengerCache.findByPartner(partnerId);
     if (existing) return existing.id;
 
     if (isDemoMode()) {
-      return openOrCreateDialogWith(partnerId);
+      const demo = { id: `d_${partnerId}`, userId: partnerId, lastMessage: "", time: new Date().toISOString(), unread: 0, messages: [] };
+      messengerCache.restoreDialog(demo);
+      return demo.id;
     }
 
     const partner = userById(partnerId);
@@ -94,7 +97,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
         });
       } else {
         const saved = await sendMessage(dialogId, text);
-        upsertMessage(dialogId, saved);
+        messengerCache.upsert(dialogId, saved);
       }
       toast.success(`Отправлено ${partner.name}`);
       onSent?.(dialogId);

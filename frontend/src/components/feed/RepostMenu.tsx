@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { useStore, selectors, actions } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { userById } from "@/lib/mock";
 import { sendPostShareMessage } from "@/lib/api/chat";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
+import { useDialogs } from "@/lib/messenger";
 
 interface Props {
   postId: string;
@@ -27,7 +28,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const dialogs = useStore(selectors.dialogsList);
+  const { dialogs } = useDialogs();
   const navigate = useNavigate();
 
   useEffect(() => {

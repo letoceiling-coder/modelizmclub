@@ -9,10 +9,11 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, makeMockWaveform } from "@/lib/mock";
 import type { Dialog, Message } from "@/lib/mock";
-import { useStore, actions, selectors, setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage, GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog, openOrCreateDialogWith } from "@/lib/store";
+import { useStore, actions, GUEST_USER, getState, markDialogDeleted } from "@/lib/store";
+import { useDialogs, useDialogMessages, messengerCache } from "@/lib/messenger";
 import { useCurrentUser } from "@/lib/session";
 import {
-  fetchConversations, fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
+  fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
   uploadChatAttachment, sendAttachmentMessage,
   hideMessageForMe, pinMessage as apiPinMessage, deleteConversation, clearConversationHistory,
@@ -23,7 +24,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
-import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
+import { onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
@@ -511,7 +512,7 @@ function MessageBubble({
 function MessengerPage() {
   const { t } = useTranslation();
   const { guardAction } = useGuestAccess();
-  const dlgs = useStore(selectors.dialogsList);
+  const { dialogs: dlgs, isPending: loading } = useDialogs();
   const meId = useCurrentUser().id;
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
@@ -530,8 +531,6 @@ function MessengerPage() {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">(chat ? "chat" : "list");
-  const [loading, setLoading] = useState(true);
-  const [chatLoading, setChatLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
   const [chatScope, setChatScope] = useState<ChatScope>("all");
@@ -569,10 +568,10 @@ function MessengerPage() {
     if (!chat) return;
 
     const selectDialog = (dialogId: string, dlg: (typeof dlgs)[number]) => {
-      if (dialogMetaMap[dialogId]?.deletedLocally) restoreDialog(dlg);
+      if (dialogMetaMap[dialogId]?.deletedLocally) messengerCache.restoreDialog(dlg);
       setActiveId(dialogId);
       setMobileView("chat");
-      if (dlg.unread) actions.markRead(dialogId);
+      if (dlg.unread) messengerCache.markRead(dialogId);
     };
 
     const byConversation = dlgs.find((d) => d.id === chat);
@@ -600,17 +599,18 @@ function MessengerPage() {
       try {
         if (isDemoMode()) {
           const partner = userById(chat);
-          const dialogId = openOrCreateDialogWith(partner.id);
-          const dlg = getState().dialogs[dialogId];
-          if (!alive || !dlg) return;
-          selectDialog(dialogId, dlg);
-          void navigate({ to: "/messenger", search: { chat: dialogId }, replace: true });
+          const existing = messengerCache.findByPartner(partner.id);
+          const dlg: Dialog = existing ?? { id: `d_${partner.id}`, userId: partner.id, lastMessage: "", time: new Date().toISOString(), unread: 0, messages: [] };
+          if (!existing) messengerCache.restoreDialog(dlg);
+          if (!alive) return;
+          selectDialog(dlg.id, dlg);
+          void navigate({ to: "/messenger", search: { chat: dlg.id }, replace: true });
           return;
         }
         try {
           const dialog = await fetchConversation(chat, meId);
           if (!alive) return;
-          restoreDialog(dialog);
+          messengerCache.restoreDialog(dialog);
           selectDialog(dialog.id, dialog);
           return;
         } catch {
@@ -669,71 +669,46 @@ function MessengerPage() {
   );
 
   useEffect(() => {
-    let alive = true;
-    fetchConversations(meId)
-      .then((list) => {
-        if (!alive) return;
-        setDialogs(list);
-      })
-      .catch(() => {})
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [meId]);
-
-  useEffect(() => {
     setWatchingDialog(activeId);
     return () => setWatchingDialog(null);
   }, [activeId]);
 
   useEffect(() => {
     if (!activeId) return;
-    actions.markRead(activeId);
+    messengerCache.markRead(activeId);
   }, [activeId]);
 
-  // Refresh dialog list for unread counts and partner presence (last_seen_at).
+  // The list polls itself (conversationsQuery.refetchInterval); a socket
+  // reconnect just asks for a fresh page right away.
   useEffect(() => {
     if (meId === GUEST_USER.id) return;
-    const tick = () => {
-      fetchConversations(meId)
-        .then((list) => setDialogs(list))
-        .catch(() => {});
-    };
-    tick();
-    const interval = window.setInterval(tick, isEchoConnected() ? 45_000 : 20_000);
-    const unsubConn = onEchoConnection((connected) => {
-      if (connected) tick();
+    return onEchoConnection((connected) => {
+      if (connected) messengerCache.invalidateDialogs();
     });
-    return () => {
-      window.clearInterval(interval);
-      unsubConn();
-    };
   }, [meId]);
 
+  const { messages, isPending: chatLoading } = useDialogMessages(activeId);
+
+  // A message queued from another page ("Написать продавцу" with text) goes
+  // out as soon as the thread is on screen.
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId || chatLoading) return;
+    const pending = getState().pendingDialogMessages[activeId];
+    if (!pending) return;
+    actions.clearPendingMessage(activeId);
     let alive = true;
-    setChatLoading(true);
-    fetchMessages(activeId)
-      .then(async (msgs) => {
-        if (!alive) return;
-        setDialogMessages(activeId, msgs);
-        const pending = getState().pendingDialogMessages[activeId];
-        if (pending) {
-          actions.clearPendingMessage(activeId);
-          try {
-            const saved = await apiSendMessage(activeId, pending);
-            if (alive) actions.addMessage(activeId, saved);
-          } catch (err) {
-            if (!alive) return;
-            const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
-            if (message) toast.error(message);
-          }
-        }
+    apiSendMessage(activeId, pending)
+      .then((saved) => {
+        if (alive) messengerCache.addMessage(activeId, saved);
       })
-      .catch(() => {})
-      .finally(() => { if (alive) setChatLoading(false); });
+      .catch((err) => {
+        if (!alive) return;
+        const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
+        if (message) toast.error(message);
+      });
     return () => { alive = false; };
-  }, [activeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, chatLoading]);
 
   useEffect(() => {
     if (!activeId || meId === GUEST_USER.id) {
@@ -742,8 +717,8 @@ function MessengerPage() {
     }
     setHubConversation(
       activeId,
-      (m) => upsertMessage(activeId, m),
-      (messageUuid) => actions.removeMessage(activeId, messageUuid),
+      (m) => messengerCache.upsert(activeId, m),
+      (messageUuid) => messengerCache.removeMessage(activeId, messageUuid),
     );
     return () => setHubConversation(null);
   }, [activeId, meId]);
@@ -758,25 +733,13 @@ function MessengerPage() {
   useEffect(() => {
     if (!activeId || !partner) return;
     if (isUserOnline(partner.id, onlineSet, partner)) {
-      markOwnMessagesDelivered(activeId);
+      messengerCache.markOwnStatus(activeId, "delivered");
     }
   }, [activeId, partner, onlineSet, presenceTick]);
 
-  // Sync delivery/read ticks while chat is open (WebSocket carries new messages, not status changes).
-  useEffect(() => {
-    if (!activeId || meId === GUEST_USER.id) return;
-    const id = activeId;
-    const syncStatuses = () => {
-      fetchMessages(id)
-        .then((msgs) => mergeDialogMessages(id, msgs))
-        .catch(() => {});
-    };
-    syncStatuses();
-    const interval = window.setInterval(syncStatuses, isEchoConnected() ? 20_000 : 10_000);
-    return () => window.clearInterval(interval);
-  }, [activeId, meId]);
+  // Delivery/read ticks: messagesQuery re-polls itself and merges over the cache.
 
-  const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
+  const pinnedMessage = messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
 
   const scrollToMessage = useCallback((id: string, attempt = 0) => {
     const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${id}"]`);
@@ -855,7 +818,7 @@ function MessengerPage() {
   useEffect(() => {
     if (!scrollRef.current || chatLoading) return;
     scrollToBottom(stickToBottomRef.current ? "smooth" : "auto");
-  }, [active?.messages.length, chatLoading, activeId, scrollToBottom]);
+  }, [messages.length, chatLoading, activeId, scrollToBottom]);
 
   useEffect(() => {
     const target = messagesContentRef.current;
@@ -865,13 +828,13 @@ function MessengerPage() {
     });
     ro.observe(target);
     return () => ro.disconnect();
-  }, [activeId, active?.messages.length, scrollToBottom]);
+  }, [activeId, messages.length, scrollToBottom]);
 
   const handleSelect = (id: string) => {
     setActiveId(id);
     setMobileView("chat");
     setReplyTo(null);
-    actions.markRead(id);
+    messengerCache.markRead(id);
   };
 
   // Used after "Удалить чат". Also clears the ?chat= search param when it
@@ -925,14 +888,14 @@ function MessengerPage() {
       status: "sent",
       replyTo: replyId,
     };
-    actions.addMessage(dialogId, optimistic);
+    messengerCache.addMessage(dialogId, optimistic);
     setText("");
     setReplyTo(null);
     try {
       const saved = await apiSendMessage(dialogId, body, replyId);
-      replaceMessage(dialogId, tempId, saved);
+      messengerCache.replaceMessage(dialogId, tempId, saved);
     } catch (err) {
-      actions.removeMessage(dialogId, tempId);
+      messengerCache.removeMessage(dialogId, tempId);
       setText((current) => current || body);
       const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
       if (message) toast.error(message);
@@ -968,7 +931,7 @@ function MessengerPage() {
         src: localUrl,
       },
     };
-    actions.addMessage(dialogId, optimistic);
+    messengerCache.addMessage(dialogId, optimistic);
     setReplyTo(null);
     // Demo mode has no media backend — the optimistic message already carries a
     // playable blob URL + waveform + duration, so it IS the final message. Skip
@@ -977,10 +940,10 @@ function MessengerPage() {
     try {
       const { uuid } = await uploadVoice(blob, durationSec);
       const saved = await apiSendVoiceMessage(dialogId, uuid, durationSec, replyId);
-      replaceMessage(dialogId, tempId, saved);
+      messengerCache.replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(localUrl);
     } catch (err) {
-      actions.removeMessage(dialogId, tempId);
+      messengerCache.removeMessage(dialogId, tempId);
       URL.revokeObjectURL(localUrl);
       const message = formatApiErrorMessage(err, t("pages.messenger.voiceSendFailed"));
       if (message) toast.error(message);
@@ -1030,7 +993,7 @@ function MessengerPage() {
       kind === "image"
         ? { ...base, image: url, imageSize: imageSize ?? undefined }
         : { ...base, file: { name: readyFile.name, size: readyFile.size, kind, url } };
-    actions.addMessage(dialogId, optimistic);
+    messengerCache.addMessage(dialogId, optimistic);
     setReplyTo(null);
     if (isDemoMode()) {
       toast(t("pages.messenger.attachmentSentDemo"), {
@@ -1046,14 +1009,14 @@ function MessengerPage() {
         chatAttachmentMessageType(kind),
         replyId,
       );
-      replaceMessage(dialogId, tempId, saved);
+      messengerCache.replaceMessage(dialogId, tempId, saved);
       if (saved.file?.url && !saved.file.url.startsWith("blob:")) {
         URL.revokeObjectURL(url);
       } else if (saved.image && !saved.image.startsWith("blob:")) {
         URL.revokeObjectURL(url);
       }
     } catch (err) {
-      actions.removeMessage(dialogId, tempId);
+      messengerCache.removeMessage(dialogId, tempId);
       URL.revokeObjectURL(url);
       toast.error(formatChatAttachmentError(err));
     }
@@ -1113,7 +1076,7 @@ function MessengerPage() {
     if (!window.confirm(t("pages.messenger.deleteForAllConfirm"))) return;
 
     const dialogId = active.id;
-    actions.removeMessage(dialogId, m.id);
+    messengerCache.removeMessage(dialogId, m.id);
 
     if (!isDemoMode()) {
       try {
@@ -1121,7 +1084,7 @@ function MessengerPage() {
       } catch {
         toast.error(t("pages.messenger.deleteFailed"));
         fetchMessages(dialogId)
-          .then((msgs) => setDialogMessages(dialogId, msgs))
+          .then((msgs) => messengerCache.setMessages(dialogId, msgs))
           .catch(() => {});
       }
     }
@@ -1255,7 +1218,7 @@ function MessengerPage() {
                   setShowArchived(false);
                   setActiveId(did);
                   setMobileView("chat");
-                  actions.markRead(did);
+                  messengerCache.markRead(did);
                 }}
               />
             ) : listTab === "channels" ? (
@@ -1471,14 +1434,14 @@ function MessengerPage() {
                   <MessageSkeleton />
                 ) : (
                   <div ref={messagesContentRef}>
-                    {active.messages
+                    {messages
                       .filter((m) => !m.deletedForMe)
                       .map((m, i, arr) => (
                         <MessageBubble
                           key={m.clientKey ?? m.id}
                           msg={m}
                           prev={arr[i - 1]}
-                          allMessages={active.messages}
+                          allMessages={messages}
                           onReply={setReplyTo}
                           onCopy={handleCopy}
                           onForward={setForwardMsg}
@@ -1588,11 +1551,11 @@ function MessengerPage() {
         <ChatMessageSearch
           open={chatSearchOpen}
           dialogId={active.id}
-          messages={active.messages.filter((m) => !m.deletedForMe)}
+          messages={messages.filter((m) => !m.deletedForMe)}
           meId={meId}
           onClose={() => setChatSearchOpen(false)}
           onJumpTo={handleSearchJump}
-          onMessagesLoaded={(all) => setDialogMessages(active.id, all)}
+          onMessagesLoaded={(all) => messengerCache.setMessages(active.id, all)}
         />
       )}
       <ComplaintDialog
@@ -1700,6 +1663,7 @@ function MessengerPage() {
           }
           actions.clearHistory(dialogId);
           if (partnerId) markDialogDeleted(dialogId, partnerId);
+          messengerCache.removeDialog(dialogId);
           if (activeId === dialogId) deselectDialog(dialogId);
           toast.success(t("pages.messenger.chatDeleted"));
         }}

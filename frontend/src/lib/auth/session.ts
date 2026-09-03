@@ -1,9 +1,8 @@
 import { fetchMe, logout as apiLogout } from "@/lib/api/auth";
 import { getToken } from "@/lib/api/client";
 import { fetchFavoriteListings } from "@/lib/api/listings";
-import { fetchConversations } from "@/lib/api/chat";
 import { shutdownCalls } from "@/lib/calls";
-import { actions, setDialogs } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
@@ -15,6 +14,7 @@ import { setSession } from "@/lib/session/cache";
 import { getSessionQueryClient } from "@/lib/session/queryClient";
 import { sessionQueryOptions } from "@/lib/session/options";
 import { SESSION_KEY, type Session } from "@/lib/session/types";
+import { conversationsQuery } from "@/lib/queries/messenger";
 
 /** Replace local favorite IDs with the server list (source of truth for the badge). */
 export async function syncFavoritesFromServer(): Promise<void> {
@@ -34,8 +34,9 @@ export async function syncDialogsFromServer(meUuid: string): Promise<void> {
   if (!getToken() && !isDemoMode()) return;
   if (!meUuid || meUuid === GUEST_USER.id) return;
   try {
-    const list = await fetchConversations(meUuid);
-    setDialogs(list);
+    const qc = getSessionQueryClient();
+    if (!qc) return;
+    const list = await qc.fetchQuery(conversationsQuery(meUuid));
     list.forEach((d) => {
       if (d.listing) actions.setDialogAd(d.id, d.listing);
     });

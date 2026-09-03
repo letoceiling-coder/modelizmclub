@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { getActiveSection, ROUTES } from "@/lib/routes";
-import { useStore, selectors } from "@/lib/store";
+import { selectors } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
+import { useUnreadMessagesTotal } from "@/lib/messenger";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
@@ -32,9 +33,7 @@ export function BottomNav() {
   const ITEMS = ALL_ITEMS.filter((i) => i.to !== "/communities" || communitiesEnabled);
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
-  const unreadMessages = useStore((s) =>
-    Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
-  );
+  const unreadMessages = useUnreadMessagesTotal();
 
   return (
     <nav

@@ -6,8 +6,9 @@ import { forwardMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { Message } from "@/lib/mock";
 import { userById } from "@/lib/mock";
-import { useStore, selectors, actions, upsertMessage } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
+import { useDialogs, messengerCache } from "@/lib/messenger";
 
 interface Props {
   message: Message | null;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export function ForwardDialog({ message, onClose }: Props) {
-  const dialogs = useStore(selectors.dialogsList);
+  const { dialogs } = useDialogs();
   const meId = useCurrentUser().id;
   const ref = useRef<HTMLDivElement>(null);
   const open = Boolean(message);
@@ -50,7 +51,7 @@ export function ForwardDialog({ message, onClose }: Props) {
     }
     try {
       const saved = await forwardMessage(targetDialogId, message.id, message.text);
-      upsertMessage(targetDialogId, saved);
+      messengerCache.upsert(targetDialogId, saved);
       toast.success("Сообщение переслано");
       onClose();
     } catch {
