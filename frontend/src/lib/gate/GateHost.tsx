@@ -46,8 +46,17 @@ export function GateHost() {
 
   return (
     <>
-      <AuthDialog open={open === "auth"} returnTo={returnTo} onOpenChange={dismiss} onSuccess={() => void resumeIntent(go)} />
-      <VerifyPhoneDialog open={open === "verify"} onOpenChange={dismiss} onSuccess={() => void resumeIntent(go)} />
+      <AuthDialog
+        open={open === "auth"}
+        returnTo={returnTo}
+        onOpenChange={dismiss}
+        onSuccess={() => void resumeIntent(go)}
+      />
+      <VerifyPhoneDialog
+        open={open === "verify"}
+        onOpenChange={dismiss}
+        onSuccess={() => void resumeIntent(go)}
+      />
       <PaywallDialog open={open === "paywall"} returnTo={returnTo} onOpenChange={dismiss} />
     </>
   );

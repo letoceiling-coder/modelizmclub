@@ -22,7 +22,8 @@ export function levelOf(session: Session | null | undefined): Level {
   if (!session || session.user.id === "guest") return "guest";
   const user = session.user;
   if (isStaffUser(user) || session.subscription.active) return "subscriber";
-  if (session.phoneVerified || isPhoneVerified(user) || !isPhoneVerificationRequired(user)) return "verified";
+  if (session.phoneVerified || isPhoneVerified(user) || !isPhoneVerificationRequired(user))
+    return "verified";
   return "registered";
 }
 

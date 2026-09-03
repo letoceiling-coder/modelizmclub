@@ -32,7 +32,13 @@ export function PaywallDialog({ open, returnTo, onOpenChange }: Props) {
       >
         Оформить подписку
       </Button>
-      <Button type="button" variant="ghost" size="lg" className="mt-2 w-full" onClick={() => onOpenChange(false)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="lg"
+        className="mt-2 w-full"
+        onClick={() => onOpenChange(false)}
+      >
         Позже
       </Button>
     </GateDialogShell>

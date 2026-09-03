@@ -37,7 +37,11 @@ export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
       await ensureSession();
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : "Не удалось войти. Проверьте почту и пароль.");
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Не удалось войти. Проверьте почту и пароль.",
+      );
     } finally {
       setBusy(false);
     }
@@ -52,7 +56,14 @@ export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
       icon={<LogIn size={22} />}
     >
       <form onSubmit={submit} className="space-y-3">
-        <Input name="email" type="email" autoComplete="email" placeholder="Почта" required className="h-11" />
+        <Input
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="Почта"
+          required
+          className="h-11"
+        />
         <Input
           name="password"
           type="password"
@@ -61,8 +72,16 @@ export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
           required
           className="h-11"
         />
-        <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          <input type="checkbox" name="remember" defaultChecked style={{ accentColor: "var(--accent)" }} />
+        <label
+          className="flex items-center gap-2 text-[13px]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          <input
+            type="checkbox"
+            name="remember"
+            defaultChecked
+            style={{ accentColor: "var(--accent)" }}
+          />
           Запомнить меня
         </label>
         {error && (
