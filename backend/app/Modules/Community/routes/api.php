@@ -15,7 +15,7 @@ use Modules\Community\Http\Controllers\Api\V1\ShowCommunityController;
 use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityBrandingController;
 use Modules\Community\Http\Controllers\Api\V1\UpdateCommunityController;
 
-Route::prefix('communities')->middleware('communities')->group(function (): void {
+Route::prefix('communities')->middleware(['communities', 'optionalAuth'])->group(function (): void {
     Route::get('/', IndexCommunityController::class);
     Route::get('{slug}/events', [CommunityEventsController::class, 'index']);
     Route::get('{slug}/members', CommunityMembersController::class);
