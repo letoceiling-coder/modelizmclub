@@ -10,6 +10,7 @@ import { setToken } from "@/lib/api/client";
 import { useNavigate } from "@tanstack/react-router";
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/settings/consents")({
   head: () => ({ meta: [{ title: `Мои согласия — ${i18n.t("common.appName")}` }] }),
@@ -101,7 +102,7 @@ function ConsentsSettingsPage() {
               <div className="font-medium">{TYPE_LABELS[c.type] ?? c.type}</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Версия: {c.doc_version} · {c.status === "granted" ? "Дано" : "Отозвано"}
-                {c.created_at ? ` · ${new Date(c.created_at).toLocaleString("ru-RU")}` : ""}
+                {c.created_at ? ` · ${formatDate(c.created_at, "absolute")}` : ""}
               </div>
               {c.status === "granted" && (c.type === "ads" || c.type === "cookies") && (
                 <Button

@@ -8,6 +8,7 @@ import {
   type AdminPaymentStatus,
   type AdminPaymentType,
 } from "@/lib/api/admin";
+import { formatDate } from "@/lib/format/date";
 
 type CardStyle = React.CSSProperties;
 
@@ -26,15 +27,9 @@ function formatMoney(rub: number): string {
   }).format(rub);
 }
 
-function formatDate(iso: string | null): string {
+function formatDateCell(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDate(iso, "absolute");
 }
 
 export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
@@ -199,7 +194,7 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
               {rows.map((row) => (
                 <tr key={row.uuid} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td className="py-2 pr-3 whitespace-nowrap" style={{ color: "var(--foreground-70)" }}>
-                    {formatDate(row.paid_at ?? row.created_at)}
+                    {formatDateCell(row.paid_at ?? row.created_at)}
                   </td>
                   <td className="py-2 pr-3" style={{ color: "var(--foreground)" }}>{row.user_email ?? "—"}</td>
                   <td className="py-2 pr-3 whitespace-nowrap" style={{ color: "var(--foreground)" }}>

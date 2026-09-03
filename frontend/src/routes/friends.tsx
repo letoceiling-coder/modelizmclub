@@ -8,7 +8,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
-import { formatRelativeTime, userById, type User } from "@/lib/mock";
+import { userById, type User } from "@/lib/mock";
 import { useStore, selectors, actions } from "@/lib/store";
 import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
@@ -35,6 +35,7 @@ import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog";
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: i18n.t("pages.friends.metaTitle") }] }),
@@ -546,7 +547,7 @@ function FriendsPage() {
                             {t("pages.friends.wantsToAdd")}
                           </p>
                           <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
-                            <Clock size={10} /> {formatRelativeTime(r.date)}
+                            <Clock size={10} /> {formatDate(r.date, "relative")}
                           </p>
                           <div className="mt-[12px] flex flex-wrap gap-[8px]">
                             <Button

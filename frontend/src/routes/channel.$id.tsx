@@ -32,6 +32,7 @@ import type { User } from "@/lib/mock";
 
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.channelDetail.metaTitle") }] }),
@@ -998,7 +999,7 @@ function AboutPanel({
   scrollSection?: "stats";
 }) {
   const { t } = useTranslation();
-  const created = new Date(channel.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  const created = formatDate(channel.createdAt, "absolute");
   const ownerProfileId = channel.ownerSlug ?? channel.ownerId;
   const ownerNameEl = ownerProfileId ? (
     <Link

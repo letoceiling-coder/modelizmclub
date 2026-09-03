@@ -447,6 +447,7 @@ import {
   ACCENT_PRESET_LIST, ACCENT_PRESETS, DEFAULT_ACCENT_ID, isAccentPresetId,
   type Mode, type AccentSwatch, type AccentPreset, type AccentPresetId,
 } from "@/lib/theme-manager";
+import { formatDate } from "@/lib/format/date";
 
 function MediaSection() {
   return (
@@ -977,7 +978,7 @@ function SubscriptionCell({
   const [days, setDays] = useState(365);
   const meta = SUBSCRIPTION_LABEL[user.subscription.status];
   const endsAt = user.subscription.endsAt
-    ? new Date(user.subscription.endsAt).toLocaleDateString("ru-RU")
+    ? formatDate(user.subscription.endsAt, "date")
     : null;
 
   const actionStyle: React.CSSProperties = {
@@ -1945,7 +1946,7 @@ function DeliverySection() {
                       {row.deliveryCostCents != null ? `${Math.round(row.deliveryCostCents / 100).toLocaleString("ru")} ₽` : "—"}
                     </td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-50)", fontSize: "12px" }}>
-                      {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : "—"}
+                      {row.createdAt ? formatDate(row.createdAt, "absolute") : "—"}
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <button type="button" onClick={() => openRow(row)} style={{ ...primaryBtn, height: "32px", fontSize: "12px" }}>
@@ -2120,7 +2121,7 @@ function FeedbackSection() {
                     </span>
                   </div>
                   <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                    {row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : ""}
+                    {row.createdAt ? formatDate(row.createdAt, "absolute") : ""}
                   </span>
                 </div>
                 <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>
@@ -3017,7 +3018,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
+  const formatDateCell = (iso?: string) => (iso ? formatDate(iso, "date") : "—");
 
   const approve = async (uuid: string) => {
     try {
@@ -3200,7 +3201,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
                       <div className="truncate max-w-[280px]">{v.title}</div>
                       {v.scheduledAt && (
                         <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                          {t("pages.adminReviews.scheduledAt", { date: new Date(v.scheduledAt).toLocaleString() })}
+                          {t("pages.adminReviews.scheduledAt", { date: formatDate(v.scheduledAt, "absolute") })}
                         </div>
                       )}
                     </td>
@@ -3210,7 +3211,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>
                       {t("pages.adminReviews.engagementSummary", { likes: v.likesCount, comments: v.commentsCount })}
                     </td>
-                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>{formatDate(v.publishedAt)}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)", whiteSpace: "nowrap" }}>{formatDateCell(v.publishedAt)}</td>
                     <td style={{ padding: "10px 16px" }}><StatusBadge variant={meta.variant}>{meta.label}</StatusBadge></td>
                     <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>{v.views.toLocaleString()}</td>
                     <td style={{ padding: "10px 16px" }}>
@@ -4395,7 +4396,7 @@ function ApplicationsSection() {
                 <Link to="/user/$id" params={{ id: r.applicant.slug ?? r.applicant.id }} style={{ color: "var(--accent)" }}>
                   {r.applicant.name}
                 </Link>
-                {" · "}{r.category}{" · "}{new Date(r.createdAt).toLocaleDateString("ru-RU")}
+                {" · "}{r.category}{" · "}{formatDate(r.createdAt, "date")}
               </div>
               {r.description && (
                 <div style={{ marginBottom: "12px", fontSize: "13px", color: "var(--foreground-70)", wordBreak: "break-word" }}>

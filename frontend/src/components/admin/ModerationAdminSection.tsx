@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatDate } from "@/lib/format/date";
 
 const card: CSSProperties = {
   background: "var(--background-elevated)",
@@ -108,7 +109,7 @@ function ModerationDetailCard({
 }) {
   const { t } = useTranslation();
   const openPath = moderationOpenPath(item);
-  const submitted = item.submittedAt ? new Date(item.submittedAt).toLocaleString("ru-RU") : null;
+  const submitted = item.submittedAt ? formatDate(item.submittedAt, "absolute") : null;
 
   return (
     <motion.div
@@ -336,7 +337,7 @@ function ReportsPanel() {
                     <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>{meta.label}</span>
                     <span style={{ fontSize: "11px", fontWeight: 500, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--background-subtle)", color: "var(--foreground-70)" }}>{reasonLabel}</span>
                   </div>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{row.createdAt ? new Date(row.createdAt).toLocaleString("ru-RU") : ""}</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{row.createdAt ? formatDate(row.createdAt, "absolute") : ""}</span>
                 </div>
                 {row.description && <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>{row.description}</p>}
                 <div className="flex items-center justify-between flex-wrap gap-[8px]" style={{ marginTop: "10px" }}>

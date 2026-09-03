@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { fetchAdminReferrals, updateAdminSettings, type AdminReferralRow } from "@/lib/api/admin";
+import { formatDate } from "@/lib/format/date";
 
 type CardStyle = React.CSSProperties;
 
@@ -140,7 +141,7 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
                     {row.status === "completed" || row.phone_verified ? "Бонус начислен" : "Ждёт телефон"}
                   </td>
                   <td className="py-2" style={{ color: "var(--foreground-50)" }}>
-                    {row.joined_at ? new Date(row.joined_at).toLocaleDateString("ru-RU") : "—"}
+                    {row.joined_at ? formatDate(row.joined_at, "date") : "—"}
                   </td>
                 </tr>
               ))}
