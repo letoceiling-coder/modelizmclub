@@ -137,6 +137,7 @@ class PostService
                 ]);
             }
 
+            $this->forgetRepostRecord($post);
             $post->delete();
 
             return;
@@ -148,7 +149,18 @@ class PostService
             ]);
         }
 
+        $this->forgetRepostRecord($post);
         $post->delete();
+    }
+
+    /** Keep post_reposts in sync so «уже репостнул» не залипает после удаления карточки. */
+    private function forgetRepostRecord(Post $post): void
+    {
+        if (! $post->repost_of_id) {
+            return;
+        }
+
+        DB::table('post_reposts')->where('repost_post_id', $post->id)->delete();
     }
 
     public function publish(Post $post, User $user): Post
@@ -354,9 +366,10 @@ class PostService
             'channelPost.channel.avatar',
             'mediaItems.media',
             'tags',
-            'repostOf.author.profile',
+            'repostOf.author.profile.avatar',
             'repostOf.category',
             'repostOf.mediaItems.media',
+            'repostOf.tags',
         ];
     }
 
@@ -386,52 +399,23 @@ class PostService
 
     public function attachViewerFlags(Post $post, ?User $viewer): void
     {
-        $post->reposts_total = (int) DB::table('post_reposts')
-            ->where('original_post_id', $post->id)
-            ->count();
-
-        if (! $viewer) {
-            $post->viewer_reacted = false;
-            $post->viewer_bookmarked = false;
-            $post->viewer_reposted = false;
-            if ($post->channelPost?->channel) {
-                $post->channelPost->channel->is_subscribed = false;
-            }
-
-            return;
-        }
-
-        $post->viewer_reacted = $post->reactions()
-            ->where('user_id', $viewer->id)
-            ->exists();
-
-        $post->viewer_bookmarked = DB::table('post_bookmarks')
-            ->where('post_id', $post->id)
-            ->where('user_id', $viewer->id)
-            ->exists();
-
-        $post->viewer_reposted = DB::table('post_reposts')
-            ->where('original_post_id', $post->id)
-            ->where('user_id', $viewer->id)
-            ->exists();
-
-        if ($post->channelPost?->channel) {
-            $post->channelPost->channel->is_subscribed = $post->channelPost->channel
-                ->subscribers()
-                ->whereKey($viewer->id)
-                ->exists();
-        }
+        $this->attachViewerFlagsToCollection(collect([$post]), $viewer);
     }
 
     /**
      * Batch-attach viewer flags to a collection of posts using two queries total
-     * (avoids the per-post N+1 when rendering the feed).
+     * (avoids the per-post N+1 when rendering the feed). Nested originals on
+     * shares get the same flags so the inner card shows real likes/reposts.
      *
      * @param  Collection<int, Post>  $posts
      */
     public function attachViewerFlagsToCollection($posts, ?User $viewer): void
     {
-        $ids = $posts->pluck('id')->filter()->values()->all();
+        $originals = $posts
+            ->map(fn (Post $post) => $post->relationLoaded('repostOf') ? $post->repostOf : null)
+            ->filter();
+        $targets = $posts->concat($originals)->filter()->values();
+        $ids = $targets->pluck('id')->filter()->unique()->values()->all();
 
         if ($ids === []) {
             return;
@@ -445,7 +429,7 @@ class PostService
             ->pluck('c', 'original_post_id');
 
         if ($viewer === null) {
-            $posts->each(function (Post $post) use ($repostTotals): void {
+            $targets->each(function (Post $post) use ($repostTotals): void {
                 $post->viewer_reacted = false;
                 $post->viewer_bookmarked = false;
                 $post->viewer_reposted = false;
@@ -482,7 +466,7 @@ class PostService
                 ->all(),
         );
 
-        $channelIds = $posts
+        $channelIds = $targets
             ->map(fn (Post $post) => $post->channelPost?->channel?->id)
             ->filter()
             ->unique()
@@ -498,7 +482,7 @@ class PostService
                     ->all(),
             );
 
-        $posts->each(function (Post $post) use ($reacted, $bookmarked, $reposted, $repostTotals, $subscribedChannels): void {
+        $targets->each(function (Post $post) use ($reacted, $bookmarked, $reposted, $repostTotals, $subscribedChannels): void {
             $post->viewer_reacted = isset($reacted[$post->id]);
             $post->viewer_bookmarked = isset($bookmarked[$post->id]);
             $post->viewer_reposted = isset($reposted[$post->id]);

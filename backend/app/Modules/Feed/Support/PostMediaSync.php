@@ -27,7 +27,7 @@ class PostMediaSync
         foreach ($mediaUuids as $uuid) {
             $media = Media::query()->where('uuid', $uuid)->first();
 
-            if (! $media || $media->uploaded_by !== $user->id || ! $media->isReady()) {
+            if (! $media || ! $media->canAttachToOwnerContent($user)) {
                 throw ValidationException::withMessages([
                     'media_ids' => ['Прикреплённый файл недоступен. Дождитесь окончания загрузки или прикрепите его заново.'],
                 ]);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ImageOff, X, ChevronLeft, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
@@ -95,8 +96,16 @@ function Lightbox({ images, startIndex, alt, onClose }: { images: string[]; star
     };
   }, [embla, onClose]);
 
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ background: "rgba(0,0,0,0.9)" }} onClick={onClose}>
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.9)" }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <button type="button" onClick={onClose} aria-label="Закрыть" className="absolute right-[16px] top-[16px] z-[2] grid h-[40px] w-[40px] place-items-center rounded-full text-white" style={{ background: "rgba(255,255,255,0.14)" }}>
         <X className="h-[20px] w-[20px]" />
       </button>
@@ -122,7 +131,8 @@ function Lightbox({ images, startIndex, alt, onClose }: { images: string[]; star
           </button>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 

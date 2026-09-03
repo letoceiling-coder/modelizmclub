@@ -22,6 +22,7 @@ class MediaUploadService
         'avatar' => ['max_files' => 1, 'max_size' => 5_242_880, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'post' => ['max_files' => 10, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'post_video' => ['max_files' => 3, 'max_size' => 104_857_600, 'mimes' => ['video/mp4', 'video/webm']],
+        'comment' => ['max_files' => 4, 'max_size' => 5_242_880, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'listing' => ['max_files' => 20, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'banner' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'cover' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
@@ -254,6 +255,12 @@ class MediaUploadService
                 ]);
             }
 
+            if ($media->status === MediaStatus::Failed) {
+                throw ValidationException::withMessages([
+                    'media_uuids' => ["Загрузка файла {$uuid} отменена."],
+                ]);
+            }
+
             if (! Storage::disk($media->disk)->exists($media->path)) {
                 throw ValidationException::withMessages([
                     'media_uuids' => ["Файл {$uuid} не найден в хранилище."],
@@ -275,6 +282,30 @@ class MediaUploadService
         }
 
         return $confirmed;
+    }
+
+    /** @param  list<string>  $mediaUuids */
+    public function fail(User $user, array $mediaUuids): void
+    {
+        foreach ($mediaUuids as $uuid) {
+            $media = Media::query()
+                ->where('uuid', $uuid)
+                ->where('uploaded_by', $user->id)
+                ->first();
+
+            if (! $media) {
+                throw ValidationException::withMessages([
+                    'media_uuids' => ["Медиафайл {$uuid} не найден."],
+                ]);
+            }
+
+            if ($media->status === MediaStatus::Ready) {
+                continue;
+            }
+
+            $media->status = MediaStatus::Failed;
+            $media->save();
+        }
     }
 
     private function dispatchVariants(Media $media): void

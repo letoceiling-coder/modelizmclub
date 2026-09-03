@@ -49,6 +49,44 @@ class Media extends Model
         return $this->status === MediaStatus::Ready;
     }
 
+    /** Pending videos may be attached to a post before S3 confirm finishes. */
+    public function canAttachToOwnerContent(User $user): bool
+    {
+        if ((int) $this->uploaded_by !== (int) $user->id) {
+            return false;
+        }
+
+        if ($this->status === MediaStatus::Failed) {
+            return false;
+        }
+
+        if ($this->isReady()) {
+            return true;
+        }
+
+        return $this->status === MediaStatus::Pending
+            && str_starts_with((string) $this->mime_type, 'video/');
+    }
+
+    /**
+     * Feed/channel payload: include pending and failed rows so the UI can
+     * show «Видео обрабатывается» instead of dropping the slide.
+     *
+     * @return array<string, mixed>
+     */
+    public function toPostApiArray(): array
+    {
+        return $this->toApiArray() ?? [
+            'uuid' => $this->uuid,
+            'url' => null,
+            'mime_type' => $this->mime_type,
+            'width' => $this->width,
+            'height' => $this->height,
+            'duration' => $this->duration_seconds,
+            'status' => $this->status instanceof MediaStatus ? $this->status->value : (string) $this->status,
+        ];
+    }
+
     /**
      * Rows with no display variants yet. PostgreSQL has no json = text operator,
      * so empty JSON is matched via CAST(... AS TEXT), not where('variants', '[]').

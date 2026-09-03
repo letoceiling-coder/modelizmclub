@@ -15,7 +15,7 @@ class PostMediaResource extends JsonResource
             'type' => $this->type,
             'sort_order' => $this->sort_order,
             'duration_seconds' => $this->duration_seconds,
-            'media' => $this->whenLoaded('media', fn () => $this->media->toApiArray()),
+            'media' => $this->whenLoaded('media', fn () => $this->media?->toPostApiArray()),
         ];
     }
 }

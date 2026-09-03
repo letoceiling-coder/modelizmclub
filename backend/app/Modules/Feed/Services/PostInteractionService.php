@@ -76,15 +76,16 @@ class PostInteractionService
             ->delete();
     }
 
-    public function repost(Post $original, User $user): Post
+    public function repost(Post $original, User $user, ?string $comment = null): Post
     {
-        PostInteractionRules::assertPublicInteractionsAllowed($original);
+        $target = $this->rootOriginal($original);
+        PostInteractionRules::assertPublicInteractionsAllowed($target);
 
         // Idempotent: if the user already reposted this one, return their
         // existing repost instead of stacking duplicates.
         $existing = DB::table('post_reposts')
             ->where('user_id', $user->id)
-            ->where('original_post_id', $original->id)
+            ->where('original_post_id', $target->id)
             ->whereNotNull('repost_post_id')
             ->value('repost_post_id');
 
@@ -92,27 +93,47 @@ class PostInteractionService
             return Post::query()->findOrFail($existing);
         }
 
-        return DB::transaction(function () use ($original, $user): Post {
+        $body = trim((string) $comment);
+
+        return DB::transaction(function () use ($target, $user, $body): Post {
             $repost = Post::create([
                 'user_id' => $user->id,
-                'category_id' => $original->category_id,
-                'community_id' => $original->community_id,
-                'title' => $original->title,
-                'body' => '',
-                'status' => $original->status,
-                'repost_of_id' => $original->id,
+                'category_id' => $target->category_id,
+                'community_id' => null,
+                'title' => '',
+                'body' => $body,
+                'status' => $target->status,
+                'repost_of_id' => $target->id,
                 'published_at' => now(),
             ]);
 
             DB::table('post_reposts')->insert([
                 'user_id' => $user->id,
-                'original_post_id' => $original->id,
+                'original_post_id' => $target->id,
                 'repost_post_id' => $repost->id,
                 'created_at' => now(),
             ]);
 
             return $repost;
         });
+    }
+
+    /** Walk up share-of-share so likes and comments stay on the root post. */
+    private function rootOriginal(Post $post): Post
+    {
+        $current = $post;
+        $guard = 0;
+
+        while ($current->repost_of_id && $guard < 5) {
+            $current->loadMissing('repostOf');
+            if (! $current->repostOf) {
+                break;
+            }
+            $current = $current->repostOf;
+            $guard++;
+        }
+
+        return $current;
     }
 
     /** Removes the current user's repost(s) of the given original post. */

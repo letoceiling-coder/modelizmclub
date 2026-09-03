@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Heart, MessageCircle, Bookmark, Eye, Repeat2, Clock, Check, Radio } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Eye, Clock, Check, Radio, Loader2, AlertTriangle, Repeat2 } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
@@ -14,25 +14,29 @@ import {
   createComment,
   publishPost,
   cancelScheduledPost,
+  fetchPost,
   type CommentSort,
 } from "@/lib/api/feed";
 import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { appendToCommentThread, replaceInCommentThread, removeFromCommentThread } from "@/lib/comment-thread";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
+import { FeedMediaGrid } from "@/components/feed/FeedMediaGrid";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { SchedulePostDialog } from "@/components/feed/SchedulePostDialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { setChannelSubscription } from "@/lib/channels";
 import { Button } from "@/components/ui/button";
+import { RepostComposerDialog } from "@/components/feed/RepostComposerDialog";
 
 interface Props {
   post: Post;
@@ -41,6 +45,10 @@ interface Props {
   onToggleSave?: (id: string) => void;
   onDelete?: (id: string) => void;
   onHide?: (id: string) => void;
+  /** Inner original card inside a share — no outer chrome, actions hit the original. */
+  variant?: "full" | "embed";
+  /** Fired after a successful share/undo so a wrapper card can leave the list. */
+  onRepostedChange?: (on: boolean) => void;
 }
 
 /** Avatar with initials fallback when the image fails to load or src is empty */
@@ -74,9 +82,26 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   );
 }
 
-import { FeedMediaGrid } from "@/components/feed/FeedMediaGrid";
-
 /** Media block: VK grid for images-only; carousel when video is present. */
+function VideoProcessingFrame({ failed }: { failed: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex aspect-video w-full flex-col items-center justify-center gap-[10px] px-[16px] text-center"
+      style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
+    >
+      {failed ? (
+        <AlertTriangle className="h-[22px] w-[22px]" style={{ color: "var(--destructive, #d94b4b)" }} />
+      ) : (
+        <Loader2 className="h-[22px] w-[22px] animate-spin" style={{ color: "var(--accent)" }} />
+      )}
+      <p className="text-[13px] font-medium">
+        {failed ? t("components.postCard.videoFailed") : t("components.postCard.videoProcessing")}
+      </p>
+    </div>
+  );
+}
+
 function PostMediaBlock({ post }: { post: Post }) {
   const items =
     post.mediaItems ??
@@ -86,6 +111,11 @@ function PostMediaBlock({ post }: { post: Post }) {
     ];
 
   if (items.length === 0) return null;
+
+  const videoSlide = items.find((item) => item.type === "video");
+  if (videoSlide && (videoSlide.status === "pending" || videoSlide.status === "failed" || !videoSlide.url)) {
+    return <VideoProcessingFrame failed={videoSlide.status === "failed"} />;
+  }
 
   const hasVideo = items.some((item) => item.type === "video");
   if (hasVideo) {
@@ -102,13 +132,14 @@ function PostMediaBlock({ post }: { post: Post }) {
 const actionCls =
   "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
 
-export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost }: Props) {
+export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost, variant = "full", onRepostedChange }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const author = userById(post.authorId);
-  const reposter = post.repostedBy ? userById(post.repostedBy) : null;
+  const isShare = variant === "full" && Boolean(post.repostOf);
   const isStaff = me.role === "admin" || me.role === "moderator" || !!me.isAdmin;
-  const canDelete = post.canDelete || post.authorId === me.id || isStaff;
+  const canDelete = variant === "embed" ? false : post.canDelete || post.authorId === me.id || isStaff;
 
   const [liked, setLiked] = useState(!!post.isLiked);
   const [savedInner, setSavedInner] = useState(!!post.isSaved);
@@ -127,11 +158,53 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const [commentSort, setCommentSort] = useState<CommentSort>("interesting");
   const commentsReq = useRef(0);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [repostComposerOpen, setRepostComposerOpen] = useState(false);
   const { guardAction, requirePremium, isAllowed } = useGuestAccess();
   const commentsEnabled = post.channel?.commentsEnabled !== false;
   const [channelSubscribed, setChannelSubscribed] = useState(Boolean(post.channel?.isSubscribed));
   const isScheduled = post.status === "scheduled";
   const canInteract = post.canInteract ?? post.status === "published";
+  const [mediaPost, setMediaPost] = useState(post);
+
+  useEffect(() => {
+    setMediaPost(post);
+  }, [post.id]);
+
+  useEffect(() => {
+    const needsPoll = (items: Post["mediaItems"]) =>
+      (items ?? []).some((m) => m.type === "video" && m.status !== "failed" && (m.status === "pending" || !m.url));
+    if (!needsPoll(post.mediaItems)) return;
+    let cancelled = false;
+    let attempts = 0;
+    let timer = 0;
+    const tick = () => {
+      attempts += 1;
+      void fetchPost(post.id)
+        .then((next) => {
+          if (cancelled) return;
+          setMediaPost(next);
+          onTogglePost?.(post.id, {
+            mediaItems: next.mediaItems,
+            video: next.video,
+            images: next.images,
+            image: next.image,
+          });
+          if (needsPoll(next.mediaItems) && attempts < 40) {
+            timer = window.setTimeout(tick, 3000);
+          }
+        })
+        .catch(() => {
+          if (!cancelled && attempts < 40) timer = window.setTimeout(tick, 4000);
+        });
+    };
+    timer = window.setTimeout(tick, 2500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // Poller is keyed to this post; mediaItems live on the first snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id]);
   const hasCommentsHint = (post.comments ?? 0) > 0 || (post.commentList?.length ?? 0) > 0;
 
   const loadComments = useCallback((sort: CommentSort, all: boolean) => {
@@ -158,11 +231,13 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   }, [commentsFetchStarted, loadComments, commentSort, showAllComments]);
 
   useEffect(() => {
+    if (isShare) return;
     if (hasCommentsHint || canInteract) startCommentsFetch();
-  }, [hasCommentsHint, canInteract, startCommentsFetch]);
+  }, [hasCommentsHint, canInteract, startCommentsFetch, isShare]);
 
-  const isLong = post.text.length > 220;
-  const shown = !isLong || expanded ? post.text : post.text.slice(0, 220) + "…";
+  const text = post.text ?? "";
+  const isLong = text.length > 220;
+  const shown = !isLong || expanded ? text : text.slice(0, 220) + "…";
   const commentsCount =
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
 
@@ -215,19 +290,38 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const toggleRepost = () => {
     if (!canInteract || isScheduled) return;
     guardAction("feed.post.repost", () => {
-      const next = !reposted;
-      setReposted(next);
-      setReposts((n) => n + (next ? 1 : -1));
-      toast.success(next ? t("components.repostMenu.repostAdded") : t("components.repostMenu.repostUndone"));
-      repostPost(post.id, next).catch(() => {
-        setReposted(!next);
-        setReposts((n) => n + (next ? -1 : 1));
-        toast.error(t("components.repostMenu.repostFailed"));
-      });
+      if (reposted) {
+        const next = false;
+        setReposted(next);
+        setReposts((n) => Math.max(0, n - 1));
+        toast.success(t("components.repostMenu.repostUndone"));
+        repostPost(post.id, false)
+          .then(() => onRepostedChange?.(false))
+          .catch(() => {
+            setReposted(true);
+            setReposts((n) => n + 1);
+            toast.error(t("components.repostMenu.repostFailed"));
+          });
+        return;
+      }
+      setRepostComposerOpen(true);
     });
   };
 
-  const addComment = (text: string, parentId?: string) => {
+  const confirmRepost = (body: string) => {
+    setReposted(true);
+    setReposts((n) => n + 1);
+    toast.success(t("components.repostMenu.repostAdded"));
+    repostPost(post.id, true, body)
+      .then(() => onRepostedChange?.(true))
+      .catch(() => {
+        setReposted(false);
+        setReposts((n) => Math.max(0, n - 1));
+        toast.error(t("components.repostMenu.repostFailed"));
+      });
+  };
+
+  const addComment = (text: string, parentId?: string, photos?: { mediaIds: string[]; urls: string[] }) => {
     if (!canInteract) return;
     guardAction("feed.post.comment", () => {
       const tempId = `nc${Date.now()}`;
@@ -238,23 +332,15 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
         text,
         likes: 0,
         replies: [],
+        images: photos?.urls ?? [],
       };
       setCommentList((list) => {
         if (!parentId) return [...list, newC];
-        return list.map((c) =>
-          c.id === parentId ? { ...c, replies: [...(c.replies ?? []), newC] } : c,
-        );
+        return appendToCommentThread(list, parentId, newC);
       });
-      createComment(post.id, text, parentId)
+      createComment(post.id, text, parentId, photos?.mediaIds)
         .then((saved) => {
-          setCommentList((list) => {
-            if (!parentId) return list.map((c) => (c.id === tempId ? saved : c));
-            return list.map((c) =>
-              c.id === parentId
-                ? { ...c, replies: (c.replies ?? []).map((r) => (r.id === tempId ? saved : r)) }
-                : c,
-            );
-          });
+          setCommentList((list) => replaceInCommentThread(list, parentId, tempId, saved));
         })
         .catch(() => {});
     });
@@ -264,21 +350,16 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const authorHref = `/user/${profileTo}`;
   const authorActionKey = !isAllowed("feed.post.author") ? "feed.post.author" : "route.user";
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="feed-virtual-item"
-    >
+  const shell = (
       <Card
         className={cn(
-          "overflow-hidden rounded-none border-[var(--border)] shadow-[var(--shadow-card)]",
-          "sm:rounded-[var(--r-card)]",
+          "overflow-hidden border-[var(--border)]",
+          variant === "embed"
+            ? "rounded-none border-0 shadow-none"
+            : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
         )}
       >
-        {/* Repost bar */}
-        {reposter && (
+        {isShare && (
           <div
             className="flex items-center gap-[8px] border-b px-[16px] py-[8px] text-[12px]"
             style={{
@@ -291,31 +372,13 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             <span>
               <GuestGuardLink
                 actionKey={authorActionKey}
-                to={`/user/${reposter.slug ?? reposter.id}`}
+                to={authorHref}
                 style={{ color: "var(--foreground)", fontWeight: 600 }}
                 className="hover:underline"
               >
-                {reposter.name}
+                {author.name}
               </GuestGuardLink>{" "}
-              {t("components.postCard.reposted")}
-            </span>
-          </div>
-        )}
-
-        {!reposter && post.repostOf && (
-          <div
-            className="flex items-center gap-[8px] border-b px-[16px] py-[8px] text-[12px]"
-            style={{
-              color: "var(--foreground-70)",
-              borderColor: "var(--border)",
-              background: "var(--background-overlay)",
-            }}
-          >
-            <Repeat2 className="h-[14px] w-[14px]" style={{ color: "var(--accent)" }} />
-            <span className="truncate">
-              {post.repostOf.category
-                ? t("components.postCard.repostFromCategory", { category: post.repostOf.category })
-                : t("components.postCard.repostFrom", { author: post.repostOf.authorName })}
+              {t("components.postCard.sharedPost")}
             </span>
           </div>
         )}
@@ -346,14 +409,15 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               {isScheduled && post.scheduledAt
                 ? formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())
                 : formatRelativeTime(post.date)}
-              {post.category && (
+              {!isShare && post.category ? (
                 <>
                   {" · "}
                   <span>{post.category}</span>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
+          {variant !== "embed" && (
           <PostActionMenu
             postId={post.id}
             saved={saved}
@@ -393,9 +457,10 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               }
             }}
           />
+          )}
         </header>
 
-        {post.channel && (
+        {!isShare && post.channel && (
           <div
             className="mx-[16px] mt-[12px] flex items-center gap-[10px] rounded-[12px] border px-[12px] py-[8px]"
             style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
@@ -455,7 +520,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           </div>
         )}
 
-        {isScheduled && post.scheduledAt && (
+        {!isShare && isScheduled && post.scheduledAt && (
           <div
             className="mx-[16px] mt-[12px] flex items-center gap-[8px] rounded-[10px] border px-[12px] py-[10px] text-[13px]"
             style={{
@@ -472,8 +537,47 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           </div>
         )}
 
+        {isShare ? (
+          <>
+            {post.text.trim() !== "" && (
+              <div className="px-[16px] pb-[12px] pt-[12px]">
+                <p
+                  className="whitespace-pre-line text-[14px] leading-relaxed"
+                  style={{ color: "var(--foreground-90)" }}
+                >
+                  {post.text}
+                </p>
+              </div>
+            )}
+            {post.repostOf && (
+              <div
+                className="mx-[16px] mb-[16px] mt-[12px] overflow-hidden rounded-[12px] border"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <PostCard
+                  variant="embed"
+                  post={post.repostOf}
+                  onRepostedChange={(on) => {
+                    if (!on) onDelete?.(post.id);
+                  }}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <>
         {/* Content */}
-        <div className="px-[16px] pb-[12px] pt-[12px]">
+        <div
+          className="px-[16px] pb-[12px] pt-[12px]"
+          onClick={
+            variant === "embed"
+              ? () => navigate({ to: "/feed", search: { post: post.id } })
+              : undefined
+          }
+          role={variant === "embed" ? "link" : undefined}
+          style={variant === "embed" ? { cursor: "pointer" } : undefined}
+        >
+          {post.title ? (
           <h3
             className="line-clamp-2 break-words text-[17px] font-semibold leading-tight"
             style={{
@@ -484,6 +588,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           >
             {post.title}
           </h3>
+          ) : null}
 
           {post.tags && post.tags.length > 0 && (
             <div className="mt-[8px] flex flex-wrap gap-[6px]">
@@ -500,16 +605,21 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             </div>
           )}
 
+          {post.text ? (
           <p
             className="mt-[10px] whitespace-pre-line text-[14px] leading-relaxed"
             style={{ color: "var(--foreground-90)" }}
           >
             {shown}
           </p>
+          ) : null}
           {isLong && (
             <button
               type="button"
-              onClick={() => setExpanded((v) => !v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
               className="mt-[6px] text-[12px] font-semibold transition-opacity hover:opacity-80"
               style={{ color: "var(--accent)" }}
             >
@@ -520,7 +630,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
         {/* Media */}
         {(post.video || post.image || (post.images?.length ?? 0) > 0 || (post.mediaItems?.length ?? 0) > 0) && (
-          <PostMediaBlock post={post} />
+          <PostMediaBlock post={mediaPost} />
         )}
 
         {/* Footer actions */}
@@ -614,6 +724,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             }}
             onHide={() => setShowAllComments(false)}
             totalCount={commentsCount}
+            onDeleted={(id) => setCommentList((prev) => removeFromCommentThread(prev, id))}
             onSortChange={(next) => {
               setCommentSort(next);
               loadComments(next, showAllComments);
@@ -621,14 +732,38 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           />
         </div>
         )}
+          </>
+        )}
       </Card>
+  );
 
+  return (
+    <>
+      {variant === "embed" ? (
+        shell
+      ) : (
+        <motion.div
+          id={`feed-post-${post.id}`}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="feed-virtual-item"
+        >
+          {shell}
+        </motion.div>
+      )}
       <SchedulePostDialog
         post={post}
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
         onUpdated={(updated) => onTogglePost?.(post.id, { scheduledAt: updated.scheduledAt, date: updated.date })}
       />
-    </motion.div>
+      <RepostComposerDialog
+        post={post}
+        open={repostComposerOpen}
+        onOpenChange={setRepostComposerOpen}
+        onConfirm={confirmRepost}
+      />
+    </>
   );
 }

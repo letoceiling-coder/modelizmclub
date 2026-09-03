@@ -2,7 +2,7 @@ import { api, API_BASE_URL, ApiError, getLocale, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { MediaVariantSet } from "@/lib/media/variants";
 
-export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "listing" | "chat" | "icon" | "banner" | "logo" | "dispute";
+export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "comment" | "listing" | "chat" | "icon" | "banner" | "logo" | "dispute";
 export type UploadProgress = (pct: number) => void;
 
 export interface UploadedMedia {
@@ -16,6 +16,11 @@ export interface UploadedMedia {
 }
 
 const PRESIGNED_THRESHOLD = 10 * 1024 * 1024; // 10 MB — above this use direct-to-S3 session
+
+export interface PresignedUploadHandle {
+  uuid: string;
+  done: Promise<UploadedMedia>;
+}
 
 function usePresignedUpload(file: File, purpose: MediaPurpose): boolean {
   if (purpose === "post_video" || purpose === "review_video") return true;
@@ -93,47 +98,90 @@ async function uploadViaPresigned(
   purpose: MediaPurpose,
   onProgress?: UploadProgress,
 ): Promise<UploadedMedia> {
-  const mime = file.type || "application/octet-stream";
-  const session = await api<{
-    data: {
-      session_uuid: string;
-      uploads: Array<{ media_uuid: string; upload_url: string; headers: Record<string, string> }>;
-    };
-  }>("/media/upload-session", {
-    method: "POST",
-    json: {
-      purpose,
-      files: [{ name: file.name, size: file.size, mime }],
-    },
-  });
+  const handle = await beginPresignedUpload(file, purpose, onProgress);
+  return handle.done;
+}
 
-  const slot = session.data.uploads[0];
-  if (!slot?.upload_url) throw new Error("Upload session failed");
-  onProgress?.(5);
+const inflightHandles = new WeakMap<File, Promise<PresignedUploadHandle>>();
 
-  const putRes = await xhrSend(
-    "PUT",
-    slot.upload_url,
-    file,
-    { "Content-Type": mime, ...(slot.headers ?? {}) },
-    onProgress,
-    5,
-    92,
-  );
-  if (putRes.status < 200 || putRes.status >= 300) {
-    throw new Error(`Storage upload failed (${putRes.status})`);
-  }
-  onProgress?.(95);
+export async function failMediaUpload(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api("/media/fail", { method: "POST", json: { media_uuids: [uuid] } });
+}
 
-  const confirmed = await api<{ data: UploadedMedia[] }>("/media/confirm", {
-    method: "POST",
-    json: { session_uuid: session.data.session_uuid, media_uuids: [slot.media_uuid] },
-  });
+/**
+ * Starts the S3 session and returns the media UUID immediately so a post can
+ * be created while the PUT/confirm still runs in the background.
+ */
+export function beginPresignedUpload(
+  file: File,
+  purpose: MediaPurpose,
+  onProgress?: UploadProgress,
+): Promise<PresignedUploadHandle> {
+  const existing = inflightHandles.get(file);
+  if (existing) return existing;
 
-  const item = confirmed.data?.[0];
-  if (!item?.uuid) throw new Error("Upload confirm failed");
-  onProgress?.(100);
-  return item;
+  const pending = (async (): Promise<PresignedUploadHandle> => {
+    if (isDemoMode()) {
+      const url = URL.createObjectURL(file);
+      onProgress?.(100);
+      return { uuid: url, done: Promise.resolve({ uuid: url, url }) };
+    }
+
+    const mime = file.type || "application/octet-stream";
+    const session = await api<{
+      data: {
+        session_uuid: string;
+        uploads: Array<{ media_uuid: string; upload_url: string; headers: Record<string, string> }>;
+      };
+    }>("/media/upload-session", {
+      method: "POST",
+      json: {
+        purpose,
+        files: [{ name: file.name, size: file.size, mime }],
+      },
+    });
+
+    const slot = session.data.uploads[0];
+    if (!slot?.upload_url || !slot.media_uuid) throw new Error("Upload session failed");
+    onProgress?.(5);
+
+    const done = (async (): Promise<UploadedMedia> => {
+      try {
+        const putRes = await xhrSend(
+          "PUT",
+          slot.upload_url,
+          file,
+          { "Content-Type": mime, ...(slot.headers ?? {}) },
+          onProgress,
+          5,
+          92,
+        );
+        if (putRes.status < 200 || putRes.status >= 300) {
+          throw new Error(`Storage upload failed (${putRes.status})`);
+        }
+        onProgress?.(95);
+
+        const confirmed = await api<{ data: UploadedMedia[] }>("/media/confirm", {
+          method: "POST",
+          json: { session_uuid: session.data.session_uuid, media_uuids: [slot.media_uuid] },
+        });
+
+        const item = confirmed.data?.[0];
+        if (!item?.uuid) throw new Error("Upload confirm failed");
+        onProgress?.(100);
+        return item;
+      } catch (error) {
+        void failMediaUpload(slot.media_uuid).catch(() => undefined);
+        throw error;
+      }
+    })();
+
+    return { uuid: slot.media_uuid, done };
+  })();
+
+  inflightHandles.set(file, pending);
+  return pending;
 }
 
 async function uploadViaApi(
@@ -189,6 +237,9 @@ export async function uploadMedia(
     try {
       return await uploadViaPresigned(file, purpose, onProgress);
     } catch (error) {
+      // Large / video files must stay on the presigned path. Falling back to
+      // PHP FormData is what used to freeze the composer on «Публикуем…».
+      if (purpose === "post_video" || purpose === "review_video") throw error;
       if (!isPresignPutFailure(error)) throw error;
       return uploadViaApi(file, purpose, onProgress);
     }
@@ -205,6 +256,9 @@ export function uploadMediaDeduped(
   purpose: MediaPurpose,
   onProgress?: UploadProgress,
 ): Promise<UploadedMedia> {
+  if (usePresignedUpload(file, purpose) || purpose === "post_video" || purpose === "review_video") {
+    return beginPresignedUpload(file, purpose, onProgress).then((handle) => handle.done);
+  }
   const existing = inflightUploads.get(file);
   if (existing) return existing;
   const pending = uploadMedia(file, purpose, onProgress).finally(() => inflightUploads.delete(file));

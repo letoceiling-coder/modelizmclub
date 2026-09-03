@@ -22,6 +22,7 @@ interface ApiPostMedia {
     mime_type?: string | null;
     width?: number | null;
     height?: number | null;
+    status?: string | null;
     variants?: MediaVariantSet;
   } | null;
 }
@@ -42,6 +43,10 @@ export interface ApiPost {
     category?: string | null;
     author?: ApiPostAuthor | null;
     media?: ApiPostMedia[];
+    hashtags?: string[];
+    stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
+    viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
+    published_at?: string | null;
   } | null;
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
@@ -89,15 +94,16 @@ function isVideoMedia(m: ApiPostMedia): boolean {
 export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; mediaItems: PostMediaItem[] } {
   const mediaItems = (p.media ?? [])
     .map((m) => {
-      const url = m.media?.url;
-      if (!url) return null;
-      // Dimensions let the feed reserve the exact box before the image loads.
+      const status = (m.media?.status as PostMediaItem["status"] | undefined) ?? (m.media?.url ? "ready" : undefined);
+      const url = m.media?.url ?? "";
+      if (!url && status !== "pending" && status !== "failed") return null;
       const width = m.media?.width ?? undefined;
       const height = m.media?.height ?? undefined;
-      if (width && height) rememberMediaAspect(url, width / height);
+      if (url && width && height) rememberMediaAspect(url, width / height);
       return {
         type: isVideoMedia(m) ? ("video" as const) : ("image" as const),
         url,
+        status,
         width,
         height,
         variants: m.media?.variants,
@@ -110,20 +116,46 @@ export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; me
   return { images, video, mediaItems };
 }
 
+export function mapEmbeddedOriginal(r: NonNullable<ApiPost["repost_of"]>): Post | undefined {
+  if (!r?.uuid) return undefined;
+  const author = registerAuthor(r.author);
+  const { images, video, mediaItems } = mapPostMedia({ media: r.media ?? [] } as ApiPost);
+  return {
+    id: r.uuid,
+    authorId: author?.id ?? "",
+    date: r.published_at ?? "",
+    category: r.category ?? "",
+    title: r.title ?? "",
+    text: r.body ?? "",
+    image: images[0],
+    images,
+    video,
+    mediaItems,
+    tags: r.hashtags ?? [],
+    views: r.stats?.views ?? 0,
+    likes: r.stats?.reactions ?? 0,
+    comments: r.stats?.comments ?? 0,
+    saves: 0,
+    reposts: r.stats?.reposts ?? 0,
+    status: "published",
+    isLiked: r.viewer?.reacted ?? false,
+    isSaved: r.viewer?.bookmarked ?? false,
+    isReposted: r.viewer?.reposted ?? false,
+    canInteract: true,
+  };
+}
+
 export function mapPost(p: ApiPost): Post {
   const author = registerAuthor(p.author);
-  const ownMedia = mapPostMedia(p);
-  const originalMedia = p.repost_of?.media?.length
-    ? mapPostMedia({ media: p.repost_of.media } as ApiPost)
-    : { images: [] as string[], video: undefined as string | undefined, mediaItems: [] as PostMediaItem[] };
-  const { images, video, mediaItems } = ownMedia.mediaItems.length ? ownMedia : originalMedia;
+  const { images, video, mediaItems } = mapPostMedia(p);
+  const isShare = Boolean(p.repost_of?.uuid);
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
     date: p.published_at ?? p.scheduled_at ?? p.created_at ?? "",
-    category: p.category?.name ?? p.repost_of?.category ?? "",
-    title: p.title || p.repost_of?.title || "",
-    text: p.body || p.repost_of?.body || "",
+    category: p.category?.name ?? "",
+    title: isShare ? "" : p.title || "",
+    text: p.body ?? "",
     image: images[0],
     images,
     video,
@@ -139,14 +171,7 @@ export function mapPost(p: ApiPost): Post {
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
     isReposted: p.viewer?.reposted ?? false,
-    repostOf: p.repost_of?.uuid
-      ? {
-          id: p.repost_of.uuid,
-          title: p.repost_of.title ?? "",
-          category: p.repost_of.category ?? "",
-          authorName: p.repost_of.author?.display_name ?? "",
-        }
-      : undefined,
+    repostOf: isShare ? mapEmbeddedOriginal(p.repost_of) : undefined,
     canDelete: p.permissions?.can_delete ?? false,
     canEdit: p.permissions?.can_edit ?? false,
     canPublish: p.permissions?.can_publish ?? false,
@@ -217,9 +242,12 @@ export async function bookmarkPost(uuid: string, on: boolean): Promise<void> {
   await api(`/posts/${uuid}/bookmark`, { method: on ? "POST" : "DELETE" });
 }
 
-export async function repostPost(uuid: string, on: boolean): Promise<void> {
+export async function repostPost(uuid: string, on: boolean, body?: string): Promise<void> {
   if (isDemoMode()) return;
-  await api(`/posts/${uuid}/repost`, { method: on ? "POST" : "DELETE" });
+  await api(`/posts/${uuid}/repost`, {
+    method: on ? "POST" : "DELETE",
+    json: on ? { body: body ?? "" } : undefined,
+  });
 }
 
 export interface ApiComment {
@@ -227,6 +255,7 @@ export interface ApiComment {
   body?: string | null;
   author?: ApiPostAuthor | null;
   parent_uuid?: string | null;
+  media?: Array<{ uuid?: string; url?: string | null } | null>;
   stats?: { reactions?: number };
   replies?: ApiComment[];
   created_at?: string;
@@ -243,6 +272,7 @@ export function mapComment(c: ApiComment): Comment {
     text: c.body ?? "",
     likes: c.stats?.reactions ?? 0,
     replies: (c.replies ?? []).map(mapComment),
+    images: (c.media ?? []).map((m) => m?.url).filter((url): url is string => Boolean(url)),
   };
 }
 
@@ -295,10 +325,16 @@ export async function reactToComment(uuid: string, on: boolean): Promise<void> {
   await api(`/comments/${uuid}/react`, { method: on ? "POST" : "DELETE" });
 }
 
+export async function deleteComment(uuid: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api(`/comments/${uuid}`, { method: "DELETE" });
+}
+
 export async function createComment(
   uuid: string,
   body: string,
   parentUuid?: string,
+  mediaIds?: string[],
 ): Promise<Comment> {
   if (isDemoMode()) {
     return {
@@ -308,11 +344,12 @@ export async function createComment(
       text: body,
       likes: 0,
       replies: [],
+      images: [],
     };
   }
   const res = await api<{ data: ApiComment }>(`/posts/${uuid}/comments`, {
     method: "POST",
-    json: { body, parent_uuid: parentUuid },
+    json: { body, parent_uuid: parentUuid, media_ids: mediaIds ?? [] },
   });
   return mapComment(res.data);
 }
@@ -370,6 +407,16 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
  *  in demo mode rather than call it. */
 export async function publishPost(uuid: string): Promise<Post> {
   const res = await api<{ data: ApiPost }>(`/posts/${uuid}/publish`, { method: "POST" });
+  return mapPost(res.data);
+}
+
+export async function fetchPost(uuid: string): Promise<Post> {
+  if (isDemoMode()) {
+    const found = demoFeed().posts.find((p) => p.id === uuid);
+    if (!found) throw new Error("not found");
+    return found;
+  }
+  const res = await api<{ data: ApiPost }>(`/posts/${uuid}`);
   return mapPost(res.data);
 }
 

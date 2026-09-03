@@ -18,6 +18,7 @@ import { formatDuration } from "@/lib/format-duration";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ApiError } from "@/lib/api/client";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { appendToCommentThread, removeFromCommentThread } from "@/lib/comment-thread";
 import { recordView } from "@/lib/view-history";
 import { isWatchLater, toggleWatchLater, notifyWatchLaterChanged } from "@/lib/watch-later";
 import { useStore, selectors } from "@/lib/store";
@@ -257,15 +258,14 @@ function WatchPageInner() {
     });
   };
 
-  const addComment = (text: string, parentId?: string) => {
+  const addComment = (text: string, parentId?: string, photos?: { mediaIds: string[]; urls: string[] }) => {
     requirePremium(() => {
-      void createVideoComment(id, text, parentId).then((c) => {
+      void createVideoComment(id, text, parentId, photos?.mediaIds).then((c) => {
+        const saved = photos?.urls?.length && !c.images?.length ? { ...c, images: photos.urls } : c;
         if (parentId) {
-          setComments((prev) =>
-            prev.map((p) => (p.id === parentId ? { ...p, replies: [...(p.replies ?? []), c] } : p)),
-          );
+          setComments((prev) => appendToCommentThread(prev, parentId, saved));
         } else {
-          setComments((prev) => [c, ...prev]);
+          setComments((prev) => [saved, ...prev]);
         }
       }).catch((err) => {
         const message = formatApiErrorMessage(err, t("pages.reviews.commentFailed"));
@@ -539,6 +539,7 @@ function WatchPageInner() {
           <CommentSection
             comments={comments}
             onAdd={addComment}
+            onDeleted={(id) => setComments((prev) => removeFromCommentThread(prev, id))}
             previewLimit={3}
             showAll={showAllComments}
             onShowAll={() => setShowAllComments(true)}

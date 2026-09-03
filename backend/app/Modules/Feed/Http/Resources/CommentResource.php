@@ -18,6 +18,12 @@ class CommentResource extends JsonResource
             'depth' => $this->depth,
             'author' => new UserCompactResource($this->whenLoaded('author')),
             'parent_uuid' => $this->whenLoaded('parent', fn () => $this->parent?->uuid),
+            'media' => $this->whenLoaded('mediaItems', function () {
+                return $this->mediaItems
+                    ->map(fn ($item) => $item->relationLoaded('media') ? $item->media?->toApiArray() : null)
+                    ->filter()
+                    ->values();
+            }),
             'stats' => [
                 'reactions' => $this->reactions_count,
             ],

@@ -14,7 +14,7 @@ import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTab
 import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, selectors } from "@/lib/store";
 import type { Post, Category, Banner } from "@/lib/mock";
-import { fetchFeed } from "@/lib/api/feed";
+import { fetchFeed, fetchPost } from "@/lib/api/feed";
 import { fetchPostCategories, categoryIdByName, getCachedPostCategories } from "@/lib/api/categories";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { fetchBanners, fetchBannersWithSettings } from "@/lib/api/banners";
@@ -52,10 +52,11 @@ export const Route = createFileRoute("/feed")({
   // (activeCategory / categoryIdByName both key by name, not id) — both
   // the landing and this page read categories from the same
   // fetchPostCategories() source, so the names are guaranteed to match.
-  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string; taxonomy_id?: number } => ({
+  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string; taxonomy_id?: number; post?: string } => ({
     composer: (search.composer as string) || undefined,
     category: (search.category as string) || undefined,
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
+    post: typeof search.post === "string" && search.post ? search.post : undefined,
   }),
   loader: async () => {
     await ensurePublicBootstrap();
@@ -84,7 +85,7 @@ const PAGE_SIZE = 6;
 
 function FeedPage() {
   const { t } = useTranslation();
-  const { composer, category: categoryFromUrl, taxonomy_id: taxonomyFromUrl } = Route.useSearch();
+  const { composer, category: categoryFromUrl, taxonomy_id: taxonomyFromUrl, post: focusPostId } = Route.useSearch();
   const navigate = useNavigate();
   const me = useStore(selectors.currentUser);
   const loaded = Route.useLoaderData();
@@ -101,6 +102,28 @@ function FeedPage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => getHiddenPostIds());
   const { guardAction, isAllowed, ready: guestAccessReady } = useGuestAccess();
+
+  useEffect(() => {
+    if (!focusPostId) return;
+    let cancelled = false;
+    const node = document.getElementById(`feed-post-${focusPostId}`);
+    if (node) {
+      node.scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+    void fetchPost(focusPostId)
+      .then((post) => {
+        if (cancelled) return;
+        setPosts((cur) => (cur.some((p) => p.id === post.id) ? cur : [post, ...cur]));
+        window.setTimeout(() => {
+          document.getElementById(`feed-post-${post.id}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+        }, 50);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [focusPostId]);
 
   // Direct URL /feed?category=… must not bypass admin filter settings.
   useEffect(() => {

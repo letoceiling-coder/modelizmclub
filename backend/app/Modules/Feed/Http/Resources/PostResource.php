@@ -57,6 +57,21 @@ class PostResource extends JsonResource
                 'media' => $this->repostOf->relationLoaded('mediaItems')
                     ? PostMediaResource::collection($this->repostOf->mediaItems)
                     : [],
+                'hashtags' => $this->repostOf->relationLoaded('tags')
+                    ? $this->repostOf->tags->pluck('name')
+                    : [],
+                'stats' => [
+                    'views' => $this->repostOf->views_count,
+                    'reactions' => $this->repostOf->reactions_count,
+                    'comments' => $this->repostOf->comments_count,
+                    'reposts' => $this->repostOf->reposts_total,
+                ],
+                'viewer' => [
+                    'reacted' => $this->repostOf->viewer_reacted,
+                    'bookmarked' => $this->repostOf->viewer_bookmarked,
+                    'reposted' => $this->repostOf->viewer_reposted,
+                ],
+                'published_at' => $this->repostOf->published_at?->toIso8601String(),
             ] : null),
             'stats' => [
                 'views' => $this->views_count,

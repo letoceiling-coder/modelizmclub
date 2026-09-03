@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff, X } from "lucide-react";
 
@@ -175,8 +176,16 @@ function Lightbox({
     };
   }, [embla, onClose]);
 
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ background: "rgba(0,0,0,0.9)" }} onClick={onClose}>
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.9)" }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <button
         type="button"
         onClick={onClose}
@@ -223,7 +232,8 @@ function Lightbox({
           </button>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 

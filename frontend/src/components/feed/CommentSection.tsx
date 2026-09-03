@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Reply, Send, MoreHorizontal, ChevronDown } from "lucide-react";
+import { Heart, Reply, Send, MoreHorizontal, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
 import { useStore, selectors } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { reactToComment, type CommentSort } from "@/lib/api/feed";
+import { reactToComment, deleteComment, type CommentSort } from "@/lib/api/feed";
+import { uploadMediaDeduped } from "@/lib/api/media";
+import { toast } from "@/lib/toast";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +22,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+type CommentPhotosPayload = { mediaIds: string[]; urls: string[] };
+
 interface Props {
   comments: Comment[];
-  onAdd: (text: string, parentId?: string) => void;
+  onAdd: (text: string, parentId?: string, photos?: CommentPhotosPayload) => void;
+  onDeleted?: (commentId: string) => void;
   loading?: boolean;
   readOnly?: boolean;
   /** When set, only the last N root comments are shown until expanded. */
@@ -136,6 +143,174 @@ function runGuarded(
   else onAllowed();
 }
 
+const MAX_COMMENT_PHOTOS = 4;
+const COMMENT_PHOTO_MAX = 5_242_880;
+const COMMENT_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+type PhotoDraft = { file: File; url: string };
+
+function CommentPhotos({ urls }: { urls: string[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  if (!urls.length) return null;
+  return (
+    <>
+      <div className="mt-[8px] flex flex-wrap gap-[6px]">
+        {urls.map((src) => (
+          <button
+            key={src}
+            type="button"
+            onClick={() => setOpen(src)}
+            className="overflow-hidden rounded-[10px]"
+          >
+            <img src={src} alt="" className="max-h-[160px] max-w-[min(100%,220px)] object-cover" />
+          </button>
+        ))}
+      </div>
+      {open ? <ImageLightbox src={open} alt="" onClose={() => setOpen(null)} /> : null}
+    </>
+  );
+}
+
+function useCommentPhotoDraft() {
+  const { t } = useTranslation();
+  const [photos, setPhotos] = useState<PhotoDraft[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const pick = (list: FileList | null) => {
+    if (!list?.length) return;
+    const extra: PhotoDraft[] = [];
+    for (const file of Array.from(list)) {
+      if (photos.length + extra.length >= MAX_COMMENT_PHOTOS) {
+        toast.error(t("components.commentSection.photoLimit", { max: MAX_COMMENT_PHOTOS }));
+        break;
+      }
+      if (file.size > COMMENT_PHOTO_MAX) {
+        toast.error(t("components.commentSection.photoTooBig"));
+        continue;
+      }
+      if (file.type && !COMMENT_PHOTO_TYPES.has(file.type)) {
+        toast.error(t("components.commentSection.photoType"));
+        continue;
+      }
+      extra.push({ file, url: URL.createObjectURL(file) });
+    }
+    if (extra.length) setPhotos((p) => [...p, ...extra]);
+  };
+
+  const remove = (index: number) => {
+    setPhotos((p) => {
+      const next = [...p];
+      URL.revokeObjectURL(next[index].url);
+      next.splice(index, 1);
+      return next;
+    });
+  };
+
+  const clear = () => {
+    setPhotos((p) => {
+      p.forEach((item) => URL.revokeObjectURL(item.url));
+      return [];
+    });
+  };
+
+  const upload = async (): Promise<CommentPhotosPayload> => {
+    if (photos.length === 0) return { mediaIds: [], urls: [] };
+    setUploading(true);
+    try {
+      const mediaIds: string[] = [];
+      for (const item of photos) {
+        const media = await uploadMediaDeduped(item.file, "comment");
+        mediaIds.push(media.uuid);
+      }
+      return { mediaIds, urls: photos.map((item) => item.url) };
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return { photos, uploading, pick, remove, clear, upload };
+}
+
+function CommentAttachMenu({
+  onPick,
+  disabled,
+}: {
+  onPick: (files: FileList | null) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          onPick(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ color: "var(--foreground-50)" }}
+            aria-label={t("components.commentSection.attachFile")}
+          >
+            <Paperclip className="h-[15px] w-[15px]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[200px]">
+          <DropdownMenuItem onSelect={() => inputRef.current?.click()}>
+            {t("components.commentSection.attachPhoto")}
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled>
+            {t("components.commentSection.attachFile")}
+            <span className="ml-[8px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+              {t("components.commentSection.attachSoon")}
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+}
+
+function PhotoDraftStrip({
+  photos,
+  onRemove,
+}: {
+  photos: PhotoDraft[];
+  onRemove: (index: number) => void;
+}) {
+  const { t } = useTranslation();
+  if (!photos.length) return null;
+  return (
+    <div className="flex flex-wrap gap-[8px] px-[4px] pt-[8px]">
+      {photos.map((item, index) => (
+        <div key={item.url} className="relative">
+          <img src={item.url} alt="" className="h-[64px] w-[64px] rounded-[10px] object-cover" />
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            className="absolute -right-[6px] -top-[6px] grid h-[20px] w-[20px] place-items-center rounded-full"
+            style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}
+            aria-label={t("components.commentSection.removePhoto")}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CommentItem({
   comment,
   depth = 0,
@@ -143,13 +318,15 @@ function CommentItem({
   readOnly = false,
   likeOverrides,
   onLikeChange,
+  onDeleted,
 }: {
   comment: Comment;
   depth?: number;
-  onReply: (parentId: string, text: string) => void;
+  onReply: (parentId: string, text: string, photos?: CommentPhotosPayload) => void;
   readOnly?: boolean;
   likeOverrides: Record<string, number>;
   onLikeChange: (id: string, likes: number) => void;
+  onDeleted?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -161,13 +338,22 @@ function CommentItem({
   const [draft, setDraft] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const isOwn = comment.authorId === me.id;
+  const replyPhotos = useCommentPhotoDraft();
 
   const submit = () => {
-    if (!draft.trim()) return;
+    if (!draft.trim() && replyPhotos.photos.length === 0) return;
     runGuarded(guest, "feed.post.comment", () => {
-      onReply(comment.id, draft.trim());
-      setDraft("");
-      setReplying(false);
+      void (async () => {
+        try {
+          const photos = await replyPhotos.upload();
+          onReply(comment.id, draft.trim(), photos.mediaIds.length ? photos : undefined);
+          setDraft("");
+          replyPhotos.clear();
+          setReplying(false);
+        } catch (err) {
+          toast.error(formatApiErrorMessage(err, t("components.commentSection.photoUploadFailed")));
+        }
+      })();
     });
   };
 
@@ -214,11 +400,14 @@ function CommentItem({
                     {formatRelativeTime(comment.time)}
                   </span>
                 </div>
-                <p className="mt-[4px] whitespace-pre-line text-[14px]" style={{ color: "var(--foreground-90)" }}>
-                  {comment.text}
-                </p>
+                {comment.text ? (
+                  <p className="mt-[4px] whitespace-pre-line text-[14px]" style={{ color: "var(--foreground-90)" }}>
+                    {comment.text}
+                  </p>
+                ) : null}
+                <CommentPhotos urls={comment.images ?? []} />
               </div>
-              {!isOwn && (
+              {(isOwn || !readOnly) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -231,9 +420,24 @@ function CommentItem({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => runGuarded(guest, "feed.post.comment", () => setReportOpen(true))}>
-                      {t("components.commentSection.report")}
-                    </DropdownMenuItem>
+                    {isOwn ? (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (!window.confirm(t("components.commentSection.deleteConfirm"))) return;
+                          void deleteComment(comment.id)
+                            .then(() => onDeleted?.(comment.id))
+                            .catch((err) => {
+                              toast.error(formatApiErrorMessage(err, t("components.commentSection.deleteFailed")));
+                            });
+                        }}
+                      >
+                        {t("components.commentSection.delete")}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => runGuarded(guest, "feed.post.comment", () => setReportOpen(true))}>
+                        {t("components.commentSection.report")}
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -251,10 +455,19 @@ function CommentItem({
               </motion.span>
               {likes > 0 && <span>{likes}</span>}
             </button>
-            {!readOnly && depth < 1 && (
+            {!readOnly && (
               <button
                 type="button"
-                onClick={() => runGuarded(guest, "feed.post.comment", () => setReplying((v) => !v))}
+                onClick={() => runGuarded(guest, "feed.post.comment", () => {
+                  if (replying) {
+                    setReplying(false);
+                    setDraft("");
+                    replyPhotos.clear();
+                    return;
+                  }
+                  setReplying(true);
+                  setDraft((d) => (d.trim() ? d : `${author.name}, `));
+                })}
                 className="flex items-center gap-[4px] hover:opacity-80"
               >
                 <Reply className="h-[12px] w-[12px]" /> {t("components.commentSection.reply")}
@@ -271,28 +484,33 @@ function CommentItem({
                 transition={{ duration: 0.2 }}
                 className="mt-[8px] overflow-hidden"
               >
-                <div className="flex items-center gap-[8px]">
-                  <input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submit()}
-                    placeholder={t("components.commentSection.replyTo", { name: author.name })}
-                    className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[13px] outline-none"
-                    style={{
-                      background: "var(--background)",
-                      borderColor: "var(--border)",
-                      color: "var(--foreground)",
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={submit}
-                    className="grid h-[34px] w-[34px] place-items-center rounded-[10px]"
-                    style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-                  >
-                    <Send className="h-[14px] w-[14px]" />
-                  </button>
+                <div>
+                  <PhotoDraftStrip photos={replyPhotos.photos} onRemove={replyPhotos.remove} />
+                  <div className="mt-[8px] flex items-center gap-[8px]">
+                    <input
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
+                      placeholder={t("components.commentSection.replyTo", { name: author.name })}
+                      className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[13px] outline-none"
+                      style={{
+                        background: "var(--background)",
+                        borderColor: "var(--border)",
+                        color: "var(--foreground)",
+                      }}
+                      autoFocus
+                    />
+                    <CommentAttachMenu onPick={replyPhotos.pick} disabled={replyPhotos.uploading} />
+                    <button
+                      type="button"
+                      onClick={submit}
+                      disabled={replyPhotos.uploading || (!draft.trim() && replyPhotos.photos.length === 0)}
+                      className="grid h-[34px] w-[34px] place-items-center rounded-[10px] disabled:opacity-40"
+                      style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                    >
+                      <Send className="h-[14px] w-[14px]" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -306,6 +524,7 @@ function CommentItem({
                   comment={r}
                   depth={depth + 1}
                   onReply={onReply}
+                  onDeleted={onDeleted}
                   readOnly={readOnly}
                   likeOverrides={likeOverrides}
                   onLikeChange={onLikeChange}
@@ -340,6 +559,7 @@ export function CommentSection({
   onHide,
   totalCount,
   onSortChange,
+  onDeleted,
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -348,18 +568,28 @@ export function CommentSection({
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CommentSort>("interesting");
   const [likeOverrides, setLikeOverrides] = useState<Record<string, number>>({});
+  const photos = useCommentPhotoDraft();
 
   useEffect(() => {
     if (!showAll) setPage(1);
   }, [showAll]);
 
-  const handleReply = (parentId: string, text: string) => onAdd(text, parentId);
+  const handleReply = (parentId: string, text: string, attached?: CommentPhotosPayload) =>
+    onAdd(text, parentId, attached);
 
   const submit = () => {
     runGuarded(guest, "feed.post.comment", () => {
-      if (!draft.trim()) return;
-      onAdd(draft.trim());
-      setDraft("");
+      if (!draft.trim() && photos.photos.length === 0) return;
+      void (async () => {
+        try {
+          const attached = await photos.upload();
+          onAdd(draft.trim(), undefined, attached.mediaIds.length ? attached : undefined);
+          setDraft("");
+          photos.clear();
+        } catch (err) {
+          toast.error(formatApiErrorMessage(err, t("components.commentSection.photoUploadFailed")));
+        }
+      })();
     });
   };
 
@@ -412,49 +642,64 @@ export function CommentSection({
       style={{ borderColor: "var(--border)", background: "var(--background-overlay)" }}
     >
       {!readOnly && (
-        <div className="flex items-center gap-[10px]">
+        <div className="flex items-start gap-[10px]">
           <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
-          <div
-            className="flex min-w-0 flex-1 items-center gap-[6px] rounded-[12px] border px-[10px] py-[6px]"
-            style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
-          >
-            <input
-              value={draft}
-              readOnly={commentBlocked}
-              onPointerDown={promptComposerAuth}
-              onFocus={promptComposerAuth}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
-              placeholder={t("components.commentSection.placeholder")}
-              className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
-              style={{ color: "var(--foreground)" }}
-            />
-            <EmojiPicker
-              onBeforeOpen={() => {
-                if (!commentBlocked) return true;
-                guest?.guardAction("feed.post.comment", () => {});
-                return false;
-              }}
-              onPick={(emoji) => {
-                if (commentBlocked) {
-                  guest?.guardAction("feed.post.comment", () => {});
-                  return;
-                }
-                setDraft((v) => v + emoji);
-              }}
-              align="end"
-              compact
-            />
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!draft.trim()}
-              className="grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-              aria-label={t("components.commentSection.send")}
+          <div className="min-w-0 flex-1">
+            <div
+              className="rounded-[12px] border px-[10px] py-[6px]"
+              style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
             >
-              <Send className="h-[14px] w-[14px]" />
-            </button>
+              <div className="flex min-w-0 items-center gap-[6px]">
+                <input
+                  value={draft}
+                  readOnly={commentBlocked}
+                  onPointerDown={promptComposerAuth}
+                  onFocus={promptComposerAuth}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
+                  placeholder={t("components.commentSection.placeholder")}
+                  className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
+                  style={{ color: "var(--foreground)" }}
+                />
+                <CommentAttachMenu
+                  onPick={(files) => {
+                    if (commentBlocked) {
+                      guest?.guardAction("feed.post.comment", () => {});
+                      return;
+                    }
+                    photos.pick(files);
+                  }}
+                  disabled={commentBlocked || photos.uploading}
+                />
+                <EmojiPicker
+                  onBeforeOpen={() => {
+                    if (!commentBlocked) return true;
+                    guest?.guardAction("feed.post.comment", () => {});
+                    return false;
+                  }}
+                  onPick={(emoji) => {
+                    if (commentBlocked) {
+                      guest?.guardAction("feed.post.comment", () => {});
+                      return;
+                    }
+                    setDraft((v) => v + emoji);
+                  }}
+                  align="end"
+                  compact
+                />
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={photos.uploading || (!draft.trim() && photos.photos.length === 0)}
+                  className="grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
+                  style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                  aria-label={t("components.commentSection.send")}
+                >
+                  <Send className="h-[14px] w-[14px]" />
+                </button>
+              </div>
+              <PhotoDraftStrip photos={photos.photos} onRemove={photos.remove} />
+            </div>
           </div>
         </div>
       )}
@@ -514,6 +759,7 @@ export function CommentSection({
                   key={c.id}
                   comment={c}
                   onReply={handleReply}
+                  onDeleted={onDeleted}
                   readOnly={readOnly}
                   likeOverrides={likeOverrides}
                   onLikeChange={onLikeChange}

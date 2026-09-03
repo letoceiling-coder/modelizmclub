@@ -14,10 +14,13 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Feed\Support\CommentMediaSync;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class VideoService
 {
+    public function __construct(private readonly CommentMediaSync $commentMedia) {}
+
     /** @param array<string, mixed> $filters */
     public function list(array $filters, ?User $viewer, int $perPage = 50): LengthAwarePaginator
     {
@@ -387,18 +390,29 @@ class VideoService
 
     public function listComments(Video $video, int $perPage = 50): LengthAwarePaginator
     {
-        return Comment::query()
-            ->with(['author.profile.avatar', 'replies.author.profile.avatar'])
+        $page = Comment::query()
+            ->with(['author.profile.avatar', 'mediaItems.media'])
             ->where('commentable_type', Video::class)
             ->where('commentable_id', $video->id)
             ->whereNull('parent_id')
             ->where('status', 'published')
             ->orderBy('created_at')
             ->paginate($perPage);
+
+        Comment::attachPublishedThreadReplies($page->getCollection());
+
+        return $page;
     }
 
-    public function addComment(Video $video, User $user, string $body, ?string $parentUuid = null): Comment
+    public function addComment(Video $video, User $user, string $body, ?string $parentUuid = null, array $mediaUuids = []): Comment
     {
+        $body = trim($body);
+        if ($body === '' && $mediaUuids === []) {
+            throw ValidationException::withMessages([
+                'body' => ['Введите текст или прикрепите фото.'],
+            ]);
+        }
+
         $parent = null;
         if ($parentUuid) {
             $parent = Comment::query()->where('uuid', $parentUuid)->first();
@@ -417,7 +431,11 @@ class VideoService
 
         $video->increment('comments_count');
 
-        return $comment->load(['author.profile.avatar']);
+        if ($mediaUuids !== []) {
+            $this->commentMedia->sync($comment, $user, $mediaUuids);
+        }
+
+        return $comment->load(['author.profile.avatar', 'mediaItems.media']);
     }
 
     private function ownedMedia(User $user, string $uuid, array $purposes = ['post', 'listing', 'avatar']): Media

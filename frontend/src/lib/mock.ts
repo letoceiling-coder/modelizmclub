@@ -60,6 +60,7 @@ export interface Comment {
   text: string;
   likes?: number;
   replies?: Comment[];
+  images?: string[];
 }
 
 export interface VideoCategory {
@@ -98,6 +99,7 @@ export interface Video {
 export type PostMediaItem = {
   type: "image" | "video";
   url: string;
+  status?: "pending" | "ready" | "failed";
   /** Intrinsic size, when the API knows it — used to reserve the media box. */
   width?: number;
   height?: number;
@@ -133,9 +135,8 @@ export interface Post {
   isLiked?: boolean;
   isSaved?: boolean;
   isReposted?: boolean;
-  /** Set when this post is a repost — carries the original for the "репост из …" label. */
-  repostOf?: { id: ID; title: string; category: string; authorName: string };
-  repostComment?: string;
+  /** Nested original when this row is a share (VK-style), not a full copy. */
+  repostOf?: Post;
   commentList?: Comment[];
   repostedBy?: ID;
   channel?: {

@@ -231,6 +231,7 @@ export async function createVideoComment(
   uuid: string,
   body: string,
   parentUuid?: string,
+  mediaIds?: string[],
 ): Promise<Comment> {
   if (isDemoMode()) {
     return {
@@ -240,11 +241,12 @@ export async function createVideoComment(
       text: body,
       likes: 0,
       replies: [],
+      images: [],
     };
   }
   const res = await api<{ data: ApiComment }>(`/videos/${uuid}/comments`, {
     method: "POST",
-    json: { body, parent_uuid: parentUuid },
+    json: { body, parent_uuid: parentUuid, media_ids: mediaIds ?? [] },
   });
   return mapComment(res.data);
 }

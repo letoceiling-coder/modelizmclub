@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Feed\Http\Controllers\Api\V1\CancelScheduledPostController;
 use Modules\Feed\Http\Controllers\Api\V1\CommentReactionController;
 use Modules\Feed\Http\Controllers\Api\V1\CommentThreadController;
+use Modules\Feed\Http\Controllers\Api\V1\DestroyCommentController;
 use Modules\Feed\Http\Controllers\Api\V1\DestroyPostController;
 use Modules\Feed\Http\Controllers\Api\V1\IndexFeedController;
 use Modules\Feed\Http\Controllers\Api\V1\PostBookmarkController;
@@ -37,6 +38,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('posts/{uuid}/repost', RepostPostController::class);
     Route::delete('posts/{uuid}/repost', UnrepostPostController::class);
     Route::post('posts/{uuid}/comments', [PostCommentsController::class, 'store']);
+    Route::delete('comments/{uuid}', DestroyCommentController::class);
     Route::post('comments/{uuid}/react', [CommentReactionController::class, 'store']);
     Route::delete('comments/{uuid}/react', [CommentReactionController::class, 'destroy']);
 });

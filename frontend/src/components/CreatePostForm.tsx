@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useStore, selectors } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { uploadMediaDeduped, validatePostVideoFile } from "@/lib/api/media";
+import { uploadMediaDeduped, validatePostVideoFile, beginPresignedUpload, type PresignedUploadHandle } from "@/lib/api/media";
 import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -106,6 +106,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const videoUploadRef = useRef<Promise<PresignedUploadHandle> | null>(null);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState<PersistedPostDraft | null>(null);
@@ -209,7 +210,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       setVideoFile(video);
       setVideoUrl(URL.createObjectURL(video));
       setVideoProgress(0);
-      void uploadMediaDeduped(video, "post_video", setVideoProgress).catch(() => setVideoProgress(null));
+      videoUploadRef.current = beginPresignedUpload(video, "post_video", setVideoProgress);
+      void videoUploadRef.current.then((h) => h.done).catch(() => {
+        setVideoProgress(null);
+        toast.error(t("components.createPostForm.publishFailed"));
+      });
     }
   }, [initialDraft, sel.kind]);
 
@@ -274,8 +279,12 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
           mediaIds.push(m.uuid);
         }
       } else if (videoFile) {
-        const m = await uploadMediaDeduped(videoFile, "post_video", setVideoProgress);
-        mediaIds.push(m.uuid);
+        const handle = await (videoUploadRef.current ?? beginPresignedUpload(videoFile, "post_video", setVideoProgress));
+        videoUploadRef.current = Promise.resolve(handle);
+        mediaIds.push(handle.uuid);
+        void handle.done.catch(() => {
+          toast.error(t("components.createPostForm.videoFailed"));
+        });
       }
 
       if (sel.source === "profile") {
@@ -296,13 +305,21 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
             toast.success(t("components.createPostForm.scheduled"));
           } else {
             post = await publishPost(post.id);
-            toast.success(t("components.createPostForm.sentToModeration"));
+            toast.success(
+              sel.kind === "video"
+                ? t("components.createPostForm.videoQueued")
+                : t("components.createPostForm.sentToModeration"),
+            );
           }
         } else if (publishMode === "schedule") {
           post = { ...post, status: "scheduled", scheduledAt: new Date().toISOString() };
           toast.success(t("components.createPostForm.scheduled"));
         } else {
-          toast.success(t("components.createPostForm.sentToModeration"));
+          toast.success(
+            sel.kind === "video"
+              ? t("components.createPostForm.videoQueued")
+              : t("components.createPostForm.sentToModeration"),
+          );
         }
         onCreate?.(post);
       } else {
@@ -312,7 +329,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
           kind: channelKind,
           mediaIds,
         });
-        toast.success(t("components.createPostForm.publishedToChannel"));
+        toast.success(
+          sel.kind === "video"
+            ? t("components.createPostForm.videoQueued")
+            : t("components.createPostForm.publishedToChannel"),
+        );
         // No onCreate call — createChannelPost only returns a ChannelPost
         // (channel-scoped view), not the duplicated Post the backend
         // created server-side. Nothing is locally fabricated or prepended
@@ -505,7 +526,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
               setVideoFile(file);
               setVideoUrl(URL.createObjectURL(file));
               setVideoProgress(0);
-              void uploadMediaDeduped(file, "post_video", setVideoProgress).catch(() => {
+              videoUploadRef.current = beginPresignedUpload(file, "post_video", setVideoProgress);
+              void videoUploadRef.current.then((h) => h.done).catch(() => {
                 setVideoProgress(null);
                 toast.error(t("components.createPostForm.publishFailed"));
               });
@@ -514,6 +536,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
               setVideoFile(null);
               setVideoUrl(null);
               setVideoProgress(null);
+              videoUploadRef.current = null;
             }}
             progress={videoProgress}
           />
@@ -543,7 +566,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
         <button
           type="button"
           onClick={publish}
-          disabled={publishing || (videoFile != null && videoProgress != null && videoProgress < 100)}
+          disabled={publishing}
           className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
         >

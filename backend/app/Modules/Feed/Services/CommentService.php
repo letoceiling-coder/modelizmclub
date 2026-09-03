@@ -12,26 +12,21 @@ use App\Support\UserLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
+use Modules\Feed\Support\CommentMediaSync;
 use Modules\Feed\Support\PostInteractionRules;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CommentService
 {
+    public function __construct(private readonly CommentMediaSync $mediaSync) {}
+
     public function listForPost(Post $post, int $perPage = 20, string $sort = 'interesting'): LengthAwarePaginator
     {
         $sort = in_array($sort, ['interesting', 'old', 'new'], true) ? $sort : 'interesting';
         $perPage = max(1, min($perPage, 100));
 
         $query = Comment::query()
-            ->with([
-                'author.profile.avatar',
-                'replies' => function ($q) use ($sort): void {
-                    $q->with(['author.profile.avatar'])
-                        ->where('status', 'published')
-                        ->reorder();
-                    $this->applyCommentSort($q, $sort);
-                },
-            ])
+            ->with(['author.profile.avatar', 'mediaItems.media'])
             ->where('commentable_type', Post::class)
             ->where('commentable_id', $post->id)
             ->whereNull('parent_id')
@@ -39,12 +34,22 @@ class CommentService
 
         $this->applyCommentSort($query, $sort);
 
-        return $query->paginate($perPage);
+        $page = $query->paginate($perPage);
+        Comment::attachPublishedThreadReplies($page->getCollection());
+
+        return $page;
     }
 
-    public function createOnPost(Post $post, User $user, string $body, ?string $parentUuid = null): Comment
+    public function createOnPost(Post $post, User $user, string $body, ?string $parentUuid = null, array $mediaUuids = []): Comment
     {
         PostInteractionRules::assertPublicInteractionsAllowed($post);
+
+        $body = trim($body);
+        if ($body === '' && $mediaUuids === []) {
+            throw ValidationException::withMessages([
+                'body' => ['Введите текст или прикрепите фото.'],
+            ]);
+        }
 
         $parent = null;
         $rootId = null;
@@ -84,14 +89,21 @@ class CommentService
 
         $post->increment('comments_count');
 
+        if ($mediaUuids !== []) {
+            $this->mediaSync->sync($comment, $user, $mediaUuids);
+        }
+
         $this->notifyComment($post, $comment, $user, $parent);
 
-        return $comment->load(['author.profile.avatar']);
+        return $comment->load(['author.profile.avatar', 'mediaItems.media']);
     }
 
     private function notifyComment(Post $post, Comment $comment, User $author, ?Comment $parent): void
     {
         $preview = mb_substr(trim($comment->body), 0, 140);
+        if ($preview === '') {
+            $preview = 'Фото';
+        }
         $from = UserLabel::display($author);
         $link = '/feed';
         $notified = [];
@@ -123,6 +135,33 @@ class CommentService
         }
 
         return $comment;
+    }
+
+    public function delete(Comment $comment, User $user): void
+    {
+        $own = (int) $comment->user_id === (int) $user->id;
+        if (! $own && ! $user->isModerator()) {
+            throw ValidationException::withMessages([
+                'comment' => ['Удаление недоступно.'],
+            ]);
+        }
+
+        $ids = [$comment->id];
+        if ($comment->parent_id === null) {
+            $ids = array_values(array_unique(array_merge(
+                $ids,
+                Comment::query()->where('root_id', $comment->id)->pluck('id')->all(),
+            )));
+        }
+
+        $removed = Comment::query()->whereIn('id', $ids)->count();
+        Comment::query()->whereIn('id', $ids)->delete();
+
+        $commentable = $comment->commentable;
+        if ($commentable && $removed > 0) {
+            $current = (int) ($commentable->comments_count ?? 0);
+            $commentable->forceFill(['comments_count' => max(0, $current - $removed)])->save();
+        }
     }
 
     public function react(Comment $comment, User $user, string $type = 'like'): Comment
