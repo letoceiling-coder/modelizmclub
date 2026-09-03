@@ -46,6 +46,11 @@ class ConversationResource extends JsonResource
             'listing' => $this->whenLoaded('listing', fn () => $this->listing
                 ? new ListingCompactResource($this->listing)
                 : null),
+            'deal' => $this->whenLoaded('safeDeal', fn () => [
+                'uuid' => $this->safeDeal->uuid,
+                'status' => $this->safeDeal->status->value,
+                'status_label' => $this->safeDeal->status->label(),
+            ]),
             'is_pinned' => $myParticipant?->pinned_at !== null,
             'pinned_at' => $myParticipant?->pinned_at?->toIso8601String(),
             'pinned_message' => $this->whenLoaded('pinnedMessage', function () use ($request, $user) {

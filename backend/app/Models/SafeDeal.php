@@ -17,6 +17,7 @@ class SafeDeal extends Model
         'uuid',
         'listing_id',
         'shipment_id',
+        'conversation_id',
         'buyer_id',
         'seller_id',
         'amount_kopecks',
@@ -70,6 +71,12 @@ class SafeDeal extends Model
     public function shipment(): BelongsTo
     {
         return $this->belongsTo(Shipment::class);
+    }
+
+    /** The buyer↔seller chat opened together with the deal. */
+    public function conversation(): BelongsTo
+    {
+        return $this->belongsTo(Conversation::class);
     }
 
     public function buyer(): BelongsTo

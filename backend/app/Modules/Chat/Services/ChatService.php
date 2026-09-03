@@ -83,6 +83,7 @@ class ChatService
                 'latestMessage.post.mediaItems.media',
                 'pinnedMessage.author.profile.avatar',
                 'community.avatar',
+                'safeDeal',
             ])
             ->orderByRaw('cp.pinned_at IS NULL')
             ->orderByDesc('cp.pinned_at')
@@ -105,6 +106,7 @@ class ChatService
                 'latestMessage.attachments.media',
                 'latestMessage.post.mediaItems.media',
                 'community.avatar',
+                'safeDeal',
             ])
             ->first();
 
@@ -1040,5 +1042,37 @@ class ChatService
                 return true;
             })
             ->values();
+    }
+
+    /**
+     * Append an authorless notice ("Сделка №… — Отправлена") to a conversation.
+     *
+     * System messages have no sender, so they are not attributed to either
+     * side and never count towards anyone's unread badge; the client renders
+     * type `system` as a centred notice.
+     */
+    public function postSystemMessage(Conversation $conversation, string $body): Message
+    {
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => null,
+            'body' => $body,
+            'type' => 'system',
+            'status' => 'sent',
+        ]);
+
+        $conversation->forceFill(['last_message_at' => now()])->save();
+
+        $message->setRelation('conversation', $conversation);
+
+        DB::afterCommit(function () use ($message): void {
+            try {
+                broadcast(new MessageSent($message));
+            } catch (\Throwable) {
+                // Reverb may be unavailable during tests or maintenance
+            }
+        });
+
+        return $message;
     }
 }

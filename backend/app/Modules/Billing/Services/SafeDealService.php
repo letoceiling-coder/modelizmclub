@@ -52,6 +52,7 @@ class SafeDealService
         private readonly UserRatingService $ratings,
         private readonly SafeDealSettlementService $settlement,
         private readonly SafeDealPayoutService $payouts,
+        private readonly SafeDealChatService $dealChat,
     ) {}
 
     public function platformFeePercent(): float
@@ -196,6 +197,10 @@ class SafeDealService
                         'escrow_provider' => $vtb ? SafeDealSettlementService::PROVIDER_VTB : SafeDealSettlementService::PROVIDER_WALLET,
                     ],
                 ]);
+
+                // Buyer and seller get their deal chat straight away, before any
+                // money moves, so every later status lands in an existing thread.
+                $this->dealChat->ensureConversation($deal->setRelation('listing', $listing));
 
                 if (! $vtb) {
                     $hold = $this->wallet->hold(
@@ -851,6 +856,10 @@ class SafeDealService
             'note' => $note,
             'created_at' => now(),
         ]);
+
+        // Every ledger entry is written after the deal's own status update, so
+        // this is the single place that mirrors the lifecycle into the chat.
+        $this->dealChat->announceStatus($deal, $note);
     }
 
     /** @return array<string, mixed> */
