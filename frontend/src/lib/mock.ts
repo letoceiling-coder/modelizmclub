@@ -61,6 +61,8 @@ export interface Comment {
   likes?: number;
   replies?: Comment[];
   images?: string[];
+  /** Per-ability verdicts from the API (`can: { edit, delete, react }`). */
+  can?: Record<string, boolean>;
 }
 
 export interface VideoCategory {

@@ -254,6 +254,7 @@ export async function repostPost(uuid: string, on: boolean, body?: string): Prom
 
 export interface ApiComment {
   uuid: string;
+  can?: Record<string, boolean>;
   body?: string | null;
   author?: ApiPostAuthor | null;
   parent_uuid?: string | null;
@@ -271,6 +272,7 @@ export function mapComment(c: ApiComment): Comment {
     id: c.uuid,
     authorId: author?.id ?? "",
     time: c.created_at ?? "",
+    can: c.can,
     text: c.body ?? "",
     likes: c.stats?.reactions ?? 0,
     replies: (c.replies ?? []).map(mapComment),

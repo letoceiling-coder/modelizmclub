@@ -9,7 +9,7 @@ import { userById } from "@/lib/mock";
 import { fetchVideo, fetchVideos, incrementVideoView, reactToVideo, fetchVideoComments, createVideoComment } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
 import { ReviewPlayerSettings } from "@/components/reviews/ReviewPlayerSettings";
-import { CommentSection } from "@/components/feed/CommentSection";
+import { CommentSection } from "@/components/post/CommentSection";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";

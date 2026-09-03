@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Trash2, Pin, Pencil, MessageCircle } from "lucide-react";
+import { ArrowLeft, Users, Check, BadgeCheck, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Pin, Pencil, MessageCircle } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner, isChannelManager,
@@ -26,9 +26,10 @@ import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
 import { useCurrentUser } from "@/lib/session";
-import { PostActionMenu } from "@/components/post/PostActionMenu";
+import { PostCard } from "@/components/post/PostCard";
+import type { Post } from "@/lib/mock";
+import { registerUser } from "@/lib/mock";
 import { openConversation } from "@/lib/api/chat";
-import type { User } from "@/lib/mock";
 
 
 import i18n from "@/lib/i18n";
@@ -470,16 +471,37 @@ function postStatusMeta(t: (key: string) => string): Record<PostStatus, { label:
   };
 }
 
-function ChannelPostMedia({ post }: { post: ChannelPost }) {
-  const { t } = useTranslation();
-  const items = (post.media ?? []).map((item) => ({ type: item.type, url: item.url }));
-  if (items.length === 0) return null;
 
-  return (
-    <div className="mt-2 max-w-[520px] overflow-hidden rounded-[10px]">
-      <PostMediaCarousel items={items} alt={post.text.slice(0, 40) || t("pages.channelDetail.postAlt")} />
-    </div>
-  );
+/** Channel post as the shared card: the feed anatomy, channel data behind it. */
+function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Post {
+  return {
+    id: post.feedPostId ?? post.id,
+    authorId: channel.ownerId ?? channel.slug,
+    date: post.createdAt,
+    category: channel.category,
+    title: "",
+    text: post.text,
+    images: post.images ?? [],
+    video: post.video,
+    mediaItems: (post.media ?? []).map((m) => ({ type: m.type, url: m.url, width: m.width, height: m.height })),
+    views: post.views,
+    likes: post.likes,
+    comments: 0,
+    isLiked: post.liked,
+    status: post.status === "published" ? "published" : "moderation",
+    canInteract: post.status === "published",
+    canDelete: canManage,
+    canEdit: false,
+    channel: {
+      slug: channel.slug,
+      name: channel.name,
+      kind: channel.kind,
+      avatar: channel.avatarImage,
+      isSubscribed: channel.isSubscribed,
+      // Comments live on the mirrored feed post; without one there is nothing to comment on.
+      commentsEnabled: channel.commentsEnabled !== false && Boolean(post.feedPostId),
+    },
+  };
 }
 
 function PostItem({
@@ -498,26 +520,21 @@ function PostItem({
   onUpdated: () => void;
 }) {
   const { t } = useTranslation();
-  const { requireAccount } = useGuestAccess();
   const s = postStatusMeta(t)[post.status];
-  const [deleting, setDeleting] = useState(false);
-  const [liked, setLiked] = useState(Boolean(post.liked));
-  const [likes, setLikes] = useState(post.likes);
-  const [views, setViews] = useState(post.views);
   const [pinning, setPinning] = useState(false);
-  const reportAuthor: User = {
-    id: channel.ownerId ?? channel.slug,
-    name: channel.ownerName,
-    avatar: channel.ownerAvatar ?? "",
-    city: "",
-    interests: "",
-  };
+  const [views, setViews] = useState(post.views);
 
+  // The card resolves the author through the store; the channel owner is the author here.
   useEffect(() => {
-    setLiked(Boolean(post.liked));
-    setLikes(post.likes);
-    setViews(post.views);
-  }, [post.liked, post.likes, post.views]);
+    registerUser({
+      id: channel.ownerId ?? channel.slug,
+      name: channel.ownerName,
+      avatar: channel.ownerAvatar ?? "",
+      city: "",
+      interests: "",
+      slug: channel.ownerSlug,
+    });
+  }, [channel.ownerId, channel.slug, channel.ownerName, channel.ownerAvatar, channel.ownerSlug]);
 
   useEffect(() => {
     if (post.status !== "published") return;
@@ -529,34 +546,6 @@ function PostItem({
       cancelled = true;
     };
   }, [channel.slug, post.id, post.status]);
-
-  const handleDelete = async () => {
-    if (!window.confirm(t("pages.channelDetail.deletePostConfirm"))) return;
-    setDeleting(true);
-    try {
-      await deleteChannelPost(channel.slug, post.id);
-      toast.success(t("pages.channelDetail.deletePostSuccess"));
-      onDeleted();
-    } catch (err) {
-      toast.error(formatApiErrorMessage(err, t("pages.channelDetail.deletePostFailed")));
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const toggleLike = () => {
-    if (post.status !== "published") return;
-    requireAccount(() => {
-      const next = !liked;
-      setLiked(next);
-      setLikes((n) => n + (next ? 1 : -1));
-      void setChannelPostLiked(channel.slug, post.id, next).catch(() => {
-        setLiked(!next);
-        setLikes((n) => n + (next ? -1 : 1));
-        toast.error(t("pages.channelDetail.likeFailed"));
-      });
-    });
-  };
 
   const togglePin = async () => {
     setPinning(true);
@@ -570,127 +559,66 @@ function PostItem({
     }
   };
 
-  return (
-    <li
-      className="p-4"
-      style={{
-        background: "var(--background)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
-        opacity: post.status === "rejected" ? 0.7 : 1,
-      }}
-    >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <div className="text-[13px] font-semibold truncate" style={{ color: "var(--foreground)" }}>
-              {post.authorName}
-            </div>
-            {post.pinned && (
-              <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 7px", borderRadius: 6 }}
-              >
-                <Pin size={11} /> {t("pages.channelDetail.pinned")}
-              </span>
-            )}
-          </div>
-          <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            {formatChannelDate(post.createdAt)}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-          {canManage && post.status === "published" && (
-            <button
-              type="button"
-              onClick={() => void togglePin()}
-              disabled={pinning}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity disabled:opacity-50"
-              style={{
-                background: post.pinned ? "var(--accent-soft)" : "var(--background-surface)",
-                color: post.pinned ? "var(--accent)" : "var(--foreground-70)",
-                padding: "4px 8px",
-                borderRadius: 6,
-              }}
-            >
-              <Pin size={11} /> {post.pinned ? t("pages.channelDetail.unpin") : t("pages.channelDetail.pin")}
-            </button>
-          )}
-          {canManage && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              aria-label={t("pages.channelDetail.deletePost")}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold transition-opacity disabled:opacity-50"
-              style={{
-                background: "rgba(239,68,68,0.08)",
-                color: "rgb(185,28,28)",
-                padding: "4px 8px",
-                borderRadius: 6,
-                border: "1px solid rgba(239,68,68,0.2)",
-              }}
-            >
-              <Trash2 size={11} /> {t("pages.channelDetail.deletePost")}
-            </button>
-          )}
-          {post.kind && (
-            <span
-              className="inline-flex items-center gap-1 text-[11px] font-semibold"
-              style={{ background: "var(--background-surface)", color: "var(--foreground-70)", padding: "4px 8px", borderRadius: 6 }}
-            >
-              <KindIcon kind={post.kind} /> {postKindLabel(t, post.kind)}
-            </span>
-          )}
-          {(canManage || post.status !== "published") && (
-            <span
-              className="inline-flex items-center gap-1 text-[11px] font-semibold"
-              style={{ background: s.bg, color: s.color, padding: "4px 8px", borderRadius: 6 }}
-            >
-              <s.Icon size={11} /> {s.label}
-            </span>
-          )}
-          {post.feedPostId && !isOwner && (
-            <PostActionMenu
-              postId={post.feedPostId}
-              saved={false}
-              title={post.text.slice(0, 80)}
-              text={post.text}
-              status={post.status === "published" ? "published" : "moderation"}
-              author={reportAuthor}
-              isOwn={isOwner}
-            />
-          )}
-        </div>
-      </div>
+  const feedPost = { ...toFeedPost(post, channel, canManage), views };
+  const chip = "inline-flex items-center gap-1 text-[11px] font-semibold";
+  const chipStyle = { padding: "3px 7px", borderRadius: 6 } as const;
 
-      <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground)" }}>
-        {post.text}
-      </p>
-      <ChannelPostMedia post={post} />
-      {post.status === "rejected" && post.rejectionReason && (
-        <div
-          className="mt-3 rounded-[10px] p-3 text-[12px] leading-relaxed"
-          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "rgb(185,28,28)" }}
+  const badges = (
+    <>
+      {post.pinned && (
+        <span className={chip} style={{ ...chipStyle, background: "var(--accent-soft)", color: "var(--accent)" }}>
+          <Pin size={11} /> {t("pages.channelDetail.pinned")}
+        </span>
+      )}
+      {post.kind && (
+        <span className={chip} style={{ ...chipStyle, background: "var(--background-surface)", color: "var(--foreground-70)" }}>
+          <KindIcon kind={post.kind} /> {postKindLabel(t, post.kind)}
+        </span>
+      )}
+      {(canManage || post.status !== "published") && (
+        <span className={chip} style={{ ...chipStyle, background: s.bg, color: s.color }}>
+          <s.Icon size={11} /> {s.label}
+        </span>
+      )}
+      {canManage && post.status === "published" && (
+        <button
+          type="button"
+          onClick={() => void togglePin()}
+          disabled={pinning}
+          className={`${chip} transition-opacity disabled:opacity-50`}
+          style={{ ...chipStyle, background: post.pinned ? "var(--accent-soft)" : "var(--background-surface)", color: post.pinned ? "var(--accent)" : "var(--foreground-70)" }}
         >
-          <div className="font-semibold">{t("pages.channelDetail.rejectionReasonTitle")}</div>
-          <div className="mt-1">{post.rejectionReason}</div>
-        </div>
+          <Pin size={11} /> {post.pinned ? t("pages.channelDetail.unpin") : t("pages.channelDetail.pin")}
+        </button>
       )}
-      {post.status === "published" && (
-        <div className="mt-4 flex items-center gap-4 border-t pt-3 text-[12px]" style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}>
-          <button
-            type="button"
-            onClick={toggleLike}
-            className="inline-flex items-center gap-1 rounded-[8px] px-1 py-0.5 transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: liked ? "var(--accent)" : "var(--foreground-50)" }}
-            aria-label={t("pages.channelDetail.likeAria")}
-          >
-            <Heart size={13} fill={liked ? "currentColor" : "none"} /> {likes}
-          </button>
-          <span className="inline-flex items-center gap-1"><Eye size={13} /> {views}</span>
-        </div>
-      )}
+    </>
+  );
+
+  const extras =
+    post.status === "rejected" && post.rejectionReason ? (
+      <div
+        className="mx-[16px] mt-3 rounded-[10px] p-3 text-[12px] leading-relaxed"
+        style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "rgb(185,28,28)" }}
+      >
+        <div className="font-semibold">{t("pages.channelDetail.rejectionReasonTitle")}</div>
+        <div className="mt-1">{post.rejectionReason}</div>
+      </div>
+    ) : null;
+
+  return (
+    <li style={{ opacity: post.status === "rejected" ? 0.7 : 1 }}>
+      <PostCard
+        variant="channel"
+        post={feedPost}
+        context={{ channel }}
+        badges={badges}
+        extras={extras}
+        overrides={{
+          toggleLike: (next) => setChannelPostLiked(channel.slug, post.id, next),
+          remove: () => deleteChannelPost(channel.slug, post.id),
+        }}
+        onDelete={() => onDeleted()}
+      />
     </li>
   );
 }

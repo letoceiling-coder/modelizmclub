@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check, Trash2, ShieldCheck, Clock, Send, XCircle } from "lucide-react";
+import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check, Trash2, ShieldCheck, Clock, Send, XCircle, Pencil } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { actions } from "@/lib/store";
 import { deletePost } from "@/lib/api/feed";
@@ -39,6 +39,10 @@ interface Props {
   /** Own post? Hide/report don't make sense on your own post. */
   isOwn?: boolean;
   onDeleted?: () => void;
+  /** Shows "Редактировать" above delete. */
+  onEdit?: () => void;
+  /** Replaces the default delete request (channel posts delete through their own endpoint). */
+  removeOverride?: () => Promise<unknown>;
   onApproved?: () => void;
   /** Toggles the saved state (shared with the footer bookmark button). */
   onToggleSave?: () => void;
@@ -61,6 +65,8 @@ export function PostActionMenu({
   author,
   isOwn = false,
   onDeleted,
+  onEdit,
+  removeOverride,
   onApproved,
   onToggleSave,
   onHide,
@@ -164,7 +170,7 @@ export function PostActionMenu({
         close();
         return;
       }
-      await deletePost(postId);
+      await (removeOverride ? removeOverride() : deletePost(postId));
       toast.success("Публикация удалена");
       onDeleted?.();
       close();
@@ -271,6 +277,12 @@ export function PostActionMenu({
             <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
             <MenuItem onClick={handleHide} icon={EyeOff} label={t("components.postActionMenu.hide")} />
             <MenuItem onClick={handleReport} icon={Flag} label={t("components.postActionMenu.report")} />
+          </>
+        )}
+        {onEdit && (
+          <>
+            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+            <MenuItem onClick={onEdit} icon={Pencil} label="Редактировать" />
           </>
         )}
         {showDelete && (

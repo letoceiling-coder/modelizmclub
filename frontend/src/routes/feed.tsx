@@ -8,7 +8,7 @@ import { CreatePostMenu, type ComposerDraft, type ComposerSelection } from "@/co
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
-import { PostCard } from "@/components/PostCard";
+import { PostCard } from "@/components/post/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTabs";
 import { EmptyState } from "@/components/ui/empty-state";

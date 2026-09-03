@@ -39,6 +39,8 @@ interface Props {
   onHide?: () => void;
   totalCount?: number;
   onSortChange?: (sort: CommentSort) => void;
+  /** Server verdict for the whole thread: `can.comment === false` makes it read-only. */
+  can?: Record<string, boolean>;
 }
 
 /** Expanded lists grow in chunks so a thread with hundreds of replies
@@ -339,6 +341,8 @@ function CommentItem({
   const [draft, setDraft] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const isOwn = comment.authorId === me.id;
+  // Server verdict wins when present (moderators); the author always may.
+  const canDelete = isOwn || comment.can?.delete === true;
   const replyPhotos = useCommentPhotoDraft();
 
   const submit = () => {
@@ -408,7 +412,7 @@ function CommentItem({
                 ) : null}
                 <CommentPhotos urls={comment.images ?? []} />
               </div>
-              {(isOwn || !readOnly) && (
+              {(canDelete || !readOnly) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -421,7 +425,7 @@ function CommentItem({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {isOwn ? (
+                    {canDelete ? (
                       <DropdownMenuItem
                         onClick={() => {
                           if (!window.confirm(t("components.commentSection.deleteConfirm"))) return;
@@ -553,7 +557,7 @@ export function CommentSection({
   comments,
   onAdd,
   loading,
-  readOnly = false,
+  readOnly: readOnlyProp = false,
   previewLimit = 3,
   showAll = false,
   onShowAll,
@@ -561,7 +565,9 @@ export function CommentSection({
   totalCount,
   onSortChange,
   onDeleted,
+  can,
 }: Props) {
+  const readOnly = readOnlyProp || can?.comment === false;
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
   const me = useCurrentUser();
