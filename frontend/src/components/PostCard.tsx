@@ -32,6 +32,8 @@ import { RepostMenu } from "@/components/feed/RepostMenu";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { SchedulePostDialog } from "@/components/feed/SchedulePostDialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { Gated, levelFromAccessTier, useGate } from "@/lib/gate";
+import { resolveMinTier } from "@/lib/feed-guest-access/store";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { setChannelSubscription } from "@/lib/channels";
@@ -159,7 +161,11 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
   const commentsReq = useRef(0);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [repostComposerOpen, setRepostComposerOpen] = useState(false);
-  const { guardAction, requirePremium, isAllowed } = useGuestAccess();
+  const { requirePremium, isAllowed, config: accessConfig } = useGuestAccess();
+  const gate = useGate();
+  // Required rung per action comes from the admin's guest-access config
+  // (guest | auth | subscription); the gate turns it into one window.
+  const levelFor = (actionKey: string) => levelFromAccessTier(resolveMinTier(actionKey, accessConfig));
   const commentsEnabled = post.channel?.commentsEnabled !== false;
   const [channelSubscribed, setChannelSubscribed] = useState(Boolean(post.channel?.isSubscribed));
   const isScheduled = post.status === "scheduled";
@@ -262,34 +268,36 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
     focusComments();
   };
 
-  const toggleLike = () => {
+  // Bodies run only once the gate lets them through (see the <Gated> wrappers
+  // in the footer and gate.require() below).
+  const doLike = () => {
     if (!canInteract) return;
-    guardAction("feed.post.like", () => {
-      const next = !liked;
-      setLiked(next);
-      setLikes((n) => n + (next ? 1 : -1));
-      reactToPost(post.id, next).catch(() => {
-        setLiked(!next);
-        setLikes((n) => n + (next ? -1 : 1));
-      });
+    const next = !liked;
+    setLiked(next);
+    setLikes((n) => n + (next ? 1 : -1));
+    reactToPost(post.id, next).catch(() => {
+      setLiked(!next);
+      setLikes((n) => n + (next ? -1 : 1));
     });
   };
-  const toggleSave = () => {
+  const doSave = () => {
     if (!canInteract) return;
-    guardAction("feed.post.save", () => {
-      const next = !saved;
-      if (onToggleSave) onToggleSave(post.id);
-      else setSavedInner((v) => !v);
-      setSaves((n) => n + (next ? 1 : -1));
-      bookmarkPost(post.id, next).catch(() => {
-        if (!onToggleSave) setSavedInner((v) => !v);
-        setSaves((n) => n + (next ? -1 : 1));
-      });
+    const next = !saved;
+    if (onToggleSave) onToggleSave(post.id);
+    else setSavedInner((v) => !v);
+    setSaves((n) => n + (next ? 1 : -1));
+    bookmarkPost(post.id, next).catch(() => {
+      if (!onToggleSave) setSavedInner((v) => !v);
+      setSaves((n) => n + (next ? -1 : 1));
     });
+  };
+  // Gated form of doSave for children that take a plain callback (embedded card).
+  const toggleSave = () => {
+    void gate.require(levelFor("feed.post.save"), doSave);
   };
   const toggleRepost = () => {
     if (!canInteract || isScheduled) return;
-    guardAction("feed.post.repost", () => {
+    void gate.require(levelFor("feed.post.repost"), () => {
       if (reposted) {
         const next = false;
         setReposted(next);
@@ -323,7 +331,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
   const addComment = (text: string, parentId?: string, photos?: { mediaIds: string[]; urls: string[] }) => {
     if (!canInteract) return;
-    guardAction("feed.post.comment", () => {
+    void gate.require(levelFor("feed.post.comment"), () => {
       const tempId = `nc${Date.now()}`;
       const newC: Comment = {
         id: tempId,
@@ -638,8 +646,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
           className="flex items-center gap-[2px] px-[8px] pb-[8px] pt-[4px]"
           style={{ color: "var(--foreground-70)" }}
         >
+          <Gated level={levelFor("feed.post.like")} action={doLike} entity={post} actionName="react">
           <button
-            onClick={toggleLike}
+            type="button"
             disabled={!canInteract}
             className={actionCls}
             style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
@@ -667,6 +676,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               </motion.span>
             </AnimatePresence>
           </button>
+          </Gated>
 
           <button
             onClick={toggleComments}
@@ -682,8 +692,9 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
           <RepostMenu postId={post.id} reposted={reposted} count={reposts} onRepost={toggleRepost} disabled={!canInteract} />
 
+          <Gated level={levelFor("feed.post.save")} action={doSave} entity={post}>
           <button
-            onClick={toggleSave}
+            type="button"
             disabled={!canInteract}
             className={actionCls}
             style={{ color: saved ? "var(--accent)" : "var(--foreground-70)" }}
@@ -698,6 +709,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             </motion.span>
             {saves > 0 && <span className="tabular-nums">{saves}</span>}
           </button>
+          </Gated>
 
           {/* Views — desktop only */}
           <div

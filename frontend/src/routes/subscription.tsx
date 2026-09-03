@@ -28,6 +28,10 @@ import {
 import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/subscription")({
+  // Where the gate brings the user back after they subscribe (lib/gate).
+  validateSearch: (s: Record<string, unknown>): { returnTo?: string } => ({
+    returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") ? s.returnTo : undefined,
+  }),
   head: () => ({ meta: [{ title: i18n.t("pages.subscription.metaTitle") }] }),
   component: SubscriptionPage,
 });
