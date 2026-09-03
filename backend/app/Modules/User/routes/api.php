@@ -14,6 +14,7 @@ use Modules\User\Http\Controllers\Api\V1\PresenceHeartbeatController;
 use Modules\User\Http\Controllers\Api\V1\PrivacyController;
 use Modules\User\Http\Controllers\Api\V1\ReferralController;
 use Modules\User\Http\Controllers\Api\V1\SettingsController;
+use Modules\User\Http\Controllers\Api\V1\ShowMeController;
 use Modules\User\Http\Controllers\Api\V1\ShowProfileController;
 use Modules\User\Http\Controllers\Api\V1\UpdateProfileController;
 use Modules\User\Http\Controllers\Api\V1\UserRatingController;
@@ -21,6 +22,10 @@ use Modules\User\Http\Controllers\Api\V1\UserReviewsController;
 
 Route::prefix('users')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
+        // Registered before the public `{slug}` catch-all below, so /users/me
+        // resolves here (and answers 401 without a token) instead of being
+        // looked up as a profile slug.
+        Route::get('me', ShowMeController::class);
         Route::get('me/stats/views-daily', MyStatsViewsDailyController::class);
         Route::get('me/stats', MyStatsController::class);
         Route::get('search', IndexUsersController::class);
