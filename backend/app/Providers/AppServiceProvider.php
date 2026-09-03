@@ -130,6 +130,16 @@ class AppServiceProvider extends ServiceProvider
         // surfaces as a 500 ("invalid input syntax for type uuid"); with the
         // pattern it simply fails to match the route and returns a clean 404.
         \Illuminate\Support\Facades\Route::pattern('uuid', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
+        // Every module ends its group with a `{slug}` catch-all (User, Channel,
+        // Community) and none of them constrained it, so anything that failed to
+        // match an explicit route — a typo, a removed path, a reserved word —
+        // fell through to a show-controller instead of a 404. Same treatment
+        // the uuid parameter already gets.
+        // Case-insensitive on purpose: slugs are lowercased where they are
+        // generated (Str::slug), and this pattern's job is to reject what is
+        // not a slug at all — %20, punctuation, underscores — not to police
+        // case. Reserved words such as `me` are handled by route order.
+        \Illuminate\Support\Facades\Route::pattern('slug', '[A-Za-z0-9][A-Za-z0-9-]{1,60}');
 
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
         RateLimiter::for('auth-verify', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));

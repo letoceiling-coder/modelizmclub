@@ -31,7 +31,10 @@ class UserService
             ->where('slug', $slug)
             ->first();
 
-        if (! $profile) {
+        // The uuid fallback compared the raw string against a uuid column, and
+        // PostgreSQL rejects that with 22P02 for anything that is not a uuid —
+        // so an unknown slug like `me` surfaced as a 500, not a 404.
+        if (! $profile && Str::isUuid($slug)) {
             $profile = UserProfile::query()
                 ->with(['user', 'city', 'avatar', 'cover'])
                 ->whereHas('user', fn ($q) => $q->where('uuid', $slug))
